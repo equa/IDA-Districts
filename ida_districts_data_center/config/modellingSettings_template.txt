@@ -1,0 +1,1 @@
+{'fd_meterPerNode': '10', 'node_vol': '0.001', 'ground_model': 'Kusuda', 'kusuda_tsurfmean': '10', 'kusuda_tsurfampl': '5', 'kusuda_theta': '30', 'kusuda_rho': '1387', 'kusuda_cp': '1344', 'kusuda_lambda': '1.18', 'kusuda_depth': '1', 'ground_timeseries': '', 'ground_temp': '10', 'duct_model': 'Constant', 'duct_timeseries': '', 'duct_temp': '20', 'ambient_air_model': 'climate'}

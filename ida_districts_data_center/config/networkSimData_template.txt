@@ -1,0 +1,1 @@
+{'calc_type': 'periodic', 'numb_of_periods': '1', 'calc_time_from': '', 'calc_time_to': '', 'startup_type': 'periodic', 'startup_time_from': '', 'startup_time_to': '','max_timestep': '1'}
