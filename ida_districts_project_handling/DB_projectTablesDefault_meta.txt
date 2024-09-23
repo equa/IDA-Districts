@@ -1,0 +1,763 @@
+-------------------table public.pipe_ambient------------------------------------
+DROP TABLE IF EXISTS public.pipe_ambient CASCADE;
+CREATE TABLE IF NOT EXISTS public.pipe_ambient
+(
+    id serial,
+    ambient character varying(50),
+    CONSTRAINT pipe_ambient_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.type------------------------------------
+DROP TABLE IF EXISTS public.type CASCADE;
+CREATE TABLE IF NOT EXISTS public.type
+(
+    id serial,
+    name character varying(50),
+    CONSTRAINT type_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.type------------------------------------
+DROP TABLE IF EXISTS public.measure CASCADE;
+CREATE TABLE IF NOT EXISTS public.measure
+(
+    id serial,
+    measure character varying(50),
+    unit character varying(50),
+    CONSTRAINT measure_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.target------------------------------------
+DROP TABLE IF EXISTS public.target CASCADE;
+CREATE TABLE IF NOT EXISTS public.target
+(
+    id serial,
+    target character varying(50),
+    CONSTRAINT target_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.signal_function------------------------------------
+DROP TABLE IF EXISTS public.signal_function CASCADE;
+CREATE TABLE IF NOT EXISTS public.signal_function
+(
+    id serial,
+    function character varying(50),
+    CONSTRAINT signal_function_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.prefered_conn_dir------------------------------------
+DROP TABLE IF EXISTS public.prefered_conn_dir CASCADE;
+CREATE TABLE public.prefered_conn_dir
+(
+  id serial,
+  name character varying(55),
+  CONSTRAINT prefered_conn_dir_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.internal_loads------------------------------------
+DROP TABLE IF EXISTS public.internal_loads CASCADE;
+CREATE TABLE public.internal_loads
+(
+  id serial,
+  internal_load_id integer,
+  time_h numeric,
+  w7m2 numeric,
+  CONSTRAINT internal_loads_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.internal_loads_profiles------------------------------------
+DROP TABLE IF EXISTS public.internal_loads_profiles CASCADE;
+CREATE TABLE public.internal_loads_profiles
+(
+  id serial,
+  description character varying(500),
+  CONSTRAINT internal_loads_profiles_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.customer_loads------------------------------------
+DROP TABLE IF EXISTS public.customer_loads CASCADE;
+CREATE TABLE public.customer_loads
+(
+  id serial,
+  customer_load_id integer,
+  time_h numeric,
+  w7m2 numeric,
+  CONSTRAINT customer_loads_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.customer_loads_profiles------------------------------------
+DROP TABLE IF EXISTS public.customer_loads_profiles CASCADE;
+CREATE TABLE public.customer_loads_profiles
+(
+  id serial,
+  description character varying(500),
+  CONSTRAINT customer_loads_profiles_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.dhw_profiles------------------------------------
+DROP TABLE IF EXISTS public.dhw_profiles CASCADE;
+CREATE TABLE public.dhw_profiles
+(
+  id serial,
+  description character varying(500),
+  CONSTRAINT dhw_profiles_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.dhw------------------------------------
+DROP TABLE IF EXISTS public.dhw CASCADE;
+CREATE TABLE public.dhw
+(
+  id serial,
+  dhw_id integer,
+  time_h numeric,
+  kg7s numeric,
+  CONSTRAINT dhw_pkey PRIMARY KEY (id)
+);
+  
+-------------------table temp.dhw------------------------------------
+DROP TABLE IF EXISTS temp.dhw CASCADE;
+CREATE TABLE temp.dhw
+(
+  id serial,
+  dhw_id integer,
+  time_h numeric,
+  kg7s numeric,
+  CONSTRAINT dhw_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp_timeseries------------------------------------
+DROP TABLE IF EXISTS temp_timeseries CASCADE;
+CREATE TABLE public.temp_timeseries
+(
+    id serial,
+    description character varying(500),
+    CONSTRAINT temp_timeseries_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp------------------------------------
+DROP TABLE IF EXISTS temp CASCADE;
+CREATE TABLE public.temp
+(
+    id serial,
+    temp_id integer,
+    time_h numeric,
+    temp numeric,
+    CONSTRAINT temp_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table temp.temp------------------------------------
+DROP TABLE IF EXISTS temp.temp CASCADE;
+CREATE TABLE temp.temp
+(
+    id serial,
+    temp_id integer,
+    time_h numeric,
+    temp numeric,
+    CONSTRAINT temp_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.conn_bundle_types------------------------------------
+DROP TABLE IF EXISTS public.conn_bundle_types CASCADE;
+CREATE TABLE public.conn_bundle_types
+(
+  id serial,
+  description character varying(250),
+  CONSTRAINT conn_bundle_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.bundle_type_conns------------------------------------
+DROP TABLE IF EXISTS public.bundle_type_conns CASCADE;
+CREATE TABLE public.bundle_type_conns
+(
+  id serial,
+  conn_bundle_type_id integer,
+  sequence int,
+  conn_type_id numeric,
+  description character varying(250),
+  CONSTRAINT bundle_type_conns_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.connection_types------------------------------------
+DROP TABLE IF EXISTS public.connection_types CASCADE;
+CREATE TABLE public.connection_types
+(
+  id serial,
+  description character varying(50),
+  CONSTRAINT connection_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.connection_type_connections------------------------------------
+DROP TABLE IF EXISTS public.connection_type_connections CASCADE;
+CREATE TABLE public.connection_type_connections
+(
+  id serial,
+  connection_type_id integer,
+  sequence integer,
+  connection_id integer,
+  CONSTRAINT connection_type_connections_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.connections------------------------------------
+DROP TABLE IF EXISTS public.connections CASCADE;
+CREATE TABLE public.connections
+(
+  id serial,
+  type integer,
+  temp numeric,
+  p numeric,
+  mdot numeric,
+  description character varying(250),
+  CONSTRAINT connections_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipe_bundle_types------------------------------------
+DROP TABLE IF EXISTS public.pipe_bundle_types CASCADE;
+CREATE TABLE public.pipe_bundle_types
+(
+  id serial,
+  description character varying(250),
+  CONSTRAINT pipe_bundle_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.bundle_pipes------------------------------------
+DROP TABLE IF EXISTS public.bundle_pipes CASCADE;
+CREATE TABLE public.bundle_pipes
+(
+  id serial,
+  pipe_bundle_type_id integer,
+  sequence int,
+  pipe_id numeric,
+  x numeric,
+  y numeric,
+  ambient int,
+  CONSTRAINT bundle_pipes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipes------------------------------------
+DROP TABLE IF EXISTS public.pipes CASCADE;
+CREATE TABLE public.pipes
+(
+  id serial,
+  name character varying(255),
+  innerpipediameter numeric,
+  piperoughnessfactor numeric,
+  pipe_construction_id integer,
+  description character varying(255),
+  CONSTRAINT pipes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipe_constructions------------------------------------
+DROP TABLE IF EXISTS public.pipe_constructions CASCADE;  
+CREATE TABLE public.pipe_constructions
+(
+  id serial,
+  name character varying(255),
+  CONSTRAINT pipe_constructions_pkey PRIMARY KEY (id)
+);  
+
+-------------------table public.pipe_layers------------------------------------
+DROP TABLE IF EXISTS public.pipe_layers CASCADE;  
+CREATE TABLE public.pipe_layers
+(
+  id serial,
+  pipe_construction_id integer,
+  materialid integer,
+  thickness numeric,
+  sequence integer,
+  CONSTRAINT layer_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.materials------------------------------------
+DROP TABLE IF EXISTS public.materials CASCADE; 
+CREATE TABLE public.materials
+(
+  id serial,
+  name character varying,
+  thermal_conductivity_w7mkelvin numeric,
+  specific_heat_j7kgkelvin numeric,
+  density_kg7m3 numeric,
+  CONSTRAINT material_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.dbsettings;------------------------------------
+DROP TABLE IF EXISTS public.dbsettings CASCADE;
+CREATE TABLE public.dbsettings
+(
+  id serial,
+  host character varying(50),
+  port character varying(50),
+  username character varying(50),
+  pwd character varying(50),
+  projectname character varying(50),
+  versionname character varying(50),
+  CONSTRAINT dbsettings_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.versionhandling;------------------------------------
+DROP TABLE IF EXISTS public.versionhandling CASCADE;
+CREATE TABLE public.versionhandling
+(
+  id serial,
+  name character varying(255),
+  id_base int,
+  description character varying(255)
+);
+
+-------------------table public.owner------------------------------------
+DROP TABLE IF EXISTS public.owner CASCADE;
+CREATE TABLE public.owner
+(
+	id serial,
+	owner varchar(25), 
+	CONSTRAINT owner_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.maintby------------------------------------
+DROP TABLE IF EXISTS public.maintby CASCADE;
+CREATE TABLE public.maintby
+(
+	id serial,
+	maintby varchar(25), 
+	CONSTRAINT maintby_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.lifecyclestatus------------------------------------
+DROP TABLE IF EXISTS public.lifecyclestatus CASCADE;
+CREATE TABLE public.lifecyclestatus
+(
+	id serial,
+	lifecyclestatus varchar(25), 
+	CONSTRAINT lifecyclestatus_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.installlocation------------------------------------
+DROP TABLE IF EXISTS public.installlocation CASCADE;
+CREATE TABLE public.installlocation
+(
+	id serial,
+	installlocation varchar(100), 
+	CONSTRAINT installlocation_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.installationmethod------------------------------------
+DROP TABLE IF EXISTS public.installationmethod CASCADE;
+CREATE TABLE public.installationmethod
+(
+	id serial,
+	installationmethod varchar(100), 
+	CONSTRAINT installationmethod_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.spatialsource------------------------------------
+DROP TABLE IF EXISTS public.spatialsource CASCADE;
+CREATE TABLE public.spatialsource
+(
+	id serial,
+	spatialsource varchar(100), 
+	CONSTRAINT spatialsource_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.customer_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.customer_assetgroups CASCADE;
+CREATE TABLE public.customer_assetgroups
+(
+	id serial,
+	assetgroup varchar(50),
+	description varchar(500),
+	CONSTRAINT customer_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.customer_assettypes------------------------------------
+DROP TABLE IF EXISTS public.customer_assettypes CASCADE;
+CREATE TABLE public.customer_assettypes
+(
+	id serial,
+    assetgroup integer,
+    assettype integer,
+	assettype_name varchar(50),
+    conn_bundle_type integer,
+	description varchar(255),
+	CONSTRAINT customer_assettypes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.energy_plant_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.energy_plant_assetgroups CASCADE;
+CREATE TABLE public.energy_plant_assetgroups
+(
+	id serial,
+	assetgroup varchar(50),
+	description varchar(500),
+	CONSTRAINT energy_plant_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.energy_plant_assettypes------------------------------------
+DROP TABLE IF EXISTS public.energy_plant_assettypes CASCADE;
+CREATE TABLE public.energy_plant_assettypes
+(
+	id serial,
+    assetgroup integer,
+	assettype integer,
+	assettype_name varchar(50),
+	conn_bundle_type integer DEFAULT 2,
+	description varchar(255),
+	CONSTRAINT energy_plant_assettypes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.line_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.line_assetgroups CASCADE;
+CREATE TABLE public.line_assetgroups
+(
+	id serial,
+	assetgroup varchar(25),
+	description varchar(500),
+	CONSTRAINT line_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.line_assettypes------------------------------------
+DROP TABLE IF EXISTS public.line_assettypes CASCADE;
+CREATE TABLE public.line_assettypes
+(
+	id serial,
+	assetgroup integer,
+	assettype integer,
+	assettype_name varchar(80),
+    conn_type integer DEFAULT 2,
+	description varchar(255),
+	CONSTRAINT line_assettypes_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table public.device_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.device_assetgroups CASCADE;
+CREATE TABLE public.device_assetgroups
+(
+	id serial,
+	assetgroup varchar(25),
+	description varchar(500),
+	CONSTRAINT device_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.line_assettypes------------------------------------
+DROP TABLE IF EXISTS public.device_assettypes CASCADE;
+CREATE TABLE public.device_assettypes
+(
+	id serial,
+	assetgroup integer,
+	assettype integer,
+	assettype_name varchar(50),
+    conn_bundle_type integer,
+	description varchar(255),
+	CONSTRAINT device_assettypes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.junction_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.junction_assetgroups CASCADE;
+CREATE TABLE public.junction_assetgroups
+(
+	id serial,
+	assetgroup varchar(25),
+	description varchar(500),
+	CONSTRAINT junction_assetgroups_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table public.structure_boundary_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.structure_boundary_assetgroups CASCADE;
+CREATE TABLE public.structure_boundary_assetgroups
+(
+	id serial,
+	assetgroup varchar(25),
+	description varchar(500),
+	CONSTRAINT structure_boundary_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.structure_boundary_assettypes------------------------------------
+DROP TABLE IF EXISTS public.structure_boundary_assettypes CASCADE;
+CREATE TABLE public.structure_boundary_assettypes
+(
+	id serial,
+	assetgroup integer,
+	assettype integer,
+	assettype_name varchar(50),
+	description varchar(255),
+	CONSTRAINT structure_boundary_assettypes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.structure_junction_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.structure_junction_assetgroups CASCADE;
+CREATE TABLE public.structure_junction_assetgroups
+(
+	id serial,
+	assetgroup varchar(25),
+	description varchar(500),
+	CONSTRAINT structure_junction_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.structure_junction_assettypes------------------------------------
+DROP TABLE IF EXISTS public.structure_junction_assettypes CASCADE;
+CREATE TABLE public.structure_junction_assettypes
+(
+	id serial,
+	assetgroup integer,
+	assettype integer,
+	assettype_name varchar(50),
+	description varchar(255),
+	CONSTRAINT structure_junction_assettypes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.structure_line_assetgroups------------------------------------
+DROP TABLE IF EXISTS public.structure_line_assetgroups CASCADE;
+CREATE TABLE public.structure_line_assetgroups
+(
+	id serial,
+	assetgroup varchar(25),
+	description varchar(500),
+	CONSTRAINT structure_line_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.structure_line_assettypes------------------------------------
+DROP TABLE IF EXISTS public.structure_line_assettypes CASCADE;
+CREATE TABLE public.structure_line_assettypes
+(
+	id serial,
+	assetgroup integer,
+	assettype integer,
+	assettype_name varchar(50),
+	description varchar(255),
+	CONSTRAINT structure_line_assettypes_pkey PRIMARY KEY (id)
+);
+
+--------------------------------------------------------------------------------
+------------------temp tables-----------------------------------------
+
+-- Table: temp.device_connections
+-- DROP TABLE temp.device_connections;
+CREATE TABLE temp.device_connections
+(
+  id serial,
+  did integer,
+  d_seq integer,
+  lid integer,
+  CONSTRAINT device_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: temp.junction_connections
+-- DROP TABLE temp.junction_connections;
+CREATE TABLE temp.junction_connections
+(
+  id serial,
+  nid integer,
+  lid integer,
+  CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: temp.customer_connections
+-- DROP TABLE temp.customer_connections;
+CREATE TABLE temp.customer_connections
+(
+  id serial,
+  cid integer,
+  c_seq integer,
+  lid integer,
+  CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
+);
+  
+-- Table: temp.energy_plant_connections
+-- DROP TABLE temp.energy_plant_connections;
+CREATE TABLE temp.energy_plant_connections
+(
+  id serial,
+  epid integer,
+  ep_seq integer,
+  lid integer,
+  CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp.dhc_customers;------------------------------------
+DROP TABLE IF EXISTS temp.dhc_customers CASCADE;
+CREATE TABLE temp.dhc_customers
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+    assetgroup integer DEFAULT 0,
+	assettype integer DEFAULT 0,
+    submodel integer, --reference to submodelname in dhc_subnet_line 
+    dhw_id integer,
+	heat_e_kwh numeric DEFAULT 10000,
+    heat_p_kw numeric DEFAULT 10,
+    tsup_h_deg numeric DEFAULT 70,
+    cool_e_kwh numeric DEFAULT 5000,
+    cool_p_kw numeric DEFAULT 10,
+    tsup_c_deg numeric DEFAULT 15,
+	asl_m numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_customers_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp.dhc_lines_heating;------------------------------------
+DROP TABLE IF EXISTS temp.dhc_lines_heating CASCADE;
+CREATE TABLE temp.dhc_lines_heating
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+    network integer,
+	assetgroup integer,
+	assettype integer,
+    pipe_bundle_type_id integer,
+    submodel integer, --reference to submodelname in  dhc_subnet_line
+    length numeric,
+    peak_power_kw numeric,
+	anz_customer integer,
+    nominaltemperature numeric,
+    maximumtemperature numeric,
+    nominaloppressure numeric,
+    maximumoppressure numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_lines_heating_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp.dhc_lines_cooling;------------------------------------
+DROP TABLE IF EXISTS temp.dhc_lines_cooling CASCADE;
+CREATE TABLE temp.dhc_lines_cooling
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+    network integer,
+	assetgroup integer,
+	assettype integer,
+    pipe_bundle_type_id integer,
+    submodel integer, --reference to submodelname in  dhc_subnet_line
+    length numeric,
+    peak_power_kw numeric,
+	anz_customer integer,
+    nominaltemperature numeric,
+    maximumtemperature numeric,
+    nominaloppressure numeric,
+    maximumoppressure numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_lines_cooling_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp.dhc_lines;------------------------------------
+DROP TABLE IF EXISTS temp.dhc_lines CASCADE;
+CREATE TABLE temp.dhc_lines
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+    network integer,
+	assetgroup integer,
+	assettype integer,
+    pipe_bundle_type_id integer,
+    submodel integer, --reference to submodelname in  dhc_subnet_line
+    length numeric,
+    peak_power_kw numeric,
+	anz_customer integer,
+    nominaltemperature numeric,
+    maximumtemperature numeric,
+    nominaloppressure numeric,
+    maximumoppressure numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_lines_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp.dhc_junctions------------------------------------
+DROP TABLE IF EXISTS temp.dhc_junctions CASCADE;
+CREATE TABLE temp.dhc_junctions
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+    conn_type integer DEFAULT 2,
+	n_connections integer check(n_connections >= 1),
+    asl_m numeric,
+	submodel integer, --reference to submodelname in dhc_subnet_line 
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_junctions_pkey PRIMARY KEY (id)
+);
+
+-------------------table temp.streets_help------------------------------------
+DROP TABLE IF EXISTS temp.streets_help CASCADE;
+CREATE TABLE temp.streets_help
+(
+  id serial,
+  geom geometry(LineString,$srid$),
+  assetgroup integer,
+  assettype integer,
+  pipe_bundle_type_id integer,
+  length_m double precision,
+  costs_eur7m numeric DEFAULT 100,
+  source integer,
+  target integer,
+  CONSTRAINT streets_help_pkey PRIMARY KEY (id)
+);  

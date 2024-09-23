@@ -1,0 +1,312 @@
+import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT     
+import psycopg2.extras
+from plugins.utility_functions.utility import *
+from plugins.utility_functions.db import *
+from qgis.PyQt.QtWidgets import QMessageBox
+
+def redrawSubnetworkIncludingLines(table,cur,dictDB,srid):
+    sql="""TRUNCATE {}.submodels;
+
+WITH sub AS(
+    SELECT min(ST_XMin(geom)) AS x_min, min(ST_YMin(geom)) AS y_min, max(ST_XMax(geom)) AS x_max, max(ST_YMax(geom)) AS y_max FROM {}
+)
+INSERT INTO {}.submodels (id,geom) 
+    SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(dictDB['versionName'],table,dictDB['versionName'],srid)
+    print(sql)
+    cur.execute(sql)
+    
+def updateSubmodels(cur,dictDB):
+    sql="""UPDATE temp.dhc_junctions j SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(j.geom,s_m.geom,0.0001);
+UPDATE {}.dhc_energy_plants f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
+UPDATE temp.dhc_customers f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
+UPDATE temp.dhc_lines l SET submodel = a.sm_id 
+    FROM (SELECT l.id AS lid, array_agg(s_m.id) AS sm_id
+            FROM {}.submodels s_m, a.dhc_lines l
+            WHERE ST_dWithin(l.geom,s_m.geom,0.0001)
+            GROUP BY l.id) a 
+    WHERE a.lid=l.id;
+UPDATE temp.dhc_lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
+UPDATE temp.dhc_lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+    print(sql)
+    cur.execute(sql)
+        
+def setSubnetwork(cur,dictDB,redraw_submodels_polygons,srid):
+    """set the submodel to 1 if not set otherwise"""
+    print('Set submodel if no submodels')
+    if redraw_submodels_polygons:
+        
+        #draw rectangle around all dhc_customers
+        sql="TRUNCATE {}.submodels CASCADE;".format(dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)
+            
+        redrawSubnetworkIncludingLines('{}.dhc_lines'.format(dictDB['versionName']),cur,dictDB,srid)
+        
+        #dhc_junctions
+        sql="UPDATE {}.dhc_junctions SET submodel = 1;".format(dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)
+        #dhc_customers
+        sql="UPDATE {}.dhc_customers SET submodel = 1;".format(dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)
+        #dhc_devices
+        sql="UPDATE {}.dhc_devices SET submodel = 1;".format(dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)
+        #dhc_energy_plants
+        sql="UPDATE {}.dhc_energy_plants SET submodel = 1;".format(dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)
+        #dhc_lines
+        sql="UPDATE {}.dhc_lines SET submodel = array[1];".format(dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)  
+
+def getBundleValues(bundle,cur):
+    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
+	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle)
+    cur.execute(sql)
+    return cur.fetchall()
+
+def getConnTypeConnValues(cur,ids):
+    sql="""SELECT conn_t_conns.connection_type_id, conn_t_conns.connection_id , conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
+	FROM connections conns, connection_type_connections conn_t_conns
+	WHERE conn_t_conns.connection_id=conns.id AND conn_t_conns.connection_type_id IN ({})
+	ORDER BY conn_t_conns.sequence;""".format(','.join([str(id) for id in ids]))
+    cur.execute(sql)
+    return cur.fetchall()
+    
+def getConnValues(bundle,conn_id,cur):
+    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
+	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id {}
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle,'AND conns.id='+conn_id if not conn_id=='X' else '')
+    cur.execute(sql)
+    return cur.fetchone()
+
+def getConnsValuesByFeature(type_id,feature_id,cur,dictDB):
+    return getConnsValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),cur)
+    
+def getConnsValues(bundle,cur):
+    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
+	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle)
+    cur.execute(sql)
+    return cur.fetchall()
+    
+def getConnBundleByFeature(type_id,feature_id,cur,dictDB):
+    sql="""SELECT c_at.conn_bundle_type 
+    FROM {}.dhc_{} f, {} c_at 
+    WHERE f.id={} AND c_at.assetgroup=f.assetgroup AND c_at.assettype=f.assettype;""".format(dictDB['versionName'],type_id+'s' if type(type_id)==str else getTypeNameById(type_id),getAssettypeNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getAssettypeNameById(type_id),feature_id)
+    cur.execute(sql)
+    return cur.fetchone()['conn_bundle_type']
+    
+def getBundleValuesByFeature(type_id,feature_id,cur,dictDB):
+    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
+    
+def getConnValuesByFeature(type_id,feature_id,conn_id,cur,dictDB):
+    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
+    
+def getConnBundleByAssettype(type_id,assettype,assetgroup,cur,dictDB):
+    sql="""SELECT c_at.conn_bundle_type 
+    FROM {} c_at 
+    WHERE c_at.assetgroup={} AND c_at.assettype={};""".format(getAssettypeNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getAssettypeNameById(type_id),assetgroup,assettype)
+    cur.execute(sql)
+    return cur.fetchone()['conn_bundle_type']
+
+def getLineConnType(cur,dictDB,id):
+    sql="""SELECT at.conn_type
+    FROM {}.dhc_lines l, line_assettypes at
+    WHERE l.assettype=at.assettype AND l.assetgroup=at.assetgroup AND l.id={};""".format(dictDB['versionName'],id)
+    cur.execute(sql)
+    return cur.fetchone()['conn_type']
+    
+def getLinesConnTypes(cur,dictDB):
+    sql="""SELECT at.conn_type
+    FROM {}.dhc_lines l, line_assettypes at
+    WHERE l.assettype=at.assettype AND l.assetgroup=at.assetgroup
+    GROUP BY at.conn_type;""".format(dictDB['versionName'])
+    cur.execute(sql)
+    return [i['conn_type'] for i in cur.fetchall()]
+    
+def getConnsValuesByAssettype(type_id,assettyp,assetgroup,cur,dictDB):
+    return getConnsValues(getConnBundleByAssettype(type_id,assettyp,assetgroup,cur,dictDB),cur)
+    
+def getMeterName(cur,conn_bundle_type,conn_type):
+    sql="""SELECT conn_bundle_type_id, sequence
+	FROM bundle_type_conns
+	WHERE conn_bundle_type_id = {} AND conn_type_id={};""".format(conn_bundle_type,conn_type)
+    cur.execute(sql)
+    connValues=cur.fetchall()
+    if connValues:
+        connValues=connValues[0]
+        return "{}_{}_Flowmeter2".format(str(connValues['conn_bundle_type_id']),str(connValues['sequence']))
+    else:
+        return ""
+
+def getMeterNameByFeature(cur,feature_id,conn_type):
+    return getMeterName(cur,getConnBundleByFeature(feature_id,cur))
+        
+def getPMT2muxName(cur,conn_bundle_type,connection_id):
+    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_t_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp
+	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type,connection_id)
+    cur.execute(sql)
+    connValues=cur.fetchall()
+    if connValues:
+        connValues=connValues[0]
+        return "PMT2mux_{}_{}_{}_{}_T{}".format(str(connValues['conn_bundle_type_id']),str(connValues['conn_t_seq']),str(connValues['conn_type_id']),str(connValues['conn_seq']),str(connValues['temp']))
+    else:
+        return ""
+        
+def checkLineDirectionTopology(cur,version,tolerance,iface,network):
+    """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
+    print('Check line direction')
+    sql="SELECT st_v.id::integer AS epid FROM {}.dhc_energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);".format(version,tolerance,network,network)
+    print(sql)
+    cur.execute(sql)
+    epid=cur.fetchone()['epid'] 
+    print(epid)
+    sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point,ST_EndPoint(geom) AS l_end_point FROM temp.streets_help;"""
+    #print(sql) 
+    cur.execute(sql) 
+    lines=cur.fetchall()
+    for line in lines:
+        #print('--------------------------')
+        lid=line['lid']
+        #print(lid)
+        start_point=line['l_start_point']
+        end_point=line['l_end_point']
+        
+        #end_node
+        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
+        #print(sql)
+        cur.execute(sql)
+        nid_end_topo=cur.fetchone()['vid']     
+        if nid_end_topo!=epid:               
+            sql="""WITH sub As(
+SELECT seq, node, edge, cost
+            FROM pgr_dijkstra(
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
+                {}, 
+                {},
+                false
+            )
+)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_end_topo)
+            #print(sql)
+            cur.execute(sql) 
+            length_node_end=cur.fetchone()['costs']
+        else:
+            length_node_end=0
+        #print(length_node_end)
+        
+        #start_node
+        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
+        #print(sql)
+        cur.execute(sql)
+        nid_start_topo=cur.fetchone()['vid'] 
+        if nid_start_topo!=epid:       
+            sql="""WITH sub As(
+SELECT seq, node, edge, cost
+            FROM pgr_dijkstra(
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
+                {}, 
+                {},
+                false
+            )
+)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_start_topo)
+            #print(sql)
+            cur.execute(sql) 
+            length_node_start=cur.fetchone()['costs']
+        else:
+            length_node_start=0
+        #print(length_node_start)
+        
+        try:
+            if length_node_end<length_node_start:
+                #print ('change line direction')
+                sql='UPDATE temp.streets_help SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
+                #print (sql)
+                cur.execute(sql)
+        except:
+            #iface.messageBar().pushMessage("Error", "Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.", level=Qgis.Critical)   
+            print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
+
+#todo pipe laying of network 
+def checkLineDirectionPipeLaying(cur,version,tolerance):
+    """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
+    print('Check line direction')
+    sql="SELECT st_v.id::integer AS v_ep FROM {}.dhc_energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{});".format(version,tolerance)
+    #print(sql)
+    cur.execute(sql)
+    epid=cur.fetchone()['v_ep'] 
+    sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point, ST_EndPoint(geom) AS l_end_point FROM temp.dhc_lines;"""
+    #print(sql) 
+    cur.execute(sql) 
+    lines=cur.fetchall()
+    for line in lines:
+        print(line)
+        lid=line['lid']
+        start_point=line['l_start_point']
+        end_point=line['l_end_point']
+        
+        #end_node
+        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
+        #print(sql)
+        cur.execute(sql)
+        nid_end_topo=cur.fetchone()['vid']       
+        if nid_end_topo!=epid:               
+            sql="""WITH sub As(
+SELECT seq, node, edge, cost
+            FROM pgr_dijkstra(
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.dhc_lines l where St_contains(l.geom,sh.geom)',
+                {}, 
+                {},
+                false
+            )
+)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_end_topo)
+            #print(sql)
+            cur.execute(sql) 
+            length_node_end=cur.fetchone()['costs']
+        else:
+            length_node_end=0
+        #print(length_node_end)
+        
+        #start_node
+        sql="SELECT st_v.id::integer AS v_start FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
+        #print(sql)
+        cur.execute(sql)
+        nid_start_topo=cur.fetchone()['v_start'] 
+        print(nid_start_topo)
+        if nid_start_topo!=epid:       
+            sql="""WITH sub As(
+SELECT seq, node, edge, cost
+            FROM pgr_dijkstra(
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.dhc_lines l where St_contains(l.geom,sh.geom)',
+                {}, 
+                {},
+                false
+            )
+)
+SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,nid_start_topo)
+            #print(sql)
+            cur.execute(sql) 
+            length_node_start=cur.fetchone()['sum_costs']
+        else:
+            length_node_start=0
+        #print(length_node_start)
+        
+        if length_node_end<length_node_start:
+            print ('change line direction')
+            sql='UPDATE temp.dhc_lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
+            #print (sql)
+            cur.execute(sql)

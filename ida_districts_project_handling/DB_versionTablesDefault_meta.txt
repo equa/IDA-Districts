@@ -1,0 +1,764 @@
+------------------------------ version tables ---------------------------------
+
+-------------------table $versionName$.sensors;------------------------------------
+DROP TABLE IF EXISTS $versionName$.sensors CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.sensors
+(
+    id serial,
+    CONSTRAINT sensors_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.sensor_source;------------------------------------
+DROP TABLE IF EXISTS $versionName$.sensor_source CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.sensor_source
+(
+    id serial,
+    sensor_id int,
+    type int,
+    assetgroup int,
+    assettype int,
+    measure int,
+    function int,
+    conn_type int,
+    conns int,
+    ids int,
+    test_value numeric DEFAULT 1,
+    description character varying(500),
+    CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
+    CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
+        REFERENCES $versionName$.sensors (id) MATCH SIMPLE,
+    CONSTRAINT type_fk FOREIGN KEY (type)
+        REFERENCES public.type (id) MATCH SIMPLE
+);
+
+-------------------table $versionName$.source_assetgroups;------------------------------------
+DROP TABLE IF EXISTS $versionName$.source_assetgroups CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.source_assetgroups
+(
+    id serial,
+    source_id int,
+    assetgroup int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.source_assettype;------------------------------------
+DROP TABLE IF EXISTS $versionName$.source_assettype CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.source_assettype
+(
+    id serial,
+    source_id int,
+    assetgroup int,
+    assettype int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_assettype_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.source_conn_type;------------------------------------
+DROP TABLE IF EXISTS $versionName$.source_conn_type CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.source_conn_type
+(
+    id serial,
+    source_id int,
+    conn_type int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_conn_type_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.source_conns;------------------------------------
+DROP TABLE IF EXISTS $versionName$.source_conns CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.source_conns
+(
+    id serial,
+    source_id integer,
+    connection_id integer,
+    active boolean DEFAULT false,
+    CONSTRAINT source_conns_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.source_ids;------------------------------------
+DROP TABLE IF EXISTS $versionName$.source_ids CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.source_ids
+(
+    id serial,
+    source_id int,
+    feature_id int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_ids_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.invoked_sensor_source_signals;------------------------------------
+DROP TABLE IF EXISTS $versionName$.invoked_sensor_source_signals CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.invoked_sensor_source_signals
+(
+    id serial,
+    type integer,
+    sensor_id integer,
+    assetgroup integer,
+    assettype integer,
+    measure integer,
+    function integer,
+    test_value numeric,
+    source_irefs text[],
+    source_assettype_names text[],
+    assettype_name text[],
+    description character varying(500),
+    CONSTRAINT invoked_sensor_source_signals_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.sensor_target;------------------------------------
+DROP TABLE IF EXISTS $versionName$.sensor_target CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.sensor_target
+(
+    id serial,
+    sensor_id int,
+    type int,
+    assetgroup int,
+    assettype int,
+    ids int,
+    target,
+    description character varying(500),
+    CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
+    CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
+        REFERENCES $versionName$.sensors (id) MATCH SIMPLE,
+    CONSTRAINT type_fk FOREIGN KEY (type)
+        REFERENCES public.type (id) MATCH SIMPLE
+);
+
+-------------------table $versionName$.target_assetgroups;------------------------------------
+DROP TABLE IF EXISTS $versionName$.target_assetgroups CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.target_assetgroups
+(
+    id serial,
+    target_id int,
+    assetgroup int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.target_assettype;------------------------------------
+DROP TABLE IF EXISTS $versionName$.target_assettype CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.target_assettype
+(
+    id serial,
+    target_id int,
+    assetgroup int,
+    assettype int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_assettype_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.target_ids;------------------------------------
+DROP TABLE IF EXISTS $versionName$.target_ids CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.target_ids
+(
+    id serial,
+    target_id int,
+    feature_id int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_ids_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.invoked_sensor_target_signals;------------------------------------
+DROP TABLE IF EXISTS $versionName$.invoked_sensor_target_signals CASCADE;
+CREATE TABLE IF NOT EXISTS $versionName$.invoked_sensor_target_signals
+(
+    id serial,
+    type integer,
+    sensor_id integer,
+    assetgroup integer,
+    assettype integer,
+    target integer,
+    test_value numeric,
+    target_irefs text[],
+    target_assettype_names text[],
+    description character varying(500),
+    CONSTRAINT invoked_sensor_target_signals_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.climate;------------------------------------
+DROP TABLE IF EXISTS $versionName$.climate CASCADE;
+CREATE TABLE $versionName$.climate
+(
+  id serial,
+  name varchar(50) DEFAULT 'Graz',
+  file_name varchar(250) DEFAULT '$plugins_path$\ida_districts_data_center\Samples\climate\Graz-hour_std.prn',
+  latitude numeric DEFAULT 47.4,
+  longitude numeric DEFAULT -15.26,
+  timezone integer DEFAULT -1,
+  height numeric DEFAULT 353,
+  CONSTRAINT climate_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.submodels;------------------------------------
+DROP TABLE IF EXISTS $versionName$.submodels CASCADE;
+CREATE TABLE $versionName$.submodels
+(
+  id serial,
+  submodel varchar(50),
+  geom geometry(MultiPolygon,$srid$),
+  CONSTRAINT submodel_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.network;------------------------------------
+DROP TABLE IF EXISTS $versionName$.network CASCADE;
+CREATE TABLE $versionName$.network
+(
+  id serial,
+  description varchar(255),
+  CONSTRAINT network_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.dhc_customers;------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_customers CASCADE;
+CREATE TABLE $versionName$.dhc_customers
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+    assetgroup integer DEFAULT 0,
+	assettype integer DEFAULT 0,
+    dhw_id integer,
+	heat_e_kwh numeric DEFAULT 10000,
+    heat_p_kw numeric DEFAULT 10,
+    tsup_h_deg numeric DEFAULT 70,
+    cool_e_kwh numeric DEFAULT 5000,
+    cool_p_kw numeric DEFAULT 10,
+    tsup_c_deg numeric DEFAULT 15,
+	asl_m numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_owner_fk FOREIGN KEY (owner) REFERENCES public.owner (id),
+	CONSTRAINT dhc_customers_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table $versionName$.dhc_energy_plants;------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_energy_plants CASCADE;
+CREATE TABLE $versionName$.dhc_energy_plants
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+    assetgroup integer DEFAULT 0,
+	assettype integer DEFAULT 0,
+    submodel integer, --reference to submodelname in  dhc_subnet_line
+    main_plant boolean DEFAULT true,
+    tsup_h_deg numeric DEFAULT 100,
+    heat_e_kwh numeric DEFAULT 1000000,
+    heat_p_kw numeric DEFAULT 1000,
+    tsup_c_deg numeric DEFAULT 14,
+    cold_e_kwh numeric DEFAULT 1000000,
+    cold_p_kw numeric DEFAULT 1000,    
+	asl_m numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_owner_fk FOREIGN KEY (owner) REFERENCES public.owner (id),
+	CONSTRAINT dhc_energy_plants_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table $versionName$.dhc_lines;------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_lines CASCADE;
+CREATE TABLE $versionName$.dhc_lines
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+    network integer,
+	assetgroup integer,
+	assettype integer,
+    pipe_bundle_type_id integer,
+    submodel integer, --reference to submodelname in  dhc_subnet_line
+    length numeric,
+    peak_power_kw numeric,
+	anz_customer integer,
+    nominaltemperature numeric,
+    maximumtemperature numeric,
+    nominaloppressure numeric,
+    maximumoppressure numeric,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_lines_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.dhc_devices;------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_devices CASCADE;
+CREATE TABLE $versionName$.dhc_devices
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+	submodel integer, --reference to submodelname in dhc_subnet_line 
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_devices_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.dhc_junctions------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_junctions CASCADE;
+CREATE TABLE $versionName$.dhc_junctions
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+    conn_type integer DEFAULT 2,
+	n_connections integer check(n_connections >= 1),
+    asl_m numeric,
+	submodel integer, --reference to submodelname in dhc_subnet_line 
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_junctions_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.dhc_structure_boundarys;------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_structure_boundarys CASCADE;
+CREATE TABLE $versionName$.dhc_structure_boundarys
+(
+	id serial,
+	geom geometry(Multipolygon,$srid$),
+	assetgroup integer,
+	assettype integer,
+	f_vexp_m numeric,
+	submodel integer,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_structure_boundarys_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.dhc_structure_junctions------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_structure_junctions CASCADE;
+CREATE TABLE $versionName$.dhc_structure_junctions
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+	submodel integer,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_structure_junctions_pkey PRIMARY KEY (id)
+);
+
+-------------------table $versionName$.dhc_structure_lines------------------------------------
+DROP TABLE IF EXISTS $versionName$.dhc_structure_lines CASCADE;
+CREATE TABLE $versionName$.dhc_structure_lines
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+	submodel integer,
+	creationdate timestamp,
+	creator varchar(255),
+	lastupdate timestamp,
+	updatedby varchar(255),
+	installdate timestamp,
+	inservicedate timestamp,
+	installlocation integer, -- Unkown; Buried; Tunnel; Overhead; Under Sea; Indoors
+	installationmethod integer, --Unkown; Open Trench; Direct Bore; Assemble
+	manufacturer varchar(255), --Unkown; Thermacor; Insul-Pipe Systems
+	manufacturedate timestamp,
+	lifecyclestatus integer, -- Unkown; Proposed; Approved; Under Construction; In Service; To Be Retired; Abandoned; Retired; Removed; Out of Service
+	retireddate timestamp,
+	owner integer, --Unkown; Our Agency; Private; Other
+	maintby integer, --Unkown; Our Agency; Private; Other
+    spatialsource integer, --Unkown; As Build; CAD; Digitized; GPS/GNSS; Field Sketch
+	CONSTRAINT dhc_structure_lines_pkey PRIMARY KEY (id)
+);
+
+-- Table: $versionName$.buildings
+-- DROP TABLE $versionName$.buildings;
+CREATE TABLE $versionName$.buildings
+(
+  id serial,
+  object_id integer,
+  b_id integer,
+  z_id integer,
+  status integer,
+  geom geometry(MultiPolygon,$srid$),
+  o_bassl_m numeric,
+  z_bh_m numeric,
+  z_vexp_m numeric,
+  z_basa_m2 numeric,
+  z_topa_m2 numeric,
+  f_vexp_m numeric,
+  z_numb_f numeric,
+  z_gfa_m2 numeric,
+  z_wn_p numeric,
+  z_ws_p numeric,
+  z_ww_p numeric,
+  z_we_p numeric,
+  o_vexp_m numeric,
+  o_basa_m2 numeric,
+  o_topa_m2 numeric,
+  o_gfa_m2 numeric,
+  o_ea_m2 numeric,
+  o_wrfa_p numeric,
+  o_gv_m3 numeric,
+  o_chl_m numeric,
+  z_typeid integer,
+  o_mu_wm2k numeric,
+  z_use_cat integer,
+  detached boolean,
+  z_heatd_kwh numeric,
+  z_dhwd_kwh numeric,
+  z_coold_kwh numeric,
+  z_eqd_kwh numeric,
+  z_ltd_kwh numeric,
+  z_hsed_kwh numeric,
+  z_hed_kwh numeric,
+  z_dhed_kwh numeric,
+  z_csed_kwh numeric,
+  z_ced_kwh numeric,
+  max_heat_kw numeric,
+  CONSTRAINT buildings_pkey PRIMARY KEY (id)
+);
+
+-- Table: $versionName$.device_connections
+-- DROP TABLE $versionName$.device_connections;
+CREATE TABLE $versionName$.device_connections
+(
+  id serial,
+  did integer,
+  d_seq integer,
+  lid integer,
+  CONSTRAINT device_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: $versionName$.junction_connections
+-- DROP TABLE $versionName$.junction_connections;
+CREATE TABLE $versionName$.junction_connections
+(
+  id serial,
+  nid integer,
+  lid integer,
+  CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: $versionName$.customer_connections
+-- DROP TABLE $versionName$.customer_connections;
+CREATE TABLE $versionName$.customer_connections
+(
+  id serial,
+  cid integer,
+  c_seq integer,
+  lid integer,
+  CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
+);
+  
+-- Table: $versionName$.energy_plant_connections
+-- DROP TABLE $versionName$.energy_plant_connections;
+CREATE TABLE $versionName$.energy_plant_connections
+(
+  id serial,
+  epid integer,
+  ep_seq integer,
+  lid integer,
+  CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
+);
+
+
+-- Table: $versionName$.pipe_seg
+-- DROP TABLE $versionName$.pipe_seg;
+CREATE TABLE $versionName$.pipe_seg
+(
+  id serial,
+  pid integer NOT NULL,
+  pid_seg serial,
+  geom geometry(LineString,$srid$)
+);
+
+-- Table: $versionName$.pipe_seg_results
+-- DROP TABLE $versionName$.pipe_seg_results;
+CREATE TABLE $versionName$.pipe_seg_results
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  tsup_c numeric,
+  tret_c numeric,
+  dp_bar numeric,
+  dq_amb_w numeric,
+  mdot_kg7s numeric
+);
+
+-- Table: $versionName$.pipe_seg_results_mdot
+-- DROP TABLE $versionName$.pipe_seg_results_mdot;
+CREATE TABLE $versionName$.pipe_seg_results_mdot
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  mdot_kg7s numeric
+);
+
+-- Table: $versionName$.pipe_seg_results_p
+-- DROP TABLE $versionName$.pipe_seg_results_p;
+CREATE TABLE $versionName$.pipe_seg_results_p
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  dp_bar numeric
+);
+
+-- Table: $versionName$.pipe_seg_results_qamb
+-- DROP TABLE $versionName$.pipe_seg_results_qamb;
+CREATE TABLE $versionName$.pipe_seg_results_qamb
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  dq_amb_w numeric
+);
+  
+-- Table: $versionName$.pipe_seg_results_tret
+-- DROP TABLE $versionName$.pipe_seg_results_tret;
+CREATE TABLE $versionName$.pipe_seg_results_tret
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  tret_c numeric,
+  mdot_kg7s numeric
+);
+ 
+-- Table: $versionName$.pipe_seg_results_tsup
+-- DROP TABLE $versionName$.pipe_seg_results_tsup;
+CREATE TABLE $versionName$.pipe_seg_results_tsup
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  tsup_c numeric,
+  mdot_kg7s numeric
+);
+
+-- Table: $versionName$.pipe_seg_results_v
+-- DROP TABLE $versionName$.pipe_seg_results_v;
+CREATE TABLE $versionName$.pipe_seg_results_v
+(
+  id serial,
+  time_h numeric NOT NULL,
+  time_stamp timestamp without time zone,
+  geom geometry(MultiLineString,$srid$),
+  pid integer NOT NULL,
+  pid_seg serial,
+  v_m7s numeric
+);
+
+-- Table: $versionName$.pipe_seg_tret
+-- DROP TABLE $versionName$.pipe_seg_tret;
+CREATE TABLE $versionName$.pipe_seg_tret
+(
+  id serial,
+  pid integer,
+  pid_seg integer,
+  geom geometry(MultiLineString,$srid$)
+);
+  
+-- Table: $versionName$.pipe_seg_tsup
+-- DROP TABLE $versionName$.pipe_seg_tsup;
+CREATE TABLE $versionName$.pipe_seg_tsup
+(
+  id serial,
+  pid integer,
+  pid_seg integer,
+  geom geometry(MultiLineString,$srid$)
+);
+
+
+-- Table: $versionName$.pipes_model
+-- DROP TABLE $versionName$.pipes_model;
+CREATE TABLE $versionName$.pipes_model
+(
+  id serial,
+  sim_model integer,
+  pid integer,
+  co_sim integer,
+  CONSTRAINT id_pkey PRIMARY KEY (id)
+);
+
+
+-- Table: $versionName$.result_zone
+-- DROP TABLE $versionName$.result_zone;
+CREATE TABLE $versionName$.result_zone
+(
+  id serial,
+  b_id integer,
+  z_id smallint DEFAULT 0,
+  time_h numeric,
+  t_air_c real,
+  t_op_c real,
+  cooling_w real,
+  equipment_w real,
+  heating_w real,
+  lighting_w real,
+  net_loss_w real,
+  occupants_w real,
+  internal_wall_masses_w real,
+  infilt_openings_w real,
+  air_supply_w real,
+  envelope_thermalbridges_w real,
+  window_solar_w real,
+  heater_kwh7m2 real,
+  heater_w7m2 real,
+  cooler_kwh7m2 real,
+  cooler_w7m2 real,
+  dhw_w numeric,
+  dhw_kwh numeric,
+  geom geometry(MultiPolygon,$srid$),
+  the_geom geometry(MultiPolygon,$srid$),
+  dh_w numeric
+);
+
+-- Table: $versionName$.segment_lines_00
+-- DROP TABLE $versionName$.segment_lines_00;
+CREATE TABLE $versionName$.segment_lines_00
+(
+  lines_id integer,
+  rc_split_multi geometry
+);
+
+-- Index: $versionName$.segment_lines_00_rc_split_multi_idx
+-- DROP INDEX $versionName$.segment_lines_00_rc_split_multi_idx;
+CREATE INDEX segment_lines_00_rc_split_multi_idx
+  ON $versionName$.segment_lines_00
+  USING gist
+  (rc_split_multi);
+
+-- Table: $versionName$.streets
+-- DROP TABLE $versionName$.streets;
+CREATE TABLE $versionName$.streets
+(
+  id serial,
+  geom geometry(LineString,$srid$),
+  length_m double precision,
+  costs_eur7m numeric DEFAULT 100,
+  source integer,
+  target integer,
+  CONSTRAINT streets_pkey PRIMARY KEY (id)
+);
+
+	
+-- Table: $versionName$.time_manager_tair
+-- DROP TABLE $versionName$.time_manager_tair;
+CREATE TABLE $versionName$.time_manager_tair
+(
+  id serial,
+  b_id serial,
+  the_geom geometry(MultiPolygon,$srid$),
+  time_h character varying(20),
+  time_stamp timestamp without time zone,
+  t_air_c numeric,
+  CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
+);

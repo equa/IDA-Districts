@@ -1,0 +1,6 @@
+INSERT INTO $versionName$.climate (id) VALUES (1);
+INSERT INTO $versionName$.supervisory_ctrl (id,submodel) VALUES (1,NULL);
+
+----------------------customer model parameters------------------------------
+
+-------------------table $versionName$.customer_model_parms;------------------------------------
