@@ -651,6 +651,7 @@ class CopyAssettypeMacro:
     """ Copy invoked assettype macros to IDA network project: customers,plants and devices"""
     def __init__(self,submodel,dir,type,dictDB,cur,iface,plugin_dir,reinvoke,invokedOutputs,requestedOutputs):
         print('copy {} macro'.format(type))
+        #print(invokedOutputs)
         type_name=type[4:-1]
         target_dir=dir+"\\network_"+str(submodel)
         source_dir=dir+'\\invoked_'+type_name+'s'
@@ -661,12 +662,15 @@ class CopyAssettypeMacro:
     ORDER BY id;""".format(submodel,dictDB['versionName'],type,dictDB['versionName'],dictDB['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'd' if type_name=='device' else 'ep')
         print(sql)
         cur.execute(sql)
-        #collect rssources from project files only once
+        #collect resources from project files only once
         self.resources=[]
         if reinvoke:
             self.invokedFeatureOutputs={}
         else:
-            self.invokedFeatureOutputs=invokedOutputs[type]
+            try: 
+                self.invokedFeatureOutputs=invokedOutputs[type]
+            except:
+                self.invokedFeatureOutputs={}
         self.decoupled_counter=0        
         for feature in cur.fetchall():
             f_idc_target=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+".idc"
@@ -690,7 +694,7 @@ class CopyAssettypeMacro:
                 if type=='dhc_energy_plants':
                     self.invokedFeatureOutputs[feature['id']]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
                 elif type=='dhc_customers':
-                    self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'tair_c': True if requestedOutputs['tair_c'] else False}
+                    self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
 
             if feature['model']=='decoupled':
                 sql="""SELECT conn_bundle_type FROM {}.{} f ,{}_assettypes f_at WHERE f.id={} AND f.assettype=f_at.assettype;""".format(dictDB['versionName'],type,type_name,str(feature['id']))

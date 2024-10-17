@@ -1,5 +1,6 @@
 from plugins.utility_functions.db import *
 from plugins.utility_functions.topology import *
+from plugins.utility_functions.error_handling import *
 from plugins.utility_functions.layer_visualization import *
 import time
 from qgis.PyQt.QtCore import Qt, QSettings, QTranslator, QCoreApplication, QObject, QRunnable, pyqtSignal, pyqtSlot
@@ -23,34 +24,8 @@ from qgis.utils import iface
 
 class GenerateNetworkTopologySignals(QObject):
     progress=pyqtSignal(int)
+    error=pyqtSignal(str)
 
-def checkGenerateTopologyLayerData(dictDB,cur,networks,connectPlants,connectCustomers):
-    checked_networks=[]
-    print('checkGenerateTopologyLayerData')
-    for network in networks:
-        print(featureCount(cur,dictDB,network,'energy_plant'))
-        #check numer of features (customers and plants) > 0 
-        if featureCount(cur,dictDB,network,'customer')>0 and featureCount(cur,dictDB,network,'energy_plant')>0:
-            #check if features plants are connected to network if not connectPlants 
-            sql="""SELECT count(*) AS count FROM {}.dhc_energy_plants f, {}.dhc_lines l WHERE ST_dWithin(f.geom,l.geom,0.0001);""".format(dictDB['versionName'],dictDB['versionName'])
-            cur.execute(sql)
-            ep_conn_count=cur.fetchone()['count']
-            if ep_conn_count==0 and not connectPlants:
-                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one energy plant connected to network {}!".format(network), level=Qgis.Info)
-            
-            #check if features customers are connected to network if not connectCustomers 
-            sql="""SELECT count(*) AS count FROM {}.dhc_energy_plants f, {}.dhc_lines l WHERE ST_dWithin(f.geom,l.geom,0.0001);""".format(dictDB['versionName'],dictDB['versionName'])
-            cur.execute(sql)
-            customer_conn_count=cur.fetchone()['count']
-            if customer_conn_count==0 and not connectCustomers:
-                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one customer connected to network {}!".format(network), level=Qgis.Info)
-            
-            if (ep_conn_count>0 or connectPlants) and (customer_conn_count>0 or connectCustomers):
-                checked_networks.append(network)
-        else:
-            iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one entry of network {} in the layers: energy_plants and customers!".format(network), level=Qgis.Info)
-    return checked_networks
-    
 class WorkerGenerateNetworkTopology(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
@@ -90,7 +65,6 @@ class WorkerGenerateNetworkTopology(QRunnable):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.networks=checkGenerateTopologyLayerData(self.dictDB,self.cur,self.networks,self.connectPlants,self.connectCustomers)
-        
           
     @pyqtSlot()
     def run(self):
@@ -118,7 +92,8 @@ class WorkerGenerateNetworkTopology(QRunnable):
                 print(network)
                 print(progress_value)
                 
-                self.generateTopology(self.dictDB['versionName'],srid,network)
+                if self.generateTopology(self.dictDB['versionName'],srid,network):
+                    return
                 progress_value+=20/n_networks
                 print(int(progress_value))
                 self.signals.progress.emit(int(progress_value))
@@ -228,7 +203,7 @@ SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv
 	)SELECT id,sum(connections) AS conn FROM sub GROUP BY id
 )
 INSERT INTO temp.dhc_customers(geom,assetgroup,assettype,network) 
-	SELECT ST_Force3D(shv.the_geom),1,{},{},{} FROM sub,temp.streets_help_vertices_pgr shv 
+	SELECT ST_Force3D(shv.the_geom),1,{},{} FROM sub,temp.streets_help_vertices_pgr shv 
 		WHERE sub.conn=1 AND shv.id=sub.id AND sub.id NOT IN (
             SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.dhc_customers c,{}.dhc_energy_plants ep 
                 WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{})
@@ -552,8 +527,12 @@ INSERT INTO temp.streets_help(geom,assetgroup,assettype,pipe_bundle_type_id)
         print("""insert energy plant connections: {}""".format(sql))
         self.cur.execute(sql)
         
+        if checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant'):
+            self.signals.error.emit(''.join(['Energy plant :{} and energy_plant: {} have a loop in connection! '.format(i['id1'],i['id2']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant')]))
+            return True
+        
     def connectCustomersNetwork(self,version,network):            
-        "insert energy plant connections into temp.network_help"   
+        "insert customer connections into temp.network_help"   
         sql="""With sub AS(
     SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist 
         FROM {}.dhc_lines l, temp.dhc_customers c 
@@ -566,6 +545,10 @@ INSERT INTO temp.streets_help(geom,assetgroup,assettype,pipe_bundle_type_id)
     WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist AND sub.min_dist>0 AND l.network={} AND {} =ANY(c.network);""".format(version,network,network,0,self.connectCustomers_assettype_lines,self.connectCustomers_assettype_pipeBundle,version,network,network)
         print("""insert customers connections: {}""".format(sql))
         self.cur.execute(sql)
+        
+        if checkLoopInConnections(self.cur,'temp','temp.streets_help','customer'):
+            self.signals.error.emit(''.join(['Customer :{} and customer: {} have a loop in connection! '.format(i['id1'],i['id2']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','customer')]))
+            return True
 
     def splitLinesPerDevicesPlantsJunctionsCustomers(self,version,mode):
         """ST_split does not work (don`t know why) that`s why: Split the lines per feature: 1) get list of features; 2) loop over features """
@@ -606,9 +589,11 @@ INSERT INTO temp.network_help(geom,assetgroup,assettype,network,submodel,pipe_bu
         self.cur.execute(sql) 
 
         if self.connectPlants:
-            self.connectPlantsNetwork(self.dictDB['versionName'],network)
+            if self.connectPlantsNetwork(self.dictDB['versionName'],network):
+                return True
         if self.connectCustomers:
-            self.connectCustomersNetwork(self.dictDB['versionName'],network)
+            if self.connectCustomersNetwork(self.dictDB['versionName'],network):
+                return True
                     
         sql="DROP SCHEMA IF EXISTS streets_help_topo CASCADE;"
         self.cur.execute(sql)    

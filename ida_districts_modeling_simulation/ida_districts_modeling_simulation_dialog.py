@@ -74,7 +74,7 @@ class RequestedOutputs(QMainWindow):
         if requestedOutputs['heatbalance_c']:
             self.checkBoxSubstationHeatbalance.setChecked(True)
         self.checkBoxSubstationTair=QCheckBox("Room air temperature")
-        if requestedOutputs['tair_c']:
+        if requestedOutputs['troom_c']:
             self.checkBoxSubstationTair.setChecked(True)
         layout_customer_checkbox.addWidget(self.checkBoxSubstationPower)
         layout_customer_checkbox.addWidget(self.checkBoxSubstationConnTemp)

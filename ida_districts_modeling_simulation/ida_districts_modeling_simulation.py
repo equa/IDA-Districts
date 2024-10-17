@@ -234,9 +234,9 @@ class IDADistrictsModelingSimulation:
             self.requestedOutputs['heatbalance_c']=False
         #-----------tair----------
         if dlg.checkBoxSubstationTair.isChecked():
-            self.requestedOutputs['tair_c']=True
+            self.requestedOutputs['troom_c']=True
         else:
-            self.requestedOutputs['tair_c']=False
+            self.requestedOutputs['troom_c']=False
         
         #-------------network------------
         #+++lines+++
@@ -408,27 +408,27 @@ class IDADistrictsModelingSimulation:
                         if not isinstance(comp, list):
                             comp=[comp]
                         new_comp=[]
-                        if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'tair_c' in [i for i in outputs if outputs[i]]:
+                        if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'troom_c' in [i for i in outputs if outputs[i]]:
                             print('---add tair output----')
                             #print(comp)
                             new_comp=[]
                             outputs_to_set=['|TRoom|']
                             for i in comp:
                                 if getCompName(i)=='|TRoom|':
-                                    i[':L']='"TAir"'
+                                    i[':L']='"TRoom"'
                                     new_comp.append(i)
                                     outputs_to_set.remove('|TRoom|')
                                 else:
                                     new_comp.append(i)
                             for i in outputs_to_set:
-                                new_comp.append({':C': ':VAR', ':N': i, ':L': '"TAir"'})
+                                new_comp.append({':C': ':VAR', ':N': i, ':L': '"TRoom"'})
                             comp=new_comp
-                            data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TAir"', ':T': 'OUTPUT-FILE'}])
+                            data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TRoom"', ':T': 'OUTPUT-FILE'}])
                         if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'heatbalance_c' in [i for i in outputs if outputs[i]]:
                             print('---add heatbalance output----')
                             #print(comp)
                             new_comp=[]
-                            outputs_to_set={'|PhiSolar|':'Solar irradiation','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Internal gains','|PhiRad|':'Heating','|PhiOut|':'Heat transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
+                            outputs_to_set={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRad|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                             for i in comp:
                                 if getCompName(i) in outputs_to_set:
                                     i[':L']='"Heatbalance"'
@@ -443,7 +443,7 @@ class IDADistrictsModelingSimulation:
                             data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Heatbalance"', ':T': 'OUTPUT-FILE'}])
                         if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'heatbalance_c' in [i for i in outputs if not outputs[i]]:
                             print('---remove heatbalance_c output----')
-                            outputs_to_del={'|PhiSolar|':'Solar irradiation','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Internal gains','|PhiRad|':'Heating','|PhiOut|':'Heat transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
+                            outputs_to_del={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRad|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                             new_comp=[]
                             for i in comp:
                                 if getCompName(i) in outputs_to_del:
@@ -456,7 +456,7 @@ class IDADistrictsModelingSimulation:
                                 else:
                                     new_comp.append(i)
                             comp=new_comp
-                        if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'tair_c' in [i for i in outputs if not outputs[i]]:
+                        if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'troom_c' in [i for i in outputs if not outputs[i]]:
                             print('---remove tair output----')
                             new_comp=[]
                             for i in comp:
@@ -488,7 +488,7 @@ class IDADistrictsModelingSimulation:
                                     if getCompName(i)=='|P_var|' and '|P_var|' in outputs_to_set:
                                         print('++++add p+++++')
                                         i[':L']='"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq'])
-                                        i[':AS']='"p_{}_{}"'.format(pmtmuxs[getCompName(comp)]['conn_bundle_type_id'],pmtmuxs[getCompName(comp)]['conn_seq'])
+                                        i[':AS']='"p_{}"'.format(pmtmuxs[getCompName(comp)]['conn_seq'])
                                         new_comp.append(i)
                                         outputs_to_set.remove('|P_var|')
                                     else:
@@ -500,7 +500,7 @@ class IDADistrictsModelingSimulation:
                                         else:
                                             new_comp.append(i)
                                 for i in outputs_to_set:
-                                    new_comp.append({':C': ':VAR', ':N': i, ':L': '"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq']),':AS':'"p_{}_{}"'.format(pmtmuxs[getCompName(comp)]['conn_bundle_type_id'],pmtmuxs[getCompName(comp)]['conn_seq'])})
+                                    new_comp.append({':C': ':VAR', ':N': i, ':L': '"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq']),':AS':'"p_{}"'.format(pmtmuxs[getCompName(comp)]['conn_seq'])})
                                 comp=new_comp
                             
                         if getCompName(comp) in flowmeters:
@@ -533,11 +533,10 @@ class IDADistrictsModelingSimulation:
                                 outputs_to_del.append('FLOW_RET')
                             print(outputs_to_del)
                             if outputs_to_set or outputs_to_del:
+                                sup_conn=[connValue['conn_seq'] for connValue in connValues if connValue['type']==1]
+                                ret_conn=[connValue['conn_seq'] for connValue in connValues if connValue['type']==2]
                                 for i in comp:
-                                    if getCompName(i)=='N_SUP':
-                                        n_sup=int(i[':V'])
-                                    if getCompName(i)=='N_RET':
-                                        n_ret=int(i[':V'])
+
                                         
                                     if getCompName(i)=='P' and 'P' in outputs_to_set:
                                         print('++++add power+++++')
@@ -547,26 +546,26 @@ class IDADistrictsModelingSimulation:
                                         outputs_to_set.remove('P')
                                     elif getCompName(i)=='FLOW_SUP' and 'FLOW_SUP' in outputs_to_set:
                                         print('++++add flow sup+++++')
-                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
-                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"flow_supply_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
+                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(sup_conn,1)]))
+                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1])+')' for i in enumerate(sup_conn,1)]))
                                         new_comp.append(i)
                                         outputs_to_set.remove('FLOW_SUP')
                                     elif getCompName(i)=='FLOW_RET' and 'FLOW_RET' in outputs_to_set:
                                         print('++++add flow ret+++++')
-                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
-                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"flow_return_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
+                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(ret_conn,1)]))
+                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1])+')' for i in enumerate(ret_conn,1)]))
                                         new_comp.append(i)
                                         outputs_to_set.remove('FLOW_RET')
                                     elif getCompName(i)=='TSUP' and 'TSUP' in outputs_to_set:
                                         print('++++add T sup+++++')
-                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
-                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"Tsup_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
+                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(sup_conn,1)]))
+                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1])+')' for i in enumerate(sup_conn,1)]))
                                         new_comp.append(i)
                                         outputs_to_set.remove('TSUP')
                                     elif getCompName(i)=='TRET' and 'TRET' in outputs_to_set:
                                         print('++++add T ret+++++')
-                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
-                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i)+ ' . '+'"Tret_{}"'.format(conn_type_seq)+')' for i in range(1,n_sup+1)]))
+                                        i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(ret_conn,1)]))
+                                        i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1])+')' for i in enumerate(ret_conn,1)]))
                                         new_comp.append(i)
                                         outputs_to_set.remove('TRET')
                                     else:
@@ -581,7 +580,7 @@ class IDADistrictsModelingSimulation:
                                     new_comp.append({':C': ':VAR', ':N': i, ':L': '"Connection type sequence_{}"'.format(conn_type_seq)})
                                 comp=new_comp
                         if getCompClass(comp) in 'OUTPUT-FILE':
-                            if (getCompName(comp)=='"TAir"' and 'tair_c' in [i for i in outputs if not outputs[i]] or
+                            if (getCompName(comp)=='"TAir"' and 'troom_c' in [i for i in outputs if not outputs[i]] or
                                 getCompName(comp)=='"Heatbalance"' and 'heatbalance_c' in [i for i in outputs if not outputs[i]] or
                                 "Connection type sequence_" in getCompName(comp) and not [True for i in self.requestedOutputs if i in ['power_c','temp_c','p_c','mdot_c'] and self.requestedOutputs[i]]):
                                 print('++++not outputfile++++')
@@ -844,115 +843,502 @@ class IDADistrictsModelingSimulation:
         self.simulatedOutputs=loadSimulatedOutputs(self.plugin_dir,self.dictDB)
         srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
         modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
-        #re-create table line_seg, which holds the geometry of the simulated pipe segements
-        sql="""DROP TABLE IF EXISTS {}.line_seg;
-CREATE TABLE IF NOT EXISTS {}.line_seg
+  
+        #re-create table line_seg for temperature (according to the pipe distrectization) and pressure (2 segments per line), which holds the geometry of the simulated pipe segements
+        sql='\n'.join(["""DROP TABLE IF EXISTS {}.line_seg_{};
+CREATE TABLE IF NOT EXISTS {}.line_seg_{}
 (
     id serial,
     lid integer NOT NULL,
     lid_seg integer NOT NULL,
     geom geometry(LineStringZ,{})
 );
-SELECT segmentize({},'{}','line_seg');""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid,modellingSettings['fd_meterPerNode'],self.dictDB['versionName'])
-        self.cur.execute(sql)
+{}""".format(self.dictDB['versionName'],output.split('_')[0],self.dictDB['versionName'],output.split('_')[0],srid,
+            "SELECT segmentize({},'{}','line_seg_temp');".format(modellingSettings['fd_meterPerNode'],self.dictDB['versionName']) if output=='temp_lines' else "SELECT halve_geom('{}','line_seg_p');".format(self.dictDB['versionName']))
+            for output in self.simulatedOutputs if output in ['temp_lines','p_lines'] and self.simulatedOutputs[output]])
+        if sql:
+            self.cur.execute(sql)
         
         for i in range(dlg.combo_submodels.count()):
             if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i):        
                 submodel=dlg.combo_submodels.itemText(i)
                 print(submodel)
-                dir=self.plugin_dir+'\\network_models\\{}\\{}\\network_{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel)
+                dir_path=self.plugin_dir+'\\network_models\\{}\\{}\\network_{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel)
                 
                 connTypeValues=getConnTypeConnValues(self.cur,getLinesConnTypes(self.cur,self.dictDB))
+
                 #-----update DB tables--------
-                sql=''
                 #-----------create tables----------------
-                #customer tables: customer_s_tair, customer_s_balance, customer_s_conntype_[conn type seq]
-                
-                
+                #customer tables: customer_s_troom, customer_s_balance, customer_s_conntype_[conn type seq]
+                c_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output]]
+                if c_outputs:
+                    used_b_types=getUsedConnBundleTypes('customer',self.cur,self.dictDB)
+                    c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power']]
+                    conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
+                    conn_t_power_names= getUsedConnTypeIdents('customer',self.cur,self.dictDB)
+                    tables=[]
+                    
+                    print(conn_names)
+                    print(conn_t_power_names)
+                    #connection tables (p,m,T)
+                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.customer_s_{}${} CASCADE;
+CREATE TABLE {}.customer_s_{}${}
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"${}" numeric,
+	CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],output,conn_name,self.dictDB['versionName'],output,conn_name,srid,output,output,conn_name) 
+                        for output in c_conn_outputs for conn_name in conn_names])
+                    tables+=["customer_s_{}${}".format(output,conn_name) for output in c_conn_outputs for conn_name in conn_names]
+                    
+                    #connection type tables (power)
+                    if 'power' in c_outputs:
+                        sql+='\n'.join(["""DROP TABLE IF EXISTS {}.customer_s_power${} CASCADE;
+CREATE TABLE {}.customer_s_power${}
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$power" numeric,
+	CONSTRAINT customer_s_power${}_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],ident,self.dictDB['versionName'],ident,srid,ident) 
+                            for ident in conn_t_power_names])
+                        tables+=["customer_s_power${}".format(ident) for ident in conn_t_power_names]
+
+                    #room air temperature table
+                    if 'troom' in c_outputs:
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_troom CASCADE;
+CREATE TABLE {}.customer_s_troom
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$troom" numeric,
+	CONSTRAINT customer_s_troom_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_troom')   
+
+                    #heat balance table
+                    if 'heatbalance' in c_outputs:
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_electricity CASCADE;
+CREATE TABLE {}.customer_s_electricity
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$electricity" numeric,
+	CONSTRAINT customer_s_electricity_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_electricity')
+
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_transmission CASCADE;
+CREATE TABLE {}.customer_s_transmission
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$transmission" numeric,
+	CONSTRAINT customer_s_transmission_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_transmission')
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_heating CASCADE;
+CREATE TABLE {}.customer_s_heating
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$heating" numeric,
+	CONSTRAINT customer_s_heating_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_heating')
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_gains CASCADE;
+CREATE TABLE {}.customer_s_gains
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$gains" numeric,
+	CONSTRAINT customer_s_gains_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_gains')
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_leakage CASCADE;
+CREATE TABLE {}.customer_s_leakage
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$leakage" numeric,
+	CONSTRAINT customer_s_leakage_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_leakage')
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_occupancy CASCADE;
+CREATE TABLE {}.customer_s_occupancy
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$occupancy" numeric,
+	CONSTRAINT customer_s_occupancy_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_occupancy')
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_solar CASCADE;
+CREATE TABLE {}.customer_s_solar
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$solar" numeric,
+	CONSTRAINT customer_s_solar_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_solar')
+                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_ventilation CASCADE;
+CREATE TABLE {}.customer_s_ventilation
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$ventilation" numeric,
+	CONSTRAINT customer_s_ventilation_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
+                        tables.append('customer_s_ventilation')
+                        
+                    print(sql)
+                    if sql:
+                        self.cur.execute(sql)
+                    
+                    #load data
+                    #get cid`s
+                    sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
+    FROM {}.dhc_customers f, bundle_type_conns b_t_conns, customer_assettypes at
+    WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={};""".format(self.dictDB['versionName'],submodel)
+                    self.cur.execute(sql)
+                    cids=self.cur.fetchall()
+                    
+                    b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
+                    print(b_t_connValues_dict)
+                    for id in cids:
+                        if c_conn_outputs:
+                            connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
+                            conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
+                            for seq in conn_type_seq:
+                                fname=dir_path+'customer_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
+                                print(fname)
+                                if os.path.exists(fname):
+                                    with open(fname, "r") as myfile:
+                                        col_var_dict={}
+                                        for line in myfile:
+                                            header=line.split()
+                                            print(header)
+                                            for col,var in enumerate(header,-1):
+                                                if len(var.split('_'))==2:
+                                                    col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
+                                                        'table_name': 'customer_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]))}
+                                                elif var=='power':
+                                                    col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'customer_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
+                                                    
+                                            print(col_var_dict)
+                                            break
+                                            
+                                    file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+    
+                                    if dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                        #linear interpolation
+                                        print(dlg.interpolation_dt.text())
+                                        if is_number(dlg.interpolation_dt.text()):
+                                            file_data=interpolateTimeData(float(dlg.interpolation_dt.text()),file_data)
+                                        else:
+                                            self.iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
+                                            return
+                                    #print(file_data)
+                                    start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                    self.copy_string_iterator_feature_c_t_seq_sData(self.conn, file_data,id['id'],col_var_dict,start_datetime)
+                        
+                        if 'troom' in c_outputs :
+                            fname=dir_path+'customer_'+str(id['id'])+'\\TRoom.prn'.format(seq)
+                            print(fname)
+                            if os.path.exists(fname):         
+                                file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+                                if dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                    #linear interpolation
+                                    print(dlg.interpolation_dt.text())
+                                    if is_number(dlg.interpolation_dt.text()):
+                                        file_data=interpolateTimeData(float(dlg.interpolation_dt.text()),file_data)
+                                    else:
+                                        self.iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
+                                        return
+                                #print(file_data)
+                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                col_var_dict={2: {'var': 'troom','name': '','table_name': 'customer_s_troom'}}
+                                self.copy_string_iterator_feature_c_t_seq_sData(self.conn, file_data,id['id'],col_var_dict,start_datetime)
+                            
+                        if 'heatbalance' in c_outputs:
+                            fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'.format(seq)
+                            print(fname)
+                            if os.path.exists(fname):                                              
+                                file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+                                if dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                    #linear interpolation
+                                    print(dlg.interpolation_dt.text())
+                                    if is_number(dlg.interpolation_dt.text()):
+                                        file_data=interpolateTimeData(float(dlg.interpolation_dt.text()),file_data)
+                                    else:
+                                        self.iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
+                                        return
+                                #print(file_data)
+                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                self.copy_string_iterator_c_heatbalance_sData(self.conn, file_data,id['id'],start_datetime)
+                    #update point geometry
+                    print(tables)
+                    if tables:
+                        self.updateResultLayerGeometry(tables,'customer')
+                                
+                    
                 #energy plant tables: customer_s_conntype_[conn type seq]
-                
+                ep_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output]]
+                if ep_outputs:
+                    used_b_types=getUsedConnBundleTypes('energy_plant',self.cur,self.dictDB)
+                    ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power']]
+                    conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
+                    conn_t_power_names= getUsedConnTypeIdents('energy_plant',self.cur,self.dictDB)
+                    tables=[]
+                    print(conn_names)
+                    print(conn_t_power_names)
+                    #connection tables (p,m,T)
+                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.energy_plant_s_{}${} CASCADE;
+CREATE TABLE {}.energy_plant_s_{}${}
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"${}" numeric,
+	CONSTRAINT energy_plant_s_{}${}_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],output,conn_name,self.dictDB['versionName'],output,conn_name,srid,output,output,conn_name) 
+                        for output in ep_conn_outputs for conn_name in conn_names])
+                    tables+=["energy_plant_s_{}${}".format(output,conn_name) for output in ep_conn_outputs for conn_name in conn_names]
+                        
+                    #connection type tables (power)
+                    if 'power' in ep_outputs:
+                        sql+='\n'.join(["""DROP TABLE IF EXISTS {}.energy_plant_s_power${} CASCADE;
+CREATE TABLE {}.energy_plant_s_power${}
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(PointZ,{}),
+	"$power" numeric,
+	CONSTRAINT energy_plant_s_power${}_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],ident,self.dictDB['versionName'],ident,srid,ident) 
+                            for ident in conn_t_power_names])
+                        tables+=["energy_plant_s_power${}".format(ident) for ident in conn_t_power_names]
+                    
+                    print(sql)
+                    if sql:
+                        self.cur.execute(sql)
+                        
+                    #load data
+                    #get epid`s
+                    sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
+    FROM {}.dhc_energy_plants f, bundle_type_conns b_t_conns, energy_plant_assettypes at
+    WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={};""".format(self.dictDB['versionName'],submodel)
+                    print(sql)
+                    self.cur.execute(sql)
+                    epids=self.cur.fetchall()
+                    
+                    b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
+                    print(b_t_connValues_dict)
+                    for id in epids:
+                        if ep_conn_outputs:
+                            connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
+                            conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
+                            for seq in conn_type_seq:
+                                fname=dir_path+'energy_plant_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
+                                print(fname)
+                                if os.path.exists(fname):
+                                    with open(fname, "r") as myfile:
+                                        col_var_dict={}
+                                        for line in myfile:
+                                            header=line.split()
+                                            print(header)
+                                            for col,var in enumerate(header,-1):
+                                                if len(var.split('_'))==2:
+                                                    col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
+                                                        'table_name': 'energy_plant_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]))}
+                                                    
+                                            print(col_var_dict)
+                                            break
+                                            
+                                    file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+    
+                                    if dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                        #linear interpolation
+                                        print(dlg.interpolation_dt.text())
+                                        if is_number(dlg.interpolation_dt.text()):
+                                            file_data=interpolateTimeData(float(dlg.interpolation_dt.text()),file_data)
+                                        else:
+                                            self.iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
+                                            return
+                                    #print(file_data)
+                                    start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                    self.copy_string_iterator_feature_c_t_seq_sData(self.conn, file_data,id['id'],col_var_dict,start_datetime)
+                    #update point geometry
+                    print(tables)
+                    if tables:
+                        self.updateResultLayerGeometry(tables,'energy_plant')
                 
                 #lines tables: line_s_t,line_s_v,nodes_s_mdot,nodes_s_p,nodes_s_t
-                if self.simulatedOutputs['temp_lines']:
-                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.line_s_t${} CASCADE;
-CREATE TABLE {}.line_s_t${}
+                line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
+                if line_outputs:
+                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.line_s_{}${} CASCADE;
+CREATE TABLE {}.line_s_{}${}
 (
 	id serial,
     fid integer,
     time timestamp,
 	geom geometry(LineStringZ,{}),
 	segment integer,
-	t numeric,
-	CONSTRAINT line_s_t${}_pkey PRIMARY KEY (id)
-);""".format(self.dictDB['versionName'],connValue['connection_id'],self.dictDB['versionName'],connValue['connection_id'],srid,connValue['connection_id']) for connValue in connTypeValues])
-                print(sql)
-                self.cur.execute(sql)
-                
-                #load data
-                #get lids
-                sql="""SELECT id FROM {}.dhc_lines ORDER BY id;""".format(self.dictDB['versionName'])
-                self.cur.execute(sql)
-                lids=self.cur.fetchall()
-                
-                #get connection sequence
-                
-                for id in lids:
-                    fname=dir+'Line_t_{}.prn'.format(id['id'])
-                    print(fname)
-                    if os.path.exists(fname):
-                        data=[]
-                        with open(fname, "r") as myfile:
-                            for line in myfile:
-                                values_len=len(line.split())-3
-                                conn_seq_len=len(set([int(i.split('_')[1]) for i in line.split()[3:]]))
-                                value_per_conn_seq=values_len/conn_seq_len
-                                print(value_per_conn_seq)
-                                break
+	"${}" numeric,
+	CONSTRAINT line_s_{}${}_pkey PRIMARY KEY (id)
+);""".format(self.dictDB['versionName'],output,connValue['connection_id'],self.dictDB['versionName'],output,connValue['connection_id'],srid,output,output,connValue['connection_id']) 
+                        for output in line_outputs for connValue in connTypeValues])
+                    print(sql)
+                    self.cur.execute(sql)
 
-                        file_data = np.loadtxt(fname, skiprows=1,dtype=float)
-                        print(file_data)
-                        
-                        start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
-                                
-                        if dlg.checkbox_timestep.checkState() == Qt.Checked:
-                            #linear interpolation
-                            time=[]
-                            print(dlg.interpolation_dt.text())
-                            if is_number(dlg.interpolation_dt.text()):
-                                dt=float(dlg.interpolation_dt.text())
-                                
-                                #startyear_datetime=datetime(start_datetime.year,1,1)
-                                start_hour=file_data[0,0]
-                                start_hour=start_hour-start_hour%(dt/3600)
-                                print(start_hour)
-                                end_hour=file_data[-1,0]
-                                end_hour=end_hour-end_hour%(dt/3600)+dt/3600
-                                print(end_hour)
+                    #load data
+                    #get lids
+                    sql="""SELECT id FROM {}.dhc_lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.dictDB['versionName'],submodel)
+                    self.cur.execute(sql)
+                    lids=self.cur.fetchall()
+                    
+                    for output in line_outputs:
+                        print('+++++++++'+output+'++++++++++++')
+                        #get connection sequence
+                        for id in lids:
+                            fname=dir_path+'Line_{}_{}.prn'.format(output,id['id'])
+                            print(fname)
+                            if os.path.exists(fname):
+                                data=[]
+                                if output=='temp': #get number of temp segments per line; just read first line
+                                    with open(fname, "r") as myfile:
+                                        for line in myfile:
+                                            values_len=len(line.split())-3
+                                            conn_seq_len=len(set([int(i.split('_')[1]) for i in line.split()[3:]]))
+                                            value_per_conn_seq=values_len/conn_seq_len
+                                            print(value_per_conn_seq)
+                                            break
+                                elif output=='p':
+                                    with open(fname, "r") as myfile:
+                                        for line in myfile:
+                                            values_len=len(line.split())-3
+                                            break
+                                    value_per_conn_seq=2
+                                    conn_seq_len=values_len/value_per_conn_seq
+                                    print(value_per_conn_seq)
+                                    print(conn_seq_len)
+                                else:
+                                    value_per_conn_seq=1
+                                    print(value_per_conn_seq)
 
-                                time=np.arange(start_hour, end_hour+dt/3600, dt/3600)
-
-                                #file_data = np.interp(time, file_data[:,0], file_data[:,2:])
-                                # apply the interpolation to each column
-                                f = interp1d(file_data[:,0], file_data[:,2:], axis=0, fill_value="extrapolate")
-
-                                # get final result
-                                file_data=np.column_stack((time,f(time)))
-                                
+                                file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+                                if output=='p':
+                                    new_order=[0,1]+[int(i+2 + conn_seq_len*j) for i in range(int(conn_seq_len)) for j in range(value_per_conn_seq)]
+                                    print(new_order)
+                                    file_data=file_data[:,new_order]
                                 print(file_data)
                                 
-
-                            else:
-                                self.iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
-                                return
-                                
-                        table_names=['line_s_t$'+str(i['connection_id']) for i in connTypeValues]
-                        self.copy_string_iterator_sData(self.conn,file_data,id['id'],table_names,value_per_conn_seq,dlg,start_datetime,'linestring')
-
+                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                        
+                                if dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                    #linear interpolation
+                                    print(dlg.interpolation_dt.text())
+                                    if is_number(dlg.interpolation_dt.text()):
+                                        file_data=interpolateTimeData(float(dlg.interpolation_dt.text()),file_data)
+                                    else:
+                                        self.iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
+                                        return
+                                        
+                                table_names=['line_s_'+output+'$'+str(i['connection_id']) for i in connTypeValues]
+                                print(table_names)
+                                self.copy_string_iterator_sData(self.conn,file_data,id['id'],table_names,value_per_conn_seq,dlg,start_datetime,'linestring')
+                        
+                        #update line geometry
+                        if ['line_s_'+output+'$'+str(i['connection_id']) for i in connTypeValues if output in ['p','temp']]:
+                            self.updateResultLayerLineSegGeometry(['line_s_'+output+'$'+str(i['connection_id']) for i in connTypeValues if output in ['p','temp']])
+                        if ['line_s_'+output+'$'+str(i['connection_id']) for i in connTypeValues if output not in ['p','temp']]:
+                            self.updateResultLayerGeometry(['line_s_'+output+'$'+str(i['connection_id']) for i in connTypeValues if output not in ['p','temp']],'line')
+        closeDialog(dlg)
                     
 
+    def copy_string_iterator_feature_c_t_seq_sData(self,connection, sdata,fid,col_dict,start_datetime) -> None:
+        for col in col_dict:
+            print(col)
+            table_name=col_dict[col]['table_name']
+            print(table_name)
+            max_id=getMaxIdSchema(self.cur,table_name,self.dictDB['versionName'])+1
+            print(max_id)
+            with connection.cursor() as cursor:
+                mdata_string_iterator = StringIteratorIO((
+                    '|'.join(map(clean_csv_value, (
+                        int(row_counter+max_id),
+                        fid,
+                        start_datetime+datetime.timedelta(hours=float(data[0])),
+                        '',
+                        data[1]
+                    ))) + '\n'
+                    for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,col]))
+                ))
+                cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
+                
+    def copy_string_iterator_c_heatbalance_sData(self,connection, sdata,fid,start_datetime) -> None:
+        table_names=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
+        with connection.cursor() as cursor:
+            for col,table_name in enumerate(table_names,2):
+                max_id=getMaxIdSchema(self.cur,table_name,self.dictDB['versionName'])+1
+                mdata_string_iterator = StringIteratorIO((
+                    '|'.join(map(clean_csv_value, (
+                        int(row_counter+max_id),
+                        fid,
+                        start_datetime+datetime.timedelta(hours=float(data[0])),
+                        '',
+                        data[col]
+                    ))) + '\n'
+                    for row_counter,data in enumerate(sdata)
+                ))
+                cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
+
+    def updateResultLayerGeometry(self,tables,type):
+        for table_name in tables:
+            sql="""UPDATE {}.{} r set geom = f.geom 
+    FROM (SELECT id, geom FROM {}.dhc_{}s) f
+    WHERE f.id=r.fid;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'],type)
+            print(sql)
+            self.cur.execute(sql)
+            
+    def updateResultLayerLineSegGeometry(self,tables):   
+        for table_name in tables:
+            var=table_name.split('_')[2].split('$')[0]
+            sql="""UPDATE {}.{} r set geom = seg.geom 
+    FROM (SELECT lid,lid_seg, geom FROM {}.line_seg_{}) seg
+    WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'],var)
+            print(sql)
+            self.cur.execute(sql)
+        
     def copy_string_iterator_sData(self,connection, sdata,fid,table_names,value_per_conn_seq,dlg,start_datetime,mode) -> None:
-        start_col_index=1
-        end_col_index=1+value_per_conn_seq
+        start_col_index=2
+        end_col_index=2+value_per_conn_seq
         for table_name in table_names:
             max_id=getMaxIdSchema(self.cur,table_name,self.dictDB['versionName'])+1
             with connection.cursor() as cursor:
@@ -969,14 +1355,7 @@ CREATE TABLE {}.line_s_t${}
                 ))
                 cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
             start_col_index=end_col_index
-            end_col_index=start_col_index+value_per_conn_seq
-            if mode=='linestring':
-                sql="""UPDATE {}.{} r set geom = seg.geom 
-    FROM (SELECT lid,lid_seg, geom FROM {}.line_seg) seg
-    WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'])
-                print(sql)
-                self.cur.execute(sql)
-            
+            end_col_index=start_col_index+value_per_conn_seq   
     
     def openModel(self,dlg):
         print('-***-')

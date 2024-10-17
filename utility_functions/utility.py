@@ -2,10 +2,26 @@ from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.utils import iface
 from datetime import datetime 
 from plugins.utility_functions.db import *
+from scipy.interpolate import interp1d
+import numpy as np
 
 import time
 
+def interpolateTimeData(dt,file_data):
+    start_hour=file_data[0,0]
+    start_hour=start_hour-start_hour%(dt/3600)
+    end_hour=file_data[-1,0]
+    end_hour=end_hour-end_hour%(dt/3600)+dt/3600
 
+    time=np.arange(start_hour, end_hour+dt/3600, dt/3600)
+
+    # apply the interpolation to each column
+    f = interp1d(file_data[:,0], file_data[:,1:], axis=0, fill_value="extrapolate")
+
+    # get final result
+    file_data=np.column_stack((time,f(time)))
+    return file_data
+    
 def getDateTime(y=2024,m=1,d=1,h=0,min=0,s=0):
     return datetime(y, m, d, h, min,s)
     
@@ -22,7 +38,7 @@ def getAvergageByMode(mode,cur,dictDB,table):
     elif mode=='Monthly average':
         return 'month'
     elif mode=='Values':
-        return getTimeDiff(cur,dictDB,table,'time','fid')
+        return getTimeDiff(cur,dictDB,table,'time','fid')/3600
 
 def getNTPTime(year,month,day,hour,minute,second):
     diff = datetime(year, month, day, hour, minute, second) - datetime(1900, 1, 1, 0, 0, 0)

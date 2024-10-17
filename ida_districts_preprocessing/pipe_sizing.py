@@ -99,6 +99,7 @@ INSERT INTO temp.dhc_lines SELECT * FROM a.dhc_lines ORDER BY id;
     cur.execute(sql)
     #get pipes from version.dhc_lines table
     sql="""SELECT l.id,l.peak_power_kw, l.no_customer,la.conn_type FROM {}.dhc_lines l, line_assettypes la WHERE l.assetgroup=la.assetgroup AND l.assettype=la.assettype AND l.network IN ({}) ORDER BY l.id;""".format(dictDB['versionName'],','.join([i for i in networks]))
+    print(sql)
     cur.execute(sql)
     sql_lines=""
     new_pipe_bundles=[]

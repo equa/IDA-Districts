@@ -26,17 +26,16 @@ class ShowOnMapDialog(QMainWindow):
         #radio buttons Measurement data/Simulation data
         layout_rbtn_dataGroup = QHBoxLayout()
         self.group_dataGroup=QButtonGroup(widget)
-        self.rbtn_mDatap = QRadioButton('Measurement data')
-        self.rbtn_mDatap.setChecked(True)
-        #self.rbtn_mDatap.toggled.connect(self.dataGroupChanged)
         self.rbtn_simData = QRadioButton('Simulation data')
+        self.rbtn_simData.setChecked(True)
+        self.rbtn_mDatap = QRadioButton('Measurement data')
+        #self.rbtn_mDatap.toggled.connect(self.dataGroupChanged)
         self.group_dataGroup.buttonClicked.connect(self.dataGroupChanged)
 
-           
+        layout_rbtn_dataGroup.addWidget(self.rbtn_simData)             
         layout_rbtn_dataGroup.addWidget(self.rbtn_mDatap)
-        layout_rbtn_dataGroup.addWidget(self.rbtn_simData)  
-        self.group_dataGroup.addButton(self.rbtn_mDatap)      
         self.group_dataGroup.addButton(self.rbtn_simData)  
+        self.group_dataGroup.addButton(self.rbtn_mDatap)      
         
         #radio buttons features
         layout_rbtn_feature = QHBoxLayout()
@@ -527,8 +526,8 @@ class ShowOnMapDialog(QMainWindow):
                     self.endtime.setText(str(time['max']))
             except:
                 self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                self.starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                self.label_endtime.setText(str(time['max']))
+                self.starttime.setText(str(time['min']))
+                self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                 self.endtime.setText(str(time['max']))
         except:
             self.label_starttime.setText('Start time, h')

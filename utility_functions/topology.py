@@ -111,6 +111,34 @@ def getBundleValuesByFeature(type_id,feature_id,cur,dictDB):
     
 def getConnValuesByFeature(type_id,feature_id,conn_id,cur,dictDB):
     return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
+
+def getUsedConnBundleTypes(type_name,cur,dictDB):
+    sql="""Select at.conn_bundle_type
+    FROM {}.dhc_{}s f, {}_assettypes at
+    WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype
+    GROUP BY at.conn_bundle_type
+    ORDER BY at.conn_bundle_type;""".format(dictDB['versionName'],type_name,type_name)
+    cur.execute(sql)
+    return [i['conn_bundle_type'] for i in cur.fetchall()]
+    
+def getUsedConnTypes(type_name,cur,dictDB):
+    sql="""Select b_t_conns.conn_type_id
+    FROM {}.dhc_{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
+    WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND b_t_conns.conn_bundle_type_id = at.conn_bundle_type
+    GROUP BY b_t_conns.conn_type_id
+    ORDER BY b_t_conns.conn_type_id;""".format(dictDB['versionName'],type_name,type_name)
+    cur.execute(sql)
+    return [i['conn_bundle_type'] for i in cur.fetchall()]
+    
+def getUsedConnTypeIdents(type_name,cur,dictDB):
+    sql="""WITH sub AS(
+    Select  b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text as ident
+        FROM {}.dhc_{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
+        WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND b_t_conns.conn_bundle_type_id = at.conn_bundle_type
+)
+SELECT ident FROM sub GROUP BY ident;""".format(dictDB['versionName'],type_name,type_name)
+    cur.execute(sql)
+    return [i['ident'] for i in cur.fetchall()]
     
 def getConnBundleByAssettype(type_id,assettype,assetgroup,cur,dictDB):
     sql="""SELECT c_at.conn_bundle_type 
@@ -164,6 +192,21 @@ def getPMT2muxName(cur,conn_bundle_type,connection_id):
         return "PMT2mux_{}_{}_{}_{}_T{}".format(str(connValues['conn_bundle_type_id']),str(connValues['conn_t_seq']),str(connValues['conn_type_id']),str(connValues['conn_seq']),str(connValues['temp']))
     else:
         return ""
+        
+def getPMT2muxIdents(cur,conn_bundle_type):
+    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_t_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp
+	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type)
+    cur.execute(sql)
+    
+    return ["{}_{}_{}_{}".format(str(connValue['conn_bundle_type_id']),str(connValue['conn_t_seq']),str(connValue['conn_type_id']),str(connValue['conn_seq'])) for connValue in cur.fetchall()]
+    
+def getPMT2muxIdentFromConnValues(connValues,conn_seq):
+    try:
+        return ["{}_{}_{}_{}".format(connValue['conn_bundle_type_id'],connValue['conn_type_seq'],connValue['conn_type_id'],connValue['conn_seq']) for connValue in connValues if conn_seq==connValue['conn_seq']][0]
+    except:
+        return ''
         
 def checkLineDirectionTopology(cur,version,tolerance,iface,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 

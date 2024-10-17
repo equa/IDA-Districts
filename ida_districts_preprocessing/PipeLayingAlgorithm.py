@@ -2,6 +2,7 @@ from plugins.utility_functions.layer_visualization import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.utility import *
 from plugins.utility_functions.topology import *
+from plugins.utility_functions.error_handling import *
 import time
 from qgis.PyQt.QtCore import Qt, QSettings, QTranslator, QCoreApplication, QObject, QRunnable, pyqtSignal, pyqtSlot
 from qgis.core import QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
@@ -22,6 +23,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
         
 class WorkerPipeLayingSignals(QObject):
     progress=pyqtSignal(int)
+    error=pyqtSignal(str)
 
 class WorkerPipeLaying(QRunnable):
     """Worker thread
@@ -94,7 +96,7 @@ class WorkerPipeLaying(QRunnable):
             for mode in connectionModes:
                 self.prepareDB_pipeLaying_modeTables(self.dictDB['versionName'])
                 self.connectPlantsStreet(self.dictDB['versionName'],mode)
-                self.connectCustomersStreet(self.dictDB['versionName'],mode)        
+                self.connectCustomersStreet(self.dictDB['versionName'],mode)               
                 self.generateTopology(self.dictDB['versionName'])
                 plants=self.getPlants(self.dictDB['versionName'])
                 self.networkHelp(self.dictDB['versionName'],plants,mode)

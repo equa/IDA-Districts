@@ -2,6 +2,7 @@
 
 from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
+from plugins.utility_functions.error_handling import *
 from .PipeLayingAlgorithm import WorkerPipeLaying 
 from .pipe_sizing import * 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
@@ -22,6 +23,9 @@ def checkPipeLayingLayerData(dictDB,cur,network):
         return 'no_plants'
     if streetsCount(cur,dictDB)==0:
         return 'no_streets'
+    #check intersecting features
+    if checkIntersectingFeatures(cur,dictDB):
+        return True
     return False
         
 def removeLayers():
@@ -408,7 +412,8 @@ class PipeLayingDialog(QMainWindow):
         
         #customer connection mode
         self.customer_connection_mode=QComboBox()
-        self.customer_connection_mode.addItems(['shortest-way-connection','loop-in-connection'])
+        #self.customer_connection_mode.addItems(['shortest-way-connection','loop-in-connection'])
+        self.customer_connection_mode.addItems(['shortest-way-connection'])
         
         #networks
         layout_networks=QHBoxLayout()
@@ -533,12 +538,15 @@ class PipeLayingDialog(QMainWindow):
         elif not layerCheck:
             worker = WorkerPipeLaying(network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),heating_assettype_customer=self.heating_assettype_customer.currentText(),heating_assettype_lines=self.heating_assettype_lines.currentText(),linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),cooling_load_min=self.cooling_load_min.text(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),amortization_period_cold=self.amortization_period_cold.text(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
             worker.signals.progress.connect(self.update_progress)
-                    
+            worker.signals.error.connect(self.show_error_message)       
             #execute
             self.threadpool.start(worker) 
             self.btn_stop.pressed.connect(worker.kill)
             self.btn_pause.pressed.connect(worker.pauseResume)
         
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        self.iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -990,6 +998,10 @@ class NetworkTopologyDialog(QMainWindow):
         self.setCentralWidget(widget)
         self.threadpool = QThreadPool()
         print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
+
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        self.iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         
     def execute(self):  
         print(self.dictDB)
@@ -1007,6 +1019,7 @@ class NetworkTopologyDialog(QMainWindow):
                     keepAssettypes=self.rbtn_keep_assettypes.isChecked(),
                     overrideAssettypes=self.rbtn_override_assettypes.isChecked(),overrideAssettypes_customers=self.overrideAssettype_customer.currentText(), overrideAssettypes_lines=self.overrideAssettype_lines.currentText(),overrideAssettypes_pipeBundle=self.overrideAssettype_pipeBundle.currentText(),tolerance=self.tolerance.text())
                 self.threadpool.start(worker) 
+                worker.signals.error.connect(self.show_error_message)
                 worker.signals.progress.connect(self.update_progress)
 
     def checkNetworkAttribute(self,version):

@@ -5,6 +5,7 @@ from plugins.utility_functions.utility import *
 import re
 
 def getSimData(requestedOutputs,networkSimData):
+    print(networkSimData)
     calc_from_time=getNTPTimeFromString(networkSimData['calc_time_from'])
     calc_to_time=getNTPTimeFromString(networkSimData['calc_time_to'])
     startup_from_time=getNTPTimeFromString(networkSimData['startup_time_from'])

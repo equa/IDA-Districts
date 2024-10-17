@@ -1,82 +1,105 @@
+import numpy as np
 from plugins.utility_functions.files import *
 from plugins.utility_functions.sensor_signals import *
 from plugins.utility_functions.topology import *
 import psycopg2.extras
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins"""
-dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres', 'projectName' : 'cosim_test1', 'versionName' : 'b'}
+from scipy.interpolate import interp1d
+import datetime
+
+plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation"""
+dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres', 'projectName' : 'test18', 'versionName' : 'a'}
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 print(cur)
-sensor_data=getSensorData(cur,dictDB)
-print(sensor_data)
-dfg
 
-def setupVersionForm_light():  
-    """ setup form for version layers"""
-    for vlayerName in ['dhc_lines','dhc_devices','dhc_junctions','dhc_customers','dhc_energy_plants','dhc_structure_boundarys','dhc_structure_junctions','dhc_structure_lines']:
-        vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
-        fields=vlayer.fields()
-        fc = vlayer.editFormConfig()
-        fc.clearTabs()
-        fc.setLayout(QgsEditFormConfig.TabLayout)
-        if vlayerName=='dhc_devices':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            ['asl_m'],
-                            [],[]]
-        elif vlayerName=='dhc_junctions':
-            attrNamesTabs= [['assetgroup','submodel'],
-                            ['asl_m','n_connections'],
-                            [],[]]
-        elif vlayerName=='dhc_lines':
-            attrNamesTabs= [['assetgroup','assettype','pipe_bundle_type_id','network','submodel'],
-                            ['length','nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure'],
-                            [],[]]
-        elif vlayerName=='dhc_customers':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            ['dhw_id','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
-                            ['sim_model',["Model 2","FloorArea","TSetC"]],
-#                           []]    
-                            ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
-        elif vlayerName=='dhc_energy_plants':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            ['main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
-                            [],[]]
-        elif vlayerName=='dhc_structure_boundarys':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            ['f_vexp_m'],
-                            [],[]]
-        elif vlayerName=='dhc_structure_junctions':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            [],
-                            [],[]]
-        elif vlayerName=='dhc_structure_lines':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            [],
-                            [],[]]
-        for tab,attrNamesTab in zip(['General','Physical data','Simulation data','Metadata'],attrNamesTabs):
-            if attrNamesTab:
-                c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
-                c.setIsGroupBox(False) # a tab
-                for attrName in attrNamesTab:
-                    #print (attrName)
-                    if type(attrName) is list:
-                        fc.addTab(c)
-                        c1 = QgsAttributeEditorContainer(attrName[0], c)
-                        c1.setIsGroupBox(False) # a tab
-                        
-                        field_idx = fields.indexOf(attrName[1])
-                        c1.addChildElement(QgsAttributeEditorField(attrName[1], field_idx, c1))
-                        field_idx = fields.indexOf(attrName[2])
-                        c1.addChildElement(QgsAttributeEditorField(attrName[2], field_idx, c1))
-                        fc.addTab(c1)
-                    else:    
-                        field_idx = fields.indexOf(attrName)
-                        c.addChildElement(QgsAttributeEditorField(attrName, field_idx, c))
-                fc.addTab(c)
-        vlayer.setEditFormConfig(fc)
+networkSimData=loadNetworkSimData(plugin_dir,dictDB)
+print(networkSimData)
 
+def getPMT2muxIdentFromConnValues(connValues,conn_seq):
+    try:
+        return ["{}_{}_{}_{}".format(connValue['conn_bundle_type_id'],connValue['conn_type_seq'],connValue['conn_type_id'],connValue['conn_seq']) for connValue in connValues if conn_seq==connValue['conn_seq']][0]
+    except:
+        return ''
+     
+def interpolateTimeData(dt,file_data):
+    start_hour=file_data[0,0]
+    start_hour=start_hour-start_hour%(dt/3600)
+    print(start_hour)
+    end_hour=file_data[-1,0]
+    end_hour=end_hour-end_hour%(dt/3600)+dt/3600
+    print(end_hour)
 
-setupVersionForm_light()
+    time=np.arange(start_hour, end_hour+dt/3600, dt/3600)
+
+    # apply the interpolation to each column
+    f = interp1d(file_data[:,0], file_data[:,1:], axis=0, fill_value="extrapolate")
+
+    # get final result
+    file_data=np.column_stack((time,f(time)))
+    return file_data
+                                        
+def copy_string_iterator_customer_sData(connection, sdata,fid,col_dict,start_datetime) -> None:
+    for col in col_dict:
+        print(col)
+        table_name=col_dict[col]['table_name']
+        print(table_name)
+        max_id=getMaxIdSchema(cur,table_name,dictDB['versionName'])+1
+        print(max_id)
+        with connection.cursor() as cursor:
+            mdata_string_iterator = StringIteratorIO((
+                '|'.join(map(clean_csv_value, (
+                    int(row_counter+max_id),
+                    fid,
+                    start_datetime+datetime.timedelta(hours=float(data[0])),
+                    '',
+                    data[1]
+                ))) + '\n'
+                for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,col]))
+            ))
+            cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(dictDB['versionName'],table_name),mdata_string_iterator)
+
+        sql="""UPDATE {}.{} r set geom = f.geom 
+    FROM (SELECT id, geom FROM {}.dhc_customers) f
+    WHERE f.id=r.fid;""".format(dictDB['versionName'],table_name,dictDB['versionName'])
+        print(sql)
+        cur.execute(sql)
+                
+#header="""#      time         order        m_1          m_2          p_1          p_2          power        t_1          t_2 """
+
+col_var_dict={}
+connValues=getConnsValues(1,cur)
+print(connValues)
+dir_path=plugin_dir+'\\network_models\\{}\\{}\\network_{}\\'.format(dictDB['projectName'],dictDB['versionName'],1)
+id={'id': 1,'conn_bundle_type_id':1}
+seq=1
+fname=dir_path+'customer_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
+print(fname)
+interpolate_dt=True
+if os.path.exists(fname):
+    data=[]
+    with open(fname, "r") as myfile:
+        for line in myfile:
+            header=line.split()
+            print(header)
+            for col,var in enumerate(header,-1):
+                if len(var.split('_'))==2:
+                    col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
+                        'table_name': 'customer_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]))}
+                    
+            print(col_var_dict)
+            break
+            
+        file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+        
+        if interpolate_dt:
+            file_data=interpolateTimeData(1800,file_data)
+        #print(file_data)
+        start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+        copy_string_iterator_customer_sData(conn, file_data,id['id'],col_var_dict,start_datetime)
+        
+                                            
+
+    

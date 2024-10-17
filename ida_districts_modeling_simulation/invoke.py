@@ -445,8 +445,9 @@ class InvokeFeatures():
         if self.type=='energy_plant':
             invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(self.dlg_invokeFeatures.tableWidget_customer.currentRow(),0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
         elif self.type=='customer':
-            invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(self.dlg_invokeFeatures.tableWidget_customer.currentRow(),0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'tair_c': True if requestedOutputs['tair_c'] else False}
-
+            invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(self.dlg_invokeFeatures.tableWidget_customer.currentRow(),0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
+        elif self.type=='device':
+            pass #todo
         invokeOneFeature(self.dlg_invokeFeatures,self.dlg_invokeFeatures.tableWidget_customer.currentRow(),self.plugin_dir,self.cur,self.dictDB,self.type,self.iface,True)
         
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
@@ -642,9 +643,9 @@ class InvokeFeatures():
             print(idx)
             invokeOneFeature(dlg,idx,self.plugin_dir,self.cur,self.dictDB,self.type,self.iface,True)
             if self.type=='energy_plant':
-                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(self.dlg_invokeFeatures.tableWidget_customer.currentRow(),0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
+                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
             elif self.type=='customer':
-                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'tair_c': True if requestedOutputs['tair_c'] else False}
+                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
 
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
 

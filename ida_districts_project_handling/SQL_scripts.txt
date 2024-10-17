@@ -103,3 +103,37 @@ BEGIN
 	END LOOP;
 END;
 $BODY$;
+
+-- FUNCTION: public.halve_geom(character varying(255),character varying(255))
+CREATE OR REPLACE FUNCTION public.halve_geom(
+	versionName character varying(255),tableName character varying(255))
+    RETURNS void
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+AS $BODY$DECLARE
+	startfraction float;
+	endfraction float;
+	fraction float;
+	numberOfSeg int;
+	count int;
+	recB Record;
+BEGIN		
+	FOR recB IN 
+		EXECUTE format('SELECT id FROM %I.dhc_lines', versionName)
+	LOOP	
+		RAISE NOTICE 'id=%',recB.id;
+        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,1, ST_LineSubstring(geom,0,0.5) FROM a.dhc_lines WHERE id=$1',versionName,tableName) USING recB.id;
+        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,2, ST_LineSubstring(geom,0.5,1) FROM a.dhc_lines WHERE id=$1',versionName,tableName) USING recB.id;
+	END LOOP;
+END;
+$BODY$;
+
+-- FUNCTION: akes a SQL command as an argument and executes it
+CREATE OR REPLACE FUNCTION execute_dynamic_sql(sql_command TEXT)
+RETURNS VOID AS $$
+BEGIN
+    EXECUTE sql_command;
+END;
+$$ LANGUAGE plpgsql;

@@ -85,6 +85,7 @@ class InvokeNetworkModel:
         4) insert pipes between customers and nodes 
         5) insert pipes between nodes"""
     def __init__(self,dir,requestedOutputs,modellingSettings,iface,networks,submodels,networkSimData,reinvoke):
+        print('**********invoke network*********')
         self.plugin_dir=dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
@@ -761,8 +762,8 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                 alpha_o=5 #duct
                 tamb_conn=' (:VAR :N |TAmb| :B (1 "Climate-macro" "TDuct" OUTSIGNAL))'
             if requestedOutputs['temp_lines']:
-                idm+="""\n(output-file :sf "self:\\Line_t_{}.prn" :n "Line_t_{}" :t output-file)""".format(lid,lid)
-                temp="""\n  (:VAR :N |Temp| :L "Line_t_{}")""".format(lid)
+                idm+="""\n(output-file :sf "self:\\Line_temp_{}.prn" :n "Line_temp_{}" :t output-file)""".format(lid,lid)
+                temp="""\n  (:VAR :N |Temp| :L "Line_temp_{}")""".format(lid)
             else:
                 temp=""
             if requestedOutputs['v_lines']: 
@@ -831,7 +832,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                                                 ' '.join([str(cp) for i in dPipes]),
                                                 ' '.join([str(rho) for i in dPipes]),
                                                 ' '.join([str(lambda_) for i in dPipes]),
-                                                ' '.join([str(roughness) for i in dPipes]),
+                                                roughness,
                                                 temp,
                                                 vel,
                                                 mdot,
@@ -970,7 +971,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     def writeNetworkTemplateIdm(self,submodel,dir,requestedOutputs,networkSimData):    
         """ write idm file with """
         print('write idm network model')
-        
+        print(networkSimData)
         simulation_data=getSimData(requestedOutputs,networkSimData)
         data=""";IDA 4.9902 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 4.9902))
