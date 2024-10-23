@@ -140,10 +140,10 @@ SELECT ident FROM sub GROUP BY ident;""".format(dictDB['versionName'],type_name,
     cur.execute(sql)
     return [i['ident'] for i in cur.fetchall()]
     
-def getConnBundleByAssettype(type_id,assettype,assetgroup,cur,dictDB):
+def getConnBundleByAssettype(feature,assettype,assetgroup,cur,dictDB):
     sql="""SELECT c_at.conn_bundle_type 
-    FROM {} c_at 
-    WHERE c_at.assetgroup={} AND c_at.assettype={};""".format(getAssettypeNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getAssettypeNameById(type_id),assetgroup,assettype)
+    FROM {}_assettypes c_at 
+    WHERE c_at.assetgroup={} AND c_at.assettype={};""".format(feature,assetgroup,assettype)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
 
@@ -162,8 +162,8 @@ def getLinesConnTypes(cur,dictDB):
     cur.execute(sql)
     return [i['conn_type'] for i in cur.fetchall()]
     
-def getConnsValuesByAssettype(type_id,assettyp,assetgroup,cur,dictDB):
-    return getConnsValues(getConnBundleByAssettype(type_id,assettyp,assetgroup,cur,dictDB),cur)
+def getConnsValuesByAssettype(feature,assettyp,assetgroup,cur,dictDB):
+    return getConnsValues(getConnBundleByAssettype(feature,assettyp,assetgroup,cur,dictDB),cur)
     
 def getMeterName(cur,conn_bundle_type,conn_type):
     sql="""SELECT conn_bundle_type_id, sequence

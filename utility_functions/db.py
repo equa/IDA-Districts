@@ -490,8 +490,8 @@ def dbConnectPerName(dictDB,dbName,errorMsg):
             iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
     return conn
     
-def getAssettypeNames(cur,assettype):
-    sql="""SELECT assetgroup::text || '_' || assettype::text || '_' || assettype_name AS assettyp_names FROM {}_assettypes ORDER BY assetgroup,assettype;""".format(assettype)
+def getAssettypeNames(cur,feature):
+    sql="""SELECT assetgroup::text || '_' || assettype::text || '_' || assettype_name AS assettyp_names FROM {}_assettypes ORDER BY assetgroup,assettype;""".format(feature)
     cur.execute(sql)
     return [i['assettyp_names'] for i in cur.fetchall()]
     

@@ -114,18 +114,18 @@ INSERT INTO public.connection_type_connections VALUES(24,10,3,8);
 INSERT INTO public.connection_type_connections VALUES(26,10,4,12);
 
 -------------------table public.connections------------------------------------
-INSERT INTO public.connections VALUES (1,1,70, 100000,Null,'Supply: 70 °C;100000Pa');
-INSERT INTO public.connections VALUES (2,2,30,0,Null,'Return: 30 °C;0Pa');
-INSERT INTO public.connections VALUES (3,1,10,100000,Null,'Supply: 10 °C;100000Pa');
-INSERT INTO public.connections VALUES (4,2,18,0,Null,'Return: 18 °C;0Pa');
-INSERT INTO public.connections VALUES (5,1,18,100000,Null,'Supply: 18 °C;100000Pa');
-INSERT INTO public.connections VALUES (6,2,10,0,Null,'Return: 10 °C;0Pa');
-INSERT INTO public.connections VALUES (7,1,70,Null,-0.1,'Supply: 70 °C;-0.1kg/s');
-INSERT INTO public.connections VALUES (8,2,30,Null,0.1,'Return: 30 °C;0.1kg/s');
-INSERT INTO public.connections VALUES (9,1,18,Null,-0.1,'Supply: 18 °C;-0.1kg/s');
-INSERT INTO public.connections VALUES (10,2,10,Null,0.1,'Return: 10 °C;0.1kg/s');
-INSERT INTO public.connections VALUES (11,1,10,Null,-0.1,'Supply: 10 °C;-0.1kg/s');
-INSERT INTO public.connections VALUES (12,2,18,Null,0.1,'Return: 18 °C;0.1kg/s');
+INSERT INTO public.connections VALUES (1,1,FALSE,70, 100000,Null,'Supply: 70 °C;100000Pa');
+INSERT INTO public.connections VALUES (2,2,FALSE,30,0,Null,'Return: 30 °C;0Pa');
+INSERT INTO public.connections VALUES (3,1,FALSE,10,100000,Null,'Supply: 10 °C;100000Pa');
+INSERT INTO public.connections VALUES (4,2,FALSE,18,0,Null,'Return: 18 °C;0Pa');
+INSERT INTO public.connections VALUES (5,1,FALSE,18,100000,Null,'Supply: 18 °C;100000Pa');
+INSERT INTO public.connections VALUES (6,2,FALSE,10,0,Null,'Return: 10 °C;0Pa');
+INSERT INTO public.connections VALUES (7,1,TRUE,70,Null,-0.1,'Supply: 70 °C;-0.1kg/s');
+INSERT INTO public.connections VALUES (8,2,TRUE,30,Null,0.1,'Return: 30 °C;0.1kg/s');
+INSERT INTO public.connections VALUES (9,1,TRUE,18,Null,-0.1,'Supply: 18 °C;-0.1kg/s');
+INSERT INTO public.connections VALUES (10,2,TRUE,10,Null,0.1,'Return: 10 °C;0.1kg/s');
+INSERT INTO public.connections VALUES (11,1,TRUE,10,Null,-0.1,'Supply: 10 °C;-0.1kg/s');
+INSERT INTO public.connections VALUES (12,2,TRUE,18,Null,0.1,'Return: 18 °C;0.1kg/s');
 
 -------------------table public.pipe_bundle_types------------------------------------
 INSERT INTO public.pipe_bundle_types VALUES (1,'2 pipes; 1m depth; 0.5m distance'); 

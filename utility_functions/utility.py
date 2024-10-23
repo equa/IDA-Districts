@@ -7,6 +7,27 @@ import numpy as np
 
 import time
 
+def flatten(nested_list):
+    return [item for sublist in nested_list for item in sublist]
+    
+def flatten_nestedList(nested_list):
+    flat_list = []
+    for item in nested_list:
+        if isinstance(item, list):
+            flat_list.extend(flatten_nestedList(item))  # Recursively flatten the sublist
+        else:
+            flat_list.append(item)
+    return flat_list 
+
+def isNumber(input):
+    try:
+        if float(input) or float(input)==0.0:
+            return True
+        else:
+            return False
+    except:
+        return False
+        
 def interpolateTimeData(dt,file_data):
     start_hour=file_data[0,0]
     start_hour=start_hour-start_hour%(dt/3600)

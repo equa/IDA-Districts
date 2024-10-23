@@ -205,6 +205,7 @@ CREATE TABLE public.connections
 (
   id serial,
   type integer,
+  p_ctrl BOOLEAN DEFAULT TRUE,
   temp numeric,
   p numeric,
   mdot numeric,

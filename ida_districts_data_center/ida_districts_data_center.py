@@ -24,6 +24,7 @@
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.utility import *
+from plugins.utility_functions.topology import *
 from plugins.utility_functions.layer_visualization import *
 from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI
 from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
@@ -36,7 +37,8 @@ from qgis.PyQt.QtWidgets import QComboBox,QAction, QFileDialog,QTableWidgetItem,
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_data_center_dialog import TableDialog, IDADistrictsDataCenterDialog, IDA_Districts_NameDialog, DefaultsDialog
+from .ida_districts_data_center_dialog import TableDialog, IDADistrictsDataCenterDialog, IDA_Districts_NameDialog, DefaultsDialog, ConnectionsDialog
+from .update_boundaries import *
 from plugins.utility_functions.assettypeFiles import ExchangeConntypeFiles, WriteAssettypeFiles, RenameAssettypeFiles
 from plugins.ida_districts_modeling_simulation.invoke import CopyAssettypeFiles
 
@@ -227,16 +229,20 @@ class IDADistrictsDataCenter:
         print('close dialog: {}'.format(dlg))
         dlg.close()        
     
-    def getValuesFromTableRow(self,dlg,dropdowns,row,columns):
+    def getValuesFromTableRow(self,dlg,dropdowns,row,columns,checkBoxes):
         values=[]
         p=False
         mdot=False
+        #print(row)
         for col in range(dlg.tableWidget.columnCount()):
             if col in list([i[0] for i in dropdowns]):
                 value=dlg.tableWidget.cellWidget(row, col).currentText()
+            elif col in checkBoxes:
+                value=dlg.tableWidget.cellWidget(row, col).isChecked()
             else:
                 if dlg.tableWidget.item(row,col):
                     value=dlg.tableWidget.item(row,col).text()
+                    #print(value)
                     if value and columns[col]=='p':
                         p=True
                     if value and columns[col]=='mdot':
@@ -248,16 +254,16 @@ class IDADistrictsDataCenter:
                         value='Null'
                     else:
                         value=''
-            if ':' in value and value.split(':')[0].isnumeric():
+            if isinstance(value, str) and ':' in value and value.split(':')[0].isnumeric():
                 value=value.split(':')[0]
             if not isFloat(value) and value!='Null':
                 value="'"+value + "'" 
             values.append(value)
-        print(value)
+        #print(values)
         if mdot and p:
             self.iface.messageBar().pushMessage("Error", "It is not possible to set tghe pressure and mass flow as boundary!", level=Qgis.Critical)
             return False
-        return ','.join(i for i in values)
+        return ','.join(str(i) for i in values)
         
     def saveContent(self,dlg,id,table,columns,filter,dropdowns,trace):
         """" Save table to DB an close dialog"""
@@ -268,7 +274,7 @@ class IDADistrictsDataCenter:
         maxId=getMaxId(self.cur,table)
         counter=1
         for row in range(dlg.tableWidget.rowCount()):
-            values=self.getValuesFromTableRow(dlg,dropdowns,row,columns)
+            values=self.getValuesFromTableRow(dlg,dropdowns,row,columns,False)
             sql+="""INSERT INTO public.{} (id,{},{}) VALUES({},{},{});\n""".format(table,filter[5:-1],','.join(i for i in columns),maxId+counter,id,values)
             counter+=1
         print(sql)
@@ -900,8 +906,122 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Connections','connections',['Connection Id','Type','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'],'(id,type,temp,p,mdot,description)',[[1,'public','prefered_conn_dir','id','name']],False, False,['',[],[],'','',[],False,'',False,False]) 
-                      
+            #self.show_TableDialog('Connections','connections',['Connection Id','Type','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'],'(id,type,temp,p,mdot,description)',[[1,'public','prefered_conn_dir','id','name']],False, False,['',[],[],'','',[],False,'',False,False]) 
+        
+            print('Manage connections')
+            dropdowns=[[1,'public','prefered_conn_dir','id','name']]
+            checkBoxes=[2]
+            columns='(id,type,p_ctrl,temp,p,mdot,description)'
+            dlg = ConnectionsDialog('Connections',['Connection Id','Type','Pressure controlled','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'])
+            dlg.btn_ok.clicked.connect(lambda: self.saveConnectionsTable(dlg,'connections',columns,dropdowns,False,checkBoxes))
+            dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
+            dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,True))
+            dlg.btn_add.clicked.connect(lambda: self.addConnectionsTableRow(dlg,dropdowns))
+            self.showConnectionsContent(dlg,dropdowns)         
+            dlg.tableWidget.itemChanged.connect(dlg.changedItem)
+            dlg.show()
+    
+    def saveConnectionsTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes):
+        """ 1) check entries: is value (p,m,T)
+            2) updates the changed boundary values in the templates
+            3) save the table content in table public.connections"""
+        if self.checkConnsInputValues(dlg):
+            updateAssettypeBoundaryValues(dlg,self.plugin_dir,self.dictDB,self.cur)
+            self.saveTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes)
+    
+    def checkConnsInputValues(self,dlg):
+        """is value (p,m,T)"""
+        for row in range(dlg.tableWidget.rowCount()):
+            if (dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,5).text()) or #m
+                not dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,4).text()) or #p
+                not isNumber(dlg.tableWidget.item(row,3).text())): #T
+                    self.iface.messageBar().pushMessage("Error", "Please enter a number as input in table row: {}!".format(row), level=Qgis.Critical)
+                    return False
+        return True
+        
+
+            
+    def addConnectionsTableRow(self,dlg,dropdowns):
+        """Insert table row"""
+        rowPosition = 0
+        dlg.tableWidget.insertRow(rowPosition)
+        dropdownItems=getDropDownItems(self.cur,dropdowns)
+        values=[]
+        for col in range(dlg.tableWidget.columnCount()):
+            values.append('')
+            if col in list([i[0] for i in dropdowns]):
+                comboBox = QComboBox()
+                comboBox.addItems(dropdownItems[col])
+                dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)
+            elif col==2:
+                checkBox=QCheckBox()
+                dlg.tableWidget.setCellWidget(0, col, checkBox)
+                checkBox.stateChanged.connect(lambda signal, row=0,colmn=col: dlg.changedCheckboxState(signal,row,colmn))
+            else:
+                if col in [0,5]:
+                    if col==0:
+                        item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)))
+                    else:
+                        item=QTableWidgetItem('')
+                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    dlg.tableWidget.setItem(0,col,item)
+                else:
+                    item=QTableWidgetItem('')
+                    dlg.tableWidget.setItem(0,col,item)
+        #add row to dlg.traceTableValues in order to trace the changed values     
+        for row in reversed(sorted(dlg.traceTableValues)):
+            dlg.traceTableValues[row+1]=dlg.traceTableValues[row]
+        print(dlg.traceTableValues)
+        dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,4).text(),'',dlg.tableWidget.item(0,5).text(),'',dlg.tableWidget.item(0,3).text(),'',False] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new
+        print(dlg.traceTableValues)
+            
+    def showConnectionsContent(self,dlg,dropdowns): 
+        """show connections table content"""
+        print('show filtered table content')
+        table='connections'
+        cur=self.conn.cursor()
+        dlg.tableWidget.setRowCount(self.rowCountDB(table,''))
+        sql='SELECT id,type,p_ctrl,temp,p,mdot,description FROM public.connections ORDER BY id;'
+        print(sql)
+        cur.execute(sql) 
+        data = cur.fetchall()
+        dropdowns=[[1,'public','prefered_conn_dir','id','name']]
+        dropdownItems=getDropDownItems(self.cur,dropdowns)
+        print(dropdownItems)
+        rowCount=0
+
+        for row in data:
+            for col in range(len(row)):
+                if col in list([i[0] for i in dropdowns]):
+                    comboBox = QComboBox()
+                    comboBox.addItems(dropdownItems[col])
+                    currentText=''
+                    if dropdownItems[col]:
+                        for dropDownItem in dropdownItems[col]:
+                            if dropDownItem.split(':')[0]==str(row[col]):
+                                currentText=dropDownItem
+                    comboBox.setCurrentText(currentText)
+                    dlg.tableWidget.setCellWidget(rowCount, col, comboBox)   
+                elif col==2:
+                    checkBox=QCheckBox()
+                    if row[col]==True:
+                        checkBox.setChecked(True)
+                    checkBox.stateChanged.connect(lambda signal, row=rowCount,colmn=col: dlg.changedCheckboxState(signal,row,colmn))
+                    dlg.tableWidget.setCellWidget(rowCount, col, checkBox)
+                else:
+                    item=QTableWidgetItem('' if row[col]==None else str(row[col]))
+                    if col == 0:
+                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    elif col == 4 and row[2]==True:
+                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    elif col == 5 and row[2]==False:
+                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    dlg.tableWidget.setItem(rowCount , col, item)
+            
+            dlg.traceTableValues[rowCount]= ['' if row[4]==None else str(row[4]),'','' if row[5]==None else str(row[5]),'',str(row[3]),'',row[2],''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new
+            rowCount+=1
+        print(dlg.traceTableValues)
+                    
     def manageConnectionTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
@@ -980,25 +1100,26 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     
     def delIfNotInDBIds(self,table,openFnArg):
         """delete entries in subtable, if filter and not listed in DB table """
-        filter=openFnArg[3]
-        if filter:
-            ids=self.getDBIds('id',table)
-            print(ids)
-            if ids:
-                ids=','.join([str(i) for i in ids])
-                sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids)
-            else:
-                sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0]))
-            print(sql)
-            self.cur.execute(sql)
+        if openFnArg:
+            filter=openFnArg[3]
+            if filter:
+                ids=self.getDBIds('id',table)
+                print(ids)
+                if ids:
+                    ids=','.join([str(i) for i in ids])
+                    sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids)
+                else:
+                    sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0]))
+                print(sql)
+                self.cur.execute(sql)
             
-    def saveTable(self,dlg,table,columns,dropdowns,openFnArg):
+    def saveTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes):
         """" Save table to DB an close dialog"""
         print('Save table to DB an close dialog')
         sql="""TRUNCATE public.{} CASCADE;\n""".format(table)
         for row in range(dlg.tableWidget.rowCount()):
-            values= self.getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','))
-            print(values)
+            values= self.getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','),checkBoxes)
+            #print(values)
             if not values:
                 print('return')
                 return False
@@ -1138,7 +1259,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dlg.btn_open.clicked.connect(lambda: openFn(table,dlg,dlg.tableWidget.currentRow(),openFnArg))
         if importFn:
             dlg.btn_import.clicked.connect(lambda: importFn(dlg,table,openFnArg,dropdowns))
-        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg))
+        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,False))
         dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))
         dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,False))
         dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,False,False))

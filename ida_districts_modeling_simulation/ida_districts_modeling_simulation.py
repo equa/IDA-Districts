@@ -347,11 +347,11 @@ class IDADistrictsModelingSimulation:
         writeNetworkSimData(self.plugin_dir,self.dictDB,networkSimData)
         return networkSimData
                 
-    def updateAssettypesOutputs(self,assettype,outputs,new_outputTimestep):           
-        dir = getDataCenterDir(self.plugin_dir)+"\\"+self.dictDB['projectName']+"\\"+assettype+"_assettypes\\"
+    def updateAssettypesOutputs(self,feature,outputs,new_outputTimestep):           
+        dir = getDataCenterDir(self.plugin_dir)+"\\"+self.dictDB['projectName']+"\\"+feature+"_assettypes\\"
         print(dir)
                    
-        for at_name in getAssettypeNames(self.cur,assettype):
+        for at_name in getAssettypeNames(self.cur,feature):
             print(at_name)
             assetgroup=at_name.split('_')[0]
             at=at_name.split('_')[1]
@@ -393,7 +393,7 @@ class IDADistrictsModelingSimulation:
                 print(fname)
                 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
                 data_idm=[]
-                conn_bundle_type_id=getConnBundleByAssettype(1 if assettype=='customer' else 2,at,assetgroup,self.cur,self.dictDB)
+                conn_bundle_type_id=getConnBundleByAssettype(feature,at,assetgroup,self.cur,self.dictDB)
                 connValues=getConnsValues(conn_bundle_type_id,self.cur)
                 print(connValues)
                 conn_type_seq=set([x['conn_type_seq'] for x in connValues])

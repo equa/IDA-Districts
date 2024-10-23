@@ -1,10 +1,93 @@
 from plugins.utility_functions.db import *
 from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QCheckBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget
+from qgis.PyQt.QtWidgets import QCheckBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget,QTableWidgetItem
      
 from copy import copy
-     
+
+class ConnectionsDialog(QMainWindow):
+    def __init__(self,title,headers):
+        """Constructor"""
+        super().__init__()
+        self.setWindowTitle(title)   
+        
+        self.assetgroup=title.split(':')[-1].strip()
+        #table buttons     
+        layout_buttons_table = QHBoxLayout()
+        self.btn_add=QPushButton("Add")
+        layout_buttons_table.addWidget(self.btn_add)
+        self.btn_delete=QPushButton("Delete")
+        layout_buttons_table.addWidget(self.btn_delete)
+        
+        #Table
+        layout_table = QHBoxLayout() 
+        self.tableWidget = QTableWidget(0,len(headers))   
+        self.tableWidget.setHorizontalHeaderLabels(headers)     
+        self.tableWidget.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.tableWidget.setColumnCount(len(headers))
+        layout_table.addWidget(self.tableWidget)
+        self.traceChanges=[]
+
+        #buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_ok=QPushButton("Ok")
+        layout_buttons.addWidget(self.btn_ok)
+        self.btn_cancel=QPushButton("Cancel")
+        layout_buttons.addWidget(self.btn_cancel)
+        
+        #---------------set layouts together-------------------
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_buttons_table)
+        layout_win.addLayout(layout_table)
+        layout_win.addLayout(layout_buttons)
+        
+        widget=QWidget()
+        widget.setLayout(layout_win)
+        self.setCentralWidget(widget)
+        self.traceTableValues={}      
+        self.resize(900, 500)  # Width of 900 pixels, height of 500 pixels        
+    
+    def changedCheckboxState(self, s, row,col):
+        print('+++++')
+        print(col)
+        print(s)
+        if s==2: #checked
+            item=QTableWidgetItem('')
+            self.tableWidget.setItem(row,5,item)
+            item=QTableWidgetItem('')
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.tableWidget.setItem(row,4,item)
+            try:
+                self.traceTableValues[row]=[self.traceTableValues[row][0],'',self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],True]
+            except:
+                pass
+        else:
+            item=QTableWidgetItem('')
+            self.tableWidget.setItem(row,4,item)
+            item=QTableWidgetItem('')
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.tableWidget.setItem(row,5,item)
+            try:
+                self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],'',self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],False]
+            except:
+                pass
+        
+        print(self.traceTableValues)
+        
+    def changedItem(self, item):
+        row = item.row()
+        print('changed')
+        try:
+            if self.traceTableValues[row][0]!=self.tableWidget.item(row,4).text(): #p
+                self.traceTableValues[row][1]=self.tableWidget.item(row,4).text()
+            if self.traceTableValues[row][2]!=self.tableWidget.item(row,5).text(): #m
+                self.traceTableValues[row][3]=self.tableWidget.item(row,5).text()
+            if self.traceTableValues[row][4]!=self.tableWidget.item(row,3).text(): #T
+                self.traceTableValues[row][5]=self.tableWidget.item(row,3).text()
+        except:
+            pass
+        print(self.traceTableValues)
+        
 class TableDialog(QMainWindow):
     def __init__(self,title,headers,openBtn,importBtn,saveAsBtn):
         """Constructor"""
