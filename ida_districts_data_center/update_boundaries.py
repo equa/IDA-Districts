@@ -34,7 +34,7 @@ def getBoundaryUpdateData(connsValues,changedValues):
     for connValues in connsValues:
         if connValues['conn_id'] in changedValues:
             #print(connValues)
-            PMT2muxName='"{}_{}_{}_{}_T{}"'.format(connValues['conn_bundle_type_id'],connValues['conn_type_seq'],connValues['conn_type_id'],connValues['conn_seq'],connValues['temp'])
+            PMT2muxName='"{}_{}_{}_{}"'.format(connValues['conn_bundle_type_id'],connValues['conn_type_seq'],connValues['conn_type_id'],connValues['conn_seq'])
             print(PMT2muxName)
             if changedValues[connValues['conn_id']]['ctrl']=='unchanged':
                 disconnect=''
@@ -159,7 +159,9 @@ def updateAssettypeBoundaryValues(dlg,plugin_dir,dictDB,cur):
                 counter_p=0
                 counter_mdot=0
                 for const in add_constants:
-                    if add_constants[const][':LAST-LINK'][1]=='P':
+                    print('-*-*--*-*-*-*-*-*')
+                    print(add_constants[const][':FIRST-LINK'][1])
+                    if add_constants[const][':FIRST-LINK'][1]=='P':
                         y=227+counter_p*40
                         data_idc.append({':C': 'EQUATION-FRAME', ':AT': [['29', str(y)]], ':R': ['28', '10'], ':ICON': '"sys:constant.ids"', ':SLOT': [const], ':NAME': const, ':DATA': 'SOURCE-CONSTANT'})
                         data_idc.append({':C': 'CONNECTION-LINE', ':AT': [['307/5', str(y)], ['87', str(y)]], ':FIRST-LINK': [add_constants[const][':LAST-LINK'][0], ['1', '0.5'], add_constants[const][':LAST-LINK'][1]], ':LAST-LINK': [add_constants[const][':FIRST-LINK'][0], ['0.0', '0.139'], add_constants[const][':FIRST-LINK'][1]], ':DIR': ':RIGHT', ':ARROW': ['19', '8', '8']})

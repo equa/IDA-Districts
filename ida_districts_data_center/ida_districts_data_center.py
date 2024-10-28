@@ -228,7 +228,7 @@ class IDADistrictsDataCenter:
         self.delIfNotInDBIds(table,openFnArg)
         print('close dialog: {}'.format(dlg))
         dlg.close()        
-    
+
     def getValuesFromTableRow(self,dlg,dropdowns,row,columns,checkBoxes):
         values=[]
         p=False
@@ -274,7 +274,7 @@ class IDADistrictsDataCenter:
         maxId=getMaxId(self.cur,table)
         counter=1
         for row in range(dlg.tableWidget.rowCount()):
-            values=self.getValuesFromTableRow(dlg,dropdowns,row,columns,False)
+            values=self.getValuesFromTableRow(dlg,dropdowns,row,columns,[])
             sql+="""INSERT INTO public.{} (id,{},{}) VALUES({},{},{});\n""".format(table,filter[5:-1],','.join(i for i in columns),maxId+counter,id,values)
             counter+=1
         print(sql)
@@ -1259,7 +1259,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dlg.btn_open.clicked.connect(lambda: openFn(table,dlg,dlg.tableWidget.currentRow(),openFnArg))
         if importFn:
             dlg.btn_import.clicked.connect(lambda: importFn(dlg,table,openFnArg,dropdowns))
-        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,False))
+        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,[]))
         dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))
         dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,False))
         dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,False,False))

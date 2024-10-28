@@ -189,7 +189,7 @@ def getPMT2muxName(cur,conn_bundle_type,connection_id):
     connValues=cur.fetchall()
     if connValues:
         connValues=connValues[0]
-        return "PMT2mux_{}_{}_{}_{}_T{}".format(str(connValues['conn_bundle_type_id']),str(connValues['conn_t_seq']),str(connValues['conn_type_id']),str(connValues['conn_seq']),str(connValues['temp']))
+        return "PMT2mux_{}_{}_{}_{}".format(connValues['conn_bundle_type_id'],connValues['conn_t_seq'],connValues['conn_type_id'],connValues['conn_seq'])
     else:
         return ""
         

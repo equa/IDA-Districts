@@ -357,17 +357,17 @@ class ExchangeConntypeFiles:
                 idx=file_data.index(line)
                 if file_data[idx].count('(')-file_data[idx].count(')')==0:
                     data[-1]=data[-1].replace('\n','').rstrip()[:-1]+'\n'
-                    data.append('\n'.join([""" (:IREF :N "{}_{}_{}_{}_T{}" :F 192)""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in connValues]))
+                    data.append('\n'.join([""" (:IREF :N "{}_{}_{}_{}" :F 192)""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in connValues]))
                     data[-1]+=")\n"
                 else:
-                    data.append(''.join([""" (:IREF :N "{}_{}_{}_{}_T{}" :F 192)\n""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in connValues]))
+                    data.append(''.join([""" (:IREF :N "{}_{}_{}_{}" :F 192)\n""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in connValues]))
             if """(CONNECTIONS""" in line:
                 print('***Connections***')
                 openCloseBracktesCounter=line.count('(')-line.count(')')
                 connections=True
                 del data[-1]
                 for conn in connValues:
-                    name_pmtmux="{}_{}_{}_{}_T{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp'])
+                    name_pmtmux="{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'])
                     if conn['p']!=None:
                         variable="P"
                         var_value=conn['p']
@@ -385,7 +385,7 @@ class ExchangeConntypeFiles:
  
                 data.append("(CONNECTIONS\n")
                 for value in connValues:
-                    name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+                    name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                     if value['p']!=None:
                         name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                         variable="P"
@@ -399,7 +399,7 @@ class ExchangeConntypeFiles:
 
         if not connections:  
             for conn in connValues:
-                name_pmtmux="{}_{}_{}_{}_T{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp'])
+                name_pmtmux="{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'])
                 if conn['p']!=None:
                     variable="P"
                     var_value=conn['p']
@@ -416,7 +416,7 @@ class ExchangeConntypeFiles:
  (:PAR :N X :V {}))  \n""".format(name_const,var_value))        
             data.append("(CONNECTIONS\n")
             for value in connValues:
-                name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+                name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 if value['p']!=None:
                     name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                     variable="P"
@@ -434,7 +434,7 @@ class ExchangeConntypeFiles:
         counter_p=0
         counter_mdot=0
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
                 name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                 variable="p"
@@ -472,7 +472,7 @@ class ExchangeConntypeFiles:
         p_old=True
         p_old_old=True
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             filedata.insert(2,"""(:IREF :N "{}" :F 192)\n""".format(name_pmtmux))
             filedata.insert(2,"""(MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)\n""".format(name_pmtmux))
             if value['mdot']!=None:
@@ -524,14 +524,14 @@ class ExchangeConntypeFiles:
                 del data[-1]
                 data.append('(CONNECTIONS\n')
                 for value in connValues:
-                    name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+                    name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                     data+="""(("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)\n""".format(name_pmtmux,name_pmtmux)
                 if openCloseBracktesCounter==0:
                     data[-1]=data[-1].rstrip()+")"
         if not connections: 
             data.append('(CONNECTIONS\n')
             for value in connValues:
-                name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+                name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 data+="""(("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)\n""".format(name_pmtmux,name_pmtmux)
             data[-1]=data[-1].rstrip()+")"    
         
@@ -543,7 +543,7 @@ class ExchangeConntypeFiles:
         counter_p=0
         counter_mdot=0
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
                 name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                 variable="P"
@@ -576,8 +576,8 @@ class ExchangeConntypeFiles:
             if [True for conn in 
                 ["""\"{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
                 ["""\"{}_{}_{}_{}_P{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['p']) for conn in oldConnValues]+
-                ["""\"{}_{}_{}_{}_T{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in oldConnValues]+
-                ["""\"PMT2mux_{}_{}_{}_{}_T{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in oldConnValues]+ 
+                ["""\"{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
+                ["""\"PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+ 
                 ["""\"{}_{}_Flowmeter2\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
                 if conn in line]:
                 print('del connection')
@@ -596,8 +596,8 @@ class ExchangeConntypeFiles:
             while [True for conn in 
                 ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
                 ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_P{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['p']) for conn in oldConnValues]+
-                ["""(MODEL :N "{}_{}_{}_{}_T{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in oldConnValues]+
-                ["""(MODEL :N "PMT2mux_{}_{}_{}_{}_T{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in oldConnValues]+
+                ["""(MODEL :N "{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
+                ["""(MODEL :N "PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(:EO :N "{}_{}_Flowmeter2" :T FLOWMETER2)""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
                 if conn in file_data[counter]]:
                 data[-1]=data[-1].replace('\n','')+''.join([')' for i in range(file_data[counter].count(')')-file_data[counter].count('('))])+'\n'
@@ -739,7 +739,7 @@ class CopyAssettypeMacro:
         while counter < len(file_data):
             line=file_data[counter]
             pmt2_name=[conn for conn in 
-                [[""":N \"PMT2mux_{}_{}_{}_{}_T{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']),conn['p'],conn['mdot']] for conn in conn_values]
+                [[""":N \"PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']),conn['p'],conn['mdot']] for conn in conn_values]
                 if conn[0] in line]
             if pmt2_name:
                 openCloseBracktesCounter=line.count('(')-line.count(')')
@@ -773,7 +773,7 @@ class CopyAssettypeMacro:
         print('del Connection')
         for line in file_data:
             if [True for conn in 
-                ["""\"{}_{}_{}_{}_T{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['temp']) for conn in delConns]
+                ["""\"{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in delConns]
                 if conn in line]:
                 print('del connection')
                 print(line)
@@ -824,7 +824,7 @@ class WriteAssettypeFiles:
         print('***********************************************')
         for value in connValues:
             print(value)
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             data+="""\n(:IREF :N "{}" :F 192)""".format(name_pmtmux)
             data+="""\n(MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)""".format(name_pmtmux)
             if value['mdot']!=None:
@@ -866,7 +866,7 @@ class WriteAssettypeFiles:
  (:VAR :N TRET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))""".format(meter['name'],meter['n_sup'],meter['n_ret'],meter['n_sup'],sup_m_conn,meter['n_sup'],sup_t_conn,meter['n_ret'],ret_m_conn,meter['n_ret'],ret_t_conn)
         data+="\n(CONNECTIONS "   
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             data+="""\n(("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)""".format(name_pmtmux,name_pmtmux)
         data+=")" 
         writeToFile(data,dir,dir+"""\\{}\\{}.idm""".format(name,name))  
@@ -879,7 +879,7 @@ class WriteAssettypeFiles:
         counter_p=0
         counter_mdot=0
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
                 name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                 variable="P"
@@ -928,11 +928,11 @@ class WriteAssettypeFiles:
  (:VAR :N VELOCITY :T GENERIC :D "velocity" :U || :IV NIL :B (1 "Climate-macro" "vel" |y_var|)))
 ((MACRO-OBJECT :N "{}" :T ICE-MACRO :ETM 3857461881 :STM 3857461887)""".format(name,name)
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             data+="""\n (:IREF :N "{}" :F 192)""".format(name_pmtmux)
         data+=")"  
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
                 variable="P"
                 var_value=value['p']
@@ -951,7 +951,7 @@ class WriteAssettypeFiles:
         data+="""\n((MACRO-OBJECT :N "Sensor-macro" :T ICE-MACRO :ETM 3857526820 :STM 3857526845))"""
         data+="""\n(CONNECTIONS"""
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
                 name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                 variable="P"
@@ -979,7 +979,7 @@ class WriteAssettypeFiles:
         counter_p=0
         counter_mdot=0
         for value in connValues:
-            name_pmtmux="{}_{}_{}_{}_T{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['temp'])
+            name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
                 name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
                 variable="p"

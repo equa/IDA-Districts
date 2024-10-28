@@ -527,7 +527,7 @@ INSERT INTO temp.streets_help(geom,assetgroup,assettype,pipe_bundle_type_id)
         print("""insert energy plant connections: {}""".format(sql))
         self.cur.execute(sql)
         
-        if checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant'):
+        if checkLoopInConnections(self.cur,self.dictDB['versionName'],'temp.streets_help','energy_plant'):
             self.signals.error.emit(''.join(['Energy plant :{} and energy_plant: {} have a loop in connection! '.format(i['id1'],i['id2']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant')]))
             return True
         

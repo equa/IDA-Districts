@@ -929,7 +929,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
             conn_temp=conn['temp']
             conn_dir=conn['dir']
             
-            name_conn="{}_{}_{}_{}_T{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq,conn_temp)
+            name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
 
             idm_conn+="""\n (("{}_{}" "{}") ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(type[4:-1].capitalize(),did,name_conn,lid,conn_dir,conn_type_seq)
             idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[4:-1].capitalize(),did,name_conn,lid,conn_dir,conn_type_seq)
@@ -1264,7 +1264,7 @@ output to current demand. It can also be operated in installations with differen
             conn_type_seq=customer['conn_type_seq']
             conn_temp=customer['temp']
             
-            name_conn="{}_{}_{}_{}_T{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq,conn_temp)
+            name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
             iref+="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             if cid!=cid_old and i!=0:
                 print('#####++++++-------------------------')
@@ -1326,7 +1326,7 @@ output to current demand. It can also be operated in installations with differen
             conn_type_seq=device['conn_type_seq']
             conn_temp=device['temp']
             
-            name_conn="{}_{}_{}_{}_T{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq,conn_temp)
+            name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
             iref+="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             if did!=did_old and i!=0:
                 idm+="""\n((MACRO-OBJECT :N "Device_{}" :T ICE-MACRO :D "ICE macro"){})""".format(did_old,iref_old)
@@ -1376,7 +1376,7 @@ output to current demand. It can also be operated in installations with differen
             conn_type_seq=plant['conn_type_seq']
             conn_temp=plant['temp']
             
-            name_conn="{}_{}_{}_{}_T{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq,conn_temp)
+            name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
             iref+="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             if epid!=epid_old and i!=0:
                 idm+="""\n((MACRO-OBJECT :N "Energy_plant_{}" :T ICE-MACRO :D "ICE macro"){}{}{})""".format(epid_old,iref_old,

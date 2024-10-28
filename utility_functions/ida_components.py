@@ -519,6 +519,17 @@ def getCompName(pList):
             return pList[0][':N']
         except:
             return ''
+            
+def renameCompName(pList,new_name):    
+    try:
+        pList[':N']=new_name
+        return pList
+    except:
+        try:
+            pList[0][':N']=new_name
+            return
+        except:
+            return ''
 
 def getCompTemplate(pList):    
     try:
