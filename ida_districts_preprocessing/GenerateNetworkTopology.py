@@ -37,7 +37,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
         self.dictDB=kwargs['dictDB']
         self.conn=""
         self.cur=""
-        self.inserted_nids=[]
+        self.inserted_jids=[]
         self.iface=kwargs['iface']
         self.plugin_dir=kwargs['plugin_dir']
         self.deleteUnconnectedCustomers=kwargs['deleteUnconnectedCustomers']
@@ -320,7 +320,7 @@ UPDATE temp.dhc_lines g SET geom=sub.geom,
             
     def insertJunctionConnections(self,network):
         "insert node connections into table junction_connections   "
-        sql="""INSERT INTO temp.junction_connections (nid,lid) SELECT j.id ,l.id FROM temp.dhc_junctions j,temp.dhc_lines l WHERE St_DWithIn(j.geom,l.geom,{}) AND l.network={};""".format(self.tolerance,network)
+        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.dhc_junctions j,temp.dhc_lines l WHERE St_DWithIn(j.geom,l.geom,{}) AND l.network={};""".format(self.tolerance,network)
         #print(sql) 
         self.cur.execute(sql)
         
@@ -345,32 +345,12 @@ UPDATE temp.dhc_lines g SET geom=sub.geom,
     def updateJunctionConnections(self,network):
         "UPDATE node connections: n_connections & conn_type"
         print("UPDATE node connections: n_connections & conn_type")
-        sql="""UPDATE temp.dhc_junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,nid FROM temp.junction_connections GROUP BY nid) jc WHERE jc.nid=id;"""
+        sql="""UPDATE temp.dhc_junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,jid FROM temp.junction_connections GROUP BY jid) jc WHERE jc.jid=id;"""
         #print(sql) 
         self.cur.execute(sql)
         sql="""UPDATE temp.dhc_junctions SET assetgroup=4 WHERE n_connections=3;"""
         self.cur.execute(sql)
         sql="""UPDATE temp.dhc_junctions SET assetgroup=2 WHERE n_connections=1;"""
-        self.cur.execute(sql)
-        
-        sql="""WITH sub AS(
-    WITH sub AS(
-        SELECT jc.nid,conn_t_conns.connection_id AS id
-            FROM temp.junction_connections jc, temp.dhc_lines l, public.line_assettypes la, public.connection_type_connections conn_t_conns
-            WHERE l.network={} AND l.id=jc.lid AND la.assettype=l.assettype AND la.conn_type=conn_t_conns.connection_type_id 
-            GROUP BY jc.nid,conn_t_conns.connection_id 
-            ORDER BY jc.nid,conn_t_conns.connection_id
-    )
-    SELECT nid, array_agg(id) AS ids FROM sub GROUP BY nid
-)
-UPDATE temp.dhc_junctions SET conn_type = conn_t_conns.connection_type_id
-    FROM sub, (SELECT conn_t_conns.connection_type_id, array_agg(c.id ORDER BY c.id) AS ids
-                    FROM public.connections c, public.connection_type_connections conn_t_conns
-                    WHERE conn_t_conns.connection_id=c.id 
-                    GROUP BY conn_t_conns.connection_type_id
-                    ORDER BY conn_t_conns.connection_type_id) conn_t_conns
-    WHERE id=sub.nid AND conn_t_conns.ids=sub.ids;""".format(network)
-        print(sql)
         self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):
@@ -396,19 +376,19 @@ UPDATE temp.dhc_junctions SET conn_type = conn_t_conns.connection_type_id
         i=self.cur.fetchone()['last_value']
         flag=True
         while flag==True:
-            inserted_nids=','.join(str(i) for i in self.inserted_nids)
-            if inserted_nids:
-                inserted_nids="AND j.id NOT IN (SELECT jt.id FROM a.dhc_junctions j, temp.dhc_junctions jt WHERE st_dwithin(j.geom,jt.geom,"+self.tolerance+") AND j.id IN ("+inserted_nids+")) "
+            inserted_jids=','.join(str(i) for i in self.inserted_jids)
+            if inserted_jids:
+                inserted_jids="AND j.id NOT IN (SELECT jt.id FROM a.dhc_junctions j, temp.dhc_junctions jt WHERE st_dwithin(j.geom,jt.geom,"+self.tolerance+") AND j.id IN ("+inserted_jids+")) "
             sql="""WITH sub AS(
-    SELECT nc.nid, array_agg(nc.lid) AS a
+    SELECT nc.jid, array_agg(nc.lid) AS a
         FROM temp.dhc_junctions j, temp.junction_connections nc
-        WHERE j.n_connections=2 AND j.id=nc.nid
-        GROUP BY nc.nid
-        ORDER BY nc.nid
+        WHERE j.n_connections=2 AND j.id=nc.jid
+        GROUP BY nc.jid
+        ORDER BY nc.jid
 )
-SELECT nid AS jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.dhc_lines l1, temp.dhc_lines l2 
+SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.dhc_lines l1, temp.dhc_lines l2 
     WHERE l1.id=sub.a[1] AND l2.id=sub.a[2] AND l1.pipe_bundle_type_id=l2.pipe_bundle_type_id AND l1.network={} AND l2.network={} {}
-    ORDER BY nid LIMIT 1;""".format(network, network, inserted_nids)
+    ORDER BY jid LIMIT 1;""".format(network, network, inserted_jids)
             #print(sql)
             self.cur.execute(sql) 
             junction_conn=self.cur.fetchall()
@@ -448,7 +428,7 @@ SELECT nid AS jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.dhc_lines l1, temp.dh
                 sql="DELETE FROM temp.dhc_junctions WHERE id="+str(jid)+";"
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.junction_connections WHERE nid="+str(jid)+";"
+                sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";"
                 #print(sql)
                 self.cur.execute(sql) 
             else:
@@ -559,18 +539,19 @@ INSERT INTO temp.streets_help(geom,assetgroup,assettype,pipe_bundle_type_id)
         self.cur.execute(sql)
         ids=self.cur.fetchall()
         print(ids)
+        setSeqIdToMax('temp.network_help_id_seq','temp.network_help','id',self.cur)
         for id in ids:
             if mode=="dhc_junctions":
-                self.inserted_nids.append(d_id)
+                self.inserted_jids.append(d_id)
             sql="""WITH sub AS(
     WITH sub AS(
-        SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.assetgroup,nh.assettype, nh.network, nh.submodel, nh.pipe_bundle_type_id
+        SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.assetgroup,nh.assettype, nh.network, nh.pipe_bundle_type_id
             FROM {}.{} d,temp.network_help nh
             WHERE d.id={} AND nh.id={}
     )
-    SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,assetgroup,assettype, network, submodel ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
+    SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,assetgroup,assettype, network ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
 )
-INSERT INTO temp.network_help(geom,assetgroup,assettype,network,submodel,pipe_bundle_type_id) SELECT sub.line,sub.assetgroup,sub.assettype,sub.network,sub.submodel,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id'])
+INSERT INTO temp.network_help(geom,assetgroup,assettype,network,pipe_bundle_type_id) SELECT sub.line,sub.assetgroup,sub.assettype,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id'])
             print(sql)
             self.cur.execute(sql)
     

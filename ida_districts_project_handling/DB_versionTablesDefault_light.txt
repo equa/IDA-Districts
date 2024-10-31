@@ -339,7 +339,6 @@ CREATE TABLE $versionName$.dhc_junctions
 	id serial,
 	geom geometry(PointZ,$srid$),
 	assetgroup integer,
-    conn_type integer DEFAULT 2,
     n_connections integer check(n_connections >= 1),
 	submodel integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
     network integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
@@ -450,7 +449,7 @@ CREATE TABLE $versionName$.device_connections
 CREATE TABLE $versionName$.junction_connections
 (
   id serial,
-  nid integer,
+  jid integer,
   lid integer,
   CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
 );

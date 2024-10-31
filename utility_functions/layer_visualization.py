@@ -216,23 +216,23 @@ def setupVersionForm_light(cur,dictDB):
             attrNamesTabs= [['assetgroup','assettype'],
                             [],
                             ['submodel'],[]]
-        for tab,attrNamesTab in zip(['General','Physical data','Simulation data','Metadata'],attrNamesTabs):
+        for tab, attrNamesTab in zip(['General', 'Physical data', 'Simulation data', 'Metadata'], attrNamesTabs):
             if attrNamesTab:
                 c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
-                c.setIsGroupBox(False) # a tab
+                # Instead of setIsGroupBox, we directly use the container for tabs
                 for attrName in attrNamesTab:
-                    #print (attrName)
-                    if type(attrName) is list:
-                        c1 = QgsAttributeEditorContainer("Modelparameter", fc.invisibleRootContainer())
-                        c1.setIsGroupBox(True)
-                        for i in range(0,len(attrName)):
-                            field_idx = fields.indexOf(attrName[i])
-                            c1.addChildElement(QgsAttributeEditorField(attrName[i], field_idx, c1))
-                        c.addChildElement(c1)
-                    else:    
+                    if isinstance(attrName, list):
+                        c1 = QgsAttributeEditorContainer("Modelparameter", c)  # Set parent as 'c'
+                        # Adding child elements as part of a new container
+                        for param_name in attrName:
+                            field_idx = fields.indexOf(param_name)
+                            c1.addChildElement(QgsAttributeEditorField(param_name, field_idx, c1))
+                        c.addChildElement(c1)  # Add the container to the tab
+                    else:
                         field_idx = fields.indexOf(attrName)
                         c.addChildElement(QgsAttributeEditorField(attrName, field_idx, c))
-                fc.addTab(c)
+                fc.addTab(c)  # Add the tab to the form configuration
+        
         vlayer.setEditFormConfig(fc)
             
 def setupVersionForm_meta():  

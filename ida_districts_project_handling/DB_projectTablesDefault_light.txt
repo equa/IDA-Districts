@@ -412,7 +412,6 @@ CREATE TABLE public.line_assettypes
 	assetgroup integer,
 	assettype integer,
 	assettype_name varchar(80),
-    conn_type integer DEFAULT 2,
 	description varchar(255),
 	CONSTRAINT line_assettypes_pkey PRIMARY KEY (id)
 );
@@ -535,7 +534,7 @@ CREATE TABLE temp.device_connections
 CREATE TABLE temp.junction_connections
 (
   id serial,
-  nid integer,
+  jid integer,
   lid integer,
   CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
 );

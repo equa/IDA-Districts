@@ -6,6 +6,11 @@ from qgis.core import Qgis, QgsMessageLog
 from typing import Iterator, Optional,Dict, Any
 import io
 
+def setSeqIdToMax(seq,table,col,cur):
+    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table)
+    print(sql)
+    cur.execute(sql)
+    
 def getTimeDiff(cur,dictDB,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
     FROM (SELECT {} AS time FROM {}.{} ORDER BY {},{}{} LIMIT 1) start_time,

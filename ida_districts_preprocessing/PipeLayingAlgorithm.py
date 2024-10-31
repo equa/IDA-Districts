@@ -210,7 +210,7 @@ UPDATE temp.dhc_lines g SET geom=sub.geom,
             
     def insertJunctionConnections(self):
         "insert node connections into table junction_connections   "
-        sql="""INSERT INTO temp.junction_connections (nid,lid) SELECT j.id ,l.id FROM temp.dhc_junctions j,temp.dhc_lines l WHERE St_DWithIn(j.geom,l.geom,0.001);"""
+        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.dhc_junctions j,temp.dhc_lines l WHERE St_DWithIn(j.geom,l.geom,0.001);"""
         #print(sql) 
         self.cur.execute(sql)
         
@@ -229,30 +229,10 @@ UPDATE temp.dhc_lines g SET geom=sub.geom,
     def updateJunctionConnections(self):
         "UPDATE node connections: n_connections & conn_type"
         print("UPDATE node connections: n_connections & conn_type")
-        sql="""UPDATE temp.dhc_junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,nid FROM temp.junction_connections GROUP BY nid) jc WHERE jc.nid=id;"""
+        sql="""UPDATE temp.dhc_junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,jid FROM temp.junction_connections GROUP BY jid) jc WHERE jc.jid=id;"""
         #print(sql) 
         self.cur.execute(sql)
         sql="""UPDATE temp.dhc_junctions SET assetgroup=4 WHERE n_connections=3;"""
-        self.cur.execute(sql)
-        
-        sql="""WITH sub AS(
-    WITH sub AS(
-        SELECT jc.nid,conn_t_conns.connection_id AS id
-            FROM temp.junction_connections jc, temp.dhc_lines l, public.line_assettypes la, public.connection_type_connections conn_t_conns
-            WHERE l.id=jc.lid AND la.assettype=l.assettype AND la.conn_type=conn_t_conns.connection_type_id 
-            GROUP BY jc.nid,conn_t_conns.connection_id 
-            ORDER BY jc.nid,conn_t_conns.connection_id
-    )
-    SELECT nid, array_agg(id) AS ids FROM sub GROUP BY nid
-)
-UPDATE temp.dhc_junctions SET conn_type = conn_t_conns.connection_type_id
-    FROM sub, (SELECT conn_t_conns.connection_type_id, array_agg(c.id ORDER BY c.id) AS ids
-                    FROM public.connections c, public.connection_type_connections conn_t_conns
-                    WHERE conn_t_conns.connection_id=c.id 
-                    GROUP BY conn_t_conns.connection_type_id
-                    ORDER BY conn_t_conns.connection_type_id) conn_t_conns
-    WHERE id=sub.nid AND conn_t_conns.ids=sub.ids;"""
-        print(sql)
         self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):
@@ -277,7 +257,7 @@ UPDATE temp.dhc_junctions SET conn_type = conn_t_conns.connection_type_id
         i=10000000
         flag=True
         while flag==True:
-            sql="SELECT nc.nid AS jid, nc.lid FROM temp.dhc_junctions j, temp.junction_connections nc WHERE j.n_connections=2 AND j.id=nc.nid ORDER BY j.id LIMIT 2;"
+            sql="SELECT nc.jid, nc.lid FROM temp.dhc_junctions j, temp.junction_connections nc WHERE j.n_connections=2 AND j.id=nc.jid ORDER BY j.id LIMIT 2;"
             #print(sql)
             self.cur.execute(sql) 
             junction_conn=self.cur.fetchall()
@@ -313,7 +293,7 @@ UPDATE temp.dhc_junctions SET conn_type = conn_t_conns.connection_type_id
                 sql="DELETE FROM temp.dhc_junctions WHERE id="+str(jid)+";"
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.junction_connections WHERE nid="+str(jid)+";"
+                sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";"
                 #print(sql)
                 self.cur.execute(sql) 
             else:
@@ -350,21 +330,11 @@ DROP TABLE IF EXISTS temp.dhc_lines;
 DROP TABLE IF EXISTS temp.dhc_lines_cooling;
 DROP TABLE IF EXISTS temp.dhc_lines_heating;
 DROP TABLE IF EXISTS temp.dhc_customers;
-CREATE TABLE temp.dhc_customers (LIKE {}.dhc_customers INCLUDING constraints);
-CREATE SEQUENCE temp.dhc_customers_id_seq OWNED BY temp.dhc_customers.id;
-ALTER TABLE temp.dhc_customers ALTER COLUMN id SET DEFAULT nextval('temp.dhc_customers_id_seq');
-CREATE TABLE temp.dhc_junctions (LIKE {}.dhc_junctions INCLUDING constraints);
-CREATE SEQUENCE temp.dhc_junctions_id_seq OWNED BY temp.dhc_junctions.id;
-ALTER TABLE temp.dhc_junctions ALTER COLUMN id SET DEFAULT nextval('temp.dhc_junctions_id_seq');
-CREATE TABLE temp.dhc_lines (LIKE {}.dhc_lines INCLUDING constraints);
-CREATE SEQUENCE temp.dhc_lines_id_seq OWNED BY temp.dhc_lines.id;
-ALTER TABLE temp.dhc_lines ALTER COLUMN id SET DEFAULT nextval('temp.dhc_lines_id_seq');
-CREATE TABLE temp.dhc_lines_heating (LIKE {}.dhc_lines INCLUDING constraints);
-CREATE SEQUENCE temp.dhc_lines_heating_id_seq OWNED BY temp.dhc_lines_heating.id;
-ALTER TABLE temp.dhc_lines_heating ALTER COLUMN id SET DEFAULT nextval('temp.dhc_lines_heating_id_seq');
-CREATE TABLE temp.dhc_lines_cooling (LIKE {}.dhc_lines INCLUDING constraints);
-CREATE SEQUENCE temp.dhc_lines_cooling_id_seq OWNED BY temp.dhc_lines_cooling.id;
-ALTER TABLE temp.dhc_lines_cooling ALTER COLUMN id SET DEFAULT nextval('temp.dhc_lines_cooling_id_seq');""".format(version,version,version,version,version))
+CREATE TABLE temp.dhc_customers (LIKE {}.dhc_customers INCLUDING ALL);
+CREATE TABLE temp.dhc_junctions (LIKE {}.dhc_junctions INCLUDING ALL);
+CREATE TABLE temp.dhc_lines (LIKE {}.dhc_lines INCLUDING ALL);
+CREATE TABLE temp.dhc_lines_heating (LIKE {}.dhc_lines INCLUDING ALL);
+CREATE TABLE temp.dhc_lines_cooling (LIKE {}.dhc_lines INCLUDING ALL);""".format(version,version,version,version,version))
         self.cur.execute("""TRUNCATE temp.dhc_customers, temp.dhc_lines_cooling, temp.dhc_lines_heating, temp.dhc_lines CASCADE;""")
         self.cur.execute("""INSERT INTO temp.dhc_customers SELECT * FROM {}.dhc_customers; """.format(version))
     

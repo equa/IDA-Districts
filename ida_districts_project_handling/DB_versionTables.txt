@@ -339,7 +339,6 @@ CREATE TABLE a.dhc_junctions
 	id serial,
 	geom geometry(PointZ,25832),
 	assetgroup integer,
-    conn_type integer DEFAULT 2,
     n_connections integer check(n_connections >= 1),
 	submodel integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
     network integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 

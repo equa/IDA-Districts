@@ -702,17 +702,17 @@ class InvokeNetworkModel:
         sql="""WITH sub AS(
     SELECT l.id, l.length,ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff, l.zeta +zeta.zeta_j AS zeta, l.pipe_bundle_type_id, c.counter, 
         ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
-    FROM {}.dhc_lines l, public.line_assettypes la,
-    (SELECT count(*) AS counter,connection_type_id FROM public.connection_type_connections GROUP BY connection_type_id) c,
-    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM {}.dhc_lines l, {}.dhc_junctions j, {}.junction_connections jc WHERE l.id=jc.lid AND jc.nid=j.id GROUP BY l.id) zeta
-    WHERE {} = ANY (l.submodel) AND l.assettype=la.assettype AND l.assetgroup=la.assetgroup AND c.connection_type_id = la.conn_type AND zeta.id=l.id AND l.network IN ({})
+    FROM {}.dhc_lines l,
+    (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
+    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM {}.dhc_lines l, {}.dhc_junctions j, {}.junction_connections jc WHERE l.id=jc.lid AND jc.jid=j.id GROUP BY l.id) zeta
+    WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND zeta.id=l.id AND l.network IN ({})
 )
 --get line id`s without connection to dhc_junctions
 SELECT l.id, l.length,ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff, l.zeta AS zeta, l.pipe_bundle_type_id, c.counter, 
         ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
-    FROM {}.dhc_lines l, public.line_assettypes la,
-    (SELECT count(*) AS counter,connection_type_id FROM public.connection_type_connections GROUP BY connection_type_id) c
-    WHERE {} = ANY (l.submodel) AND l.assettype=la.assettype AND l.assetgroup=la.assetgroup AND c.connection_type_id = la.conn_type AND l.network IN ({})
+    FROM {}.dhc_lines l,
+    (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
+    WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network IN ({})
 EXCEPT  
 SELECT * FROM sub
 --merge with line id`s, which are connected to dhc_junctions
@@ -722,7 +722,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         print(sql)
         self.cur.execute(sql)
         i=1
-        alpha_i=4000 #alpha_water=4000 W/m2K ; 1/ms Strömung
+        alpha_i=4000 #alpha_water=4000 W/m2K ; 1 m/s Strömung
         for pipe_bundle in self.cur.fetchall():
             #print(pipe_bundle)
             lid=pipe_bundle['id']
@@ -844,58 +844,80 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     
     def insertJunctionConnections(self,submodel,idm_conn,idc_conn,networks):
         """Insert the junction connections between devices, plants or customers and pipes"""
-        junction_conn={}
-        sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,j.id AS jid, ST_AsText(j.geom) AS j_point, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liqL' ELSE 'liqR' END AS dir,conn_t_conns_j.sequence AS seq_j, conn_t_conns_l.sequence AS seq_l, j.n_connections
-    FROM {}.dhc_junctions j, {}.junction_connections jc, {}.dhc_lines l, public.line_assettypes la, public.connection_type_connections conn_t_conns_l, public.connection_type_connections conn_t_conns_j
-    WHERE conn_t_conns_l.connection_id=conn_t_conns_j.connection_id AND la.conn_type=conn_t_conns_l.connection_type_id AND j.conn_type=conn_t_conns_j.connection_type_id AND l.assettype=la.assettype AND l.assetgroup=la.assetgroup AND l.id=jc.lid AND j.id=jc.nid AND j.submodel={} AND l.network IN ({})
-    ORDER BY j.id,conn_t_conns_j.sequence, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
+        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liqL' ELSE 'liqR' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
+    FROM {}.dhc_junctions j, {}.junction_connections jc, {}.dhc_lines l, 
+        (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
+        (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
+        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM {}.junction_connections jc GROUP BY jid) pipe_lids
+    WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
+    ORDER BY j.id,b_pipes.sequence, c.counter DESC, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
         print(sql)
         self.cur.execute(sql)
-        script_lines="""\n(:UPDATE [@]
-  (CONNECTIONS """
-        conn_counter=0
-        seq_j_old=0
-        jid_old=0
-        n_connections_old=0
+
         conns=self.cur.fetchall()
         if not conns:
-            #print('No nodes in network or wrong constructions!')
-            #dublicate iface.messageBar().pushMessage("Error", "No nodes in network or wrong constructions!!", level=Qgis.Critical)
-            return idm_conn,idc_conn 
+            print('No nodes in network or wrong junction constructions!')
+            #iface.messageBar().pushMessage("Error", "No junctions in network or wrong constructions!!", level=Qgis.Critical)
+            return idm,idc
             
+        jid_old=0
+        lid_old=0
+        seq_old=0
+        seq_counter=0
         for conn in conns:
             #print(conn)
-            lid=conn['lid']
-            jid=conn['jid']
             point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
             point_j = self.getSymbolCoordinate(conn['j_point'].split("(")[1][:-1].split(' '))
-            conn_dir=conn['dir']
-            seq_j=conn['seq_j']
-            seq_l=conn['seq_l']
-            n_connections=conn['n_connections']
-            if seq_j!=seq_j_old or jid!=jid_old:
-                if n_connections_old>conn_counter and jid_old!=0:
-                    for i in range(conn_counter+1,n_connections_old+1):
-                        #print('missing: '+ str(i))
-                        idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(jid_old,seq_j_old,i)
+                
+            if conn['seq']!=seq_old:
+                #print('--new seq--')
+                if seq_counter!=0:
+                    #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+                    for i in range(conn_counter,len(lids)+1):
+                       # print('--add waterplug: '+str(i))
+                        idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
+                seq_counter+=1
                 conn_counter=1
-            else:
-                conn_counter+=1
-                        
-            #script_lines+="""\n    (("NodeBundle_{}" '(|term| {} {})) ("Pipebundlef_{}" '(|{}| {})) 0 0 '(:AT (({} {})  ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3))""".format(jid,seq_j,conn_counter,lid,conn_dir,seq_l,point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'])
-            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(jid,seq_j,conn_counter,lid,conn_dir,seq_l)
-            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],jid,seq_j,conn_counter,lid,conn_dir,seq_l)
- 
-            seq_j_old=seq_j
-            jid_old=jid
-            n_connections_old=n_connections
+                
+            if conn['jid']!=jid_old:
+                #print('++new jid++')
+                lids=conn['lids']
+                #print(lids)
+                conn_counter=1
+                seq_counter=1
+                max_seq=conn['max_seq']
+                pipe_counter={}
+                for lid in lids:
+                    pipe_counter[lid]=0
+              
+            if lids[conn_counter-1]!=conn['lid']:
+                #print('++lids[conn_counter] != conn[lid]--')
+                #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
+                #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
+                for i in range(conn_counter,lids.index(conn['lid'])+1):
+                    #print('++'+str(i))
+                    idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
+                    conn_counter+=1
             
-        if seq_j!=seq_j_old or jid!=jid_old or conn_counter!=n_connections_old:
-            if n_connections_old>conn_counter:
-                for i in range(conn_counter+1,n_connections_old+1):
-                    #print('missing: '+ str(i))
-                    idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(jid,seq_j,conn_counter,lid,conn_dir,seq_l)
-                    idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],jid,seq_j,conn_counter,lid,conn_dir,seq_l)
+            pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
+            
+            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+
+
+            seq_old=conn['seq']
+            jid_old=conn['jid']
+            lid_old=conn['lid']
+            conn_old=conn
+            #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
+            conn_counter+=1
+        
+
+        print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+        for i in range(conn_counter,len(lids)+1):
+            print('--add waterplug: '+str(i))
+            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],i,conn_counter)
+            
         return idm_conn,idc_conn
     
     def insertConnections(self,submodel,type,idm_conn,idc_conn,networks):
@@ -1144,90 +1166,112 @@ output to current demand. It can also be operated in installations with differen
         #writeToFile(data,dir,dir+"""\\network_{}.idc""".format(submodel))
         
     def insertJunctions(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
-        """ Insert nodes"""
-        print('insert nodes')
-        sql="""SELECT j.id AS jid,j.n_connections, ST_asText(j.geom) AS point, c.counter, conn_t_conns_j.sequence AS seq_j
-    FROM {}.dhc_junctions j, {}.junction_connections jc, {}.dhc_lines l, line_assettypes la, connection_type_connections conn_t_conns_l, connection_type_connections conn_t_conns_j,(SELECT count(*) AS counter,connection_type_id FROM connection_type_connections GROUP BY connection_type_id) c 
-    WHERE conn_t_conns_l.connection_id=conn_t_conns_j.connection_id AND la.conn_type=conn_t_conns_l.connection_type_id AND j.conn_type=conn_t_conns_j.connection_type_id AND l.assettype=la.assettype AND l.assetgroup=la.assetgroup AND l.id=jc.lid AND j.id=jc.nid AND j.submodel={} AND l.network IN ({}) AND c.connection_type_id=j.conn_type
-    ORDER BY j.id,conn_t_conns_j.sequence, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
+        """ Insert junctions"""
+        print('insert junctions')
+        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq
+    FROM {}.dhc_junctions j, {}.junction_connections jc, {}.dhc_lines l, 
+        (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
+        (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
+        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM {}.junction_connections jc GROUP BY jid) pipe_lids
+    WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
+    ORDER BY j.id,b_pipes.sequence, c.counter DESC, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
         print(sql)
         self.cur.execute(sql)
-        print(requestedOutputs)
+        #print(requestedOutputs)
 
-        seq_counter=0
-        counter=0
-        instreamT=""
-        seq_j_old=0
-        jid_old=0
-        node_old=0
-        nCon_old=0
-        nodes=self.cur.fetchall()
-        if not nodes:
-            print('No nodes in network or wrong node constructions!')
-            #iface.messageBar().pushMessage("Error", "No nodes in network or wrong constructions!!", level=Qgis.Critical)
+        conns=self.cur.fetchall()
+        if not conns:
+            print('No nodes in network or wrong junction constructions!')
+            #iface.messageBar().pushMessage("Error", "No junctions in network or wrong constructions!!", level=Qgis.Critical)
             return idm,idc
             
-        for node in nodes:
-            #print(node)
-            jid=node['jid']
-            nCon=node['n_connections']
-            seq_j=node['seq_j']
-            #print("jid: {}; jid_old: {}; seq_j: {}; seq_j_old: {}; seq_counter: {}".format(jid,jid_old,seq_j,seq_j_old,seq_counter))
-            if seq_j!=seq_j_old:
+        inStreamT=''
+        m_dot=''
+        jid_old=0
+        lid_old=0
+        seq_old=0
+        seq_counter=0
+        for conn in conns:
+            #print(conn)
+            #print('instreamT: '+inStreamT)
+            #print('m_dot: '+m_dot)
+                
+            if conn['seq']!=seq_old:
+                print('--new seq--')
                 if seq_counter!=0:
-                    if seq_counter!=nCon_old:
-                        #print("missing")
-                        for i in range(seq_counter+1,nCon_old+1):
-                            print(i)
-                            instreamT+="({} -2 (|term| {} {}) 2)".format(i,seq_j_old,i)
-                    instreamT+=")"
-                seq_counter=1
-                if jid==jid_old or counter==0:
-                    instreamT+="({} ({})".format(seq_j,seq_counter)
-            else:
+                    #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+                    for i in range(conn_counter,len(lids)+1):
+                        print('--add connection: '+str(i))
+                        inStreamT+=" ("+str(conn_counter)+" . 0.0)"
+                        m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
                 seq_counter+=1
-                instreamT+=" ({})".format(seq_counter)
-            #print(instreamT)
-            if (jid!=jid_old and counter!=0):
-                idm,idc=self.makeNodeComponent(node_old,instreamT,idm,idc,jid_old,nCon_old,modellingSettings)
-                instreamT="({} ({})".format(seq_j,seq_counter)
-            counter+=1
-            jid_old=jid
-            seq_j_old=seq_j
-            node_old=node
-            nCon_old=nCon
-        if seq_counter!=nCon_old:
-            #print("missing")
-            for i in range(seq_counter+1,nCon_old+1):
-                #print(i)
-                instreamT+="({} -2 (|term| {} {}) 2)".format(i,seq_j_old,i)
-        instreamT+=")"  
-        idm,idc=self.makeNodeComponent(node_old,instreamT,idm,idc,jid_old,nCon_old,modellingSettings)
-         
+                conn_counter=1
+                if seq_counter!=1:
+                    inStreamT+=')'
+                if conn['jid']==jid_old:
+                    inStreamT+='('+str(seq_counter)   
+                
+            if conn['jid']!=jid_old:
+                #print('++new jid++')
+                lids=conn['lids']
+                #print(lids)
+                if jid_old!=0:
+                    dim='('+str(seq_counter-1)+' '+str(len(lids))+')'
+                    idm,idc=self.makeNodeComponent(conn_old,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
+                conn_counter=1
+                seq_counter=1
+                max_seq=conn['max_seq']
+                inStreamT='('+str(seq_counter)
+                m_dot=''
+              
+            if lids[conn_counter-1]!=conn['lid']:
+                #print('++lids[conn_counter] != conn[lid]--')
+                #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
+                #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
+                for i in range(conn_counter,lids.index(conn['lid'])+1):
+                    print('++'+str(i))
+                    inStreamT+=" ("+str(conn_counter)+" . 0.0)"
+                    m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
+                    conn_counter+=1
+            
+            inStreamT+=" ("+str(conn_counter)+")"
+
+            seq_old=conn['seq']
+            jid_old=conn['jid']
+            lid_old=conn['lid']
+            conn_old=conn
+            #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
+            conn_counter+=1
+        
+        #print(inStreamT)
+        #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+        for i in range(conn_counter,len(lids)+1):
+            #print('--add connection: '+str(i))
+            inStreamT+=" ("+str(conn_counter)+" . 0.0)"
+            m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
+        inStreamT+=')'
+        #print(inStreamT)
+        #print(m_dot)
+        dim='('+str(seq_counter)+' '+str(len(lids))+')'
+        idm,idc=self.makeNodeComponent(conn,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
         return idm,idc
      
-    def makeNodeComponent(self,node,instreamT,idm,idc,jid,nCon,modellingSettings):
+    def makeNodeComponent(self,junction,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid):
         """Makes the node bundle componenent"""
-        print(node)
-        if node!=0:
-            nPipes=node['counter']
-            points = node['point'].split("(")[1].replace('(','').replace(')','').split(' ')
-            y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
-            x=round(150+50+(float(points[0])-float(self.pageSettings['xmin']))/float(self.pageSettings['lmin'])*150,0)
-      
-            connector=""
-            if "term" in instreamT:
-                connector="\n ((CONNECTOR :N |term|)"
-                if "term" in instreamT:
-                    connector+="""\n  (:VAR :N |inStream(T)| :DIM ({} {}) :B #S(MS-SPARSE DIMENSION 2 VALUE ({})))""".format(nPipes,nCon,instreamT)
-                connector+=")"
-            #print(connector)
-            idm+="""\n((MODEL :N "NodeBundle_{}" :T |nodebundle|)
+        print(junction)
+        points = junction['j_point'].split("(")[1].replace('(','').replace(')','').split(' ')
+        y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
+        x=round(150+50+(float(points[0])-float(self.pageSettings['xmin']))/float(self.pageSettings['lmin'])*150,0)
+        connector=""" ((CONNECTOR :N |term|)
+  (:VAR :N |m_dot| :DIM {} :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 2 VALUE ({})))
+  (:VAR :N |inStream(T)| :DIM {} :B #S(MS-SPARSE DEFAULT-VALUE nil DIMENSION 2 VALUE ({}))))""".format(dim,m_dot,dim,inStreamT)
+        idm+="""\n((MODEL :N "NodeBundle_{}" :T |nodebundle|)
  (:par :N |n| :v {})
- (:par :N |nnodes| :v {}){}
+ (:par :N |nnodes| :v {})
+{}
  ((RECORD :N |nodebdl|)
-  (:PAR :N |vol| :DIM ({}) :V #({})))) """.format(jid,nCon,nPipes,connector,nPipes,' '.join(modellingSettings['node_vol'] for x in range(0,nPipes)))
-            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:brinenode.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
+  (:PAR :N |vol| :DIM ({}) :V #({})))) """.format(jid,junction['n_connections'],max_seq,connector,max_seq,' '.join(modellingSettings['node_vol'] for x in range(0,max_seq)))
+        idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:brinenode.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
         return idm,idc
                 
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):

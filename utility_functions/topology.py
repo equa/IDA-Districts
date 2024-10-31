@@ -231,8 +231,8 @@ def checkLineDirectionTopology(cur,version,tolerance,iface,network):
         sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
         #print(sql)
         cur.execute(sql)
-        nid_end_topo=cur.fetchone()['vid']     
-        if nid_end_topo!=epid:               
+        jid_end_topo=cur.fetchone()['vid']     
+        if jid_end_topo!=epid:               
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
@@ -242,7 +242,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_end_topo)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
             #print(sql)
             cur.execute(sql) 
             length_node_end=cur.fetchone()['costs']
@@ -254,8 +254,8 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_end_topo)
         sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
         #print(sql)
         cur.execute(sql)
-        nid_start_topo=cur.fetchone()['vid'] 
-        if nid_start_topo!=epid:       
+        jid_start_topo=cur.fetchone()['vid'] 
+        if jid_start_topo!=epid:       
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
@@ -265,7 +265,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_start_topo)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
             #print(sql)
             cur.execute(sql) 
             length_node_start=cur.fetchone()['costs']
@@ -305,8 +305,8 @@ def checkLineDirectionPipeLaying(cur,version,tolerance):
         sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
         #print(sql)
         cur.execute(sql)
-        nid_end_topo=cur.fetchone()['vid']       
-        if nid_end_topo!=epid:               
+        jid_end_topo=cur.fetchone()['vid']       
+        if jid_end_topo!=epid:               
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
@@ -316,7 +316,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_end_topo)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
             #print(sql)
             cur.execute(sql) 
             length_node_end=cur.fetchone()['costs']
@@ -328,9 +328,9 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,nid_end_topo)
         sql="SELECT st_v.id::integer AS v_start FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
         #print(sql)
         cur.execute(sql)
-        nid_start_topo=cur.fetchone()['v_start'] 
-        print(nid_start_topo)
-        if nid_start_topo!=epid:       
+        jid_start_topo=cur.fetchone()['v_start'] 
+        print(jid_start_topo)
+        if jid_start_topo!=epid:       
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
@@ -340,7 +340,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,nid_start_topo)
+SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo)
             #print(sql)
             cur.execute(sql) 
             length_node_start=cur.fetchone()['sum_costs']
