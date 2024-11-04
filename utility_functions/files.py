@@ -28,6 +28,20 @@ def getModellingDir(plugin_dir):
     dir=getQGISPluginsDir(plugin_dir)
     dir+='\\ida_districts_modeling_simulation'
     return dir
+
+def readAndReplaceFileToList(file,replaceDict):
+    data=[]
+    if os.path.exists(file):
+        with open(file, "r") as myfile:   
+            for line in myfile:
+                if line:
+                    for replaceKey in replaceDict:
+                        line=line.replace(replaceKey,replaceDict[replaceKey])
+                    if line.endswith('\n'):            
+                        data.append(line)
+                    else:
+                        data.append(line+'\n')
+    return data
     
 def readFileToList(file):
     data=[]

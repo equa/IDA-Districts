@@ -532,11 +532,7 @@ class CopyAssettypeFiles:
         print(source_name)
         print(target_name)
         #project idm
-        filedata=[]
-        with open(source_dir+'\\'+source_name+'.idm', "r") as myfile:
-            for line in myfile:
-                line=line.replace('"'+source_name+'"','"'+target_name+'"')
-                filedata.append(line)
+        filedata=readAndReplaceFileToList(source_dir+'\\'+source_name+'.idm',{'"'+source_name+'"': '"'+target_name+'"'})
         
         print({j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
         filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
@@ -546,11 +542,7 @@ class CopyAssettypeFiles:
         writeToFileFromList(filedata,target_dir,target_dir+'\\'+target_name+'.idm')     
         
         #project idc
-        filedata=[]
-        with open(source_dir+'\\'+source_name+'.idc', "r") as myfile:
-            for line in myfile:
-                line=line.replace('"'+source_name+'"','"'+target_name+'"')                
-                filedata.append(line)            
+        filedata=readAndReplaceFileToList(source_dir+'\\'+source_name+'.idc',{'"'+source_name+'"': '"'+target_name+'"'})           
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
             filedata=delSensorConnection(filedata,remove_sensor_target_ids,'Target')
