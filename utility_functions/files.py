@@ -400,6 +400,44 @@ def copyFile(src_file,dst_dir,dst_file):
     if checkFilePathExists(False,src_file):
         if checkDirExists(False,dst_dir):
             shutil.copy(src_file,dst_file)
+
+def getSFList(pList,sf=[]):
+    for comp in pList:
+        #print(comp)
+        if getCompClass(comp)=='SOURCE-FILE':
+            print('++++SF++++')
+            print(comp)
+            if comp not in sf:
+                sf.append(comp)
+    print(sf)                
+    return sf
+    
+def getUsedAssettypeSFDict(plugin_dir,cur,dictDB):
+    usedFeatureAssettypes=getUsedFeatureAssettypes(cur,dictDB)
+    print(usedFeatureAssettypes)
+
+    sf={}
+    for assettype in usedFeatureAssettypes:
+        #print(assettype)
+        assettype_name="{}_{}_{}".format(assettype['assetgroup'],assettype['assettype'],assettype['assettype_name'])
+        #print(assettype_name)
+        dir=plugin_dir+"""ida_districts_data_center\\{}\\{}_assettypes""".format(dictDB['projectName'],assettype['feature'])
+        filedata=readFileToList(dir+'\\'+assettype_name+'\\'+assettype_name+'.idm')
+        
+        for line in filedata:
+            #print(line)
+            if ':SF' in line and ':DOCUMENT-PATH' in line:
+                #print(line)
+                key=line.split(':DOCUMENT-PATH "')[1].split('"')[0]
+                entry=line.split(':N "')[1].split('"')[0]
+                try:
+                    sf[key]=sf[key]+[entry]
+                except:
+                        sf[key]=[entry]
+                    
+    sf={i: set(sf[i])for i in sf}
+    print(sf)
+    return sf
     
 def replaceKeywordsInFiledata(file_data,replaceDict):
     data=[]
@@ -471,7 +509,147 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
         counter+=1
         
     return data
-            
+
+def getSFLinkRefs(sf):
+    refs={}
+    for i in sf:
+        if getCompClass(i)==':INT':
+            refs[i[':N']]=i[':V'][1:-1]
+            print(sf)
+    return refs
+    
+def delSFAndConnsAddLinks(plist,sf,sf_ids):
+    data=[]
+    sf_names_dict={i[0][':N']: {'link_refs':getSFLinkRefs(i),'path':i[0][':SF']} for i in sf}
+    print(sf_names_dict)
+    sf_names=[i[0][':N'] for i in sf]
+    print(sf_names)
+    
+    link_dict={}
+    
+    for i in plist[-1][':CONNS']:
+        if i[0][0] in sf_names or i[1][0] in sf_names:
+            print(i)
+            if i[0][0] in sf_names:
+                model_name=i[1][0]
+                model_link=listToBracketsString(i[1][1]) if isinstance(i[1][1],list) else i[1][1]
+                sf_name=i[0][0]
+                sf_link=sf_names_dict[sf_name]['link_refs'][i[0][1]]
+                path=sf_names_dict[sf_name]['path']
+            else:
+                model_name=i[0][0]
+                model_link=listToBracketsString(i[0][1]) if isinstance(i[0][1],list) else i[0][1]
+                sf_name=i[1][0]
+                sf_link=sf_names_dict[sf_name]['link_refs'][i[1][1]]
+                path=sf_names_dict[sf_name]['path']
+            try:
+                link_dict[model_name][model_link]={'sf_name': sf_name, 'sf_link': sf_link,'path':path}
+            except:
+                link_dict[model_name]={model_link:{'sf_name': sf_name, 'sf_link': sf_link,'path':path}}
+    print(link_dict)    
+       
+    for comp in plist:
+        if getCompClass(comp)=='SOURCE-FILE':
+            print('ssssssssssssssffffffffffffffffffffffffffff')
+        else:
+            print(getCompName(comp))
+            if getCompName(comp) in link_dict:
+                print('++++++++update++++++++++++')
+                try:
+                    var_names=[j.split()[0][1:] for j in link_dict[getCompName(comp)] if len(j.split())>1]
+                except:
+                    var_names=[]
+                print(var_names)
+                new_comp=[]
+                for i in comp:
+                    print(i)
+                    if getCompClass(i)==':VAR':
+                        try:                        
+                            if i[':B'].split()[1] in link_dict[getCompName(comp)]:
+                                print('***binding value****')
+                                binding=i[':B'].split()[1]
+                                print(binding)
+                                print(link_dict[getCompName(comp)][binding]['sf_link'])
+                                i[':B']="""(:SYSTEM "sf-macro" "SOURCE-FILE-{}" {})""".format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding]['path']][0],link_dict[getCompName(comp)][binding]['sf_link'])
+                                print(i)
+                            elif 'MS-SPARSE' in i[':B'] and [True for j in var_names if j in i[':B'].split(' VALUE ')[1][:-1]]:
+                                print('---binding matrix---')
+                                print(i)
+                                bindings=getIDAListComponents(i[':B'].split(' VALUE ')[1][:-1])
+                                print(bindings)
+                                new_bindings=[]
+                                for binding in bindings:
+                                    print(binding)
+                                    if binding[2][0] in var_names:
+                                        print(binding[2][0])
+                                        binding_name='({} {})'.format(binding[2][0],binding[2][1])
+                                        print(binding_name)
+                                        new_bindings.append([binding[0],':SYSTEM','"sf-macro"', '"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding_name]['path']][0]),link_dict[getCompName(comp)][binding_name]['sf_link']])
+                                    else:
+                                        new_bindings.append(binding)
+                                print(new_bindings)
+                                print(listToBracketsString(new_bindings))
+                                i[':B']="#S(MS-SPARSE {} VALUE {})".format(i[':B'].split('MS-SPARSE ')[1].split(' VALUE ')[0],listToBracketsString(new_bindings))
+                                
+                            new_comp.append(i)
+                        except:
+                            new_comp.append(i)  
+                    else:
+                        new_comp.append(i)  
+                data.append(new_comp)
+            elif getCompClass(comp)=='CONNECTIONS':
+                new_conns=[]
+                print('****')
+                for i in comp[':CONNS']:
+                    print(i)
+                    print(i[1][0])
+                    if i[0][0] in sf_names or i[1][0] in sf_names:
+                        print('++del conn++')
+                        pass
+                    else:
+                        new_conns.append(i)
+                comp[':CONNS']=new_conns
+                data.append(comp)
+            else:
+                data.append(comp)
+    return data
+
+def replaceKeywordsInPList(plist,replaceDict):
+    data=[]
+    print('--------replace keywords-------------')
+    print(replaceDict)
+    for comp in plist:
+        comp_name=getCompName(comp)[1:-1]
+        if comp_name in replaceDict:
+            print('---replace---')
+            model_type=getCompTemplate(comp)
+            model_language=modelLanguage(model_type)
+            pre_suffix='|' if model_language=='MODELICA' else ''
+            if getCompClass(comp)=='SOURCE-FILE':
+                print('--SF--')
+                comp[0][':DOCUMENT-PATH']='"{}"'.format(replaceDict[comp_name][':SOURCE-FILE'])
+                comp[0][':SF']='"{}"'.format(replaceDict[comp_name][':SOURCE-FILE'])
+                data.append(comp)
+            else:
+                new_comp=[]     
+                parms=[]                
+                for i in comp:
+                    i_name=getCompName(i).replace('|','')
+                    if i_name in replaceDict[comp_name]:
+                        i[':V']=str(replaceDict[comp_name][i_name])
+                        parms.append(getCompName(i))
+                        new_comp.append(i)
+                    else:
+                        new_comp.append(i)
+                for i in replaceDict[comp_name]:
+                    if i not in parms:
+                        new_comp.append({':C':':PAR', ':N': pre_suffix+i+pre_suffix,':V': str(replaceDict[comp_name][i])})
+                data.append(new_comp)
+        else:
+            data.append(comp)
+    #print('---finish replace kewords----')    
+    return data
+    
 def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False):
     """Copy a file within given directory and replace strings in a list"""
     if checkFilePathExists(False,src_file):

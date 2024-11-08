@@ -528,3 +528,13 @@ CREATE TABLE $versionName$.time_manager_tair
   t_air_c numeric,
   CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
 );
+
+-- Table: $versionName$.invoked_sf
+-- DROP TABLE IF EXISTS $versionName$.invoked_sf;
+CREATE TABLE IF NOT EXISTS $versionName$.invoked_sf
+(
+    id serial,
+    sf text,
+    vars text[],
+    CONSTRAINT invoked_sf_pkey PRIMARY KEY (id)
+);

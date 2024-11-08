@@ -1,6 +1,7 @@
 ﻿;IDA 5.09011 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 197 :PAGE-HEIGHT 290) 
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 
+(EQUATION-FRAME :AT ((170 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT)
 (EQUATION-FRAME :AT ((352 348)) :R (203.5 126.5) :ICON "sys:eo.ids" :SLOT ("8_2_Heating and Cooling 2 Supply & 1 Return") :NAME "8_2_Heating and Cooling 2 Supply & 1 Return" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((116 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Sensor-macro") :NAME "Sensor-macro" :DATA MACRO-OBJECT) 
 (TEXT-OBJECT :VALUE "Results" :AT ((504 4) (565 18)) :STYLE LABEL) 

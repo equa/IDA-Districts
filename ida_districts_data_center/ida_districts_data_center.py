@@ -1070,7 +1070,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('DHW timeseries','dhw_timeseries',['Id','Name'],'(id, description)', '',self.importFn,self.show_TableCurrentRowDialog,['dhw',['time_h','kg7s'],['Time', 'dhw demand, kg/s',],'WHERE dhw_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
+            self.show_TableDialog('DHW timeseries','dhw_timeseries',['DHW id','Name'],'(id, description)', '',self.importFn,self.show_TableCurrentRowDialog,['dhw',['time_h','kg7s'],['Time', 'dhw demand, kg/s',],'WHERE dhw_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
     
     def manageTempTimeseries(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)

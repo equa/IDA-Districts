@@ -21,7 +21,7 @@ from qgis.utils import iface
 from multiprocessing import Process
 from qgis.core import  QgsCredentials,QgsDataSourceUri, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 import math
-
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import re
@@ -172,8 +172,10 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=Fa
             if type=='customer':
                 #dhw
                 sql="""SELECT dhw.id, dhw.description FROM {}.dhc_customers c, public.dhw_timeseries dhw WHERE dhw.id=c.dhw_id AND c.id={};""".format(dictDB['versionName'],id)
+                print(sql)
                 cur.execute(sql)
                 dhw=cur.fetchone()
+                dhw_file=False
                 if dhw:
                     dhw_name=dhw['description']
                     dir_dhw=plugin_dir+'\\network_models'+'\\'+dictDB['projectName']+'\\'+dictDB['versionName']
@@ -192,12 +194,13 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=Fa
                         writeToFile(data,dir_dhw,dhw_file)
                     
                     dhw_file=dhw_file.replace('/','\\').replace('\\','\\\\')
-                    #replaceDict["$SOURCE-FILE_DHW$"]=dhw_file
+                    print(dhw_file)
                     
                 #internal loads
                 sql="""SELECT l.id, l.description FROM {}.dhc_customers c, public.internal_loads_profiles l WHERE l.id=c.internal_load_id AND c.id={};""".format(dictDB['versionName'],id)
                 cur.execute(sql)
                 internal_load=cur.fetchone()
+                internal_loads_file=False
                 if internal_load:
                     internal_load_name=internal_load['description']
                     dir_internal_loads=plugin_dir+'\\network_models'+'\\'+dictDB['projectName']+'\\'+dictDB['versionName']
@@ -216,6 +219,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=Fa
                         writeToFile(data,dir_internal_loads,internal_loads_file)
                     
                     internal_loads_file=internal_loads_file.replace('/','\\').replace('\\','\\\\')
+                    print(internal_loads_file)
                     
                 #get model parameter
                 sql="""SELECT * FROM {}.customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
@@ -233,8 +237,14 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=Fa
                     mapping_expression=parm['mapping_expression']
                     for field in fields:
                         if '|'+field+'|'=='|dhw_id|' and mapping_expression=='|dhw_id|':
+                            if not dhw_file:
+                                iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
+                                return False
                             mapping_expression=dhw_file
                         elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
+                            if not internal_loads_file:
+                                iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
+                                return False
                             mapping_expression=internal_loads_file
                         else:
                             mapping_expression=mapping_expression.replace('|'+field+'|',str(fields[field]))
@@ -246,13 +256,14 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=Fa
                     if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
                         print(parm['model_name'])
                         try:
-                            replaceDict[parm['macro_name']][parm['model_name']].append({parm['parm_name']: mapping_expression})
+                            replaceDict[parm['macro_name']][parm['model_name']][parm['parm_name']]= mapping_expression
                         except:
                             try:
-                                replaceDict[parm['macro_name']].update({parm['model_name']:[{parm['parm_name']: mapping_expression}]})
+                                replaceDict[parm['macro_name']].update({parm['model_name']:{parm['parm_name']: mapping_expression}})
                             except:
-                                replaceDict[parm['macro_name']]={parm['model_name']:[{parm['parm_name']: mapping_expression}]}
+                                replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
             print(replaceDict)
+            
             CopyAssettypeFiles(dir_assettype,assettype_name,dir,type.capitalize()+'_'+id,True,type,str(feature['assetgroup']),str(feature['assettype']),id,cur,dictDB,replaceDict,parmRun=parmRun)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
             f_idc=dir+type.capitalize()+"_"+id+".idc"
@@ -490,6 +501,9 @@ class InvokeFeatures():
         """Invoke all features by calling invokeOneFeatures in a loop"""
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
         invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
+        sql="""TRUNCATE {}.invoked_sf;
+SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+        self.cur.execute(sql)
         
         for idx in range(dlg.tableWidget_customer.rowCount()):
             print(idx)
@@ -555,26 +569,54 @@ class CopyAssettypeFiles:
         #feature
         #make subset of replaceDict based on macro name
         print(replaceDict)
-        print({j : replaceDict[i][j] for i in replaceDict if source_name==i for j in replaceDict[i]})
-        filedata=readFileToList(source_dir+'\\'+source_name+'\\'+source_name+'.idm')
-        filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if i in [source_name, ':FEATURE'] for j in replaceDict[i]})
+        pList=propertyListCompsIDM(getIDAListComponents(readFileToString(source_dir+'\\'+source_name+'\\'+source_name+'.idm')))
+        pList=replaceKeywordsInPList(pList,{j : replaceDict[i][j] for i in replaceDict if i in [source_name, ':FEATURE'] for j in replaceDict[i]})
+        print('**************************sf********************')
+        sf=getSFList(pList,[])
+        
+        if sf:
+            sql='\n'.join(["""INSERT INTO {}.invoked_sf (sf,vars)
+    SELECT '{}', ARRAY[{}] WHERE NOT EXISTS (
+        SELECT 1 FROM {}.invoked_sf WHERE sf = '{}'
+    );""".format(self.dictDB['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),self.dictDB['versionName'],i[0][':SF'])  for i in sf])
+            print(sql)
+            cur.execute(sql)
+        sql="SELECT id,sf FROM {}.invoked_sf;".format(self.dictDB['versionName'])
+        cur.execute(sql)
+        sf_ids=cur.fetchall()
+        pList=delSFAndConnsAddLinks(pList,sf,sf_ids)
+
         if update_sensors:
-            filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
-            filedata=delSensorConnection(filedata,remove_sensor_target_ids,'Target')
-        writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idm')     
+            pList=delSensorConnectionPList(pList,remove_sensor_source_ids,'Source')
+            pList=delSensorConnectionPList(pList,remove_sensor_target_ids,'Target')
+        writePropertyListIDMToFile(pList,dir_macro,dir_macro+'\\'+target_name+'.idm')
 
         filedata=readFileToList(source_dir+'\\'+source_name+'\\'+source_name+'.idc')
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
             filedata=delSensorConnection(filedata,remove_sensor_target_ids,'Target')
+        sf_names=[i[0][':N'] for i in sf]
+        print(sf_names)
+        filedata=[i for i in filedata if not [True for j in sf_names if j in i]]
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idc')   
         
+        #sf-macro.idm
+        filedata=[""";IDA 5.09001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.09001)) """]
+        for i in sf:
+            i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
+            filedata+=["""\n{}""".format(pListToCompString(i,0))]
+        writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idm')
+
+        #sf-macro.idc
+        filedata=[""";IDA 5.09001 Data UTF-8
+(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
+        filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate([j for i in sf for j in sf_ids if i[0][':SF']==j['sf']],1)]
+        writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idc')
+        
         #sensor-macro.idm
-        filedata=[]
-        with open(source_dir+'\\'+source_name+'\\Sensor-macro.idm', "r") as myfile:
-            for line in myfile:
-                line=line.replace('"'+source_name+'"','"'+target_name+'"')                
-                filedata.append(line)  
+        filedata=readAndReplaceFileToList(source_dir+'\\'+source_name+'\\Sensor-macro.idm',{'"'+source_name+'"': '"'+target_name+'"'}) 
         filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if 'Sensor-macro'==i for j in replaceDict[i]})
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\Sensor-macro.idm')   
                 
@@ -584,7 +626,7 @@ class CopyAssettypeFiles:
         if os.path.exists(source_dir+'\\'+source_name):
             for root, dirs, files in os.walk(source_dir+'\\'+source_name):
                 for file in files:
-                    if (file.endswith('.idm') or file.endswith('.idc')) and file not in ['sensor-macro.idm',source_name+'.idm',source_name+'.idc',]:
+                    if (file.endswith('.idm') or file.endswith('.idc')) and file not in ['sensor-macro.idm',source_name+'.idm',source_name+'.idc','sf-macro.idm','sf-macro.idc']:
                         print('---------copy file---------')
                         print(file)
                         print(os.path.join(root, file))

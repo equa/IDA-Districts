@@ -5,11 +5,11 @@ from plugins.utility_functions.macros import *
 from plugins.utility_functions.topology import *
 from plugins.utility_functions.ida_components import *
 
-
 from plugins.utility_functions.assettypeFiles import *
 from .supervisory_control import Supervisory_control, CopySupervisoryControl
 from .invoke_sensors import *
 from .cosim import *
+from .invoke import *
 from plugins.utility_functions.sensor_signals import *
 from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI
 
@@ -148,11 +148,17 @@ class InvokeNetworkModel:
                 print('*-+')
                 print(import_counter)
                 
-                idc=self.writeNetworkTemplateIdc(submodel,dir,networks)
+                idc=self.writeNetworkTemplateIdc(submodel,dir,networks,supervisory_submodel)
                 
                 createDir(dir,'network_'+str(submodel))
+                #climate
                 writeMacroClimateIdm(self.dictDB,self.cur,'network_'+str(submodel),dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.dictDB),getClimateData(self.cur,self.dictDB,True))
                 writeMacroClimateIdc('network_'+str(submodel),dir,loadModellingSettings(self.plugin_dir,self.dictDB))
+                
+                #sf-macro
+                self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
+                self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
+                
                 #decoupling
                 idm+=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data)
                 writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir)
@@ -193,6 +199,10 @@ class InvokeNetworkModel:
                         ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
                             for i in sensor_dec_data if i['target_type']==4 for j in i['irefs_target']]))                
 
+                if reinvoke:
+                    sql="""TRUNCATE {}.invoked_sf;
+SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+                    self.cur.execute(sql)
                 for type in ["dhc_customers","dhc_energy_plants","dhc_devices"]:
                     copyAssettypeMacro=CopyAssettypeMacro(submodel,dir,type,self.dictDB,self.cur,iface,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs)
                     if type!="dhc_devices":
@@ -221,31 +231,6 @@ class InvokeNetworkModel:
                 idc+=idc_conn
                 writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
                 writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)  
-                
-                #if checkDirExists("IDA Path",loadIDADistrictsConfig(self.plugin_dir)['path_ice']):
-                #    print('***********************************')
-                #    print(self.buildingIdmFilePath)
-                #    process = Process(target=WorkerOpenAPI(self.buildingIdmFilePath,self.plugin_dir))
-
-                    #self.threadpool = QThreadPool()
-                    #worker_openDoc=WorkerOpenAPI(file,self.plugin_dir)
-                    #print(worker_openDoc)
-                    #self.threadpool.start(worker_openDoc)
-                
-                    #self.util=Util_api(self.plugin_dir)
-                    #print(self.util.pid)
-                    #IDA ICE connection test
-                    #connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-                    #print(connectionTest)
-                    #self.openFile()                 
-                    
-                    #cmd = """\"{}\\bin\\ice.exe" -c n_conn_{}  -e "{}\\\\ida_scripts\\\\script_connections.txt" -r "{}\"""".format(self.configIDADistricts['path_ice'],submodel,self.plugin_dir.replace('/','\\').replace('\\','\\\\'),self.buildingIdmFilePath)
-                    #print(cmd)
-                    #time.sleep(2)
-                    #subprocess.run(cmd, shell=True)
-                    
-                    #except:
-                    #    print('failed model generation')
                     
             writeInvokedOutputs(self.plugin_dir,self.dictDB,self.invokedOutputs)
             
@@ -606,6 +591,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
  (:VAR :N TAIR :T TEMP :D "Tair" :U |Deg-C| :IV NIL :B (1 "Climate-macro" "climate_processor" TAIR))
  (:VAR :N VELOCITY :T GENERIC :D "velocity" :U || :IV NIL :B (1 "Climate-macro" "vel" |y_var|)))
 ((MACRO-OBJECT :N "Climate-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
+((MACRO-OBJECT :N "sf-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
 ((MACRO-OBJECT :N "Co-simulation-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))""".format(submodel,self.getResources(),simulation_data)
         return data
         
@@ -723,13 +709,14 @@ output to current demand. It can also be operated in installations with differen
  (:PAR :N |QevpPowCoef| :V #2A((13527.0 462.0 -94.62 6.816 -1.495 0.5516 0.02378 -0.06059 -0.02743 -0.01308) (29151.2 957.2 -262.0 13.78 -3.921 1.694 0.05946 -0.09987 -0.04839 -0.02332) (43044.9 1425.7 -353.1 20.81 -5.37 1.827 0.09078 -0.1498 -0.08177 -0.0305) (55208.1 1867.5 -368.0 27.91 -5.841 0.9502 0.1178 -0.2104 -0.1276 -0.03461)))
  (:PAR :N |CompPowCoef| :V #2A((925.1 -61.88 39.02 -3.991 3.367 -0.3195 -0.05092 0.09563 -0.04246 0.01091) (2381.6 2.276 73.9 -0.4297 0.8279 -0.7697 -0.006913 0.01524 -0.01366 0.01933) (4565.2 68.67 90.51 1.537 -0.867 -0.9323 0.01428 -0.02403 -0.001693 0.02594) (7475.7 137.3 88.87 1.909 -1.717 -0.8073 0.01267 -0.02219 -0.006557 0.03072))))"""
     
-    def writeNetworkTemplateIdc(self,submodel,dir,networks):    
+    def writeNetworkTemplateIdc(self,submodel,dir,networks,supervisory_submodel):    
         """ write idc file with """
         print('write idc network model')
         pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
         print(pageSettings)
         data=""";IDA 4.9902 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {})
+(EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((26 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT)  
 (EQUATION-FRAME :AT ((170 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT)  
 (EQUATION-FRAME :AT ((75 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Sensor-macro") :NAME "Sensor-macro" :DATA MACRO-OBJECT) 
@@ -740,7 +727,7 @@ output to current demand. It can also be operated in installations with differen
 (LABEL-TEXT :VALUE \"Description:\" :FONT (:SWISS :ARIAL 11 1) :VERTICAL :CENTER :WRAP-P NIL :AT ((13 33) (96 53))) 
 (FIELD :AT ((96 32) (496 100)) :SLOT (DESCRIPTION) :TEXT-COLOR #S(RGB RED 0 GREEN 0 BLUE 0)) 
 (LINE :AT ((6 112) (743 112))){}
-""".format(self.pageSettings['pageWidth'],self.pageSettings['pageHeight'],"""\n(EQUATION-FRAME :AT ((120 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Supervisory_control") :NAME "Supervisory_control" :DATA MACRO-OBJECT)""" if submodel=='1' else '')
+""".format(self.pageSettings['pageWidth'],self.pageSettings['pageHeight'],"""\n(EQUATION-FRAME :AT ((120 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Supervisory_control") :NAME "Supervisory_control" :DATA MACRO-OBJECT)""" if submodel==supervisory_submodel else '')
         return data
         #writeToFile(data,dir,dir+"""\\network_{}.idc""".format(submodel))
         
@@ -871,7 +858,7 @@ output to current demand. It can also be operated in installations with differen
         assettype_name_old=""
         cid_old=0
         iref_old=""
-        cdi=-1
+        cid=-1
         for customer in self.cur.fetchall():          
             dhw_id=customer['dhw_id']
             cid=customer['cid']
@@ -1023,3 +1010,28 @@ output to current demand. It can also be operated in installations with differen
                         for i in sensor_dec_data if i['target_type']==2 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
             idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:boil1circ.ids" :SLOT ("energy_plant_{}") :NAME "energy_plant_{}" :DATA MACRO-OBJECT) """.format(x,y,epid,epid)                   
         return idm,idc
+        
+    def writeMacroSFIdm(self,dir):
+        sql="SELECT id,sf,vars FROM {}.invoked_sf;".format(self.dictDB['versionName'])
+        self.cur.execute(sql)
+        sf_ids=self.cur.fetchall()     
+        print(sf_ids)
+
+        filedata=[""";IDA 5.09001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.09001)) """]
+        filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
+        writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm')        
+                
+    def writeMacroSFIdc(self,dir):
+        sql="SELECT id,sf FROM {}.invoked_sf;".format(self.dictDB['versionName'])
+        self.cur.execute(sql)
+        sf_ids=self.cur.fetchall()
+            
+        filedata=[""";IDA 5.09001 Data UTF-8
+(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
+        filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
+        writeToFileFromList(filedata,dir,dir+'\\sf-macro.idc')
+
+
+        

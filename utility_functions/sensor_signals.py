@@ -170,6 +170,26 @@ def delSensorConnection(file_data,remove_sensor_ids,type):
         else:
             data.append(line)
     return data
+    
+def delSensorConnectionPList(plist,remove_sensor_ids,type):
+    data=[]
+    remove_sensor_names=["""\"Int_Ref_Sensor_{}_{}""".format(str(type),str(sensor['sensor_id'])) for sensor in remove_sensor_ids]
+    #print(plist)
+    for comp in plist:
+        if getCompClass(comp)=='CONNECTIONS':
+            new_conns=[]
+            for conn in comp[':CONNS']:
+                if conn[0][0] in remove_sensor_names or conn[1][0] in remove_sensor_names:
+                    pass
+                else:
+                    new_conns.append(conn)
+            comp[':CONNS']=new_conns
+            data.append(comp)
+        elif getCompClass(comp)==':IREF' and getCompName(comp) in remove_sensor_names:
+            pass
+        else: 
+            data.append(comp)
+    return data
 
 def setPageHeightSensorDescription(file_data,sensors):
     data=[]
