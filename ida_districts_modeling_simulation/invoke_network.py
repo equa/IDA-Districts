@@ -11,7 +11,7 @@ from .invoke_sensors import *
 from .cosim import *
 from .invoke import *
 from plugins.utility_functions.sensor_signals import *
-from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI
+from plugins.utility_functions.workers import WorkerOpenAPI
 
 from multiprocessing import Process
 from qgis.PyQt.QtWidgets import QMessageBox

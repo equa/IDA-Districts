@@ -53,7 +53,7 @@ import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import subprocess
   
-from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI,WorkerOpenParRunAPI
+from plugins.utility_functions.workers import WorkerOpenAPI,WorkerOpenParRunAPI
 from plugins.utility_functions.util import *
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from multiprocessing import Process

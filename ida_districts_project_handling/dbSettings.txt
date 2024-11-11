@@ -1,1 +1,1 @@
-{'pwd': '', 'host': '', 'port': '', 'user': '', 'projectName': '', 'versionName': ''}
+{'pwd': 'p3t3r', 'host': 'localhost', 'port': '5433', 'user': 'postgres', 'projectName': 'test4', 'versionName': 'a'}

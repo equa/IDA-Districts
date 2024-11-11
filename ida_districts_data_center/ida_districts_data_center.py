@@ -26,7 +26,7 @@ from plugins.utility_functions.db import *
 from plugins.utility_functions.utility import *
 from plugins.utility_functions.topology import *
 from plugins.utility_functions.layer_visualization import *
-from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI
+from plugins.utility_functions.workers import WorkerOpenAPI
 from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
 
 from PyQt5.QtCore import Qt

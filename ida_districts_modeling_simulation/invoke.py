@@ -8,15 +8,15 @@ from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
-from .ida_districts_modeling_simulation_dialog import InvokeFeaturesFromTemplate
+from .ida_districts_modeling_simulation_dialog import InvokeFeaturesDlg
 from .calibrate_customers import *
 from plugins.utility_functions.sensor_signals import *
 from qgis.PyQt.QtWidgets import QTableWidgetItem,QTableWidget, QTabWidget
 
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from plugins.utility_functions.util import *
 from plugins.utility_functions.layer_visualization import *
-from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateAPI
+from plugins.utility_functions.workers import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateAPI
 from qgis.utils import iface
 from multiprocessing import Process
 from qgis.core import  QgsCredentials,QgsDataSourceUri, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
@@ -31,6 +31,79 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
 from plugins.utility_functions.ida_components import *
 
+class InvokeFeatureSignals(QObject):
+    error=pyqtSignal(str)
+
+class WorkerOpenAPI(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,file_path,plugin_dir):
+        super().__init__()
+        self.file_path=file_path.replace('/','\\')
+        self.plugin_dir=plugin_dir
+            
+    @pyqtSlot()
+    def run(self):
+        #open file in IDA
+        self.util=Util_api(self.plugin_dir)
+
+        print(self.util.pid)
+        
+        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
+        print(connectionTest)
+        try:
+            result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+        except:
+            print('failed open doc')
+            pass
+        
+class InvokeFeatureSignals(QObject):
+    progress=pyqtSignal(int)
+    error=pyqtSignal(str)
+
+class WorkerInvokeFeatures(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,*args,**kwargs):
+        super().__init__()
+        self.args=args
+        print(args)
+        self.signals=InvokeFeatureSignals()
+        self.dictDB=kwargs['dictDB']
+        self.dlg=kwargs['dlg']
+        self.type=kwargs['type']
+        self.conn=""
+        self.cur=""
+        self.plugin_dir=kwargs['plugin_dir']
+        self.conn = dbConnect(self.dictDB,True)
+        self.rows=kwargs['rows']
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            
+    @pyqtSlot()
+    def run(self):
+        print('Generate network topology')
+        self.progress_value=1
+        self.signals.progress.emit(self.progress_value)
+        
+        requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
+        invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
+        sql="""TRUNCATE {}.invoked_sf;
+SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+        self.cur.execute(sql)
+        
+        rows_count=len(self.rows)
+        for idx in self.rows:
+            print(idx)
+            invokeOneFeature(self.dlg,idx,self.plugin_dir,self.cur,self.dictDB,self.type,invoked=True,parallize=True)
+            if self.type=='energy_plant':
+                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
+            elif self.type=='customer':
+                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
+            self.progress_value=int((idx+1)/rows_count*98)
+            self.signals.progress.emit(self.progress_value)
+        writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
+        self.signals.progress.emit(100)
    
 def loadCustomerParm(dlg,cur,dictDB):
     sql="""SELECT * FROM {}.customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
@@ -130,7 +203,7 @@ def addParmTableRow(dlg):
     dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))        
     dlg.tableWidget_parameters.setItem(0 , 4, QTableWidgetItem(''))        
         
-def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=False,saveParmRunResults=False):
+def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False):
     """Invoke the selected feature. Copy the files from the assettype templates to ida_districts_modeling_simulation\invoked_"feature"s
         If dlg is not given the id is the idx"""    
     print('idx='+str(idx))
@@ -238,12 +311,18 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,iface,invoked,parmRun=Fa
                     for field in fields:
                         if '|'+field+'|'=='|dhw_id|' and mapping_expression=='|dhw_id|':
                             if not dhw_file:
-                                iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
+                                if parallize:
+                                    dlg.signals.error.emit("No DHW file selected for {} {}!".format(type.capitalize(),id))
+                                else:
+                                    iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
                                 return False
                             mapping_expression=dhw_file
                         elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
                             if not internal_loads_file:
-                                iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
+                                if parallize:
+                                    dlg.signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
+                                else:
+                                    iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
                                 return False
                             mapping_expression=internal_loads_file
                         else:
@@ -286,15 +365,15 @@ class InvokeFeatures():
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.type='customer'
-            self.dlg_invokeFeatures=InvokeFeaturesFromTemplate()
+            self.dlg_invokeFeatures=InvokeFeaturesDlg()
             print(self.dlg_invokeFeatures.rbtn_customers)  
             
             self.dlg_invokeFeatures.rbtn_customers.toggled.connect(self.updateFeatureLists)
             self.dlg_invokeFeatures.rbtn_devices.toggled.connect(self.updateFeatureLists)
             self.dlg_invokeFeatures.rbtn_plants.toggled.connect(self.updateFeatureLists)   
             
-            self.dlg_invokeFeatures.btn_invokeOne.clicked.connect(lambda: self.invokeOneFeature_())
-            self.dlg_invokeFeatures.btn_invokeAll.clicked.connect(lambda: self.invokeAllFeatures(self.dlg_invokeFeatures))
+            self.dlg_invokeFeatures.btn_invokeOne.clicked.connect(self.invokeSelectedFeatures)
+            self.dlg_invokeFeatures.btn_invokeAll.clicked.connect(self.invokeAllFeatures)
             self.dlg_invokeFeatures.btn_openInvoked.clicked.connect(lambda: self.openInvokedFeature(self.dlg_invokeFeatures))
             self.dlg_invokeFeatures.btn_simulateInvoked.clicked.connect(lambda: self.simulateInvokedFeatures(self.dlg_invokeFeatures))
             self.dlg_invokeFeatures.btn_showFeatureLoad.clicked.connect(lambda: self.showFeatureLoad(self.dlg_invokeFeatures))
@@ -302,18 +381,12 @@ class InvokeFeatures():
             self.loadInvokeFeatureData(self.dlg_invokeFeatures)
             self.dlg_invokeFeatures.show()
             
-    def invokeOneFeature_(self):
-        requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
-        invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
-        if self.type=='energy_plant':
-            invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(self.dlg_invokeFeatures.tableWidget_customer.currentRow(),0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
-        elif self.type=='customer':
-            invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(self.dlg_invokeFeatures.tableWidget_customer.currentRow(),0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
-        elif self.type=='device':
-            pass #todo
-        invokeOneFeature(self.dlg_invokeFeatures,self.dlg_invokeFeatures.tableWidget_customer.currentRow(),self.plugin_dir,self.cur,self.dictDB,self.type,self.iface,True)
-        
-        writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
+    def invokeSelectedFeatures(self):
+        #invokeOneFeature(self.dlg_invokeFeatures,self.dlg_invokeFeatures.tableWidget_customer.currentRow(),self.plugin_dir,self.cur,self.dictDB,self.type,self.iface,True,parallize=False)
+        selected_indexes = self.dlg_invokeFeatures.tableWidget_customer.selectedIndexes()
+        rows=[i.row() for i in selected_indexes]
+        print(rows)
+        self.startInvokeFeaturesWorker(rows)
         
     def updateFeatureLists(self,s):
         """Update the list of customers, devices or plants based on the radio button """
@@ -370,7 +443,6 @@ class InvokeFeatures():
         if os.path.exists(file_path):
             print(file_path)
             process = Process(target=WorkerOpenAPI(file_path,self.plugin_dir))
-
 
             print('finished open assettype')
         else:
@@ -497,23 +569,17 @@ class InvokeFeatures():
             sensor_comp_idc+="""\n(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO) """.format(str(50+35*i),sensor_id,sensor_id)
         return sensor_comp_idm,sensor_comp_idc
             
-    def invokeAllFeatures(self,dlg):
-        """Invoke all features by calling invokeOneFeatures in a loop"""
-        requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
-        invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
-        sql="""TRUNCATE {}.invoked_sf;
-SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionName'],self.dictDB['versionName'])
-        self.cur.execute(sql)
+    def invokeAllFeatures(self):
+        """Invoke all features using a worker and calling invokeOneFeatures in a loop"""
+        rows=[i for i in range(self.dlg_invokeFeatures.tableWidget_customer.rowCount())]
+        self.startInvokeFeaturesWorker(rows)
         
-        for idx in range(dlg.tableWidget_customer.rowCount()):
-            print(idx)
-            invokeOneFeature(dlg,idx,self.plugin_dir,self.cur,self.dictDB,self.type,self.iface,True)
-            if self.type=='energy_plant':
-                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
-            elif self.type=='customer':
-                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg_invokeFeatures.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
-
-        writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
+    def startInvokeFeaturesWorker(self,rows):
+        worker = WorkerInvokeFeatures(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=self.dlg_invokeFeatures,type=self.type,rows=rows)
+        self.threadpool = QThreadPool()
+        self.threadpool.start(worker) 
+        worker.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
+        worker.signals.progress.connect(self.dlg_invokeFeatures.update_progress)      
 
                
 class CopyAssettypeFiles:

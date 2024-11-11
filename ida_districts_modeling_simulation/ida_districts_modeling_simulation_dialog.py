@@ -990,7 +990,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         self.shortcut_closeForm = QShortcut(QKeySequence("Alt+F4"), self)
         self.shortcut_closeForm.activated.connect(lambda : closeDialog(self))
 
-class InvokeFeaturesFromTemplate(QMainWindow):
+class InvokeFeaturesDlg(QMainWindow):
     def __init__(self):
         """Constructor."""
         super().__init__()
@@ -1021,6 +1021,9 @@ class InvokeFeaturesFromTemplate(QMainWindow):
         #table
         self.tableWidget_customer = QTableWidget(0,2)   
         self.tableWidget_customer.setHorizontalHeaderLabels(["Id","Invoked"])     
+        
+        #progress bar
+        self.progress=QProgressBar()
 
         #---------------ok/Open buttons     
         layout_buttons = QHBoxLayout()
@@ -1038,11 +1041,19 @@ class InvokeFeaturesFromTemplate(QMainWindow):
         layout_win.addLayout(layout_invoke_btn)
         layout_win.addLayout(layout_rbtn)
         layout_win.addWidget(self.tableWidget_customer)
+        layout_win.addWidget(self.progress)
         layout_win.addLayout(layout_buttons)
         
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
+        
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
     
 #dublicated code
 class ComboBox(QComboBox):
