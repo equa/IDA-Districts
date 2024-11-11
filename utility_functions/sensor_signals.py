@@ -10,7 +10,7 @@ from qgis.PyQt.QtWidgets import QTableWidgetItem
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPool, pyqtSlot, QRunnable
 from plugins.utility_functions.util import *
-from plugins.utility_functions.workerOpenAPI import WorkerOpenAPI
+from plugins.utility_functions.workers import WorkerOpenAPI
     
 def getSubmodelFromSensorSource(cur,dictDB,sensor,source):
     return str((getSupervisorySubmodel(cur,dictDB) if sensor['source_type']==4 else getSubmodelPerFeatureIdTypename(source.split('_')[1],sensor['source_type_name'],cur,dictDB))['submodel'])

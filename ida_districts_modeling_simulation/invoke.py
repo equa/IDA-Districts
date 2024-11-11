@@ -16,7 +16,7 @@ from qgis.PyQt.QtWidgets import QTableWidgetItem,QTableWidget, QTabWidget
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from plugins.utility_functions.util import *
 from plugins.utility_functions.layer_visualization import *
-from plugins.utility_functions.workers import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateAPI
+from plugins.utility_functions.workers import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateFilesAPI
 from qgis.utils import iface
 from multiprocessing import Process
 from qgis.core import  QgsCredentials,QgsDataSourceUri, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
@@ -29,37 +29,7 @@ import re
 import datetime
 import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
-from plugins.utility_functions.ida_components import *
-
-class InvokeFeatureSignals(QObject):
-    error=pyqtSignal(str)
-
-class WorkerOpenAPI(QRunnable):
-    """Worker thread
-    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,plugin_dir):
-        super().__init__()
-        self.file_path=file_path.replace('/','\\')
-        self.plugin_dir=plugin_dir
-            
-    @pyqtSlot()
-    def run(self):
-        #open file in IDA
-        self.util=Util_api(self.plugin_dir)
-
-        print(self.util.pid)
-        
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
-        try:
-            result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
-        except:
-            print('failed open doc')
-            pass
-        
-class InvokeFeatureSignals(QObject):
-    progress=pyqtSignal(int)
-    error=pyqtSignal(str)
+from plugins.utility_functions.ida_components import *  
 
 class WorkerInvokeFeatures(QRunnable):
     """Worker thread
@@ -68,7 +38,7 @@ class WorkerInvokeFeatures(QRunnable):
         super().__init__()
         self.args=args
         print(args)
-        self.signals=InvokeFeatureSignals()
+        self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
         self.type=kwargs['type']
@@ -103,8 +73,8 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
             self.progress_value=int((idx+1)/rows_count*98)
             self.signals.progress.emit(self.progress_value)
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
-        self.signals.progress.emit(100)
-   
+        self.signals.progress.emit(100) 
+            
 def loadCustomerParm(dlg,cur,dictDB):
     sql="""SELECT * FROM {}.customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
     cur.execute(sql)
@@ -438,30 +408,40 @@ class InvokeFeatures():
         """Open the invoked feature in IDA. Changes can be saved"""  
         idx=dlg.tableWidget_customer.currentRow()
         print(idx)
-        id=dlg.tableWidget_customer.item(idx,0).text()
-        file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id)  
-        if os.path.exists(file_path):
-            print(file_path)
-            process = Process(target=WorkerOpenAPI(file_path,self.plugin_dir))
+        if idx!=-1:
+            id=dlg.tableWidget_customer.item(idx,0).text()
+            file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id)  
+            if os.path.exists(file_path):
+                print(file_path)
+                worker = WorkerOpenAPI(file_path,self.plugin_dir)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(worker) 
+                worker.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
+                worker.signals.progress.connect(self.dlg_invokeFeatures.update_progress)  
 
-            print('finished open assettype')
+                print('finished open feature')
+                
+            else:
+                self.iface.messageBar().pushMessage("Info", "Feature not yet invoked!", level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", "No feature selected or not invoked!", level=Qgis.Info)
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
 
     def simulateInvokedFeatures(self,dlg):
         """Simulate the invoked features in IDA."""  
         print('Simulate invoked features')
         ids=[dlg.tableWidget_customer.item(idx,0).text() for idx in range(0,dlg.tableWidget_customer.rowCount())]
         print(ids)
-        for id in ids:
-            file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id)  
-            if os.path.exists(file_path):
-                print(file_path)
-                process = Process(target=WorkerSimulateAPI(file_path,self.plugin_dir))
-            else:
-                self.iface.messageBar().pushMessage("Info", "Sim model does not exist!", level=Qgis.Info)
-        #os.system("taskkill /f /im ida-ice.exe")
+        if ids:
+            file_pathes=[self.plugin_dir.replace('/','\\')+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),i)  for i in ids]
+            print(file_pathes)
 
+            self.worker = WorkerSimulateFilesAPI(file_pathes,self.plugin_dir)
+            self.threadpool = QThreadPool()
+            self.threadpool.start(self.worker) 
+            self.worker.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
+            self.worker.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
+        else:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
         print('simulation finished')
 
     def showFeatureLoad(self,dlg):

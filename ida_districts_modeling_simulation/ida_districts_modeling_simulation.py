@@ -498,7 +498,7 @@ class IDADistrictsModelingSimulation:
     
     def showInvokeFeatures(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        InvokeFeatures(self.plugin_dir,self.dictDB,self.iface)
+        self.invoke_features=InvokeFeatures(self.plugin_dir,self.dictDB,self.iface)
      
     def showBuildModel(self):
         """ Build IDA subnetwork models; loop over subnetworks"""
