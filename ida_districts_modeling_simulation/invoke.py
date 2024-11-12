@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import QTableWidgetItem,QTableWidget, QTabWidget
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from plugins.utility_functions.util import *
 from plugins.utility_functions.layer_visualization import *
-from plugins.utility_functions.workers import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateFilesAPI, APISignals
+from plugins.utility_functions.workers import *
 from qgis.utils import iface
 from multiprocessing import Process
 from qgis.core import  QgsCredentials,QgsDataSourceUri, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
@@ -74,107 +74,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
             self.progress_value=int((idx+1)/rows_count*98)
             self.signals.progress.emit(self.progress_value)
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
-        self.signals.progress.emit(100) 
-        
-class APIPlotinvokedFeatureSignals(QObject):
-    progress=pyqtSignal(int)
-    error=pyqtSignal(str)
-    dataProcessed=pyqtSignal(list)
-    plot=pyqtSignal(bool)
-    plot_total=pyqtSignal(list)
-    
-class WorkerPlotInvokedFeatureLoad(QRunnable):
-    """Worker thread
-    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,*args,**kwargs):
-        super().__init__()
-        self.args=args
-        print(args)
-        self.signals=APIPlotinvokedFeatureSignals()
-        self.dictDB=kwargs['dictDB']
-        self.dlg=kwargs['dlg']
-        self.type=kwargs['type']
-        self.conn=""
-        self.cur=""
-        self.plugin_dir=kwargs['plugin_dir']
-        self.conn = dbConnect(self.dictDB,True)
-        self.rows=kwargs['rows']
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            
-    @pyqtSlot()
-    def run(self):
-        print('Generate network topology')
-        self.progress_value=1
-        self.signals.progress.emit(self.progress_value)
-       
-        count=0
-        for idx in self.rows:
-            id=self.dlg.tableWidget_customer.item(idx,0).text()
-            connValues=getConnsValues(getConnBundleByFeature(self.type,id,self.cur,self.dictDB),self.cur)
-            print(connValues)
-            conn_type_seq=set([x['conn_type_seq'] for x in connValues])
-            print(conn_type_seq)
-            for seq in conn_type_seq:
-                file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
-                print(file_path)
-                if os.path.exists(file_path):
-                    legend=self.type.capitalize()+':'+id
-
-                    print(file_path)
-                    filedata=readFileToList(file_path)
-
-                    #print(filedata)
-                    i=0
-                    time=[]
-                    power=[]
-                    try:
-                        for line in filedata:
-                            data=line.strip().split()
-                            if i==0:
-                                power_col=data.index('power')-1
-                            else:
-                                power.append([float(data[0]),float(data[power_col])])
-                                if i==1:
-                                    energy=[[float(data[0]),0]]
-                                else:
-                                    energy.append([float(data[0]),energy[-1][1]+(float(data[0])-energy[-1][0])*float(data[power_col])/1000]) #kWh
-                            i+=1    
-                    except Exception as e:
-                        print(f'error: {e}')
-                        self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
-                    
-                    power=np.array(power)  
-                    energy=np.array(energy)  
-                    time=np.arange(0,power[-1,0],0.1)
-
-
-                    #linear interpolation
-                    valuesPowerInt = np.interp(time, power[:,0], power[:,1])
-                    valuesEnergyInt = np.interp(time, power[:,0], energy[:,1])
-                    
-                    if count==0:
-                        power_sum=valuesPowerInt
-                        energy_sum=valuesEnergyInt
-                    else:
-                        try:
-                            power_sum=np.add(power_sum,valuesPowerInt)
-                            energy_sum=np.add(energy_sum,valuesEnergyInt)
-                        except:
-                            self.signals.error.emit("Different simulation periods are used!")
-
-                    #plotting
-                    self.signals.dataProcessed.emit([{'time':time,'data':valuesPowerInt,'label':'Customer ID='+str(id)},{'time':time,'data':valuesEnergyInt,'label':'Customer ID='+str(id)}])
-                    count+=1
-                    
-                    self.progress_value=int(count/len(self.rows)*98)
-                    self.signals.progress.emit(self.progress_value)
-                           
-        self.signals.plot.emit(True) 
-        if count>1:
-            self.signals.plot_total.emit([{'time':time,'data':power_sum},{'time':time,'data':energy_sum}]) 
-                
-        self.signals.progress.emit(100) 
+        self.signals.progress.emit(100)  
             
 def loadCustomerParm(dlg,cur,dictDB):
     sql="""SELECT * FROM {}.customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
@@ -419,8 +319,11 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
             f_idc=dir+type.capitalize()+"_"+id+".idc"
             f_idm=dir+type.capitalize()+"_"+id+".idm"
             
-            if invoked:
-                dlg.tableWidget_customer.setItem(idx,1,QTableWidgetItem('True'))
+            try:
+                if invoked:
+                    dlg.tableWidget_customer.setItem(idx,1,QTableWidgetItem('True'))
+            except:
+                pass
             type_old=type
             assetgroup_old=feature['assetgroup']
             assettype_old=feature['assettype']
@@ -517,7 +420,7 @@ class InvokeFeatures():
                 self.worker_openInvoked = WorkerOpenAPI(file_path,self.plugin_dir)
                 self.threadpool_openInvoked = QThreadPool()
                 self.threadpool_openInvoked.start(self.worker_openInvoked) 
-                self.worker_openInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
+                self.worker_openInvoked.signals.error.connect(show_error_message)
                 self.worker_openInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)  
 
                 print('finished open feature')
@@ -595,11 +498,11 @@ class InvokeFeatures():
         self.startInvokeFeaturesWorker(rows)
         
     def startInvokeFeaturesWorker(self,rows):
-        worker = WorkerInvokeFeatures(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=self.dlg_invokeFeatures,type=self.type,rows=rows)
-        self.threadpool = QThreadPool()
-        self.threadpool.start(worker) 
-        worker.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
-        worker.signals.progress.connect(self.dlg_invokeFeatures.update_progress)      
+        self.worker_invokeFeature = WorkerInvokeFeatures(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=self.dlg_invokeFeatures,type=self.type,rows=rows)
+        self.threadpool_invokeFeature = QThreadPool()
+        self.threadpool_invokeFeature.start(self.worker_invokeFeature) 
+        self.worker_invokeFeature.signals.error.connect(show_error_message)
+        self.worker_invokeFeature.signals.progress.connect(self.dlg_invokeFeatures.update_progress)      
 
                
 class CopyAssettypeFiles:

@@ -53,7 +53,7 @@ import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import subprocess
   
-from plugins.utility_functions.workers import WorkerOpenAPI,WorkerOpenParRunAPI
+from plugins.utility_functions.workers import *
 from plugins.utility_functions.util import *
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from multiprocessing import Process
@@ -61,29 +61,6 @@ from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QShortcut
 from PyQt5.QtCore import Qt
 import datetime
-
-
-def runSimulationCmd(ice_path,file_path,submodel):
-    if os.path.exists(file_path):
-        if os.path.exists(ice_path):
-            cmd="""\"{}bin\\\\ice.exe" -c network_{} -r "{}\"""".format(ice_path.replace('\\','\\\\'),submodel,file_path)
-            print(cmd)
-            subprocess.call(cmd)
-        else:
-            iface.messageBar().pushMessage("Error", "ICE directory does not exists!", level=Qgis.Warning)
-    else:
-        iface.messageBar().pushMessage("Error", "File directory does not exists!", level=Qgis.Warning)
-    
-def openModelCmd(ice_path,file_path):
-    if os.path.exists(file_path):
-        if os.path.exists(ice_path):
-            cmd="""\"{}bin\\\\ice.exe" -c supervisory_ctrl -o "{}\"""".format(ice_path.replace('\\','\\\\'),file_path)
-            print(cmd)
-            subprocess.call(cmd)
-        else:
-            iface.messageBar().pushMessage("Error", "ICE directory does not exists!", level=Qgis.Warning)
-    else:
-        iface.messageBar().pushMessage("Error", "File directory does not exists!", level=Qgis.Warning)
     
 class IDADistrictsModelingSimulation:
     """QGIS Plugin Implementation."""
@@ -309,9 +286,11 @@ class IDADistrictsModelingSimulation:
         
         file = self.plugin_dir+'\\network_models\\{}\\{}\\supervisory_control\\supervisory_control.idm'.format(self.dictDB['projectName'],self.dictDB['versionName'])
         file=file.replace('/','\\')
-        print(file)        # Open the ida file with the IDA ICE Python API
-        #process = Process(target=WorkerOpenAPI(file,self.plugin_dir))
-        openModelCmd(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],file)
+        print(file)
+        self.worker_openSupervisory = WorkerOpenAPI(file,self.plugin_dir)
+        self.threadpool_openSupervisory = QThreadPool()
+        self.threadpool_openSupervisory.start(self.worker_openSupervisory)
+        self.worker_openSupervisory.signals.error.connect(show_error_message)
         
     def calibrateCustomers(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -325,28 +304,6 @@ class IDADistrictsModelingSimulation:
             self.dlg_calibrateCustomers.btn_showCallibCust.clicked.connect(lambda: openResult(self.dlg_calibrateCustomers,plugin_dir,conn,cur))
             loadCustomerCalibrationData(self.dlg_calibrateCustomers,self.dictDB,self.conn,self.plugin_dir)
             self.dlg_calibrateCustomers.show()
-    
-    def showModel(self):    
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
-        self.conn=dbConnect(self.dictDB,False)
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
-            submodels=getDrawnSubmodels(self.cur,self.dictDB)
-            if submodels:
-                if len(submodels)==1:
-                    file = self.plugin_dir+'\\network_models\\{}\\{}\\network_{}.idm'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodels[0])
-                else:
-                    item, okPressed = QInputDialog.getItem(self.dlg, "Please select a submodel","Submodel", submodels, 0, False)
-                    if okPressed:
-                        if item:
-                            print(item)
-                            file = self.plugin_dir+'\\network_models\\{}\\{}\\network_{}.idm'.format(self.dictDB['projectName'],self.dictDB['versionName'],item)
-                        else:
-                            iface.messageBar().pushMessage("Info", "No submodel is selected!", level=Qgis.Info)
-                file=file.replace('/','\\')
-                print(file)        # Open the ida file with the IDA ICE Python API
-                process = Process(target=WorkerOpenAPI(file,self.plugin_dir))
 
     def showRunModel(self):
         """ Run IDA submodels; loop over submodels"""
@@ -398,7 +355,10 @@ class IDADistrictsModelingSimulation:
                 dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                 fname=dir+'network_{}.idm'.format(submodel)
                 print(fname)
-                openModelCmd(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],fname)
+                self.worker_openNetwork = WorkerOpenAPI(fname,self.plugin_dir)
+                self.threadpool_openNetwork = QThreadPool()
+                self.threadpool_openNetwork.start(self.worker_openNetwork) 
+                self.worker_openNetwork.signals.error.connect(show_error_message)
 
     def runModel(self,dlg):
         networkSimData=self.setNetworkSimData(dlg)
@@ -437,9 +397,7 @@ class IDADistrictsModelingSimulation:
                         writeSimulatedOutputs(self.plugin_dir,self.dictDB,self.requestedOutputs)
                         runSimulationCmd(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],fname,submodel)
             else:
-                self.iface.messageBar().pushMessage("Error", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=Qgis.Critical)
-
-            closeDialog(dlg)  
+                self.iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=Qgis.Info)
     
     def checkSimOutputs(self):
         #check customers plants
@@ -533,11 +491,15 @@ class IDADistrictsModelingSimulation:
                     
         print(networks)
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
-        self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
-        self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
-        self.networkSimData=loadNetworkSimData(self.plugin_dir,self.dictDB)
-        InvokeNetworkModel(self.plugin_dir,self.requestedOutputs,self.modellingSettings,self.iface,networks,submodels,self.networkSimData,dlg.checkbox_reinvokeFeatures.checkState() == Qt.Checked)
-        closeDialog(dlg)   
+
+        if networks and submodels:
+            self.worker_invokeNetwork = WorkerBuildNetworkModel(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
+            self.threadpool_invokeNetwork = QThreadPool()
+            self.threadpool_invokeNetwork.start(self.worker_invokeNetwork) 
+            self.worker_invokeNetwork.signals.error.connect(show_error_message)
+            self.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
+        else:
+            self.iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
         
     def showRequestedOutputs(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)

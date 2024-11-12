@@ -84,11 +84,12 @@ class InvokeNetworkModel:
         3) insert energy plants
         4) insert pipes between customers and nodes 
         5) insert pipes between nodes"""
-    def __init__(self,dir,requestedOutputs,modellingSettings,iface,networks,submodels,networkSimData,reinvoke):
+    def __init__(self,dir,requestedOutputs,modellingSettings,iface,networks,submodels,networkSimData,reinvoke,signals):
         print('**********invoke network*********')
         self.plugin_dir=dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
+        self.signals=signals
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.projectConfig=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
@@ -134,12 +135,13 @@ class InvokeNetworkModel:
             
             sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)      
             supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.dictDB)['submodel'])
-            
+            self.signals.progress.emit(2)
             for submodel in submodels: 
                 print(submodel)
                 self.pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
                 idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
                 dec_assettypes=CopyDecoupledAssettypeMacro(submodel,dir,self.dictDB,self.cur,iface,self.plugin_dir,sensor_data)
+                self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
                 resources.extend(dec_assettypes.resources)
                 print('*****************************************************************')
                 print(dec_assettypes.resources)
@@ -154,14 +156,17 @@ class InvokeNetworkModel:
                 #climate
                 writeMacroClimateIdm(self.dictDB,self.cur,'network_'+str(submodel),dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.dictDB),getClimateData(self.cur,self.dictDB,True))
                 writeMacroClimateIdc('network_'+str(submodel),dir,loadModellingSettings(self.plugin_dir,self.dictDB))
+                self.signals.progress.emit(int(2+4*(submodels.index(submodel)+1)/len(submodels)*97))
                 
                 #sf-macro
                 self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
                 self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
+                self.signals.progress.emit(int(2+5*(submodels.index(submodel)+1)/len(submodels)*97))
                 
                 #decoupling
                 idm+=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data)
                 writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir)
+                self.signals.progress.emit(int(2+8*(submodels.index(submodel)+1)/len(submodels)*97))
                 
                 idm_conn="\n(CONNECTIONS"
                 idc_conn=""
@@ -174,6 +179,7 @@ class InvokeNetworkModel:
                     if not os.path.exists(dir+'\\supervisory_control\\supervisory_control.idm'):
                         Supervisory_control(self.plugin_dir)                     
                     resources.extend(CopySupervisoryControl(dir,self.dictDB,self.cur,submodel).resources)
+                self.signals.progress.emit(int(2+10*(submodels.index(submodel)+1)/len(submodels)*97))
                
                 #Sensors
                 #NetworkSensorSignals(self.cur,self.dictDB,dir+'\\network_'+str(submodel))
@@ -181,6 +187,7 @@ class InvokeNetworkModel:
                 print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
                 sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir)
                 sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir,self.plugin_dir)
+                self.signals.progress.emit(int(2+12*(submodels.index(submodel)+1)/len(submodels)*97))
                 
                 dir=self.plugin_dir+"""\\network_models\\{}\\{}""".format(self.dictDB['projectName'],self.dictDB['versionName'])
                 idm_conn=sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn)
@@ -207,7 +214,8 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
                     copyAssettypeMacro=CopyAssettypeMacro(submodel,dir,type,self.dictDB,self.cur,iface,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs)
                     if type!="dhc_devices":
                         self.invokedOutputs[type]=copyAssettypeMacro.invokedFeatureOutputs
-                    resources.extend(copyAssettypeMacro.resources)                   
+                    resources.extend(copyAssettypeMacro.resources)  
+                self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
                 print('&&&&&&&&&&&&&&&&&&&&&&')
                 print(set(resources))
                 idm+=''.join(["\n"+i for i in set(resources)])
@@ -217,15 +225,25 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
                 self.buildingIdcFilePath = """{}\\{}.idc""".format(dir.replace('/','\\'),'network_'+str(submodel))
                 
                 idm,idc=self.insertLines(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
+                self.signals.progress.emit(int(2+25*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
+                self.signals.progress.emit(int(2+35*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
+                self.signals.progress.emit(int(2+45*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm,idc=self.insertDevices(submodel,idm,idc,networks)
+                self.signals.progress.emit(int(2+55*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
+                self.signals.progress.emit(int(2+65*(submodels.index(submodel)+1)/len(submodels)*97))
+
                 
                 idm_conn,idc_conn=self.insertConnections(submodel,'dhc_customers',idm_conn,idc_conn,networks)
+                self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm_conn,idc_conn=self.insertConnections(submodel,'dhc_devices',idm_conn,idc_conn,networks)
+                self.signals.progress.emit(int(2+85*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm_conn,idc_conn=self.insertConnections(submodel,'dhc_energy_plants',idm_conn,idc_conn,networks)
+                self.signals.progress.emit(int(2+95*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm_conn,idc_conn=self.insertJunctionConnections(submodel,idm_conn,idc_conn,networks)
+                self.signals.progress.emit(int(2+97*(submodels.index(submodel)+1)/len(submodels)*97))
                 idm_conn+=")"
                 idm+=idm_conn
                 idc+=idc_conn

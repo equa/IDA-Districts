@@ -268,6 +268,9 @@ class BuildNetworkModelDialog(QMainWindow):
         self.checkbox_reinvokeFeatures = QCheckBox("Reinvoke feature templates")
         self.checkbox_reinvokeFeatures.setChecked(True)
         
+        #progress bar
+        self.progress=QProgressBar()
+        
         #buttons     
         layout_buttons = QHBoxLayout()
         self.btn_buildNetworkModel=QPushButton("Build network model")
@@ -279,22 +282,15 @@ class BuildNetworkModelDialog(QMainWindow):
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_networks)
         layout_win.addWidget(self.checkbox_reinvokeFeatures)
+        layout_win.addWidget(self.progress)
         layout_win.addLayout(layout_buttons)
         
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
-        
-    #def cosim_state(self,s):
-    #    print('change decoupling state')
-    #    print(s)
-    #    print(Qt.Checked)
-    #    if Qt.Checked==s:
-    #        self.combo_submodels.setHidden(False)
-    #        self.label_submodels.setHidden(False)
-    #    else:
-    #        self.combo_submodels.setHidden(True)
-    #        self.label_submodels.setHidden(True)           
+                  
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
 
 class OpenNetworkModelDialog(QMainWindow):
     def __init__(self):
@@ -474,9 +470,9 @@ class RunNetworkModelDialog(QMainWindow):
         self.numb_periods.setMinimum(1) 
         layout_numb_periods.addWidget(self.numb_periods)        
 
-        #calculation time
+        #simulation time
         layout_calctime = QVBoxLayout()
-        label_calctime =QLabel("Calculation time")
+        label_calctime =QLabel("Simulation time")
         font=label_calctime.font()
         font.setPointSize(12)
         label_calctime.setFont(font)
@@ -518,6 +514,15 @@ class RunNetworkModelDialog(QMainWindow):
         layout_simtime.addLayout(layout_numb_periods)
         layout_simtime.addLayout(layout_calctime)
         
+        #status bar
+        self.status_bar = self.statusBar()
+        self.status_bar.setStyleSheet("""
+        border: 2px solid gray;
+        border-radius: 5px;
+        background-color: #f0f0f0;
+""")
+        self.status_bar.showMessage("Ready")
+        
         #buttons     
         layout_buttons = QHBoxLayout()
         self.btn_runModel=QPushButton("Run network submodels")
@@ -530,6 +535,7 @@ class RunNetworkModelDialog(QMainWindow):
         layout_win.addLayout(layout_submodels)
         layout_win.addLayout(layout_simtime)
         layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.status_bar)
         
         widget=QWidget()
         widget.setLayout(layout_win)
@@ -587,6 +593,9 @@ class RunNetworkModelDialog(QMainWindow):
         else:
             self.label_numb_periods.setHidden(False)
             self.numb_periods.setHidden(False)
+            
+    def updateStatusBar(self,message):
+        self.status_bar.showMessage(message)
         
 class CalibrateCustomers(QMainWindow):
     def __init__(self,dictDB,conn):
