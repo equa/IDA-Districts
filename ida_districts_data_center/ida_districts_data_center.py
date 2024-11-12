@@ -30,7 +30,7 @@ from plugins.utility_functions.workers import WorkerOpenAPI
 from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
 
 from PyQt5.QtCore import Qt
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPool
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QComboBox,QAction, QFileDialog,QTableWidgetItem,QFileDialog
 
@@ -621,7 +621,9 @@ class IDADistrictsDataCenter:
             # Open the building with the IDA ICE Python API
             print('**********************************')
             print(file)
-            process = Process(target=WorkerOpenAPI(file,self.plugin_dir))
+            self.worker_openAssettype = WorkerOpenAPI(file,self.plugin_dir)
+            self.threadpool_openAssettype = QThreadPool()
+            self.threadpool_openAssettype.start(self.worker_openAssettype)
             
             print('finished open assettype')
         else:

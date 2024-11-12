@@ -38,6 +38,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from qgis.utils import iface
 from qgis.core import Qgis
 from PyQt5.QtGui import QKeySequence
+import matplotlib.pyplot as plt
 
 
 
@@ -994,7 +995,8 @@ class InvokeFeaturesDlg(QMainWindow):
     def __init__(self):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Invoke feature models from template")           
+        self.setWindowTitle("Invoke feature models from template")
+        self.type=""        
         
         #-------------Invoke---------------
                
@@ -1047,6 +1049,7 @@ class InvokeFeaturesDlg(QMainWindow):
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
+                
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
@@ -1054,7 +1057,47 @@ class InvokeFeaturesDlg(QMainWindow):
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
-    
+
+    def show_plots(self,plot):
+        if plot:
+            self.ax.set_title('Load profiles {}'.format(self.type))
+            self.ax2.set_title('Cumulated energy {}'.format(self.type))
+            self.ax.set_xlabel('Time, h')
+            self.ax2.set_xlabel('Time, h')
+            self.ax.set_ylabel('Power, W')
+            self.ax2.set_ylabel('Energy, kWh')
+        
+            self.fig.legend()
+            self.fig2.legend()
+            self.fig.show()            
+            self.fig2.show()  
+        
+    def plot_data(self, data):
+        # Plotting in the main thread, which is non-blocking
+        time=data[0]['time']
+        valuesPowerInt=data[0]['data']
+        label=data[0]['label']
+        self.ax.plot(time, valuesPowerInt,label=label)
+        time=data[1]['time']
+        valuesEnergyInt=data[1]['data']
+        label=data[1]['label']
+        self.ax2.plot(time, valuesEnergyInt,label=label)
+        
+    def plot_total_data(self, data):
+        try:
+            fig1, ax1 = plt.subplots(layout='constrained')
+            time=data[0]['time']
+            power_sum=data[0]['data']
+            ax1.plot(time, power_sum, label='Total power, W')
+            time=data[1]['time']
+            energy_sum=data[1]['data']
+            ax1.plot(time, energy_sum, label='Total energy, kWh')
+            ax1.set_title('Total load profiles')
+            plt.legend()
+            fig1.show()
+        except:
+            pass
+
 #dublicated code
 class ComboBox(QComboBox):
     popupAboutToBeShown = QtCore.pyqtSignal()

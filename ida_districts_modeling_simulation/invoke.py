@@ -1,5 +1,6 @@
 from plugins.utility_functions.db import *
 from plugins.utility_functions.files import *
+from plugins.utility_functions.topology import *
 from plugins.utility_functions.macros import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
@@ -16,7 +17,7 @@ from qgis.PyQt.QtWidgets import QTableWidgetItem,QTableWidget, QTabWidget
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from plugins.utility_functions.util import *
 from plugins.utility_functions.layer_visualization import *
-from plugins.utility_functions.workers import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateFilesAPI
+from plugins.utility_functions.workers import WorkerOpenAPI, WorkerRunAutoMooAPI, WorkerSimulateFilesAPI, APISignals
 from qgis.utils import iface
 from multiprocessing import Process
 from qgis.core import  QgsCredentials,QgsDataSourceUri, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
@@ -73,6 +74,106 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
             self.progress_value=int((idx+1)/rows_count*98)
             self.signals.progress.emit(self.progress_value)
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
+        self.signals.progress.emit(100) 
+        
+class APIPlotinvokedFeatureSignals(QObject):
+    progress=pyqtSignal(int)
+    error=pyqtSignal(str)
+    dataProcessed=pyqtSignal(list)
+    plot=pyqtSignal(bool)
+    plot_total=pyqtSignal(list)
+    
+class WorkerPlotInvokedFeatureLoad(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,*args,**kwargs):
+        super().__init__()
+        self.args=args
+        print(args)
+        self.signals=APIPlotinvokedFeatureSignals()
+        self.dictDB=kwargs['dictDB']
+        self.dlg=kwargs['dlg']
+        self.type=kwargs['type']
+        self.conn=""
+        self.cur=""
+        self.plugin_dir=kwargs['plugin_dir']
+        self.conn = dbConnect(self.dictDB,True)
+        self.rows=kwargs['rows']
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            
+    @pyqtSlot()
+    def run(self):
+        print('Generate network topology')
+        self.progress_value=1
+        self.signals.progress.emit(self.progress_value)
+       
+        count=0
+        for idx in self.rows:
+            id=self.dlg.tableWidget_customer.item(idx,0).text()
+            connValues=getConnsValues(getConnBundleByFeature(self.type,id,self.cur,self.dictDB),self.cur)
+            print(connValues)
+            conn_type_seq=set([x['conn_type_seq'] for x in connValues])
+            print(conn_type_seq)
+            for seq in conn_type_seq:
+                file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
+                print(file_path)
+                if os.path.exists(file_path):
+                    legend=self.type.capitalize()+':'+id
+
+                    print(file_path)
+                    filedata=readFileToList(file_path)
+
+                    #print(filedata)
+                    i=0
+                    time=[]
+                    power=[]
+                    try:
+                        for line in filedata:
+                            data=line.strip().split()
+                            if i==0:
+                                power_col=data.index('power')-1
+                            else:
+                                power.append([float(data[0]),float(data[power_col])])
+                                if i==1:
+                                    energy=[[float(data[0]),0]]
+                                else:
+                                    energy.append([float(data[0]),energy[-1][1]+(float(data[0])-energy[-1][0])*float(data[power_col])/1000]) #kWh
+                            i+=1    
+                    except Exception as e:
+                        print(f'error: {e}')
+                        self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
+                    
+                    power=np.array(power)  
+                    energy=np.array(energy)  
+                    time=np.arange(0,power[-1,0],0.1)
+
+
+                    #linear interpolation
+                    valuesPowerInt = np.interp(time, power[:,0], power[:,1])
+                    valuesEnergyInt = np.interp(time, power[:,0], energy[:,1])
+                    
+                    if count==0:
+                        power_sum=valuesPowerInt
+                        energy_sum=valuesEnergyInt
+                    else:
+                        try:
+                            power_sum=np.add(power_sum,valuesPowerInt)
+                            energy_sum=np.add(energy_sum,valuesEnergyInt)
+                        except:
+                            self.signals.error.emit("Different simulation periods are used!")
+
+                    #plotting
+                    self.signals.dataProcessed.emit([{'time':time,'data':valuesPowerInt,'label':'Customer ID='+str(id)},{'time':time,'data':valuesEnergyInt,'label':'Customer ID='+str(id)}])
+                    count+=1
+                    
+                    self.progress_value=int(count/len(self.rows)*98)
+                    self.signals.progress.emit(self.progress_value)
+                           
+        self.signals.plot.emit(True) 
+        if count>1:
+            self.signals.plot_total.emit([{'time':time,'data':power_sum},{'time':time,'data':energy_sum}]) 
+                
         self.signals.progress.emit(100) 
             
 def loadCustomerParm(dlg,cur,dictDB):
@@ -413,11 +514,11 @@ class InvokeFeatures():
             file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id)  
             if os.path.exists(file_path):
                 print(file_path)
-                worker = WorkerOpenAPI(file_path,self.plugin_dir)
-                self.threadpool = QThreadPool()
-                self.threadpool.start(worker) 
-                worker.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
-                worker.signals.progress.connect(self.dlg_invokeFeatures.update_progress)  
+                self.worker_openInvoked = WorkerOpenAPI(file_path,self.plugin_dir)
+                self.threadpool_openInvoked = QThreadPool()
+                self.threadpool_openInvoked.start(self.worker_openInvoked) 
+                self.worker_openInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
+                self.worker_openInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)  
 
                 print('finished open feature')
                 
@@ -435,11 +536,11 @@ class InvokeFeatures():
             file_pathes=[self.plugin_dir.replace('/','\\')+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),i)  for i in ids]
             print(file_pathes)
 
-            self.worker = WorkerSimulateFilesAPI(file_pathes,self.plugin_dir)
-            self.threadpool = QThreadPool()
-            self.threadpool.start(self.worker) 
-            self.worker.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
-            self.worker.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
+            self.worker_simInvoked = WorkerSimulateFilesAPI(file_pathes,self.plugin_dir)
+            self.threadpool_simInvoked = QThreadPool()
+            self.threadpool_simInvoked.start(self.worker_simInvoked) 
+            self.worker_simInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
+            self.worker_simInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
         print('simulation finished')
@@ -450,79 +551,18 @@ class InvokeFeatures():
         print(idxs)
         count=0
         if idxs:
-            fig, ax = plt.subplots(layout='constrained')
-            fig2, ax2 = plt.subplots(layout='constrained')
+            dlg.type=self.type
+            dlg.fig, dlg.ax = plt.subplots(layout='constrained')
+            dlg.fig2, dlg.ax2 = plt.subplots(layout='constrained')
+            self.worker_plotLoad = WorkerPlotInvokedFeatureLoad(plugin_dir=self.plugin_dir,rows=idxs,type=self.type,dlg=dlg,dictDB=self.dictDB)
+            self.threadpool_plotLoad = QThreadPool()
+            self.threadpool_plotLoad.start(self.worker_plotLoad) 
+            self.worker_plotLoad.signals.error.connect(dlg.show_error_message)
+            self.worker_plotLoad.signals.progress.connect(dlg.update_progress)        
+            self.worker_plotLoad.signals.dataProcessed.connect(dlg.plot_data) #matplotlib is not thread save; data is plotted in main thread instead
+            self.worker_plotLoad.signals.plot_total.connect(dlg.plot_total_data)
+            self.worker_plotLoad.signals.plot.connect(dlg.show_plots)
             
-            for idx in idxs:
-                id=dlg.tableWidget_customer.item(idx,0).text()
-                file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Hx.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id,self.type,id)  
-                print(file_path)
-                if os.path.exists(file_path):
-                    legend='Customer_'+id
-
-                    print(file_path)
-                    filedata=readFileToList(file_path)
-
-                    #print(filedata)
-                    i=0
-                    time=[]
-                    power=[]
-                    energy=[]
-                    for line in filedata:
-                        if i>0:
-                            data=line.strip().split()
-                            power.append([float(data[0]),float(data[3])])
-                            energy.append([float(data[0]),float(data[4])])
-                        i+=1    
-                    
-                    power=np.array(power)  
-                    energy=np.array(energy)    
-                    #print(power)
-
-                    time=np.arange(0,8760,0.1)
-                    #print(time)
-
-                    #linear interpolation
-                    valuesPowerInt = np.interp(time, power[:,0], power[:,1])
-                    valuesEnergyInt = np.interp(time, power[:,0], energy[:,1])
-                    
-                    if count==0:
-                        power_sum=valuesPowerInt
-                        energy_sum=valuesEnergyInt
-                    else:
-                        power_sum=np.add(power_sum,valuesPowerInt)
-                        energy_sum=np.add(energy_sum,valuesEnergyInt)
-
-                    #plotting
-                    ax.plot(time, valuesPowerInt,label='Customer ID='+str(id))
-                    ax2.plot(time, valuesEnergyInt,label='Customer ID='+str(id))
-
-                    count+=1
-                    
-            ax.set_title('Load profiles customers')
-            ax2.set_title('Cumulated energy customers')
-            ax.set_xlabel('Time, h')
-            ax2.set_xlabel('Time, h')
-            ax.set_ylabel('Power, W')
-            ax2.set_ylabel('Energy, kWh')
-
-            plt.xticks([0,744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016,8760])
-            fig.legend()
-            fig2.legend()
-            fig.show()            
-            fig2.show()            
-            if count>1:
-                fig1, ax1 = plt.subplots(layout='constrained')
-                ax1.plot(time, power_sum, label='Total power, W')
-                ax1.plot(time, energy_sum, label='Total energy, kWh')
-                ax1.set_xlabel('Time, h')
-                #ax1.set_ylabel('Power, W')
-                ax1.set_title('Total load profiles')
-                #ax1.set_title('Total load profiles Fohrbach')
-                plt.xticks([0,744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016,8760])
-                plt.legend()
-                fig1.show()
-                
         else:
             self.iface.messageBar().pushMessage("Info", "No feature selected or not invoked!", level=Qgis.Info)
                        
