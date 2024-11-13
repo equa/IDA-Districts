@@ -166,8 +166,9 @@ class WorkerSimulateFilesAPI(QRunnable):
                 if os.path.exists(file_path):
                     print(file_path)
                     #open file
+                    print('+++++++++opening+++++++++++')
                     building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('ascii'))
-                    print('opened')
+                    print('+++++++++opened+++++++++++')
                     #run sim
                     script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
@@ -176,10 +177,11 @@ class WorkerSimulateFilesAPI(QRunnable):
                     self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('ascii'))
                     #print('save doc')
                     #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('ascii'), 1)   
-                    print('saved')
+                    print('+++++++++saved++++++++++++++++')
                     self.progress_value=int(counter/len(self.file_pathes)*98)+1
                     print(self.progress_value)
                     self.signals.progress.emit(self.progress_value)
+                    self.signals.status.emit('Simulation finished')
                 else:
                     self.signals.error.emit("Sim model does not exist!")
             self.signals.progress.emit(100)
@@ -187,10 +189,52 @@ class WorkerSimulateFilesAPI(QRunnable):
         except:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
+
+class WorkerSimulateAPI(QRunnable):
+    """ Class to open,simulate, IDA Doc with API """            
+    def __init__(self,file_path,plugin_dir):
+        super().__init__()
+        self.file_path=file_path.replace('/','\\')
+        self.plugin_dir=plugin_dir
+        self.signals=APISignals()
+            
+    @pyqtSlot()
+    def run(self):
+        #open file in IDA
+        self.signals.progress.emit(1)
+        self.util=Util_api(self.plugin_dir)
+
+        print(self.util.pid)
+        
+        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
+        print(connectionTest)
+        self.building={}
+        try:
+            if os.path.exists(self.file_path):
+                print(self.file_path)
+                #open file
+                print('+++++++++opening+++++++++++')
+                self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+                print('+++++++++opened+++++++++++')
+                #run sim
+                script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
+(save-document [@ :SYSTEM] "{}" nil)
+(close (:call find-view [@ :SYSTEM] 'schema t)))""".format(self.file_path.replace('\\','\\\\'))
+                print(script)
+                self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))
+
+                print('+++++++++saved++++++++++++++++')
+                self.signals.status.emit('Simulation finished')
+            else:
+                self.signals.error.emit("Sim model does not exist!")
+            print('++++simulation-finished++++')
+        except:
+            self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
             
 class APISignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
+    status=pyqtSignal(str)
     
 class WorkerOpenAPI(QRunnable):
     """Worker thread

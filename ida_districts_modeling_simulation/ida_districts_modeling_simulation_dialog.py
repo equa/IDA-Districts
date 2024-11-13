@@ -379,6 +379,7 @@ class RunNetworkModelDialog(QMainWindow):
         self.setWindowTitle("Run network submodels") 
         self.networkSimData=loadNetworkSimData(plugin_dir,dictDB)
         print(self.networkSimData)
+        self.finished_sims=0
         
         #submodels
         layout_submodels=QVBoxLayout()
@@ -517,9 +518,12 @@ class RunNetworkModelDialog(QMainWindow):
         #status bar
         self.status_bar = self.statusBar()
         self.status_bar.setStyleSheet("""
-        border: 2px solid gray;
-        border-radius: 5px;
-        background-color: #f0f0f0;
+    QStatusBar {
+                background-color: white;
+                color: black;
+                border-radius: 5px;
+                border: 1px solid grey;
+            }
 """)
         self.status_bar.showMessage("Ready")
         
@@ -595,7 +599,18 @@ class RunNetworkModelDialog(QMainWindow):
             self.numb_periods.setHidden(False)
             
     def updateStatusBar(self,message):
-        self.status_bar.showMessage(message)
+        print(f"signal:{message}")
+        if message=="Simulation finished" and self.statusBar().currentMessage()!="Simulation failed":
+            self.finished_sims+=1
+            print(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
+            if self.finished_sims==self.n_sims:
+                self.status_bar.showMessage(message) 
+        else:
+            self.status_bar.showMessage(message)
+    
+    def show_error_message(self,message):
+        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        self.status_bar.showMessage("Simulation failed")
         
 class CalibrateCustomers(QMainWindow):
     def __init__(self,dictDB,conn):

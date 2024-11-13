@@ -364,12 +364,17 @@ class IDADistrictsModelingSimulation:
         networkSimData=self.setNetworkSimData(dlg)
         if networkSimData:
             print('-***-')
-            if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])==0:
+            dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])
+            if dlg.n_sims==0:
                 self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
                 return False
             self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
             self.invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
             if self.checkSimOutputs():
+                dlg.updateStatusBar('Running')
+                self.worker_runNetwork={}
+                self.threadpool_runNetwork = QThreadPool()
+                dlg.finished_sims=0
                 for i in range(dlg.combo_submodels.count()):
                     if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i):        
                         submodel=dlg.combo_submodels.itemText(i)
@@ -379,7 +384,6 @@ class IDADistrictsModelingSimulation:
                         dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                         fname=dir+'network_{}.idm'.format(submodel)
                         print(fname)
-                        print(getIDAListComponents(readFileToString(fname)))
                         components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
                         
                         data_idm=[]
@@ -387,15 +391,17 @@ class IDADistrictsModelingSimulation:
                             print(comp)
                             if getCompClass(comp)=='SIMULATION_DATA':
                                 print('++++++++simulation data+++++++')
-                                print(propertyListCompsIDM(getIDAListComponents(getSimData(self.requestedOutputs,networkSimData))))
                                 data_idm.append(propertyListCompsIDM(getIDAListComponents(getSimData(self.requestedOutputs,networkSimData))))             
                             else:
                                 data_idm.append(comp) 
                         
-                        print(data_idm)
                         writePropertyListIDMToFile(data_idm,dir,fname)
                         writeSimulatedOutputs(self.plugin_dir,self.dictDB,self.requestedOutputs)
-                        runSimulationCmd(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],fname,submodel)
+                        
+                        self.worker_runNetwork[i] = WorkerSimulateAPI(fname,self.plugin_dir)
+                        self.threadpool_runNetwork.start(self.worker_runNetwork[i]) 
+                        self.worker_runNetwork[i].signals.error.connect(dlg.show_error_message)
+                        self.worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)   
             else:
                 self.iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=Qgis.Info)
     
