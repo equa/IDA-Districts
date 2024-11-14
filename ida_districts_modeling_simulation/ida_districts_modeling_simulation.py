@@ -44,7 +44,7 @@ from .invoke import *
 from .outputs import *
 from .load_results import *
 from .calibrate_features import *
-from .invoke_network import InvokeNetworkModel
+from .invoke_network import InvokeNetworkModel, WorkerBuildNetworkModel
 from .calibrate_customers import *
 import os
 from qgis.core import QgsProject
@@ -359,6 +359,7 @@ class IDADistrictsModelingSimulation:
                 self.threadpool_openNetwork = QThreadPool()
                 self.threadpool_openNetwork.start(self.worker_openNetwork) 
                 self.worker_openNetwork.signals.error.connect(show_error_message)
+                self.worker_openNetwork.signals.progress.connect(dlg.update_progress)
 
     def runModel(self,dlg):
         networkSimData=self.setNetworkSimData(dlg)
@@ -506,6 +507,28 @@ class IDADistrictsModelingSimulation:
             self.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
         else:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
+
+    def loadResults(self,dlg):
+        submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
+        
+        simulatedOutputs=loadSimulatedOutputs(self.plugin_dir,self.dictDB)
+        if not simulatedOutputs:
+            iface.messageBar().pushMessage("Info", "The project version is not yet simulated!", level=Qgis.Info)
+            return False
+            
+        if dlg.checkbox_timestep.checkState() == Qt.Checked:
+            if not is_number(dlg.interpolation_dt.text()):
+                iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=Qgis.Info)
+                return False
+            
+        if submodels:
+            self.worker_loadResults = WorkerLoadResults(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,submodels=submodels,simulatedOutputs=simulatedOutputs)
+            self.threadpool_loadResults = QThreadPool()
+            self.threadpool_loadResults.start(self.worker_loadResults) 
+            self.worker_loadResults.signals.error.connect(show_error_message)
+            self.worker_loadResults.signals.progress.connect(dlg.update_progress)   
+        else:
+            self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
         
     def showRequestedOutputs(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -536,7 +559,7 @@ class IDADistrictsModelingSimulation:
                self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,False)
             self.dlg_loadResults.show()
             self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
-            self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: loadResults(self.dlg_loadResults,plugin_dir,dictDB,cur,conn))
+            self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: self.loadResults(self.dlg_loadResults))
         
     def run(self):
         """Run method that performs all the real work"""

@@ -118,13 +118,13 @@ def setRequestedOutputs(dlg,requestedOutputs,iface,plugin_dir,dictDB,cur):
     print(outputs_ep)
     
     if outputs_c or new_outputTimestep:
-        updateAssettypesOutputs('customer',outputs_c,new_outputTimestep,dictDB,cur,plugin_dir)
+        updateAssettypesOutputs('customer',outputs_c,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
     if outputs_ep or new_outputTimestep:
-        updateAssettypesOutputs('energy_plant',outputs_ep,new_outputTimestep,dictDB,cur,plugin_dir)
+        updateAssettypesOutputs('energy_plant',outputs_ep,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
     
     closeDialog(dlg)
     
-def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_dir):           
+def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs):           
     dir = getDataCenterDir(plugin_dir)+"\\"+dictDB['projectName']+"\\"+feature+"_assettypes\\"
     print(dir)
                

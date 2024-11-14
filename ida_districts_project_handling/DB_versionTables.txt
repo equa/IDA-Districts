@@ -449,7 +449,7 @@ CREATE TABLE a.device_connections
 CREATE TABLE a.junction_connections
 (
   id serial,
-  nid integer,
+  jid integer,
   lid integer,
   CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
 );
@@ -527,4 +527,14 @@ CREATE TABLE a.time_manager_tair
   time_stamp timestamp without time zone,
   t_air_c numeric,
   CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
+);
+
+-- Table: a.invoked_sf
+-- DROP TABLE IF EXISTS a.invoked_sf;
+CREATE TABLE IF NOT EXISTS a.invoked_sf
+(
+    id serial,
+    sf text,
+    vars text[],
+    CONSTRAINT invoked_sf_pkey PRIMARY KEY (id)
 );

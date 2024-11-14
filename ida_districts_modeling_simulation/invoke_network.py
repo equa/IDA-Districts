@@ -19,6 +19,38 @@ from qgis.PyQt.QtWidgets import QMessageBox
 import math
 import psycopg2.extras
 
+class WorkerBuildNetworkModel(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,*args,**kwargs):
+        super().__init__()
+        self.args=args
+        print(args)
+        self.signals=APISignals()
+        self.dictDB=kwargs['dictDB']
+        self.dlg=kwargs['dlg']
+        self.conn=""
+        self.cur=""
+        self.plugin_dir=kwargs['plugin_dir']
+        self.conn = dbConnect(self.dictDB,True)
+        self.networks=kwargs['networks']
+        self.submodels=kwargs['submodels']
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            
+    @pyqtSlot()
+    def run(self):
+        print('run worker invoke network')
+        self.progress_value=1
+        self.signals.progress.emit(self.progress_value)
+        
+        self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
+        self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
+        self.networkSimData=loadNetworkSimData(self.plugin_dir,self.dictDB)
+        InvokeNetworkModel(self.plugin_dir,self.requestedOutputs,self.modellingSettings,iface,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == Qt.Checked,self.signals)
+        
+        self.signals.progress.emit(100)  
+        
 class PageSettings:
     def __init__(self,cur,submodel,versionName,networks):
         sql="""WITH sub AS(    

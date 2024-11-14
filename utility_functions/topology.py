@@ -153,14 +153,18 @@ def getLineConnType(cur,dictDB,id):
     WHERE l.assettype=at.assettype AND l.assetgroup=at.assetgroup AND l.id={};""".format(dictDB['versionName'],id)
     cur.execute(sql)
     return cur.fetchone()['conn_type']
-    
-def getLinesConnTypes(cur,dictDB):
-    sql="""SELECT at.conn_type
-    FROM {}.dhc_lines l, line_assettypes at
-    WHERE l.assettype=at.assettype AND l.assetgroup=at.assetgroup
-    GROUP BY at.conn_type;""".format(dictDB['versionName'])
+
+def getUsedPipeBundleSequences(cur,dictDB):
+    sql=f"""WITH sub AS(
+    SELECT pipe_bundle_type_id FROM {dictDB['versionName']}.dhc_lines GROUP BY pipe_bundle_type_id 
+)
+SELECT sequence 
+    FROM bundle_pipes bp,sub 
+    WHERE bp.pipe_bundle_type_id=sub.pipe_bundle_type_id
+    GROUP BY sequence ORDER BY sequence;"""
+    print(sql)
     cur.execute(sql)
-    return [i['conn_type'] for i in cur.fetchall()]
+    return [i['sequence'] for i in cur.fetchall()]
     
 def getConnsValuesByAssettype(feature,assettyp,assetgroup,cur,dictDB):
     return getConnsValues(getConnBundleByAssettype(feature,assettyp,assetgroup,cur,dictDB),cur)

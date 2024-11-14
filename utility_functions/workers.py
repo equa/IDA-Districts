@@ -10,38 +10,6 @@ def show_error_message(message):
     # Show the error message in a messageBar
     iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
 
-class WorkerBuildNetworkModel(QRunnable):
-    """Worker thread
-    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,*args,**kwargs):
-        super().__init__()
-        self.args=args
-        print(args)
-        self.signals=APISignals()
-        self.dictDB=kwargs['dictDB']
-        self.dlg=kwargs['dlg']
-        self.conn=""
-        self.cur=""
-        self.plugin_dir=kwargs['plugin_dir']
-        self.conn = dbConnect(self.dictDB,True)
-        self.networks=kwargs['networks']
-        self.submodels=kwargs['submodels']
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            
-    @pyqtSlot()
-    def run(self):
-        print('Generate network topology')
-        self.progress_value=1
-        self.signals.progress.emit(self.progress_value)
-        
-        self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
-        self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
-        self.networkSimData=loadNetworkSimData(self.plugin_dir,self.dictDB)
-        InvokeNetworkModel(self.plugin_dir,self.requestedOutputs,self.modellingSettings,iface,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == Qt.Checked,self.signals)
-        
-        self.signals.progress.emit(100)  
-
 class APIPlotinvokedFeatureSignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
@@ -174,14 +142,17 @@ class WorkerSimulateFilesAPI(QRunnable):
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
                     print(script)
-                    self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('ascii'))
+                    self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('ascii'))
                     #print('save doc')
                     #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('ascii'), 1)   
                     print('+++++++++saved++++++++++++++++')
                     self.progress_value=int(counter/len(self.file_pathes)*98)+1
                     print(self.progress_value)
                     self.signals.progress.emit(self.progress_value)
-                    self.signals.status.emit('Simulation finished')
+                    if self.result:
+                        self.signals.status.emit('Simulation finished')
+                    else:
+                        self.signals.status.emit('Simulation failed')
                 else:
                     self.signals.error.emit("Sim model does not exist!")
             self.signals.progress.emit(100)
@@ -221,10 +192,12 @@ class WorkerSimulateAPI(QRunnable):
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(self.file_path.replace('\\','\\\\'))
                 print(script)
-                self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))
-
-                print('+++++++++saved++++++++++++++++')
-                self.signals.status.emit('Simulation finished')
+                self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))
+                print(self.result)
+                if self.result:
+                    self.signals.status.emit('Simulation finished')
+                else:
+                    self.signals.status.emit('Simulation failed')
             else:
                 self.signals.error.emit("Sim model does not exist!")
             print('++++simulation-finished++++')

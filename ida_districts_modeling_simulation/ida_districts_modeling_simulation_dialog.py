@@ -268,9 +268,6 @@ class BuildNetworkModelDialog(QMainWindow):
         self.checkbox_reinvokeFeatures = QCheckBox("Reinvoke feature templates")
         self.checkbox_reinvokeFeatures.setChecked(True)
         
-        #progress bar
-        self.progress=QProgressBar()
-        
         #buttons     
         layout_buttons = QHBoxLayout()
         self.btn_buildNetworkModel=QPushButton("Build network model")
@@ -278,12 +275,15 @@ class BuildNetworkModelDialog(QMainWindow):
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
         
+        #progress bar
+        self.progress=QProgressBar()
+        
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_networks)
         layout_win.addWidget(self.checkbox_reinvokeFeatures)
-        layout_win.addWidget(self.progress)
         layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
         
         widget=QWidget()
         widget.setLayout(layout_win)
@@ -315,14 +315,21 @@ class OpenNetworkModelDialog(QMainWindow):
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
         
+        #progress bar
+        self.progress=QProgressBar()
+        
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_submodels)
         layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
         
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
             
 class LoadResultsDialog(QMainWindow):
     def __init__(self):
@@ -356,11 +363,15 @@ class LoadResultsDialog(QMainWindow):
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
         
+        #progress bar
+        self.progress=QProgressBar()
+        
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_submodels)
         layout_win.addLayout(layout_interpolation)
         layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
         
         widget=QWidget()
         widget.setLayout(layout_win)
@@ -371,6 +382,10 @@ class LoadResultsDialog(QMainWindow):
             self.interpolation_dt.setHidden(False)
         else:
             self.interpolation_dt.setHidden(True)
+    
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+
         
 class RunNetworkModelDialog(QMainWindow):
     def __init__(self,plugin_dir,dictDB):
@@ -1046,10 +1061,7 @@ class InvokeFeaturesDlg(QMainWindow):
         
         #table
         self.tableWidget_customer = QTableWidget(0,2)   
-        self.tableWidget_customer.setHorizontalHeaderLabels(["Id","Invoked"])     
-        
-        #progress bar
-        self.progress=QProgressBar()
+        self.tableWidget_customer.setHorizontalHeaderLabels(["Id","Invoked"])      
 
         #---------------ok/Open buttons     
         layout_buttons = QHBoxLayout()
@@ -1060,15 +1072,18 @@ class InvokeFeaturesDlg(QMainWindow):
         self.btn_simulateInvoked=QPushButton("Simulate invoked features")
         layout_buttons.addWidget(self.btn_simulateInvoked)      
         self.btn_showFeatureLoad=QPushButton("Plot selected features load/energy")
-        layout_buttons.addWidget(self.btn_showFeatureLoad)              
+        layout_buttons.addWidget(self.btn_showFeatureLoad)    
+
+        #progress bar
+        self.progress=QProgressBar()        
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_invoke_btn)
         layout_win.addLayout(layout_rbtn)
         layout_win.addWidget(self.tableWidget_customer)
-        layout_win.addWidget(self.progress)
         layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
         
         widget=QWidget()
         widget.setLayout(layout_win)
