@@ -224,6 +224,8 @@ CREATE TABLE {}.customer_s_ventilation
                     self.cur.execute(sql)
                     cids=self.cur.fetchall()
                     
+                    self.signals.progress.emit(5)
+                    
                     b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
                     print(b_t_connValues_dict)
                     for id in cids:
@@ -294,6 +296,8 @@ CREATE TABLE {}.customer_s_ventilation
                     print(tables)
                     if tables:
                         self.updateResultLayerGeometry(tables,'customer')
+                        
+                self.signals.progress.emit(33)
                                 
                     
                 #energy plant tables: customer_s_conntype_[conn type seq]
@@ -387,7 +391,8 @@ CREATE TABLE {}.energy_plant_s_power${}
                     print(tables)
                     if tables:
                         self.updateResultLayerGeometry(tables,'energy_plant')
-                
+                        
+                self.signals.progress.emit(66)
                 #lines tables: line_s_t,line_s_v,nodes_s_mdot,nodes_s_p,nodes_s_t
                 line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
                 if line_outputs:
@@ -464,6 +469,7 @@ CREATE TABLE {}.line_s_{}${}
                             self.updateResultLayerLineSegGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']])
                         if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']]:
                             self.updateResultLayerGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']],'line')
+                    self.signals.progress.emit(99)
                         
 
     def copy_string_iterator_feature_c_t_seq_sData(self,sdata,fid,col_dict,start_datetime) -> None:

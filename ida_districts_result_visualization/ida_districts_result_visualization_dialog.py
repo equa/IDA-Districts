@@ -3,14 +3,16 @@ from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.PyQt.QtWidgets import QListWidget,QCheckBox,QSpinBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget,QRadioButton,QButtonGroup
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.db import *
+from plugins.utility_functions.files import *
        
 
 class ShowOnMapDialog(QMainWindow):
-    def __init__(self,cur,dictDB):     
+    def __init__(self,cur,dictDB,plugin_dir):     
         """Initialize GUI for path reports"""
         super().__init__()
         
         self.dictDB=dictDB
+        self.plugin_dir=plugin_dir
         self.cur=cur
         self.type=''
         self.feature=''
@@ -57,11 +59,11 @@ class ShowOnMapDialog(QMainWindow):
         self.group_feature.buttonClicked.connect(self.featureGroupChanged)
         
         layout_lineSegVis = QHBoxLayout()
-        self.label_lineSegVis=QLabel('Line segment length for visualization (0 --> calculated segment length is used), m')
+        self.label_lineSegVis=QLabel('Line segment length for visualization, m')
         self.label_lineSegVis.setHidden(True)
         self.lineSegVis=QSpinBox()
         self.lineSegVis.setHidden(True)
-        self.lineSegVis.setValue(0)
+        self.lineSegVis.setValue(int(loadModellingSettings(self.plugin_dir,self.dictDB)['fd_meterPerNode']))
         self.lineSegVis.setMinimum(0) 
         self.lineSegVis.setMaximum(1000) 
         layout_lineSegVis.addWidget(self.label_lineSegVis)
@@ -324,6 +326,9 @@ class ShowOnMapDialog(QMainWindow):
         layout_btn.addWidget(self.btn_showOnMap)
         layout_btn.addWidget(self.btn_cancel)
         
+        #progress bar
+        self.progress=QProgressBar()
+        
         #---------------set layouts together-------------------
         layout = QVBoxLayout()
         layout.addLayout(layout_rbtn_dataGroup)
@@ -335,10 +340,14 @@ class ShowOnMapDialog(QMainWindow):
         layout.addLayout(layout_layer_name)
         layout.addLayout(layout_timeSettings)
         layout.addLayout(layout_btn)
+        layout.addWidget(self.progress)
         layout.addStretch()
         
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
         
     def colorStateChanged(self,s):
         if Qt.Checked==s:
