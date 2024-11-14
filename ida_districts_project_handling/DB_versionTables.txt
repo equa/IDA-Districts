@@ -1,17 +1,17 @@
 ------------------------------ version tables ---------------------------------
 
--------------------table a.supervisory_ctrl;------------------------------------
-DROP TABLE IF EXISTS a.supervisory_ctrl CASCADE;
-CREATE TABLE IF NOT EXISTS a.supervisory_ctrl
+-------------------table c.supervisory_ctrl;------------------------------------
+DROP TABLE IF EXISTS c.supervisory_ctrl CASCADE;
+CREATE TABLE IF NOT EXISTS c.supervisory_ctrl
 (
     id serial,
     submodel integer,
     CONSTRAINT supervisory_ctrl_pkey PRIMARY KEY (id)
 );
 
--------------------table a.customer_model_parms;------------------------------------
-DROP TABLE IF EXISTS a.customer_model_parms CASCADE;
-CREATE TABLE IF NOT EXISTS a.customer_model_parms
+-------------------table c.customer_model_parms;------------------------------------
+DROP TABLE IF EXISTS c.customer_model_parms CASCADE;
+CREATE TABLE IF NOT EXISTS c.customer_model_parms
 (
     id serial,
     parm_name character varying(100),
@@ -22,9 +22,9 @@ CREATE TABLE IF NOT EXISTS a.customer_model_parms
     CONSTRAINT customer_model_parms_pkey PRIMARY KEY (id)
 );
 
--------------------table a.feature_decoupling;------------------------------------
-DROP TABLE IF EXISTS a.feature_decoupling CASCADE;
-CREATE TABLE IF NOT EXISTS a.feature_decoupling
+-------------------table c.feature_decoupling;------------------------------------
+DROP TABLE IF EXISTS c.feature_decoupling CASCADE;
+CREATE TABLE IF NOT EXISTS c.feature_decoupling
 (
     id serial,
     assetgroup int,
@@ -34,17 +34,17 @@ CREATE TABLE IF NOT EXISTS a.feature_decoupling
     CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
 );
 
--------------------table a.sensors;------------------------------------
-DROP TABLE IF EXISTS a.sensors CASCADE;
-CREATE TABLE IF NOT EXISTS a.sensors
+-------------------table c.sensors;------------------------------------
+DROP TABLE IF EXISTS c.sensors CASCADE;
+CREATE TABLE IF NOT EXISTS c.sensors
 (
     id serial,
     CONSTRAINT sensors_pkey PRIMARY KEY (id)
 );
 
--------------------table a.sensor_source;------------------------------------
-DROP TABLE IF EXISTS a.sensor_source CASCADE;
-CREATE TABLE IF NOT EXISTS a.sensor_source
+-------------------table c.sensor_source;------------------------------------
+DROP TABLE IF EXISTS c.sensor_source CASCADE;
+CREATE TABLE IF NOT EXISTS c.sensor_source
 (
     id serial,
     sensor_id int,
@@ -60,14 +60,14 @@ CREATE TABLE IF NOT EXISTS a.sensor_source
     description character varying(500),
     CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
     CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
-        REFERENCES a.sensors (id) MATCH SIMPLE,
+        REFERENCES c.sensors (id) MATCH SIMPLE,
     CONSTRAINT type_fk FOREIGN KEY (type)
         REFERENCES public.type (id) MATCH SIMPLE
 );
 
--------------------table a.source_assetgroups;------------------------------------
-DROP TABLE IF EXISTS a.source_assetgroups CASCADE;
-CREATE TABLE IF NOT EXISTS a.source_assetgroups
+-------------------table c.source_assetgroups;------------------------------------
+DROP TABLE IF EXISTS c.source_assetgroups CASCADE;
+CREATE TABLE IF NOT EXISTS c.source_assetgroups
 (
     id serial,
     source_id int,
@@ -76,9 +76,9 @@ CREATE TABLE IF NOT EXISTS a.source_assetgroups
     CONSTRAINT source_assetgroups_pkey PRIMARY KEY (id)
 );
 
--------------------table a.source_assettype;------------------------------------
-DROP TABLE IF EXISTS a.source_assettype CASCADE;
-CREATE TABLE IF NOT EXISTS a.source_assettype
+-------------------table c.source_assettype;------------------------------------
+DROP TABLE IF EXISTS c.source_assettype CASCADE;
+CREATE TABLE IF NOT EXISTS c.source_assettype
 (
     id serial,
     source_id int,
@@ -88,9 +88,9 @@ CREATE TABLE IF NOT EXISTS a.source_assettype
     CONSTRAINT source_assettype_pkey PRIMARY KEY (id)
 );
 
--------------------table a.source_conn_type;------------------------------------
-DROP TABLE IF EXISTS a.source_conn_type CASCADE;
-CREATE TABLE IF NOT EXISTS a.source_conn_type
+-------------------table c.source_conn_type;------------------------------------
+DROP TABLE IF EXISTS c.source_conn_type CASCADE;
+CREATE TABLE IF NOT EXISTS c.source_conn_type
 (
     id serial,
     source_id int,
@@ -99,9 +99,9 @@ CREATE TABLE IF NOT EXISTS a.source_conn_type
     CONSTRAINT source_conn_type_pkey PRIMARY KEY (id)
 );
 
--------------------table a.source_conns;------------------------------------
-DROP TABLE IF EXISTS a.source_conns CASCADE;
-CREATE TABLE IF NOT EXISTS a.source_conns
+-------------------table c.source_conns;------------------------------------
+DROP TABLE IF EXISTS c.source_conns CASCADE;
+CREATE TABLE IF NOT EXISTS c.source_conns
 (
     id serial,
     source_id integer,
@@ -110,9 +110,9 @@ CREATE TABLE IF NOT EXISTS a.source_conns
     CONSTRAINT source_conns_pkey PRIMARY KEY (id)
 );
 
--------------------table a.source_ids;------------------------------------
-DROP TABLE IF EXISTS a.source_ids CASCADE;
-CREATE TABLE IF NOT EXISTS a.source_ids
+-------------------table c.source_ids;------------------------------------
+DROP TABLE IF EXISTS c.source_ids CASCADE;
+CREATE TABLE IF NOT EXISTS c.source_ids
 (
     id serial,
     source_id int,
@@ -121,9 +121,9 @@ CREATE TABLE IF NOT EXISTS a.source_ids
     CONSTRAINT source_ids_pkey PRIMARY KEY (id)
 );
 
--------------------table a.invoked_sensor_source_signals;------------------------------------
-DROP TABLE IF EXISTS a.invoked_sensor_source_signals CASCADE;
-CREATE TABLE IF NOT EXISTS a.invoked_sensor_source_signals
+-------------------table c.invoked_sensor_source_signals;------------------------------------
+DROP TABLE IF EXISTS c.invoked_sensor_source_signals CASCADE;
+CREATE TABLE IF NOT EXISTS c.invoked_sensor_source_signals
 (
     id serial,
     type integer,
@@ -139,9 +139,9 @@ CREATE TABLE IF NOT EXISTS a.invoked_sensor_source_signals
     CONSTRAINT invoked_sensor_source_signals_pkey PRIMARY KEY (id)
 );
 
--------------------table a.sensor_target;------------------------------------
-DROP TABLE IF EXISTS a.sensor_target CASCADE;
-CREATE TABLE IF NOT EXISTS a.sensor_target
+-------------------table c.sensor_target;------------------------------------
+DROP TABLE IF EXISTS c.sensor_target CASCADE;
+CREATE TABLE IF NOT EXISTS c.sensor_target
 (
     id serial,
     sensor_id int,
@@ -153,14 +153,14 @@ CREATE TABLE IF NOT EXISTS a.sensor_target
     description character varying(500),
     CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
     CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
-        REFERENCES a.sensors (id) MATCH SIMPLE,
+        REFERENCES c.sensors (id) MATCH SIMPLE,
     CONSTRAINT type_fk FOREIGN KEY (type)
         REFERENCES public.type (id) MATCH SIMPLE
 );
 
--------------------table a.target_assetgroups;------------------------------------
-DROP TABLE IF EXISTS a.target_assetgroups CASCADE;
-CREATE TABLE IF NOT EXISTS a.target_assetgroups
+-------------------table c.target_assetgroups;------------------------------------
+DROP TABLE IF EXISTS c.target_assetgroups CASCADE;
+CREATE TABLE IF NOT EXISTS c.target_assetgroups
 (
     id serial,
     target_id int,
@@ -169,9 +169,9 @@ CREATE TABLE IF NOT EXISTS a.target_assetgroups
     CONSTRAINT target_assetgroups_pkey PRIMARY KEY (id)
 );
 
--------------------table a.target_assettype;------------------------------------
-DROP TABLE IF EXISTS a.target_assettype CASCADE;
-CREATE TABLE IF NOT EXISTS a.target_assettype
+-------------------table c.target_assettype;------------------------------------
+DROP TABLE IF EXISTS c.target_assettype CASCADE;
+CREATE TABLE IF NOT EXISTS c.target_assettype
 (
     id serial,
     target_id int,
@@ -182,9 +182,9 @@ CREATE TABLE IF NOT EXISTS a.target_assettype
 );
 
 
--------------------table a.target_ids;------------------------------------
-DROP TABLE IF EXISTS a.target_ids CASCADE;
-CREATE TABLE IF NOT EXISTS a.target_ids
+-------------------table c.target_ids;------------------------------------
+DROP TABLE IF EXISTS c.target_ids CASCADE;
+CREATE TABLE IF NOT EXISTS c.target_ids
 (
     id serial,
     target_id int,
@@ -193,9 +193,9 @@ CREATE TABLE IF NOT EXISTS a.target_ids
     CONSTRAINT target_ids_pkey PRIMARY KEY (id)
 );
 
--------------------table a.invoked_sensor_target_signals;------------------------------------
-DROP TABLE IF EXISTS a.invoked_sensor_target_signals CASCADE;
-CREATE TABLE IF NOT EXISTS a.invoked_sensor_target_signals
+-------------------table c.invoked_sensor_target_signals;------------------------------------
+DROP TABLE IF EXISTS c.invoked_sensor_target_signals CASCADE;
+CREATE TABLE IF NOT EXISTS c.invoked_sensor_target_signals
 (
     id serial,
     type integer,
@@ -210,9 +210,9 @@ CREATE TABLE IF NOT EXISTS a.invoked_sensor_target_signals
     CONSTRAINT invoked_sensor_target_signals_pkey PRIMARY KEY (id)
 );
 
--------------------table a.climate;------------------------------------
-DROP TABLE IF EXISTS a.climate CASCADE;
-CREATE TABLE a.climate
+-------------------table c.climate;------------------------------------
+DROP TABLE IF EXISTS c.climate CASCADE;
+CREATE TABLE c.climate
 (
   id serial,
   name varchar(50) DEFAULT 'Graz',
@@ -224,9 +224,9 @@ CREATE TABLE a.climate
   CONSTRAINT climate_pkey PRIMARY KEY (id)
 );
 
--------------------table a.submodels;------------------------------------
-DROP TABLE IF EXISTS a.submodels CASCADE;
-CREATE TABLE a.submodels
+-------------------table c.submodels;------------------------------------
+DROP TABLE IF EXISTS c.submodels CASCADE;
+CREATE TABLE c.submodels
 (
   id serial,
   submodel varchar(50),
@@ -234,18 +234,18 @@ CREATE TABLE a.submodels
   CONSTRAINT submodel_pkey PRIMARY KEY (id)
 );
 
--------------------table a.network;------------------------------------
-DROP TABLE IF EXISTS a.network CASCADE;
-CREATE TABLE a.network
+-------------------table c.network;------------------------------------
+DROP TABLE IF EXISTS c.network CASCADE;
+CREATE TABLE c.network
 (
   id serial,
   description varchar(255),
   CONSTRAINT network_pkey PRIMARY KEY (id)
 );
 
--------------------table a.dhc_customers;------------------------------------
-DROP TABLE IF EXISTS a.dhc_customers CASCADE;
-CREATE TABLE a.dhc_customers
+-------------------table c.customers;------------------------------------
+DROP TABLE IF EXISTS c.customers CASCADE;
+CREATE TABLE c.customers
 (
 	id serial,
 	geom geometry(PointZ,25832),
@@ -260,23 +260,23 @@ CREATE TABLE a.dhc_customers
     cool_p_kw numeric DEFAULT 10,
     tsup_c_deg numeric DEFAULT 15,
 	asl_m numeric,
-	submodel integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
     dhw_id integer,
     internal_load_id integer,   
-    "Scale DHW, 0-1" numeric DEFAULT 1,
-    "Floor area, m2" numeric DEFAULT 100,
-    "U-value, W/(m2 floor area * K)" numeric DEFAULT 1,
-    "Nominal heating load per m2" numeric DEFAULT 85,
-    "Solar aperture, 0-1" numeric DEFAULT 0.05,
-    "ACH, m3/(m2 floor area * h)" numeric DEFAULT 1,
-    "Room heating setpoint temperature, °C" numeric DEFAULT 21,
-	CONSTRAINT dhc_customers_pkey PRIMARY KEY (id)
+    scale_dhw numeric DEFAULT 1,
+    floor_area numeric DEFAULT 100,
+    u_value numeric DEFAULT 1,
+    phi_rad_nom numeric DEFAULT 85,
+    aperture numeric DEFAULT 0.05,
+    ach numeric DEFAULT 1,
+    tset numeric DEFAULT 21,
+	CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 
 
--------------------table a.dhc_energy_plants;------------------------------------
-DROP TABLE IF EXISTS a.dhc_energy_plants CASCADE;
-CREATE TABLE a.dhc_energy_plants
+-------------------table c.energy_plants;------------------------------------
+DROP TABLE IF EXISTS c.energy_plants CASCADE;
+CREATE TABLE c.energy_plants
 (
 	id serial,
 	geom geometry(PointZ,25832),
@@ -291,14 +291,14 @@ CREATE TABLE a.dhc_energy_plants
     cold_e_kwh numeric DEFAULT 1000000,
     cold_p_kw numeric DEFAULT 1000,    
 	asl_m numeric,
-	submodel integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
-	CONSTRAINT dhc_energy_plants_pkey PRIMARY KEY (id)
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
 );
 
 
--------------------table a.dhc_lines;------------------------------------
-DROP TABLE IF EXISTS a.dhc_lines CASCADE;
-CREATE TABLE a.dhc_lines
+-------------------table c.lines;------------------------------------
+DROP TABLE IF EXISTS c.lines CASCADE;
+CREATE TABLE c.lines
 (
 	id serial,
 	geom geometry(LineStringZ,25832),
@@ -307,50 +307,46 @@ CREATE TABLE a.dhc_lines
 	assettype integer,
     pipe_bundle_type_id integer DEFAULT 1,
 	length numeric,
-    nominaltemperature numeric,
-    maximumtemperature numeric,
-    nominaloppressure numeric,
-    maximumoppressure numeric,
     zeta numeric DEFAULT 0,
 	submodel integer[] DEFAULT ARRAY[1],
 	peak_power_kw numeric,
 	no_customer integer,
-	CONSTRAINT dhc_lines_pkey PRIMARY KEY (id)
+	CONSTRAINT lines_pkey PRIMARY KEY (id)
 );
 
--------------------table a.dhc_devices;------------------------------------
-DROP TABLE IF EXISTS a.dhc_devices CASCADE;
-CREATE TABLE a.dhc_devices
+-------------------table c.devices;------------------------------------
+DROP TABLE IF EXISTS c.devices CASCADE;
+CREATE TABLE c.devices
 (
 	id serial,
 	geom geometry(PointZ,25832),
 	assetgroup integer,
 	assettype integer,
-	submodel integer, --reference to submodelname in dhc_subnet_line 
+	submodel integer, --reference to submodelname in subnet_line 
     network integer[] DEFAULT ARRAY[1],
     asl_m numeric,
-	CONSTRAINT dhc_devices_pkey PRIMARY KEY (id)
+	CONSTRAINT devices_pkey PRIMARY KEY (id)
 );
 
--------------------table a.dhc_junctions------------------------------------
-DROP TABLE IF EXISTS a.dhc_junctions CASCADE;
-CREATE TABLE a.dhc_junctions
+-------------------table c.junctions------------------------------------
+DROP TABLE IF EXISTS c.junctions CASCADE;
+CREATE TABLE c.junctions
 (
 	id serial,
 	geom geometry(PointZ,25832),
 	assetgroup integer,
     n_connections integer check(n_connections >= 1),
-	submodel integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
-    network integer DEFAULT 1, --reference to submodelname in dhc_subnet_line 
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+    network integer DEFAULT 1, --reference to submodelname in subnet_line 
     asl_m numeric,
     zeta numeric DEFAULT 0,
-	CONSTRAINT dhc_junctions_pkey PRIMARY KEY (id)
+	CONSTRAINT junctions_pkey PRIMARY KEY (id)
 );
 
 
--------------------table a.dhc_structure_boundarys;------------------------------------
-DROP TABLE IF EXISTS a.dhc_structure_boundarys CASCADE;
-CREATE TABLE a.dhc_structure_boundarys
+-------------------table c.structure_boundarys;------------------------------------
+DROP TABLE IF EXISTS c.structure_boundarys CASCADE;
+CREATE TABLE c.structure_boundarys
 (
 	id serial,
 	geom geometry(Multipolygon,25832),
@@ -358,36 +354,36 @@ CREATE TABLE a.dhc_structure_boundarys
 	assettype integer,
 	f_vexp_m numeric,
 	submodel integer,
-	CONSTRAINT dhc_structure_boundarys_pkey PRIMARY KEY (id)
+	CONSTRAINT structure_boundarys_pkey PRIMARY KEY (id)
 );
 
--------------------table a.dhc_structure_junctions------------------------------------
-DROP TABLE IF EXISTS a.dhc_structure_junctions CASCADE;
-CREATE TABLE a.dhc_structure_junctions
+-------------------table c.structure_junctions------------------------------------
+DROP TABLE IF EXISTS c.structure_junctions CASCADE;
+CREATE TABLE c.structure_junctions
 (
 	id serial,
 	geom geometry(PointZ,25832),
 	assetgroup integer,
 	assettype integer,
 	submodel integer,
-	CONSTRAINT dhc_structure_junctions_pkey PRIMARY KEY (id)
+	CONSTRAINT structure_junctions_pkey PRIMARY KEY (id)
 );
 
--------------------table a.dhc_structure_lines------------------------------------
-DROP TABLE IF EXISTS a.dhc_structure_lines CASCADE;
-CREATE TABLE a.dhc_structure_lines
+-------------------table c.structure_lines------------------------------------
+DROP TABLE IF EXISTS c.structure_lines CASCADE;
+CREATE TABLE c.structure_lines
 (
 	id serial,
 	geom geometry(LineStringZ,25832),
 	assetgroup integer,
 	assettype integer,
 	submodel integer,
-	CONSTRAINT dhc_structure_lines_pkey PRIMARY KEY (id)
+	CONSTRAINT structure_lines_pkey PRIMARY KEY (id)
 );
 
--- Table: a.buildings
--- DROP TABLE a.buildings;
-CREATE TABLE a.buildings
+-- Table: c.buildings
+-- DROP TABLE c.buildings;
+CREATE TABLE c.buildings
 (
   id serial,
   object_id integer,
@@ -433,9 +429,9 @@ CREATE TABLE a.buildings
   CONSTRAINT buildings_pkey PRIMARY KEY (id)
 );
 
--- Table: a.device_connections
--- DROP TABLE a.device_connections;
-CREATE TABLE a.device_connections
+-- Table: c.device_connections
+-- DROP TABLE c.device_connections;
+CREATE TABLE c.device_connections
 (
   id serial,
   did integer,
@@ -444,9 +440,9 @@ CREATE TABLE a.device_connections
   CONSTRAINT device_connections_pkey PRIMARY KEY (id)
 );
 
--- Table: a.junction_connections
--- DROP TABLE a.junction_connections;
-CREATE TABLE a.junction_connections
+-- Table: c.junction_connections
+-- DROP TABLE c.junction_connections;
+CREATE TABLE c.junction_connections
 (
   id serial,
   jid integer,
@@ -454,9 +450,9 @@ CREATE TABLE a.junction_connections
   CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
 );
 
--- Table: a.customer_connections
--- DROP TABLE a.customer_connections;
-CREATE TABLE a.customer_connections
+-- Table: c.customer_connections
+-- DROP TABLE c.customer_connections;
+CREATE TABLE c.customer_connections
 (
   id serial,
   cid integer,
@@ -465,9 +461,9 @@ CREATE TABLE a.customer_connections
   CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
 );
   
--- Table: a.energy_plant_connections
--- DROP TABLE a.energy_plant_connections;
-CREATE TABLE a.energy_plant_connections
+-- Table: c.energy_plant_connections
+-- DROP TABLE c.energy_plant_connections;
+CREATE TABLE c.energy_plant_connections
 (
   id serial,
   epid integer,
@@ -476,9 +472,9 @@ CREATE TABLE a.energy_plant_connections
   CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
 );
 
--- Table: a.pipes_model
--- DROP TABLE a.pipes_model;
-CREATE TABLE a.pipes_model
+-- Table: c.pipes_model
+-- DROP TABLE c.pipes_model;
+CREATE TABLE c.pipes_model
 (
   id serial,
   sim_model integer,
@@ -487,24 +483,24 @@ CREATE TABLE a.pipes_model
   CONSTRAINT id_pkey PRIMARY KEY (id)
 );
 
--- Table: a.segment_lines_00
--- DROP TABLE a.segment_lines_00;
-CREATE TABLE a.segment_lines_00
+-- Table: c.segment_lines_00
+-- DROP TABLE c.segment_lines_00;
+CREATE TABLE c.segment_lines_00
 (
   lines_id integer,
   rc_split_multi geometry
 );
 
--- Index: a.segment_lines_00_rc_split_multi_idx
--- DROP INDEX a.segment_lines_00_rc_split_multi_idx;
+-- Index: c.segment_lines_00_rc_split_multi_idx
+-- DROP INDEX c.segment_lines_00_rc_split_multi_idx;
 CREATE INDEX segment_lines_00_rc_split_multi_idx
-  ON a.segment_lines_00
+  ON c.segment_lines_00
   USING gist
   (rc_split_multi);
 
--- Table: a.streets
--- DROP TABLE a.streets;
-CREATE TABLE a.streets
+-- Table: c.streets
+-- DROP TABLE c.streets;
+CREATE TABLE c.streets
 (
   id serial,
   geom geometry(LineString,25832),
@@ -516,9 +512,9 @@ CREATE TABLE a.streets
 );
 
 	
--- Table: a.time_manager_tair
--- DROP TABLE a.time_manager_tair;
-CREATE TABLE a.time_manager_tair
+-- Table: c.time_manager_tair
+-- DROP TABLE c.time_manager_tair;
+CREATE TABLE c.time_manager_tair
 (
   id serial,
   b_id serial,
@@ -529,9 +525,9 @@ CREATE TABLE a.time_manager_tair
   CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
 );
 
--- Table: a.invoked_sf
--- DROP TABLE IF EXISTS a.invoked_sf;
-CREATE TABLE IF NOT EXISTS a.invoked_sf
+-- Table: c.invoked_sf
+-- DROP TABLE IF EXISTS c.invoked_sf;
+CREATE TABLE IF NOT EXISTS c.invoked_sf
 (
     id serial,
     sf text,

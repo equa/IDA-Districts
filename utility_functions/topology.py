@@ -17,17 +17,17 @@ INSERT INTO {}.submodels (id,geom)
     cur.execute(sql)
     
 def updateSubmodels(cur,dictDB):
-    sql="""UPDATE temp.dhc_junctions j SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(j.geom,s_m.geom,0.0001);
-UPDATE {}.dhc_energy_plants f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
-UPDATE temp.dhc_customers f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
-UPDATE temp.dhc_lines l SET submodel = a.sm_id 
+    sql="""UPDATE temp.junctions j SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(j.geom,s_m.geom,0.0001);
+UPDATE {}.energy_plants f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
+UPDATE temp.customers f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
+UPDATE temp.lines l SET submodel = a.sm_id 
     FROM (SELECT l.id AS lid, array_agg(s_m.id) AS sm_id
-            FROM {}.submodels s_m, a.dhc_lines l
+            FROM {}.submodels s_m, {}.lines l
             WHERE ST_dWithin(l.geom,s_m.geom,0.0001)
             GROUP BY l.id) a 
     WHERE a.lid=l.id;
-UPDATE temp.dhc_lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
-UPDATE temp.dhc_lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
+UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     print(sql)
     cur.execute(sql)
         
@@ -36,31 +36,31 @@ def setSubnetwork(cur,dictDB,redraw_submodels_polygons,srid):
     print('Set submodel if no submodels')
     if redraw_submodels_polygons:
         
-        #draw rectangle around all dhc_customers
+        #draw rectangle around all customers
         sql="TRUNCATE {}.submodels CASCADE;".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
             
-        redrawSubnetworkIncludingLines('{}.dhc_lines'.format(dictDB['versionName']),cur,dictDB,srid)
+        redrawSubnetworkIncludingLines('{}.lines'.format(dictDB['versionName']),cur,dictDB,srid)
         
-        #dhc_junctions
-        sql="UPDATE {}.dhc_junctions SET submodel = 1;".format(dictDB['versionName'])
+        #junctions
+        sql="UPDATE {}.junctions SET submodel = 1;".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
-        #dhc_customers
-        sql="UPDATE {}.dhc_customers SET submodel = 1;".format(dictDB['versionName'])
+        #customers
+        sql="UPDATE {}.customers SET submodel = 1;".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
-        #dhc_devices
-        sql="UPDATE {}.dhc_devices SET submodel = 1;".format(dictDB['versionName'])
+        #devices
+        sql="UPDATE {}.devices SET submodel = 1;".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
-        #dhc_energy_plants
-        sql="UPDATE {}.dhc_energy_plants SET submodel = 1;".format(dictDB['versionName'])
+        #energy_plants
+        sql="UPDATE {}.energy_plants SET submodel = 1;".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
-        #dhc_lines
-        sql="UPDATE {}.dhc_lines SET submodel = array[1];".format(dictDB['versionName'])
+        #lines
+        sql="UPDATE {}.lines SET submodel = array[1];".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)  
 
@@ -101,7 +101,7 @@ def getConnsValues(bundle,cur):
     
 def getConnBundleByFeature(type_id,feature_id,cur,dictDB):
     sql="""SELECT c_at.conn_bundle_type 
-    FROM {}.dhc_{} f, {} c_at 
+    FROM {}.{} f, {} c_at 
     WHERE f.id={} AND c_at.assetgroup=f.assetgroup AND c_at.assettype=f.assettype;""".format(dictDB['versionName'],type_id+'s' if type(type_id)==str else getTypeNameById(type_id),getAssettypeNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getAssettypeNameById(type_id),feature_id)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
@@ -114,7 +114,7 @@ def getConnValuesByFeature(type_id,feature_id,conn_id,cur,dictDB):
 
 def getUsedConnBundleTypes(type_name,cur,dictDB):
     sql="""Select at.conn_bundle_type
-    FROM {}.dhc_{}s f, {}_assettypes at
+    FROM {}.{}s f, {}_assettypes at
     WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype
     GROUP BY at.conn_bundle_type
     ORDER BY at.conn_bundle_type;""".format(dictDB['versionName'],type_name,type_name)
@@ -123,7 +123,7 @@ def getUsedConnBundleTypes(type_name,cur,dictDB):
     
 def getUsedConnTypes(type_name,cur,dictDB):
     sql="""Select b_t_conns.conn_type_id
-    FROM {}.dhc_{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
+    FROM {}.{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
     WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND b_t_conns.conn_bundle_type_id = at.conn_bundle_type
     GROUP BY b_t_conns.conn_type_id
     ORDER BY b_t_conns.conn_type_id;""".format(dictDB['versionName'],type_name,type_name)
@@ -133,7 +133,7 @@ def getUsedConnTypes(type_name,cur,dictDB):
 def getUsedConnTypeIdents(type_name,cur,dictDB):
     sql="""WITH sub AS(
     Select  b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text as ident
-        FROM {}.dhc_{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
+        FROM {}.{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
         WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND b_t_conns.conn_bundle_type_id = at.conn_bundle_type
 )
 SELECT ident FROM sub GROUP BY ident;""".format(dictDB['versionName'],type_name,type_name)
@@ -149,14 +149,14 @@ def getConnBundleByAssettype(feature,assettype,assetgroup,cur,dictDB):
 
 def getLineConnType(cur,dictDB,id):
     sql="""SELECT at.conn_type
-    FROM {}.dhc_lines l, line_assettypes at
+    FROM {}.lines l, line_assettypes at
     WHERE l.assettype=at.assettype AND l.assetgroup=at.assetgroup AND l.id={};""".format(dictDB['versionName'],id)
     cur.execute(sql)
     return cur.fetchone()['conn_type']
 
 def getUsedPipeBundleSequences(cur,dictDB):
     sql=f"""WITH sub AS(
-    SELECT pipe_bundle_type_id FROM {dictDB['versionName']}.dhc_lines GROUP BY pipe_bundle_type_id 
+    SELECT pipe_bundle_type_id FROM {dictDB['versionName']}.lines GROUP BY pipe_bundle_type_id 
 )
 SELECT sequence 
     FROM bundle_pipes bp,sub 
@@ -215,7 +215,7 @@ def getPMT2muxIdentFromConnValues(connValues,conn_seq):
 def checkLineDirectionTopology(cur,version,tolerance,iface,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
-    sql="SELECT st_v.id::integer AS epid FROM {}.dhc_energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);".format(version,tolerance,network,network)
+    sql="SELECT st_v.id::integer AS epid FROM {}.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);".format(version,tolerance,network,network)
     print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['epid'] 
@@ -291,11 +291,11 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
 def checkLineDirectionPipeLaying(cur,version,tolerance):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
-    sql="SELECT st_v.id::integer AS v_ep FROM {}.dhc_energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{});".format(version,tolerance)
+    sql="SELECT st_v.id::integer AS v_ep FROM {}.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{});".format(version,tolerance)
     #print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep'] 
-    sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point, ST_EndPoint(geom) AS l_end_point FROM temp.dhc_lines;"""
+    sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point, ST_EndPoint(geom) AS l_end_point FROM temp.lines;"""
     #print(sql) 
     cur.execute(sql) 
     lines=cur.fetchall()
@@ -314,7 +314,7 @@ def checkLineDirectionPipeLaying(cur,version,tolerance):
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.dhc_lines l where St_contains(l.geom,sh.geom)',
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.lines l where St_contains(l.geom,sh.geom)',
                 {}, 
                 {},
                 false
@@ -338,7 +338,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.dhc_lines l where St_contains(l.geom,sh.geom)',
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.lines l where St_contains(l.geom,sh.geom)',
                 {}, 
                 {},
                 false
@@ -354,6 +354,6 @@ SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo)
         
         if length_node_end<length_node_start:
             print ('change line direction')
-            sql='UPDATE temp.dhc_lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
+            sql='UPDATE temp.lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
             #print (sql)
             cur.execute(sql)

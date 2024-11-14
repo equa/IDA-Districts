@@ -46,11 +46,11 @@ for id in ids:
         outputs.append('\n  "U" ='+str(bestParmRuns[1][0]))
         outputs.append('\n  heat_p_kw ='+str(bestParmRuns[0][0]))
         outputs.append('\n  cool_p_kw ='+str(bestParmRuns[0][1]))
-        sql+="""UPDATE {}.dhc_customers SET {} WHERE id={};\n""".format(dictDB['versionName'],','.join([output for output in outputs]),id)
+        sql+="""UPDATE {}.customers SET {} WHERE id={};\n""".format(dictDB['versionName'],','.join([output for output in outputs]),id)
         print(sql)
         cur.execute(sql)     
 
-        sql="""UPDATE {}.dhc_customers SET "PhiRadH_nom" = "U"*100 WHERE id ={};""".format(dictDB['versionName'],id)
+        sql="""UPDATE {}.customers SET "PhiRadH_nom" = "U"*100 WHERE id ={};""".format(dictDB['versionName'],id)
         print(sql)
         cur.execute(sql) 
         

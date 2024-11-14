@@ -20,7 +20,7 @@ def getTimeDiff(cur,dictDB,table,col,order_col):
     return cur.fetchone()['diff']
 
 def featureCount(cur,dictDB,network,type):
-    sql="""SELECT count(*) FROM {}.dhc_{}s WHERE network=array[{}];""".format(dictDB['versionName'],type,network)
+    sql="""SELECT count(*) FROM {}.{}s WHERE network=array[{}];""".format(dictDB['versionName'],type,network)
     cur.execute(sql)
     return cur.fetchone()['count']
 
@@ -31,7 +31,7 @@ def streetsCount(cur,dictDB):
 
 def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     sql="""SELECT f_dec.comp_name
-    FROM {}.dhc_{}s f, {}.feature_decoupling f_dec
+    FROM {}.{}s f, {}.feature_decoupling f_dec
     WHERE f.id={} AND f.assettype=f_dec.assettype AND f.assetgroup=f_dec.assetgroup AND f_dec.type='{}';""".format(dictDB['versionName'],feature['feature'],dictDB['versionName'],feature['id'],feature['feature'])
     print(sql)
     cur.execute(sql)
@@ -49,12 +49,12 @@ def getUsedDecoupledFeatureAssettypes(usedFeatureAssettypes,cur,dictDB,submodel,
     assettypes=[]
     for cosim in cosims:
         sql="""(SELECT 'customer' AS feature,f.assettype, f.assetgroup, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.dhc_customers f, {}.dhc_lines l,{}.submodels s_m
+    FROM {}.customers f, {}.lines l,{}.submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
     GROUP BY feature,f.assettype, f.assetgroup, network_side)
 UNION 
 (SELECT 'energy_plant' AS feature,f.assettype, f.assetgroup, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.dhc_energy_plants f, {}.dhc_lines l,{}.submodels s_m
+    FROM {}.energy_plants f, {}.lines l,{}.submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
     GROUP BY feature,f.assettype, f.assetgroup, network_side)
 ORDER BY feature,assetgroup,assettype;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
@@ -71,11 +71,11 @@ def getFeatureIds(dictDB,cur,submodel,cosims):
     fids=[]
     for cosim in cosims:
         sql="""(SELECT 'customer' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.dhc_customers f, {}.customer_connections f_conns, {}.dhc_lines l, {}.submodels s_m
+    FROM {}.customers f, {}.customer_connections f_conns, {}.lines l, {}.submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.cid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 UNION 
 (SELECT 'energy_plant' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.dhc_energy_plants f, {}.energy_plant_connections f_conns, {}.dhc_lines l, {}.submodels s_m
+    FROM {}.energy_plants f, {}.energy_plant_connections f_conns, {}.lines l, {}.submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.epid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 ORDER BY feature,id;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
             submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim)
@@ -93,13 +93,13 @@ def getFeatureIdFromName(dictDB,cur,feature):
     
 def getNetworks(cur,dictDB):
     sql="""(
-    SELECT network FROM {}.dhc_lines GROUP BY network
+    SELECT network FROM {}.lines GROUP BY network
     UNION
-    SELECT unnest(network) AS network FROM {}.dhc_customers GROUP BY network
+    SELECT unnest(network) AS network FROM {}.customers GROUP BY network
     UNION
-    SELECT unnest(network) AS network FROM {}.dhc_energy_plants GROUP BY network
+    SELECT unnest(network) AS network FROM {}.energy_plants GROUP BY network
     UNION
-    SELECT unnest(network) AS network FROM {}.dhc_devices GROUP BY network
+    SELECT unnest(network) AS network FROM {}.devices GROUP BY network
 )
 ORDER BY network;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
@@ -107,31 +107,31 @@ ORDER BY network;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['
     return networks
     
 def getLineNetworks(cur,dictDB):
-    sql="""SELECT network FROM {}.dhc_lines GROUP BY network ORDER BY network;""".format(dictDB['versionName'])
+    sql="""SELECT network FROM {}.lines GROUP BY network ORDER BY network;""".format(dictDB['versionName'])
     cur.execute(sql)
     networks=[i['network'] for i in cur.fetchall()]
     return networks
 
 def getLineSubmodels(cur,dictDB):
-    sql="""SELECT unnest(submodel) as submodels FROM {}.dhc_lines GROUP BY submodels ORDER BY submodels;""".format(dictDB['versionName'])
+    sql="""SELECT unnest(submodel) as submodels FROM {}.lines GROUP BY submodels ORDER BY submodels;""".format(dictDB['versionName'])
     cur.execute(sql)
     submodels=[i['submodels'] for i in cur.fetchall()]
     return submodels
     
 def getFeatureSubmodels(cur,dictDB,type):
-    sql="""SELECT submodel FROM {}.dhc_{}s GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'],type)
+    sql="""SELECT submodel FROM {}.{}s GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'],type)
     cur.execute(sql)
     submodels=[i['submodel'] for i in cur.fetchall()]
     return submodels
 
 def getUsedFeatureAssettypes(cur,dictDB):
     sql="""(SELECT 'customer' AS feature, f.assetgroup,f.assettype, f_at.assettype_name
-    FROM {}.dhc_customers f,customer_assettypes f_at 
+    FROM {}.customers f,customer_assettypes f_at 
     WHERE f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype
     GROUP BY f.assetgroup,f.assettype,f_at.assettype_name)
 UNION
 (SELECT 'energy_plant' AS feature, f.assetgroup,f.assettype,f_at.assettype_name
-    FROM {}.dhc_energy_plants f, energy_plant_assettypes f_at
+    FROM {}.energy_plants f, energy_plant_assettypes f_at
      WHERE f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype
     GROUP BY f.assetgroup,f.assettype,f_at.assettype_name)
 ORDER BY feature, assetgroup,assettype;""".format(dictDB['versionName'],dictDB['versionName'])
@@ -140,13 +140,13 @@ ORDER BY feature, assetgroup,assettype;""".format(dictDB['versionName'],dictDB['
     
 def getUsedSubmodels(cur,dictDB):
     sql="""(
-    SELECT unnest(submodel) AS submodel FROM {}.dhc_lines GROUP BY submodel
+    SELECT unnest(submodel) AS submodel FROM {}.lines GROUP BY submodel
     UNION
-    SELECT submodel FROM {}.dhc_customers GROUP BY submodel
+    SELECT submodel FROM {}.customers GROUP BY submodel
     UNION
-    SELECT submodel FROM {}.dhc_energy_plants GROUP BY submodel
+    SELECT submodel FROM {}.energy_plants GROUP BY submodel
     UNION
-    SELECT submodel FROM {}.dhc_devices GROUP BY submodel
+    SELECT submodel FROM {}.devices GROUP BY submodel
 )
 ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
@@ -155,23 +155,23 @@ ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB[
 
 def getFeatureIdsPerSubmodel(submodel,cur,dictDB):
     sql="""(
-    SELECT 1 AS feature, id FROM {}.dhc_customers WHERE submodel={}
+    SELECT 1 AS feature, id FROM {}.customers WHERE submodel={}
     UNION
-    SELECT 2 AS feature, id FROM {}.dhc_energy_plants WHERE submodel={}
+    SELECT 2 AS feature, id FROM {}.energy_plants WHERE submodel={}
     UNION
-    SELECT 3 AS feature, id FROM {}.dhc_devices WHERE submodel={}
+    SELECT 3 AS feature, id FROM {}.devices WHERE submodel={}
 )
 ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,dictDB['versionName'],submodel)
     cur.execute(sql)
     return cur.fetchall()
     
 def getFeatureIdsPerSubmodelAndTypename(submodel,type,cur,dictDB):
-    sql="""SELECT id FROM {}.dhc_{}s WHERE submodel={};""".format(dictDB['versionName'],submodel)
+    sql="""SELECT id FROM {}.{}s WHERE submodel={};""".format(dictDB['versionName'],submodel)
     cur.execute(sql)
     return [id['id'] for id in cur.fetchall()]
 
 def getSubmodelPerFeatureIdTypename(id,feature,cur,dictDB):
-    sql="""SELECT submodel FROM {}.dhc_{}s WHERE id={};""".format(dictDB['versionName'],feature.replace(" ","_"),id)
+    sql="""SELECT submodel FROM {}.{}s WHERE id={};""".format(dictDB['versionName'],feature.replace(" ","_"),id)
     cur.execute(sql)
     return cur.fetchone()
     
@@ -191,8 +191,8 @@ def getSupervisorySubmodel(cur,dictDB):
     return cur.fetchone()
             
 def getNetworkSubmodels(cur,dictDB,networks):
-    """Get submodels of a list of networks based on dhc_lines"""
-    sql="""SELECT unnest(submodel) AS submodel FROM {}.dhc_lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'], ','.join([i for i in networks]))
+    """Get submodels of a list of networks based on lines"""
+    sql="""SELECT unnest(submodel) AS submodel FROM {}.lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'], ','.join([i for i in networks]))
     print(sql)
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
@@ -677,7 +677,7 @@ def getResultVars(cur,dictDB,feature,type):
 def getTableAttr(cur,dictDB,feature):
     sql="""SELECT column_name 
     FROM information_schema.columns 
-    WHERE table_name = 'dhc_{}s' AND table_schema='{}';""".format(feature,dictDB['versionName'])
+    WHERE table_name = '{}s' AND table_schema='{}';""".format(feature,dictDB['versionName'])
     print(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall()]

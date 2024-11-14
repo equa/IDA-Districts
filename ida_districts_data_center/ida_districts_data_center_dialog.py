@@ -388,10 +388,10 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         label_titel.setFont(font)
         
         #buttons
-        self.btn_defaults_lines=QPushButton("DHC Lines")
-        self.btn_defaults_customers=QPushButton("DHC Customers")
-        self.btn_defaults_plants=QPushButton("DHC Energy Plants")
-        self.btn_defaults_devices=QPushButton("DHC Devices")
+        self.btn_defaults_lines=QPushButton("Lines")
+        self.btn_defaults_customers=QPushButton("Customers")
+        self.btn_defaults_plants=QPushButton("Energy Plants")
+        self.btn_defaults_devices=QPushButton("Devices")
         
         layout_defaults=QVBoxLayout()
         layout_defaults.addWidget(label_titel)

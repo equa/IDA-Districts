@@ -18,7 +18,7 @@ conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 print(cur)
 
-sql="""SELECT id from {}.dhc_customers WHERE network=2 ORDER BY id;""".format(dictDB['versionName'])
+sql="""SELECT id from {}.customers WHERE network=2 ORDER BY id;""".format(dictDB['versionName'])
 cur.execute(sql)
 ids=[id['id'] for id in cur.fetchall()]
 print(ids)
@@ -28,7 +28,7 @@ power_sum=[]
 count=0
 for id in ids:
     print(id)
-    sql="""SELECT owner FROM {}.dhc_customers WHERE id = {};""".format(dictDB['versionName'],id)
+    sql="""SELECT owner FROM {}.customers WHERE id = {};""".format(dictDB['versionName'],id)
     cur.execute(sql)
     
     legend=cur.fetchone()['owner']

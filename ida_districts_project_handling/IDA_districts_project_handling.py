@@ -101,7 +101,7 @@ class IDA_Districts_ProjectHandling:
         self.cur=''
         self.conn_postgres=''
         self.cur_postgres=''
-        self.projectConfig= {'srid': '25832', 'db': 'light'}
+        self.projectConfig= {'srid': '25832'}
         
         shortcut = QShortcut(QKeySequence('Alt+Shift+I'), iface.mainWindow())
         shortcut.setContext(Qt.ApplicationShortcut)
@@ -360,16 +360,16 @@ class IDA_Districts_ProjectHandling:
                     
                     sql=""
                     #project tables
-                    if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault_"+self.projectConfig['db']+".txt"):
-                        with open(self.plugin_dir+"\\DB_projectTablesDefault_"+self.projectConfig['db']+".txt", "r") as myfile:
+                    if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault.txt"):
+                        with open(self.plugin_dir+"\\DB_projectTablesDefault.txt", "r") as myfile:
                             for line in myfile:
                                 sql=sql+line
                         sql = sql.replace("$srid$", self.projectConfig['srid'])
                         self.cur.execute(sql)
                     sql=""
                     #project values
-                    if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault_data_"+self.projectConfig['db']+".txt"):
-                        with open(self.plugin_dir+"\\DB_projectTablesDefault_data_"+self.projectConfig['db']+".txt", "r") as myfile:
+                    if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault_data.txt"):
+                        with open(self.plugin_dir+"\\DB_projectTablesDefault_data.txt", "r") as myfile:
                             for line in myfile:
                                 sql=sql+line
                         self.cur.execute(sql)
@@ -709,8 +709,8 @@ class IDA_Districts_ProjectHandling:
                 
                 #create tables in new schema
                 filedata=""
-                if os.path.exists(self.plugin_dir+"\\DB_versionTablesDefault_"+self.projectConfig['db']+".txt"):
-                    with open(self.plugin_dir+"\\DB_versionTablesDefault_"+self.projectConfig['db']+".txt", "r") as myfile:
+                if os.path.exists(self.plugin_dir+"\\DB_versionTablesDefault.txt"):
+                    with open(self.plugin_dir+"\\DB_versionTablesDefault.txt", "r") as myfile:
                         for line in myfile:
                             filedata=filedata+line
                     newdata = filedata.replace("$versionName$", self.dictDB['versionName'])
@@ -805,7 +805,7 @@ class IDA_Districts_ProjectHandling:
             ltv.setRowHidden( index.row(), index.parent(), True)   
     
     def loadStructureLayers(self,version,uri):
-        for tableName in ['dhc_structure_lines','dhc_structure_junctions']:
+        for tableName in ['structure_lines','structure_junctions']:
             uri.setDataSource(version, tableName, "")
             vlayer = QgsVectorLayer(uri.uri(False), tableName, self.dictDB['user'])
             QgsProject.instance().addMapLayer(vlayer)
@@ -829,7 +829,7 @@ class IDA_Districts_ProjectHandling:
             #read diff script
             diffData=''
 
-            for table in ['dhc_customers','dhc_energy_plants','dhc_lines','dhc_devices','dhc_junctions','dhc_structure_boundarys','dhc_structure_junctions','dhc_structure_lines']:
+            for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:
                 #Check for inserted items
                 print(table)
                 sql="""SELECT id FROM {}.{}
@@ -947,23 +947,13 @@ class IDA_Districts_ProjectHandling:
             iface.layerTreeView().refreshLayerSymbology(vlayer.id())
         except:
             pass
-            
-        print('dhc model')
-        
-        if self.projectConfig['db']=='light':
-            loadTopologyLayers_light(self.dictDB['versionName'],uri,layerTreeRoot,self.dictDB)      
-        else:
-            loadTopologyLayers_meta(self.dictDB['versionName'],uri,layerTreeRoot,self.dictDB)      
+                    
+        loadTopologyLayers(self.dictDB['versionName'],uri,layerTreeRoot,self.dictDB)         
         loadProjectLayers(self.dictDB['versionName'],uri,self.dictDB,self.plugin_dir,self.cur)
        
-        versionLayersAliasNames_light()
-        if self.projectConfig['db']=='light':
-            setupVersionForm_light(self.cur,self.dictDB)
-            setupCustomerDataSheet()
-        else:
-            versionLayersAliasNames_meta()
-            setupVersionForm_meta()
-            valueRelationMetaTables()
+        versionLayersAliasNames()
+        setupVersionForm(self.cur,self.dictDB)
+        setupCustomerDataSheet()
           
         valueRelationPipeBundleType()    
         valueRelationDhwId()    
@@ -982,24 +972,16 @@ class IDA_Districts_ProjectHandling:
     def saveProjectConfigSettings(self,dlg):
         """ save project config data to file projectConfig.txt"""
         print('saveProjectConfigSettings')    
-        db_old=self.projectConfig['db']   
         srid_old=self.projectConfig['srid']        
         self.projectConfig['srid']=dlg.srid.text()
-        if dlg.rbtn_db_light.isChecked():
-            self.projectConfig['db']='light'
-        else:
-            self.projectConfig['db']='meta'
+
         if checkDBProjectConnected(self.dictDB,False):
             writeProjectConfig(self.plugin_dir,self.dictDB['projectName'],self.projectConfig)
             projectVersions=getProjectVersionNames(self.cur)
             
-            if self.projectConfig['db']=='meta' and db_old=='light':
-                addMetaDBColumns(projectVersions,self.cur)
-            if self.projectConfig['db']=='light' and db_old=='meta':
-                dropMetaDBColumns(projectVersions,self.cur)
             if srid_old!=self.projectConfig['srid']:
                 updateTableSrid(projectVersions,self.cur,self.projectConfig['srid'])
-            if checkDBVersionConnected(self.dictDB,False) and (srid_old!=self.projectConfig['srid'] or (self.projectConfig['db']=='meta' and db_old=='light') or (self.projectConfig['db']=='light' and db_old=='meta')):
+            if checkDBVersionConnected(self.dictDB,False) and srid_old!=self.projectConfig['srid']:
                 self.loadLayers()
                 
         dlg.close()
@@ -1017,9 +999,7 @@ class IDA_Districts_ProjectHandling:
         if checkDBProjectConnected(self.dictDB,False):
             self.projectConfig=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])       
         print(self.projectConfig)
-        dlg.srid.setText(self.projectConfig['srid'])
-        if self.projectConfig['db']=='meta':
-            dlg.rbtn_db_meta.setChecked(True)    
+        dlg.srid.setText(self.projectConfig['srid'])  
     
     def setIDADistrictsConfig(self):
         """ open Dialog to set IDA Districts configuration data"""

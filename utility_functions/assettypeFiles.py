@@ -652,12 +652,12 @@ class CopyAssettypeMacro:
     def __init__(self,submodel,dir,type,dictDB,cur,iface,plugin_dir,reinvoke,invokedOutputs,requestedOutputs):
         print('copy {} macro'.format(type))
         #print(invokedOutputs)
-        type_name=type[4:-1]
+        type_name=type[:-1]
         target_dir=dir+"\\network_"+str(submodel)
         source_dir=dir+'\\invoked_'+type_name+'s'
                             
         sql="""SELECT f.id, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, l.submodel
-    FROM {}.{} f, {}.dhc_lines l, {}.{}_connections conn 
+    FROM {}.{} f, {}.lines l, {}.{}_connections conn 
     WHERE f.submodel={} AND l.id=conn.lid AND f.id=conn.{}id AND f.submodel = ANY(l.submodel)
     ORDER BY id;""".format(submodel,dictDB['versionName'],type,dictDB['versionName'],dictDB['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'd' if type_name=='device' else 'ep')
         print(sql)
@@ -691,9 +691,9 @@ class CopyAssettypeMacro:
             print(source_f_idm)
             if not os.path.exists(source_f_idm) or reinvoke:
                 invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,type_name,iface,False)
-                if type=='dhc_energy_plants':
+                if type=='energy_plants':
                     self.invokedFeatureOutputs[feature['id']]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
-                elif type=='dhc_customers':
+                elif type=='customers':
                     self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
 
             if feature['model']=='decoupled':

@@ -62,7 +62,7 @@ def copy_string_iterator_customer_sData(connection, sdata,fid,col_dict,start_dat
             cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(dictDB['versionName'],table_name),mdata_string_iterator)
 
         sql="""UPDATE {}.{} r set geom = f.geom 
-    FROM (SELECT id, geom FROM {}.dhc_customers) f
+    FROM (SELECT id, geom FROM {}.customers) f
     WHERE f.id=r.fid;""".format(dictDB['versionName'],table_name,dictDB['versionName'])
         print(sql)
         cur.execute(sql)

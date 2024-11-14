@@ -28,7 +28,7 @@ QColor("Purple") ) )
 
 feature='customer'
 
-sLayerName = "dhc_{}s".format(feature)
+sLayerName = "{}s".format(feature)
 sLayer = QgsProject.instance().mapLayersByName(sLayerName)[0]
 
 # make new memory layer

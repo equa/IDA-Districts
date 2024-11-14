@@ -67,9 +67,9 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
             print(idx)
             invokeOneFeature(self.dlg,idx,self.plugin_dir,self.cur,self.dictDB,self.type,invoked=True,parallize=True)
             if self.type=='energy_plant':
-                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
+                invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
             elif self.type=='customer':
-                invokedOutputs['dhc_'+self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
+                invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
             self.progress_value=int((idx+1)/rows_count*98)
             self.signals.progress.emit(self.progress_value)
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
@@ -96,8 +96,8 @@ def loadCustomerParm(dlg,cur,dictDB):
 
         i+=1
         
-def loadLayerFieldsToList(list,dhc_layer_name):
-    layer=QgsProject.instance().mapLayersByName(dhc_layer_name)
+def loadLayerFieldsToList(list,layer_name):
+    layer=QgsProject.instance().mapLayersByName(layer_name)
     print(layer)
     if layer:
         layer=layer[0]
@@ -127,7 +127,7 @@ def setCustParm(dlg,conn,dictDB,plugin_dir):
     
 def setupCustomerVersionForm(cur,dictDB,plugin_dir):  
     """ setup form for customer layer"""
-    vlayerName='dhc_customers'
+    vlayerName='customers'
     removeLayer(vlayerName)
     loadFeatureLayer(dictDB['versionName'],dictDB,plugin_dir,vlayerName,cur)
     
@@ -187,7 +187,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
         dir=plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\".format(dictDB['projectName'],dictDB['versionName'],type)
             
         sql="""SELECT c.assetgroup, c.assettype, at.assettype_name, at.conn_bundle_type 
-            FROM {}.dhc_{}s c,{}_assettypes at 
+            FROM {}.{}s c,{}_assettypes at 
             WHERE c.assetgroup=at.assetgroup AND c.assettype=at.assettype AND c.id={};""".format(dictDB['versionName'],type,type,id)
         print(sql)
         cur.execute(sql)
@@ -214,7 +214,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
             
             if type=='customer':
                 #dhw
-                sql="""SELECT dhw.id, dhw.description FROM {}.dhc_customers c, public.dhw_timeseries dhw WHERE dhw.id=c.dhw_id AND c.id={};""".format(dictDB['versionName'],id)
+                sql="""SELECT dhw.id, dhw.description FROM {}.customers c, public.dhw_timeseries dhw WHERE dhw.id=c.dhw_id AND c.id={};""".format(dictDB['versionName'],id)
                 print(sql)
                 cur.execute(sql)
                 dhw=cur.fetchone()
@@ -240,7 +240,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                     print(dhw_file)
                     
                 #internal loads
-                sql="""SELECT l.id, l.description FROM {}.dhc_customers c, public.internal_loads_profiles l WHERE l.id=c.internal_load_id AND c.id={};""".format(dictDB['versionName'],id)
+                sql="""SELECT l.id, l.description FROM {}.customers c, public.internal_loads_profiles l WHERE l.id=c.internal_load_id AND c.id={};""".format(dictDB['versionName'],id)
                 cur.execute(sql)
                 internal_load=cur.fetchone()
                 internal_loads_file=False
@@ -270,7 +270,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                 cur.execute(sql)
                 parms=cur.fetchall()
                 print(parms)
-                sql="""SELECT * FROM {}.dhc_customers WHERE id={};""".format(dictDB['versionName'],id)
+                sql="""SELECT * FROM {}.customers WHERE id={};""".format(dictDB['versionName'],id)
                 print(sql)
                 cur.execute(sql)
                 fields=cur.fetchone()
@@ -371,7 +371,7 @@ class InvokeFeatures():
             self.type='device'
         elif self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_plants:
             self.type='energy_plant'
-        sql="SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM {}.dhc_{}s;".format(self.dictDB['versionName'],self.type)
+        sql="SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM {}.{}s;".format(self.dictDB['versionName'],self.type)
         print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()[0]['ids']
@@ -392,7 +392,7 @@ class InvokeFeatures():
             
     def loadInvokeFeatureData(self,dlg):
         """Collect all feature ids and check if they are already invoked"""
-        sql="""SELECT id FROM {}.dhc_{}s ORDER BY id;""".format(self.dictDB['versionName'],self.type)
+        sql="""SELECT id FROM {}.{}s ORDER BY id;""".format(self.dictDB['versionName'],self.type)
         print(sql)
         self.cur.execute(sql)
         i=0
@@ -497,6 +497,7 @@ class InvokeFeatures():
         self.startInvokeFeaturesWorker(rows)
         
     def startInvokeFeaturesWorker(self,rows):
+        self.dictDB=getDBConnectionData(self.plugin_dir)
         self.worker_invokeFeature = WorkerInvokeFeatures(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=self.dlg_invokeFeatures,type=self.type,rows=rows)
         self.threadpool_invokeFeature = QThreadPool()
         self.threadpool_invokeFeature.start(self.worker_invokeFeature) 

@@ -218,7 +218,7 @@ CREATE TABLE {}.customer_s_ventilation
                     #load data
                     #get cid`s
                     sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
-    FROM {}.dhc_customers f, bundle_type_conns b_t_conns, customer_assettypes at
+    FROM {}.customers f, bundle_type_conns b_t_conns, customer_assettypes at
     WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={}
     ORDER BY f.id;""".format(self.dictDB['versionName'],submodel)
                     self.cur.execute(sql)
@@ -346,7 +346,7 @@ CREATE TABLE {}.energy_plant_s_power${}
                     #load data
                     #get epid`s
                     sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
-    FROM {}.dhc_energy_plants f, bundle_type_conns b_t_conns, energy_plant_assettypes at
+    FROM {}.energy_plants f, bundle_type_conns b_t_conns, energy_plant_assettypes at
     WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={};""".format(self.dictDB['versionName'],submodel)
                     print(sql)
                     self.cur.execute(sql)
@@ -413,7 +413,7 @@ CREATE TABLE {}.line_s_{}${}
 
                     #load data
                     #get lids
-                    sql="""SELECT id FROM {}.dhc_lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.dictDB['versionName'],submodel)
+                    sql="""SELECT id FROM {}.lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.dictDB['versionName'],submodel)
                     self.cur.execute(sql)
                     lids=self.cur.fetchall()
                     
@@ -512,7 +512,7 @@ CREATE TABLE {}.line_s_{}${}
     def updateResultLayerGeometry(self,tables,type):
         for table_name in tables:
             sql="""UPDATE {}.{} r set geom = f.geom 
-    FROM (SELECT id, geom FROM {}.dhc_{}s) f
+    FROM (SELECT id, geom FROM {}.{}s) f
     WHERE f.id=r.fid;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'],type)
             print(sql)
             self.cur.execute(sql)

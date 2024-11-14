@@ -261,17 +261,17 @@ class IdaDistrictsPreProcessing:
             iface.messageBar().pushMessage("Info", "No Layer is selected!", level=Qgis.Info)
 
     def getDHCLayerNameByType(self,type,dlg):
-        """Get DHC layer name by type"""
+        """Get layer name by type"""
         if type=='line':
-            dhc_layer_name='dhc_lines'
+            layer_name='lines'
         else:
             if dlg.rbtn_plant.isChecked():
-                dhc_layer_name='dhc_energy_plants'
+                layer_name='energy_plants'
             elif dlg.rbtn_device.isChecked():
-                dhc_layer_name='dhc_devices'
+                layer_name='devices'
             else:
-                dhc_layer_name='dhc_customers'
-        return dhc_layer_name
+                layer_name='customers'
+        return layer_name
     
     def getImportLayer(self,dlg):
         """Get import layer"""
@@ -574,12 +574,11 @@ TRUNCATE pipe_layers CASCADE;\n"""
         return True
     
     def importLayerToDb(self,type,dlg):
-        """Import the mapped layer into dhc_lines"""
+        """Import the mapped layer into lines"""
         print(type)
-        dhc_layer_name=self.getDHCLayerNameByType(type,dlg)
+        layer_name=self.getDHCLayerNameByType(type,dlg)
         print(dlg.mappedAttributes)
         layer=QgsProject.instance().mapLayersByName(dlg.selectLayer.currentText())
-        layer_dhc=QgsProject.instance().mapLayersByName(dhc_layer_name)[0]
         print(layer)
         
         self.conn=dbConnect(self.dictDB,False)
@@ -588,24 +587,24 @@ TRUNCATE pipe_layers CASCADE;\n"""
             if layer:
                 layer=layer[0]
                 generateId=False
-                #dhc attribute names
-                dhc_attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
-                print(dhc_attributes)
+                #attribute names
+                attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
+                print(attributes)
                 
                 if dlg.rbtn_truncate.isChecked():
                     ids=[]
-                    sql="TRUNCATE {}.{};".format(self.dictDB['versionName'],dhc_layer_name)
+                    sql="TRUNCATE {}.{};".format(self.dictDB['versionName'],layer_name)
                     self.cur.execute(sql)
                 else:
-                    sql="SELECT id FROM {}.{};".format(self.dictDB['versionName'],dhc_layer_name)
+                    sql="SELECT id FROM {}.{};".format(self.dictDB['versionName'],layer_name)
                     self.cur.execute(sql)
                     ids=[i['id'] for i in self.cur.fetchall()]
                 
                 #check if id is mapped
-                if not 'id' in dhc_attributes:
+                if not 'id' in attributes:
                     dlg_question = QMessageBox(dlg)
                     dlg_question.setWindowTitle('Identifier is missing!')
-                    dlg_question.setText("""The id is not mapped in "{}". Do you want to use a serial id instead?""".format(dhc_layer_name))
+                    dlg_question.setText("""The id is not mapped in "{}". Do you want to use a serial id instead?""".format(layer_name))
                     dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
                     dlg_question.setIcon(QMessageBox.Question)
                     button = dlg_question.exec()
@@ -615,7 +614,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                         if dlg.rbtn_truncate.isChecked():
                             generateId=1
                         else:
-                            generateId=getMaxIdSchema(self.cur,dhc_layer_name,self.dictDB['versionName'])+1
+                            generateId=getMaxIdSchema(self.cur,layer_name,self.dictDB['versionName'])+1
                     else:
                         print("Cancel!")
                         return False
@@ -632,9 +631,9 @@ TRUNCATE pipe_layers CASCADE;\n"""
                                 if attribute in dlg.mappedAttributes[mappedAttribute]:
                                     mappedAttributesValues[mappedAttribute]=mappedAttributesValues[mappedAttribute].replace('|'+attribute+'|',str(attributes[attribute]))
                     values=[]
-                    print(dhc_attributes)
-                    for dhc_attribute in dhc_attributes:
-                        values.append(str(eval(mappedAttributesValues[dhc_attribute])))
+                    print(attributes)
+                    for attribute in attributes:
+                        values.append(str(eval(mappedAttributesValues[attribute])))
 
                     if type=='line':
                         values.append('ST_Force3D(ST_LineMerge(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\')))')
@@ -642,14 +641,14 @@ TRUNCATE pipe_layers CASCADE;\n"""
                         values.append('ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))')
                     if generateId:
                         values.append(str(generateId+i))
-                        sql+="""INSERT INTO {}.{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],dhc_layer_name,','.join(dhc_attributes+['geom','id']),','.join(values))
+                        sql+="""INSERT INTO {}.{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))
                     else:
-                        if values[dhc_attributes.index('id')] in ids:
-                            iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[dhc_attributes.index('id')]),layer), level=Qgis.Warning)
+                        if values[attributes.index('id')] in ids:
+                            iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=Qgis.Warning)
                             return False
                         else:
-                            ids.append(values[dhc_attributes.index('id')])
-                        sql+="""INSERT INTO {}.{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],dhc_layer_name,','.join(dhc_attributes+['geom']),','.join(values))
+                            ids.append(values[attributes.index('id')])
+                        sql+="""INSERT INTO {}.{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
                     i+=1
                 print(sql)
                 self.cur.execute(sql)
@@ -735,7 +734,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.dlg.lineEditOsmBuildingsFileName.setText(filename)
         
     def networkDecoupling(self):
-        """ Decoupling of the network into subnetworks: set attribute subnetwork in the tables dhc_junctions, dhc_lines, dhc_customers, dhc_energy_plants"""
+        """ Decoupling of the network into subnetworks: set attribute subnetwork in the tables junctions, lines, customers, energy_plants"""
         print('network decoupling')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
@@ -747,20 +746,20 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.cur.execute(sql)
             for subnetwork in self.cur.fetchall():
                 print (subnetwork[0])
-                #dhc_junctions
-                sql="UPDATE {}.dhc_junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM {}.subnetwork sn, {}.dhc_junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                #junctions
+                sql="UPDATE {}.junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM {}.subnetwork sn, {}.junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
-                #dhc_customers
-                sql="UPDATE {}.dhc_customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM {}.subnetwork sn, {}.dhc_customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                #customers
+                sql="UPDATE {}.customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM {}.subnetwork sn, {}.customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
-                #dhc_energy_plants
-                sql="UPDATE {}.dhc_energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM {}.subnetwork sn, {}.dhc_energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                #energy_plants
+                sql="UPDATE {}.energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM {}.subnetwork sn, {}.energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
-                #dhc_lines
-                sql="UPDATE {}.dhc_lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM {}.subnetwork sn, {}.dhc_lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                #lines
+                sql="UPDATE {}.lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM {}.subnetwork sn, {}.lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
             
@@ -1117,7 +1116,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             assetgroups=self.getAssetgroupsFromTable(dropDown)
             if assetgroups:
                 sql="""SELECT ag.assetgroup, at.assettype, at.assettype_name
-    FROM {}.dhc_{}s f, public.{}_assettypes at, public.{}_assetgroups ag
+    FROM {}.{}s f, public.{}_assettypes at, public.{}_assetgroups ag
     WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup AND f.assetgroup IN ({})
     GROUP BY ag.assetgroup, at.assettype, at.assettype_name
     ORDER BY ag.assetgroup, at.assettype; """.format(self.dictDB['versionName'],type,type,type,','.join(assetgroups))
@@ -1144,7 +1143,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             assetgroups=self.getAssetgroupsFromTable(dropDown)
             if assetgroups:
                 sql="""SELECT ag.assetgroup, at.assettype, at.assettype_name
-    FROM {}.dhc_{}s f, public.{}_assettypes at, public.{}_assetgroups ag
+    FROM {}.{}s f, public.{}_assettypes at, public.{}_assetgroups ag
     WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup AND f.assetgroup IN ({})
     GROUP BY ag.assetgroup, at.assettype, at.assettype_name
     ORDER BY ag.assetgroup, at.assettype; """.format(self.dictDB['versionName'],type,type,type,','.join(assetgroups))
@@ -1175,12 +1174,12 @@ TRUNCATE pipe_layers CASCADE;\n"""
             if assettypes:
                 sql="""WITH sub AS(
     SELECT ag.id, at.assettype, at.assettype_name
-        FROM {}.dhc_{}s f, public.{}_assettypes at, public.{}_assetgroups ag
+        FROM {}.{}s f, public.{}_assettypes at, public.{}_assetgroups ag
         WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup
             AND at.assettype || ':' || at.assettype_name || '(' || ag.assetgroup ||')' IN ({})
         GROUP BY ag.id, at.assettype, at.assettype_name
 )    
-SELECT f.id AS f_id,sub.assettype_name FROM {}.dhc_{}s f, sub WHERE f.assetgroup=sub.id AND f.assettype=sub.assettype ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,type,','.join(["'" + i + "'" for i in assettypes]),self.dictDB['versionName'],type)
+SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub.id AND f.assettype=sub.assettype ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,type,','.join(["'" + i + "'" for i in assettypes]),self.dictDB['versionName'],type)
                 print(sql)
                 self.cur.execute(sql)
                 ids=self.cur.fetchall()
@@ -1209,7 +1208,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.dhc_{}s f, sub WHERE f.assetgroup
             print(ids)
             if ids and table.cellWidget(row, 7).currentText()!='Custom':
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
-    FROM public.bundle_type_conns b_t_conns, {}.dhc_{}s f, public.{}_assettypes at, public.connection_types conn_t
+    FROM public.bundle_type_conns b_t_conns, {}.{}s f, public.{}_assettypes at, public.connection_types conn_t
     WHERE at.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND f.id IN ({}) AND conn_t.id=b_t_conns.conn_type_id
     GROUP BY conn_t.id,conn_t.description;""".format(self.dictDB['versionName'],type,type,','.join(ids))
                 print(sql)
@@ -1277,7 +1276,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.dhc_{}s f, sub WHERE f.assetgroup
 
     def setFilteredIdsDropdownItems(self,table,type,id,row,sensor):
         sql="""SELECT s_id.feature_id, s_id.active, at.assettype_name
-    FROM {}.{}_ids s_id, {}.dhc_{}s f, public.{}_assettypes at
+    FROM {}.{}_ids s_id, {}.{}s f, public.{}_assettypes at
     WHERE s_id.{}_id={} AND f.id=s_id.feature_id AND f.assetgroup=at.assetgroup AND f.assettype=at.assettype
     ORDER BY s_id.feature_id;""".format(self.dictDB['versionName'],sensor,self.dictDB['versionName'],type,type,sensor,id)
         print(sql)
@@ -1342,7 +1341,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.dhc_{}s f, sub WHERE f.assetgroup
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'1:Customer',8,row,False)
         else:
             sql="""SELECT ag.id AS assetgroup, ag.assetgroup AS assetgroup_name
-    FROM {}.dhc_{}s f, public.{}_assetgroups ag
+    FROM {}.{}s f, public.{}_assetgroups ag
     WHERE ag.id=f.assetgroup
     GROUP BY ag.assetgroup, ag.id
     ORDER BY ag.id;""".format(self.dictDB['versionName'],type,type)
@@ -1378,7 +1377,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.dhc_{}s f, sub WHERE f.assetgroup
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
         else:
             sql="""SELECT ag.id AS assetgroup, ag.assetgroup AS assetgroup_name
-    FROM {}.dhc_{}s f, public.{}_assetgroups ag
+    FROM {}.{}s f, public.{}_assetgroups ag
     WHERE ag.id=f.assetgroup
     GROUP BY ag.assetgroup, ag.id
     ORDER BY ag.id;""".format(self.dictDB['versionName'],type,type)

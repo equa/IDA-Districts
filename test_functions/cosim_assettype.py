@@ -15,7 +15,7 @@ sql="""--customers
 (SELECT f.id,'Customer' AS feature,
     array_agg('{''pmt2_name'': '''||b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text||'_'||b_t_conns.conn_type_id::text||'_'||c_t_conns.sequence::text||'_T'||conns.temp::text||
             ''', ''mdot'': '||CASE WHEN conns.mdot IS NULL AND 2 = f.submodel THEN 'True' ELSE 'False' END||', ''conn_dir'': '''|| conn_dir.name::text||'''}' ORDER BY b_t_conns.sequence,c_t_conns.sequence) AS conns
-    FROM b.dhc_customers f, b.customer_connections f_conns, b.dhc_lines l, customer_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, connections conns, prefered_conn_dir conn_dir
+    FROM b.customers f, b.customer_connections f_conns, b.lines l, customer_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, connections conns, prefered_conn_dir conn_dir
     WHERE conn_dir.id=conns.type AND f.id=f_conns.cid AND l.id=f_conns.lid AND 2 = f.submodel AND 1 = ANY (l.submodel) AND 
         f_at.assettype=f.assettype AND f_at.assetgroup=f.assetgroup AND 
         f_at.conn_bundle_type=b_t_conns.conn_bundle_type_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND conns.id=c_t_conns.connection_id
@@ -25,7 +25,7 @@ UNION
 (SELECT f.id, 'Energy_plant' AS feature,
     array_agg('{''pmt2_name'': '''||b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text||'_'||b_t_conns.conn_type_id::text||'_'||c_t_conns.sequence::text||'_T'||conns.temp::text||
             ''', ''mdot'': '||CASE WHEN conns.mdot IS NULL AND 2 = f.submodel THEN 'True' ELSE 'False' END||', ''conn_dir'': '''|| conn_dir.name::text||'''}' ORDER BY b_t_conns.sequence,c_t_conns.sequence) AS conns
-    FROM b.dhc_energy_plants f, b.energy_plant_connections f_conns, b.dhc_lines l, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, connections conns, prefered_conn_dir conn_dir
+    FROM b.energy_plants f, b.energy_plant_connections f_conns, b.lines l, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, connections conns, prefered_conn_dir conn_dir
     WHERE conn_dir.id=conns.type AND f.id=f_conns.epid AND l.id=f_conns.lid AND 2 = f.submodel AND 1 = ANY (l.submodel) AND 
         f_at.assettype=f.assettype AND f_at.assetgroup=f.assetgroup AND 
         f_at.conn_bundle_type=b_t_conns.conn_bundle_type_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND conns.id=c_t_conns.connection_id

@@ -3,6 +3,7 @@
 from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.error_handling import *
+from plugins.utility_functions.layer_visualization import *
 from .PipeLayingAlgorithm import WorkerPipeLaying 
 from .pipe_sizing import * 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
@@ -16,7 +17,7 @@ from qgis.utils import iface
 from PyQt5 import QtGui, QtCore
 
 
-def checkPipeLayingLayerData(dictDB,cur,network):
+def checkPipeLayingLayerData(dictDB,cur,network):   
     if featureCount(cur,dictDB,network,'customer')==0:
         return 'no_customers'
     if featureCount(cur,dictDB,network,'energy_plant')==0:
@@ -31,7 +32,7 @@ def checkPipeLayingLayerData(dictDB,cur,network):
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['dhc_customers_temp','dhc_lines_temp','dhc_lines_heating_temp','dhc_lines_cooling_temp','dhc_junctions_temp']:
+        if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp']:
             QgsProject.instance().removeMapLayer(layer)
             
 class IdaDistrictsPreProcessingDialog(QMainWindow):
@@ -532,9 +533,9 @@ class PipeLayingDialog(QMainWindow):
         if layerCheck=='no_streets':
             self.iface.messageBar().pushMessage("Error", "Please insert streets into the streets layer.", level=Qgis.Critical)
         elif layerCheck=='no_plants':
-            self.iface.messageBar().pushMessage("Error", "Please insert energy plants into the dhc_energy_plants layer.", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Error", f"Please insert a main energy plant of network: {self.combo_network.currentText()} into the energy_plants layer.", level=Qgis.Critical)
         elif layerCheck=='no_customers':
-            self.iface.messageBar().pushMessage("Error", "Please insert energy plants into the dhc_energy_plants layer.", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Error", f"Please insert customers of network: {self.combo_network.currentText()} into the customers layer.", level=Qgis.Critical)
         elif not layerCheck:
             worker = WorkerPipeLaying(network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),heating_assettype_customer=self.heating_assettype_customer.currentText(),heating_assettype_lines=self.heating_assettype_lines.currentText(),linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),cooling_load_min=self.cooling_load_min.text(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),amortization_period_cold=self.amortization_period_cold.text(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
             worker.signals.progress.connect(self.update_progress)
@@ -700,19 +701,19 @@ class PipeLayingDialog(QMainWindow):
             self.amortization_period_cold.setHidden(True) 
     
     def saveResults(self):
-        """Writes results (dhc_lines, dhc_customers, dhc_junctions) from temp schema to version schema"""
+        """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE {}.dhc_lines, {}.dhc_customers, {}.dhc_junctions,{}.customer_connections, {}.junction_connections, {}.energy_plant_connections, {}.device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql=""" TRUNCATE {}.lines, {}.customers, {}.junctions,{}.customer_connections, {}.junction_connections, {}.energy_plant_connections, {}.device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.dhc_lines SELECT * FROM temp.dhc_lines;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO {}.lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.dhc_customers SELECT * FROM temp.dhc_customers;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO {}.customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.dhc_junctions SELECT * FROM temp.dhc_junctions;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO {}.junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
@@ -727,18 +728,18 @@ class PipeLayingDialog(QMainWindow):
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-        for layer in ['dhc_lines','dhc_junctions','dhc_customers']:
+        for layer in ['lines','junctions','customers']:
             vlayer= QgsProject.instance().mapLayersByName(layer)[0]
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
             vlayer.emitDataChanged()
         refreshMap()
         
     def rejectResults(self):
-        """Writes results (dhc_lines, dhc_customers, dhc_junctions) from temp schema to version schema"""
+        """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('Reject Results')
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-        for layer in ['dhc_lines','dhc_junctions','dhc_customers']:
+        for layer in ['lines','junctions','customers']:
             if QgsProject.instance().mapLayersByName(layer):
                 vlayer= QgsProject.instance().mapLayersByName(layer)[0]
                 layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
@@ -1023,7 +1024,7 @@ class NetworkTopologyDialog(QMainWindow):
                 worker.signals.progress.connect(self.update_progress)
 
     def checkNetworkAttribute(self,version):
-        sql="""SELECT count(*) FROM {}.dhc_lines WHERE network IS NULL;""".format(version)
+        sql="""SELECT count(*) FROM {}.lines WHERE network IS NULL;""".format(version)
         self.cur.execute(sql)
         networkNullCount=self.cur.fetchone()['count']
         if networkNullCount>0:
@@ -1031,13 +1032,13 @@ class NetworkTopologyDialog(QMainWindow):
 
             dlg_question = QMessageBox(self)
             dlg_question.setWindowTitle('Network attribute value missing!')
-            dlg_question.setText("""{} network attribute(s) in dhc_lines are not set. Should the attribute(s) be set to 1?""".format(networkNullCount))
+            dlg_question.setText("""{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?""".format(networkNullCount))
             dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
             dlg_question.setIcon(QMessageBox.Question)
             button = dlg_question.exec()
 
             if button == QMessageBox.Yes:
-                sql="""UPDATE {}.dhc_lines SET network=1 WHERE network IS NULL;""".format(version)
+                sql="""UPDATE {}.lines SET network=1 WHERE network IS NULL;""".format(version)
                 print(sql)
                 self.cur.execute(sql)
                 return True
@@ -1133,19 +1134,19 @@ class NetworkTopologyDialog(QMainWindow):
             self.overrideAssettype_pipeBundle.setHidden(False)
     
     def saveResults(self):
-        """Writes results (dhc_lines, dhc_customers, dhc_junctions) from temp schema to version schema"""
+        """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE {}.dhc_lines, {}.dhc_customers, {}.dhc_junctions,{}.customer_connections, {}.junction_connections, {}.energy_plant_connections, {}.device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql=""" TRUNCATE {}.lines, {}.customers, {}.junctions,{}.customer_connections, {}.junction_connections, {}.energy_plant_connections, {}.device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.dhc_lines SELECT * FROM temp.dhc_lines;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO {}.lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.dhc_customers SELECT * FROM temp.dhc_customers;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO {}.customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.dhc_junctions SELECT * FROM temp.dhc_junctions;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO {}.junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
@@ -1163,7 +1164,7 @@ class NetworkTopologyDialog(QMainWindow):
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-        for layer in ['dhc_lines','dhc_junctions','dhc_customers']:
+        for layer in ['lines','junctions','customers']:
             vlayer= QgsProject.instance().mapLayersByName(layer)
             if vlayer:
                 vlayer=vlayer[0]
@@ -1172,11 +1173,11 @@ class NetworkTopologyDialog(QMainWindow):
         refreshMap()
         
     def rejectResults(self):
-        """Writes results (dhc_lines, dhc_customers, dhc_junctions) from temp schema to version schema"""
+        """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('Reject Results')
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-        for layer in ['dhc_lines','dhc_junctions','dhc_customers']:
+        for layer in ['lines','junctions','customers']:
             if QgsProject.instance().mapLayersByName(layer):
                 vlayer= QgsProject.instance().mapLayersByName(layer)[0]
                 layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
@@ -1298,7 +1299,7 @@ class MapDevicesPlantsDialog(QMainWindow):
         sql="""SELECT conn_b_t.conn_type_id, conn_b_t.description 
     FROM public.bundle_type_conns conn_b_t, {}.{} b, public.{}_assettypes a
     WHERE conn_b_t.conn_bundle_type_id =a.conn_bundle_type AND b.id={} AND a.assetgroup=b.assetgroup AND a.assettype=b.assettype 
-    ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[4:-1],item.text())
+    ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[:-1],item.text())
         print(sql)
         self.cur.execute(sql)
         conn_ids=[]
@@ -1309,7 +1310,7 @@ class MapDevicesPlantsDialog(QMainWindow):
           
         #add connection type items to listWidget_lines
         self.listWidget_lines.clear()
-        sql="SELECT array_agg(l.id::text) AS lid FROM {}.dhc_lines l, {}.{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};".format(self.dictDB['versionName'],self.dictDB['versionName'],table_name,item.text())
+        sql="SELECT array_agg(l.id::text) AS lid FROM {}.lines l, {}.{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};".format(self.dictDB['versionName'],self.dictDB['versionName'],table_name,item.text())
         self.cur.execute(sql)
         l_ids=self.cur.fetchone()['lid']
         print(l_ids)
@@ -1322,20 +1323,20 @@ class MapDevicesPlantsDialog(QMainWindow):
     def updateConnections(self,table_name,id): 
         """Update the connections in  tableWidget"""
         self.tableWidget.setRowCount(0)
-        if table_name=='dhc_energy_plants':
+        if table_name=='energy_plants':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', ep_conn.lid) AS connection
-        FROM {}.energy_plant_connections ep_conn, {}.dhc_energy_plants ep, public.energy_plant_assettypes epa, public.bundle_type_conns conn_b_t
+        FROM {}.energy_plant_connections ep_conn, {}.energy_plants ep, public.energy_plant_assettypes epa, public.bundle_type_conns conn_b_t
         WHERE ep.id={} AND ep.id=ep_conn.epid AND epa.assetgroup=ep.assetgroup AND epa.assettype=ep.assettype AND epa.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=ep_conn.ep_seq
         ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
             print(sql)
-        elif table_name=='dhc_devices':
+        elif table_name=='devices':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', d_conn.lid) AS connection
-    FROM {}.device_connections d_conn, {}.dhc_devices d, public.device_assettypes da, public.bundle_type_conns conn_b_t
+    FROM {}.device_connections d_conn, {}.devices d, public.device_assettypes da, public.bundle_type_conns conn_b_t
     WHERE d.id={} AND d.id=d_conn.did AND da.assetgroup=d.assetgroup AND da.assettype=d.assettype  AND da.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=d_conn.d_seq 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
-        elif table_name=='dhc_customers':
+        elif table_name=='customers':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', c_conn.lid) AS connection
-    FROM {}.customer_connections c_conn, {}.dhc_customers c, public.customer_assettypes ca, public.bundle_type_conns conn_b_t
+    FROM {}.customer_connections c_conn, {}.customers c, public.customer_assettypes ca, public.bundle_type_conns conn_b_t
     WHERE c.id={} AND c.id=c_conn.cid AND ca.assetgroup=c.assetgroup AND ca.assettype=c.assettype AND ca.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=c_conn.c_seq 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
         self.cur.execute(sql)
@@ -1359,24 +1360,24 @@ class MapDevicesPlantsDialog(QMainWindow):
         """ return the table name: devide or plant from the sender"""
         print(self.rbtn_devices.isChecked())
         if self.rbtn_devices.isChecked()==True:
-            return 'dhc_devices'
+            return 'devices'
         elif self.rbtn_plants.isChecked()==True:
-            return 'dhc_energy_plants'
+            return 'energy_plants'
         elif self.rbtn_customers.isChecked()==True:
-            return 'dhc_customers'
+            return 'customers'
                  
     def updateDevicesPlantsCustomersLists(self,s):
         """Update the list of devices, plants or customer based on the radio button """
         print('Update devices/plants list')
         print(self.sender())
         if self.sender()==self.rbtn_devices:
-            table='dhc_devices'
+            table='devices'
             text='Devices'
         elif self.sender()==self.rbtn_plants:
-            table='dhc_energy_plants'
+            table='energy_plants'
             text='Energy plants'
         elif self.sender()==self.rbtn_customers:
-            table='dhc_customers'
+            table='customers'
             text='Customers'
         self.label_listWidget_devicesPlants.setText(text)
         sql="SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM {}.{};".format(self.dictDB['versionName'],table)
@@ -1427,11 +1428,11 @@ class MapDevicesPlantsDialog(QMainWindow):
         seq=self.listWidget_devicesPlants_connTypes.currentRow()+1
         print(seq)
         if seq:
-            if table_name=="dhc_energy_plants":
+            if table_name=="energy_plants":
                 sql="SELECT count(*) FROM {}.energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};".format(self.dictDB['versionName'],lid,id,seq)
-            elif table_name=="dhc_devices":
+            elif table_name=="devices":
                 sql="SELECT count(*) FROM {}.device_connections WHERE lid={} AND did={} AND d_seq={};".format(self.dictDB['versionName'],lid,id,seq)
-            elif table_name=="dhc_customers":
+            elif table_name=="customers":
                 sql="SELECT count(*) FROM {}.customer_connections WHERE lid={} AND cid={} AND c_seq={};".format(self.dictDB['versionName'],lid,id,seq)
             print(sql)
             self.cur.execute(sql)
@@ -1440,11 +1441,11 @@ class MapDevicesPlantsDialog(QMainWindow):
                 return
             else:
                 if seq and id and lid:
-                    if table_name=="dhc_energy_plants":
+                    if table_name=="energy_plants":
                         sql="""INSERT INTO {}.energy_plant_connections (epid,ep_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
-                    elif table_name=="dhc_devices":
+                    elif table_name=="devices":
                         sql="""INSERT INTO {}.device_connections (did,d_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
-                    elif table_name=="dhc_customers":
+                    elif table_name=="customers":
                         sql="""INSERT INTO {}.customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
                     
                     print(sql)
@@ -1456,7 +1457,7 @@ class MapDevicesPlantsDialog(QMainWindow):
         sql="""SELECT conn_b_t.sequence
     FROM public.bundle_type_conns conn_b_t, {}.{} a, public.{}_assettypes b 
     WHERE a.id={} AND b.assetgroup=a.assetgroup AND b.assettype=a.assettype AND b.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.conn_type_id={}
-    ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[4:-1],id,conn_type)
+    ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[:-1],id,conn_type)
         print(sql)
         self.cur.execute(sql)
         seq=self.cur.fetchone()
@@ -1480,11 +1481,11 @@ class MapDevicesPlantsDialog(QMainWindow):
         lid=conn.split('-->  ')[1]
         
         seq=self.getConnTypeSeq(table_name,id,conn_type)
-        if table_name=="dhc_energy_plants":
+        if table_name=="energy_plants":
             sql="DELETE FROM {}.energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};".format(self.dictDB['versionName'],lid,id,seq)
-        elif table_name=="dhc_devices":
+        elif table_name=="devices":
             sql="DELETE FROM {}.device_connections WHERE lid={} AND did={} AND d_seq={};".format(self.dictDB['versionName'],lid,id,seq)
-        elif table_name=="dhc_customers":
+        elif table_name=="customers":
             sql="DELETE FROM {}.customer_connections WHERE lid={} AND cid={} AND c_seq={};".format(self.dictDB['versionName'],lid,id,seq)
         print(sql)
         self.cur.execute(sql)
@@ -1610,24 +1611,24 @@ class ImportNetworkTopologyFromLayer(QMainWindow):
         layout_listWidget_layerAttributes.addWidget(self.listWidget_layerAttributes)
         layout_listWidget_attributes.addLayout(layout_listWidget_layerAttributes)
        
-        #list widget for dhc_lines attributes
-        layout_listWidget_dhc_attributes = QVBoxLayout()
-        label_listWidget_dhc_attributes=QLabel("DHC fields")
-        layout_listWidget_dhc_attributes.addWidget(label_listWidget_dhc_attributes)
-        self.listWidget_dhc_attributes = QListWidget()
-        layout_listWidget_dhc_attributes.addWidget(self.listWidget_dhc_attributes)
-        layout_listWidget_attributes.addLayout(layout_listWidget_dhc_attributes)
+        #list widget for lines attributes
+        layout_listWidget_attributes = QVBoxLayout()
+        label_listWidget_attributes=QLabel("fields")
+        layout_listWidget_attributes.addWidget(label_listWidget_attributes)
+        self.listWidget_attributes = QListWidget()
+        layout_listWidget_attributes.addWidget(self.listWidget_attributes)
+        layout_listWidget_attributes.addLayout(layout_listWidget_attributes)
         
         #table for mapped attributes  
         self.tableWidget = QTableWidget(0,3)   
-        self.tableWidget.setHorizontalHeaderLabels(['Expression','','DHC fields'])     
+        self.tableWidget.setHorizontalHeaderLabels(['Expression','','fields'])     
         self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
 
         #buttons
         #connection buttons
         layout_buttons_connect = QHBoxLayout()
         
-        btn_connect=QPushButton("Map dhc layer fields")
+        btn_connect=QPushButton("Map layer fields")
         btn_connect.pressed.connect(lambda: mapAttributes(self))
         layout_buttons_connect.addWidget(btn_connect)
                
@@ -1674,7 +1675,7 @@ def loadLayers(dlg,type):
         
     oldLayerNames=[dlg.selectLayer.itemText(i) for i in range(dlg.selectLayer.count())]
     layers=QgsProject.instance().mapLayers().values()
-    layers=[i.name() for i in layers if not 'dhc_' in i.name() and isinstance(i, QgsVectorLayer) and i.name() not in oldLayerNames
+    layers=[i.name() for i in layers if i.name() not in getDHCLayerNames() and isinstance(i, QgsVectorLayer) and i.name() not in oldLayerNames
         and i.isSpatial() and i.name() not in ['streets','buildings','subnetwork'] and i.geometryType() == line_check]
     dlg.selectLayer.addItems(layers)
     
@@ -1687,71 +1688,71 @@ def addExpressionToMappedAttributes(dlg,dropdown):
             expression=dlg.tableWidget.cellWidget(currentRow, 0).currentText().split(':')[0]
         else:
             expression=dlg.tableWidget.item(currentRow, 0).text()
-        dhc_atribute=dlg.tableWidget.item(currentRow, 2).text()
-        dlg.mappedAttributes[dhc_atribute]=expression
+        attribute=dlg.tableWidget.item(currentRow, 2).text()
+        dlg.mappedAttributes[attribute]=expression
         print(dlg.mappedAttributes)
 
 def setDHCLayerListAttributes(dlg,type):
-    """Sets the dhc layer attributes"""
+    """Sets the layer attributes"""
     if type=='line':
-        dhc_layer_name='dhc_lines'
+        layer_name='lines'
     else:
         if dlg.rbtn_plant.isChecked():
-            dhc_layer_name='dhc_energy_plants'
+            layer_name='energy_plants'
         elif dlg.rbtn_device.isChecked():
-            dhc_layer_name='dhc_devices'
+            layer_name='devices'
         else:
-            dhc_layer_name='dhc_customers'
-    layer=QgsProject.instance().mapLayersByName(dhc_layer_name)
+            layer_name='customers'
+    layer=QgsProject.instance().mapLayersByName(layer_name)
     print(layer)
     if layer:
         layer=layer[0]
         attributes=layer.fields()
         attributes=[str(i.name()) for i in attributes]
-        dlg.listWidget_dhc_attributes.addItems(attributes)
+        dlg.listWidget_attributes.addItems(attributes)
         for attribute in attributes:
             dlg.mappedAttributes[attribute]=''
     
 def disconnectAttributes(dlg):
-    """Disconnect the attributes from layer to dhc layer"""
-    print("Disconnect the attributes from layer to dhc layer")
+    """Disconnect the attributes from layer to layer"""
+    print("Disconnect the attributes from layer to layer")
     row=dlg.tableWidget.currentRow()
     if row!=-1:
         print(row)
-        dhc_attribute=dlg.tableWidget.item(row,2).text()
-        print(dhc_attribute)
-        dlg.mappedAttributes[dhc_attribute]=''
+        attribute=dlg.tableWidget.item(row,2).text()
+        print(attribute)
+        dlg.mappedAttributes[attribute]=''
         dlg.tableWidget.removeRow(row)
 
 def mapAttributes(dlg):
-    """Map the attributes from layer to dhc layer"""
-    print("Map the attributes from layer to dhc layer")
+    """Map the attributes from layer to layer"""
+    print("Map the attributes from layer to layer")
     currentLayerAttribute=dlg.listWidget_layerAttributes.currentItem()
-    currentLayer_dhc_attribute=dlg.listWidget_dhc_attributes.currentItem()
+    currentLayer_attribute=dlg.listWidget_attributes.currentItem()
     if currentLayerAttribute:
         currentLayerAttribute='|'+currentLayerAttribute.text()+'|'
     else:
         currentLayerAttribute="1"
         
-    if currentLayer_dhc_attribute:
-        currentLayer_dhc_attribute=currentLayer_dhc_attribute.text()
+    if currentLayer_attribute:
+        currentLayer_attribute=currentLayer_attribute.text()
     else:
-        iface.messageBar().pushMessage("Info", "No DHC layer field selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "No layer field selected!", level=Qgis.Info)
         return False
     rowPosition = dlg.tableWidget.rowCount()
     
-    if not dlg.mappedAttributes[currentLayer_dhc_attribute]:
-        dlg.mappedAttributes[currentLayer_dhc_attribute]=currentLayerAttribute
+    if not dlg.mappedAttributes[currentLayer_attribute]:
+        dlg.mappedAttributes[currentLayer_attribute]=currentLayerAttribute
         dlg.tableWidget.insertRow(rowPosition)
         dlg.tableWidget.setItem(rowPosition,0,QTableWidgetItem(currentLayerAttribute))            
         item=QTableWidgetItem('-->')
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         dlg.tableWidget.setItem(rowPosition,1,item)
-        item=QTableWidgetItem(currentLayer_dhc_attribute)
+        item=QTableWidgetItem(currentLayer_attribute)
         item.setFlags(QtCore.Qt.ItemIsEnabled)
         dlg.tableWidget.setItem(rowPosition,2,item)
     else:            
-        iface.messageBar().pushMessage("Info", "DHC layer field already mapped!", level=Qgis.Info)  
+        iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=Qgis.Info)  
     print(dlg.mappedAttributes)
             
 class ImportPointLayer(QMainWindow):
@@ -1801,11 +1802,11 @@ class ImportPointLayer(QMainWindow):
         
         #Radio Buttons extend option
         layout_radio=QHBoxLayout()
-        self.rbtn_extend = QRadioButton('Extend dhc layer')
+        self.rbtn_extend = QRadioButton('Extend layer')
         self.rbtn_extend.setChecked(True)
         layout_radio.addWidget(self.rbtn_extend)
         self.btngroup_extend.addButton(self.rbtn_extend)
-        self.rbtn_truncate= QRadioButton('Truncate existing dhc layer')
+        self.rbtn_truncate= QRadioButton('Truncate existing layer')
         layout_radio.addWidget(self.rbtn_truncate)
         self.btngroup_extend.addButton(self.rbtn_truncate)
         
@@ -1819,17 +1820,17 @@ class ImportPointLayer(QMainWindow):
         layout_listWidget_layerAttributes.addWidget(self.listWidget_layerAttributes)
         layout_listWidget_attributes.addLayout(layout_listWidget_layerAttributes)
        
-        #list widget for dhc_lines attributes
-        layout_listWidget_dhc_attributes = QVBoxLayout()
-        label_listWidget_dhc_attributes=QLabel("DHC fields")
-        layout_listWidget_dhc_attributes.addWidget(label_listWidget_dhc_attributes)
-        self.listWidget_dhc_attributes = QListWidget()
-        layout_listWidget_dhc_attributes.addWidget(self.listWidget_dhc_attributes)
-        layout_listWidget_attributes.addLayout(layout_listWidget_dhc_attributes)
+        #list widget for lines attributes
+        layout_listWidget_attributes = QVBoxLayout()
+        label_listWidget_attributes=QLabel("Fields")
+        layout_listWidget_attributes.addWidget(label_listWidget_attributes)
+        self.listWidget_attributes = QListWidget()
+        layout_listWidget_attributes.addWidget(self.listWidget_attributes)
+        layout_listWidget_attributes.addLayout(layout_listWidget_attributes)
         
         #table for mapped attributes  
         self.tableWidget = QTableWidget(0,3)   
-        self.tableWidget.setHorizontalHeaderLabels(['Expression','','DHC fields'])     
+        self.tableWidget.setHorizontalHeaderLabels(['Expression','','Fields'])     
         self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
           
         #buttons

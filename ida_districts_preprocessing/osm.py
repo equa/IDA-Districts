@@ -20,25 +20,25 @@ class OSMBuildingsImport:
             if conn:
                 cur=conn.cursor()
                 if clearOldBuildings:
-                    sql="TRUNCATE "+dictDB['versionName']+".dhc_customers,"+dictDB['versionName']+".dhc_structure_boundarys;"
+                    sql="TRUNCATE "+dictDB['versionName']+".customers,"+dictDB['versionName']+".structure_boundarys;"
                     cur.execute(sql)
                 for b in buildings:
                     if len(b.geom.split(","))>2:
-                        #insert dhc_structure_boundarys
+                        #insert structure_boundarys
                         try:
-                            sql="INSERT INTO "+dictDB['versionName']+".dhc_structure_boundarys(assetgroup,geom,f_vexp_m) VALUES ("+assetgroup+",ST_Multi(ST_Transform(ST_GeomFromText('"+b.geom+"',4326),"+srid+")),"+b.height+");"
+                            sql="INSERT INTO "+dictDB['versionName']+".structure_boundarys(assetgroup,geom,f_vexp_m) VALUES ("+assetgroup+",ST_Multi(ST_Transform(ST_GeomFromText('"+b.geom+"',4326),"+srid+")),"+b.height+");"
                             print(sql)
                             cur.execute(sql)
                             
-                            #insert dhc_customers
-                            sql="INSERT INTO "+dictDB['versionName']+".dhc_customers(assetgroup,assettype,geom) VALUES (1,1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"+b.geom+"',4326))),"+srid+"));"
+                            #insert customers
+                            sql="INSERT INTO "+dictDB['versionName']+".customers(assetgroup,assettype,geom) VALUES (1,1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"+b.geom+"',4326))),"+srid+"));"
                             print(sql)
                             cur.execute(sql)  
                         except:
                             pass
                             
                 refreshMap()
-                zoomToLayer("dhc_customers")
+                zoomToLayer("customers")
                  
     def readOSMBuildings(self,osmBuildingsFileName,nodes):
         print("read OSM buildings")

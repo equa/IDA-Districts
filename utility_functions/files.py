@@ -182,7 +182,7 @@ def loadInvokedOutputs(plugin_dir,dictDB):
                 for line in myfile:        
                     invokedOutputs+=line
         else:
-            return {'dhc_customers': {}, 'dhc_lines': {}, 'dhc_energy_plants': {}}
+            return {'customers': {}, 'lines': {}, 'energy_plants': {}}
         invokedOutputs=eval(invokedOutputs)
         print(invokedOutputs)
     else:

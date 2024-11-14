@@ -137,10 +137,10 @@ def startCallibration(dlg,plugin_dir,conn,dictDB,iface):
             list_counter+=1
             
 def saveCallibValues(dlg,dictDB,conn,plugin_dir):
-    """Save the callibration values from dlg table (tableWidget_outputs) to dhc_customers layer"""
+    """Save the callibration values from dlg table (tableWidget_outputs) to customers layer"""
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        layer =QgsProject.instance().mapLayersByName('dhc_customers')
+        layer =QgsProject.instance().mapLayersByName('customers')
         if layer:
             print('save results')
             print(dlg.tabwidget.currentIndex())
@@ -201,7 +201,7 @@ def saveCallibValues(dlg,dictDB,conn,plugin_dir):
                                 print(value)
 
                                 #update layers
-                                sql="""UPDATE {}.dhc_customers SET "{}"={} WHERE id={};\n""".format(dictDB['versionName'],unique_field_name,value,id)
+                                sql="""UPDATE {}.customers SET "{}"={} WHERE id={};\n""".format(dictDB['versionName'],unique_field_name,value,id)
                                 print(sql)
                                 cur.execute(sql)    
 

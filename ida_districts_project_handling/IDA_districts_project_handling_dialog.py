@@ -48,15 +48,6 @@ class ProjectConfigDialog(QMainWindow):
         layout_field_input.addLayout(layout_labels)
         layout_field_input.addLayout(layout_values)   
         
-        #radio button for selection of DB simulation / DB meta data
-        self.rbtn_db_light = QRadioButton("DB light")
-        self.rbtn_db_light.setChecked(True)        
-        self.rbtn_db_meta = QRadioButton('DB with meta data')
-                
-        layout_db = QHBoxLayout()
-        layout_db.addWidget(self.rbtn_db_light)
-        layout_db.addWidget(self.rbtn_db_meta)
-        
         #buttons     
         layout_buttons = QHBoxLayout()
         self.btn_ok=QPushButton("Ok")
@@ -67,7 +58,6 @@ class ProjectConfigDialog(QMainWindow):
         #set layout together       
         layout_project = QVBoxLayout()
         layout_project.addLayout(layout_field_input)
-        layout_project.addLayout(layout_db)
         layout_project.addLayout(layout_buttons)
         
         widget=QWidget()
@@ -121,7 +111,7 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         self.host =QLineEdit("localhost")
         layout_db_input.addWidget(self.host)
         
-        self.port =QLineEdit("5433")
+        self.port =QLineEdit("5434")
         layout_db_input.addWidget(self.port)
         
         #buttons

@@ -2,7 +2,7 @@ from qgis.core import QgsAttributeEditorAction,QgsAction,QgsProject,Qgis
 
 def setupCustomerDataSheet():
     """Setup of the customer data sheet (RMB project) including button which generates a print layout and exports a pdf"""
-    feature_layer=QgsProject.instance().mapLayersByName('dhc_customers')[0] 
+    feature_layer=QgsProject.instance().mapLayersByName('customers')[0] 
 
     layoutName = "Customer Data Sheet"
     action_text="""from PyQt5.QtGui import QFont,QColor

@@ -1,24 +1,24 @@
 def setupVersionForm_light():  
     """ setup form for version layers"""
-    for vlayerName in ['dhc_lines','dhc_devices','dhc_junctions','dhc_customers','dhc_energy_plants','dhc_structure_boundarys','dhc_structure_junctions','dhc_structure_lines']:
+    for vlayerName in ['lines','devices','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         fc = vlayer.editFormConfig()
         fc.clearTabs()
         fc.setLayout(QgsEditFormConfig.TabLayout)
-        if vlayerName=='dhc_devices':
+        if vlayerName=='devices':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             ['asl_m'],
                             [],[]]
-        elif vlayerName=='dhc_junctions':
+        elif vlayerName=='junctions':
             attrNamesTabs= [['assetgroup','submodel'],
                             ['asl_m','n_connections'],
                             [],[]]
-        elif vlayerName=='dhc_lines':
+        elif vlayerName=='lines':
             attrNamesTabs= [['assetgroup','assettype','pipe_bundle_type_id','network','submodel'],
                             ['length','nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure'],
                             [],[]]
-        elif vlayerName=='dhc_customers':
+        elif vlayerName=='customers':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             ['dhw_id','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
                             ['sim_model',
@@ -30,19 +30,19 @@ def setupVersionForm_light():
                                 [6,"FloorArea","U","tau","MHs","PhiRadH_nom","SolarAperture","WinIntShading","ela","ACH","TSetH","SystemStartTime","SystemOffTime","TBalance","PBand","dP0","dP0Air","N_value","KV_max","KV_small","dPNom","HBuoyancy","m0","TSetC","PhiRadC_nom","N_value_C","MCoolDev","hx_eff","TSetDhw","TSupNomH","TSupNomC","TimeConst","mNomTank","mTank"]],
 #                           []]    
                             ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
-        elif vlayerName=='dhc_energy_plants':
+        elif vlayerName=='energy_plants':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             ['main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
                             [],[]]
-        elif vlayerName=='dhc_structure_boundarys':
+        elif vlayerName=='structure_boundarys':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             ['f_vexp_m'],
                             [],[]]
-        elif vlayerName=='dhc_structure_junctions':
+        elif vlayerName=='structure_junctions':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             [],
                             [],[]]
-        elif vlayerName=='dhc_structure_lines':
+        elif vlayerName=='structure_lines':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             [],
                             [],[]]
@@ -69,7 +69,7 @@ def setupVersionForm_light():
         vlayer.setEditFormConfig(fc)
         
 def valueRelationSimModel():
-    """value relation pipe bundle types in dhc_lines"""
+    """value relation pipe bundle types in lines"""
     config = {'AllowMulti': False,
               'AllowNull': True,
               'FilterExpression': '',
@@ -80,9 +80,9 @@ def valueRelationSimModel():
               'UseCompleter': False,
               'Value': 'description'}
     widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
-    fields = QgsProject.instance().mapLayersByName('dhc_customers')[0].fields()
+    fields = QgsProject.instance().mapLayersByName('customers')[0].fields()
     field_idx = fields.indexOf('sim_model')
-    QgsProject.instance().mapLayersByName('dhc_customers')[0].setEditorWidgetSetup(field_idx, widget_setup)  
+    QgsProject.instance().mapLayersByName('customers')[0].setEditorWidgetSetup(field_idx, widget_setup)  
     
 
         

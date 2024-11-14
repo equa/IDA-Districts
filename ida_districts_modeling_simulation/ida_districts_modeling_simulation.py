@@ -224,7 +224,7 @@ class IDADistrictsModelingSimulation:
             self.dlg_customerParm.btn_ok.clicked.connect(lambda: setCustParm(self.dlg_customerParm,self.conn,self.dictDB,self.plugin_dir))
             self.dlg_customerParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_customerParm))
             loadCustomerParm(self.dlg_customerParm,self.cur,self.dictDB)
-            loadLayerFieldsToList(self.dlg_customerParm.listWidget_customerFields,'dhc_customers')
+            loadLayerFieldsToList(self.dlg_customerParm.listWidget_customerFields,'customers')
             self.dlg_customerParm.show()
         
     def setModellingSettings(self,dlg):
@@ -408,15 +408,15 @@ class IDADistrictsModelingSimulation:
     
     def checkSimOutputs(self):
         #check customers plants
-        for type in ['dhc_customers','dhc_energy_plants']:
-            for i in self.invokedOutputs['dhc_customers']:
-                for j in self.invokedOutputs['dhc_customers'][i]:
-                    if self.invokedOutputs['dhc_customers'][i][j]!=self.requestedOutputs[j]:
+        for type in ['customers','energy_plants']:
+            for i in self.invokedOutputs['customers']:
+                for j in self.invokedOutputs['customers'][i]:
+                    if self.invokedOutputs['customers'][i][j]!=self.requestedOutputs[j]:
                         return False
         
         #check lines
-        for i in self.invokedOutputs['dhc_lines']:
-            if self.invokedOutputs['dhc_lines'][i]!=self.requestedOutputs[i]:
+        for i in self.invokedOutputs['lines']:
+            if self.invokedOutputs['lines'][i]!=self.requestedOutputs[i]:
                 return False
         
         return True
@@ -473,7 +473,7 @@ class IDADistrictsModelingSimulation:
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
             self.dlg_buildModel=BuildNetworkModelDialog()
-            sql="""SELECT network FROM {}.dhc_lines GROUP BY network ORDER BY network;""".format(self.dictDB['versionName'])
+            sql="""SELECT network FROM {}.lines GROUP BY network ORDER BY network;""".format(self.dictDB['versionName'])
             self.cur.execute(sql)
             self.dlg_buildModel.combo_network_models.addItem('Check all items')
             networks=self.cur.fetchall()

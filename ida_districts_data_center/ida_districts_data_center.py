@@ -704,48 +704,48 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
    
     def show_DefaultsLinesDialog(self):
         """ show the efaultsLinesDialog"""
-        defaults=self.getDefaults("dhc_lines")
-        self.dlg_defaultsLines=DefaultsDialog('line',"Defaults layer dhc_lines",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Pipe bundle type','value': ['pipe_bundle_type_id',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
+        defaults=self.getDefaults("lines")
+        self.dlg_defaultsLines=DefaultsDialog('line',"Defaults layer lines",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Pipe bundle type','value': ['pipe_bundle_type_id',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
                                                 {'label': 'Nominal operating temperature, °C','value': ['nominaltemperature',1,'physical']},{'label': 'Maximum operating temperature, °C','value': ['maximumtemperature',1,'physical']},
                                                 {'label': 'Nominal operating pressure, °C','value': ['nominaloppressure',1,'physical']},{'label': 'Maximum operating pressure, °C','value': ['maximumoppressure',1,'physical']}],self.cur)
-        self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsLines,'dhc_lines'))
+        self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsLines,'lines'))
         self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsLines,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsLines,defaults,'line')
         self.dlg_defaultsLines.show()
         
     def show_DefaultsCustomersDialog(self):
         """ show the efaultsLinesDialog"""
-        defaults=self.getDefaults("dhc_customers")
+        defaults=self.getDefaults("customers")
         print(defaults)
-        self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer dhc_customers",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
+        self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer customers",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
                                                 {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Heating demand, kWh','value': ['heat_e_kwh',1,'physical']},
                                                 {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal setpoint temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
                                                 {'label': 'Cooling demand, kWh','value': ['cool_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cool_p_kw',1,'physical']},
                                                 {'label': 'Nominal setpoint temp. cooling, °C','value': ['tsup_c_deg',1,'physical']},{'label': 'Above sea level, m','value': ['asl_m',1,'physical']}],self.cur)
-        self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsCustomers,'dhc_customers'))
+        self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsCustomers,'customers'))
         self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsCustomers,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsCustomers,defaults,'customer')
         self.dlg_defaultsCustomers.show()
         
     def show_DefaultsPlantsDialog(self):
         """ show the defaultsDialog"""
-        defaults=self.getDefaults("dhc_energy_plants")
-        self.dlg_defaultsPlants=DefaultsDialog('energy_plant',"Defaults layer dhc_energy_plants",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
+        defaults=self.getDefaults("energy_plants")
+        self.dlg_defaultsPlants=DefaultsDialog('energy_plant',"Defaults layer energy_plants",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
                                                 {'label': 'Is this the main plant','value': ['main_plant',2,'physical']},{'label': 'Heating supply, kWh','value': ['heat_e_kwh',1,'physical']},
                                                 {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal supply temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
                                                 {'label': 'Cooling supply, kWh','value': ['cold_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cold_p_kw',1,'physical']},
                                                 {'label': 'Nominal supply temp. cooling, °C','value': ['tsup_c_deg',1,'physical']},{'label': 'Above sea level, m','value': ['asl_m',1,'physical']}],self.cur)
-        self.dlg_defaultsPlants.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsPlants,'dhc_energy_plants'))
+        self.dlg_defaultsPlants.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsPlants,'energy_plants'))
         self.dlg_defaultsPlants.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsPlants,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsPlants,defaults,'energy_plant')
         self.dlg_defaultsPlants.show()
         
     def show_DefaultsDevicesDialog(self):
         """ show the defaultsDialog"""
-        defaults=self.getDefaults("dhc_devices")
-        self.dlg_defaultsDevices=DefaultsDialog('device',"Defaults layer dhc_devices",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
+        defaults=self.getDefaults("devices")
+        self.dlg_defaultsDevices=DefaultsDialog('device',"Defaults layer devices",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
                                                 {'label': 'Above sea level, m','value': ['asl_m',1,'physical']}],self.cur)
-        self.dlg_defaultsDevices.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsDevices,'dhc_devices'))
+        self.dlg_defaultsDevices.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsDevices,'devices'))
         self.dlg_defaultsDevices.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsDevices,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsDevices,defaults,'device')
         self.dlg_defaultsDevices.show()
