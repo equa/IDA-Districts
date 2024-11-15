@@ -28,6 +28,8 @@ from plugins.utility_functions.files import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.topology import *
+from .update_sensors import *
+
 import math
 import time
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
@@ -181,7 +183,7 @@ class IDADistrictsModelingSimulation:
                 self.tr(u'&IDADistricts Modeling Simulation'),
                 action)
             self.iface.removeToolBarIcon(action)
-            
+        
     def setNetworkSimData(self,dlg):
         """run network simulation"""
         print ("run network simulation")
@@ -450,6 +452,15 @@ class IDADistrictsModelingSimulation:
         self.cur.execute(sql)
         closeDialog(dlg)
         
+    def sensorSignals(self):
+        """Create sensor signals for comunication between plants, customers, devices and supervisory control"""
+        print ('Create sensor signals for comunication between plants, customers, devices and supervisory control')
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            self.updateSensor=UpdateSensors(dictDB=self.dictDB,cur=self.cur,plugin_dir=self.plugin_dir)
+            
     def showFeatureDecoupling(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         print(self.dictDB)
@@ -575,6 +586,7 @@ class IDADistrictsModelingSimulation:
             self.dlg.btn_calibrateCustomers.clicked.connect(self.calibrateCustomers)
             self.dlg.btn_invokeFeatures.clicked.connect(self.showInvokeFeatures)
             self.dlg.btn_modellingSettings.clicked.connect(self.showModellingSettings)
+            self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)
             self.dlg.btn_featureDecoupling.clicked.connect(self.showFeatureDecoupling)
             
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)

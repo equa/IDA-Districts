@@ -31,7 +31,7 @@ from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
-from PyQt5 import QtCore
+from PyQt5 import QtCore,QtGui
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -40,7 +40,75 @@ from qgis.core import Qgis
 from PyQt5.QtGui import QKeySequence
 import matplotlib.pyplot as plt
 
+class SensorSignalsDialog(QMainWindow):
+    def __init__(self,dictDB,plugin_dir):     
+        """Initialize GUI for sensor signals"""
+        super().__init__()
+        self.plugin_dir=plugin_dir
+        self.dictDB=dictDB
+        self.conn=dbConnect(self.dictDB,True)
+        self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        self.setWindowTitle("Sensor signals dialog")
+        myBoldFont=QtGui.QFont('Arial', 12)
+        myBoldFont.setBold(True)
 
+        #action buttons     
+        layout_action_buttons = QHBoxLayout()
+        self.btn_add=QPushButton("Add")
+        layout_action_buttons.addWidget(self.btn_add)
+        self.btn_del=QPushButton("Delete")
+        layout_action_buttons.addWidget(self.btn_del)
+        
+        #source
+        label_source =QLabel("Source")
+        label_source.setFont(myBoldFont)
+        
+        
+        #table
+        self.tableWidget_source = QTableWidget(0,11)   
+        self.tableWidget_source.setHorizontalHeaderLabels(['Sensor ID','Type','Assetgroups','Assettypes','ID`s','Connection types','Connections','Measure','Apply function','Test value','Description'])     
+        
+        #target
+        label_target =QLabel("Target")
+        label_target.setFont(myBoldFont)
+        
+        
+        #table
+        self.tableWidget_target = QTableWidget(0,7)   
+        self.tableWidget_target.setHorizontalHeaderLabels(['Sensor ID','Type','Assetgroups','Assettypes','ID`s','Target','Description'])     
+        
+        #buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_ok=QPushButton("Ok")
+        layout_buttons.addWidget(self.btn_ok)
+        self.btn_cancel=QPushButton("Cancel")
+        layout_buttons.addWidget(self.btn_cancel)
+        
+        #set layouts together        
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_action_buttons)
+        layout_win.addWidget(label_source)
+        layout_win.addWidget(self.tableWidget_source)
+        layout_win.addWidget(label_target)
+        layout_win.addWidget(self.tableWidget_target)
+        layout_win.addLayout(layout_buttons)
+        layout_win.addStretch()
+        
+        widget=QWidget()
+        widget.setLayout(layout_win)
+        self.setCentralWidget(widget)           
+
+    @QtCore.pyqtSlot()
+    def fitToTable(self):
+        x = self.tableWidget.verticalHeader().size().width()
+        for i in range(self.tableWidget.columnCount()):
+            x += self.tableWidget.columnWidth(i)
+
+        y = self.tableWidget.horizontalHeader().size().height()
+        for i in range(self.tableWidget.rowCount()):
+            y += self.tableWidget.rowHeight(i)
+
+        self.setFixedSize(min(x+100,1500),min(1200,y+500))   
 
 class RequestedOutputs(QMainWindow):
     def __init__(self,requestedOutputs):
@@ -974,6 +1042,9 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         
         self.btn_invokeFeatures=QPushButton("Invoke feature models from templates")
         layout_modeling_btn.addWidget(self.btn_invokeFeatures)
+        
+        self.btn_sensorSignals=QPushButton("Sensor signals")
+        layout_modeling_btn.addWidget(self.btn_sensorSignals)
 
         self.btn_featureDecoupling=QPushButton("Feature decoupling")
         layout_modeling_btn.addWidget(self.btn_featureDecoupling)

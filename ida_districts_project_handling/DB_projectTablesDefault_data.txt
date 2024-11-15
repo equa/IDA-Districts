@@ -202,6 +202,7 @@ INSERT INTO public.customer_assettypes VALUES (6,1,6,'Heating + HP 1 Supply & 1 
 INSERT INTO public.customer_assettypes VALUES (8,1,8,'Heating and Cooling + HP 1 Supply & 1 Return',3,'This type of customer is heated and cooled by one supply and return line. The temperature level is raised and lowered by means of a heat pump');
 
 -------------------table public.energy_plant_assetgroups------------------------------------
+INSERT INTO public.energy_plant_assetgroups VALUES (0,'Unkown','The type of the energy plant is unkown.');
 INSERT INTO public.energy_plant_assetgroups VALUES (1,'Generic Heating Boiler','This type of energy plant is a generic boiler for heating.');
 INSERT INTO public.energy_plant_assetgroups VALUES (2,'Chiller','This type of energy plant is a generic boiler for cooling.');
 INSERT INTO public.energy_plant_assetgroups VALUES (3,'Solar Thermal Plant','This type is a solar thermal plant.');
