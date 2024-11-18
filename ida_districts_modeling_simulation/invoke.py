@@ -312,8 +312,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                             except:
                                 replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
             print(replaceDict)
-            
-            CopyAssettypeFiles(dir_assettype,assettype_name,dir,type.capitalize()+'_'+id,True,type,str(feature['assetgroup']),str(feature['assettype']),id,cur,dictDB,replaceDict,parmRun=parmRun)
+            CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
             f_idc=dir+type.capitalize()+"_"+id+".idc"
             f_idm=dir+type.capitalize()+"_"+id+".idm"
@@ -507,11 +506,11 @@ class InvokeFeatures():
                
 class CopyAssettypeFiles:
     """ Copy the files and rename it"""
-    def __init__(self,source_dir,source_name,target_dir,target_name,update_sensors=False,type='',assetgroup='',assettype='',id='',cur='',dictDB='',replaceDict='',parmRun=''):
-        print('copy file')
+    def __init__(self,source_dir='',source_name='',target_dir='',target_name='',update_sensors=False,type='',assetgroup='',assettype='',id='',cur='',dictDB='',replaceDict='',parmRun='',update_sf=False):
+        print('++++++++++++++++++++++++++CopyAssettypeFiles++++++++++++++')
         print(parmRun)
+        self.dictDB=dictDB
         if update_sensors:
-            self.dictDB=dictDB
             type=getTypeIdByName(type)
             sql="""SELECT s.sensor_id, s_ids.feature_id 
         FROM {}.sensor_source s, {}.source_assetgroups s_ag, {}.source_assettype s_at, {}.source_ids s_ids
@@ -537,8 +536,9 @@ class CopyAssettypeFiles:
         #project idm
         filedata=readAndReplaceFileToList(source_dir+'\\'+source_name+'.idm',{'"'+source_name+'"': '"'+target_name+'"'})
         
-        print({j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
-        filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
+        if replaceDict:
+            print({j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
+            filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
             filedata=delSensorConnection(filedata,remove_sensor_target_ids,'Target')
@@ -557,23 +557,27 @@ class CopyAssettypeFiles:
         
         #feature
         #make subset of replaceDict based on macro name
-        print(replaceDict)
         pList=propertyListCompsIDM(getIDAListComponents(readFileToString(source_dir+'\\'+source_name+'\\'+source_name+'.idm')))
-        pList=replaceKeywordsInPList(pList,{j : replaceDict[i][j] for i in replaceDict if i in [source_name, ':FEATURE'] for j in replaceDict[i]})
-        print('**************************sf********************')
-        sf=getSFList(pList,[])
-        
-        if sf:
-            sql='\n'.join(["""INSERT INTO {}.invoked_sf (sf,vars)
+        if replaceDict:
+            print(replaceDict)
+            pList=replaceKeywordsInPList(pList,{j : replaceDict[i][j] for i in replaceDict if i in [source_name, ':FEATURE'] for j in replaceDict[i]})
+        if update_sf:
+            print('**************************sf********************')        
+            sf=getSFList(pList,[])
+
+            if sf:
+                sql='\n'.join(["""INSERT INTO {}.invoked_sf (sf,vars)
     SELECT '{}', ARRAY[{}] WHERE NOT EXISTS (
         SELECT 1 FROM {}.invoked_sf WHERE sf = '{}'
     );""".format(self.dictDB['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),self.dictDB['versionName'],i[0][':SF'])  for i in sf])
-            print(sql)
+                print(sql)
+                cur.execute(sql)
+            sql="SELECT id,sf FROM {}.invoked_sf;".format(self.dictDB['versionName'])
             cur.execute(sql)
-        sql="SELECT id,sf FROM {}.invoked_sf;".format(self.dictDB['versionName'])
-        cur.execute(sql)
-        sf_ids=cur.fetchall()
-        pList=delSFAndConnsAddLinks(pList,sf,sf_ids)
+            sf_ids=cur.fetchall()
+            pList=delSFAndConnsAddLinks(pList,sf,sf_ids)
+        else:
+            sf=[]
 
         if update_sensors:
             pList=delSensorConnectionPList(pList,remove_sensor_source_ids,'Source')
@@ -584,9 +588,10 @@ class CopyAssettypeFiles:
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
             filedata=delSensorConnection(filedata,remove_sensor_target_ids,'Target')
-        sf_names=[i[0][':N'] for i in sf]
-        print(sf_names)
-        filedata=[i for i in filedata if not [True for j in sf_names if j in i]]
+        if update_sf:
+            sf_names=[i[0][':N'] for i in sf]
+            print(sf_names)
+            filedata=[i for i in filedata if not [True for j in sf_names if j in i]]
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idc')   
         
         #sf-macro.idm

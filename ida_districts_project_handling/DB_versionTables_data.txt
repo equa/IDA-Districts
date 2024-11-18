@@ -1,6 +1,6 @@
-INSERT INTO c.climate (id) VALUES (1);
-INSERT INTO c.supervisory_ctrl (id,submodel) VALUES (1,NULL);
+INSERT INTO a.climate (id) VALUES (1);
+INSERT INTO a.supervisory_ctrl (id,submodel) VALUES (1,NULL);
 
 ----------------------customer model parameters------------------------------
 
--------------------table c.customer_model_parms;------------------------------------
+-------------------table a.customer_model_parms;------------------------------------

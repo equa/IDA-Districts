@@ -203,7 +203,7 @@ SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv
 	)SELECT id,sum(connections) AS conn FROM sub GROUP BY id
 )
 INSERT INTO temp.customers(geom,assetgroup,assettype,network) 
-	SELECT ST_Force3D(shv.the_geom),1,{},{} FROM sub,temp.streets_help_vertices_pgr shv 
+	SELECT ST_Force3D(shv.the_geom),1,{},array[{}] FROM sub,temp.streets_help_vertices_pgr shv 
 		WHERE sub.conn=1 AND shv.id=sub.id AND sub.id NOT IN (
             SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,{}.energy_plants ep 
                 WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{})

@@ -698,7 +698,7 @@ class IDA_Districts_ProjectHandling:
             if newVersionName:
                 writeDBSettings(self.plugin_dir,self.dictDB)
                 #Creating version --> new schema in project      
-                sql = 'CREATE SCHEMA IF NOT EXISTS '+self.dictDB['versionName']+';'
+                sql = 'CREATE SCHEMA IF NOT EXISTS "'+self.dictDB['versionName']+'";'
                 print(sql)
                 self.cur.execute(sql) 
 

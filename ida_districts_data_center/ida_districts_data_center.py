@@ -61,6 +61,7 @@ from multiprocessing import Process
 from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QShortcut
 from PyQt5.QtCore import Qt 
+import copy
 
     
 class IDADistrictsDataCenter:
@@ -295,7 +296,7 @@ class IDADistrictsDataCenter:
                                 return False
                             wroteAssettype=True
                         else:
-                            RenameAssettypeFiles(self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1])
+                            RenameAssettypeFiles(self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
                 if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteAssettype:
                     if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
                         print('Changed conn bundle type')
@@ -595,7 +596,7 @@ class IDADistrictsDataCenter:
             if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
                 if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
                     print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
-                    RenameAssettypeFiles(self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1])
+                    RenameAssettypeFiles(self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
                     dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
                     dlg.traceTableValues[row_index][1]=''
                     file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])
@@ -899,7 +900,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                         item.setFlags(QtCore.Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowCount , col, item)
             if trace:
-                table_trace[rowCount]= [filter.split('=')[-1]+'_'+str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'',changedSimModel.split(':')[0],'']
+                table_trace[rowCount]= [filter.split('=')[-1]+'_'+str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'']
                 print(table_trace)
             rowCount+=1
         return table_trace
@@ -1136,11 +1137,11 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def addTableRow(self,dlg,dropdowns,trace,deactivated):
         """Insert table row"""
         rowPosition = 0
+        traceTableValues=copy.deepcopy(dlg.traceTableValues)
+        print('-------insert row---------------')
         dlg.tableWidget.insertRow(rowPosition)
         dropdownItems=getDropDownItems(self.cur,dropdowns)
-        values=[]
         for col in range(dlg.tableWidget.columnCount()):
-            values.append('')
             if col in list([i[0] for i in dropdowns]):
                 comboBox = QComboBox()
                 comboBox.addItems(dropdownItems[col])
@@ -1148,19 +1149,29 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 if trace:
                     comboBox.currentTextChanged.connect(lambda signal, row=0,colmn=col: dlg.changedDropdownItem(signal,row,colmn))
             else:
-                item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)+1))
+                if col==0:
+                    item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)+1))
+                else:
+                    item=QTableWidgetItem('')
                 if col in deactivated:
                     item.setFlags(QtCore.Qt.ItemIsEnabled)
-                dlg.tableWidget.setItem(0,0,item)
+                dlg.tableWidget.setItem(0,col,item)
                 
         #add row to dlg.traceTableValues in order to trace the changed values     
         if trace:
-            for row in reversed(sorted(dlg.traceTableValues)):
-                dlg.traceTableValues[row+1]=dlg.traceTableValues[row]
+            for row in reversed(sorted(traceTableValues)):
+                dlg.traceTableValues[row+1]=traceTableValues[row]
             try:
-                dlg.traceTableValues[0]=['','',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0],'',dlg.tableWidget.cellWidget(0,3).currentText().split(':')[0],'']
+                print('--add trace values of row 0--')
+                print(dlg.traceTableValues)
+                print(dlg.assetgroup)
+                print(dlg.tableWidget.item(0,1))
+                print(dlg.tableWidget.item(0,1).text())
+                print(str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
+                dlg.traceTableValues[0]=['',str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
+                print('--finished trace values of row 0--')
             except:
-                dlg.traceTableValues[0]=['','',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0],'','','']
+                pass
             print(dlg.traceTableValues)
                 
         
@@ -1229,7 +1240,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             file_name_old=assetgroup+'_'+str(assettype_id)+'_'+dlg.tableWidget.item(row_idx, 1).text()
             file_name_new=assetgroup+'_'+str(maxId+1)+'_'+assettype_name
             if not os.path.exists(self.plugin_dir+"\\{}\\{}\\{}.idm".format(self.dictDB['projectName'],table_name,file_name_new)): 
-                CopyAssettypeFiles(self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),file_name_old,self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),file_name_new)
+                CopyAssettypeFiles(source_dir=self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),source_name=file_name_old,target_dir=self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),target_name=file_name_new)
             
             self.addTableRow(dlg,dropdowns,True,[])
             dlg.tableWidget.setItem(0,0,QTableWidgetItem(str(maxId+1)))
@@ -1238,7 +1249,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dlg.tableWidget.setItem(0,3,QTableWidgetItem(description))
             
             #replace values of dlg.traceTableValues [0] in order to trace the changed values         
-            dlg.traceTableValues[0]=[file_name_new,'',conn_bundle_type_old,'']
+            dlg.traceTableValues[0]=[file_name_new,'',conn_bundle_type_old.split(':')[0],'']
             print(dlg.traceTableValues)
 
         else:

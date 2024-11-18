@@ -3,7 +3,7 @@ from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QCheckBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget,QTableWidgetItem
      
-from copy import copy
+import copy
 
 class ConnectionsDialog(QMainWindow):
     def __init__(self,title,headers):
@@ -108,7 +108,7 @@ class TableDialog(QMainWindow):
             self.btn_import=QPushButton("Import")
             layout_buttons_table.addWidget(self.btn_import)
         if saveAsBtn:
-            self.btn_saveAs=QPushButton("Save As")
+            self.btn_saveAs=QPushButton("Copy")
             layout_buttons_table.addWidget(self.btn_saveAs)
         
         #Table
@@ -154,12 +154,15 @@ class TableDialog(QMainWindow):
         print('changed')
         print(row)
         print(self.traceTableValues)
+        
         changedValue=self.assetgroup+'_'
         if self.tableWidget.item(row,0):
             changedValue+=str(self.tableWidget.item(row,0).text())+'_'
         if self.tableWidget.item(row,1):
             changedValue+=str(self.tableWidget.item(row,1).text())
         try:
+            print(changedValue)
+            self.tableWidget.cellWidget(row,2).currentText()
             self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
         except:
             pass

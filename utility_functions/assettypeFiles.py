@@ -620,16 +620,22 @@ class ExchangeConntypeFiles:
 
 class RenameAssettypeFiles:
     """ Rename the assettypes"""
-    def __init__(self,plugin_dir,name,type,new_name):
+    def __init__(self,plugin_dir,name,type,new_name,cur):
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
         dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_assettypes".format(type)
         filedata=""
+        if not os.path.exists(dir+'\\'+name+'.idm') or not os.path.exists(dir+'\\'+name+'.idc'):
+            sql=f"""DELETE FROM {type}_assettypes WHERE assetgroup={name.split('_')[0]} AND assettype={name.split('_')[1]};"""
+            cur.execute(sql)
+            return False
+            
         with open(dir+'\\'+name+'.idm', "r") as myfile:
             for line in myfile:
                 filedata=filedata+line
         filedata=filedata.replace('"'+name+'"','"'+new_name+'"')
         writeToFile(filedata,dir,dir+'\\'+new_name+'.idm')     
+            
         filedata=""
         with open(dir+'\\'+name+'.idc', "r") as myfile:
             for line in myfile:
