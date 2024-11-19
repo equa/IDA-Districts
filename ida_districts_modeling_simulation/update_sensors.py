@@ -83,7 +83,7 @@ class UpdateSensors():
         if dropDown!=None:
             for i in range(dropDown.count()):
                 if dropDown.itemText(i) != 'Check all items':        
-                    sql="""INSERT INTO {}.{}_assetgroups({}_id,assetgroup,active) VALUES ({},{},{});""".format(
+                    sql="""INSERT INTO "{}".{}_assetgroups({}_id,assetgroup,active) VALUES ({},{},{});""".format(
                         self.dictDB['versionName'],sensor,sensor,sensor_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
                     print(sql)
                     self.cur.execute(sql)
@@ -101,7 +101,7 @@ class UpdateSensors():
                     self.cur.execute(sql)
                     assetgroup_id=self.cur.fetchone()['assetgroup']
                     print(assetgroup_id)                
-                    sql="""INSERT INTO {}.{}_assettype({}_id,assetgroup,assettype,active) VALUES ({},{},{},{});""".format(
+                    sql="""INSERT INTO "{}".{}_assettype({}_id,assetgroup,assettype,active) VALUES ({},{},{},{});""".format(
                     self.dictDB['versionName'],sensor,sensor,sensor_id,assetgroup_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
                     print(sql)
                     self.cur.execute(sql)
@@ -111,7 +111,7 @@ class UpdateSensors():
         if dropDown!=None:
             for i in range(dropDown.count()):
                 if dropDown.itemText(i) != 'Check all items':  
-                    sql="""INSERT INTO {}.{}_ids({}_id,feature_id,active) VALUES ({},{},{});""".format(
+                    sql="""INSERT INTO "{}".{}_ids({}_id,feature_id,active) VALUES ({},{},{});""".format(
                         self.dictDB['versionName'],sensor,sensor,sensor_id,dropDown.itemText(i).split('(')[0],dropDown.itemChecked(i))
                     print(sql)
                     self.cur.execute(sql)
@@ -121,7 +121,7 @@ class UpdateSensors():
         if dropDown!=None:
             for i in range(dropDown.count()):
                 if dropDown.itemText(i) != 'Check all items':  
-                    sql="""INSERT INTO {}.source_conn_type(source_id,conn_type,active) VALUES ({},{},{});""".format(
+                    sql="""INSERT INTO "{}".source_conn_type(source_id,conn_type,active) VALUES ({},{},{});""".format(
                         self.dictDB['versionName'],sensor_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
                     print(sql)
                     self.cur.execute(sql)    
@@ -309,7 +309,7 @@ class UpdateSensors():
         
     def setFilteredAssetgroupDropdownItems(self,table,type,id,row,sensor):
         sql="""SELECT s_ag.assetgroup AS assetgroup, ag.assetgroup AS assetgroup_name, s_ag.active 
-        FROM {}.{}_assetgroups s_ag, public.{}_assetgroups ag 
+        FROM "{}".{}_assetgroups s_ag, public.{}_assetgroups ag 
         WHERE s_ag.{}_id={} AND ag.id=s_ag.assetgroup
         ORDER BY s_ag.assetgroup;""".format(self.dictDB['versionName'],sensor,type,sensor,id)
         print(sql)
@@ -338,7 +338,7 @@ class UpdateSensors():
             assetgroups=self.getAssetgroupsFromTable(dropDown)
             if assetgroups:
                 sql="""SELECT ag.assetgroup, at.assettype, at.assettype_name
-    FROM {}.{}s f, public.{}_assettypes at, public.{}_assetgroups ag
+    FROM "{}".{}s f, public.{}_assettypes at, public.{}_assetgroups ag
     WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup AND f.assetgroup IN ({})
     GROUP BY ag.assetgroup, at.assettype, at.assettype_name
     ORDER BY ag.assetgroup, at.assettype; """.format(self.dictDB['versionName'],type,type,type,','.join(assetgroups))
@@ -365,7 +365,7 @@ class UpdateSensors():
             assetgroups=self.getAssetgroupsFromTable(dropDown)
             if assetgroups:
                 sql="""SELECT ag.assetgroup, at.assettype, at.assettype_name
-    FROM {}.{}s f, public.{}_assettypes at, public.{}_assetgroups ag
+    FROM "{}".{}s f, public.{}_assettypes at, public.{}_assetgroups ag
     WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup AND f.assetgroup IN ({})
     GROUP BY ag.assetgroup, at.assettype, at.assettype_name
     ORDER BY ag.assetgroup, at.assettype; """.format(self.dictDB['versionName'],type,type,type,','.join(assetgroups))
@@ -396,12 +396,12 @@ class UpdateSensors():
             if assettypes:
                 sql="""WITH sub AS(
     SELECT ag.id, at.assettype, at.assettype_name
-        FROM {}.{}s f, public.{}_assettypes at, public.{}_assetgroups ag
+        FROM "{}".{}s f, public.{}_assettypes at, public.{}_assetgroups ag
         WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup
             AND at.assettype || ':' || at.assettype_name || '(' || ag.assetgroup ||')' IN ({})
         GROUP BY ag.id, at.assettype, at.assettype_name
 )    
-SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub.id AND f.assettype=sub.assettype ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,type,','.join(["'" + i + "'" for i in assettypes]),self.dictDB['versionName'],type)
+SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=sub.id AND f.assettype=sub.assettype ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,type,','.join(["'" + i + "'" for i in assettypes]),self.dictDB['versionName'],type)
                 print(sql)
                 self.cur.execute(sql)
                 ids=self.cur.fetchall()
@@ -430,7 +430,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub
             print(ids)
             if ids and table.cellWidget(row, 7).currentText()!='Custom':
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
-    FROM public.bundle_type_conns b_t_conns, {}.{}s f, public.{}_assettypes at, public.connection_types conn_t
+    FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_assettypes at, public.connection_types conn_t
     WHERE at.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND f.id IN ({}) AND conn_t.id=b_t_conns.conn_type_id
     GROUP BY conn_t.id,conn_t.description;""".format(self.dictDB['versionName'],type,type,','.join(ids))
                 print(sql)
@@ -481,7 +481,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub
                     
     def setFilteredAssettypeDropdownItems(self,table,type,id,row,sensor):
         sql="""SELECT s_at.assetgroup, c_ag.assetgroup AS assetgroup_name,s_at.active, c_at.assettype, c_at.assettype_name
-    FROM {}.{}_assettype s_at, public.{}_assettypes c_at, public.{}_assetgroups c_ag
+    FROM "{}".{}_assettype s_at, public.{}_assettypes c_at, public.{}_assetgroups c_ag
     WHERE s_at.{}_id={} AND c_at.assetgroup=s_at.assetgroup AND c_at.assettype=s_at.assettype AND c_ag.id=s_at.assetgroup
     ORDER BY s_at.assetgroup, s_at.assettype;""".format(self.dictDB['versionName'],sensor,type,type,sensor,id)
         print(sql)
@@ -498,7 +498,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub
 
     def setFilteredIdsDropdownItems(self,table,type,id,row,sensor):
         sql="""SELECT s_id.feature_id, s_id.active, at.assettype_name
-    FROM {}.{}_ids s_id, {}.{}s f, public.{}_assettypes at
+    FROM "{}".{}_ids s_id, "{}".{}s f, public.{}_assettypes at
     WHERE s_id.{}_id={} AND f.id=s_id.feature_id AND f.assetgroup=at.assetgroup AND f.assettype=at.assettype
     ORDER BY s_id.feature_id;""".format(self.dictDB['versionName'],sensor,self.dictDB['versionName'],type,type,sensor,id)
         print(sql)
@@ -563,7 +563,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'1:Customer',8,row,False)
         else:
             sql="""SELECT ag.id AS assetgroup, ag.assetgroup AS assetgroup_name
-    FROM {}.{}s f, public.{}_assetgroups ag
+    FROM "{}".{}s f, public.{}_assetgroups ag
     WHERE ag.id=f.assetgroup
     GROUP BY ag.assetgroup, ag.id
     ORDER BY ag.id;""".format(self.dictDB['versionName'],type,type)
@@ -599,7 +599,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM {}.{}s f, sub WHERE f.assetgroup=sub
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
         else:
             sql="""SELECT ag.id AS assetgroup, ag.assetgroup AS assetgroup_name
-    FROM {}.{}s f, public.{}_assetgroups ag
+    FROM "{}".{}s f, public.{}_assetgroups ag
     WHERE ag.id=f.assetgroup
     GROUP BY ag.assetgroup, ag.id
     ORDER BY ag.id;""".format(self.dictDB['versionName'],type,type)

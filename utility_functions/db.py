@@ -13,25 +13,25 @@ def setSeqIdToMax(seq,table,col,cur):
     
 def getTimeDiff(cur,dictDB,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
-    FROM (SELECT {} AS time FROM {}.{} ORDER BY {},{}{} LIMIT 1) start_time,
-        (SELECT {}  AS time FROM {}.{} ORDER BY {},{}{} LIMIT 1 OFFSET 1) next_time;""".format(col,dictDB['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col,col,dictDB['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col)
+    FROM (SELECT {} AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1) start_time,
+        (SELECT {}  AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1 OFFSET 1) next_time;""".format(col,dictDB['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col,col,dictDB['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col)
     print(sql)
     cur.execute(sql)
     return cur.fetchone()['diff']
 
 def featureCount(cur,dictDB,network,type):
-    sql="""SELECT count(*) FROM {}.{}s WHERE network=array[{}];""".format(dictDB['versionName'],type,network)
+    sql="""SELECT count(*) FROM "{}".{}s WHERE network=array[{}];""".format(dictDB['versionName'],type,network)
     cur.execute(sql)
     return cur.fetchone()['count']
 
 def streetsCount(cur,dictDB):
-    sql="""SELECT count(*) FROM {}.streets;""".format(dictDB['versionName'])
+    sql="""SELECT count(*) FROM "{}".streets;""".format(dictDB['versionName'])
     cur.execute(sql)
     return cur.fetchone()['count']
 
 def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     sql="""SELECT f_dec.comp_name
-    FROM {}.{}s f, {}.feature_decoupling f_dec
+    FROM "{}".{}s f, "{}".feature_decoupling f_dec
     WHERE f.id={} AND f.assettype=f_dec.assettype AND f.assetgroup=f_dec.assetgroup AND f_dec.type='{}';""".format(dictDB['versionName'],feature['feature'],dictDB['versionName'],feature['id'],feature['feature'])
     print(sql)
     cur.execute(sql)
@@ -39,7 +39,7 @@ def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     
 def getDecoupledFeatureCompPerAssettype(dictDB,cur,assettype,assetgroup):
     sql="""SELECT f_dec.comp_name
-    FROM {}.feature_decoupling f_dec
+    FROM "{}".feature_decoupling f_dec
     WHERE {}=f_dec.assettype AND {}=f_dec.assetgroup AND f_dec.type='customer';""".format(dictDB['versionName'],assettype,assetgroup)
     print(sql)
     cur.execute(sql)
@@ -49,12 +49,12 @@ def getUsedDecoupledFeatureAssettypes(usedFeatureAssettypes,cur,dictDB,submodel,
     assettypes=[]
     for cosim in cosims:
         sql="""(SELECT 'customer' AS feature,f.assettype, f.assetgroup, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.customers f, {}.lines l,{}.submodels s_m
+    FROM "{}".customers f, "{}".lines l,"{}".submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
     GROUP BY feature,f.assettype, f.assetgroup, network_side)
 UNION 
 (SELECT 'energy_plant' AS feature,f.assettype, f.assetgroup, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.energy_plants f, {}.lines l,{}.submodels s_m
+    FROM "{}".energy_plants f, "{}".lines l,"{}".submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
     GROUP BY feature,f.assettype, f.assetgroup, network_side)
 ORDER BY feature,assetgroup,assettype;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
@@ -71,11 +71,11 @@ def getFeatureIds(dictDB,cur,submodel,cosims):
     fids=[]
     for cosim in cosims:
         sql="""(SELECT 'customer' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.customers f, {}.customer_connections f_conns, {}.lines l, {}.submodels s_m
+    FROM "{}".customers f, "{}".customer_connections f_conns, "{}".lines l, "{}".submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.cid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 UNION 
 (SELECT 'energy_plant' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
-    FROM {}.energy_plants f, {}.energy_plant_connections f_conns, {}.lines l, {}.submodels s_m
+    FROM "{}".energy_plants f, "{}".energy_plant_connections f_conns, "{}".lines l, "{}".submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.epid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 ORDER BY feature,id;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
             submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim)
@@ -92,14 +92,20 @@ def getFeatureIdFromName(dictDB,cur,feature):
     return cur.fetchone()['id']
     
 def getNetworks(cur,dictDB):
+    sql="""SELECT id AS network FROM "{}".network;""".format(dictDB['versionName'])
+    cur.execute(sql)
+    networks=[str(i['network']) for i in cur.fetchall()]
+    return networks
+    
+def getUsedNetworks(cur,dictDB):
     sql="""(
-    SELECT network FROM {}.lines GROUP BY network
+    SELECT network FROM "{}".lines GROUP BY network
     UNION
-    SELECT unnest(network) AS network FROM {}.customers GROUP BY network
+    SELECT unnest(network) AS network FROM "{}".customers GROUP BY network
     UNION
-    SELECT unnest(network) AS network FROM {}.energy_plants GROUP BY network
+    SELECT unnest(network) AS network FROM "{}".energy_plants GROUP BY network
     UNION
-    SELECT unnest(network) AS network FROM {}.devices GROUP BY network
+    SELECT unnest(network) AS network FROM "{}".devices GROUP BY network
 )
 ORDER BY network;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
@@ -107,31 +113,31 @@ ORDER BY network;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['
     return networks
     
 def getLineNetworks(cur,dictDB):
-    sql="""SELECT network FROM {}.lines GROUP BY network ORDER BY network;""".format(dictDB['versionName'])
+    sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(dictDB['versionName'])
     cur.execute(sql)
     networks=[i['network'] for i in cur.fetchall()]
     return networks
 
 def getLineSubmodels(cur,dictDB):
-    sql="""SELECT unnest(submodel) as submodels FROM {}.lines GROUP BY submodels ORDER BY submodels;""".format(dictDB['versionName'])
+    sql="""SELECT unnest(submodel) as submodels FROM "{}".lines GROUP BY submodels ORDER BY submodels;""".format(dictDB['versionName'])
     cur.execute(sql)
     submodels=[i['submodels'] for i in cur.fetchall()]
     return submodels
     
 def getFeatureSubmodels(cur,dictDB,type):
-    sql="""SELECT submodel FROM {}.{}s GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'],type)
+    sql="""SELECT submodel FROM "{}".{}s GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'],type)
     cur.execute(sql)
     submodels=[i['submodel'] for i in cur.fetchall()]
     return submodels
 
 def getUsedFeatureAssettypes(cur,dictDB):
     sql="""(SELECT 'customer' AS feature, f.assetgroup,f.assettype, f_at.assettype_name
-    FROM {}.customers f,customer_assettypes f_at 
+    FROM "{}".customers f,customer_assettypes f_at 
     WHERE f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype
     GROUP BY f.assetgroup,f.assettype,f_at.assettype_name)
 UNION
 (SELECT 'energy_plant' AS feature, f.assetgroup,f.assettype,f_at.assettype_name
-    FROM {}.energy_plants f, energy_plant_assettypes f_at
+    FROM "{}".energy_plants f, energy_plant_assettypes f_at
      WHERE f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype
     GROUP BY f.assetgroup,f.assettype,f_at.assettype_name)
 ORDER BY feature, assetgroup,assettype;""".format(dictDB['versionName'],dictDB['versionName'])
@@ -140,13 +146,13 @@ ORDER BY feature, assetgroup,assettype;""".format(dictDB['versionName'],dictDB['
     
 def getUsedSubmodels(cur,dictDB):
     sql="""(
-    SELECT unnest(submodel) AS submodel FROM {}.lines GROUP BY submodel
+    SELECT unnest(submodel) AS submodel FROM "{}".lines GROUP BY submodel
     UNION
-    SELECT submodel FROM {}.customers GROUP BY submodel
+    SELECT submodel FROM "{}".customers GROUP BY submodel
     UNION
-    SELECT submodel FROM {}.energy_plants GROUP BY submodel
+    SELECT submodel FROM "{}".energy_plants GROUP BY submodel
     UNION
-    SELECT submodel FROM {}.devices GROUP BY submodel
+    SELECT submodel FROM "{}".devices GROUP BY submodel
 )
 ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
@@ -155,23 +161,23 @@ ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB[
 
 def getFeatureIdsPerSubmodel(submodel,cur,dictDB):
     sql="""(
-    SELECT 1 AS feature, id FROM {}.customers WHERE submodel={}
+    SELECT 1 AS feature, id FROM "{}".customers WHERE submodel={}
     UNION
-    SELECT 2 AS feature, id FROM {}.energy_plants WHERE submodel={}
+    SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
     UNION
-    SELECT 3 AS feature, id FROM {}.devices WHERE submodel={}
+    SELECT 3 AS feature, id FROM "{}".devices WHERE submodel={}
 )
 ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,dictDB['versionName'],submodel)
     cur.execute(sql)
     return cur.fetchall()
     
 def getFeatureIdsPerSubmodelAndTypename(submodel,type,cur,dictDB):
-    sql="""SELECT id FROM {}.{}s WHERE submodel={};""".format(dictDB['versionName'],submodel)
+    sql="""SELECT id FROM "{}".{}s WHERE submodel={};""".format(dictDB['versionName'],submodel)
     cur.execute(sql)
     return [id['id'] for id in cur.fetchall()]
 
 def getSubmodelPerFeatureIdTypename(id,feature,cur,dictDB):
-    sql="""SELECT submodel FROM {}.{}s WHERE id={};""".format(dictDB['versionName'],feature.replace(" ","_"),id)
+    sql="""SELECT submodel FROM "{}".{}s WHERE id={};""".format(dictDB['versionName'],feature.replace(" ","_"),id)
     cur.execute(sql)
     return cur.fetchone()
     
@@ -192,7 +198,7 @@ def getSupervisorySubmodel(cur,dictDB):
             
 def getNetworkSubmodels(cur,dictDB,networks):
     """Get submodels of a list of networks based on lines"""
-    sql="""SELECT unnest(submodel) AS submodel FROM {}.lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'], ','.join([i for i in networks]))
+    sql="""SELECT unnest(submodel) AS submodel FROM "{}".lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'], ','.join([i for i in networks]))
     print(sql)
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
@@ -225,12 +231,12 @@ def getClimateData(cur,dictDB,errorMsg):
         return cur.fetchone()
 
 def getMaxTableValue(cur,dictDB,table,colmn):
-    sql="""SELECT max("{}") AS value FROM {}.{};""".format(colmn,dictDB['versionName'],table)
+    sql="""SELECT max("{}") AS value FROM "{}".{};""".format(colmn,dictDB['versionName'],table)
     cur.execute(sql)
     return cur.fetchone()['value']
     
 def getMinTableValue(cur,dictDB,table,colmn):
-    sql="""SELECT min("{}") AS value FROM {}.{};""".format(colmn,dictDB['versionName'],table)
+    sql="""SELECT min("{}") AS value FROM "{}".{};""".format(colmn,dictDB['versionName'],table)
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -280,7 +286,7 @@ def getMaxTimeTableValue(mode,cur,dictDB,table,colmn,starttime,endtime):
         
 def getMinMinTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,min("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,min("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -288,7 +294,7 @@ SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
 
 def getMinMaxTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,max("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,max("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -296,7 +302,7 @@ SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
     
 def getMinValueAvgTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,avg("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,avg("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -304,7 +310,7 @@ SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
     
 def getMinSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,sum("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -314,7 +320,7 @@ def getMinLastTimeValue(cur,dictDB,table,colmn,endtime):
     sql="""WITH sub AS(
     SELECT DISTINCT ON (fid) 
         fid,"${}" AS value
-    FROM {}.{}
+    FROM "{}".{}
     WHERE time = '{}'
     ORDER BY fid,time DESC
 )
@@ -326,7 +332,7 @@ def getMinFirstTimeValue(cur,dictDB,table,colmn,starttime):
     sql="""WITH sub AS(
     SELECT DISTINCT ON (fid) 
         fid,"${}" AS value
-    FROM {}.{}
+    FROM "{}".{}
     WHERE time = '{}'
     ORDER BY fid,time ASC
 )
@@ -337,7 +343,7 @@ SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
 def getMinAvgTimeValue(mode,cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,date_trunc('{}', time) AS time, avg("${}") AS value
-        FROM {}.{}
+        FROM "{}".{}
         WHERE time BETWEEN '{}' AND '{}'
         GROUP BY date_trunc('{}', time),fid{}
         ORDER BY date_trunc('{}', time), fid
@@ -349,7 +355,7 @@ SELECT min(value) AS value FROM sub;""".format(mode,colmn,dictDB['versionName'],
     
 def getMaxMinTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,min("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,min("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -357,7 +363,7 @@ SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
 
 def getMaxMaxTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,max("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,max("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -365,7 +371,7 @@ SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
     
 def getMaxValueAvgTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,avg("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,avg("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -373,7 +379,7 @@ SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
     
 def getMaxSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,sum("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
+    SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
 SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
     cur.execute(sql)
@@ -383,7 +389,7 @@ def getMaxLastTimeValue(cur,dictDB,table,colmn,endtime):
     sql="""WITH sub AS(
     SELECT DISTINCT ON (fid) 
         fid,"${}" AS value
-    FROM {}.{}
+    FROM "{}".{}
     WHERE time = '{}'
     ORDER BY fid,time DESC
 )
@@ -395,7 +401,7 @@ def getMaxFirstTimeValue(cur,dictDB,table,colmn,starttime):
     sql="""WITH sub AS(
     SELECT DISTINCT ON (fid) 
         fid,"${}" AS value
-    FROM {}.{}
+    FROM "{}".{}
     WHERE time = '{}'
     ORDER BY fid,time ASC
 )
@@ -406,7 +412,7 @@ SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
 def getMaxAvgTimeValue(mode,cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,date_trunc('{}', time) AS time, avg("${}") AS value
-        FROM {}.{}
+        FROM "{}".{}
         WHERE time BETWEEN '{}' AND '{}'
         GROUP BY date_trunc('{}', time),fid{}
         ORDER BY date_trunc('{}', time), fid
@@ -428,7 +434,7 @@ def getMaxId(cur,table_name):
         
 def getMaxIdSchema(cur,table_name,schema):
     """return highest connections id"""
-    sql="SELECT max(id) AS max_id FROM {}.{};".format(schema,table_name)
+    sql="""SELECT max(id) AS max_id FROM "{}".{};""".format(schema,table_name)
     cur.execute(sql)
     id=cur.fetchone()
     if id['max_id']!=None:
@@ -547,7 +553,7 @@ def getFilteredNotInDropDownItems(cur,dropdowns):
     for id,version,table,column,name,filter in dropdowns:
         print(getFilteredNotInDropDownItems)
         filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))    
-        sql='SELECT {} AS key,{} AS name FROM {}.{} {};'.format(column,name,version,table,filter)
+        sql='SELECT {} AS key,{} AS name FROM "{}".{} {};'.format(column,name,version,table,filter)
         print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
@@ -557,7 +563,7 @@ def getFilteredNotInDropDownItems(cur,dropdowns):
 def getDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name in dropdowns:         
-        sql='SELECT {} AS key,{} AS name FROM {}.{};'.format(column,name,version,table,column)
+        sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table,column)
         print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
@@ -570,7 +576,7 @@ def getFilteredDropDownItemNames(cur,dropdowns):
         print(filter)
         if filter:
             filter="WHERE id IN({}) ".format(','.join([str(i) for i in filter]))
-            sql='SELECT {} AS name FROM {}.{} {}ORDER BY id;'.format(name,version,table,filter)
+            sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter)
             print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
@@ -585,7 +591,7 @@ def getFilteredNotInDropDownItemNames(cur,dropdowns):
         print(filter)
         if filter:
             filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))
-            sql='SELECT {} AS name FROM {}.{} {}ORDER BY id;'.format(name,version,table,filter)
+            sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter)
             print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
@@ -597,7 +603,7 @@ def getFilteredNotInDropDownItemNames(cur,dropdowns):
 def getDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name in dropdowns:         
-        sql='SELECT {} AS name FROM {}.{} ORDER BY id;'.format(name,version,table)
+        sql='SELECT {} AS name FROM "{}".{} ORDER BY id;'.format(name,version,table)
         print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
@@ -615,7 +621,7 @@ def getConnValue(cur,bundle,sequence):
     return cur.fetchall()
     
 def getTableIds(cur,version,table,column):
-    sql="""SELECT {} FROM {}.{}""".format(column,version,table)
+    sql="""SELECT {} FROM "{}".{}""".format(column,version,table)
     cur.execute(sql)
     return cur.fetchall()
     

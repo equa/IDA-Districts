@@ -484,7 +484,7 @@ class IDADistrictsModelingSimulation:
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
             self.dlg_buildModel=BuildNetworkModelDialog()
-            sql="""SELECT network FROM {}.lines GROUP BY network ORDER BY network;""".format(self.dictDB['versionName'])
+            sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.dictDB['versionName'])
             self.cur.execute(sql)
             self.dlg_buildModel.combo_network_models.addItem('Check all items')
             networks=self.cur.fetchall()

@@ -1,6 +1,35 @@
 from plugins.utility_functions.files import *
-from qgis.core import  QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
-    
+from qgis.core import  QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
+
+
+def setEditorWidgetListType(list_type_dict):
+    """{layer: [col_names]}"""
+    config = {'EmptyIsEmptyArray': True, 'EmptyIsNull': False}
+    editor_setup = QgsEditorWidgetSetup("List", config)
+
+    for layer_name in list_type_dict:
+        print(layer_name)
+        layer=QgsProject.instance().mapLayersByName(layer_name)[0]
+        for col in list_type_dict[layer_name]:
+            field_index = layer.fields().indexOf(col)
+            print(field_index)
+
+            # Apply the widget setup to the field
+            layer.setEditorWidgetSetup(field_index, editor_setup)
+
+def setFieldConstraints(constraints_dict):
+    """{layer: {col_names : constraint}}"""
+    for layer_name in constraints_dict:
+        print(layer_name)
+        layer=QgsProject.instance().mapLayersByName(layer_name)
+        if layer:
+            layer=layer[0]
+            for col in constraints_dict[layer_name]:
+                field_index = layer.fields().indexOf(col)
+                print(field_index)
+                layer.setFieldConstraint(field_index, QgsFieldConstraints.ConstraintExpression)
+                layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
+            
 def getDHCLayerNames():
     return ["lines","junctions","energy_plants","devices","structure_lines","structure_junctions","structure_boundarys"]
     
@@ -212,7 +241,16 @@ def loadTopologyLayers(version,uri,layerTreeRoot,dictDB):
         node = root.findLayer( vlayer.id())
         index = model.node2index( node )
         ltv.setRowHidden( index.row(), index.parent(), True) 
-            
+        
+def getListTypeDict():
+    return {'energy_plants':['network','main_plant'],'customers':['network'],'lines':['submodel'],'devices':['network']} 
+    
+def getConstraintExpressionDict(networks_array):
+    return {'energy_plants': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0','main_plant': f'array_all({networks_array}, "main_plant") OR array_length( "main_plant" ) =0'},
+                                'customers': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
+                                'devices': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
+                                'lines': {'network': f'array_contains({networks_array},"network")'}} 
+    
 def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
     dir=getProjectHandlingDir(plugin_dir)
     for vlayerName in ['energy_plants','customers','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:  
@@ -274,7 +312,17 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
                 cat = QgsRendererCategory(id, symbol, category)
                 categorized_renderer.addCategory(cat)       
             vlayer.setRenderer(categorized_renderer)
-   
+            
+    #set field widget type as list
+    setEditorWidgetListType(getListTypeDict())
+    updateNetworkDependingFields(cur,dictDB)        
+
+def updateNetworkDependingFields(cur,dictDB):
+    networks=getNetworks(cur,dictDB)
+    networks_array='array({})'.format(','.join([i for i in networks]))
+    constraint_expression_dict = getConstraintExpressionDict(networks_array)
+    setFieldConstraints(constraint_expression_dict)
+    
 def featureLayerAssetgroups(vlayerName,cur):
     sql="""SELECT assetgroup FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
     cur.execute(sql)

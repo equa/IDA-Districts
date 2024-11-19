@@ -77,8 +77,8 @@ CREATE TABLE IF NOT EXISTS {}.line_seg_{}
                     print(conn_names)
                     print(conn_t_power_names)
                     #connection tables (p,m,T)
-                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.customer_s_{}${} CASCADE;
-CREATE TABLE {}.customer_s_{}${}
+                    sql='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_{}${} CASCADE;
+CREATE TABLE "{}".customer_s_{}${}
 (
 	id serial,
     fid integer,
@@ -92,8 +92,8 @@ CREATE TABLE {}.customer_s_{}${}
                     
                     #connection type tables (power)
                     if 'power' in c_outputs:
-                        sql+='\n'.join(["""DROP TABLE IF EXISTS {}.customer_s_power${} CASCADE;
-CREATE TABLE {}.customer_s_power${}
+                        sql+='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_power${} CASCADE;
+CREATE TABLE "{}".customer_s_power${}
 (
 	id serial,
     fid integer,
@@ -107,8 +107,8 @@ CREATE TABLE {}.customer_s_power${}
 
                     #room air temperature table
                     if 'troom' in c_outputs:
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_troom CASCADE;
-CREATE TABLE {}.customer_s_troom
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_troom CASCADE;
+CREATE TABLE "{}".customer_s_troom
 (
 	id serial,
     fid integer,
@@ -121,8 +121,8 @@ CREATE TABLE {}.customer_s_troom
 
                     #heat balance table
                     if 'heatbalance' in c_outputs:
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_electricity CASCADE;
-CREATE TABLE {}.customer_s_electricity
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_electricity CASCADE;
+CREATE TABLE "{}".customer_s_electricity
 (
 	id serial,
     fid integer,
@@ -133,8 +133,8 @@ CREATE TABLE {}.customer_s_electricity
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_electricity')
 
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_transmission CASCADE;
-CREATE TABLE {}.customer_s_transmission
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_transmission CASCADE;
+CREATE TABLE "{}".customer_s_transmission
 (
 	id serial,
     fid integer,
@@ -144,8 +144,8 @@ CREATE TABLE {}.customer_s_transmission
 	CONSTRAINT customer_s_transmission_pkey PRIMARY KEY (id)
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_transmission')
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_heating CASCADE;
-CREATE TABLE {}.customer_s_heating
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_heating CASCADE;
+CREATE TABLE "{}".customer_s_heating
 (
 	id serial,
     fid integer,
@@ -155,8 +155,8 @@ CREATE TABLE {}.customer_s_heating
 	CONSTRAINT customer_s_heating_pkey PRIMARY KEY (id)
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_heating')
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_gains CASCADE;
-CREATE TABLE {}.customer_s_gains
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_gains CASCADE;
+CREATE TABLE "{}".customer_s_gains
 (
 	id serial,
     fid integer,
@@ -166,8 +166,8 @@ CREATE TABLE {}.customer_s_gains
 	CONSTRAINT customer_s_gains_pkey PRIMARY KEY (id)
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_gains')
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_leakage CASCADE;
-CREATE TABLE {}.customer_s_leakage
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_leakage CASCADE;
+CREATE TABLE "{}".customer_s_leakage
 (
 	id serial,
     fid integer,
@@ -177,8 +177,8 @@ CREATE TABLE {}.customer_s_leakage
 	CONSTRAINT customer_s_leakage_pkey PRIMARY KEY (id)
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_leakage')
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_occupancy CASCADE;
-CREATE TABLE {}.customer_s_occupancy
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_occupancy CASCADE;
+CREATE TABLE "{}".customer_s_occupancy
 (
 	id serial,
     fid integer,
@@ -188,8 +188,8 @@ CREATE TABLE {}.customer_s_occupancy
 	CONSTRAINT customer_s_occupancy_pkey PRIMARY KEY (id)
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_occupancy')
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_solar CASCADE;
-CREATE TABLE {}.customer_s_solar
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_solar CASCADE;
+CREATE TABLE "{}".customer_s_solar
 (
 	id serial,
     fid integer,
@@ -199,8 +199,8 @@ CREATE TABLE {}.customer_s_solar
 	CONSTRAINT customer_s_solar_pkey PRIMARY KEY (id)
 );""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid)
                         tables.append('customer_s_solar')
-                        sql+="""\nDROP TABLE IF EXISTS {}.customer_s_ventilation CASCADE;
-CREATE TABLE {}.customer_s_ventilation
+                        sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_ventilation CASCADE;
+CREATE TABLE "{}".customer_s_ventilation
 (
 	id serial,
     fid integer,
@@ -218,7 +218,7 @@ CREATE TABLE {}.customer_s_ventilation
                     #load data
                     #get cid`s
                     sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
-    FROM {}.customers f, bundle_type_conns b_t_conns, customer_assettypes at
+    FROM "{}".customers f, bundle_type_conns b_t_conns, customer_assettypes at
     WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={}
     ORDER BY f.id;""".format(self.dictDB['versionName'],submodel)
                     self.cur.execute(sql)
@@ -311,8 +311,8 @@ CREATE TABLE {}.customer_s_ventilation
                     print(conn_names)
                     print(conn_t_power_names)
                     #connection tables (p,m,T)
-                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.energy_plant_s_{}${} CASCADE;
-CREATE TABLE {}.energy_plant_s_{}${}
+                    sql='\n'.join(["""DROP TABLE IF EXISTS "{}".energy_plant_s_{}${} CASCADE;
+CREATE TABLE "{}".energy_plant_s_{}${}
 (
 	id serial,
     fid integer,
@@ -326,8 +326,8 @@ CREATE TABLE {}.energy_plant_s_{}${}
                         
                     #connection type tables (power)
                     if 'power' in ep_outputs:
-                        sql+='\n'.join(["""DROP TABLE IF EXISTS {}.energy_plant_s_power${} CASCADE;
-CREATE TABLE {}.energy_plant_s_power${}
+                        sql+='\n'.join(["""DROP TABLE IF EXISTS "{}".energy_plant_s_power${} CASCADE;
+CREATE TABLE "{}".energy_plant_s_power${}
 (
 	id serial,
     fid integer,
@@ -346,7 +346,7 @@ CREATE TABLE {}.energy_plant_s_power${}
                     #load data
                     #get epid`s
                     sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
-    FROM {}.energy_plants f, bundle_type_conns b_t_conns, energy_plant_assettypes at
+    FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_assettypes at
     WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={};""".format(self.dictDB['versionName'],submodel)
                     print(sql)
                     self.cur.execute(sql)
@@ -413,7 +413,7 @@ CREATE TABLE {}.line_s_{}${}
 
                     #load data
                     #get lids
-                    sql="""SELECT id FROM {}.lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.dictDB['versionName'],submodel)
+                    sql="""SELECT id FROM "{}".lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.dictDB['versionName'],submodel)
                     self.cur.execute(sql)
                     lids=self.cur.fetchall()
                     
@@ -490,7 +490,7 @@ CREATE TABLE {}.line_s_{}${}
                     ))) + '\n'
                     for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,col]))
                 ))
-                cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
+                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')""".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
                 
     def copy_string_iterator_c_heatbalance_sData(self, sdata,fid,start_datetime) -> None:
         table_names=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
@@ -507,12 +507,12 @@ CREATE TABLE {}.line_s_{}${}
                     ))) + '\n'
                     for row_counter,data in enumerate(sdata)
                 ))
-                cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
+                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
                
     def updateResultLayerGeometry(self,tables,type):
         for table_name in tables:
-            sql="""UPDATE {}.{} r set geom = f.geom 
-    FROM (SELECT id, geom FROM {}.{}s) f
+            sql="""UPDATE "{}".{} r set geom = f.geom 
+    FROM (SELECT id, geom FROM "{}".{}s) f
     WHERE f.id=r.fid;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'],type)
             print(sql)
             self.cur.execute(sql)
@@ -520,8 +520,8 @@ CREATE TABLE {}.line_s_{}${}
     def updateResultLayerLineSegGeometry(self,tables):   
         for table_name in tables:
             var=table_name.split('_')[2].split('$')[0]
-            sql="""UPDATE {}.{} r set geom = seg.geom 
-    FROM (SELECT lid,lid_seg, geom FROM {}.line_seg_{}) seg
+            sql="""UPDATE "{}".{} r set geom = seg.geom 
+    FROM (SELECT lid,lid_seg, geom FROM "{}".line_seg_{}) seg
     WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'],var)
             print(sql)
             self.cur.execute(sql)
@@ -543,6 +543,6 @@ CREATE TABLE {}.line_s_{}${}
                     ))) + '\n'
                     for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,int(start_col_index):int(end_col_index)])) for col_counter,cell in enumerate(data[1])
                 ))
-                cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
+                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
             start_col_index=end_col_index
             end_col_index=start_col_index+value_per_conn_seq  

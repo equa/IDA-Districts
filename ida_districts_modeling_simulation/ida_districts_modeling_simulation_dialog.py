@@ -960,11 +960,11 @@ class FeatureDecouplingDlg(QMainWindow):
 
         try:
             no_submodels=int(self.no_submodels.text())
-            self.cur.execute("SELECT row_number() OVER(ORDER BY id) enum, id FROM {}.{}s;".format(self.dictDB['versionName'],type))
+            self.cur.execute('SELECT row_number() OVER(ORDER BY id) enum, id FROM "{}".{}s;'.format(self.dictDB['versionName'],type))
             f_ids=self.cur.fetchall()
             submodel_counter=(getLineNetworks(self.cur,self.dictDB)[-1] if getLineNetworks(self.cur,self.dictDB) else 0)
             if no_submodels>0:
-                self.cur.execute('SELECT count(*) AS count FROM {}.{}s;'.format(self.dictDB['versionName'],type))
+                self.cur.execute('SELECT count(*) AS count FROM "{}".{}s;'.format(self.dictDB['versionName'],type))
                 no_features=self.cur.fetchone()['count']
                 f_per_submodel=int(no_features/no_submodels)
                 rest=no_features%no_submodels
@@ -973,9 +973,9 @@ class FeatureDecouplingDlg(QMainWindow):
                     if f_id['enum']>submodel_counter*f_per_submodel+(no_features%no_submodels-rest+1 if rest>0 else no_features%no_submodels):
                         submodel_counter+=1
                         rest-=1
-                    sql+="UPDATE {}.{}s SET submodel={} WHERE id={};".format(self.dictDB['versionName'],type,submodel_counter+1,f_id['id'])
+                    sql+='UPDATE "{}".{}s SET submodel={} WHERE id={};'.format(self.dictDB['versionName'],type,submodel_counter+1,f_id['id'])
             elif no_submodels==0:
-                sql+="UPDATE {}.{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM {}.submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);".format(self.dictDB['versionName'],type,self.dictDB['versionName'])
+                sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM {}.submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.dictDB['versionName'],type,self.dictDB['versionName'])
             else:
                 iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=Qgis.Critical)
         except:

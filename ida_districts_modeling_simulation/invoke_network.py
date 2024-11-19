@@ -54,11 +54,11 @@ class WorkerBuildNetworkModel(QRunnable):
 class PageSettings:
     def __init__(self,cur,submodel,versionName,networks):
         sql="""WITH sub AS(    
-    SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM {}.lines  WHERE {} = ANY (submodel) AND network IN ({})
+    SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM "{}".lines  WHERE {} = ANY (submodel) AND network IN ({})
     UNION
-    SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM {}.customers WHERE {} = submodel AND network <@ array[{}] 
+    SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM "{}".customers WHERE {} = submodel AND network <@ array[{}] 
     UNION
-    SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM {}.energy_plants WHERE {} = submodel AND network <@ array[{}] 
+    SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM "{}".energy_plants WHERE {} = submodel AND network <@ array[{}] 
 )
 SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS ymax FROM sub;""".format(versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]));
         print(sql)
@@ -70,13 +70,13 @@ SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS yma
         self.ymax=settings['ymax']
 
         sql="""WITH sub AS(
-    SELECT Min(ST_Length(geom)) AS lmin FROM {}.lines WHERE {} = ANY (submodel) AND network IN ({})
+    SELECT Min(ST_Length(geom)) AS lmin FROM "{}".lines WHERE {} = ANY (submodel) AND network IN ({})
     UNION
-    SELECT min(ST_Distance(c1.geom, c2.geom)) AS lmin FROM {}.customers c1, {}.customers c2 WHERE c1.id <> c2.id AND {} = c1.submodel AND {} = c2.submodel
+    SELECT min(ST_Distance(c1.geom, c2.geom)) AS lmin FROM "{}".customers c1, "{}".customers c2 WHERE c1.id <> c2.id AND {} = c1.submodel AND {} = c2.submodel
     UNION
-    SELECT min(ST_Distance(ep1.geom, ep2.geom)) AS lmin FROM {}.energy_plants ep1, {}.energy_plants ep2 WHERE ep1.id <> ep2.id AND {} = ep1.submodel AND {} = ep2.submodel
+    SELECT min(ST_Distance(ep1.geom, ep2.geom)) AS lmin FROM "{}".energy_plants ep1, "{}".energy_plants ep2 WHERE ep1.id <> ep2.id AND {} = ep1.submodel AND {} = ep2.submodel
     UNION
-    SELECT min(ST_Distance(ep.geom, c.geom)) AS lmin FROM {}.energy_plants ep, {}.customers c WHERE {} = ep.submodel AND {} = c.submodel
+    SELECT min(ST_Distance(ep.geom, c.geom)) AS lmin FROM "{}".energy_plants ep, "{}".customers c WHERE {} = ep.submodel AND {} = c.submodel
 )
 SELECT min(lmin) AS lmin FROM sub;""".format(versionName,submodel,','.join([str(i) for i in networks]),versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel);
         print(sql)
@@ -316,15 +316,15 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
         sql="""WITH sub AS(
     SELECT l.id, l.length,ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff, l.zeta +zeta.zeta_j AS zeta, l.pipe_bundle_type_id, c.counter, 
         ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
-    FROM {}.lines l,
+    FROM "{}".lines l,
     (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
-    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM {}.lines l, {}.junctions j, {}.junction_connections jc WHERE l.id=jc.lid AND jc.jid=j.id GROUP BY l.id) zeta
+    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM "{}".lines l,"{}".junctions j, {}.junction_connections jc WHERE l.id=jc.lid AND jc.jid=j.id GROUP BY l.id) zeta
     WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND zeta.id=l.id AND l.network IN ({})
 )
 --get line id`s without connection to junctions
 SELECT l.id, l.length,ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff, l.zeta AS zeta, l.pipe_bundle_type_id, c.counter, 
         ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
-    FROM {}.lines l,
+    FROM "{}".lines l,
     (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
     WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network IN ({})
 EXCEPT  
@@ -459,7 +459,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     def insertJunctionConnections(self,submodel,idm_conn,idc_conn,networks):
         """Insert the junction connections between devices, plants or customers and pipes"""
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liqL' ELSE 'liqR' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
-    FROM {}.junctions j, {}.junction_connections jc, {}.lines l, 
+    FROM"{}".junctions j, {}.junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM {}.junction_connections jc GROUP BY jid) pipe_lids
@@ -547,7 +547,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
             id_name='epid'
             seq_name='ep_seq'
         sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,d.id AS did, ST_AsText(d.geom) AS d_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN conn.p IS NULL THEN 'liqL' ELSE 'liqR' END AS dir
-    FROM {}.{} d, {}.{}_connections dc, {}.lines l, public.bundle_type_conns conn_b_t, public.{}_assettypes da, public.connections conn, public.connection_type_connections conn_t_conns
+    FROM "{}".{} d, "{}".{}_connections dc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_assettypes da, public.connections conn, public.connection_type_connections conn_t_conns
     WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND dc.{}=conn_b_t.sequence AND da.assettype=d.assettype AND da.assetgroup=d.assetgroup AND l.id=dc.lid AND d.id=dc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
     ORDER BY d.id, conn_b_t.sequence;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
         print(sql)
@@ -785,7 +785,7 @@ output to current demand. It can also be operated in installations with differen
         """ Insert junctions"""
         print('insert junctions')
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq
-    FROM {}.junctions j, {}.junction_connections jc, {}.lines l, 
+    FROM"{}".junctions j, {}.junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM {}.junction_connections jc GROUP BY jid) pipe_lids
@@ -893,7 +893,7 @@ output to current demand. It can also be operated in installations with differen
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):
         """ insert customers; take the macro template and copy it to the IDA project"""
         sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point, c.dhw_id,ca.conn_bundle_type, ca.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM {}.customers c, customer_assettypes ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, {}.customer_connections c_conns, {}.lines l
+	FROM "{}".customers c, customer_assettypes ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
 	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.assettype=c.assettype AND ca.assetgroup=c.assetgroup AND c.assetgroup=ca.assetgroup AND ca.assettype=c.assettype AND 
         (c.submodel={} OR {} != c.submodel AND {} = ANY (l.submodel)) AND c.network && ARRAY[{}] AND
         conn_b_t.conn_bundle_type_id=ca.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
@@ -958,7 +958,7 @@ output to current demand. It can also be operated in installations with differen
     def insertDevices(self,submodel,idm,idc,networks):
         """ insert customers; take the macro template and copy it to the IDA project"""
         sql="""SELECT d.id AS did, ST_asText(d.geom) AS point, da.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM {}.devices d, device_assettypes da, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn
+	FROM "{}".devices d, device_assettypes da, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn
 	WHERE da.assettype=d.assettype AND da.assetgroup=d.assetgroup AND d.assetgroup=da.assetgroup AND da.assettype=d.assettype AND d.submodel={} AND d.network && ARRAY[{}] AND
 	conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
 	conn_t_conns.connection_id=conn.id
@@ -1007,7 +1007,7 @@ output to current demand. It can also be operated in installations with differen
     def insertPlants(self,submodel,idm,idc,sensor_dec_data,networks):
         """ insert plants; take the macro template and copy it to the IDA project"""
         sql="""SELECT ep.id AS epid, ST_asText(ep.geom) AS point, epa.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM {}.energy_plants ep, energy_plant_assettypes epa, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, {}.lines l, {}.energy_plant_connections ep_conns
+	FROM "{}".energy_plants ep, energy_plant_assettypes epa, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".lines l, "{}".energy_plant_connections ep_conns
 	WHERE l.id=ep_conns.lid AND ep.id=ep_conns.epid AND epa.assettype=ep.assettype AND epa.assetgroup=ep.assetgroup AND ep.assetgroup=epa.assetgroup AND epa.assettype=ep.assettype AND 
         (ep.submodel={} OR {} != ep.submodel AND {} = ANY (l.submodel)) AND
         conn_b_t.conn_bundle_type_id=epa.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND

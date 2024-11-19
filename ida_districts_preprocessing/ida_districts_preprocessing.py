@@ -592,10 +592,10 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 
                 if dlg.rbtn_truncate.isChecked():
                     ids=[]
-                    sql="TRUNCATE {}.{};".format(self.dictDB['versionName'],layer_name)
+                    sql='TRUNCATE "{}".{};'.format(self.dictDB['versionName'],layer_name)
                     self.cur.execute(sql)
                 else:
-                    sql="SELECT id FROM {}.{};".format(self.dictDB['versionName'],layer_name)
+                    sql='SELECT id FROM "{}".{};'.format(self.dictDB['versionName'],layer_name)
                     self.cur.execute(sql)
                     ids=[i['id'] for i in self.cur.fetchall()]
                 
@@ -640,14 +640,14 @@ TRUNCATE pipe_layers CASCADE;\n"""
                         values.append('ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))')
                     if generateId:
                         values.append(str(generateId+i))
-                        sql+="""INSERT INTO {}.{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))
+                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))
                     else:
                         if values[attributes.index('id')] in ids:
                             iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=Qgis.Warning)
                             return False
                         else:
                             ids.append(values[attributes.index('id')])
-                        sql+="""INSERT INTO {}.{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
+                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
                     i+=1
                 print(sql)
                 self.cur.execute(sql)
@@ -698,25 +698,25 @@ TRUNCATE pipe_layers CASCADE;\n"""
                                 WHERE  table_schema = '{}'
                                 AND    table_name   = 'terrain');""".format(self.dictDB['versionName']))
             if clearOldTerrain == True or not "True" in str(self.cur.fetchone()):
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain;'.format(self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain1;'.format(self.dictDB['versionName']))
-                cmd = ' "{}bin\\raster2pgsql" -s {} -I -C -M "{}" -F -t 200x200 {}.terrain | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.configProject['srid'],elevationFileName, self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.dictDB['versionName']))
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.dictDB['versionName']))
+                cmd = ' "{}bin\\raster2pgsql" -s {} -I -C -M "{}" -F -t 200x200 "{}".terrain | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.configProject['srid'],elevationFileName, self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
                 print(cmd)
                 subprocess.call(cmd, shell=True)
             else:
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain1;'.format(self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain2'.format(self.dictDB['versionName'])) 
-                cmd = ' "{}bin\\raster2pgsql" -s {} -I -C -M "{}" -F -t 200x200 {}.terrain1 | "{}bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.configProject['srid'],elevationFileName, self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.dictDB['versionName']))
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2'.format(self.dictDB['versionName'])) 
+                cmd = ' "{}bin\\raster2pgsql" -s {} -I -C -M "{}" -F -t 200x200 "{}".terrain1 | "{}bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.configProject['srid'],elevationFileName, self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
                 print(cmd)
                 subprocess.call(cmd, shell=True)
-                self.cur.execute('CREATE table {}.terrain2 AS Select * FROM {}.terrain;'.format(self.dictDB['versionName'],self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain'.format(self.dictDB['versionName']))
-                self.cur.execute(""" Create table {}.terrain as(
-                                    Select * from {}.terrain1
+                self.cur.execute('CREATE table "{}".terrain2 AS Select * FROM "{}".terrain;'.format(self.dictDB['versionName'],self.dictDB['versionName']))
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain'.format(self.dictDB['versionName']))
+                self.cur.execute(""" Create table "{}".terrain as(
+                                    Select * from "{}".terrain1
                                     union
-                                    Select * from {}.terrain2)""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain1'.format(self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS {}.terrain2'.format(self.dictDB['versionName']))   
+                                    Select * from "{}".terrain2)""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName']))
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1'.format(self.dictDB['versionName']))
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2'.format(self.dictDB['versionName']))   
         else:
             self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)                
         
@@ -746,19 +746,19 @@ TRUNCATE pipe_layers CASCADE;\n"""
             for subnetwork in self.cur.fetchall():
                 print (subnetwork[0])
                 #junctions
-                sql="UPDATE {}.junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM {}.subnetwork sn, {}.junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                sql="""UPDATE"{}".junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM {}.subnetwork sn,"{}".junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
                 #customers
-                sql="UPDATE {}.customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM {}.subnetwork sn, {}.customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                sql="""UPDATE "{}".customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM {}.subnetwork sn, "{}".customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
                 #energy_plants
-                sql="UPDATE {}.energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM {}.subnetwork sn, {}.energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                sql="""UPDATE "{}".energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM {}.subnetwork sn, "{}".energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
                 #lines
-                sql="UPDATE {}.lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM {}.subnetwork sn, {}.lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                sql="""UPDATE "{}".lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM {}.subnetwork sn, "{}".lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
                 print(sql)
                 self.cur.execute(sql)
             

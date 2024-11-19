@@ -44,7 +44,7 @@ def loadCustomerCalibrationData(dlg,dictDB,conn,plugin_dir):
         
         #load data to table templates tableWidget_templates
         sql="""WITH sub AS(
-    SELECT array(SELECT assettype FROM {}.customers GROUP BY assettype) used_ids
+    SELECT array(SELECT assettype FROM "{}".customers GROUP BY assettype) used_ids
 )
 SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, assettype_name, CASE WHEN assettype = ANY (sub.used_ids) THEN TRUE ELSE FALSE END AS used 
     FROM customer_assettypes ca, sub,customer_assetgroups c_ag
@@ -84,7 +84,7 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
 
         print(parmRuns)
         sql="""SELECT c.id AS c_id, c_ag.id AS assetgroup_id, c_ag.assetgroup AS assetgroup_name, c_at.assettype, c_at.assettype_name
-    FROM {}.customers c, customer_assettypes c_at, customer_assetgroups c_ag
+    FROM "{}".customers c, customer_assettypes c_at, customer_assetgroups c_ag
     WHERE c.assetgroup=c_at.assetgroup AND c.assettype=c_at.assettype AND c_ag.id=c_at.assetgroup
     ORDER BY c.id;""".format(dictDB['versionName'])
         print(sql)

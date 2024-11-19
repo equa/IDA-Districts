@@ -663,7 +663,7 @@ class CopyAssettypeMacro:
         source_dir=dir+'\\invoked_'+type_name+'s'
                             
         sql="""SELECT f.id, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, l.submodel
-    FROM {}.{} f, {}.lines l, {}.{}_connections conn 
+    FROM "{}".{} f, "{}".lines l, {}.{}_connections conn 
     WHERE f.submodel={} AND l.id=conn.lid AND f.id=conn.{}id AND f.submodel = ANY(l.submodel)
     ORDER BY id;""".format(submodel,dictDB['versionName'],type,dictDB['versionName'],dictDB['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'd' if type_name=='device' else 'ep')
         print(sql)
@@ -703,7 +703,7 @@ class CopyAssettypeMacro:
                     self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
 
             if feature['model']=='decoupled':
-                sql="""SELECT conn_bundle_type FROM {}.{} f ,{}_assettypes f_at WHERE f.id={} AND f.assettype=f_at.assettype;""".format(dictDB['versionName'],type,type_name,str(feature['id']))
+                sql="""SELECT conn_bundle_type FROM "{}".{} f ,{}_assettypes f_at WHERE f.id={} AND f.assettype=f_at.assettype;""".format(dictDB['versionName'],type,type_name,str(feature['id']))
                 print(sql)
                 cur.execute(sql)
                 bundle=cur.fetchone()['conn_bundle_type']

@@ -472,6 +472,20 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_manage_assetgroups.addWidget(label_titel)
         layout_manage_assetgroups.addLayout(layout_manage_btn)
         
+        #manage network
+        #title
+        label_titel =QLabel('Manage networks')
+        font=label_titel.font()
+        font.setPointSize(15)
+        label_titel.setFont(font)
+        
+        self.btn_manageNetworks=QPushButton("Networks")
+        
+        #set networks together
+        layout_networks=QVBoxLayout()
+        layout_networks.addWidget(label_titel)
+        layout_networks.addWidget(self.btn_manageNetworks)
+        
         #contracts
         #title
         label_titel =QLabel('Contracts')
@@ -496,6 +510,7 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_win.addLayout(layout_DB)
         layout_win.addLayout(layout_connection_types)
         layout_win.addLayout(layout_manage_assetgroups)
+        layout_win.addLayout(layout_networks)
         layout_win.addLayout(layout_contracts)
         layout_win.addStretch()
         

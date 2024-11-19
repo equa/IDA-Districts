@@ -701,25 +701,25 @@ class PipeLayingDialog(QMainWindow):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE {}.lines, {}.customers, {}.junctions,{}.customer_connections, {}.junction_connections, {}.energy_plant_connections, {}.device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".junctions,"{}".customer_connections, {}.junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         removeLayers()
@@ -1021,7 +1021,7 @@ class NetworkTopologyDialog(QMainWindow):
                 worker.signals.progress.connect(self.update_progress)
 
     def checkNetworkAttribute(self,version):
-        sql="""SELECT count(*) FROM {}.lines WHERE network IS NULL;""".format(version)
+        sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version)
         self.cur.execute(sql)
         networkNullCount=self.cur.fetchone()['count']
         if networkNullCount>0:
@@ -1035,7 +1035,7 @@ class NetworkTopologyDialog(QMainWindow):
             button = dlg_question.exec()
 
             if button == QMessageBox.Yes:
-                sql="""UPDATE {}.lines SET network=1 WHERE network IS NULL;""".format(version)
+                sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version)
                 print(sql)
                 self.cur.execute(sql)
                 return True
@@ -1134,28 +1134,28 @@ class NetworkTopologyDialog(QMainWindow):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE {}.lines, {}.customers, {}.junctions,{}.customer_connections, {}.junction_connections, {}.energy_plant_connections, {}.device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".junctions,"{}".customer_connections, {}.junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.device_connections SELECT * FROM temp.device_connections;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".device_connections SELECT * FROM temp.device_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql) 
         removeLayers()
@@ -1294,7 +1294,7 @@ class MapDevicesPlantsDialog(QMainWindow):
         #add connection type items to listWidget_devicesPlants_connTypes
         self.listWidget_devicesPlants_connTypes.clear()
         sql="""SELECT conn_b_t.conn_type_id, conn_b_t.description 
-    FROM public.bundle_type_conns conn_b_t, {}.{} b, public.{}_assettypes a
+    FROM public.bundle_type_conns conn_b_t, "{}".{} b, public.{}_assettypes a
     WHERE conn_b_t.conn_bundle_type_id =a.conn_bundle_type AND b.id={} AND a.assetgroup=b.assetgroup AND a.assettype=b.assettype 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[:-1],item.text())
         print(sql)
@@ -1307,7 +1307,7 @@ class MapDevicesPlantsDialog(QMainWindow):
           
         #add connection type items to listWidget_lines
         self.listWidget_lines.clear()
-        sql="SELECT array_agg(l.id::text) AS lid FROM {}.lines l, {}.{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};".format(self.dictDB['versionName'],self.dictDB['versionName'],table_name,item.text())
+        sql='SELECT array_agg(l.id::text) AS lid FROM "{}".lines l, "{}".{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};'.format(self.dictDB['versionName'],self.dictDB['versionName'],table_name,item.text())
         self.cur.execute(sql)
         l_ids=self.cur.fetchone()['lid']
         print(l_ids)
@@ -1322,18 +1322,18 @@ class MapDevicesPlantsDialog(QMainWindow):
         self.tableWidget.setRowCount(0)
         if table_name=='energy_plants':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', ep_conn.lid) AS connection
-        FROM {}.energy_plant_connections ep_conn, {}.energy_plants ep, public.energy_plant_assettypes epa, public.bundle_type_conns conn_b_t
+        FROM "{}".energy_plant_connections ep_conn, "{}".energy_plants ep, public.energy_plant_assettypes epa, public.bundle_type_conns conn_b_t
         WHERE ep.id={} AND ep.id=ep_conn.epid AND epa.assetgroup=ep.assetgroup AND epa.assettype=ep.assettype AND epa.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=ep_conn.ep_seq
         ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
             print(sql)
         elif table_name=='devices':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', d_conn.lid) AS connection
-    FROM {}.device_connections d_conn, {}.devices d, public.device_assettypes da, public.bundle_type_conns conn_b_t
+    FROM "{}".device_connections d_conn, "{}".devices d, public.device_assettypes da, public.bundle_type_conns conn_b_t
     WHERE d.id={} AND d.id=d_conn.did AND da.assetgroup=d.assetgroup AND da.assettype=d.assettype  AND da.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=d_conn.d_seq 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
         elif table_name=='customers':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', c_conn.lid) AS connection
-    FROM {}.customer_connections c_conn, {}.customers c, public.customer_assettypes ca, public.bundle_type_conns conn_b_t
+    FROM "{}".customer_connections c_conn, "{}".customers c, public.customer_assettypes ca, public.bundle_type_conns conn_b_t
     WHERE c.id={} AND c.id=c_conn.cid AND ca.assetgroup=c.assetgroup AND ca.assettype=c.assettype AND ca.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=c_conn.c_seq 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
         self.cur.execute(sql)
@@ -1377,7 +1377,7 @@ class MapDevicesPlantsDialog(QMainWindow):
             table='customers'
             text='Customers'
         self.label_listWidget_devicesPlants.setText(text)
-        sql="SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM {}.{};".format(self.dictDB['versionName'],table)
+        sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{};'.format(self.dictDB['versionName'],table)
         print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchone()['ids']
@@ -1426,11 +1426,11 @@ class MapDevicesPlantsDialog(QMainWindow):
         print(seq)
         if seq:
             if table_name=="energy_plants":
-                sql="SELECT count(*) FROM {}.energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};".format(self.dictDB['versionName'],lid,id,seq)
+                sql="""SELECT count(*) FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
             elif table_name=="devices":
-                sql="SELECT count(*) FROM {}.device_connections WHERE lid={} AND did={} AND d_seq={};".format(self.dictDB['versionName'],lid,id,seq)
+                sql="""SELECT count(*) FROM "{}".device_connections WHERE lid={} AND did={} AND d_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
             elif table_name=="customers":
-                sql="SELECT count(*) FROM {}.customer_connections WHERE lid={} AND cid={} AND c_seq={};".format(self.dictDB['versionName'],lid,id,seq)
+                sql="""SELECT count(*) FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
             print(sql)
             self.cur.execute(sql)
             if self.cur.fetchone()['count']!=0: 
@@ -1439,11 +1439,11 @@ class MapDevicesPlantsDialog(QMainWindow):
             else:
                 if seq and id and lid:
                     if table_name=="energy_plants":
-                        sql="""INSERT INTO {}.energy_plant_connections (epid,ep_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
+                        sql="""INSERT INTO "{}".energy_plant_connections (epid,ep_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
                     elif table_name=="devices":
-                        sql="""INSERT INTO {}.device_connections (did,d_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
+                        sql="""INSERT INTO "{}".device_connections (did,d_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
                     elif table_name=="customers":
-                        sql="""INSERT INTO {}.customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
+                        sql="""INSERT INTO "{}".customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
                     
                     print(sql)
                     self.cur.execute(sql)
@@ -1452,7 +1452,7 @@ class MapDevicesPlantsDialog(QMainWindow):
     def getConnTypeSeq(self,table_name,id,conn_type):
         """get the sequence of the connection type in the connection bundle """
         sql="""SELECT conn_b_t.sequence
-    FROM public.bundle_type_conns conn_b_t, {}.{} a, public.{}_assettypes b 
+    FROM public.bundle_type_conns conn_b_t, "{}".{} a, public.{}_assettypes b 
     WHERE a.id={} AND b.assetgroup=a.assetgroup AND b.assettype=a.assettype AND b.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.conn_type_id={}
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[:-1],id,conn_type)
         print(sql)
@@ -1479,11 +1479,11 @@ class MapDevicesPlantsDialog(QMainWindow):
         
         seq=self.getConnTypeSeq(table_name,id,conn_type)
         if table_name=="energy_plants":
-            sql="DELETE FROM {}.energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};".format(self.dictDB['versionName'],lid,id,seq)
+            sql="""DELETE FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
         elif table_name=="devices":
-            sql="DELETE FROM {}.device_connections WHERE lid={} AND did={} AND d_seq={};".format(self.dictDB['versionName'],lid,id,seq)
+            sql="""DELETE FROM "{}".device_connections WHERE lid={} AND did={} AND d_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
         elif table_name=="customers":
-            sql="DELETE FROM {}.customer_connections WHERE lid={} AND cid={} AND c_seq={};".format(self.dictDB['versionName'],lid,id,seq)
+            sql="""DELETE FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
         print(sql)
         self.cur.execute(sql)
         self.updateConnections(table_name,id) 

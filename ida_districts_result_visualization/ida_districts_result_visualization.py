@@ -156,7 +156,7 @@ class IDADistrictsResultVisualization:
 
     def getCustomerId(self,lids):
         sql="""SELECT c.id, ST_Z(ST_EndPoint(l.geom)) AS height, c.submodel,b_t_conns.conn_type_id
-    FROM {}.customers c, {}.lines l, customer_assettypes c_at, bundle_type_conns b_t_conns, {}.customer_connections c_conns
+    FROM "{}".customers c, "{}".lines l, customer_assettypes c_at, bundle_type_conns b_t_conns, "{}".customer_connections c_conns
     WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_at.conn_bundle_type AND 
         l.id IN ({}) AND c_at.assettype=c.assettype AND c.assetgroup=c_at.assetgroup AND c_conns.cid=c.id AND l.id=c_conns.lid
     GROUP BY c.id,l.geom, b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],','.join(str(i[0]) for i in lids))
@@ -169,7 +169,7 @@ class IDADistrictsResultVisualization:
         
     def getEnergyPlantId(self,lids):
         sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
-    FROM {}.energy_plants ep, {}.lines l, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, {}.energy_plant_connections ep_conns
+    FROM "{}".energy_plants ep, "{}".lines l, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
     WHERE  l.id IN ({}) AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND 
         ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
     GROUP BY ep.id,l.id, height,l.geom,b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],','.join(str(i) for i in lids))
@@ -182,7 +182,7 @@ class IDADistrictsResultVisualization:
 
     def getMainEnergyPlantId(self,network):
         sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
-    FROM {}.energy_plants ep, {}.lines l,energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, {}.energy_plant_connections ep_conns
+    FROM "{}".energy_plants ep, "{}".lines l,energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
     WHERE {} = ANY (ep.network) AND l.network={} AND {} = ANY (main_plant) AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND
         ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
     GROUP BY ep.id,l.id, height,l.geom, b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],network,network,network)
@@ -203,7 +203,7 @@ class IDADistrictsResultVisualization:
         length_sum=lid_start[1]
         for i in range(len(lids)-1):
             sql="""SELECT l2.id,ST_3DLength(l2.geom) AS length
-    FROM {}.lines l1, {}.lines l2
+    FROM "{}".lines l1, "{}".lines l2
     WHERE l1.id!=l2.id AND l1.id={} AND l2.id IN ({}) AND ST_dWithIn(ST_EndPoint(l1.geom),l2.geom,0.0001) """.format(self.dictDB['versionName'],self.dictDB['versionName'],lids_new[-1][0],",".join([str(lid) for lid in lids]))
             print(sql)
             self.cur.execute(sql)
@@ -220,7 +220,7 @@ class IDADistrictsResultVisualization:
         jids=[]
         for lid in lids[:-1]:
             sql="""SELECT j.id,ST_Z(ST_EndPoint(l.geom)) AS height
-    FROM {}.lines l, {}.junctions j
+    FROM "{}".lines l,"{}".junctions j
     WHERE l.id={} AND ST_dWithIn(ST_EndPoint(l.geom),j.geom,0.0001);""".format(self.dictDB['versionName'],self.dictDB['versionName'],lid[0])
             print(sql)
             self.cur.execute(sql)
@@ -417,24 +417,24 @@ class IDADistrictsResultVisualization:
                 filedata_ep=readFileToList(file)
                 if dlg.rbtn_weakPoint.isChecked():
                     sql="""(SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
-    FROM {}.customers c, {}.lines l, {}.customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
+    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
     WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_at.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
         c_at.assettype=c.assettype AND c.assetgroup=c_at.assetgroup AND l.network={} AND {}=ANY(c.network)
 UNION
 SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
-    FROM {}.energy_plants ep, {}.lines l, {}.energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
+    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
     WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
         NOT {}=ANY(ep.main_plant) AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup
 )
 ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),dlg.network.currentText())
                 elif dlg.rbtn_customer.isChecked():
                     sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
-    FROM {}.customers c, {}.lines l, {}.customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
+    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
     WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_at.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
         c_at.assettype=c.assettype AND c.assetgroup=c_at.assetgroup AND l.network={} AND {}=ANY(c.network) AND c.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
                 elif dlg.rbtn_energy_plant.isChecked():
                     sql="""SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
-    FROM {}.energy_plants ep, {}.lines l, {}.energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
+    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
     WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
         NOT {}=ANY(ep.main_plant) AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND ep.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
                 print(sql)
@@ -444,11 +444,11 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                 
                 #set up topology
                 sql="""TRUNCATE temp.streets_help;
-INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM {}.lines;
+INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines;
 SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.dictDB['versionName'])
                 self.cur.execute(sql)
                 
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,{}.energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],epid[0])
+                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],epid[0])
                 print(sql)
                 self.cur.execute(sql)
                 v_epid=self.cur.fetchone()['vid']
@@ -477,7 +477,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
 
                 print(weak_point_value)    
                 print(weak_point_id)    
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,{}.{}s f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.dictDB['versionName'],weak_point_id[2],weak_point_id[0])
+                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".{}s f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.dictDB['versionName'],weak_point_id[2],weak_point_id[0])
                 print(sql)
                 self.cur.execute(sql)
                 v_id=self.cur.fetchone()['vid']
@@ -493,7 +493,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                 false
             )
 )
-SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, {}.lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_id,self.dictDB['versionName'])
+SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_id,self.dictDB['versionName'])
                 self.cur.execute(sql)
                 lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
                 print(lids)
@@ -563,12 +563,12 @@ SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, {}.li
                 filedata_ep=readFileToList(file)
                 if dlg.rbtn_weakPoint.isChecked():
                     sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height
-    FROM {}.customers c, {}.lines l
+    FROM "{}".customers c, "{}".lines l
     WHERE c.network=array[{}] AND St_dWithin(c.geom,l.geom,0.000001)
     ORDER BY c.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText())
                 elif dlg.rbtn_customer.isChecked():
                     sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height
-    FROM {}.customers c, {}.lines l
+    FROM "{}".customers c, "{}".lines l
     WHERE c.network=array[{}] AND St_dWithin(c.geom,l.geom,0.000001) AND c.id IN ({})
     ORDER BY c.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
                 print(sql)
@@ -578,11 +578,11 @@ SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, {}.li
                 
                 #set up topology
                 sql="""TRUNCATE temp.streets_help;
-INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM {}.lines;
+INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines;
 SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.dictDB['versionName'])
                 self.cur.execute(sql)
                 
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,{}.energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],epid[0])
+                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],epid[0])
                 print(sql)
                 self.cur.execute(sql)
                 v_epid=self.cur.fetchone()['vid']
@@ -610,7 +610,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                     print(value)
  
                 
-                    sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,{}.customers c WHERE ST_dWithin(c.geom,st_v.the_geom,0.0001) AND c.id={};""".format(self.dictDB['versionName'],weak_point_id[0])
+                    sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".customers c WHERE ST_dWithin(c.geom,st_v.the_geom,0.0001) AND c.id={};""".format(self.dictDB['versionName'],weak_point_id[0])
                     print(sql)
                     self.cur.execute(sql)
                     v_cid=self.cur.fetchone()['vid']
@@ -625,7 +625,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                 false
             )
     )
-    SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, {}.lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_cid,self.dictDB['versionName'])
+    SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_cid,self.dictDB['versionName'])
                     self.cur.execute(sql)
                     lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
                     print(lids)
@@ -709,7 +709,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             self.dlg_pathReports.btn_addSelectedIDs.clicked.connect(lambda: self.addSelectedIDs(self.dlg_pathReports))
             self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: self.deleteIDs(self.dlg_pathReports))
             self.dlg_pathReports.btn_addID.clicked.connect(lambda: self.addID(self.dlg_pathReports))
-            self.cur.execute('SELECT network FROM {}.lines GROUP BY network;'.format(self.dictDB['versionName']))
+            self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.dictDB['versionName']))
             self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
             self.dlg_pathReports.show()
     
@@ -726,7 +726,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
         networks=[dlg.combo_networks.itemText(i) for i in range(dlg.combo_networks.count()) if dlg.combo_networks.itemChecked(i)]
         if networks:
             type=self.getType(dlg)
-            sql="""SELECT id FROM {}.{}s{} ORDER BY id;""".format(self.dictDB['versionName'],type,' WHERE network && ARRAY['+','.join(networks)+']')
+            sql="""SELECT id FROM "{}".{}s{} ORDER BY id;""".format(self.dictDB['versionName'],type,' WHERE network && ARRAY['+','.join(networks)+']')
             self.cur.execute(sql)
             return [str(i['id']) for i in self.cur.fetchall()]
         else:
@@ -968,7 +968,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                 print(table_name)
                 print(checkTableNameExists(self.cur,self.dictDB,table_name))
                 if not checkTableNameExists(self.cur,self.dictDB,table_name):
-                    sql="""CREATE TABLE IF NOT EXISTS {}.{}
+                    sql="""CREATE TABLE IF NOT EXISTS "{}".{}
 (
     id serial,
     fid INTEGER,
@@ -979,10 +979,10 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                     print(sql)
                     self.cur.execute(sql)
                 elif dlg.delete_existing_data.checkState() == Qt.Checked and counter==0:
-                    sql="""TRUNCATE {}.{};""".format(self.dictDB['versionName'],table_name)
+                    sql="""TRUNCATE "{}".{};""".format(self.dictDB['versionName'],table_name)
                     self.cur.execute(sql)
                 elif dlg.delete_existingID_data.checkState() == Qt.Checked:
-                    sql="""DELETE FROM {}.{} WHERE fid={};""".format(self.dictDB['versionName'],table_name,id)
+                    sql="""DELETE FROM "{}".{} WHERE fid={};""".format(self.dictDB['versionName'],table_name,id)
                     self.cur.execute(sql)
                     
             vars_data={var['colmn']:[] for var in var_dict}
@@ -1033,7 +1033,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                     time=vars_data_np[var_data][:,0]
                     var_data=vars_data_np[var_data][:,1]
                 print(var_data)
-                sql="SELECT geom FROM {}.{}s WHERE id={};".format(self.dictDB['versionName'],var['feature'],id)
+                sql='SELECT geom FROM "{}".{}s WHERE id={};'.format(self.dictDB['versionName'],var['feature'],id)
                 self.cur.execute(sql)
                 fid_geom=self.cur.fetchone()
                 if fid_geom:
@@ -1057,7 +1057,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                 ))) + '\n'
                 for id,data in enumerate(zip(time,mdata),id_max)
             ))
-            cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
+            cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')""".format(self.dictDB['versionName'],table_name),mdata_string_iterator)
         
     
     def showImportMeasurements(self):

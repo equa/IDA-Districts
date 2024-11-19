@@ -76,7 +76,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
         self.signals.progress.emit(100)  
             
 def loadCustomerParm(dlg,cur,dictDB):
-    sql="""SELECT * FROM {}.customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
+    sql="""SELECT * FROM "{}".customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
     cur.execute(sql)
     i=0
     table=dlg.tableWidget_parameters
@@ -110,7 +110,7 @@ def setCustParm(dlg,conn,dictDB,plugin_dir):
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
         
-        sql="""TRUNCATE {}.customer_model_parms CASCADE;\n""".format(dictDB['versionName'])
+        sql="""TRUNCATE "{}".customer_model_parms CASCADE;\n""".format(dictDB['versionName'])
         columns='id,mapping_expression,parm_name,model_name,macro_name,mapping_direction'
         table=dlg.tableWidget_parameters
         
@@ -118,7 +118,7 @@ def setCustParm(dlg,conn,dictDB,plugin_dir):
         for row in range(table.rowCount()):
             #write data to DB table customer_model_parms
             values=str(row)+", '"+(table.item(row, 0).text().replace("'","''") if table.item(row, 0) else '') +"', '"+(table.item(row, 2).text() if table.item(row, 2) else '')+"', '"+(table.item(row, 3).text() if table.item(row, 3) else '')+"', '"+(table.item(row, 4).text() if table.item(row, 4) else '')+"', '"+table.cellWidget(row, 1).currentText()+"'"
-            sql+="""INSERT INTO {}.customer_model_parms ({}) VALUES ({});\n""".format(dictDB['versionName'],columns,values)
+            sql+="""INSERT INTO "{}".customer_model_parms ({}) VALUES ({});\n""".format(dictDB['versionName'],columns,values)
             
         print(sql)
         cur.execute(sql)
@@ -187,7 +187,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
         dir=plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\".format(dictDB['projectName'],dictDB['versionName'],type)
             
         sql="""SELECT c.assetgroup, c.assettype, at.assettype_name, at.conn_bundle_type 
-            FROM {}.{}s c,{}_assettypes at 
+            FROM "{}".{}s c,{}_assettypes at 
             WHERE c.assetgroup=at.assetgroup AND c.assettype=at.assettype AND c.id={};""".format(dictDB['versionName'],type,type,id)
         print(sql)
         cur.execute(sql)
@@ -214,7 +214,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
             
             if type=='customer':
                 #dhw
-                sql="""SELECT dhw.id, dhw.description FROM {}.customers c, public.dhw_timeseries dhw WHERE dhw.id=c.dhw_id AND c.id={};""".format(dictDB['versionName'],id)
+                sql="""SELECT dhw.id, dhw.description FROM "{}".customers c, public.dhw_timeseries dhw WHERE dhw.id=c.dhw_id AND c.id={};""".format(dictDB['versionName'],id)
                 print(sql)
                 cur.execute(sql)
                 dhw=cur.fetchone()
@@ -240,7 +240,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                     print(dhw_file)
                     
                 #internal loads
-                sql="""SELECT l.id, l.description FROM {}.customers c, public.internal_loads_profiles l WHERE l.id=c.internal_load_id AND c.id={};""".format(dictDB['versionName'],id)
+                sql="""SELECT l.id, l.description FROM "{}".customers c, public.internal_loads_profiles l WHERE l.id=c.internal_load_id AND c.id={};""".format(dictDB['versionName'],id)
                 cur.execute(sql)
                 internal_load=cur.fetchone()
                 internal_loads_file=False
@@ -265,12 +265,12 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                     print(internal_loads_file)
                     
                 #get model parameter
-                sql="""SELECT * FROM {}.customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
+                sql="""SELECT * FROM "{}".customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
                 print(sql)
                 cur.execute(sql)
                 parms=cur.fetchall()
                 print(parms)
-                sql="""SELECT * FROM {}.customers WHERE id={};""".format(dictDB['versionName'],id)
+                sql="""SELECT * FROM "{}".customers WHERE id={};""".format(dictDB['versionName'],id)
                 print(sql)
                 cur.execute(sql)
                 fields=cur.fetchone()
@@ -370,7 +370,7 @@ class InvokeFeatures():
             self.type='device'
         elif self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_plants:
             self.type='energy_plant'
-        sql="SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM {}.{}s;".format(self.dictDB['versionName'],self.type)
+        sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{}s;'.format(self.dictDB['versionName'],self.type)
         print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()[0]['ids']
@@ -391,7 +391,7 @@ class InvokeFeatures():
             
     def loadInvokeFeatureData(self,dlg):
         """Collect all feature ids and check if they are already invoked"""
-        sql="""SELECT id FROM {}.{}s ORDER BY id;""".format(self.dictDB['versionName'],self.type)
+        sql="""SELECT id FROM "{}".{}s ORDER BY id;""".format(self.dictDB['versionName'],self.type)
         print(sql)
         self.cur.execute(sql)
         i=0

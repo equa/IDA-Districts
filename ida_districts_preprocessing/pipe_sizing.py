@@ -88,17 +88,17 @@ def startPipeSizing(dictDB,conn,dlg,plugin_dir):
     #write pipes into temp.lines table
     sql="""DROP TABLE IF EXISTS temp.lines;
 CREATE TABLE temp.lines (
-    like {}.lines
+    like "{}".lines
     including defaults
     including constraints
     including indexes
 );
-INSERT INTO temp.lines SELECT * FROM {}.lines ORDER BY id;
+INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;
 """.format(dictDB['versionName'],dictDB['versionName'])
     print(sql)
     cur.execute(sql)
     #get pipes from version.lines table
-    sql="""SELECT l.id,l.peak_power_kw, l.no_customer,la.conn_type FROM {}.lines l, line_assettypes la WHERE l.assetgroup=la.assetgroup AND l.assettype=la.assettype AND l.network IN ({}) ORDER BY l.id;""".format(dictDB['versionName'],','.join([i for i in networks]))
+    sql="""SELECT l.id,l.peak_power_kw, l.no_customer,la.conn_type FROM "{}".lines l, line_assettypes la WHERE l.assetgroup=la.assetgroup AND l.assettype=la.assettype AND l.network IN ({}) ORDER BY l.id;""".format(dictDB['versionName'],','.join([i for i in networks]))
     print(sql)
     cur.execute(sql)
     sql_lines=""
@@ -271,10 +271,10 @@ def savePipeSizingResults(dictDB,conn,dlg):
     """save pipe sizing results"""
     print('save pipe sizing results')
     cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-    sql="""TRUNCATE {}.lines CASCADE;""".format(dictDB['versionName'])
+    sql="""TRUNCATE "{}".lines CASCADE;""".format(dictDB['versionName'])
     print(sql) 
     cur.execute(sql)  
-    sql="""INSERT INTO {}.lines SELECT * FROM temp.lines;""".format(dictDB['versionName'])
+    sql="""INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(dictDB['versionName'])
     print(sql) 
     cur.execute(sql)  
     

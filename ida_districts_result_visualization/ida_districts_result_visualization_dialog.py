@@ -496,7 +496,7 @@ class ShowOnMapDialog(QMainWindow):
         
     def color_varChanged(self,s):
         self.color_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM {}.{};""".format(self.dictDB['versionName'],self.color_table_name)
+        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.dictDB['versionName'],self.color_table_name)
         try:
             self.cur.execute(sql)
             time=self.cur.fetchone()
@@ -520,7 +520,7 @@ class ShowOnMapDialog(QMainWindow):
             
     def size_varChanged(self,s):
         self.size_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM {}.{};""".format(self.dictDB['versionName'],self.size_table_name)
+        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.dictDB['versionName'],self.size_table_name)
         try:
             self.cur.execute(sql)
             time=self.cur.fetchone()
@@ -544,7 +544,7 @@ class ShowOnMapDialog(QMainWindow):
             
     def rotation_varChanged(self,s):
         self.rotation_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM {}.{};""".format(self.dictDB['versionName'],self.rotation_table_name)
+        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.dictDB['versionName'],self.rotation_table_name)
         try:
             self.cur.execute(sql)
             time=self.cur.fetchone()

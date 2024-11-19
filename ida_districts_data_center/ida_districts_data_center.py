@@ -511,7 +511,7 @@ class IDADistrictsDataCenter:
         
     def rowCountDB(self,table,filter):
         """ Count the rows of table with filter"""
-        sql="SELECT count(*) AS count FROM public.{} {};".format(table,filter)
+        sql="SELECT count(*) AS count FROM {} {};".format(table,filter)
         self.cur.execute(sql)
         return self.cur.fetchone()['count']          
         
@@ -768,11 +768,11 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             print(value)
             if value:
                 if value=='(no selection)':
-                    sql="ALTER TABLE {}.{} ALTER COLUMN {} DROP DEFAULT;".format(self.dictDB['versionName'],table,input,value)
+                    sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(self.dictDB['versionName'],table,input,value)
                     print(sql)
                     self.cur.execute(sql)    
                 else:
-                    sql="ALTER TABLE {}.{} ALTER COLUMN {} SET DEFAULT {};".format(self.dictDB['versionName'],table,input,value)
+                    sql='ALTER TABLE "{}".{} ALTER COLUMN {} SET DEFAULT {};'.format(self.dictDB['versionName'],table,input,value)
                     print(sql)
                     self.cur.execute(sql)
         dlg.close()
@@ -833,7 +833,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         """show table content"""
         print('show table content')
         cur=self.conn.cursor()
-        sql='SELECT * FROM public.{} ORDER BY id;'.format(table)
+        sql='SELECT * FROM {} ORDER BY id;'.format(table)
         cur.execute(sql) 
         data = cur.fetchall()
         
@@ -1031,63 +1031,63 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Connection types','connection_types',['Connection Type Id','Description'],'(id,description)','',False, self.show_TableCurrentRowDialog, ['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'',False,False,[0]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn
+            self.show_TableDialog(title='Connection types',table='connection_types',headers=['Connection Type Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'',False,False,[0]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn
 
     def manageConnBundleTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Connection bundles','conn_bundle_types',['Connection bundle Id','Description'],'(id,description)','',False, self.show_TableCurrentRowDialog, ['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Connection bundles',table='conn_bundle_types',headers=['Connection bundle Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'',False,False,[0]]) 
 
     def managePipeBundlesTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Pipe bundles','pipe_bundle_types',['Pipe bundle Id','Description'],'(id,description)','',False, self.show_TableCurrentRowDialog, ['bundle_pipes',['sequence','pipe_id','x','y','ambient'],['Sequence','Pipe ID','x, m','y, m','Ambient'],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[]]) 
+            self.show_TableDialog(title='Pipe bundles',table='pipe_bundle_types',headers=['Pipe bundle Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],['Sequence','Pipe ID','x, m','y, m','Ambient'],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[]]) 
             
     def manageMaterials(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Materials','materials',['Id','Name','Thermal conductivity, W/(m*K)','Specific heat, J/(kg*K)','Density, kg/m3'],'(id, name, thermal_conductivity_w7mkelvin, specific_heat_j7kgkelvin, density_kg7m3)','',False, False,['',[],[],'','',[],False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Materials',table='materials',headers=['Id','Name','Thermal conductivity, W/(m*K)','Specific heat, J/(kg*K)','Density, kg/m3'],columns='(id, name, thermal_conductivity_w7mkelvin, specific_heat_j7kgkelvin, density_kg7m3)') 
 
     def managePipeConstructions(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Pipe constructions','pipe_constructions',['Construction Id','Name'],'(id, name)','',False, self.show_TableCurrentRowDialog,['pipe_layers',['sequence','materialid','thickness'],['Sequence', 'Material','Thickness'],'WHERE pipe_construction_id =','ORDER BY id',[[1,'public','materials','id','name']],False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Pipe constructions',table='pipe_constructions',headers=['Construction Id','Name'],columns='(id, name)', openFn=self.show_TableCurrentRowDialog,openFnArg=['pipe_layers',['sequence','materialid','thickness'],['Sequence', 'Material','Thickness'],'WHERE pipe_construction_id =','ORDER BY id',[[1,'public','materials','id','name']],False,'',False,False,[0]]) 
 
     def managePipes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Pipes','pipes',['Id','Name','Inner pipe diameter, m','Absolute pipe roughness, m','Pipe construction Id','Description'],'(id, name, innerpipediameter, piperoughnessfactor, pipe_construction_id, description)',[[4,'public','pipe_constructions','id','name']],False,False, ['',[],[],'','',[],False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Pipes',table='pipes',headers=['Id','Name','Inner pipe diameter, m','Absolute pipe roughness, m','Pipe construction Id','Description'],columns='(id, name, innerpipediameter, piperoughnessfactor, pipe_construction_id, description)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
        
     def manageDHWTimeseries(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('DHW timeseries','dhw_timeseries',['DHW id','Name'],'(id, description)', '',self.importFn,self.show_TableCurrentRowDialog,['dhw',['time_h','kg7s'],['Time', 'dhw demand, kg/s',],'WHERE dhw_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
+            self.show_TableDialog(title='DHW timeseries',table='dhw_timeseries',headers=['DHW id','Name'],columns='(id, description)',importFn=self.importFn,openFn=self.show_TableCurrentRowDialog,openFnArg=['dhw',['time_h','kg7s'],['Time', 'dhw demand, kg/s',],'WHERE dhw_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
     
     def manageTempTimeseries(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Temperatur timeseries','temp_timeseries',['Id','Description'],'(id, description)', '',self.importFn,self.show_TableCurrentRowDialog,['temp',['time_h','temp'],['Time', 'Temperature, °C',],'WHERE temp_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Temperatur timeseries',table='temp_timeseries',headers=['Id','Description'],columns='(id, description)',importFn=self.importFn,openFn=self.show_TableCurrentRowDialog,openFnArg=['temp',['time_h','temp'],['Time', 'Temperature, °C',],'WHERE temp_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
        
     def manageInternalLoadProfiles(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog('Internal Load profiles','internal_loads_profiles',['Id','Description'],'(id, description)', '',self.importFnInternalLoad,self.show_TableCurrentRowDialog,['internal_load',['time_h','person_w7m2','electricity_w7m2'],['Time, h', 'Persons, W/m2','Electricity, W/m2'],'WHERE internal_load_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Internal Load profiles',table='internal_loads_profiles',headers=['Id','Description'],columns='(id, description)',importFn=self.importFnInternalLoad,openFn=self.show_TableCurrentRowDialog,openFnArg=['internal_load',['time_h','person_w7m2','electricity_w7m2'],['Time, h', 'Persons, W/m2','Electricity, W/m2'],'WHERE internal_load_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
 
     def manageAssetgroups(self,assetgroup):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1095,13 +1095,19 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             if assetgroup=='line':
-                self.show_TableDialog('{} asset groups'.format(assetgroup),'{}_assetgroups'.format(assetgroup),['Id','Name'],'(id, assetgroup)','',False, self.show_TableCurrentRowDialog,['{}_assettypes'.format(assetgroup),['assettype','assettype_name','description'],['Id', 'Asset type name', 'Description'],'WHERE assetgroup =','ORDER BY assettype','',False,'',False,False,[0]]) 
+                self.show_TableDialog(title='{} asset groups'.format(assetgroup),table='{}_assetgroups'.format(assetgroup),headers=['Id','Name'],columns='(id, assetgroup)',openFn= self.show_TableCurrentRowDialog,openFnArg=['{}_assettypes'.format(assetgroup),['assettype','assettype_name','description'],['Id', 'Asset type name', 'Description'],'WHERE assetgroup =','ORDER BY assettype','',False,'',False,False,[0]]) 
             elif assetgroup=='customer':
-                self.show_TableDialog('{} asset groups'.format(assetgroup),'{}_assetgroups'.format(assetgroup),['Id','Name'],'(id, assetgroup)','',False, self.show_TableCurrentRowDialog,['{}_assettypes'.format(assetgroup),['assettype','assettype_name','conn_bundle_type','description'],['Id', 'Asset type name','Connection bundle type', 'Description'],'WHERE assetgroup =','ORDER BY assettype',[[2,'public','conn_bundle_types','id','description']],self.openAssettype,assetgroup,True,True,[0]]) 
+                self.show_TableDialog(title='{} asset groups'.format(assetgroup),table='{}_assetgroups'.format(assetgroup),headers=['Id','Name'],columns='(id, assetgroup)',openFn= self.show_TableCurrentRowDialog,openFnArg=['{}_assettypes'.format(assetgroup),['assettype','assettype_name','conn_bundle_type','description'],['Id', 'Asset type name','Connection bundle type', 'Description'],'WHERE assetgroup =','ORDER BY assettype',[[2,'public','conn_bundle_types','id','description']],self.openAssettype,assetgroup,True,True,[0]]) 
             else:
-                self.show_TableDialog('{} asset groups'.format(assetgroup),'{}_assetgroups'.format(assetgroup),['Id','Name'],'(id, assetgroup)','',False, self.show_TableCurrentRowDialog,['{}_assettypes'.format(assetgroup),['assettype','assettype_name','conn_bundle_type','description'],['Id', 'Asset type name','Connection bundle type', 'Description'],'WHERE assetgroup =','ORDER BY assettype',[[2,'public','conn_bundle_types','id','description']],self.openAssettype,assetgroup,True,True,[0]]) 
+                self.show_TableDialog(title='{} asset groups'.format(assetgroup),table='{}_assetgroups'.format(assetgroup),headers=['Id','Name'],columns='(id, assetgroup)',openFn= self.show_TableCurrentRowDialog,openFnArg=['{}_assettypes'.format(assetgroup),['assettype','assettype_name','conn_bundle_type','description'],['Id', 'Asset type name','Connection bundle type', 'Description'],'WHERE assetgroup =','ORDER BY assettype',[[2,'public','conn_bundle_types','id','description']],self.openAssettype,assetgroup,True,True,[0]]) 
 
-    
+    def manageNetworks(self):
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            self.show_TableDialog(title='Networks',table='"{}".network'.format(self.dictDB['versionName']),headers=['Id','Description'],columns='(id, description)',ok_fn=updateNetworkDependingFields,ok_fn_arg=[self.cur,self.dictDB]) 
+
     def delIfNotInDBIds(self,table,openFnArg):
         """delete entries in subtable, if filter and not listed in DB table """
         if openFnArg:
@@ -1117,21 +1123,23 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 print(sql)
                 self.cur.execute(sql)
             
-    def saveTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes):
+    def saveTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg):
         """" Save table to DB an close dialog"""
         print('Save table to DB an close dialog')
-        sql="""TRUNCATE public.{} CASCADE;\n""".format(table)
+        sql="""TRUNCATE {} CASCADE;\n""".format(table)
         for row in range(dlg.tableWidget.rowCount()):
             values= self.getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','),checkBoxes)
             #print(values)
             if not values:
                 print('return')
                 return False
-            sql+="""INSERT INTO public.{} {} VALUES ({});\n""".format(table,columns,values)
+            sql+="""INSERT INTO {} {} VALUES ({});\n""".format(table,columns,values)
         print(sql)
         self.cur.execute(sql)
         self.delIfNotInDBIds(table,openFnArg)
-        
+        if ok_fn:
+            print('----ok-fn---')
+            ok_fn(ok_fn_arg[0],ok_fn_arg[1])
         dlg.close()
         
     def addTableRow(self,dlg,dropdowns,trace,deactivated):
@@ -1256,7 +1264,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
 
         
-    def show_TableDialog(self,title,table,headers,columns,dropdowns,importFn,openFn,openFnArg):
+    def show_TableDialog(self,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]]):
         """Show types from table in DB"""
         print('Manage connection types')
         openBtn=False
@@ -1272,7 +1280,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dlg.btn_open.clicked.connect(lambda: openFn(table,dlg,dlg.tableWidget.currentRow(),openFnArg))
         if importFn:
             dlg.btn_import.clicked.connect(lambda: importFn(dlg,table,openFnArg,dropdowns))
-        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,[]))
+        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,[],ok_fn,ok_fn_arg))
         dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))
         dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,False))
         dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,False,[]))
@@ -1306,6 +1314,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.dlg.btn_manageCustomerAssetgroups.clicked.connect(lambda: self.manageAssetgroups('customer'))
             self.dlg.btn_manageEnergyPlantAssetgroups.clicked.connect(lambda: self.manageAssetgroups('energy_plant'))
             self.dlg.btn_manageDevicesAssetgroups.clicked.connect(lambda: self.manageAssetgroups('device'))
+            self.dlg.btn_manageNetworks.clicked.connect(self.manageNetworks)
             # show the dialog
             self.dlg.show()
             print ('finish')

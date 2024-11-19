@@ -832,26 +832,26 @@ class IDA_Districts_ProjectHandling:
             for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:
                 #Check for inserted items
                 print(table)
-                sql="""SELECT id FROM {}.{}
+                sql="""SELECT id FROM "{}".{}
                         EXCEPT
-                        SELECT id FROM {}.{};""".format(child['version_name'],table,self.dictDB['versionName'],table)
+                        SELECT id FROM "{}".{};""".format(child['version_name'],table,self.dictDB['versionName'],table)
                 print(sql)
                 self.cur.execute(sql)
                 for result in self.cur.fetchall():
-                    sql='SELECT * FROM {}.{} WHERE id={};'.format(child['version_name'],table,result['id'])     
+                    sql='SELECT * FROM "{}".{} WHERE id={};'.format(child['version_name'],table,result['id'])     
                     self.cur.execute(sql)
-                    diff ='INSERT INTO {}.{} VALUES \n'.format(child['version_name'],table)+str(self.cur.fetchone()).replace('None','Null')+';'
+                    diff ='INSERT INTO "{}".{} VALUES \n'.format(child['version_name'],table)+str(self.cur.fetchone()).replace('None','Null')+';'
                     if diff not in diffData:
                         diffData=diffData+diff
 
                 #Check for deleted items
-                sql="""SELECT id FROM {}.{}
+                sql="""SELECT id FROM "{}".{}
                         EXCEPT
-                        SELECT id FROM {}.{};""".format(self.dictDB['versionName'],table,child['version_name'],table)
+                        SELECT id FROM "{}".{};""".format(self.dictDB['versionName'],table,child['version_name'],table)
                 print(sql)
                 self.cur.execute(sql)
                 for result in self.cur.fetchall():
-                    diff ='DELETE FROM {}.{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
+                    diff ='DELETE FROM "{}".{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
                     if diff not in diffData:
                         diffData=diffData+diff
                         
@@ -861,9 +861,9 @@ class IDA_Districts_ProjectHandling:
                 self.cur.execute(sql)
                 curUpdatedColumn=self.conn.cursor()  
                 for column in self.cur.fetchall():
-                    sql="""SELECT id,{} FROM {}.{}
+                    sql="""SELECT id,{} FROM "{}".{}
                         EXCEPT
-                        SELECT id,{} FROM {}.{};""".format(column[0],child['version_name'],table,column[0],self.dictDB['versionName'],table)
+                        SELECT id,{} FROM "{}".{};""".format(column[0],child['version_name'],table,column[0],self.dictDB['versionName'],table)
                     #print(sql)
                     curUpdatedColumn.execute(sql)
                     for updatedColumnValue in curUpdatedColumn:
@@ -872,10 +872,10 @@ class IDA_Districts_ProjectHandling:
                     
                         if column[1] in ['integer','numeric']:
                             print('value')
-                            diff ='UPDATE {}.{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column[0],updatedColumnValue[1],updatedColumnValue[0])
+                            diff ='UPDATE "{}".{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column[0],updatedColumnValue[1],updatedColumnValue[0])
                         else:
                             print('geom')
-                            diff ='UPDATE {}.{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column[0],updatedColumnValue[1],updatedColumnValue[0])
+                            diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column[0],updatedColumnValue[1],updatedColumnValue[0])
                         if diff not in diffData:
                             diffData=diffData+diff
                 curUpdatedColumn.close()
