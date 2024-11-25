@@ -139,7 +139,7 @@ def setupCustomerVersionForm(cur,dictDB,plugin_dir):
     modelParm=getALiasNameCustParm(cur,dictDB)
     
     attrNamesTabs= [['id','assetgroup','assettype','network'],
-                    ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
+                    ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
                     ['dhw_id', 'dhw_scale','internal_load_id','submodel',modelParm],
                     ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
     for tab,attrNamesTab in zip(['General','Physical data','Simulation data','Metadata'],attrNamesTabs):

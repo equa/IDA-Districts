@@ -190,11 +190,6 @@ class InvokeNetworkModel:
                 writeMacroClimateIdc('network_'+str(submodel),dir,loadModellingSettings(self.plugin_dir,self.dictDB))
                 self.signals.progress.emit(int(2+4*(submodels.index(submodel)+1)/len(submodels)*97))
                 
-                #sf-macro
-                self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
-                self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
-                self.signals.progress.emit(int(2+5*(submodels.index(submodel)+1)/len(submodels)*97))
-                
                 #decoupling
                 idm+=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data)
                 writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir)
@@ -248,9 +243,15 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
                         self.invokedOutputs[type]=copyAssettypeMacro.invokedFeatureOutputs
                     resources.extend(copyAssettypeMacro.resources)  
                 self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
+
                 print('&&&&&&&&&&&&&&&&&&&&&&')
                 print(set(resources))
                 idm+=''.join(["\n"+i for i in set(resources)])
+                
+                #sf-macro
+                self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
+                self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
+                self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
                 
                 # Define the path to the building idm file
                 self.buildingIdmFilePath = """{}\\{}.idm""".format(dir.replace('/','\\'),'network_'+str(submodel))

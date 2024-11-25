@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS {}.line_seg_{}
             "SELECT segmentize({},'{}','line_seg_temp');".format(modellingSettings['fd_meterPerNode'],self.dictDB['versionName']) if output=='temp_lines' else "SELECT halve_geom('{}','line_seg_p');".format(self.dictDB['versionName']))
             for output in self.simulatedOutputs if output in ['temp_lines','p_lines'] and self.simulatedOutputs[output]])
         if sql:
+            print(sql)
             self.cur.execute(sql)
         
         for i in range(self.dlg.combo_submodels.count()):

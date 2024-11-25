@@ -33,6 +33,7 @@ class WorkerPipeLaying(QRunnable):
         self.args=args
         print(args)
         self.iface=kwargs['iface']
+        self.tolerance=kwargs['tolerance']
         self.check_heating_network=kwargs['check_heating_network']
         self.tsup_max=kwargs['tsup_max']
         self.heat_demand_min=kwargs['heat_demand_min']
@@ -137,7 +138,7 @@ class WorkerPipeLaying(QRunnable):
         self.updateJunctionConnections()
         self.updateTempCustomerConnType()
         self.mergeLines()
-        #self.updateHeight(version)
+        self.updateHeight(version)
         if self.redraw_submodels_polygons:
             redrawSubnetworkIncludingLines('temp.lines',self.cur,self.dictDB,self.srid)
         updateSubmodels(self.cur,self.dictDB)
@@ -145,84 +146,84 @@ class WorkerPipeLaying(QRunnable):
         uri = QgsDataSourceUri()
         uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
         print(uri)
-        checkLineDirectionPipeLaying(self.cur,version,0.01)
+        checkLineDirectionPipeLaying(self.cur,version,self.tolerance,self.network)
         showTempTables(uri,self.dictDB,self.plugin_dir, self.iface,self.cur)
         self.conn.close()
         print('finished pipe laying')
         self.signals.progress.emit(100)
         
+    #dublicated code
     def updateHeight(self,version):
         "update the height of the network, junctions and customers based on raster layer"
         sql = """SELECT EXISTS (
-   SELECT 1
-   FROM   information_schema.tables 
-   WHERE  table_schema = '{}'
-   AND    table_name = 'terrain'
-   ) AS exists;""".format(version)
+    SELECT 1
+    FROM   information_schema.tables 
+    WHERE  table_schema = '{}'
+    AND    table_name = 'terrain'
+    ) AS exists;""".format(version)
         print(sql) 
+        
         self.cur.execute(sql)
         if self.cur.fetchone()['exists']==True:
             print('Height layer exists')
-            #Update junctions
-            sql = """UPDATE temp.junctions j set asl_m=a.height FROM (
-        SELECT j.id, ST_Value(t.rast, 1, st_transform(ST_Centroid(j.geom),4326)) As height
-            FROM "{}".terrain t,temp.junctions j
-            WHERE ST_Intersects(t.rast,st_transform(j.geom,4326))
+            print('Update point layers')
+            for f in ['customers','energy_plants','devices']:
+                #Update customer height
+                sql= """UPDATE temp.{} f set geom=ST_MakePoint(ST_X(geom),ST_Y(geom),a.height) FROM (
+    WITH sub AS(
+        WITH sub AS(
+            SELECT ST_srid(rast) AS rast_srid FROM "{}".terrain LIMIT 1
+        )
+        SELECT id,geom, ST_Transform(geom,sub.rast_srid) AS geom_trans FROM sub,temp.{}
+    )
+    SELECT sub.id,ST_Value(rast, sub.geom_trans) As height
+                FROM sub, "{}".terrain
+                WHERE ST_dWithIn(ST_Envelope(rast),sub.geom_trans,10e-8)
+                GROUP BY sub.id,height
+                ORDER BY sub.id
     ) a
-    WHERE a.id=j.id;""".format(version)
-            #print(sql) 
-            self.cur.execute(sql)
-            
-            #Update customer height
-            sql= """UPDATE temp.customers c set asl_m=a.height FROM (
-        SELECT c.id, ST_Value(t.rast, 1, st_transform(ST_Centroid(c.geom),4326)) As height
-            FROM "{}".terrain t,temp.customers c 
-            WHERE ST_Intersects(t.rast,st_transform(c.geom,4326))
-    ) a
-    WHERE a.id=c.id;""".format(version)
-            #print(sql) 
-            self.cur.execute(sql)
+    WHERE f.id=a.id;""".format(f,version,f,version)
+                print(sql) 
+                self.cur.execute(sql)
             
             #Update network height
             sql="""WITH sub AS(
-    WITH sub AS(
-        SELECT
-           ST_PointN(
-              geom,
-              generate_series(1, ST_NPoints(geom))
-           ) AS geom,id
-        FROM (Select geom,id from temp.lines) AS foo
-    )
-    SELECT sub.id,ST_SetSrid(ST_MakeLine(ST_MakePoint(ST_X(sub.geom),ST_Y(sub.geom), ST_Value(t.rast, 1, ST_Transform(ST_Centroid(sub.geom),4326)))),{}) As geom
-        FROM "{}".terrain t,sub
-        WHERE ST_Intersects(t.rast,st_transform(sub.geom,4326)) GROUP BY sub.id
+    SELECT a.id,ST_SetSrid(ST_MakeLine(ST_MakePoint(ST_X(a.geom),ST_Y(a.geom), ST_Value(t.rast, 1, a.geom_trans))),{}) As geom
+            FROM 
+                "{}".terrain t,
+                (
+                    WITH sub AS(
+                        SELECT ST_srid(rast) AS rast_srid FROM "{}".terrain LIMIT 1
+                    )
+                    SELECT id,(ST_DumpPoints(geom)).geom AS geom,ST_Transform((ST_DumpPoints(geom)).geom,sub.rast_srid) AS geom_trans From temp.lines,sub ORDER BY id
+                ) a
+            WHERE ST_dWithIn(ST_Envelope(rast),a.geom_trans,10e-8)
+            GROUP BY a.id
 )
-UPDATE temp.lines g SET geom=sub.geom,
-    length=ST_Length(sub.geom)
-    FROM sub WHERE sub.id=g.id;""".format(self.srid,version)
+UPDATE temp.lines l SET geom=sub.geom,
+    length=ST_3DLength(sub.geom)
+    FROM sub WHERE sub.id=l.id;""".format(self.srid,version,version)
             print(sql) 
             self.cur.execute(sql) 
-
-            #Update pipe length 
-            sql="UPDATE temp.lines set length=ST_Length(geom);"
-            print(sql) 
-            self.cur.execute(sql) 
+        else:
+            sql="UPDATE temp.lines set length=st_3dlength(geom);"
+            self.cur.execute(sql)
             
     def insertJunctionConnections(self):
         "insert node connections into table junction_connections   "
-        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,0.001);"""
+        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,{});""".format(self.tolerance)
         #print(sql) 
         self.cur.execute(sql)
         
     def insertCustomerConnections(self):
         "insert customer connections into table customer_connections"
-        sql="""INSERT INTO temp.customer_connections (cid,lid,c_seq) SELECT c.id, l.id, 1 FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,0.001);"""
+        sql="""INSERT INTO temp.customer_connections (cid,lid,c_seq) SELECT c.id, l.id, 1 FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,{});""".format(self.tolerance)
         #print(sql) 
         self.cur.execute(sql)
         
     def insertPlantConnections(self,version):
         "insert energy_plant connections  into table energy_plant_connections"
-        sql="""INSERT INTO temp.energy_plant_connections (epid,lid,ep_seq) SELECT ep.id,l.id, 1 FROM "{}".energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,0.001);""".format(version)
+        sql="""INSERT INTO temp.energy_plant_connections (epid,lid,ep_seq) SELECT ep.id,l.id, 1 FROM temp.energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,{});""".format(self.tolerance)
         #print(sql) 
         self.cur.execute(sql)
         
@@ -300,7 +301,7 @@ UPDATE temp.lines g SET geom=sub.geom,
                 flag=False
         
     def deleteUnconnectedCustomers(self,version):
-        sql="""DELETE FROM temp.customers c WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.lines l WHERE St_DWithIn(c.geom,l.geom,0.001));"""
+        sql="""DELETE FROM temp.customers c WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.lines l WHERE St_DWithIn(c.geom,l.geom,{}));""".format(self.tolerance)
         #print(sql) 
         self.cur.execute(sql)
         
@@ -308,18 +309,18 @@ UPDATE temp.lines g SET geom=sub.geom,
         sql="""INSERT INTO temp.junctions (geom,assetgroup,network)
                 SELECT ST_Force3D(v.the_geom),1,{}
                     FROM temp.lines l 
-                    INNER JOIN temp.streets_help_vertices_pgr v ON St_DWithIn(v.the_geom,l.geom,0.001) 
+                    INNER JOIN temp.streets_help_vertices_pgr v ON St_DWithIn(v.the_geom,l.geom,{}) 
                     WHERE v.id not in(
-                            SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.customers c ON St_DWithIn(v.the_geom,c.geom,0.001)  
+                            SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.customers c ON St_DWithIn(v.the_geom,c.geom,{})  
                             UNION 
-                            SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN "{}".energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,0.001) 
+                            SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
                             )
-                    GROUP BY v.id ORDER BY v.id;""".format(self.network,version)
+                    GROUP BY v.id ORDER BY v.id;""".format(self.network,self.tolerance,self.tolerance,self.tolerance)
         #print(sql) 
         self.cur.execute(sql)        
         
     def getPlants(self,version):
-        sql="""SELECT ep.id epid, st_v.id::integer AS v_ep FROM "{}".energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dwithin(ep.geom,st_v.the_geom,0.01);""".format(version)
+        sql="""SELECT ep.id epid, st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dwithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network);""".format(self.tolerance,self.network)
         #print(sql) 
         self.cur.execute(sql)   
         return self.cur.fetchall()   
@@ -330,13 +331,16 @@ DROP TABLE IF EXISTS temp.lines;
 DROP TABLE IF EXISTS temp.lines_cooling;
 DROP TABLE IF EXISTS temp.lines_heating;
 DROP TABLE IF EXISTS temp.customers;
+DROP TABLE IF EXISTS temp.energy_plants;
 CREATE TABLE temp.customers (LIKE "{}".customers INCLUDING ALL);
+CREATE TABLE temp.energy_plants (LIKE "{}".energy_plants INCLUDING ALL);
 CREATE TABLE temp.junctions (LIKE"{}".junctions INCLUDING ALL);
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING ALL);
 CREATE TABLE temp.lines_heating (LIKE "{}".lines INCLUDING ALL);
-CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(version,version,version,version,version))
+CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(version,version,version,version,version,version,version))
         self.cur.execute("""TRUNCATE temp.customers, temp.lines_cooling, temp.lines_heating, temp.lines CASCADE;""")
         self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers; """.format(version))
+        self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants; """.format(version))
     
     def prepareDB_pipeLaying_modeTables(self,version):
         self.cur.execute("""TRUNCATE temp.streets_help, temp.junctions, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.device_connections CASCADE;""")
@@ -354,12 +358,12 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             plantConnConstr=plantConnConstr+" AND ep.tsup_c_deg <= " + self.tsup_min
             
         sql="""With sub AS(
-            	SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist FROM temp.streets_help st, "{}".energy_plants ep WHERE {}=ANY(ep.network) GROUP BY ep.id
+            	SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist FROM temp.streets_help st, temp.energy_plants ep WHERE {}=ANY(ep.network) GROUP BY ep.id
             )
             INSERT INTO temp.streets_help(geom) 
             	SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom))
-            	FROM sub, temp.streets_help st, "{}".energy_plants ep
-            	WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(version,self.network,version,plantConnConstr)
+            	FROM sub, temp.streets_help st, temp.energy_plants ep
+            	WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(self.network,plantConnConstr)
         #print("""insert energy plant connections: {}""".format(sql));
         self.cur.execute(sql);
 
@@ -396,14 +400,14 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             for i in range(0,numberofid):
                 sql="""With sub AS(
                         With sub AS(
-                            		SELECT c.id AS id, Max(heat_e_kwh / ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist FROM temp.streets_help st, temp.customers c WHERE c.id NOT IN (SELECT c.id FROM temp.streets_help st,temp.customers c WHERE st_dwithin(c.geom,st.geom,0.001)) GROUP BY c.id ORDER BY min_dist DESC LIMIT 1
+                            		SELECT c.id AS id, Max(heat_e_kwh / ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist FROM temp.streets_help st, temp.customers c WHERE c.id NOT IN (SELECT c.id FROM temp.streets_help st,temp.customers c WHERE st_dwithin(c.geom,st.geom,{})) GROUP BY c.id ORDER BY min_dist DESC LIMIT 1
                             	)
                             	SELECT min(st_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS length,sub.id FROM temp.streets_help st, temp.customers c, sub WHERE c.id=sub.id GROUP BY sub.id
                             )
                             INSERT INTO temp.streets_help(geom) 
                             	SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) AS line
                             		FROM sub, temp.customers c, temp.streets_help st
-                            		WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(customerConnConstr)
+                            		WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(self.tolerance,customerConnConstr)
                 #print("""insert customer connections: {}""".format(sql))
                 self.cur.execute(sql)
                 
@@ -426,7 +430,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         sql="SELECT topology.AddTopoGeometryColumn('streets_help_topo','temp','streets_help','topo_geom','LINESTRING');"
         self.cur.execute(sql)    
         #print(sql)
-        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,0.001);"
+        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance)
         self.cur.execute(sql)    
         #print(sql)
         sql="TRUNCATE temp.streets_help;"
@@ -438,7 +442,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         sql="""WITH sub AS(
                 SELECT geom, costs_eur7m as costs FROM "{}".streets
             )
-            UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,0.0001);""".format(version)
+            UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance)
         print(sql)  
         self.cur.execute(sql)   
         #drop table streets_help_vertices_pgr       
@@ -483,7 +487,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         for plant in plants:
             v_ep=plant['v_ep']
             epid=plant['epid']
-            sql="""SELECT c.id AS cid,st_v.id::integer as v_c FROM temp.customers c, temp.streets_help_vertices_pgr st_v WHERE st_dwithin(c.geom,st_v.the_geom,0.01) AND {}=ANY(c.network);""".format(self.network)
+            sql="""SELECT c.id AS cid,st_v.id::integer as v_c FROM temp.customers c, temp.streets_help_vertices_pgr st_v WHERE st_dwithin(c.geom,st_v.the_geom,{}) AND {}=ANY(c.network);""".format(self.tolerance,self.network)
             #print(sql) 
             self.cur.execute(sql)
             if mode=='heating':
@@ -585,10 +589,10 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     time.sleep(0.1)
                     if self.is_killed: #abort algorithm, but finish network topology with existing pipes
                         print('abort pipe laying')
-                        self.finishNetworkTopology(version)
+                        self.finishNetworkTopology(version,srid)
                 if self.is_killed: #abort algorithm, but finish network topology with existing pipes
                     print('abort pipe laying')
-                    self.finishNetworkTopology(version)
+                    self.finishNetworkTopology(version,srid)
                     
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
                 #print(sql) 
@@ -599,7 +603,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 sql="""With sub AS(
                     	SELECT c.id AS cid, nh.epid, c.{},sum(st_length(nh.geom)) as length, c.{}/sum(st_length(nh.geom)) as energydensity
                     		FROM temp.customers c, temp.network_help nh 
-                    		WHERE c.id NOT IN (SELECT c.id FROM temp.lines_{} l,temp.customers c WHERE st_dwithin(c.geom,l.geom,0.001)) {} AND nh.cid=c.id AND nh.lid NOT IN (SELECT id FROM temp.lines_{})
+                    		WHERE c.id NOT IN (SELECT c.id FROM temp.lines_{} l,temp.customers c WHERE st_dwithin(c.geom,l.geom,{})) {} AND nh.cid=c.id AND nh.lid NOT IN (SELECT id FROM temp.lines_{})
                     		GROUP BY c.id, c.{}, nh.epid
                     		ORDER BY energydensity DESC LIMIT 1 
                     )
@@ -607,7 +611,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     	SELECT nh.lid,0,{},ST_Force3D(nh.geom),St_Length(nh.geom),{}
                     		FROM sub, temp.network_help nh
                     		WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
-                    		GROUP BY nh.lid,nh.geom;""".format(pathConstrColumn,pathConstrColumn,mode,customerConnConstr,mode,pathConstrColumn,mode,assettype,pipe_bundle_type_id,mode,customerConnConstrPath)
+                    		GROUP BY nh.lid,nh.geom;""".format(pathConstrColumn,pathConstrColumn,mode,self.tolerance,customerConnConstr,mode,pathConstrColumn,mode,assettype,pipe_bundle_type_id,mode,customerConnConstrPath)
                 print(sql) 
                 self.cur.execute(sql) 
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
@@ -632,8 +636,8 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             #loop over connected trees
             sql="""	SELECT nh.lid
                 		FROM temp.network_help nh, temp.lines_{} l
-                		WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,0.001)
-                		GROUP BY nh.lid;""".format(mode,mode)
+                		WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,{})
+                		GROUP BY nh.lid;""".format(mode,mode,self.tolerance)
             #print(sql) 
             self.cur.execute(sql)  
             trees=self.cur.fetchall()
@@ -670,7 +674,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     	SELECT nh1.cid,nh.epid
                     		FROM temp.network_help nh, temp.network_help nh1 
                     		WHERE nh.epid IN (SELECT nh.epid FROM temp.network_help nh WHERE nh.cid={} AND nh.id NOT IN (SELECT id FROM temp.lines_{}) GROUP BY nh.epid ORDER BY sum(St_length(nh.geom)) LIMIT 1) AND 
-                    			nh.cid={} AND nh1.geom=nh.geom AND nh1.cid!=nh.cid AND nh1.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh1.cid NOT IN (SELECT c.id AS cid FROM temp.lines_{} l, temp.customers c WHERE St_dWithIn(c.geom,l.geom,0.001))
+                    			nh.cid={} AND nh1.geom=nh.geom AND nh1.cid!=nh.cid AND nh1.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh1.cid NOT IN (SELECT c.id AS cid FROM temp.lines_{} l, temp.customers c WHERE St_dWithIn(c.geom,l.geom,{}))
                     		GROUP BY nh1.cid,nh.epid
                     )
                     SELECT sub.cid, c.{} AS energy, nh.epid
@@ -681,7 +685,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     		nh.epid=sub.epid AND
                     		nh.lid NOT IN (SELECT id FROM temp.lines_{})
                     	GROUP BY sub.cid,c.{}, nh.epid\
-                    	ORDER BY c.{}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,pathConstrColumn,cid,mode,pathConstrColumn,pathConstrColumn)
+                    	ORDER BY c.{}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,self.tolerance,pathConstrColumn,cid,mode,pathConstrColumn,pathConstrColumn)
                 #print(sql) 
                 self.cur.execute(sql)  
                 customers=self.cur.fetchall()

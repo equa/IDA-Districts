@@ -20,7 +20,7 @@ class ShowOnMapDialog(QMainWindow):
         self.size_table_name=''
         self.function_items=['Max','Min','Values','Hourly average','Daily average','Monthly average','Average','Sum','Last value','First value']
         self.time_values=['Values','Hourly average','Daily average','Monthly average']
-        self.colorramps=['Blues','Cividis','Greens','Greys','Magma','Mako','RdGy','Reds','Rocket','Spectral','Turbo','Viridis']
+        self.colorramps=['Magma','Blues','Cividis','Greens','Greys','Mako','RdGy','Reds','Rocket','Spectral','Turbo','Viridis']
         
         self.setWindowTitle("Show data on map")   
         widget=QWidget()
@@ -615,6 +615,7 @@ class ShowOnMapDialog(QMainWindow):
             self.lineSegVis.setHidden(False)
             #hide rotation
             self.hideRotationLayout()
+            self.checkbox_varRotation.setChecked(False)
             
         self.color_var.addItems(vars)
         self.color_par.addItems(pars)

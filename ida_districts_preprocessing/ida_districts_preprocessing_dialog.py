@@ -32,9 +32,50 @@ def checkPipeLayingLayerData(dictDB,cur,network):
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp']:
+        if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp','energy_plants_temp']:
             QgsProject.instance().removeMapLayer(layer)
-            
+
+class ImportGeoDataDlg(QMainWindow):
+    def __init__(self,title='',default_path=''):        
+        super().__init__()
+        self.setWindowTitle(title) 
+               
+        #file path
+        layout_file = QHBoxLayout()      
+        
+        self.lineEditFileName =QLineEdit(default_path)
+        layout_file.addWidget(self.lineEditFileName)
+        
+        self.btn_fileDialog=QPushButton("...")
+        layout_file.addWidget(self.btn_fileDialog)
+        
+        
+        #checkbox for drop old features
+        self.checkBoxClearOldFeatures=QCheckBox("drop old features")
+        
+        #buttons     
+        layout_btn=QHBoxLayout()
+        self.btn_import=QPushButton("Import")
+        self.btn_cancel=QPushButton("Cancel")
+        layout_btn.addWidget(self.btn_import)
+        layout_btn.addWidget(self.btn_cancel)
+        
+        #progress bar
+        self.progress=QProgressBar()
+        
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_file)
+        layout_win.addWidget(self.checkBoxClearOldFeatures)
+        layout_win.addLayout(layout_btn)
+        layout_win.addWidget(self.progress)
+
+        widget=QWidget()
+        widget.setLayout(layout_win)
+        self.setCentralWidget(widget)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+        
 class IdaDistrictsPreProcessingDialog(QMainWindow):
     def __init__(self,plugins_dir):
         """Constructor."""
@@ -47,86 +88,28 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         font=label_import_title.font()
         font.setPointSize(15)
         label_import_title.setFont(font)
-        
-        #labels data import
-        layout_data_label = QVBoxLayout()      
-        
-        label_street =QLabel("Street network from OSM")
-        layout_data_label.addWidget(label_street) 
-        
-        label_building =QLabel("Buildings from OSM")
-        layout_data_label.addWidget(label_building) 
-        
-        label_elevation =QLabel("Elevation model")
-        layout_data_label.addWidget(label_elevation) 
-        
-        #path data import
-        layout_data_path = QVBoxLayout()      
-        
-        self.lineEditOsmStreetFileName =QLineEdit(plugins_dir+"/ida_districts_data_center/Samples/OSM/map_1.osm")
-        layout_data_path.addWidget(self.lineEditOsmStreetFileName)
-        
-        self.lineEditOsmBuildingsFileName =QLineEdit(plugins_dir+"/ida_districts_data_center/Samples/OSM/map_1.osm")
-        layout_data_path.addWidget(self.lineEditOsmBuildingsFileName)
-        
-        self.lineEditElevationFileName =QLineEdit(plugins_dir+"/ida_districts_data_center/Samples/elevation_data/N59E017.hgt")
-        layout_data_path.addWidget(self.lineEditElevationFileName)
-        
-        #buttons for file search
-        layout_data_btn_search = QVBoxLayout()      
-        
-        self.btn_streetFileDialog=QPushButton("...")
-        layout_data_btn_search.addWidget(self.btn_streetFileDialog)
-        
-        self.btn_buildingFileDialog=QPushButton("...")
-        layout_data_btn_search.addWidget(self.btn_buildingFileDialog)
-        
-        self.btn_elevationFileDialog=QPushButton("...")
-        layout_data_btn_search.addWidget(self.btn_elevationFileDialog)
-        
-        #checkbox for drop old features
-        layout_data_checkbox = QVBoxLayout()      
-        
-        self.checkBoxClearOldStreets=QCheckBox("drop old streets")
-        layout_data_checkbox.addWidget(self.checkBoxClearOldStreets)
-        
-        self.checkBoxClearOldBuildings=QCheckBox("drop old buildings")
-        layout_data_checkbox.addWidget(self.checkBoxClearOldBuildings)
-        
-        self.checkBoxClearOldTerrain=QCheckBox("drop old elevation")
-        layout_data_checkbox.addWidget(self.checkBoxClearOldTerrain)
-        
+                
         #import buttons
         layout_data_btn_import = QVBoxLayout()      
         
-        self.btn_importStreetsFromOSM=QPushButton("import")
+        self.btn_importStreetsFromOSM=QPushButton("Streets")
         layout_data_btn_import.addWidget(self.btn_importStreetsFromOSM)
         
-        self.btn_importBuildingsFromOSM=QPushButton("import")
+        self.btn_importBuildingsFromOSM=QPushButton("Buildings")
         layout_data_btn_import.addWidget(self.btn_importBuildingsFromOSM)
         
-        self.btn_importElevationData=QPushButton("import")
+        self.btn_importElevationData=QPushButton("Elevation data")
         layout_data_btn_import.addWidget(self.btn_importElevationData)
         
-        
-        #set data layout together
-        layout_import_data = QHBoxLayout()
-        layout_import_data.addLayout(layout_data_label)
-        layout_import_data.addLayout(layout_data_path)
-        layout_import_data.addLayout(layout_data_btn_search)
-        layout_import_data.addLayout(layout_data_checkbox)
-        layout_import_data.addLayout(layout_data_btn_import)
-        
+             
         #set data import layout together
         layout_import = QVBoxLayout()
         layout_import.addWidget(label_import_title)
-        layout_import.addLayout(layout_import_data)
+        layout_import.addLayout(layout_data_btn_import)
         
-        #---------------Generate network topology---------------
+        #---------------Network topology---------------
         #titel
-        label_topology_title =QLabel("Generate network topology")
-        font=label_topology_title.font()
-        font.setPointSize(15)
+        label_topology_title =QLabel("Network topology")
         label_topology_title.setFont(font)
         
         #buttons
@@ -141,27 +124,52 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         self.btn_pipeLayingAlgorithm=QPushButton("Pipe laying algorithm")
         layout_topology_buttons.addWidget(self.btn_pipeLayingAlgorithm)
         
-        #self.btn_decoupling=QPushButton("Network decoupling")
-        #layout_topology_buttons.addWidget(self.btn_decoupling)
-        
         self.btn_generateTopology=QPushButton("Generate Topology")
         layout_topology_buttons.addWidget(self.btn_generateTopology)
-        
-        self.btn_pipeSizing=QPushButton("Pipe sizing")
-        layout_topology_buttons.addWidget(self.btn_pipeSizing)
-        
-        self.btn_mapDevicesPlants=QPushButton("Map connection types to lines editor")
-        layout_topology_buttons.addWidget(self.btn_mapDevicesPlants)
         
         #set network topology layout together
         layout_topology = QVBoxLayout()
         layout_topology.addWidget(label_topology_title)
         layout_topology.addLayout(layout_topology_buttons)
         
+        #---------------Sizing---------------
+        #titel
+        label_sizing_title =QLabel("Sizing")
+        label_sizing_title.setFont(font)
+        
+        #buttons
+        layout_sizing_buttons = QVBoxLayout()
+        
+        self.btn_pipeSizing=QPushButton("Pipe sizing")
+        layout_sizing_buttons.addWidget(self.btn_pipeSizing)
+        
+        #set sizing layout together
+        layout_sizing = QVBoxLayout()
+        layout_sizing.addWidget(label_sizing_title)
+        layout_sizing.addLayout(layout_sizing_buttons)
+        
+        #---------------Sizing---------------
+        #titel
+        label_mapping_title =QLabel("Mapping")
+        label_mapping_title.setFont(font)
+        
+        #buttons
+        layout_mapping_buttons = QVBoxLayout()
+        
+        self.btn_mapDevicesPlants=QPushButton("Map connection types to lines")
+        layout_mapping_buttons.addWidget(self.btn_mapDevicesPlants)
+        
+        #set sizing layout together
+        layout_mapping = QVBoxLayout()
+        layout_mapping.addWidget(label_mapping_title)
+        layout_mapping.addLayout(layout_mapping_buttons)
+        
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_import)
         layout_win.addLayout(layout_topology)
+        layout_win.addLayout(layout_sizing)
+        layout_win.addLayout(layout_mapping)
         
         widget=QWidget()
         widget.setLayout(layout_win)
@@ -413,6 +421,13 @@ class PipeLayingDialog(QMainWindow):
         #self.customer_connection_mode.addItems(['shortest-way-connection','loop-in-connection'])
         self.customer_connection_mode.addItems(['shortest-way-connection'])
         
+        #tolerance
+        layout_tolarance=QHBoxLayout()
+        label=QLabel('Snapping tolerance, m: ')
+        layout_tolarance.addWidget(label)
+        self.tolerance=QLineEdit('0.01')
+        layout_tolarance.addWidget(self.tolerance)
+        
         #networks
         layout_networks=QHBoxLayout()
         label_network =QLabel("Network")
@@ -511,6 +526,7 @@ class PipeLayingDialog(QMainWindow):
         layout_win.addWidget(self.keep_unconnected_customers)
         layout_win.addWidget(self.redraw_submodels_polygons)
         layout_win.addWidget(self.customer_connection_mode)
+        layout_win.addLayout(layout_tolarance)
         layout_win.addLayout(layout_networks)
         layout_win.addLayout(layout_hc_assettype_type)
         layout_win.addLayout(layout_actionButtons)
@@ -534,7 +550,7 @@ class PipeLayingDialog(QMainWindow):
         elif layerCheck=='no_customers':
             self.iface.messageBar().pushMessage("Error", f"Please insert customers of network: {self.combo_network.currentText()} into the customers layer.", level=Qgis.Critical)
         elif not layerCheck:
-            worker = WorkerPipeLaying(network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),heating_assettype_customer=self.heating_assettype_customer.currentText(),heating_assettype_lines=self.heating_assettype_lines.currentText(),linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),cooling_load_min=self.cooling_load_min.text(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),amortization_period_cold=self.amortization_period_cold.text(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
+            worker = WorkerPipeLaying(tolerance=self.tolerance.text(), network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),heating_assettype_customer=self.heating_assettype_customer.currentText(),heating_assettype_lines=self.heating_assettype_lines.currentText(),linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),cooling_load_min=self.cooling_load_min.text(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),amortization_period_cold=self.amortization_period_cold.text(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
             worker.signals.progress.connect(self.update_progress)
             worker.signals.error.connect(self.show_error_message)       
             #execute
@@ -701,31 +717,20 @@ class PipeLayingDialog(QMainWindow):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".junctions,"{}".customer_connections, {}.junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        sql=""" INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        sql=""" INSERT INTO "{}".customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        sql=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        sql=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        sql=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
+        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".junctions,"{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections,"{}".energy_plants CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
+        sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
+        sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants;""".format(self.dictDB['versionName'])
+        sql+=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
+        sql+=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName']) 
+        sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])  
+        sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-        for layer in ['lines','junctions','customers']:
+        for layer in ['lines','junctions','customers','energy_plants']:
             vlayer= QgsProject.instance().mapLayersByName(layer)[0]
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
             vlayer.emitDataChanged()
@@ -736,7 +741,7 @@ class PipeLayingDialog(QMainWindow):
         print('Reject Results')
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-        for layer in ['lines','junctions','customers']:
+        for layer in ['lines','junctions','customers','energy_plants']:
             if QgsProject.instance().mapLayersByName(layer):
                 vlayer= QgsProject.instance().mapLayersByName(layer)[0]
                 layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
@@ -1134,13 +1139,19 @@ class NetworkTopologyDialog(QMainWindow):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".junctions,"{}".customer_connections, {}.junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".energy_plants,"{}".devices,"{}".junctions,"{}".customer_connections, {}.junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO "{}".customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
+        print(sql) 
+        self.cur.execute(sql)  
+        sql=""" INSERT INTO "{}".devices SELECT * FROM temp.devices;""".format(self.dictDB['versionName'])
+        print(sql) 
+        self.cur.execute(sql)  
+        sql=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
@@ -1161,7 +1172,7 @@ class NetworkTopologyDialog(QMainWindow):
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-        for layer in ['lines','junctions','customers']:
+        for layer in ['lines','junctions','customers','energy_plants']:
             vlayer= QgsProject.instance().mapLayersByName(layer)
             if vlayer:
                 vlayer=vlayer[0]

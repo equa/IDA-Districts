@@ -42,7 +42,10 @@ def updateTableSrid(versions,cur,srid):
         #version tables
         for table in ['devices','lines','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines','buildings','streets','submodels']:
             print(sql_version.replace("%table%",table))
-            cur.execute(sql_version.replace("%table%",table))
+            try:
+                cur.execute(sql_version.replace("%table%",table))
+            except:
+                pass
             
     print('++')
     sql_temp=sql.replace("%schema%","temp")        
@@ -51,7 +54,10 @@ def updateTableSrid(versions,cur,srid):
     print(sql_temp)
     for table in ['lines','lines_cooling','lines_heating','junctions','customers','streets_help']:
         print(sql_temp.replace("%table%",table))
-        cur.execute(sql_temp.replace("%table%",table))
+        try:
+            cur.execute(sql_temp.replace("%table%",table))
+        except:
+            pass
 
 def valueRelationPipeBundleType():
     """value relation pipe bundle types in lines"""
@@ -111,11 +117,11 @@ def setupVersionForm(cur,dictDB):
         fc.setLayout(QgsEditFormConfig.TabLayout)
         if vlayerName=='devices':
             attrNamesTabs= [['assetgroup','assettype'],
-                            ['asl_m'],
+                            [],
                             ['submodel'],[]]
         elif vlayerName=='junctions':
             attrNamesTabs= [['assetgroup'],
-                            ['asl_m','n_connections','zeta'],
+                            ['n_connections','zeta'],
                             ['submodel'],[]]
         elif vlayerName=='lines':
             attrNamesTabs= [['id','assetgroup','assettype','pipe_bundle_type_id','network'],
@@ -123,12 +129,12 @@ def setupVersionForm(cur,dictDB):
                             ['submodel'],[]]
         elif vlayerName=='customers':
             attrNamesTabs= [['id','assetgroup','assettype','network'],
-                            ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
+                            ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
                             ['dhw_id', 'dhw_scale','internal_load_id','submodel'],
                             ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
         elif vlayerName=='energy_plants':
             attrNamesTabs= [['id','assetgroup','assettype','network'],
-                            ['main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
+                            ['main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
                             ['submodel'],[]]
         elif vlayerName=='structure_boundarys':
             attrNamesTabs= [['assetgroup','assettype'],
@@ -167,20 +173,20 @@ def versionLayersAliasNames():
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         if vlayerName=='devices':
-            attrNames=['assetgroup','assettype','submodel','asl_m']
-            aliasNames=['Asset group','Asset type','Network','Co-sim','Above sea level, m']
+            attrNames=['assetgroup','assettype','submodel']
+            aliasNames=['Asset group','Asset type','Network','Co-sim']
         elif vlayerName=='lines':
             attrNames=['assetgroup','assettype','pipe_bundle_type_id','network','submodel','length']
             aliasNames=['Asset group','Asset type','Pipe bundle type','Network','Co-sim','Length, m']
         elif vlayerName=='customers':
-            attrNames=['assetgroup','assettype','submodel','dhw_id','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m,','dhw_scale','internal_load_id']
-            aliasNames=['Asset group','Asset type','Co-sim','Domestic hot water ID','Heating demand, kWh','Heating load, kW','Supply setpoint temp. heating, °C','Cooling demand, kWh','Cooling load, kW','Supply setpoint temp. cooling, °C','Above sea level, m','DHW scale factor','Internal load ID']
+            attrNames=['assetgroup','assettype','submodel','dhw_id','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','dhw_scale','internal_load_id']
+            aliasNames=['Asset group','Asset type','Co-sim','Domestic hot water ID','Heating demand, kWh','Heating load, kW','Supply setpoint temp. heating, °C','Cooling demand, kWh','Cooling load, kW','Supply setpoint temp. cooling, °C','DHW scale factor','Internal load ID']
         elif vlayerName=='energy_plants':
-            attrNames=['assetgroup','assettype','submodel','main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m']
-            aliasNames=['Asset group','Asset type','Co-sim','Is this the main plant','Heating demand, kWh','Heating load, kW','Setpoint temp. heating, °C','Cooling demand, kWh','Cooling load, kW','Setpoint temp. cooling, °C','Above sea level, m']
+            attrNames=['assetgroup','assettype','submodel','main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg']
+            aliasNames=['Asset group','Asset type','Co-sim','Is this the main plant','Heating demand, kWh','Heating load, kW','Setpoint temp. heating, °C','Cooling demand, kWh','Cooling load, kW','Setpoint temp. cooling, °C']
         elif vlayerName=='junctions':
-            attrNames=['assetgroup','assettype','submodel','n_connections','asl_m']
-            aliasNames=['Asset group','Asset type','Co-sim','Number of connections','Above sea level, m']
+            attrNames=['assetgroup','assettype','submodel','n_connections']
+            aliasNames=['Asset group','Asset type','Co-sim','Number of connections']
         
         for attrName,alias in zip(attrNames,aliasNames):
             field_idx = fields.indexOf(attrName)
@@ -206,15 +212,15 @@ def removeLayers():
 def removeTempLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp']:
+        if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp','energy_plants_temp']:
             QgsProject.instance().removeMapLayer(layer)
 
 def showTempTables(uri,dictDB,plugin_dir,iface,cur):
-    """Show temp tables (lines,customers,junctions)"""
+    """Show temp tables (lines,customers,junctions,energy_plants)"""
     print('show temp tables')
     removeTempLayers()
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-    for layer in ['lines','junctions','customers']:
+    for layer in ['lines','junctions','customers','energy_plants']: #todo devices
         if QgsProject.instance().mapLayersByName(layer):
             vlayer= QgsProject.instance().mapLayersByName(layer)[0]
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
@@ -256,7 +262,7 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
     for vlayerName in ['energy_plants','customers','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:  
         categories=featureLayerAssetgroups(vlayerName,cur)
         ids=featureLayerAssetgroupIds(vlayerName,cur)
-        if not (vlayerName in ['energy_plants','devices','structure_boundarys','structure_junctions','structure_lines'] and version=='temp'):
+        if not (vlayerName in ['devices','structure_boundarys','structure_junctions','structure_lines'] and version=='temp'):
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
                 vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])

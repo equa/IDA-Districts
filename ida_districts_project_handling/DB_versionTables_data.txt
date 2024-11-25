@@ -1,6 +1,4 @@
-INSERT INTO "4".climate (id) VALUES (1);
-INSERT INTO "4".supervisory_ctrl (id,submodel) VALUES (1,NULL);
+INSERT INTO "a".climate (id) VALUES (1);
+INSERT INTO "a".supervisory_ctrl (id,submodel) VALUES (1,NULL);
 
-----------------------customer model parameters------------------------------
-
--------------------table "4".customer_model_parms;------------------------------------
+INSERT INTO "a".network (id,description) VALUES (1,'This is the main network.');

@@ -36,8 +36,9 @@ from qgis.PyQt.QtWidgets import QMessageBox, QTableWidgetItem,QAction,QMainWindo
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_preprocessing_dialog import PipeSizing, PipeBundleEditor, ImportPointLayer, ImportNetworkTopologyFromLayer, IdaDistrictsPreProcessingDialog, PipeLayingDialog, NetworkTopologyDialog, MapDevicesPlantsDialog
+from .ida_districts_preprocessing_dialog import ImportGeoDataDlg,PipeSizing, PipeBundleEditor, ImportPointLayer, ImportNetworkTopologyFromLayer, IdaDistrictsPreProcessingDialog, PipeLayingDialog, NetworkTopologyDialog, MapDevicesPlantsDialog
 from .osm import *
+from .elevation_data import *
 from .pipe_sizing import *
 import os.path
 import os
@@ -669,68 +670,40 @@ TRUNCATE pipe_layers CASCADE;\n"""
             print(attributes)
             list.addItems(attributes)
     
-    def importStreetsFromOSM(self):
+    def importStreetsFromOSM(self,dlg):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         conn=dbConnect(self.dictDB,True)
         if conn:
-            osmStreetFileName=self.dlg.lineEditOsmStreetFileName.text()
-            clearOldStreets=self.dlg.checkBoxClearOldStreets.isChecked()    
-            OSMStreetsImport(osmStreetFileName,clearOldStreets,self.dictDB,self.plugin_dir)
+            osmStreetFileName=dlg.lineEditFileName.text()
+            clearOldStreets=dlg.checkBoxClearOldFeatures.isChecked()    
+            self.worker_importStreets = WorkerOSMStreetsImport(filePath=osmStreetFileName,clearOldFeatures=clearOldStreets,dictDB=self.dictDB,plugin_dir=self.plugin_dir)
+            self.threadpool = QThreadPool()
+            self.threadpool.start(self.worker_importStreets) 
+            self.worker_importStreets.signals.error.connect(show_error_message)
+            self.worker_importStreets.signals.progress.connect(dlg.update_progress)
         else:
             self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
-     
-    def streetFileDialog(self):
-        filename, _filter = QFileDialog.getOpenFileName(
-            self.dlg, "Import OSM network file",getDataCenterDir(self.plugin_dir)+"\\Samples\\OSM\\", '*.osm;*.shp')
-        if filename:
-            self.dlg.lineEditOsmStreetFileName.setText(filename)
         
-    def importElevationData(self):
+    def importElevationData(self,dlg):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            elevationFileName=self.dlg.lineEditElevationFileName.text()
-            clearOldTerrain=self.dlg.checkBoxClearOldTerrain.isChecked()
-            self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
-            self.cur.execute("""SELECT EXISTS (
-                                SELECT * FROM information_schema.tables 
-                                WHERE  table_schema = '{}'
-                                AND    table_name   = 'terrain');""".format(self.dictDB['versionName']))
-            if clearOldTerrain == True or not "True" in str(self.cur.fetchone()):
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.dictDB['versionName']))
-                cmd = ' "{}bin\\raster2pgsql" -s {} -I -C -M "{}" -F -t 200x200 "{}".terrain | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.configProject['srid'],elevationFileName, self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
-                print(cmd)
-                subprocess.call(cmd, shell=True)
-            else:
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2'.format(self.dictDB['versionName'])) 
-                cmd = ' "{}bin\\raster2pgsql" -s {} -I -C -M "{}" -F -t 200x200 "{}".terrain1 | "{}bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.configProject['srid'],elevationFileName, self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
-                print(cmd)
-                subprocess.call(cmd, shell=True)
-                self.cur.execute('CREATE table "{}".terrain2 AS Select * FROM "{}".terrain;'.format(self.dictDB['versionName'],self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain'.format(self.dictDB['versionName']))
-                self.cur.execute(""" Create table "{}".terrain as(
-                                    Select * from "{}".terrain1
-                                    union
-                                    Select * from "{}".terrain2)""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1'.format(self.dictDB['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2'.format(self.dictDB['versionName']))   
+            elevationFileName=dlg.lineEditFileName.text()
+            clearOldTerrain=dlg.checkBoxClearOldFeatures.isChecked()    
+            self.worker_importElevevationData = WorkerImportElevationData(filePath=elevationFileName,clearOldTerrain=clearOldTerrain,dictDB=self.dictDB,plugin_dir=self.plugin_dir,configIDADistricts=self.configIDADistricts)
+            self.threadpool = QThreadPool()
+            self.threadpool.start(self.worker_importElevevationData) 
+            self.worker_importElevevationData.signals.error.connect(show_error_message)
+            self.worker_importElevevationData.signals.progress.connect(dlg.update_progress)
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)                
-        
-    def elevationFileDialog(self):
+            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)           
+
+    def fileDialog(self,dlg,dir,extensions):
+        print(dir)
         filename, _filter = QFileDialog.getOpenFileName(
-            self.dlg, "Import elevation data",getDataCenterDir(self.plugin_dir)+"\\Samples\\elevation_data\\", '*.hgt;*.tif;*.tiff')
+            dlg, "Import data",dir, extensions)
         if filename:
-            self.dlg.lineEditElevationFileName.setText(filename)
- 
-    def buildingFileDialog(self):
-        filename, _filter = QFileDialog.getOpenFileName(
-            self.dlg, "Import OSM building file",getDataCenterDir(self.plugin_dir)+"\\Samples\\OSM\\", '*.osm;*.shp')
-        if filename:
-            self.dlg.lineEditOsmBuildingsFileName.setText(filename)
+            dlg.lineEditFileName.setText(filename)
         
     def networkDecoupling(self):
         """ Decoupling of the network into subnetworks: set attribute subnetwork in the tables junctions, lines, customers, energy_plants"""
@@ -796,13 +769,30 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.window_mapDevicesPlants=MapDevicesPlantsDialog(self.dictDB,self.plugin_dir)
             self.window_mapDevicesPlants.show()     
         
-    def importBuildingsFromOSM(self):
+    def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
+        print(default_path)
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            self.dlg_import=ImportGeoDataDlg(title=title,default_path=default_path)
+            self.dlg_import.btn_import.clicked.connect(lambda: ok_fn(self.dlg_import))
+            self.dlg_import.btn_cancel.clicked.connect(lambda: ok_fn(lambda: closeDialog(self.dlg_import)))
+            
+            self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
+            self.dlg_import.show()
+        
+    def importBuildingsFromOSM(self,dlg):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         conn=dbConnect(self.dictDB,True)
         if conn:
-            osmBuildingsFileName=self.dlg.lineEditOsmBuildingsFileName.text()
-            clearOldBuildings=self.dlg.checkBoxClearOldBuildings.isChecked()     
-            OSMBuildingsImport(osmBuildingsFileName,clearOldBuildings,self.dictDB,self.plugin_dir)
+            osmBuildingsFileName=dlg.lineEditFileName.text()
+            clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()     
+            self.worker_importBuildings = WorkerOSMBuildingsImport(filePath=osmBuildingsFileName,clearOldFeatures=clearOldBuildings,dictDB=self.dictDB,plugin_dir=self.plugin_dir)
+            self.threadpool = QThreadPool()
+            self.threadpool.start(self.worker_importBuildings) 
+            self.worker_importBuildings.signals.error.connect(show_error_message)
+            self.worker_importBuildings.signals.progress.connect(dlg.update_progress)    
         else:
             self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
  
@@ -814,12 +804,9 @@ TRUNCATE pipe_layers CASCADE;\n"""
         if self.first_start == True:
             self.first_start = False
             self.dlg = IdaDistrictsPreProcessingDialog(getQGISPluginsDir(self.plugin_dir))
-            self.dlg.btn_importStreetsFromOSM.clicked.connect(self.importStreetsFromOSM)
-            self.dlg.btn_importBuildingsFromOSM.clicked.connect(self.importBuildingsFromOSM)
-            self.dlg.btn_buildingFileDialog.clicked.connect(self.buildingFileDialog)
-            self.dlg.btn_streetFileDialog.clicked.connect(self.streetFileDialog) 
-            self.dlg.btn_elevationFileDialog.clicked.connect(self.elevationFileDialog) 
-            self.dlg.btn_importElevationData.clicked.connect(self.importElevationData)
+            self.dlg.btn_importStreetsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path=getDataCenterDir(self.plugin_dir)+"/Samples/OSM/map_1.osm",title='Streets from OSM',ok_fn=self.importStreetsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importBuildingsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path=getDataCenterDir(self.plugin_dir)+"/Samples/OSM/map_1.osm",title='Buildings from OSM',ok_fn=self.importBuildingsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importElevationData.clicked.connect(lambda: self.openImportDlg(default_path=getDataCenterDir(self.plugin_dir)+"/Samples/elevation_data/N59E017.hgt",title='Elevation data',ok_fn=self.importElevationData,extensions='*.hgt;*.tif;*.tiff'))
             self.dlg.btn_importPointLayer.clicked.connect(self.importPointLayer)
             self.dlg.btn_importNetworkTopologyFromLayer.clicked.connect(self.importNetworkTopologyFromLayer)
             self.dlg.btn_pipeLayingAlgorithm.clicked.connect(self.pipeLayingAlgorithm)

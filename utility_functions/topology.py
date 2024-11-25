@@ -215,7 +215,7 @@ def getPMT2muxIdentFromConnValues(connValues,conn_seq):
 def checkLineDirectionTopology(cur,version,tolerance,iface,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
-    sql="""SELECT st_v.id::integer AS epid FROM "{}".energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);""".format(version,tolerance,network,network)
+    sql="""SELECT st_v.id::integer AS epid FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);""".format(tolerance,network,network)
     print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['epid'] 
@@ -288,10 +288,10 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
             print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
 
 #todo pipe laying of network 
-def checkLineDirectionPipeLaying(cur,version,tolerance):
+def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
-    sql="""SELECT st_v.id::integer AS v_ep FROM "{}".energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{});""".format(version,tolerance)
+    sql="""SELECT st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);""".format(tolerance,network,network)
     #print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep'] 

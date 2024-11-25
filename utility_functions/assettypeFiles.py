@@ -657,6 +657,7 @@ class CopyAssettypeMacro:
     """ Copy invoked assettype macros to IDA network project: customers,plants and devices"""
     def __init__(self,submodel,dir,type,dictDB,cur,iface,plugin_dir,reinvoke,invokedOutputs,requestedOutputs):
         print('copy {} macro'.format(type))
+        print(f"---------------reinvoke: {reinvoke}----------------")
         #print(invokedOutputs)
         type_name=type[:-1]
         target_dir=dir+"\\network_"+str(submodel)

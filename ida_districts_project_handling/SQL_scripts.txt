@@ -77,12 +77,12 @@ AS $BODY$DECLARE
 	recB Record;
 BEGIN		
 	FOR recB IN 
-		EXECUTE format('SELECT id FROM %I.dhc_lines', versionName)
+		EXECUTE format('SELECT id FROM %I.lines', versionName)
 	LOOP	
 		RAISE NOTICE 'id=%',recB.id;
 		EXECUTE format('SELECT 1/(ST_Length(geom)/(ST_Length(geom)/ceil(ST_Length(geom)/' ||nodesPerM||'))),
 			ceil(ST_Length(geom)/' ||nodesPerM||')
-			FROM %I.dhc_lines WHERE id=$1', versionName) USING recB.id INTO fraction,numberOfSeg;
+			FROM %I.lines WHERE id=$1', versionName) USING recB.id INTO fraction,numberOfSeg;
 		RAISE NOTICE 'fraction=%; number of segments=%',fraction,numberOfSeg;
 		startfraction=-fraction;
 		endfraction=0;
@@ -94,7 +94,7 @@ BEGIN
 			IF endfraction>1 THEN
 				endfraction=1;
 			END IF;
-			EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,$1, ST_LineSubstring(geom,'||startfraction||','||endfraction||') FROM %I.dhc_lines WHERE id=$2',versionName,tableName,versionName) USING count,recB.id;
+			EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,$1, ST_LineSubstring(geom,'||startfraction||','||endfraction||') FROM %I.lines WHERE id=$2',versionName,tableName,versionName) USING count,recB.id;
 			RAISE NOTICE 'count=%; start fraction=%; end fraction=%',count,startfraction,endfraction;
 			EXIT WHEN count >= numberOfSeg;  
 		END LOOP;
@@ -121,11 +121,11 @@ AS $BODY$DECLARE
 	recB Record;
 BEGIN		
 	FOR recB IN 
-		EXECUTE format('SELECT id FROM %I.dhc_lines', versionName)
+		EXECUTE format('SELECT id FROM %I.lines', versionName)
 	LOOP	
 		RAISE NOTICE 'id=%',recB.id;
-        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,1, ST_LineSubstring(geom,0,0.5) FROM %I.dhc_lines WHERE id=$1',versionName,tableName,versionName) USING recB.id;
-        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,2, ST_LineSubstring(geom,0.5,1) FROM %I.dhc_lines WHERE id=$1',versionName,tableName,versionName) USING recB.id;
+        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,1, ST_LineSubstring(geom,0,0.5) FROM %I.lines WHERE id=$1',versionName,tableName,versionName) USING recB.id;
+        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,2, ST_LineSubstring(geom,0.5,1) FROM %I.lines WHERE id=$1',versionName,tableName,versionName) USING recB.id;
 	END LOOP;
 END;
 $BODY$;

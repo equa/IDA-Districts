@@ -697,7 +697,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 dlg.input[default['column_name']].addItems(['(no selection)']+dropdownItems[0])
                 dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0] if i[0]==default['column_default']))
             if default['column_name'] in ['nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure',
-                                'heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','cold_e_kwh','cold_p_kw','asl_m']:
+                                'heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','cold_e_kwh','cold_p_kw']:
                 dlg.input[default['column_name']].setText(default['column_default'])
             if default['column_name'] in ['main_plant']:
                 print(default['column_default'])
@@ -722,7 +722,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                                                 {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Heating demand, kWh','value': ['heat_e_kwh',1,'physical']},
                                                 {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal setpoint temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
                                                 {'label': 'Cooling demand, kWh','value': ['cool_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cool_p_kw',1,'physical']},
-                                                {'label': 'Nominal setpoint temp. cooling, °C','value': ['tsup_c_deg',1,'physical']},{'label': 'Above sea level, m','value': ['asl_m',1,'physical']}],self.cur)
+                                                {'label': 'Nominal setpoint temp. cooling, °C','value': ['tsup_c_deg',1,'physical']}],self.cur)
         self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsCustomers,'customers'))
         self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsCustomers,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsCustomers,defaults,'customer')
@@ -735,7 +735,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                                                 {'label': 'Is this the main plant','value': ['main_plant',2,'physical']},{'label': 'Heating supply, kWh','value': ['heat_e_kwh',1,'physical']},
                                                 {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal supply temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
                                                 {'label': 'Cooling supply, kWh','value': ['cold_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cold_p_kw',1,'physical']},
-                                                {'label': 'Nominal supply temp. cooling, °C','value': ['tsup_c_deg',1,'physical']},{'label': 'Above sea level, m','value': ['asl_m',1,'physical']}],self.cur)
+                                                {'label': 'Nominal supply temp. cooling, °C','value': ['tsup_c_deg',1,'physical']}],self.cur)
         self.dlg_defaultsPlants.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsPlants,'energy_plants'))
         self.dlg_defaultsPlants.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsPlants,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsPlants,defaults,'energy_plant')
@@ -744,8 +744,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def show_DefaultsDevicesDialog(self):
         """ show the defaultsDialog"""
         defaults=self.getDefaults("devices")
-        self.dlg_defaultsDevices=DefaultsDialog('device',"Defaults layer devices",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
-                                                {'label': 'Above sea level, m','value': ['asl_m',1,'physical']}],self.cur)
+        self.dlg_defaultsDevices=DefaultsDialog('device',"Defaults layer devices",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']}],self.cur)
         self.dlg_defaultsDevices.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsDevices,'devices'))
         self.dlg_defaultsDevices.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsDevices,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsDevices,defaults,'device')
@@ -931,7 +930,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             3) save the table content in table public.connections"""
         if self.checkConnsInputValues(dlg):
             updateAssettypeBoundaryValues(dlg,self.plugin_dir,self.dictDB,self.cur)
-            self.saveTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes)
+            self.saveTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes,False,False)
     
     def checkConnsInputValues(self,dlg):
         """is value (p,m,T)"""
