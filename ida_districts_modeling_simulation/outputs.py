@@ -181,11 +181,11 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
             print(pmtmuxs)            
             for comp in components_idm:
                 print(getCompName(comp))
-                if getCompTemplate(comp) in ['|lM_H_G_L|','FLOWMETER2','PMT2\\m\\u\\x'] or getCompClass(comp) in 'OUTPUT-FILE':
+                if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|','FLOWMETER2','PMT2\\m\\u\\x'] or getCompClass(comp) in 'OUTPUT-FILE':
                     if not isinstance(comp, list):
                         comp=[comp]
                     new_comp=[]
-                    if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'troom_c' in [i for i in outputs if outputs[i]]:
+                    if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'troom_c' in [i for i in outputs if outputs[i]]:
                         print('---add tair output----')
                         #print(comp)
                         new_comp=[]
@@ -201,7 +201,7 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
                             new_comp.append({':C': ':VAR', ':N': i, ':L': '"TRoom"'})
                         comp=new_comp
                         data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TRoom"', ':T': 'OUTPUT-FILE'}])
-                    if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'heatbalance_c' in [i for i in outputs if outputs[i]]:
+                    if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if outputs[i]]:
                         print('---add heatbalance output----')
                         #print(comp)
                         new_comp=[]
@@ -218,7 +218,7 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
                             new_comp.append({':C': ':VAR', ':N': i, ':L': '"Heatbalance"',':AS':'"{}"'.format(outputs_to_set[i])})
                         comp=new_comp
                         data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Heatbalance"', ':T': 'OUTPUT-FILE'}])
-                    if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'heatbalance_c' in [i for i in outputs if not outputs[i]]:
+                    if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if not outputs[i]]:
                         print('---remove heatbalance_c output----')
                         outputs_to_del={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRad|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                         new_comp=[]
@@ -233,7 +233,7 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
                             else:
                                 new_comp.append(i)
                         comp=new_comp
-                    if getCompTemplate(comp) in ['|lM_H_G_L|'] and 'troom_c' in [i for i in outputs if not outputs[i]]:
+                    if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'troom_c' in [i for i in outputs if not outputs[i]]:
                         print('---remove tair output----')
                         new_comp=[]
                         for i in comp:

@@ -312,6 +312,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
         #print (dir_plugins)
         os.popen('copy source.txt destination.txt')         
     
+    #todo liqtype
     def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Inserts the lines in the submodel"""
         sql="""WITH sub AS(
@@ -319,7 +320,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
         ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
     FROM "{}".lines l,
     (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
-    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM "{}".lines l,"{}".junctions j, {}.junction_connections jc WHERE l.id=jc.lid AND jc.jid=j.id GROUP BY l.id) zeta
+    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM "{}".lines l,"{}".junctions j, "{}".junction_connections jc WHERE l.id=jc.lid AND jc.jid=j.id GROUP BY l.id) zeta
     WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND zeta.id=l.id AND l.network IN ({})
 )
 --get line id`s without connection to junctions
@@ -460,10 +461,10 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     def insertJunctionConnections(self,submodel,idm_conn,idc_conn,networks):
         """Insert the junction connections between devices, plants or customers and pipes"""
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liqL' ELSE 'liqR' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
-    FROM"{}".junctions j, {}.junction_connections jc, "{}".lines l, 
+    FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
-        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM {}.junction_connections jc GROUP BY jid) pipe_lids
+        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
     ORDER BY j.id,b_pipes.sequence, c.counter DESC, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
         print(sql)
@@ -615,21 +616,6 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
-((DB-RESOURCE :N "B2BHPVS-ThemiaMegaM" :T B2B_HP_VS_MODEL :D "B2B  heatpump with variable speed compressor developed by Thermia with capacity modulation in range of 11-44 KW in B0/W35 operating condition. The compressor speed is changing between 1500-6000 rpm.")
- (:PAR :N P_H :V 44)
- (:PAR :N COP :V 4.6)
- (:PAR :N |dTlog_evap| :V 2.688)
- (:PAR :N |dTlog_cond| :V 5.025)
- (:PAR :N |liqTypeE| :V |Ethanol|)
- (:PAR :N |TFreezeE| :V -17)
- (:PAR :N |T_brineC_in| :V 27)
- (:PAR :N |nTeEnvDim| :V 8)
- (:PAR :N |TeEnv| :DIM (8) :V #(-25 -22.5 -20 -5 -2.8 2.8 5 15) :S (:DEFAULT #S(MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ((1) (2) (3) (4) (5) (6) (7) (8))) 2))
- (:PAR :N |TcMinEnv| :DIM (8) :V #(20 20 20 20 20 20 20 30) :S (:DEFAULT #S(MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ((1) (2) (3) (4) (5) (6) (7) (8))) 2))
- (:PAR :N |TcMaxEnv| :DIM (4 8) :V #2A((45 45 45 60 60 60 60 60) (37 43 45 60 68 68 68 68) (37 43 45 60 68 68 68 68) (45 45 45 60 60 60 60 60)) :S (:DEFAULT #S(MS-SPARSE DEFAULT-VALUE T DIMENSION 2 VALUE ((1 (1) (2) (3) (4) (5) (6) (7) (8)) (2 (1) (2) (3) (4) (5) (6) (7) (8)) (3 (1) (2) (3) (4) (5) (6) (7) (8)) (4 (1) (2) (3) (4) (5) (6) (7) (8)))) 2))
- (:PAR :N |QevpPowCoef| :V #2A((13527 462 -94.62 6.816 -1.495 0.5516 0.02378 -0.06059 -0.02743 -0.01308) (29151.2 957.2 -262 13.78 -3.921 1.694 0.05946 -0.09987 -0.04839 -0.02332) (43044.9 1425.7 -353.1 20.81 -5.37 1.827 0.09078 -0.1498 -0.08177 -0.0305) (55208.1 1867.5 -368 27.91 -5.841 0.9502 0.1178 -0.2104 -0.1276 -0.03461)) :S (:DEFAULT #S(MS-SPARSE DEFAULT-VALUE T DIMENSION 2 VALUE ((1 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)) (2 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)) (3 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)) (4 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)))) 2))
- (:PAR :N |CompPowCoef| :V #2A((925.1 -61.88 39.02 -3.991 3.367 -0.3195 -0.05092 0.09563 -0.04246 0.01091) (2381.6 2.276 73.9 -0.4297 0.8279 -0.7697 -0.006913 0.01524 -0.01366 0.01933) (4565.2 68.67 90.51 1.537 -0.867 -0.9323 0.01428 -0.02403 -0.001693 0.02594) (7475.7 137.3 88.87 1.909 -1.717 -0.8073 0.01267 -0.02219 -0.006557 0.03072)) :S (:DEFAULT #S(MS-SPARSE DEFAULT-VALUE T DIMENSION 2 VALUE ((1 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)) (2 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)) (3 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)) (4 (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)))) 2)))
-{}
 {}
 (AGGREGATE :N GLOBAL)
 ((OUTPUT-FILE :N "climate" :T OUTPUT-FILE :RP T :COL T :STM 3857530591)
@@ -643,9 +629,10 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
  (:VAR :N VELOCITY :T GENERIC :D "velocity" :U || :IV NIL :B (1 "Climate-macro" "vel" |y_var|)))
 ((MACRO-OBJECT :N "Climate-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
 ((MACRO-OBJECT :N "sf-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
-((MACRO-OBJECT :N "Co-simulation-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))""".format(submodel,self.getResources(),simulation_data)
+((MACRO-OBJECT :N "Co-simulation-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))""".format(submodel,simulation_data)
         return data
         
+    #TODO CHECK
     def getResources(self):
         return """((TEMPLATE :N "B2B_HP_VS4" :T B2B_HP_VS :D "")
  ((DB-RESOURCE :N "B2BHPVS1" :T B2B_HP_VS_MODEL :D "This is a test sample1 for B2B  heatpump for parameter filling and .....")
@@ -786,10 +773,10 @@ output to current demand. It can also be operated in installations with differen
         """ Insert junctions"""
         print('insert junctions')
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq
-    FROM"{}".junctions j, {}.junction_connections jc, "{}".lines l, 
+    FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
-        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM {}.junction_connections jc GROUP BY jid) pipe_lids
+        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
     ORDER BY j.id,b_pipes.sequence, c.counter DESC, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
         print(sql)
@@ -1068,8 +1055,8 @@ output to current demand. It can also be operated in installations with differen
         sf_ids=self.cur.fetchall()     
         print(sf_ids)
 
-        filedata=[""";IDA 5.09001 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.09001)) """]
+        filedata=[""";IDA 5.1 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1)) """]
         filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
         writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm')        
                 
@@ -1078,7 +1065,7 @@ output to current demand. It can also be operated in installations with differen
         self.cur.execute(sql)
         sf_ids=self.cur.fetchall()
             
-        filedata=[""";IDA 5.09001 Data UTF-8
+        filedata=[""";IDA 5.1 Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
         filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]

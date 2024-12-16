@@ -37,7 +37,7 @@ from qgis.PyQt.QtWidgets import QComboBox,QAction, QFileDialog,QTableWidgetItem,
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_data_center_dialog import TableDialog, IDADistrictsDataCenterDialog, IDA_Districts_NameDialog, DefaultsDialog, ConnectionsDialog
+from .ida_districts_data_center_dialog import IDADistrictsDataCenterDialog, IDA_Districts_NameDialog, DefaultsDialog, ConnectionsDialog
 from .update_boundaries import *
 from plugins.utility_functions.assettypeFiles import ExchangeConntypeFiles, WriteAssettypeFiles, RenameAssettypeFiles
 from plugins.ida_districts_modeling_simulation.invoke import CopyAssettypeFiles
@@ -351,7 +351,7 @@ class IDADistrictsDataCenter:
             self.dlg_manageAssettype.tableWidget.setItem(rowPosition , 0, QTableWidgetItem(str(assettype['assettype'])))
             
             comboBox = QComboBox()
-            comboBox.addItems(self.getAssetgroups(type))
+            comboBox.addItems(getAssetgroups(type,cur))
             self.dlg_manageAssettype.tableWidget.setCellWidget(rowPosition, 1, comboBox)  
             
             self.dlg_manageAssettype.tableWidget.setItem(rowPosition , 2, QTableWidgetItem(assettype['assettype_name']))
@@ -407,16 +407,6 @@ class IDADistrictsDataCenter:
         for conn in self.cur.fetchall():
             connnectionTypes.append(str(conn['conn']))
         return connnectionTypes
-            
-    def getAssetgroups(self,type):
-        """ get all assetgroups of type """
-        sql='SELECT id FROM public.{}_assetgroups;'.format(type)
-        self.cur.execute(sql)
-        assetgroups=[]
-        for conn in self.cur.fetchall():
-            assetgroups.append(str(conn['id']))
-        return assetgroups
-       
        
     def loadIds(self,column,table):
         """ load the connection ids from DB and show it in the dropdown in dlg_showAddConnType"""

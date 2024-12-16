@@ -9,7 +9,7 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
     --> import/export components
     --> collect pmt2 signals
     --> collect sensor signals"""
-    data=[""";IDA 5.09001 Data UTF-8
+    data=[""";IDA 5.1 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :APP (ICE :VER 5.090001)) \n"""]
 
     submodels=getUsedSubmodels(cur,dictDB)
@@ -130,7 +130,7 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
     return '\n'.join(resources)
     
 def writeCosimMacroIdc(dictDB,cur,submodel,dir,plugin_dir):
-    data=[""";IDA 5.09001 Form UTF-8
+    data=[""";IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) \n"""]
 

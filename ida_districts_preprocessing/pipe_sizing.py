@@ -98,11 +98,20 @@ INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;
     print(sql)
     cur.execute(sql)
     #get pipes from version.lines table
-    sql="""SELECT l.id,l.peak_power_kw, l.no_customer,la.conn_type FROM "{}".lines l, line_assettypes la WHERE l.assetgroup=la.assetgroup AND l.assettype=la.assettype AND l.network IN ({}) ORDER BY l.id;""".format(dictDB['versionName'],','.join([i for i in networks]))
+    sql="""SELECT l.id,l.peak_power_kw, l.no_customer FROM "{}".lines l, line_assettypes la WHERE l.assetgroup=la.assetgroup AND l.assettype=la.assettype AND l.network IN ({}) ORDER BY l.id;""".format(dictDB['versionName'],','.join([i for i in networks]))
     print(sql)
     cur.execute(sql)
     sql_lines=""
     new_pipe_bundles=[]
+    
+    #get connection boundaries for sequences in network: 1) get conn bundle types -->  get connValues for each connection (message if there is aconnflict in boundry values)
+    c_bundle_types=getUsedConnBundleTypes('customer')
+    conn_values_dict={}
+    for bundle in c_bundle_types:
+        conn_values=getConnsValues(bundle)
+        for conn_value in conn_values:
+           conn_values_dict[conn_value['conn_seq']]=conn_value
+           
     for line in cur.fetchall():
         print('line id: '+str(line['id']))
         conn_type_pipes=[]
@@ -231,14 +240,6 @@ def showLinesTempTable(version,dictDB,plugin_dir):
         cat = QgsRendererCategory(id, symbol, category)
         categorized_renderer.addCategory(cat)       
     vlayer.setRenderer(categorized_renderer)
-            
-def getPipeBundleTypesDB(cur):
-    sql="""SELECT pipe_bundle_type_id,ARRAY_AGG (ARRAY[sequence::int,pipe_id::int,ambient::int] ORDER BY sequence) AS pipe
-    FROM bundle_pipes 
-    GROUP BY pipe_bundle_type_id 
-    ORDER BY pipe_bundle_type_id ASC; """
-    cur.execute(sql)
-    return { bundle['pipe_bundle_type_id']: bundle['pipe'] for bundle in cur.fetchall()}
     
 def addMissingPipeBundleType(cur,pipe_bundles,conn_type_pipes,new_pipe_bundles):
     print(pipe_bundles)

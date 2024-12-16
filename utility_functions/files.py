@@ -337,7 +337,7 @@ def writePropertyListIDCToFile(plist,dir,file):
     if os.path.exists(dir):
         print (file)
         with open(file,'w') as myfile:
-            myfile.write(';IDA 5.09001 Form UTF-8\n')
+            myfile.write(';IDA 5.1 Form UTF-8\n')
             for comp in plist:
                 myfile.write(pListToCompString(comp,0)+'\n')
                 
@@ -584,7 +584,10 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                                         print(binding[2][0])
                                         binding_name='({} {})'.format(binding[2][0],binding[2][1])
                                         print(binding_name)
-                                        new_bindings.append([binding[0],':SYSTEM','"sf-macro"', '"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding_name]['path']][0]),link_dict[getCompName(comp)][binding_name]['sf_link']])
+                                        try:
+                                            new_bindings.append([binding[0],':SYSTEM','"sf-macro"', '"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding_name]['path']][0]),link_dict[getCompName(comp)][binding_name]['sf_link']])
+                                        except:
+                                            new_bindings.append(binding)
                                     else:
                                         new_bindings.append(binding)
                                 print(new_bindings)

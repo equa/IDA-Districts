@@ -130,10 +130,34 @@ BEGIN
 END;
 $BODY$;
 
--- FUNCTION: akes a SQL command as an argument and executes it
 CREATE OR REPLACE FUNCTION execute_dynamic_sql(sql_command TEXT)
 RETURNS VOID AS $$
 BEGIN
     EXECUTE sql_command;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION set_building_height() RETURNS void AS $$
+DECLARE
+	rec record;
+BEGIN
+	FOR rec IN 
+		SELECT id FROM a.structure_boundarys WHERE St_area(geom)>30
+	LOOP
+		RAISE NOTICE 'id:%' 	, rec.id;
+		UPDATE a.structure_boundarys b SET asl_m= a.asl_m 
+            FROM 
+			(SELECT g.id,avg((gv).val) AS asl_m
+				FROM (SELECT ST_PixelAsPolygons(t.rast) gv FROM a.terrain t,  a.structure_boundarys g WHERE ST_Intersects(t.rast,g.geom) AND g.id=rec.id
+				) foo, a.structure_boundarys g WHERE ST_Intersects((gv).geom,g.geom) AND g.id=rec.id GROUP BY id) a
+            WHERE a.id=b.id;
+
+		UPDATE a.structure_boundarys b SET f_vexp_m= a.height-b.asl_m FROM (
+			SELECT g.id,avg((gv).val) AS height
+				FROM (SELECT ST_PixelAsPolygons(s.rast) gv FROM a.surface s, a.structure_boundarys g WHERE ST_Intersects(s.rast,g.geom) AND g.id=rec.id
+				) foo, a.structure_boundarys g WHERE ST_Intersects((gv).geom,g.geom) AND g.id=rec.id GROUP BY id) a
+            WHERE b.id=a.id;
+	END LOOP;	
+END;
+$$ LANGUAGE 'plpgsql' STRICT;
+ALTER FUNCTION set_building_height() OWNER TO postgres;

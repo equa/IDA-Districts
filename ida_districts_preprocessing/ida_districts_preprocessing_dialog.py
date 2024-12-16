@@ -8,7 +8,7 @@ from .PipeLayingAlgorithm import WorkerPipeLaying
 from .pipe_sizing import * 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 from qgis.PyQt.QtCore import Qt, QThreadPool
-from qgis.PyQt.QtWidgets import QMessageBox,QButtonGroup, QInputDialog, QTableWidgetItem,QTableWidget, QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QComboBox, QCheckBox, QRadioButton, QListWidget
+from qgis.PyQt.QtWidgets import QSpacerItem,QSizePolicy,QGroupBox,QMessageBox,QButtonGroup, QInputDialog, QTableWidgetItem,QTableWidget, QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QComboBox, QCheckBox, QRadioButton, QListWidget
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  
@@ -190,110 +190,142 @@ class PipeLayingDialog(QMainWindow):
         self.check_heating_network =QCheckBox("Generate heating network")
         self.check_heating_network.stateChanged.connect(self.heating_network_generation_state)
         
+        self.group_box_heating_constr = QGroupBox("Constraints")
+        self.group_box_heating_constr.setStyleSheet("""QGroupBox {font-weight: bold;}""")
+        
         #connection constraints: maximum supply temperature,
         #constraints for algoritmn: minimum linear heat density,
         
         #labels
         layout_constr_heating_label = QVBoxLayout()
         self.label_tsup_max =QLabel("Maximum supply temperature, °C")
-        self.label_tsup_max.setHidden(True)
-        self.label_tsup_max.setStyleSheet("padding-left: 30")
         layout_constr_heating_label.addWidget(self.label_tsup_max)                   
                
         self.label_linearHeatDensity_min =QLabel("Minimum linear heat density, kWh/m trench/a")
-        self.label_linearHeatDensity_min.setHidden(True)
-        self.label_linearHeatDensity_min.setStyleSheet("padding-left: 30")
         layout_constr_heating_label.addWidget(self.label_linearHeatDensity_min)
 
         self.label_heat_demand_min =QLabel("Minimum heat demand, kWh/a")
-        self.label_heat_demand_min.setHidden(True)
-        self.label_heat_demand_min.setStyleSheet("padding-left: 30")
         layout_constr_heating_label.addWidget(self.label_heat_demand_min)
         
         self.label_heating_load_min =QLabel("Minimum heating load, kW")
-        self.label_heating_load_min.setHidden(True)
-        self.label_heating_load_min.setStyleSheet("padding-left: 30")
         layout_constr_heating_label.addWidget(self.label_heating_load_min)
-        
-        self.label_heating_assettype_customer =QLabel("Customer asset type")
-        self.label_heating_assettype_customer.setHidden(True)
-        self.label_heating_assettype_customer.setStyleSheet("padding-left: 30")
-        layout_constr_heating_label.addWidget(self.label_heating_assettype_customer)
-        
-        self.label_heating_assettype_lines =QLabel("Lines asset type")
-        self.label_heating_assettype_lines.setHidden(True)
-        self.label_heating_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_constr_heating_label.addWidget(self.label_heating_assettype_lines)
         
         #values
         layout_constr_heating_input = QVBoxLayout()
         self.tsup_max =QLineEdit("100")
-        self.tsup_max.setHidden(True)
         layout_constr_heating_input.addWidget(self.tsup_max)
         
         self.linearHeatDensity_min =QLineEdit("0")
-        self.linearHeatDensity_min.setHidden(True)
         layout_constr_heating_input.addWidget(self.linearHeatDensity_min)    
 
         self.heat_demand_min =QLineEdit("0")
-        self.heat_demand_min.setHidden(True)
         layout_constr_heating_input.addWidget(self.heat_demand_min)    
 
         self.heating_load_min =QLineEdit("0")
-        self.heating_load_min.setHidden(True)
         layout_constr_heating_input.addWidget(self.heating_load_min)    
 
+        self.group_box_heating_type_settings = QGroupBox("Type settings")
+        self.group_box_heating_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""")
+        
+        #connection constraints: maximum supply temperature,
+        #constraints for algoritmn: minimum linear heat density,
+        
+        #labels left
+        layout_settings_heating_label_left = QVBoxLayout()
+        self.label_heating_assetgroup_customer =QLabel("Customer asset group")
+        layout_settings_heating_label_left.addWidget(self.label_heating_assetgroup_customer)
+        
+        self.label_heating_assetgroup_lines =QLabel("Lines asset group")
+        layout_settings_heating_label_left.addWidget(self.label_heating_assetgroup_lines)
+        
+        #values left
+        layout_settings_heating_input_left = QVBoxLayout()
+        self.heating_assetgroup_customer =QComboBox()
+        c_assetgroups=getAssetgroupsInfo('customer',self.cur)
+        self.heating_assetgroup_customer.addItems([i['name'] for i in c_assetgroups])
+        if c_assetgroups:
+            self.heating_assetgroup_customer.setCurrentText(c_assetgroups[0]['name'])
+        self.heating_assetgroup_customer.setStyleSheet("padding-left: 30")
+        layout_settings_heating_input_left.addWidget(self.heating_assetgroup_customer)  
+        self.heating_assetgroup_customer.currentTextChanged.connect(self.heating_assetgroup_customers_state_changed)
+        
+        self.heating_assetgroup_lines =QComboBox()
+        line_assetgroups=getAssetgroupsInfo('line',self.cur)
+        self.heating_assetgroup_lines.addItems([i['name'] for i in line_assetgroups])
+        if line_assetgroups:
+            self.heating_assetgroup_lines.setCurrentText(line_assetgroups[0]['name'])
+        self.heating_assetgroup_lines.setStyleSheet("padding-left: 30")
+        layout_settings_heating_input_left.addWidget(self.heating_assetgroup_lines)   
+        self.heating_assetgroup_lines.currentTextChanged.connect(self.heating_assetgroup_lines_state_changed)
+
+        #labels right
+        layout_settings_heating_label = QVBoxLayout()
+        self.label_heating_assettype_customer =QLabel("Customer asset type")
+        layout_settings_heating_label.addWidget(self.label_heating_assettype_customer)
+        
+        self.label_heating_assettype_lines =QLabel("Lines asset type")
+        layout_settings_heating_label.addWidget(self.label_heating_assettype_lines)
+        
+        #values right
+        layout_settings_heating_input = QVBoxLayout()
         self.heating_assettype_customer =QComboBox()
-        self.heating_assettype_customer.addItems(['1'])
-        self.heating_assettype_customer.setCurrentText('1')
-        self.heating_assettype_customer.setHidden(True)
+        assettypes=getAssettypesInfo('customer',self.heating_assetgroup_customer.currentText().split(':')[0],self.cur)
+        self.heating_assettype_customer.addItems([i['name'] for i in assettypes])
+        if assettypes:
+            self.heating_assettype_customer.setCurrentText(assettypes[0]['name'])
         self.heating_assettype_customer.setStyleSheet("padding-left: 30")
-        layout_constr_heating_input.addWidget(self.heating_assettype_customer)  
+        layout_settings_heating_input.addWidget(self.heating_assettype_customer)  
 
         self.heating_assettype_lines =QComboBox()
-        self.heating_assettype_lines.addItems(['7'])
-        self.heating_assettype_lines.setCurrentText('7')
-        self.heating_assettype_lines.setHidden(True)
+        assettypes=getAssettypesInfo('line',self.heating_assetgroup_lines.currentText().split(':')[0],self.cur)
+        self.heating_assettype_lines.addItems([i['name'] for i in assettypes])
+        if assettypes:
+            self.heating_assettype_lines.setCurrentText(assettypes[0]['name'])
         self.heating_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_constr_heating_input.addWidget(self.heating_assettype_lines)           
+        layout_settings_heating_input.addWidget(self.heating_assettype_lines)  
+
+        #pipe bundle type
+        layout_settings_heating_pipe_bundle=QHBoxLayout()
+        self.label_heating_pipe_bundle =QLabel("Pipe bundle")
+        layout_settings_heating_pipe_bundle.addWidget(self.label_heating_pipe_bundle)    
+
+        self.heating_pipe_bundle =QComboBox()
+        pipe_bundles=getPipeBundleTypesDB(self.cur)
+        self.heating_pipe_bundle.addItems([str(i) for i in pipe_bundles])
+        if pipe_bundles:
+            self.heating_pipe_bundle.setCurrentText(str(list(pipe_bundles)[0]))
+        self.heating_pipe_bundle.setStyleSheet("padding-left: 30")
+        layout_settings_heating_pipe_bundle.addWidget(self.heating_pipe_bundle)           
+        
         
         #costs
+        self.group_box_heating_costs = QGroupBox("")
         #labels
         self.check_heating_network_costs =QCheckBox("consider trench and pipe costs")
         self.check_heating_network_costs.stateChanged.connect(self.heating_network_costs_state)
-        self.check_heating_network_costs.setStyleSheet("padding-left: 30")
         self.check_heating_network_costs.setHidden(True)
         
         layout_constr_heating_costs_label = QVBoxLayout()
-                
+        layout_constr_heating_costs_label.setContentsMargins(30, 0, 0, 0)  # (left, top, right, bottom) 
         self.label_heat_loss =QLabel("Heat loss, kWh/m trench/a")
-        self.label_heat_loss.setHidden(True)
-        self.label_heat_loss.setStyleSheet("padding-left: 60")
         layout_constr_heating_costs_label.addWidget(self.label_heat_loss) 
         
         self.label_heat_costs =QLabel("Heat costs, €/kWh")
-        self.label_heat_costs.setHidden(True)
-        self.label_heat_costs.setStyleSheet("padding-left: 60")
         layout_constr_heating_costs_label.addWidget(self.label_heat_costs) 
 
         self.label_amortization_period_heat =QLabel("Amortization period, a")
-        self.label_amortization_period_heat.setHidden(True)
-        self.label_amortization_period_heat.setStyleSheet("padding-left: 60")
         layout_constr_heating_costs_label.addWidget(self.label_amortization_period_heat) 
         
         #values
         layout_constr_heating_costs_input = QVBoxLayout()
                 
         self.heat_loss = QLineEdit("100")
-        self.heat_loss.setHidden(True)
         layout_constr_heating_costs_input.addWidget(self.heat_loss) 
         
         self.heat_costs = QLineEdit("0.1")
-        self.heat_costs.setHidden(True)
         layout_constr_heating_costs_input.addWidget(self.heat_costs) 
         
         self.amortization_period_heat = QLineEdit("30")
-        self.amortization_period_heat.setHidden(True)
         layout_constr_heating_costs_input.addWidget(self.amortization_period_heat) 
         
         #cooling network
@@ -497,13 +529,41 @@ class PipeLayingDialog(QMainWindow):
         layout_saveButtons.addWidget(btn_reject)
         
         #set layouts together
+        layout_heating=QVBoxLayout()
+        layout_heating.setContentsMargins(30, 0, 0, 0)  # (left, top, right, bottom)
+        #heating constraints
         layout_constr_heating = QHBoxLayout()
         layout_constr_heating.addLayout(layout_constr_heating_label)
         layout_constr_heating.addLayout(layout_constr_heating_input)   
+        
+        self.group_box_heating_constr.setLayout(layout_constr_heating)
+        self.group_box_heating_constr.hide()        
+        layout_heating.addWidget(self.group_box_heating_constr)
+
+        #heating type settings
+        layout_settings_heating_4col = QHBoxLayout()
+        layout_settings_heating_4col.addLayout(layout_settings_heating_label_left)
+        layout_settings_heating_4col.addLayout(layout_settings_heating_input_left)   
+        layout_settings_heating_4col.addLayout(layout_settings_heating_label)
+        layout_settings_heating_4col.addLayout(layout_settings_heating_input)   
+        
+        layout_settings_heating = QVBoxLayout()
+        layout_settings_heating.addLayout(layout_settings_heating_4col)
+        layout_settings_heating.addLayout(layout_settings_heating_pipe_bundle)
+        
+        self.group_box_heating_type_settings.setLayout(layout_settings_heating)
+        self.group_box_heating_type_settings.hide()
+        layout_heating.addWidget(self.group_box_heating_type_settings)
 
         layout_constr_heating_costs = QHBoxLayout()
         layout_constr_heating_costs.addLayout(layout_constr_heating_costs_label)
-        layout_constr_heating_costs.addLayout(layout_constr_heating_costs_input)         
+        layout_constr_heating_costs.addLayout(layout_constr_heating_costs_input)     
+
+        layout_heating.addWidget(self.check_heating_network_costs)
+ 
+        self.group_box_heating_costs.setLayout(layout_constr_heating_costs)     
+        self.group_box_heating_costs.hide()        
+        layout_heating.addWidget(self.group_box_heating_costs)
         
         layout_constr_cooling = QHBoxLayout()
         layout_constr_cooling.addLayout(layout_constr_cooling_label)
@@ -515,9 +575,7 @@ class PipeLayingDialog(QMainWindow):
         
         layout_win = QVBoxLayout()
         layout_win.addWidget(self.check_heating_network)
-        layout_win.addLayout(layout_constr_heating)
-        layout_win.addWidget(self.check_heating_network_costs)
-        layout_win.addLayout(layout_constr_heating_costs)
+        layout_win.addLayout(layout_heating)
         layout_win.addWidget(self.check_cooling_network)
         layout_win.addLayout(layout_constr_cooling)
         layout_win.addWidget(self.check_cooling_network_costs)
@@ -540,6 +598,22 @@ class PipeLayingDialog(QMainWindow):
         self.threadpool = QThreadPool()
         print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
         
+    def heating_assetgroup_lines_state_changed(self,text):
+        assetgroup=text.split(':')[0]
+        assettypes=getAssettypesInfo('line',assetgroup,self.cur)
+        self.heating_assettype_lines.clear()
+        self.heating_assettype_lines.addItems([i['name'] for i in assettypes])
+        if assettypes:
+            self.heating_assettype_lines.setCurrentText(assettypes[0]['name'])
+
+    def heating_assetgroup_customers_state_changed(self,text):
+        assetgroup=text.split(':')[0]
+        assettypes=getAssettypesInfo('customer',assetgroup,self.cur)
+        self.heating_assettype_customer.clear()
+        self.heating_assettype_customer.addItems([i['name'] for i in assettypes])
+        if assettypes:
+            self.heating_assettype_customer.setCurrentText(assettypes[0]['name'])
+        
     def execute(self):  
         print(self.dictDB)
         layerCheck=checkPipeLayingLayerData(self.dictDB,self.cur,self.combo_network.currentText())
@@ -550,7 +624,17 @@ class PipeLayingDialog(QMainWindow):
         elif layerCheck=='no_customers':
             self.iface.messageBar().pushMessage("Error", f"Please insert customers of network: {self.combo_network.currentText()} into the customers layer.", level=Qgis.Critical)
         elif not layerCheck:
-            worker = WorkerPipeLaying(tolerance=self.tolerance.text(), network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),heating_assettype_customer=self.heating_assettype_customer.currentText(),heating_assettype_lines=self.heating_assettype_lines.currentText(),linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),cooling_load_min=self.cooling_load_min.text(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),amortization_period_cold=self.amortization_period_cold.text(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
+            worker = WorkerPipeLaying(tolerance=self.tolerance.text(), network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),
+                heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),pipe_bundle_heating=self.heating_pipe_bundle.currentText(),
+                heating_assettype_customer=self.heating_assettype_customer.currentText().split(':')[0],heating_assettype_lines=self.heating_assettype_lines.currentText().split(':')[0],
+                heating_assetgroup_customer=self.heating_assetgroup_customer.currentText().split(':')[0],heating_assetgroup_lines=self.heating_assetgroup_lines.currentText().split(':')[0],
+                linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),
+                heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),
+                check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),
+                cooling_load_min=self.cooling_load_min.text(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),
+                linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),
+                amortization_period_cold=self.amortization_period_cold.text(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),
+                customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
             worker.signals.progress.connect(self.update_progress)
             worker.signals.error.connect(self.show_error_message)       
             #execute
@@ -570,56 +654,18 @@ class PipeLayingDialog(QMainWindow):
         print(s)
         if Qt.Checked==s:
             print('checked')
-            self.label_tsup_max.setHidden(False)
-            self.tsup_max.setHidden(False)
-            self.label_linearHeatDensity_min.setHidden(False)
-            self.linearHeatDensity_min.setHidden(False)
+            self.group_box_heating_constr.show()
+            self.group_box_heating_type_settings.show()
             self.check_heating_network_costs.setHidden(False)
-            self.label_heat_demand_min.setHidden(False)
-            self.heat_demand_min.setHidden(False)
-            self.label_heating_load_min.setHidden(False)
-            self.heating_load_min.setHidden(False)
-            self.label_heating_assettype_customer.setHidden(False)
-            self.label_heating_assettype_lines.setHidden(False)
-            self.heating_assettype_customer.setHidden(False)
-            self.heating_assettype_lines.setHidden(False)
             if self.check_heating_network_costs.isChecked():
-                self.label_heat_loss.setHidden(False)
-                self.heat_loss.setHidden(False)
-                self.label_heat_costs.setHidden(False)
-                self.heat_costs.setHidden(False)
-                self.label_amortization_period_heat.setHidden(False)
-                self.amortization_period_heat.setHidden(False)
-            if self.check_cooling_network.isChecked():
-                self.label_hc_assettype_customer.setHidden(False)
-                self.label_hc_assettype_lines.setHidden(False)
-                self.hc_assettype_customer.setHidden(False)
-                self.hc_assettype_lines.setHidden(False)
+                self.group_box_heating_costs.show()
         else:
             print('unchecked')
-            self.label_tsup_max.setHidden(True)
-            self.tsup_max.setHidden(True)
-            self.label_linearHeatDensity_min.setHidden(True)
-            self.linearHeatDensity_min.setHidden(True)
-            self.label_heat_demand_min.setHidden(True)
-            self.heat_demand_min.setHidden(True)
-            self.label_heating_load_min.setHidden(True)
-            self.heating_load_min.setHidden(True)
-            self.label_heating_assettype_customer.setHidden(True)
-            self.label_heating_assettype_lines.setHidden(True)
-            self.heating_assettype_customer.setHidden(True)
-            self.heating_assettype_lines.setHidden(True)
+            self.group_box_heating_constr.hide()
+            self.group_box_heating_type_settings.hide()
+            self.group_box_heating_costs.hide()
             self.check_heating_network_costs.setHidden(True)
-            self.label_heat_loss.setHidden(True)
-            self.heat_loss.setHidden(True)
-            self.label_heat_costs.setHidden(True)
-            self.heat_costs.setHidden(True)
-            self.label_amortization_period_heat.setHidden(True)
-            self.amortization_period_heat.setHidden(True)
-            self.label_hc_assettype_customer.setHidden(True)
-            self.label_hc_assettype_lines.setHidden(True)
-            self.hc_assettype_customer.setHidden(True)
-            self.hc_assettype_lines.setHidden(True)
+
     
     def cooling_network_generation_state(self,s):
         print('change cooling network generation state')
@@ -679,20 +725,12 @@ class PipeLayingDialog(QMainWindow):
         print('change heating network costs state')
         if Qt.Checked==s:
             print('costs checked')
-            self.label_heat_loss.setHidden(False)
-            self.heat_loss.setHidden(False)
-            self.label_heat_costs.setHidden(False)
-            self.heat_costs.setHidden(False)
-            self.label_amortization_period_heat.setHidden(False)
-            self.amortization_period_heat.setHidden(False)
+            self.group_box_heating_costs.show()
+
         else:
             print('costs unchecked')
-            self.label_heat_loss.setHidden(True)
-            self.heat_loss.setHidden(True)
-            self.label_heat_costs.setHidden(True)
-            self.heat_costs.setHidden(True)
-            self.label_amortization_period_heat.setHidden(True)
-            self.amortization_period_heat.setHidden(True)
+            self.group_box_heating_costs.hide()
+
             
     def cooling_network_costs_state(self,s):
         print('change cooling network costs state')
@@ -722,7 +760,7 @@ class PipeLayingDialog(QMainWindow):
         sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers;""".format(self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants;""".format(self.dictDB['versionName'])
         sql+=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName']) 
+        sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName']) 
         sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])  
         sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections;""".format(self.dictDB['versionName'])
         print(sql) 
@@ -1139,7 +1177,7 @@ class NetworkTopologyDialog(QMainWindow):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".energy_plants,"{}".devices,"{}".junctions,"{}".customer_connections, {}.junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+        sql=""" TRUNCATE "{}".lines, "{}".customers,"{}".energy_plants,"{}".devices,"{}".junctions,"{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections CASCADE;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(self.dictDB['versionName'])
@@ -1157,7 +1195,7 @@ class NetworkTopologyDialog(QMainWindow):
         sql=""" INSERT INTO"{}".junctions SELECT * FROM temp.junctions;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
-        sql=""" INSERT INTO {}.junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
+        sql=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections;""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
         sql=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections;""".format(self.dictDB['versionName'])

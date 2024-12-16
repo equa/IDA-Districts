@@ -30,7 +30,7 @@ from plugins.utility_functions.db import *
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
+from qgis.PyQt.QtWidgets import QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
 from PyQt5 import QtCore,QtGui
 import psycopg2
 import psycopg2.extras
@@ -38,8 +38,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from qgis.utils import iface
 from qgis.core import Qgis
 from PyQt5.QtGui import QKeySequence
-import matplotlib.pyplot as plt
-
+import matplotlib.pyplot as plt      
+        
 class SensorSignalsDialog(QMainWindow):
     def __init__(self,dictDB,plugin_dir):     
         """Initialize GUI for sensor signals"""
@@ -975,7 +975,7 @@ class FeatureDecouplingDlg(QMainWindow):
                         rest-=1
                     sql+='UPDATE "{}".{}s SET submodel={} WHERE id={};'.format(self.dictDB['versionName'],type,submodel_counter+1,f_id['id'])
             elif no_submodels==0:
-                sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM {}.submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.dictDB['versionName'],type,self.dictDB['versionName'])
+                sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.dictDB['versionName'],type,self.dictDB['versionName'])
             else:
                 iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=Qgis.Critical)
         except:
@@ -1013,6 +1013,9 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         
         self.btn_modellingSettings=QPushButton("Modelling settings")
         layout_modeling_settings.addWidget(self.btn_modellingSettings)
+
+        self.btn_boreholeFieldSettings=QPushButton("Borehole field settings")
+        layout_modeling_settings.addWidget(self.btn_boreholeFieldSettings)
         
         #set settings layout together
         layout_settings = QVBoxLayout()

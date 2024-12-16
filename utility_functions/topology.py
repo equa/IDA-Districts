@@ -6,27 +6,27 @@ from plugins.utility_functions.db import *
 from qgis.PyQt.QtWidgets import QMessageBox
 
 def redrawSubnetworkIncludingLines(table,cur,dictDB,srid):
-    sql="""TRUNCATE {}.submodels;
+    sql="""TRUNCATE "{}".submodels;
 
 WITH sub AS(
     SELECT min(ST_XMin(geom)) AS x_min, min(ST_YMin(geom)) AS y_min, max(ST_XMax(geom)) AS x_max, max(ST_YMax(geom)) AS y_max FROM {}
 )
-INSERT INTO {}.submodels (id,geom) 
+INSERT INTO "{}".submodels (id,geom) 
     SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(dictDB['versionName'],table,dictDB['versionName'],srid)
     print(sql)
     cur.execute(sql)
     
 def updateSubmodels(cur,dictDB):
-    sql="""UPDATE temp.junctions j SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(j.geom,s_m.geom,0.0001);
-UPDATE "{}".energy_plants f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
-UPDATE temp.customers f SET submodel = s_m.id FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
+    sql="""UPDATE temp.junctions j SET submodel = s_m.id FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(j.geom,s_m.geom,0.0001);
+UPDATE "{}".energy_plants f SET submodel = s_m.id FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
+UPDATE temp.customers f SET submodel = s_m.id FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
 UPDATE temp.lines l SET submodel = a.sm_id 
     FROM (SELECT l.id AS lid, array_agg(s_m.id) AS sm_id
-            FROM {}.submodels s_m, "{}".lines l
+            FROM "{}".submodels s_m, "{}".lines l
             WHERE ST_dWithin(l.geom,s_m.geom,0.0001)
             GROUP BY l.id) a 
     WHERE a.lid=l.id;
-UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM {}.submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
+UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
 UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     print(sql)
     cur.execute(sql)
@@ -37,7 +37,7 @@ def setSubnetwork(cur,dictDB,redraw_submodels_polygons,srid):
     if redraw_submodels_polygons:
         
         #draw rectangle around all customers
-        sql="TRUNCATE {}.submodels CASCADE;".format(dictDB['versionName'])
+        sql='TRUNCATE "{}".submodels CASCADE;'.format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
             

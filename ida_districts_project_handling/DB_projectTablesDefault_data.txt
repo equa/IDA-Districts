@@ -1,3 +1,18 @@
+-------------------table public.liquids------------------------------------
+INSERT INTO public.liquids(id,liquid) VALUES(1,'Water');
+INSERT INTO public.liquids(id,liquid) VALUES(2,'Freezium');
+INSERT INTO public.liquids(id,liquid) VALUES(3,'Ethylene_Glycol');
+INSERT INTO public.liquids(id,liquid) VALUES(4,'Propylene_Glycol');
+INSERT INTO public.liquids(id,liquid) VALUES(5,'Ethanol');
+INSERT INTO public.liquids(id,liquid) VALUES(6,'Methanol');
+INSERT INTO public.liquids(id,liquid) VALUES(7,'Glycerol');
+INSERT INTO public.liquids(id,liquid) VALUES(8,'Ammonia');
+INSERT INTO public.liquids(id,liquid) VALUES(9,'Potassium_Carbonate');
+INSERT INTO public.liquids(id,liquid) VALUES(10,'Calcium_Chloride');
+INSERT INTO public.liquids(id,liquid) VALUES(11,'Magnesium_Chloride');
+INSERT INTO public.liquids(id,liquid) VALUES(12,'Sodium_Chloride');
+INSERT INTO public.liquids(id,liquid) VALUES(13,'Potassium_Acetate');
+
 -------------------table public.pipe_ambient------------------------------------
 INSERT INTO public.pipe_ambient (id,ambient) VALUES (1,'Ambient air');
 INSERT INTO public.pipe_ambient (id,ambient) VALUES (2,'Ground');

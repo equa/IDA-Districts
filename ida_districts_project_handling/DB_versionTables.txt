@@ -259,7 +259,6 @@ CREATE TABLE "a".customers
     cool_e_kwh numeric DEFAULT 5000,
     cool_p_kw numeric DEFAULT 10,
     tsup_c_deg numeric DEFAULT 15,
-	asl_m numeric,
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
     dhw_id integer,
     internal_load_id integer,   

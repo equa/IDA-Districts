@@ -59,8 +59,8 @@ from distutils.dir_util import copy_tree
 from pathlib import Path
 import json
 from qgis.PyQt.QtGui import QKeySequence
-from qgis.PyQt.QtWidgets import QShortcut
-         
+from qgis.PyQt.QtWidgets import QShortcut  
+            
 class IDA_Districts_ProjectHandling:
     """QGIS Plugin Implementation."""
     
@@ -863,19 +863,19 @@ class IDA_Districts_ProjectHandling:
                 for column in self.cur.fetchall():
                     sql="""SELECT id,{} FROM "{}".{}
                         EXCEPT
-                        SELECT id,{} FROM "{}".{};""".format(column[0],child['version_name'],table,column[0],self.dictDB['versionName'],table)
-                    #print(sql)
+                        SELECT id,{} FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],self.dictDB['versionName'],table)
+                    print(sql)
                     curUpdatedColumn.execute(sql)
                     for updatedColumnValue in curUpdatedColumn:
                         print ('+++++++++++++++++++++++++++')
-                        print (column[1])
+                        print (column['data_type'])
                     
-                        if column[1] in ['integer','numeric']:
+                        if column['data_type'] in ['integer','numeric']:
                             print('value')
-                            diff ='UPDATE "{}".{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column[0],updatedColumnValue[1],updatedColumnValue[0])
+                            diff ='UPDATE "{}".{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
                         else:
                             print('geom')
-                            diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column[0],updatedColumnValue[1],updatedColumnValue[0])
+                            diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
                         if diff not in diffData:
                             diffData=diffData+diff
                 curUpdatedColumn.close()
@@ -945,11 +945,15 @@ class IDA_Districts_ProjectHandling:
             symbol = single_symbol_renderer.symbol()
             symbol.setColor(QColor.fromRgb(25, 25, 25))
             iface.layerTreeView().refreshLayerSymbology(vlayer.id())
+            
         except:
             pass
                     
         loadTopologyLayers(self.dictDB['versionName'],uri,layerTreeRoot,self.dictDB)         
         loadProjectLayers(self.dictDB['versionName'],uri,self.dictDB,self.plugin_dir,self.cur)
+        
+        loadBoreholesLayer(self.dictDB['versionName'],uri,self.dictDB,self.plugin_dir,self.cur)
+
        
         versionLayersAliasNames()
         setupVersionForm(self.cur,self.dictDB)
@@ -958,7 +962,7 @@ class IDA_Districts_ProjectHandling:
         valueRelationPipeBundleType()    
         valueRelationDhwId()    
         valueRelationInternalLoadId() 
-    
+            
     def saveIDADistrictsConfigSettings(self,dlg):
         """ save the config data to file configIDADistricts.txt"""
         print('saveIDADistrictsConfigSettings')

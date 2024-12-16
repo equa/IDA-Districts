@@ -586,6 +586,11 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             if layer:
                 layer=layer[0]
+                layer_srid=layer.crs().authid().split(':')[1]
+                print(layer_srid)
+                self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+                print(self.configProject)
+                print(self.configProject['srid'])
                 generateId=False
                 #attribute names
                 attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
@@ -624,6 +629,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 attributes={}
                 for feature in layer.getFeatures():
                     mappedAttributesValues=dlg.mappedAttributes.copy() #make a copy in order to lose reference
+                    print(mappedAttributesValues)
                     attributes=self.getLayerAttributesDict(feature,layer=layer)
                     for mappedAttribute in dlg.mappedAttributes:
                         if dlg.mappedAttributes[mappedAttribute]:
@@ -632,13 +638,19 @@ TRUNCATE pipe_layers CASCADE;\n"""
                                     mappedAttributesValues[mappedAttribute]=mappedAttributesValues[mappedAttribute].replace('|'+attribute+'|',str(attributes[attribute]))
                     values=[]
                     print(attributes)
+                    attributes=[attribute for attribute in mappedAttributesValues if mappedAttributesValues[attribute]]
+                    print(mappedAttributesValues)
                     for attribute in attributes:
-                        values.append(str(eval(mappedAttributesValues[attribute])))
+                        print(attribute)
+                        try:
+                            values.append(str(eval(mappedAttributesValues[attribute])))
+                        except:
+                            pass
 
                     if type=='line':
-                        values.append('ST_Force3D(ST_LineMerge(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\')))')
+                        values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_LineMerge(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))),'+layer_srid+'),'+ str(self.configProject['srid'])+')')
                     else:
-                        values.append('ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))')
+                        values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\')),'+layer_srid+'),'+ str(self.configProject['srid'])+')')
                     if generateId:
                         values.append(str(generateId+i))
                         sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))

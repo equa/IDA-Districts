@@ -182,7 +182,7 @@ def getSubmodelPerFeatureIdTypename(id,feature,cur,dictDB):
     return cur.fetchone()
     
 def getDrawnSubmodels(cur,dictDB):
-    sql="""SELECT id FROM {}.submodels;""".format(dictDB['versionName'])
+    sql="""SELECT id FROM "{}".submodels;""".format(dictDB['versionName'])
     cur.execute(sql)
     submodels=[i['id'] for i in cur.fetchall()]
     if len(submodels)==0:
@@ -619,7 +619,34 @@ def getConnValue(cur,bundle,sequence):
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
+
+def getPipeBundleTypesDB(cur):
+    sql="""SELECT pipe_bundle_type_id,ARRAY_AGG (ARRAY[sequence::int,pipe_id::int,ambient::int] ORDER BY sequence) AS pipe
+    FROM bundle_pipes 
+    GROUP BY pipe_bundle_type_id 
+    ORDER BY pipe_bundle_type_id ASC; """
+    cur.execute(sql)
+    return { bundle['pipe_bundle_type_id']: bundle['pipe'] for bundle in cur.fetchall()}
+
+def getAssetgroupsInfo(feature,cur):
+    sql="""SELECT id,assetgroup,id::text||':'||assetgroup::text AS name FROM public.{}_assetgroups;""".format(feature)
+    cur.execute(sql)
+    return cur.fetchall()   
     
+def getAssettypesInfo(feature,assetgroup_id,cur):
+    sql="""SELECT at.assettype, at.assettype_name, ag.id AS assetgroup,ag.assetgroup AS assetgroup_name, at.assettype::text||':'||at.assettype_name||'('||ag.assetgroup::text||')' AS name
+    FROM {}_assettypes at, {}_assetgroups ag
+    WHERE at.assetgroup=ag.id AND ag.id={}
+    ORDER BY at.assettype; """.format(feature,feature,assetgroup_id)
+    cur.execute(sql)
+    return cur.fetchall()    
+    
+def getAssetgroups(type,cur):
+    """ get all assetgroups of type """
+    sql='SELECT id FROM public.{}_assetgroups;'.format(type)
+    cur.execute(sql)
+    return [str(i['id']) for i in cur.fetchall()]    
+        
 def getTableIds(cur,version,table,column):
     sql="""SELECT {} FROM "{}".{}""".format(column,version,table)
     cur.execute(sql)

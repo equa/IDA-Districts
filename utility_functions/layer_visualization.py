@@ -40,7 +40,7 @@ def updateTableSrid(versions,cur,srid):
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
-        for table in ['devices','lines','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines','buildings','streets','submodels']:
+        for table in ['devices','lines','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines','buildings','streets','submodels','boreholes']:
             print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
@@ -197,16 +197,36 @@ def removeLayer(layer_name):
         layer=QgsProject.instance().mapLayersByName(layer_name)[0]
         QgsProject.instance().removeMapLayer(layer)
 
+def loadBoreholesLayer(version,uri,dictDB,plugin_dir,cur):
+    dir=getProjectHandlingDir(plugin_dir)
+    vlayerName='boreholes'
+    uri.setDataSource(version, vlayerName, "geom")
+    vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
+    QgsProject.instance().addMapLayer(vlayer)  
+    target_layer = QgsProject.instance().mapLayersByName('energy_plants')[0]
+    config = {'AllowMulti': False,
+              'AllowNull': True,
+              'FilterExpression': '',
+              'Key': 'id',
+              'Layer': target_layer.id(),
+              'NofColumns': 1,
+              'OrderByValue': False,
+              'UseCompleter': False,
+              'Value': 'id'}
+    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+    fields=vlayer.fields()
+    field_idx = fields.indexOf('plant_id')
+    vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
+    
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
         if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_junction_assetgroups',
             'structure_junction_assettypes','structure_boundary_assetgroups','structure_boundary_assettypes','junction_assetgroups','junction_assettypes','junctions',
             'structure_line_assetgroups','structure_line_assettypes','structure_boundarys','structure_junctions','structure_lines',
-            'units','streets', 'buildings','results velocity','results return temperature','results supply temperature','results pressure','results massflow','network','cosim',
-            'owner','maintby','lifecyclestatus','devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups',
-            'pipematerial','insulatingmaterial','installlocation','installationmethod','manufacturer',
-            'spatialsource']:
+            'streets', 'buildings','network','cosim',
+            'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
+            'pipematerial']:
             QgsProject.instance().removeMapLayer(layer)
         
 def removeTempLayers():
@@ -238,7 +258,7 @@ def loadTopologyLayers(version,uri,layerTreeRoot,dictDB):
     model = iface.layerTreeView().layerTreeModel()
     ltv = iface.layerTreeView()
     root = QgsProject.instance().layerTreeRoot()
-    for tableName in ['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
+    for tableName in ['borehole_fields','internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
         'structure_boundary_assettypes','junction_assetgroups','structure_line_assetgroups','structure_line_assettypes',
         'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']:
         uri.setDataSource("public", tableName, "")
@@ -270,7 +290,7 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
                 vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
             QgsProject.instance().addMapLayer(vlayer)  
             print(vlayerName[:-1] + '_assetgroups')
-            target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assetgroups')[0] 
+            target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assetgroups')[0]
             config = {'AllowMulti': False,
                       'AllowNull': True,
                       'FilterExpression': '',
@@ -330,14 +350,20 @@ def updateNetworkDependingFields(cur,dictDB):
     setFieldConstraints(constraint_expression_dict)
     
 def featureLayerAssetgroups(vlayerName,cur):
-    sql="""SELECT assetgroup FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
-    cur.execute(sql)
-    return [i['assetgroup'] for i in cur.fetchall()]
+    try:
+        sql="""SELECT assetgroup FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
+        cur.execute(sql)
+        return [i['assetgroup'] for i in cur.fetchall()]
+    except:
+        return []
     
 def featureLayerAssetgroupIds(vlayerName,cur):
-    sql="""SELECT id FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
-    cur.execute(sql)
-    return [i['id'] for i in cur.fetchall()]    
+    try:
+        sql="""SELECT id FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
+        cur.execute(sql)
+        return [i['id'] for i in cur.fetchall()]    
+    except:
+        return []
         
 def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
     dir=getProjectHandlingDir(plugin_dir)

@@ -36,6 +36,9 @@ def parse_hashtag(match_obj):
     
 def parse_hashtag2dimArray(match_obj):
     return "#2A',("
+    
+def parse_hashtag3dimArray(match_obj):
+    return "#3A',("
  
 def parse_closingBracketsConnectedToDigit(match_obj):
     return "),'"+match_obj[0][-1]
@@ -86,6 +89,9 @@ def getIDAListComponents(data):
     #print(data)
     
     data=re.sub(r"\#2A\(", parse_hashtag2dimArray, data)
+    #print(data)
+
+    data=re.sub(r"\#3A\(", parse_hashtag3dimArray, data)
     #print(data)
 
     data=re.sub(r"\#S\(", parse_hashtagS, data)

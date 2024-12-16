@@ -311,7 +311,56 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                                 replaceDict[parm['macro_name']].update({parm['model_name']:{parm['parm_name']: mapping_expression}})
                             except:
                                 replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
+            elif type=='energy_plant':
+                sql="""WITH sub AS(
+    WITH sub AS(
+        SELECT count(mir) AS mir_counter,geom AS mir_point FROM "{}".boreholes WHERE plant_id={} AND mir=TRUE GROUP BY geom
+    )
+    SELECT CASE WHEN sub.mir_counter>0 THEN ST_X(sub.mir_point) ELSE (max(st_x(geom))-min(st_x(geom)))/2 + min(st_x(geom)) END AS x_center, 
+           CASE WHEN sub.mir_counter>0 THEN ST_Y(sub.mir_point) ELSE (max(st_y(geom))-min(st_y(geom)))/2 + min(st_y(geom)) END AS y_center
+        FROM "{}".boreholes 
+        LEFT JOIN sub ON true WHERE plant_id={} GROUP BY sub.mir_counter, sub.mir_point
+)
+SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_center)::numeric,2) AS y, "group" FROM "{}".boreholes,sub WHERE plant_id={} AND mir=FALSE ORDER BY "group",id;""".format(dictDB['versionName'],id,dictDB['versionName'],id,dictDB['versionName'],id)
+                cur.execute(sql)
+                boreholes=cur.fetchall()
+                print(boreholes)
+                x="#("+" ".join([str(i['x']) for i in boreholes])+")"
+                y="#("+" ".join([str(i['y']) for i in boreholes])+")"
+                nholes=len([str(i['x']) for i in boreholes])
+                ngroups=len(set([str(i['group']) for i in boreholes]))
+                ng_dict={}
+                for i in boreholes:
+                    try:
+                        ng_dict[i['group']]=ng_dict[i['group']]+1
+                    except:
+                        ng_dict[i['group']]=1
+                print(ng_dict)
+                ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
+                
+                sql='SELECT * FROM {}.borehole_fields WHERE id={};'.format(dictDB['versionName'],id)
+                cur.execute(sql)
+                field_data=cur.fetchall()
+                if field_data:
+                    field_data=field_data[0]
+                else:
+                    iface.messageBar().pushMessage("Critical", "No borehole field data for id={} available!".format(id), level=Qgis.Critical)
+                    return False
+                sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
+                cur.execute(sql)
+                liqtype='|'+cur.fetchone()['liquid']+'|'
+                replaceDict={':FEATURE': {'GHX_MANY': {'X': x,'Y':y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
+                    'ZHOLE':field_data['zhole'],'RHOLE':field_data['rhole'],
+                    'RB':field_data['rb'],'RPIPEEARTH':field_data['rpipeearth'],'RPIPEGROUT':field_data['rpipegrout'],'RRINGEARTH':field_data['rringearth'],'RGROUTEARTH':field_data['rgroutearth'],'RGROUTGROUT':field_data['rgroutgrout'],
+                    'MIR':field_data['mir'],'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
+                    'CPGRD':field_data['cpgrd'],'LAMBGRD':field_data['lambgrd'],'RHOGRD':field_data['rhogrd'],
+                    'CPGROUT':field_data['cpgrout'],'LAMBGROUT':field_data['lambgrout'],'RHOGROUT':field_data['rhogrout'],
+                    'RPIPE':field_data['rpipe'],'THICKPIPE':field_data['thickpipe'],'CPPIPE':field_data['cppipe'],'LAMBPIPE':field_data['lambpipe'],
+                    'LCASING':field_data['lcasting'],'LAMBDA':field_data['lambda'],'RHOSURFLAY':field_data['rhosurface'],'CPSURFLAY':field_data['cpsurface'],
+                    'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
+                    'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
             print(replaceDict)
+
             CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
             f_idc=dir+type.capitalize()+"_"+id+".idc"
@@ -595,15 +644,15 @@ class CopyAssettypeFiles:
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idc')   
         
         #sf-macro.idm
-        filedata=[""";IDA 5.09001 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.09001)) """]
+        filedata=[""";IDA 5.1 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1)) """]
         for i in sf:
             i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
             filedata+=["""\n{}""".format(pListToCompString(i,0))]
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idm')
 
         #sf-macro.idc
-        filedata=[""";IDA 5.09001 Data UTF-8
+        filedata=[""";IDA 5.1 Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
         filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate([j for i in sf for j in sf_ids if i[0][':SF']==j['sf']],1)]
