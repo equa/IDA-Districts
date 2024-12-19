@@ -29,7 +29,7 @@ def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,iface,plugin_dir,s
         source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
         print(source_f)
         if not os.path.exists(source_f):
-            invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],iface,False)
+            invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],False)
         
         components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f)))
         components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString("{}\\{}_{}\\{}_{}.idc".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id'])))))
@@ -139,7 +139,7 @@ class CopyDecoupledAssettypeMacro:
             source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
             print(source_f)
             if not os.path.exists(source_f):
-                invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],iface,False)
+                invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],False)
             
             file_data=readFileToList(source_f)
             resource=getResourcesFromFileDataList(file_data)
@@ -683,13 +683,6 @@ class CopyAssettypeMacro:
             f_idc_target=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+".idc"
             f_idm_target=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+".idm"
             print(f_idm_target)
-            
-            #collect resources
-            source_f="{}\\{}_{}.idm".format(source_dir,type_name.capitalize(),str(feature['id']))     
-            file_data=readFileToList(source_f)
-            resource=getResourcesFromFileDataList(file_data)
-            if resource not in self.resources:
-                self.resources+=resource
 
             #idm
             source_f_idm="{}\\{}_{}\\{}_{}.idm".format(source_dir,type_name.capitalize(),str(feature['id']),type_name.capitalize(),str(feature['id']))  
@@ -697,12 +690,19 @@ class CopyAssettypeMacro:
             
             print(source_f_idm)
             if not os.path.exists(source_f_idm) or reinvoke:
-                invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,type_name,iface,False)
+                invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,type_name,False,False)
                 if type=='energy_plants':
                     self.invokedFeatureOutputs[feature['id']]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
                 elif type=='customers':
                     self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
 
+            #collect resources
+            source_f="{}\\{}_{}.idm".format(source_dir,type_name.capitalize(),str(feature['id']))     
+            file_data=readFileToList(source_f)
+            resource=getResourcesFromFileDataList(file_data)
+            if resource not in self.resources:
+                self.resources+=resource
+                
             if feature['model']=='decoupled':
                 sql="""SELECT conn_bundle_type FROM "{}".{} f ,{}_assettypes f_at WHERE f.id={} AND f.assettype=f_at.assettype;""".format(dictDB['versionName'],type,type_name,str(feature['id']))
                 print(sql)

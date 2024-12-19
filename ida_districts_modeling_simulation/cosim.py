@@ -10,7 +10,7 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
     --> collect pmt2 signals
     --> collect sensor signals"""
     data=[""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :APP (ICE :VER 5.090001)) \n"""]
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :APP (ICE :VER 5.1)) \n"""]
 
     submodels=getUsedSubmodels(cur,dictDB)
     submodels.remove(str(submodel))

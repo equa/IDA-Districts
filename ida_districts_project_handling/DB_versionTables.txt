@@ -1,5 +1,59 @@
 ------------------------------ version tables ---------------------------------
 
+-------------------table "a".boreholes;----------------------------------------------------------
+DROP TABLE IF EXISTS "a".boreholes CASCADE;
+CREATE TABLE "a".boreholes(
+    id serial,
+    geom GEOMETRY (POINTZ,25832),
+    plant_id int DEFAULT 1,
+    "group" int DEFAULT 1,
+    mir boolean DEFAULT FALSE,
+    CONSTRAINT boreholes_pkey PRIMARY KEY (id)
+);
+
+-------------------table "a".borehole_fields;----------------------------------------------------------
+DROP TABLE IF EXISTS "a".borehole_fields CASCADE;
+CREATE TABLE "a".borehole_fields(
+    id serial,
+    zhole numeric CHECK (zhole > 0),
+    rhole numeric CHECK (rhole > 0),
+    rb numeric CHECK (rb >= 0), 
+    rpipeearth numeric CHECK (rpipeearth > 0), 
+    rpipegrout numeric CHECK (rpipegrout > 0), 
+    rringearth numeric CHECK (rringearth > 0), 
+    rgroutearth numeric CHECK (rgroutearth > 0), 
+    rgroutgrout numeric CHECK (rgroutgrout > 0), 
+    mir int,
+    rmax numeric CHECK (rmax > 0),
+    nring int CHECK (nring > 0),
+    nzhole int CHECK (nzhole > 0),
+    nlayt int CHECK (nlayt > 0),
+    n1 int CHECK (n1 >= 0),
+    n2 int CHECK (n2 >= 0),
+    n3 int CHECK (n3 >= 0),
+    toutput numeric CHECK (toutput >= 0),
+    cpgrd numeric CHECK (cpgrd > 0),
+    lambgrd numeric CHECK (lambgrd > 0),
+    rhogrd numeric CHECK (rhogrd > 0),
+    cpgrout numeric CHECK (cpgrout > 0),
+    lambgrout numeric CHECK (lambgrout > 0),
+    rhogrout numeric CHECK (rhogrout > 0),
+    rpipe numeric CHECK (rpipe > 0),
+    thickpipe numeric CHECK (thickpipe > 0),
+    cppipe numeric CHECK (cppipe > 0),
+    lambpipe numeric CHECK (lambpipe > 0),    
+    lcasting numeric CHECK (lcasting > 0),
+    lambda numeric CHECK (lambda > 0),
+    rhosurface numeric CHECK (rhosurface > 0),
+    cpsurface numeric CHECK (cpsurface > 0),  
+    liqtype int,
+    tfreeze numeric,
+    lambliq numeric CHECK (lambliq > 0),
+    tmean numeric,
+    geotgrad numeric,
+    CONSTRAINT borehole_fields_pkey PRIMARY KEY (id)
+);
+
 -------------------table "a".supervisory_ctrl;------------------------------------
 DROP TABLE IF EXISTS "a".supervisory_ctrl CASCADE;
 CREATE TABLE IF NOT EXISTS "a".supervisory_ctrl

@@ -218,6 +218,17 @@ def loadBoreholesLayer(version,uri,dictDB,plugin_dir,cur):
     field_idx = fields.indexOf('plant_id')
     vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
     
+    form = vlayer.fields()
+    field_idx = fields.indexOf('mir')
+
+    widget_setup = QgsEditorWidgetSetup("CheckBox", {})  # Pass an empty dictionary for additional setup (optional)
+
+    # Step 3: Set the widget for the field on the layer
+    vlayer.setEditorWidgetSetup(field_idx, widget_setup)
+
+    # Step 3: Refresh the layer and form view
+    vlayer.triggerRepaint()  # Refresh the layer to apply the changes
+    
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
@@ -258,7 +269,7 @@ def loadTopologyLayers(version,uri,layerTreeRoot,dictDB):
     model = iface.layerTreeView().layerTreeModel()
     ltv = iface.layerTreeView()
     root = QgsProject.instance().layerTreeRoot()
-    for tableName in ['borehole_fields','internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
+    for tableName in ['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
         'structure_boundary_assettypes','junction_assetgroups','structure_line_assetgroups','structure_line_assettypes',
         'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']:
         uri.setDataSource("public", tableName, "")

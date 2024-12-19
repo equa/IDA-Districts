@@ -65,7 +65,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
         rows_count=len(self.rows)
         for idx in self.rows:
             print(idx)
-            invokeOneFeature(self.dlg,idx,self.plugin_dir,self.cur,self.dictDB,self.type,invoked=True,parallize=True)
+            invokeOneFeature(self.dlg,idx,self.plugin_dir,self.cur,self.dictDB,self.type,True,parallize=True,signals=self.signals)
             if self.type=='energy_plant':
                 invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
             elif self.type=='customer':
@@ -173,7 +173,7 @@ def addParmTableRow(dlg):
     dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))        
     dlg.tableWidget_parameters.setItem(0 , 4, QTableWidgetItem(''))        
         
-def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False):
+def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False,signals=False):
     """Invoke the selected feature. Copy the files from the assettype templates to ida_districts_modeling_simulation\invoked_"feature"s
         If dlg is not given the id is the idx"""    
     print('idx='+str(idx))
@@ -282,7 +282,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                         if '|'+field+'|'=='|dhw_id|' and mapping_expression=='|dhw_id|':
                             if not dhw_file:
                                 if parallize:
-                                    dlg.signals.error.emit("No DHW file selected for {} {}!".format(type.capitalize(),id))
+                                    signals.error.emit("No DHW file selected for {} {}!".format(type.capitalize(),id))
                                 else:
                                     iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
                                 return False
@@ -290,7 +290,7 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                         elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
                             if not internal_loads_file:
                                 if parallize:
-                                    dlg.signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
+                                    signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
                                 else:
                                     iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
                                 return False
@@ -325,40 +325,44 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                 cur.execute(sql)
                 boreholes=cur.fetchall()
                 print(boreholes)
-                x="#("+" ".join([str(i['x']) for i in boreholes])+")"
-                y="#("+" ".join([str(i['y']) for i in boreholes])+")"
-                nholes=len([str(i['x']) for i in boreholes])
-                ngroups=len(set([str(i['group']) for i in boreholes]))
-                ng_dict={}
-                for i in boreholes:
-                    try:
-                        ng_dict[i['group']]=ng_dict[i['group']]+1
-                    except:
-                        ng_dict[i['group']]=1
-                print(ng_dict)
-                ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
-                
-                sql='SELECT * FROM {}.borehole_fields WHERE id={};'.format(dictDB['versionName'],id)
-                cur.execute(sql)
-                field_data=cur.fetchall()
-                if field_data:
-                    field_data=field_data[0]
-                else:
-                    iface.messageBar().pushMessage("Critical", "No borehole field data for id={} available!".format(id), level=Qgis.Critical)
-                    return False
-                sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
-                cur.execute(sql)
-                liqtype='|'+cur.fetchone()['liquid']+'|'
-                replaceDict={':FEATURE': {'GHX_MANY': {'X': x,'Y':y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
-                    'ZHOLE':field_data['zhole'],'RHOLE':field_data['rhole'],
-                    'RB':field_data['rb'],'RPIPEEARTH':field_data['rpipeearth'],'RPIPEGROUT':field_data['rpipegrout'],'RRINGEARTH':field_data['rringearth'],'RGROUTEARTH':field_data['rgroutearth'],'RGROUTGROUT':field_data['rgroutgrout'],
-                    'MIR':field_data['mir'],'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
-                    'CPGRD':field_data['cpgrd'],'LAMBGRD':field_data['lambgrd'],'RHOGRD':field_data['rhogrd'],
-                    'CPGROUT':field_data['cpgrout'],'LAMBGROUT':field_data['lambgrout'],'RHOGROUT':field_data['rhogrout'],
-                    'RPIPE':field_data['rpipe'],'THICKPIPE':field_data['thickpipe'],'CPPIPE':field_data['cppipe'],'LAMBPIPE':field_data['lambpipe'],
-                    'LCASING':field_data['lcasting'],'LAMBDA':field_data['lambda'],'RHOSURFLAY':field_data['rhosurface'],'CPSURFLAY':field_data['cpsurface'],
-                    'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
-                    'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
+                if boreholes:
+                    x="#("+" ".join([str(i['x']) for i in boreholes])+")"
+                    y="#("+" ".join([str(i['y']) for i in boreholes])+")"
+                    nholes=len([str(i['x']) for i in boreholes])
+                    ngroups=len(set([str(i['group']) for i in boreholes]))
+                    ng_dict={}
+                    for i in boreholes:
+                        try:
+                            ng_dict[i['group']]=ng_dict[i['group']]+1
+                        except:
+                            ng_dict[i['group']]=1
+                    print(ng_dict)
+                    ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
+                    
+                    sql='SELECT * FROM {}.borehole_fields WHERE id={};'.format(dictDB['versionName'],id)
+                    cur.execute(sql)
+                    field_data=cur.fetchall()
+                    if field_data:
+                        field_data=field_data[0]
+                    else:
+                        if parallize:
+                            signals.error.emit("No borehole field data for id={} available!".format(id))
+                        else:
+                            iface.messageBar().pushMessage("Critical", "No borehole field data for id={} available!".format(id), level=Qgis.Critical)
+                        return False
+                    sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
+                    cur.execute(sql)
+                    liqtype='|'+cur.fetchone()['liquid']+'|'
+                    replaceDict={':FEATURE': {'GHX_MANY': {'X': x,'Y':y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
+                        'ZHOLE':field_data['zhole'],'RHOLE':field_data['rhole'],
+                        'RB':field_data['rb'],'RPIPEEARTH':field_data['rpipeearth'],'RPIPEGROUT':field_data['rpipegrout'],'RRINGEARTH':field_data['rringearth'],'RGROUTEARTH':field_data['rgroutearth'],'RGROUTGROUT':field_data['rgroutgrout'],
+                        'MIR':field_data['mir'],'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
+                        'CPGRD':field_data['cpgrd'],'LAMBGRD':field_data['lambgrd'],'RHOGRD':field_data['rhogrd'],
+                        'CPGROUT':field_data['cpgrout'],'LAMBGROUT':field_data['lambgrout'],'RHOGROUT':field_data['rhogrout'],
+                        'RPIPE':field_data['rpipe'],'THICKPIPE':field_data['thickpipe'],'CPPIPE':field_data['cppipe'],'LAMBPIPE':field_data['lambpipe'],
+                        'LCASING':field_data['lcasting'],'LAMBDA':field_data['lambda'],'RHOSURFLAY':field_data['rhosurface'],'CPSURFLAY':field_data['cpsurface'],
+                        'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
+                        'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
             print(replaceDict)
 
             CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
@@ -662,14 +666,15 @@ class CopyAssettypeFiles:
         filedata=readAndReplaceFileToList(source_dir+'\\'+source_name+'\\Sensor-macro.idm',{'"'+source_name+'"': '"'+target_name+'"'}) 
         filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if 'Sensor-macro'==i for j in replaceDict[i]})
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\Sensor-macro.idm')   
-                
+
         #check if folder contains macros
         print('+++check if folder contains macros+++')
+        print(['sensor-macro.idm',source_name+'.idm',source_name+'.idc','sf-macro.idm','sf-macro.idc'])
         print(source_dir+'\\'+source_name)
         if os.path.exists(source_dir+'\\'+source_name):
             for root, dirs, files in os.walk(source_dir+'\\'+source_name):
                 for file in files:
-                    if (file.endswith('.idm') or file.endswith('.idc')) and file not in ['sensor-macro.idm',source_name+'.idm',source_name+'.idc','sf-macro.idm','sf-macro.idc']:
+                    if (file.endswith('.idm') or file.endswith('.idc')) and file.lower() not in ['sensor-macro.idm',source_name.lower()+'.idm',source_name.lower()+'.idc','sf-macro.idm','sf-macro.idc']:
                         print('---------copy file---------')
                         print(file)
                         print(os.path.join(root, file))

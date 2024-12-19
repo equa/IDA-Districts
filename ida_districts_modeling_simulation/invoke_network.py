@@ -241,7 +241,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
                     copyAssettypeMacro=CopyAssettypeMacro(submodel,dir,type,self.dictDB,self.cur,iface,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs)
                     if type!="devices":
                         self.invokedOutputs[type]=copyAssettypeMacro.invokedFeatureOutputs
-                    resources.extend(copyAssettypeMacro.resources)  
+                    resources.extend(copyAssettypeMacro.resources)
                 self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
 
                 print('&&&&&&&&&&&&&&&&&&&&&&')
@@ -611,8 +611,8 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         print('write idm network model')
         print(networkSimData)
         simulation_data=getSimData(requestedOutputs,networkSimData)
-        data=""";IDA 4.9902 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 4.9902))
+        data=""";IDA 5.1 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 5.1))
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -752,7 +752,7 @@ output to current demand. It can also be operated in installations with differen
         print('write idc network model')
         pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
         print(pageSettings)
-        data=""";IDA 4.9902 Form UTF-8
+        data=""";IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {})
 (EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((26 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT)  
