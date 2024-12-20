@@ -796,14 +796,14 @@ output to current demand. It can also be operated in installations with differen
         seq_old=0
         seq_counter=0
         for conn in conns:
-            #print(conn)
-            #print('instreamT: '+inStreamT)
-            #print('m_dot: '+m_dot)
+            print(conn)
+            print('instreamT: '+inStreamT)
+            print('m_dot: '+m_dot)
                 
             if conn['seq']!=seq_old:
                 print('--new seq--')
                 if seq_counter!=0:
-                    #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+                    print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
                     for i in range(conn_counter,len(lids)+1):
                         print('--add connection: '+str(i))
                         inStreamT+=" ("+str(conn_counter)+" . 0.0)"
@@ -816,9 +816,9 @@ output to current demand. It can also be operated in installations with differen
                     inStreamT+='('+str(seq_counter)   
                 
             if conn['jid']!=jid_old:
-                #print('++new jid++')
+                print('++new jid++')
                 lids=conn['lids']
-                #print(lids)
+                print(lids)
                 if jid_old!=0:
                     dim='('+str(seq_counter-1)+' '+str(len(lids))+')'
                     idm,idc=self.makeNodeComponent(conn_old,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
@@ -829,9 +829,9 @@ output to current demand. It can also be operated in installations with differen
                 m_dot=''
               
             if lids[conn_counter-1]!=conn['lid']:
-                #print('++lids[conn_counter] != conn[lid]--')
-                #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
-                #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
+                print('++lids[conn_counter] != conn[lid]--')
+                print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
+                print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
                 for i in range(conn_counter,lids.index(conn['lid'])+1):
                     print('++'+str(i))
                     inStreamT+=" ("+str(conn_counter)+" . 0.0)"

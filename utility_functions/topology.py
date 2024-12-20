@@ -300,7 +300,7 @@ def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     cur.execute(sql) 
     lines=cur.fetchall()
     for line in lines:
-        print(line)
+        #print(line)
         lid=line['lid']
         start_point=line['l_start_point']
         end_point=line['l_end_point']
@@ -333,7 +333,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
         #print(sql)
         cur.execute(sql)
         jid_start_topo=cur.fetchone()['v_start'] 
-        print(jid_start_topo)
+        #print(jid_start_topo)
         if jid_start_topo!=epid:       
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
@@ -353,7 +353,7 @@ SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo)
         #print(length_node_start)
         
         if length_node_end<length_node_start:
-            print ('change line direction')
+            #print ('change line direction')
             sql='UPDATE temp.lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
             #print (sql)
             cur.execute(sql)

@@ -33,14 +33,27 @@ class WorkerPipeLaying(QRunnable):
         self.args=args
         print(args)
         self.iface=kwargs['iface']
+                
+        #heating
+        #columns
+        self.tsup_max_col=kwargs['tsup_max_col']
+        self.linearHeatDensity_min_col=kwargs['linearHeatDensity_min_col']
+        self.heat_demand_min_col=kwargs['heat_demand_min_col']
+        self.heating_load_min_col=kwargs['heating_load_min_col']
+        #checkboxes constraints
+        self.checkbox_tsup_max=kwargs['checkbox_tsup_max']
+        self.checkbox_linearHeatDensity_min=kwargs['checkbox_linearHeatDensity_min']
+        self.checkbox_heat_demand_min=kwargs['checkbox_heat_demand_min']
+        self.checkbox_heating_load_min=kwargs['checkbox_heating_load_min']
+        
         self.tolerance=kwargs['tolerance']
         self.check_heating_network=kwargs['check_heating_network']
         self.tsup_max=kwargs['tsup_max']
         self.heat_demand_min=kwargs['heat_demand_min']
         self.heating_load_min=kwargs['heating_load_min']
         print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        self.heating_lines_assettype=kwargs['heating_assettype_lines']
-        self.heating_lines_assetgroup=kwargs['heating_assetgroup_lines']
+        self.heating_lines_assettype=kwargs['heating_assettype_lines'].split(':')[0]
+        self.heating_lines_assetgroup=kwargs['heating_assetgroup_lines'].split(':')[0]
         self.heating_pipe_bundle=kwargs['pipe_bundle_heating']
         print(self.heating_lines_assettype)
         self.heating_customer_assettype=kwargs['heating_assettype_customer']
@@ -50,22 +63,39 @@ class WorkerPipeLaying(QRunnable):
         self.heat_loss=kwargs['heat_loss']
         self.heat_costs=kwargs['heat_costs']
         self.amortization_period_heat=kwargs['amortization_period_heat']
+
+        #cooling
+        #columns constraints
+        self.tsup_min_col=kwargs['tsup_min_col']  
+        self.linearColdDensity_min_col=kwargs['linearColdDensity_min_col']
+        self.cold_demand_min_col=kwargs['cold_demand_min_col']
+        self.cooling_load_min_col=kwargs['cooling_load_min_col']     
+        #checkboxes constraints
+        self.checkbox_tsup_min=kwargs['checkbox_tsup_min']
+        self.checkbox_linearColdDensity_min=kwargs['checkbox_linearColdDensity_min']
+        self.checkbox_cold_demand_min=kwargs['checkbox_cold_demand_min']
+        self.checkbox_cooling_load_min=kwargs['checkbox_cooling_load_min']
         
         self.check_cooling_network=kwargs['check_cooling_network']
         self.tsup_min=kwargs['tsup_min']
         self.cold_demand_min=kwargs['cold_demand_min']
         self.cooling_load_min=kwargs['cooling_load_min']
-        self.cooling_lines_assettype=kwargs['cooling_assettype_lines']
-        print(self.cooling_lines_assettype)
+        self.cooling_lines_assettype=kwargs['cooling_assettype_lines'].split(':')[0]
+        self.cooling_lines_assetgroup=kwargs['cooling_assetgroup_lines'].split(':')[0]
         self.cooling_customer_assettype=kwargs['cooling_assettype_customer']
+        self.cooling_pipe_bundle=kwargs['pipe_bundle_cooling']
+        self.cooling_customer_assetgroup=kwargs['cooling_assetgroup_customer']
         self.linearColdDensity_min=kwargs['linearColdDensity_min']
         self.check_cooling_network_costs=kwargs['check_cooling_network_costs']
         self.cold_loss=kwargs['cold_loss']
         self.cold_costs=kwargs['cold_costs']
         self.amortization_period_cold=kwargs['amortization_period_cold']
         
-        self.hc_lines_assettype=kwargs['hc_assettype_lines']
+        self.hc_lines_assetgroup=kwargs['hc_assetgroup_lines'].split(':')[0]
+        self.hc_lines_assettype=kwargs['hc_assettype_lines'].split(':')[0]
         self.hc_customer_assettype=kwargs['hc_assettype_customer']
+        self.hc_customer_assetgroup=kwargs['hc_assetgroup_customer']
+        self.hc_pipe_bundle=kwargs['pipe_bundle_hc']
         self.customer_connection_mode=kwargs['customer_connection_mode']
         self.keep_unconnected_customers=kwargs['keep_unconnected_customers']
         self.signals=WorkerPipeLayingSignals()
@@ -85,28 +115,37 @@ class WorkerPipeLaying(QRunnable):
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         os.environ['PGPASSWORD'] = self.dictDB['pwd']
-        self.conn = dbConnect(self.dictDB,True)
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-      
-            connectionModes=[]
-            if self.check_heating_network:
-                connectionModes.append('heating')
-            if self.check_cooling_network:
-                connectionModes.append('cooling')
-            print(connectionModes)
-            self.srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
-            self.prepareDB_pipeLaying(self.dictDB['versionName'])
-            for mode in connectionModes:
-                self.prepareDB_pipeLaying_modeTables(self.dictDB['versionName'])
-                self.connectPlantsStreet(self.dictDB['versionName'],mode)
-                self.connectCustomersStreet(self.dictDB['versionName'],mode)               
-                self.generateTopology(self.dictDB['versionName'])
-                plants=self.getPlants(self.dictDB['versionName'])
-                self.networkHelp(self.dictDB['versionName'],plants,mode)
-                self.connectPlantsNetwork(self.dictDB['versionName'],plants,mode)
-                self.connectCustomersNetwork(self.dictDB['versionName'],mode,connectionModes)
-            self.finishNetworkTopology(self.dictDB['versionName'])
+        try:
+            self.conn = dbConnect(self.dictDB,True)
+            if self.conn:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+          
+                connectionModes=[]
+                if self.check_heating_network:
+                    connectionModes.append('heating')
+                if self.check_cooling_network:
+                    connectionModes.append('cooling')
+                print(connectionModes)
+                self.srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
+                self.prepareDB_pipeLaying(self.dictDB['versionName'])
+                for mode in connectionModes:
+                    self.prepareDB_pipeLaying_modeTables(self.dictDB['versionName'])
+                    self.connectPlantsStreet(self.dictDB['versionName'],mode)
+                    self.connectCustomersStreet(self.dictDB['versionName'],mode)               
+                    self.generateTopology(self.dictDB['versionName'])
+                    plants=self.getPlants(self.dictDB['versionName'])
+                    self.networkHelp(self.dictDB['versionName'],plants,mode)
+                    self.connectPlantsNetwork(self.dictDB['versionName'],plants,mode)
+                    self.connectCustomersNetwork(self.dictDB['versionName'],mode,connectionModes)
+                self.finishNetworkTopology(self.dictDB['versionName'])
+        except Exception as e:
+            self.signals.error.emit(str(e))
+            self.signals.progress.emit(0)
+        finally:
+            if self.cur:
+                self.cur.close()
+            if self.conn:
+                self.conn.close()  
                 
     def pauseResume(self):
         if self.is_paused==False:
@@ -120,18 +159,39 @@ class WorkerPipeLaying(QRunnable):
 
     def updateTempCustomerConnType(self):
         """ update assettypes of temp.customers"""
-        sql="""UPDATE temp.customers c SET assettype=a.assettype FROM (
-		SELECT {} AS assettype,cc.cid  FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
-		UNION ALL
-		SELECT {} AS assettype,cc.cid  FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
-                UNION ALL
-		SELECT {} AS assettype,cc.cid  FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
-) a WHERE a.cid=c.id; """.format(self.heating_customer_assettype,self.hc_customer_assettype,self.cooling_customer_assettype)
-        print(sql)
-        self.cur.execute(sql)
+        if not self.heating_customer_assetgroup=='keep type':
+            sql="""UPDATE temp.customers c SET assetgroup=a.assetgroup {} FROM (
+            SELECT {} AS assetgroup {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
+    ) a WHERE a.cid=c.id; """.format(",assettype=a.assettype" if not self.heating_customer_assettype=='keep type' else "",self.heating_customer_assetgroup.split(':')[0],","+self.heating_customer_assettype.split(':')[0]+" AS assettype" if not self.heating_customer_assettype=='keep type' else "")
+            print(sql)
+            self.cur.execute(sql)
+        if not self.cooling_customer_assetgroup=='keep type':
+            sql="""UPDATE temp.customers c SET assetgroup=a.assetgroup {} FROM (
+            SELECT {} AS assetgroup {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
+    ) a WHERE a.cid=c.id; """.format(",assettype=a.assettype" if not self.cooling_customer_assettype=='keep type' else "",self.cooling_customer_assetgroup.split(':')[0],","+self.cooling_customer_assettype.split(':')[0]+" AS assettype" if not self.cooling_customer_assettype=='keep type' else "")
+            print(sql)
+            self.cur.execute(sql)
+        if not self.hc_customer_assetgroup=='keep type':
+            sql="""UPDATE temp.customers c SET assetgroup=a.assetgroup {} FROM (
+            SELECT {} AS assetgroup {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
+    ) a WHERE a.cid=c.id; """.format(",assettype=a.assettype" if not self.hc_customer_assettype=='keep type' else "",self.hc_customer_assetgroup.split(':')[0],","+self.hc_customer_assettype.split(':')[0]+" AS assettype" if not self.hc_customer_assettype=='keep type' else "")
+            print(sql)
+            self.cur.execute(sql)
     
     def finishNetworkTopology(self,version):
         self.transformNetworksIntoHC()
+                
+        #redo topology because lines_heating and lines_cooling could have different topology --> missing points in streets_help_vertices_pgr
+        sql="""DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;
+TRUNCATE temp.streets_help;
+INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(geom) FROM temp.lines;"""
+        self.cur.execute(sql)    
+        #print(sql)                     
+        #create network topology
+        sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
+        self.cur.execute(sql)    
+        
+        print(sql)   
         self.insertNodes(version)
         if not self.keep_unconnected_customers:
             self.deleteUnconnectedCustomers(version)
@@ -145,13 +205,11 @@ class WorkerPipeLaying(QRunnable):
         if self.redraw_submodels_polygons:
             redrawSubnetworkIncludingLines('temp.lines',self.cur,self.dictDB,self.srid)
         updateSubmodels(self.cur,self.dictDB)
-               
         uri = QgsDataSourceUri()
         uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
         print(uri)
         checkLineDirectionPipeLaying(self.cur,version,self.tolerance,self.network)
         showTempTables(uri,self.dictDB,self.plugin_dir, self.iface,self.cur)
-        self.conn.close()
         print('finished pipe laying')
         self.signals.progress.emit(100)
         
@@ -350,18 +408,17 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
     def prepareDB_pipeLaying_modeTables(self,version):
         self.cur.execute("""TRUNCATE temp.streets_help, temp.junctions, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.device_connections CASCADE;""")
         self.cur.execute("""INSERT INTO temp.streets_help (geom) SELECT geom FROM "{}".streets; """.format(version))
-        self.cur.execute("""DROP TABLE IF EXISTS {}.segment_lines_00;""".format(version))
-        self.cur.execute("""DROP TABLE IF EXISTS {}.segment_lines_01;""".format(version))
+        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version))
+        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_01;""".format(version))
         
     def connectPlantsStreet(self,version,mode):            
         "insert energy plant connections into streets_help"
         #add plant connection restrictions
         plantConnConstr="" 
-        if mode=='heating':
-            plantConnConstr=plantConnConstr+" AND ep.tsup_h_deg >= " + self.tsup_max
-        if mode=='cooling':
-            plantConnConstr=plantConnConstr+" AND ep.tsup_c_deg <= " + self.tsup_min
-            
+        if mode=='heating' and self.checkbox_tsup_max:
+            plantConnConstr=plantConnConstr+f" AND ep.{self.tsup_max_col} >= " + self.tsup_max
+        if mode=='cooling' and self.checkbox_tsup_min:
+            plantConnConstr=plantConnConstr+f" AND ep.{self.tsup_min_col} <= " + self.tsup_min
         sql="""With sub AS(
             	SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist FROM temp.streets_help st, temp.energy_plants ep WHERE {}=ANY(ep.network) GROUP BY ep.id
             )
@@ -375,9 +432,19 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
     def customerConnConstr(self,mode):
         customerConnConstr="" 
         if mode=='heating':
-            customerConnConstr=customerConnConstr+" AND c.tsup_h_deg <= "+self.tsup_max + " AND c.heat_e_kwh >= "+self.heat_demand_min+" AND c.heat_p_kw >= "+self.heating_load_min
+            if self.checkbox_tsup_max:
+                customerConnConstr+=f" AND c.{self.tsup_max_col} <= "+self.tsup_max
+            if self.checkbox_heat_demand_min:
+                customerConnConstr+=f" AND c.{self.heat_demand_min_col} >= "+self.heat_demand_min
+            if self.checkbox_heating_load_min:
+                customerConnConstr+=f" AND c.{self.heating_load_min_col} >= "+self.heating_load_min
         if mode=='cooling':
-            customerConnConstr=customerConnConstr+" AND c.tsup_c_deg >= "+self.tsup_min + " AND c.heat_e_kwh >= "+self.cold_demand_min+" AND c.heat_p_kw >= "+self.cooling_load_min
+            if self.checkbox_tsup_min:
+                customerConnConstr+=f" AND c.{self.tsup_min_col} <= "+self.tsup_min
+            if self.checkbox_cold_demand_min:
+                customerConnConstr+=f" AND c.{self.cold_demand_min_col} >= "+self.cold_demand_min
+            if self.checkbox_cooling_load_min:
+                customerConnConstr+=f" AND c.{self.cooling_load_min_col} >= "+self.cooling_load_min
         return customerConnConstr
 
     def connectCustomersStreet(self,version,mode):            
@@ -561,18 +628,26 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         otherwise look for combined connections;
         look only in the tree with most propability (highest heat density)"""
         print('Connect customers')
-
+        
+        linearEnergyConstr=""
+        energyConstr=1
+        energyConstrGroupBy=""
+        linearEnergyDensityMin=0
         if mode=='heating':
-            pathConstrColumn='heat_e_kwh'
-            customerConnConstrPath=" AND sub.energydensity >= "+self.linearHeatDensity_min
-            linearEnergyDensity=float(self.linearHeatDensity_min)
+            if self.checkbox_linearHeatDensity_min:
+                linearEnergyConstr=" AND sub.energydensity >= "+self.linearHeatDensity_min
+                energyConstr="c."+self.linearHeatDensity_min_col
+                energyConstrGroupBy=", c."+self.linearHeatDensity_min_col
+                linearEnergyDensityMin=float(self.linearHeatDensity_min)
             assettype= self.heating_lines_assettype
             assetgroup= self.heating_lines_assetgroup
             pipe_bundle_type_id= self.heating_pipe_bundle
-        if mode=='cooling':    
-            pathConstrColumn='cool_e_kwh'
-            customerConnConstrPath=" AND sub.energydensity >= "+self.linearColdDensity_min
-            linearEnergyDensity=float(self.linearColdDensity_min)
+        if mode=='cooling': 
+            if self.checkbox_linearColdDensity_min:
+                linearEnergyConstr=" AND sub.energydensity >= "+self.linearColdDensity_min
+                energyConstr="c."+self.linearColdDensity_min_col
+                energyConstrGroupBy=", c."+self.linearColdDensity_min_col
+                linearEnergyDensityMin=float(self.linearColdDensity_min)        
             assettype= self.cooling_lines_assettype
             assetgroup= self.cooling_lines_assetgroup
             pipe_bundle_type_id= self.cooling_pipe_bundle
@@ -612,17 +687,17 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
 
                 #insert pipes into lines with the highest energydensity
                 sql="""With sub AS(
-                    	SELECT c.id AS cid, nh.epid, c.{},sum(st_length(nh.geom)) as length, c.{}/sum(st_length(nh.geom)) as energydensity
-                    		FROM temp.customers c, temp.network_help nh 
-                    		WHERE c.id NOT IN (SELECT c.id FROM temp.lines_{} l,temp.customers c WHERE st_dwithin(c.geom,l.geom,{})) {} AND nh.cid=c.id AND nh.lid NOT IN (SELECT id FROM temp.lines_{})
-                    		GROUP BY c.id, c.{}, nh.epid
-                    		ORDER BY energydensity DESC LIMIT 1 
-                    )
-                    INSERT INTO temp.lines_{} (id,assetgroup,assettype,geom,length,pipe_bundle_type_id)
-                    	SELECT nh.lid,{},{},ST_Force3D(nh.geom),St_Length(nh.geom),{}
-                    		FROM sub, temp.network_help nh
-                    		WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
-                    		GROUP BY nh.lid,nh.geom;""".format(pathConstrColumn,pathConstrColumn,mode,self.tolerance,customerConnConstr,mode,pathConstrColumn,mode,assetgroup,assettype,pipe_bundle_type_id,mode,customerConnConstrPath)
+    SELECT c.id AS cid, nh.epid,sum(st_length(nh.geom)) as length, {}/sum(st_length(nh.geom)) as energydensity
+        FROM temp.customers c, temp.network_help nh 
+        WHERE c.id NOT IN (SELECT c.id FROM temp.lines_{} l,temp.customers c WHERE st_dwithin(c.geom,l.geom,{})) {} AND nh.cid=c.id AND nh.lid NOT IN (SELECT id FROM temp.lines_{})
+        GROUP BY c.id, nh.epid{}
+        ORDER BY energydensity DESC
+)
+INSERT INTO temp.lines_{} (id,assetgroup,assettype,geom,length,pipe_bundle_type_id)
+    SELECT nh.lid,{},{},ST_Force3D(nh.geom),St_Length(nh.geom),{}
+        FROM sub, temp.network_help nh
+        WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
+        GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,assetgroup,assettype,pipe_bundle_type_id,mode,linearEnergyConstr)
                 print(sql) 
                 self.cur.execute(sql) 
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
@@ -646,30 +721,30 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             #cid with the highest linear energy density per tree!!!
             #loop over connected trees
             sql="""	SELECT nh.lid
-                		FROM temp.network_help nh, temp.lines_{} l
-                		WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,{})
-                		GROUP BY nh.lid;""".format(mode,mode,self.tolerance)
+    FROM temp.network_help nh, temp.lines_{} l
+    WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,{})
+    GROUP BY nh.lid;""".format(mode,mode,self.tolerance)
             #print(sql) 
             self.cur.execute(sql)  
             trees=self.cur.fetchall()
             counter_tree=0
-            while counter_tree<len(trees) and flag==False:
+            while counter_tree<len(trees) and flag==False and linearEnergyDensityMin>0 and (self.checkbox_linearHeatDensity_min or self.checkbox_linearColdDensity_min):
                 tree=trees[counter_tree]
                 counter_tree += 1
                 lid=tree['lid']
                 #print(lid) 
                 #Select customer with highest energy density from customers in tree
                 sql="""WITH sub AS(
-                    	SELECT nh.cid FROM temp.network_help nh 
-                    		WHERE nh.lid = {}
-                    		GROUP BY nh.cid
-                    )
-                    SELECT c.id AS cid, c.{} AS energy
-                    	FROM temp.customers c, sub, temp.network_help nh
-                    	WHERE sub.cid=c.id AND nh.cid = sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid IN (SELECT epid FROM temp.network_help WHERE lid = {} GROUP BY epid)
-                    	GROUP BY c.id,c.{},nh.epid
-                    	ORDER BY c.{}/sum(st_length(nh.geom)) DESC
-                    	LIMIT 1;""".format(lid,pathConstrColumn,mode,lid,pathConstrColumn,pathConstrColumn)
+    SELECT nh.cid FROM temp.network_help nh 
+        WHERE nh.lid = {}
+        GROUP BY nh.cid
+)
+SELECT c.id AS cid, {} AS energy
+    FROM temp.customers c, sub, temp.network_help nh
+    WHERE sub.cid=c.id AND nh.cid = sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid IN (SELECT epid FROM temp.network_help WHERE lid = {} GROUP BY epid)
+    GROUP BY c.id,{},nh.epid
+    ORDER BY {}/sum(st_length(nh.geom)) DESC
+    LIMIT 1;""".format(lid,energyConstr,mode,lid,energyConstr,energyConstr)
                 #print(sql) 
                 self.cur.execute(sql)  
                 
@@ -682,21 +757,21 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 energy=customer['energy']
                 #get combined customers ordered by energy density
                 sql="""WITH sub AS(
-                    	SELECT nh1.cid,nh.epid
-                    		FROM temp.network_help nh, temp.network_help nh1 
-                    		WHERE nh.epid IN (SELECT nh.epid FROM temp.network_help nh WHERE nh.cid={} AND nh.id NOT IN (SELECT id FROM temp.lines_{}) GROUP BY nh.epid ORDER BY sum(St_length(nh.geom)) LIMIT 1) AND 
-                    			nh.cid={} AND nh1.geom=nh.geom AND nh1.cid!=nh.cid AND nh1.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh1.cid NOT IN (SELECT c.id AS cid FROM temp.lines_{} l, temp.customers c WHERE St_dWithIn(c.geom,l.geom,{}))
-                    		GROUP BY nh1.cid,nh.epid
-                    )
-                    SELECT sub.cid, c.{} AS energy, nh.epid
-                    	FROM sub, temp.network_help nh, temp.customers c 
-                    	WHERE c.id=nh.cid AND 
-                    		nh.cid=sub.cid AND 
-                    		nh.id NOT IN(SELECT id FROM temp.network_help WHERE cid={}) AND
-                    		nh.epid=sub.epid AND
-                    		nh.lid NOT IN (SELECT id FROM temp.lines_{})
-                    	GROUP BY sub.cid,c.{}, nh.epid\
-                    	ORDER BY c.{}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,self.tolerance,pathConstrColumn,cid,mode,pathConstrColumn,pathConstrColumn)
+    SELECT nh1.cid,nh.epid
+        FROM temp.network_help nh, temp.network_help nh1 
+        WHERE nh.epid IN (SELECT nh.epid FROM temp.network_help nh WHERE nh.cid={} AND nh.id NOT IN (SELECT id FROM temp.lines_{}) GROUP BY nh.epid ORDER BY sum(St_length(nh.geom)) LIMIT 1) AND 
+            nh.cid={} AND nh1.geom=nh.geom AND nh1.cid!=nh.cid AND nh1.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh1.cid NOT IN (SELECT c.id AS cid FROM temp.lines_{} l, temp.customers c WHERE St_dWithIn(c.geom,l.geom,{}))
+        GROUP BY nh1.cid,nh.epid
+)
+SELECT sub.cid, {} AS energy, nh.epid
+    FROM sub, temp.network_help nh, temp.customers c 
+    WHERE c.id=nh.cid AND 
+        nh.cid=sub.cid AND 
+        nh.id NOT IN(SELECT id FROM temp.network_help WHERE cid={}) AND
+        nh.epid=sub.epid AND
+        nh.lid NOT IN (SELECT id FROM temp.lines_{})
+    GROUP BY sub.cid,{}, nh.epid\
+    ORDER BY {}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,self.tolerance,energyConstr,cid,mode,energyConstr,energyConstr)
                 #print(sql) 
                 self.cur.execute(sql)  
                 customers=self.cur.fetchall()
@@ -710,21 +785,22 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     epid=customer['epid']
                     energy += customer['energy']
                     sql="""WITH sub AS(
-                        	SELECT St_length(nh.geom) AS length
-                        		FROM temp.network_help nh
-                        		WHERE nh.cid in ({}) AND 
-                        			nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND
-                        			nh.epid={}
-                        		GROUP BY nh.geom,nh.lid
-                        )
-                        SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
+    SELECT St_length(nh.geom) AS length
+        FROM temp.network_help nh
+        WHERE nh.cid in ({}) AND 
+            nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND
+            nh.epid={}
+        GROUP BY nh.geom,nh.lid
+)
+SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
                     #print(sql) 
                     self.cur.execute(sql)  
                     length=self.cur.fetchone()['length']
                     #print(energy)
                     #print(length)
                     #print(float(energy)/float(length))
-                    if float(energy)/float(length) >= linearEnergyDensity:
+                    print(f"cid:{cid} ;energy: {energy}; density: {str(float(energy)/float(length))}")
+                    if float(energy)/float(length) >= linearEnergyDensityMin:
                         flag=True
                         print("    flag combined="+str(flag)+" ; cid="+str(cid))
                         sql="INSERT INTO temp.lines_"+mode+" (id,assetgroup,assettype,geom,length,pipe_bundle_type_id) SELECT nh.lid,"+assetgroup+","+assettype+", ST_Force3D(nh.geom),St_Length(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;";
@@ -736,10 +812,10 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                         
     def transformNetworksIntoHC(self):
         sql="""INSERT INTO temp.lines (geom, assetgroup, assettype,pipe_bundle_type_id,length,network)
-                SELECT lh.geom, {}, {} AS assettype,{},lh.length,{} FROM temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL
-                UNION ALL
-                SELECT lh.geom, 0, {} AS assettype,2,lh.length,{} FROM temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom 
-                UNION ALL
-                SELECT lc.geom, 0, {} AS assettype,1,lc.length,{} FROM temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL;""".format(self.heating_lines_assetgroup,self.heating_lines_assettype,self.heating_pipe_bundle,self.network,self.hc_lines_assettype,self.network,self.cooling_lines_assettype,self.network)
+    SELECT lh.geom, {}, {} AS assettype,{},lh.length,{} FROM temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL
+    UNION ALL
+    SELECT lh.geom, {}, {} AS assettype,{},lh.length,{} FROM temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom 
+    UNION ALL
+    SELECT lc.geom, {}, {} AS assettype,{},lc.length,{} FROM temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL;""".format(self.heating_lines_assetgroup,self.heating_lines_assettype,self.heating_pipe_bundle,self.network,self.hc_lines_assetgroup,self.hc_lines_assettype,self.hc_pipe_bundle,self.network,self.cooling_lines_assetgroup,self.cooling_lines_assettype,self.cooling_pipe_bundle,self.network)
         #print(sql) 
         self.cur.execute(sql)    
