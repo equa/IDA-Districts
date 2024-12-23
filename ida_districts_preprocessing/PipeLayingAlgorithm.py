@@ -182,15 +182,18 @@ class WorkerPipeLaying(QRunnable):
         self.transformNetworksIntoHC()
                 
         #redo topology because lines_heating and lines_cooling could have different topology --> missing points in streets_help_vertices_pgr
-        sql="""DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;
+        sql="""SELECT count(*) AS counter FROM temp.lines;"""
+        self.cur.execute(sql)
+        if self.cur.fetchone()['counter']>0:
+            sql="""DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;
 TRUNCATE temp.streets_help;
 INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(geom) FROM temp.lines;"""
-        self.cur.execute(sql)    
-        #print(sql)                     
-        #create network topology
-        sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
-        self.cur.execute(sql)    
-        
+            self.cur.execute(sql)    
+            #print(sql)                     
+            #create network topology
+            sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
+            self.cur.execute(sql)    
+            
         print(sql)   
         self.insertNodes(version)
         if not self.keep_unconnected_customers:
@@ -377,7 +380,7 @@ UPDATE temp.lines l SET geom=sub.geom,
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
                             )
                     GROUP BY v.id ORDER BY v.id;""".format(self.network,self.tolerance,self.tolerance,self.tolerance)
-        #print(sql) 
+        print(sql) 
         self.cur.execute(sql)        
         
     def getPlants(self,version):
@@ -440,7 +443,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 customerConnConstr+=f" AND c.{self.heating_load_min_col} >= "+self.heating_load_min
         if mode=='cooling':
             if self.checkbox_tsup_min:
-                customerConnConstr+=f" AND c.{self.tsup_min_col} <= "+self.tsup_min
+                customerConnConstr+=f" AND c.{self.tsup_min_col} >= "+self.tsup_min
             if self.checkbox_cold_demand_min:
                 customerConnConstr+=f" AND c.{self.cold_demand_min_col} >= "+self.cold_demand_min
             if self.checkbox_cooling_load_min:

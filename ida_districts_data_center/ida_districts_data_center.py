@@ -62,8 +62,7 @@ from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QShortcut
 from PyQt5.QtCore import Qt 
 import copy
-
-    
+        
 class IDADistrictsDataCenter:
     """QGIS Plugin Implementation."""
 
@@ -270,6 +269,13 @@ class IDADistrictsDataCenter:
         """" Save table to DB an close dialog"""
         print('Save table to DB an close dialog')
         table_name="_".join(table.split('_')[0:-1])
+        if trace in ['conn_type_trace','bt_conns_trace']:
+            oldConnValues_dict={}
+            ats=getAssetTypesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getAssetTypesByConnBundleType(self.cur,self.dictDB,id)
+            for at in ats:
+                if at['type']!='device':
+                    oldConnValues_dict[at['at_name']]=getConnsValues(at['conn_bundle_type_id'],self.cur)
+        
         sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id)
         print(sql)
         maxId=getMaxId(self.cur,table)
@@ -281,7 +287,27 @@ class IDADistrictsDataCenter:
         print(sql)
         self.cur.execute(sql)
         
-        if trace:
+        
+        if trace in ['conn_type_trace','bt_conns_trace']:
+            print(dlg.traceTableValues)
+            if [True for traceValue in dlg.traceTableValues if 
+                dlg.traceTableValues[traceValue][1] and dlg.traceTableValues[traceValue][3] and (dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1] or dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]) or
+                dlg.traceTableValues[traceValue][1] and not dlg.traceTableValues[traceValue][0] or 
+                dlg.traceTableValues[traceValue][3] and not dlg.traceTableValues[traceValue][2]]:
+                print('ExchangeConntypeFiles')
+                #get changed conn bundle types --> get changed assettypes
+                ats=getAssetTypesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getAssetTypesByConnBundleType(self.cur,self.dictDB,id)
+                for at in ats:
+                    if at['type']!='device':
+                        print(at)
+                for at in ats:
+                    if at['type']!='device':
+                        print('*****************************************************************************')
+                        print(at['at_name'])
+                        print(oldConnValues_dict[at['at_name']])
+                        ExchangeConntypeFiles(self.plugin_dir,at['at_name'],at['type'],at['conn_bundle_type_id'],at['conn_bundle_type_id'],self.cur,oldConnValues=oldConnValues_dict[at['at_name']])
+            
+        elif trace:
             print(dlg.traceTableValues)
             for traceValue in dlg.traceTableValues:
                 wroteAssettype=False
@@ -520,7 +546,7 @@ class IDADistrictsDataCenter:
             id=dlg.tableWidget.item(id, 0).text()
             title=openFnArg[0]+': ' + id
             dlg='self.dlg_'+openFnArg[0]        
-            dlg = TableDialog(title,headers,openFnArg[6],False,save_as)           
+            dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace)           
             if openFnArg[6]:
                 dlg.btn_open.clicked.connect(lambda: openFnArg[6](openFnArg[7],dlg,id))
             if columns[0]=='time_h':
@@ -852,6 +878,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def showFilteredTableContent(self,dlg,table,columns,filter,orderby,dropdowns,trace,deactivated):
         """show filtered table content"""
         print('show filtered table content')
+        print(f'trace:{trace}')
         cur=self.conn.cursor()
         dlg.tableWidget.setRowCount(self.rowCountDB(table,filter))
         sql='SELECT {} FROM public.{} {} {} ;'.format(','.join(i for i in columns),table,filter,orderby)
@@ -875,7 +902,10 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                             if dropDownItem.split(':')[0]==str(row[col]):
                                 currentText=dropDownItem
                     comboBox.setCurrentText(currentText)
-                    if trace:
+                    if trace in ['conn_type_trace','bt_conns_trace']:
+                        changedConnectionBundleType=currentText
+                        comboBox.currentTextChanged.connect(lambda signal, row=rowCount, col=col: dlg.changedDropdownItem(signal,row,col))
+                    elif trace:
                         if col in [2,3]:
                             if col==2:
                                 changedConnectionBundleType=currentText
@@ -888,10 +918,13 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     if col in deactivated:
                         item.setFlags(QtCore.Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowCount , col, item)
-            if trace:
+            if trace in ['conn_type_trace','bt_conns_trace']:
+                table_trace[rowCount]= [str(row[0]),'',changedConnectionBundleType.split(':')[0],'']
+            elif trace:
                 table_trace[rowCount]= [filter.split('=')[-1]+'_'+str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'']
                 print(table_trace)
             rowCount+=1
+        print(table_trace)
         return table_trace
 
     def manageConnections(self):
@@ -1020,14 +1053,14 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Connection types',table='connection_types',headers=['Connection Type Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'',False,False,[0]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn
+            self.show_TableDialog(title='Connection types',table='connection_types',headers=['Connection Type Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'','conn_type_trace',False,[]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn
 
     def manageConnBundleTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Connection bundles',table='conn_bundle_types',headers=['Connection bundle Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'',False,False,[0]]) 
+            self.show_TableDialog(title='Connection bundles',table='conn_bundle_types',headers=['Connection bundle Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'','bt_conns_trace',False,[]]) 
 
     def managePipeBundlesTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1264,7 +1297,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             importBtn=True
             
         dlg='self.dlg_' + table
-        dlg = TableDialog(title,headers,openBtn,importFn,False)
+        dlg = TableDialog(title,headers,openBtn,importFn,False,False)
         if openFn:
             dlg.btn_open.clicked.connect(lambda: openFn(table,dlg,dlg.tableWidget.currentRow(),openFnArg))
         if importFn:

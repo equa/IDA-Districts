@@ -15,11 +15,12 @@ def deleteTableRow (dlg):
         self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
 class TableDialog(QMainWindow):
-    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn):
+    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace):
         """Constructor"""
         super().__init__()
         self.setWindowTitle(title)   
         
+        self.trace_type=trace
         self.assetgroup=title.split(':')[-1].strip()
         #table buttons     
         layout_buttons_table = QHBoxLayout()
@@ -65,14 +66,17 @@ class TableDialog(QMainWindow):
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
         #self.fitToTable()
-        self.traceTableValues=[]       
+        self.traceTableValues=[] 
     
     def changedDropdownItem(self, s, row,col):
         print('+++++')
         print(col)
-        if col==2:
-            print(col)
-            self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],s.split(':')[0]]
+        if self.trace_type in ['conn_type_trace','bt_conns_trace']:
+            self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
+        elif self.trace_type:
+            if col==2:
+                print(col)
+                self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],s.split(':')[0]]
         print(self.traceTableValues)
         
     def changeItem(self, item):
@@ -80,18 +84,23 @@ class TableDialog(QMainWindow):
         print('changed')
         print(row)
         print(self.traceTableValues)
-        
-        changedValue=self.assetgroup+'_'
-        if self.tableWidget.item(row,0):
-            changedValue+=str(self.tableWidget.item(row,0).text())+'_'
-        if self.tableWidget.item(row,1):
-            changedValue+=str(self.tableWidget.item(row,1).text())
-        try:
-            print(changedValue)
-            self.tableWidget.cellWidget(row,2).currentText()
-            self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
-        except:
-            pass
+        if self.trace_type in ['conn_type_trace','bt_conns_trace']:
+            try:
+                self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
+            except:
+                pass
+        elif self.trace_type:
+            changedValue=self.assetgroup+'_'
+            if self.tableWidget.item(row,0):
+                changedValue+=self.tableWidget.item(row,0).text()+'_'
+            if self.tableWidget.item(row,1):
+                changedValue+=self.tableWidget.item(row,1).text()
+            try:
+                print(changedValue)
+                self.tableWidget.cellWidget(row,2).currentText()
+                self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
+            except:
+                pass
         print(self.traceTableValues)
         
     

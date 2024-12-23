@@ -1111,7 +1111,33 @@ class IDA_Districts_ProjectHandling:
             subprocess.call(cmd, shell=True) 
             shutil.rmtree(dir)
             
+    def showDeleteVersionDialog(self):
+        try:
+            item=self.model.itemFromIndex(self.dlg.treeViewVersions.selectedIndexes()[0])
+            self.deleteVersionDialog(item)
+        except:
+            print('No item selected!')
+    
+    def loadVersion(self):
+        try:
+            mdlIdx=self.dlg.treeViewVersions.selectedIndexes()[0]
+            item=self.model.itemFromIndex(mdlIdx)
+            self.TreeItem_Load(item, mdlIdx)
+        except:
+            print('No item selected!')
 
+    def renameVersion(self):
+        try:
+            mdlIdx=self.dlg.treeViewVersions.selectedIndexes()[0]
+            item=self.model.itemFromIndex(mdlIdx)
+            level = 0
+            index = mdlIdx
+            while index.parent().isValid():
+                index = index.parent()
+                level += 1
+            self.TreeItem_RenameDialog(level, mdlIdx,item)
+        except:
+            print('No item selected!')
         
         
     def run(self):
@@ -1130,6 +1156,9 @@ class IDA_Districts_ProjectHandling:
             self.dlg.btn_importProject.clicked.connect(self.importProject)
             self.dlg.btn_exportProject.clicked.connect(self.exportProject)
             self.dlg.btn_addVersion.clicked.connect(self.addBaseVersionDialog)
+            self.dlg.btn_loadVersion.clicked.connect(self.loadVersion)
+            self.dlg.btn_deleteVersion.clicked.connect(self.showDeleteVersionDialog)
+            self.dlg.btn_renameVersion.clicked.connect(self.renameVersion)
             self.dlg.btn_connect.clicked.connect(self.connectDB)
             self.dlg.btn_disconnect.clicked.connect(self.disconnectDB)
             self.dlg.btn_idaDistrictsConfig.clicked.connect(self.setIDADistrictsConfig)

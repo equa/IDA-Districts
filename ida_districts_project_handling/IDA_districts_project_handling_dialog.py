@@ -197,8 +197,16 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         font.setPointSize(15)
         label_version_titel.setFont(font)
         
-        #version buttons                
-        self.btn_addVersion=QPushButton("Add base version")
+        #version buttons      
+        layout_versionButtons = QHBoxLayout()
+        self.btn_addVersion=QPushButton("Add")     
+        layout_versionButtons.addWidget(self.btn_addVersion)
+        self.btn_loadVersion=QPushButton("Load")
+        layout_versionButtons.addWidget(self.btn_loadVersion)
+        self.btn_deleteVersion=QPushButton("Delete")
+        layout_versionButtons.addWidget(self.btn_deleteVersion)
+        self.btn_renameVersion=QPushButton("Rename")
+        layout_versionButtons.addWidget(self.btn_renameVersion)
         
         #Tree view versions                
         self.treeViewVersions=QTreeView()
@@ -206,7 +214,7 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         #set version layout together
         layout_version = QVBoxLayout()
         layout_version.addWidget(label_version_titel)
-        layout_version.addWidget(self.btn_addVersion)
+        layout_version.addLayout(layout_versionButtons)
         layout_version.addWidget(self.treeViewVersions)
 
         

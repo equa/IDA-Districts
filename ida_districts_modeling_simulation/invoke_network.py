@@ -473,7 +473,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         conns=self.cur.fetchall()
         if not conns:
             print('No nodes in network or wrong junction constructions!')
-            #iface.messageBar().pushMessage("Error", "No junctions in network or wrong constructions!!", level=Qgis.Critical)
+            self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
             
         jid_old=0
@@ -481,52 +481,55 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         seq_old=0
         seq_counter=0
         for conn in conns:
-            #print(conn)
-            point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
-            point_j = self.getSymbolCoordinate(conn['j_point'].split("(")[1][:-1].split(' '))
-                
-            if conn['seq']!=seq_old:
-                #print('--new seq--')
-                if seq_counter!=0:
-                    #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
-                    for i in range(conn_counter,len(lids)+1):
-                       # print('--add waterplug: '+str(i))
+            try:
+                #print(conn)
+                point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
+                point_j = self.getSymbolCoordinate(conn['j_point'].split("(")[1][:-1].split(' '))
+                    
+                if conn['seq']!=seq_old:
+                    #print('--new seq--')
+                    if seq_counter!=0:
+                        #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+                        for i in range(conn_counter,len(lids)+1):
+                           # print('--add waterplug: '+str(i))
+                            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
+                    seq_counter+=1
+                    conn_counter=1
+                    
+                if conn['jid']!=jid_old:
+                    #print('++new jid++')
+                    lids=conn['lids']
+                    #print(lids)
+                    conn_counter=1
+                    seq_counter=1
+                    max_seq=conn['max_seq']
+                    pipe_counter={}
+                    for lid in lids:
+                        pipe_counter[lid]=0
+                  
+                if lids[conn_counter-1]!=conn['lid']:
+                    #print('++lids[conn_counter] != conn[lid]--')
+                    #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
+                    #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
+                    for i in range(conn_counter,lids.index(conn['lid'])+1):
+                        #print('++'+str(i))
                         idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
-                seq_counter+=1
-                conn_counter=1
+                        conn_counter+=1
                 
-            if conn['jid']!=jid_old:
-                #print('++new jid++')
-                lids=conn['lids']
-                #print(lids)
-                conn_counter=1
-                seq_counter=1
-                max_seq=conn['max_seq']
-                pipe_counter={}
-                for lid in lids:
-                    pipe_counter[lid]=0
-              
-            if lids[conn_counter-1]!=conn['lid']:
-                #print('++lids[conn_counter] != conn[lid]--')
-                #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
-                #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
-                for i in range(conn_counter,lids.index(conn['lid'])+1):
-                    #print('++'+str(i))
-                    idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
-                    conn_counter+=1
-            
-            pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
-            
-            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
-            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
+                
+                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
 
 
-            seq_old=conn['seq']
-            jid_old=conn['jid']
-            lid_old=conn['lid']
-            conn_old=conn
-            #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
-            conn_counter+=1
+                seq_old=conn['seq']
+                jid_old=conn['jid']
+                lid_old=conn['lid']
+                conn_old=conn
+                #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
+                conn_counter+=1
+            except Exception as e:
+                self.signals.error.emit("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles.")
         
 
         print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
@@ -786,7 +789,7 @@ output to current demand. It can also be operated in installations with differen
         conns=self.cur.fetchall()
         if not conns:
             print('No nodes in network or wrong junction constructions!')
-            #iface.messageBar().pushMessage("Error", "No junctions in network or wrong constructions!!", level=Qgis.Critical)
+            self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
             
         inStreamT=''
@@ -796,56 +799,59 @@ output to current demand. It can also be operated in installations with differen
         seq_old=0
         seq_counter=0
         for conn in conns:
-            print(conn)
-            print('instreamT: '+inStreamT)
-            print('m_dot: '+m_dot)
-                
-            if conn['seq']!=seq_old:
-                print('--new seq--')
-                if seq_counter!=0:
-                    print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
-                    for i in range(conn_counter,len(lids)+1):
-                        print('--add connection: '+str(i))
+            try:
+                print(conn)
+                print('instreamT: '+inStreamT)
+                print('m_dot: '+m_dot)
+                    
+                if conn['seq']!=seq_old:
+                    print('--new seq--')
+                    if seq_counter!=0:
+                        print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+                        for i in range(conn_counter,len(lids)+1):
+                            print('--add connection: '+str(i))
+                            inStreamT+=" ("+str(conn_counter)+" . 0.0)"
+                            m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
+                    seq_counter+=1
+                    conn_counter=1
+                    if seq_counter!=1:
+                        inStreamT+=')'
+                    if conn['jid']==jid_old:
+                        inStreamT+='('+str(seq_counter)   
+                    
+                if conn['jid']!=jid_old:
+                    print('++new jid++')
+                    lids=conn['lids']
+                    print(lids)
+                    if jid_old!=0:
+                        dim='('+str(seq_counter-1)+' '+str(len(lids))+')'
+                        idm,idc=self.makeNodeComponent(conn_old,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
+                    conn_counter=1
+                    seq_counter=1
+                    max_seq=conn['max_seq']
+                    inStreamT='('+str(seq_counter)
+                    m_dot=''
+                  
+                if lids[conn_counter-1]!=conn['lid']:
+                    print('++lids[conn_counter] != conn[lid]--')
+                    print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
+                    print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
+                    for i in range(conn_counter,lids.index(conn['lid'])+1):
+                        print('++'+str(i))
                         inStreamT+=" ("+str(conn_counter)+" . 0.0)"
                         m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
-                seq_counter+=1
-                conn_counter=1
-                if seq_counter!=1:
-                    inStreamT+=')'
-                if conn['jid']==jid_old:
-                    inStreamT+='('+str(seq_counter)   
+                        conn_counter+=1
                 
-            if conn['jid']!=jid_old:
-                print('++new jid++')
-                lids=conn['lids']
-                print(lids)
-                if jid_old!=0:
-                    dim='('+str(seq_counter-1)+' '+str(len(lids))+')'
-                    idm,idc=self.makeNodeComponent(conn_old,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
-                conn_counter=1
-                seq_counter=1
-                max_seq=conn['max_seq']
-                inStreamT='('+str(seq_counter)
-                m_dot=''
-              
-            if lids[conn_counter-1]!=conn['lid']:
-                print('++lids[conn_counter] != conn[lid]--')
-                print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
-                print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
-                for i in range(conn_counter,lids.index(conn['lid'])+1):
-                    print('++'+str(i))
-                    inStreamT+=" ("+str(conn_counter)+" . 0.0)"
-                    m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
-                    conn_counter+=1
-            
-            inStreamT+=" ("+str(conn_counter)+")"
+                inStreamT+=" ("+str(conn_counter)+")"
 
-            seq_old=conn['seq']
-            jid_old=conn['jid']
-            lid_old=conn['lid']
-            conn_old=conn
-            #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
-            conn_counter+=1
+                seq_old=conn['seq']
+                jid_old=conn['jid']
+                lid_old=conn['lid']
+                conn_old=conn
+                #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
+                conn_counter+=1
+            except Exception as e:
+                self.signals.error.emit(str(e))
         
         #print(inStreamT)
         #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))

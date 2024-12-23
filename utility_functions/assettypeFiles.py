@@ -336,19 +336,21 @@ class CopyDecoupledAssettypeMacro:
         
 class ExchangeConntypeFiles:
     """ Exchanges connection types: 1) Removes the old connection type; 2) add the new connection type !!!!To do!!!!"""
-    def __init__(self,plugin_dir,name,type,b_conn_t,b_conn_t_old,cur):
+    def __init__(self,plugin_dir,name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=[]):
         print('*********ExchangeConntypeFiles********')
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
         dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_assettypes".format(type)
         
-        oldConnValues=getConnsValues(b_conn_t_old,cur)
+        if not oldConnValues:
+            oldConnValues=getConnsValues(b_conn_t_old,cur)
         connValues=getConnsValues(b_conn_t,cur)
         print(oldConnValues)
         
         file_data=readFileToList(dir+'\\'+name+'.idm')
         file_data=self.delPMT2Comp(file_data,oldConnValues)
         file_data=self.delConnection(file_data,oldConnValues)
+
         data=[]
         connections=False
         for line in file_data:

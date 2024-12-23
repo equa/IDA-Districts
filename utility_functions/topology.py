@@ -165,6 +165,42 @@ SELECT sequence
     print(sql)
     cur.execute(sql)
     return [i['sequence'] for i in cur.fetchall()]
+
+def getConnBundleTypesByConnType(cur,dictDB,conn_type_id):
+    sql="""SELECT conn_bundle_type_id FROM bundle_type_conns WHERE conn_type_id={};""".format(conn_type_id)
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
+        
+def getAssetTypesByConnType(cur,dictDB,conn_type_id):
+    sql="""SELECT 'customer' AS type, at.assetgroup,at.assettype, at.assetgroup::text||'_'||at.assettype::text||'_'||at.assettype_name AS at_name, bt_conns.conn_bundle_type_id 
+    FROM bundle_type_conns bt_conns, customer_assettypes at 
+    WHERE conn_type_id={} AND at.conn_bundle_type=bt_conns.conn_bundle_type_id
+UNION
+SELECT 'energy_plant' AS type, at.assetgroup,at.assettype, at.assetgroup::text||'_'||at.assettype::text||'_'||at.assettype_name AS at_name, bt_conns.conn_bundle_type_id 
+    FROM bundle_type_conns bt_conns, energy_plant_assettypes at 
+    WHERE conn_type_id={} AND at.conn_bundle_type=bt_conns.conn_bundle_type_id
+UNION
+SELECT 'device' AS type, at.assetgroup,at.assettype, at.assetgroup::text||'_'||at.assettype::text||'_'||at.assettype_name AS at_name, bt_conns.conn_bundle_type_id 
+    FROM bundle_type_conns bt_conns, device_assettypes at 
+    WHERE conn_type_id={} AND at.conn_bundle_type=bt_conns.conn_bundle_type_id;""".format(conn_type_id,conn_type_id,conn_type_id)
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
+    
+def getAssetTypesByConnBundleType(cur,dictDB,conn_bundle_type_id):
+    sql="""--getAssetTypesByConnType
+SELECT 'customer' AS type, assetgroup,assettype, assetgroup::text||'_'||assettype::text||'_'||assettype_name AS at_name, conn_bundle_type AS conn_bundle_type_id
+    FROM customer_assettypes WHERE conn_bundle_type={}
+UNION
+SELECT 'energy_plant' AS type, assetgroup,assettype, assetgroup::text||'_'||assettype::text||'_'||assettype_name AS at_name, conn_bundle_type AS conn_bundle_type_id
+    FROM energy_plant_assettypes WHERE conn_bundle_type={}
+UNION
+SELECT 'device' AS type, assetgroup,assettype, assetgroup::text||'_'||assettype::text||'_'||assettype_name AS at_name, conn_bundle_type AS conn_bundle_type_id
+    FROM device_assettypes WHERE conn_bundle_type={};""".format(conn_bundle_type_id,conn_bundle_type_id,conn_bundle_type_id)
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
     
 def getConnsValuesByAssettype(feature,assettyp,assetgroup,cur,dictDB):
     return getConnsValues(getConnBundleByAssettype(feature,assettyp,assetgroup,cur,dictDB),cur)
