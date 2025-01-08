@@ -1202,9 +1202,8 @@ class NetworkTopologyDialog(QMainWindow):
         
         if self.conn:
             print(self.dictDB)
-            if self.checkNetworkAttribute(self.dictDB['versionName']): 
-                networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != 'Check all items' and self.combo_network_models.itemChecked(i)]
-                
+            networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != 'Check all items' and self.combo_network_models.itemChecked(i)]
+            if self.checkNetwork(self.dictDB['versionName'],networks):                 
                 worker = WorkerGenerateNetworkTopology(iface=self.iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
                     connectCustomers=self.check_connectCustomers.isChecked(),connectCustomers_assettype_lines=self.connectCustomers_assettype_lines.currentText(),connectCustomers_assettype_pipeBundle=self.connectCustomers_assettype_pipeBundle.currentText(),
                     addCustomers=self.check_add_customers_network_ends.isChecked(),addCustomers_assettype_customers=self.addCustomers_assettype_customers.currentText(),
@@ -1216,10 +1215,17 @@ class NetworkTopologyDialog(QMainWindow):
                 worker.signals.error.connect(self.show_error_message)
                 worker.signals.progress.connect(self.update_progress)
 
-    def checkNetworkAttribute(self,version):
+    def checkNetwork(self,version,networks):
         sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version)
         self.cur.execute(sql)
         networkNullCount=self.cur.fetchone()['count']
+        
+        mainPlant_counter={}
+        for network in networks:
+            sql="""SELECT count(*) as count FROM "{}".energy_plants WHERE network && ARRAY[{}] AND main_plant && ARRAY[{}];""".format(version,network,network)
+            self.cur.execute(sql)        
+            mainPlant_counter[network]=self.cur.fetchone()['count']
+        print(mainPlant_counter)
         if networkNullCount>0:
             print('Network attribute not set!')
 
@@ -1238,6 +1244,9 @@ class NetworkTopologyDialog(QMainWindow):
             else:
                 print("Cancel!")
                 return False
+        elif any(x != 1 for x in mainPlant_counter.values()):
+            self.iface.messageBar().pushMessage("Error", "Please set 1 energy plant as your main plant of each network!", level=Qgis.Critical)
+            return False
         else:
             return True
                 

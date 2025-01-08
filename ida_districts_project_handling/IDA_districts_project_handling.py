@@ -1097,8 +1097,14 @@ class IDA_Districts_ProjectHandling:
             subprocess.call(cmd, shell=True) 
             
             print(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'])
-            copy_tree(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_data_center'+'\\'+name)
-            copy_tree(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name)
+            try:
+                copy_tree(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_data_center'+'\\'+name)
+            except:
+                self.iface.messageBar().pushMessage("Error", "Data center file export failed!", level=Qgis.Critical) 
+            try:
+                copy_tree(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name)
+            except:
+                self.iface.messageBar().pushMessage("Error", "Project handling file export failed!", level=Qgis.Critical) 
             if os.path.exists(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName']):
                 copy_tree(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_modeling_simulation'+'\\'+name)
             

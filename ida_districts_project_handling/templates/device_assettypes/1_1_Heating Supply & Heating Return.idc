@@ -1,4 +1,4 @@
-﻿;IDA 4.99026 Form UTF-8
+﻿;IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 197 :PAGE-HEIGHT 290) 
 (EQUATION-FRAME :AT ((116 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Sensor-macro") :NAME "Sensor-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 

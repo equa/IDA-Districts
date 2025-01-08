@@ -4,7 +4,7 @@ import psycopg2.extras
 def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,dictDB,dir):
     #----------------------sensor idm macro file------------------------
     file=dir+"""\\Sensor-macro.idm"""
-    data=[""";IDA 4.99026 Data UTF-8\n""","""(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3879491673 :APP (ICE :VER 4.99026))\n"""]
+    data=[""";IDA 5.1 Data UTF-8\n""","""(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3879491673 :APP (ICE :VER 5.1))\n"""]
     #add irefs source if measure ==custom (5) and function != Individual signals for each target(6)
     data.append(''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)\n""".format(j['iref']) 
         for i in sensor_dec_data if i['measure']==5 and i['function']!=6 for j in i['irefs_source'] if 
@@ -208,7 +208,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
 def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,dictDB,dir,plugin_dir):
     #---------------------------sensor idc macro file--------------------------------
     file=dir+"""\\Sensor-macro.idc"""
-    data=[""";IDA 4.99026 Form UTF-8\n""","""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
+    data=[""";IDA 5.1 Form UTF-8\n""","""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
     count_sensors=0                                      
 
     #add Adder comp if function  Individual signals for each target (6) and target=Custom(1) and source type in (4) for decoupling option

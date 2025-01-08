@@ -281,8 +281,7 @@ SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionN
                 idm+=idm_conn
                 idc+=idc_conn
                 writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
-                writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)  
-                    
+                writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
             writeInvokedOutputs(self.plugin_dir,self.dictDB,self.invokedOutputs)
             
     def closeDocument(self):
@@ -466,7 +465,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
-    ORDER BY j.id,b_pipes.sequence, c.counter DESC, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
+    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
         print(sql)
         self.cur.execute(sql)
 
@@ -480,68 +479,61 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         lid_old=0
         seq_old=0
         seq_counter=0
+        seq_lids=[]
         for conn in conns:
             try:
-                #print(conn)
+                print(conn)
                 point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
                 point_j = self.getSymbolCoordinate(conn['j_point'].split("(")[1][:-1].split(' '))
                     
                 if conn['seq']!=seq_old:
-                    #print('--new seq--')
+                    print('--new seq--')
                     if seq_counter!=0:
-                        #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
-                        for i in range(conn_counter,len(lids)+1):
-                           # print('--add waterplug: '+str(i))
-                            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
+                        print(seq_lids)
+                        print([i for i in lids if i not in seq_lids])
+                        print([lids.index(i)+1 for i in lids if i not in seq_lids])
+                        print("".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids]))
+                        idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids])
+                    seq_lids=[conn['lid']]
                     seq_counter+=1
                     conn_counter=1
+                else:
+                    seq_lids.append(conn['lid'])
+
                     
                 if conn['jid']!=jid_old:
-                    #print('++new jid++')
+                    print('++new jid++')
                     lids=conn['lids']
-                    #print(lids)
+                    print(lids)
                     conn_counter=1
                     seq_counter=1
                     max_seq=conn['max_seq']
                     pipe_counter={}
                     for lid in lids:
-                        pipe_counter[lid]=0
-                  
-                if lids[conn_counter-1]!=conn['lid']:
-                    #print('++lids[conn_counter] != conn[lid]--')
-                    #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
-                    #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
-                    for i in range(conn_counter,lids.index(conn['lid'])+1):
-                        #print('++'+str(i))
-                        idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter)
-                        conn_counter+=1
+                        pipe_counter[lid]=0                  
                 
                 pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
                 
-                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
-                idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],max(pipe_counter.values()),conn_counter,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
 
 
                 seq_old=conn['seq']
                 jid_old=conn['jid']
                 lid_old=conn['lid']
                 conn_old=conn
-                #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
+                print("seq: {}; conn: {}".format(seq_counter,conn_counter))
                 conn_counter+=1
             except Exception as e:
                 self.signals.error.emit("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles.")
-        
 
-        print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
-        for i in range(conn_counter,len(lids)+1):
-            print('--add waterplug: '+str(i))
-            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 2 0 NIL)""".format(conn['jid'],i,conn_counter)
+        idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(conn['jid'],seq_old,lids.index(i)+1) for i in lids if i not in seq_lids])
             
         return idm_conn,idc_conn
     
     def insertConnections(self,submodel,type,idm_conn,idc_conn,networks):
         """Insert the connections between devices and the pipe"""
-        print(type)
+        print("********insertConnections:"+type)
         if type=='customers':
             id_name='cid'
             seq_name='c_seq'
@@ -557,10 +549,14 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     ORDER BY d.id, conn_b_t.sequence;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
         print(sql)
         self.cur.execute(sql)
+        seq_counter=1
+        lid_old=0
         for conn in self.cur.fetchall():
             #print(conn)
             lid=conn['lid']
             did=conn['did']
+            if lid!=lid_old:
+                seq_counter=1
             point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
             point_d = self.getSymbolCoordinate(conn['d_point'].split("(")[1][:-1].split(' '))
             conn_bundl_type=conn['conn_bundle_type_id']
@@ -572,8 +568,12 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
             
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
 
-            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),did,name_conn,lid,conn_dir,conn_type_seq)
-            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),did,name_conn,lid,conn_dir,conn_type_seq)
+            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
+            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
+
+            seq_counter+=1
+            lid_old=lid
+            
         return idm_conn,idc_conn
     
     def getSymbolCoordinate(self,point):
@@ -774,14 +774,14 @@ output to current demand. It can also be operated in installations with differen
         
     def insertJunctions(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Insert junctions"""
-        print('insert junctions')
+        print('**************insert junctions*************************')
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq
     FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
-    ORDER BY j.id,b_pipes.sequence, c.counter DESC, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
+    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
         print(sql)
         self.cur.execute(sql)
         #print(requestedOutputs)
@@ -833,7 +833,6 @@ output to current demand. It can also be operated in installations with differen
                     m_dot=''
                   
                 if lids[conn_counter-1]!=conn['lid']:
-                    print('++lids[conn_counter] != conn[lid]--')
                     print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
                     print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
                     for i in range(conn_counter,lids.index(conn['lid'])+1):
@@ -847,6 +846,8 @@ output to current demand. It can also be operated in installations with differen
                 seq_old=conn['seq']
                 jid_old=conn['jid']
                 lid_old=conn['lid']
+                if max_seq<conn['max_seq']:
+                    max_seq=conn['max_seq']
                 conn_old=conn
                 #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
                 conn_counter+=1
@@ -881,11 +882,12 @@ output to current demand. It can also be operated in installations with differen
 {}
  ((RECORD :N |nodebdl|)
   (:PAR :N |vol| :DIM ({}) :V #({})))) """.format(jid,junction['n_connections'],max_seq,connector,max_seq,' '.join(modellingSettings['node_vol'] for x in range(0,max_seq)))
-        idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:brinenode.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
+        idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:brinenode.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
         return idm,idc
                 
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):
         """ insert customers; take the macro template and copy it to the IDA project"""
+        print('****************insert customers******************')
         sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point, c.dhw_id,ca.conn_bundle_type, ca.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
 	FROM "{}".customers c, customer_assettypes ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
 	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.assettype=c.assettype AND ca.assetgroup=c.assetgroup AND c.assetgroup=ca.assetgroup AND ca.assettype=c.assettype AND 

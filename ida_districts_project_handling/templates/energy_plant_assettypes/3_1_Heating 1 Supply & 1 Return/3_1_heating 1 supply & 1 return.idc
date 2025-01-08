@@ -1,4 +1,4 @@
-﻿;IDA 4.99026 Form UTF-8
+﻿;IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (EQUATION-FRAME :AT ((675 60)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("7_1_Flowmeter2") :NAME "7_1_Flowmeter2" :DATA :EO) 
 (EQUATION-FRAME :AT ((106 52)) :R (18.8950569038899 21.0427177906291) :ICON "sys:eo.ids" :SYMMETRY (180.0) :SLOT ("Solar thermal plant") :NAME "Solar thermal plant" :DATA OUTPUT-FILE) 

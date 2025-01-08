@@ -225,7 +225,7 @@ def getClimateData(cur,dictDB,errorMsg):
     """ get climate data from DB"""
     print('get climate data')
     if checkDBVersionConnected(dictDB,errorMsg):
-        sql='SELECT name, longitude, latitude,file_name AS filename ,timezone,height FROM {}.climate;'.format(dictDB['versionName'])
+        sql='SELECT name, longitude, latitude,file_name AS filename ,timezone,height FROM "{}".climate;'.format(dictDB['versionName'])
         print (sql)
         cur.execute(sql)
         return cur.fetchone()

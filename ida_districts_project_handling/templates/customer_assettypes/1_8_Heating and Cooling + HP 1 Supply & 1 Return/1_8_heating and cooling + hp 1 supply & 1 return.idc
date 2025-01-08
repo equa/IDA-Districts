@@ -1,4 +1,4 @@
-﻿;IDA 4.99026 Form UTF-8
+﻿;IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 294.6 :PAGE-HEIGHT 264.8) 
 (EQUATION-FRAME :AT ((30 60)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("3_1_Flowmeter2") :NAME "3_1_Flowmeter2" :DATA :EO) 
 (CONNECTION-LINE :AT ((50 97) (47 97) (47 717)) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("PMT2mux_3_1_3_2" (0 0.694) |term_a|) :LAST-LINK ("BrineNode1" (0.5 0.05) (|term| 3))) 
