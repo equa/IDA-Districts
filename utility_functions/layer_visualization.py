@@ -263,21 +263,29 @@ def showTempTables(uri,dictDB,plugin_dir,iface,cur):
         loadProjectLayers('temp',uri,dictDB,plugin_dir,cur)  
     except:
         print('Load project layers failed')
-   
-def loadTopologyLayers(version,uri,layerTreeRoot,dictDB):
-    #load tables without geometry and hide them in layers panel
+
+def setLayersHidden(tableNames):
     model = iface.layerTreeView().layerTreeModel()
     ltv = iface.layerTreeView()
     root = QgsProject.instance().layerTreeRoot()
-    for tableName in ['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
+    for tableName in tableNames:
+        layer=QgsProject.instance().mapLayersByName(tableName)[0]
+        node = root.findLayer( layer.id())
+        index = model.node2index(node)
+        ltv.setRowHidden( index.row(), index.parent(), True)
+        
+def loadTopologyLayers(version,uri,layerTreeRoot,dictDB):
+    #load tables without geometry and hide them in layers panel
+    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
         'structure_boundary_assettypes','junction_assetgroups','structure_line_assetgroups','structure_line_assettypes',
-        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']:
+        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']
+    for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
-        vlayer = QgsVectorLayer(uri.uri(False), tableName, dictDB['user'])
-        QgsProject.instance().addMapLayer(vlayer)
-        node = root.findLayer( vlayer.id())
-        index = model.node2index( node )
-        ltv.setRowHidden( index.row(), index.parent(), True) 
+        layer = QgsVectorLayer(uri.uri(False), tableName, dictDB['user'])
+        QgsProject.instance().addMapLayer(layer)
+    
+    setLayersHidden(tableNames) 
+
         
 def getListTypeDict():
     return {'energy_plants':['network','main_plant'],'customers':['network'],'lines':['submodel'],'devices':['network']} 
