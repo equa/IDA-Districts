@@ -23,11 +23,68 @@
 """
 
 import os
-
+from qgis.utils import iface
 from qgis.PyQt.QtCore import QObject,pyqtSignal
-from qgis.PyQt.QtWidgets import QTreeView,QAction,QMainWindow,QWidget,QPushButton,QRadioButton, QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
+from qgis.PyQt.QtWidgets import QTreeView,QAction,QMainWindow,QWidget,QPushButton,QRadioButton, QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar,QFileDialog
+from qgis.core import Qgis
 
-
+class ExportProjectDialog(QMainWindow):
+    def __init__(self):
+        """Constructor ExportProjectDialog"""
+        super().__init__()
+        self.setWindowTitle("Export project settings")    
+        
+        #comboboxes
+        layout_settings = QVBoxLayout()
+        self.exportInvokedFeatures =QCheckBox("Invoked features") 
+        self.exportPrn =QCheckBox(".prn results") 
+        self.exportDBResults =QCheckBox("Database results") 
+        layout_settings.addWidget(self.exportInvokedFeatures)
+        layout_settings.addWidget(self.exportPrn)
+        layout_settings.addWidget(self.exportDBResults)
+        
+        #choose file
+        layout_file = QHBoxLayout()
+        self.filename=QLineEdit('')
+        self.btn_selectFile=QPushButton("...")
+        self.btn_selectFile.clicked.connect(self.fileDlg)
+        
+        layout_file.addWidget(self.filename)
+        layout_file.addWidget(self.btn_selectFile)
+        
+        #buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_ok=QPushButton("Ok")
+        layout_buttons.addWidget(self.btn_ok)
+        self.btn_cancel=QPushButton("Cancel")
+        layout_buttons.addWidget(self.btn_cancel)
+        
+        #progress bar
+        self.progress=QProgressBar()
+        
+        #set layout together       
+        layout_export = QVBoxLayout()
+        layout_export.addLayout(layout_settings)
+        layout_export.addLayout(layout_file)
+        layout_export.addLayout(layout_buttons)
+        layout_export.addWidget(self.progress)
+        
+        widget=QWidget()
+        widget.setLayout(layout_export)
+        self.setCentralWidget(widget)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+        
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        
+    def fileDlg(self):
+        filename, _filter = QFileDialog.getSaveFileName(
+            self, "Export IDA Districts project", '','*.ida')
+        self.filename.setText(filename.replace('/','\\'))
+        
 class ProjectConfigDialog(QMainWindow):
     def __init__(self):
         """Constructor Project Configurations"""
@@ -211,6 +268,9 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         #Tree view versions                
         self.treeViewVersions=QTreeView()
         
+        #progress bar
+        self.progress=QProgressBar()
+        
         #set version layout together
         layout_version = QVBoxLayout()
         layout_version.addWidget(label_version_titel)
@@ -224,12 +284,20 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         layout_win.addLayout(layout_db)
         layout_win.addLayout(layout_project)
         layout_win.addLayout(layout_version)
-        
+        layout_win.addWidget(self.progress)
+  
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
         
         self.signals=CloseSignals()
+
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
 
     def closeEvent(self, *args, **kwargs):
         print ("you just closed the IDA Project window!!!")

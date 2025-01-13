@@ -28,14 +28,14 @@ from plugins.utility_functions.utility import *
 from plugins.utility_functions.files import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.reports import * 
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,pyqtSignal
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,pyqtSignal,QThreadPool
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QApplication, QTreeWidget, QTreeWidgetItem
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .IDA_districts_project_handling_dialog import IDA_Districts_ProjectHandlingDialog, ProjectConfigDialog
+from .IDA_districts_project_handling_dialog import IDA_Districts_ProjectHandlingDialog, ProjectConfigDialog,ExportProjectDialog
 from .Dialogs import IDA_Districts_NameDialog, ApproveDialog
 import os.path
 import psycopg2
@@ -55,11 +55,189 @@ import numpy as np
 import sys
 from collections import deque
 from PyQt5.QtCore import Qt
-from distutils.dir_util import copy_tree
 from pathlib import Path
 import json
 from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QShortcut  
+
+from plugins.utility_functions.workers import *
+import shutil
+         
+class WorkerImportProject(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,*args,**kwargs):
+        super().__init__()
+        self.args=args
+        print(args)
+        self.signals=APISignals()
+        self.dictDB=kwargs['dictDB']
+        self.filename=kwargs['filename']
+        self.cur=kwargs['cur']
+        self.plugin_dir=kwargs['plugin_dir']
+        self.dlg=kwargs['dlg']
+
+    @pyqtSlot()
+    def run(self):
+        print('Import project')
+        self.signals.progress.emit(1)            
+        dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
+        name=self.filename.split('\\')[-1].split('.')[0]
+        dir=dir+name
+        
+        if not os.path.exists(dir):
+            if os.path.exists(loadIDADistrictsConfig(self.plugin_dir)['path_ice']+"bin\\7za.exe"):
+                cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],self.filename,dir)
+                print(cmd)
+                subprocess.call(cmd, shell=True)
+            else:
+                self.signals.error.emit("IDA ICE Directory cannot be found. Please check IDA Districts configuration data!")
+                self.signals.progress.emit(0)            
+                return False
+        self.signals.progress.emit(15)            
+
+        #get project name
+        db_info=''
+        if os.path.exists(dir+'\\DB_info.txt'):
+            with open(dir+'\\DB_info.txt', "r") as myfile:   
+                for line in myfile:        
+                    db_info+=line
+        db_info=strToDict(db_info)
+        
+        #check if project already exists
+        if checkDBName(db_info['projectName'],self.cur,self.dictDB):
+            print('project does not exist')
+            print(dir)
+            self.signals.progress.emit(20)
+            try:
+                print(dir+'\\ida_districts_data_center\\'+name)
+                print(getDataCenterDir(self.plugin_dir)+'\\'+name)
+                shutil.copytree(dir+'\\ida_districts_data_center\\'+name,getDataCenterDir(self.plugin_dir)+'\\'+name)
+                self.signals.progress.emit(30)
+            except Exception as e:
+                print(f'error: {e}')
+                self.signals.error.emit("Data center copying failed!")
+                return False
+            try:
+                if os.path.exists(dir+'\\ida_districts_modeling_simulation'):
+                    shutil.copytree(dir+'\\ida_districts_modeling_simulation\\'+name,getModellingDir(self.plugin_dir)+'\\network_models\\'+name)
+                self.signals.progress.emit(50)
+            except Exception as e:
+                print(f'error: {e}')
+                self.signals.error.emit("Modelling data copying failed!")
+                return False
+            try:
+                shutil.copytree(dir+'\\ida_districts_project_handling\\'+name,self.plugin_dir+'\\'+name)
+                self.signals.progress.emit(70)
+            except Exception as e:
+                print(f'error: {e}')
+                self.signals.error.emit("Copying data failed!")
+                return False
+            sql = 'CREATE database '+db_info['projectName']+';'
+            self.cur.execute(sql)
+            self.signals.progress.emit(75)
+
+            cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
+                loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir,name)
+            print(cmd)
+            subprocess.call(cmd, shell=True) 
+            self.dlg.selectProject.addItem(db_info['projectName'])
+        else:
+            self.signals.error.emit("Project already exists in DB!")
+            self.signals.progress.emit(0)   
+            shutil.rmtree(dir)            
+            return False
+            
+        shutil.rmtree(dir)
+        self.signals.progress.emit(100)
+            
+class WorkerExportProject(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,*args,**kwargs):
+        super().__init__()
+        self.args=args
+        print(args)
+        self.signals=APISignals()
+        self.dictDB=kwargs['dictDB']
+        self.filename=kwargs['filename']
+        self.filter_folders=kwargs['filter_folders']
+        self.filter_extensions=kwargs['filter_extensions']
+        self.no_db_results=kwargs['no_db_results']
+        self.conn=""
+        self.cur=""
+        self.plugin_dir=kwargs['plugin_dir']
+        self.conn = dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            
+    @pyqtSlot()
+    def run(self):
+        print('Export project')
+        self.signals.progress.emit(1)
+         
+        print(self.filename)
+        dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
+        name=self.filename.split('\\')[-1].split('.')[0]
+        print(dir)
+        print(name)
+        createDir(dir,name)
+        dir=dir+name
+
+        # Check if the folder exists and delete it
+        if os.path.exists(dir) and os.path.isdir(dir):
+            shutil.rmtree(dir)
+            
+        path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
+        
+        # Ensure the directory exists, create it if necessary
+        sql_path = dir+f"\\{name}.sql"
+
+        os.makedirs(os.path.dirname(sql_path), exist_ok=True)
+        cmd = [
+            path_postgres+"bin\\pg_dump",  # Path to pg_dump
+            "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],self.dictDB['projectName'])
+        ]
+        if self.no_db_results:
+            cmd.append("--exclude-table-data=*.customer_*")
+            cmd.append("--exclude-table-data=*.line_*")
+            cmd.append("--exclude-table-data=*.energy_plant_*")
+        print(cmd)
+        # Output file redirection (using stdout to redirect the output to a file)
+        with open(sql_path, "w") as output_file:
+            subprocess.call(cmd, stdout=output_file)        
+            
+        self.signals.progress.emit(25)
+
+        print(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'])
+        try:
+            copy_tree_filter_extensions_and_folders(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_data_center'+'\\'+name,self.filter_extensions,self.filter_folders)
+        except Exception as e:
+            print(f'error: {e}')
+            self.signals.error.emit("Data center files export failed!")
+        self.signals.progress.emit(40)    
+        try:
+            copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name,self.filter_extensions,self.filter_folders)
+        except Exception as e:
+            print(f'error: {e}')
+            self.signals.error.emit("Project handling files export failed!") 
+        self.signals.progress.emit(55)  
+        if os.path.exists(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName']):
+            try:
+                copy_tree_filter_extensions_and_folders(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_modeling_simulation'+'\\'+name,self.filter_extensions,self.filter_folders)
+            except Exception as e:
+                print(f'error: {e}')
+                self.signals.error.emit("Modelling files export failed!") 
+        self.signals.progress.emit(70)  
+        db_info={'projectName': name}
+        if os.path.exists(dir):
+            with open(dir+'\\DB_info.txt', "w") as myfile:   
+                myfile.write(str(db_info))
+        cmd="""\"{}bin\\7za.exe" a -t7z -r "{}.ida" "{}/*.*\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],dir,dir)
+        print(cmd)
+        subprocess.call(cmd, shell=True) 
+        shutil.rmtree(dir)
+        self.signals.progress.emit(100)
             
 class IDA_Districts_ProjectHandling:
     """QGIS Plugin Implementation."""
@@ -399,7 +577,7 @@ class IDA_Districts_ProjectHandling:
                         print(to_directory)
                         Path(to_directory).mkdir(parents=True, exist_ok=True)
                         if os.path.exists(to_directory):
-                            copy_tree(from_directory, to_directory)
+                            shutil.copytree(from_directory, to_directory)
                             
                         #replace plugins path
                         for dname, dirs, files in os.walk(to_directory):
@@ -1032,90 +1210,46 @@ class IDA_Districts_ProjectHandling:
             self.dlg, "Import IDA Districts project",'','*.ida')
         print(filename)
         filename=filename.replace('/','\\')
-        dir='\\'.join(filename.split('\\')[0:-1])+'\\'
-        name=filename.split('\\')[-1].split('.')[0]
-        dir=dir+name
-        print(dir)
-        print(name)
-        if not name:
-            return False
-        if not os.path.exists(dir):
-            if os.path.exists(loadIDADistrictsConfig(self.plugin_dir)['path_ice']+"bin\\7za.exe"):
-                cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],filename,dir)
-                print(cmd)
-                subprocess.call(cmd, shell=True)
-            else:
-                self.iface.messageBar().pushMessage("Error", "IDA ICE Directory cannot be found. Please check IDA Districts configuration data!", level=Qgis.Critical)
-                return false
+
+        if filename:
+            self.worker_import = WorkerImportProject(filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg)
+            self.worker_import.signals.progress.connect(self.dlg.update_progress)
+            self.worker_import.signals.error.connect(self.dlg.show_error_message)      
+            self.threadpool_import = QThreadPool()            
+            self.threadpool_import.start(self.worker_import)    
         
-        #get project name
-        db_info=''
-        if os.path.exists(dir+'\\DB_info.txt'):
-            with open(dir+'\\DB_info.txt', "r") as myfile:   
-                for line in myfile:        
-                    db_info+=line
-        db_info=strToDict(db_info)
-        
-        #check if project already exists
-        if checkDBName(db_info['projectName'],self.cur_postgres,self.dictDB):
-            print('project does not exist')
-            copy_tree(dir+'\\ida_districts_data_center',getDataCenterDir(self.plugin_dir))
-            if os.path.exists(dir+'\\ida_districts_modeling_simulation'):
-                copy_tree(dir+'\\ida_districts_modeling_simulation',getModellingDir(self.plugin_dir)+'\\network_models\\')
-            copy_tree(dir+'\\ida_districts_project_handling',self.plugin_dir)
-            sql = 'CREATE database '+db_info['projectName']+';'
-            self.cur_postgres.execute(sql)
-            cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
-                loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir,name)
-            #cmd="""\"{}bin\\psql" -d {} -U {} -p {} -h {} -w -f "{}\\{}.sql\"""".format(
-            #    loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],db_info['projectName'],self.dictDB['user'],self.dictDB['port'],self.dictDB['host'],dir,name)
-            print(cmd)
-            subprocess.call(cmd, shell=True) 
-            self.dlg.selectProject.addItem(db_info['projectName'])
-            
-        shutil.rmtree(dir)
+    def showExportProject(self):
+        if self.conn != '':
+            self.dlg_export = ExportProjectDialog()
+            self.dlg_export.btn_ok.clicked.connect(lambda: self.exportProject(self.dlg_export))
+            self.dlg_export.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_export))
+            self.dlg_export.show()               
+        else:
+            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
     
-    def exportProject(self):
+    def exportProject(self,dlg):
         """Export the DB to a sql file and write the data center and modelling files to the folders + dDB description file --> zip"""
         print("Export project")
-        filename, _filter = QFileDialog.getSaveFileName(
-            self.dlg, "Export IDA Districts project", '','*.ida')
-        filename=filename.replace('/','\\')
+        filename=dlg.filename.text()
+        filter_extensions=[]
+        if not dlg.exportPrn.isChecked():
+            filter_extensions.append('.prn')
+        filter_folders=[]
+        if not dlg.exportInvokedFeatures.isChecked():
+            filter_folders.append('invoked_customers')
+            filter_folders.append('invoked_energy_plants')
+            filter_folders.append('invoked_devices')
+        if not dlg.exportDBResults.isChecked():
+            no_db_results=True
+        else:
+            no_db_results=False
+        
         if filename and self.dictDB['projectName']:
-            print(filename)
-            dir='\\'.join(filename.split('\\')[0:-1])+'\\'
-            name=filename.split('\\')[-1].split('.')[0]
-            print(dir)
-            print(name)
-            createDir(dir,name)
-            dir=dir+name
-            
-            path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
-            #cmd="""\"{}bin\\pg_dump" -U {} -d {} -p {} -h {} -W > "{}\\{}.sql\"""".format(path_postgres,self.dictDB['user'],self.dictDB['projectName'],self.dictDB['port'],self.dictDB['host'],dir,name)
-            cmd="""\"{}bin\\pg_dump" --dbname=postgresql://{}:{}@{}:{}/{} > "{}\\{}.sql\"""".format(path_postgres,self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],self.dictDB['projectName'],dir,name)
-            print(cmd)
-            subprocess.call(cmd, shell=True) 
-            
-            print(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'])
-            try:
-                copy_tree(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_data_center'+'\\'+name)
-            except:
-                self.iface.messageBar().pushMessage("Error", "Data center file export failed!", level=Qgis.Critical) 
-            try:
-                copy_tree(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name)
-            except:
-                self.iface.messageBar().pushMessage("Error", "Project handling file export failed!", level=Qgis.Critical) 
-            if os.path.exists(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName']):
-                copy_tree(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_modeling_simulation'+'\\'+name)
-            
-            db_info={'projectName': name}
-            if os.path.exists(dir):
-                with open(dir+'\\DB_info.txt', "w") as myfile:   
-                    myfile.write(str(db_info))
-            cmd="""\"{}bin\\7za.exe" a -t7z -r "{}.ida" "{}/*.*\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],dir,dir)
-            print(cmd)
-            subprocess.call(cmd, shell=True) 
-            shutil.rmtree(dir)
+            worker_export = WorkerExportProject(filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+            worker_export.signals.progress.connect(dlg.update_progress)
+            worker_export.signals.error.connect(dlg.show_error_message)      
+            self.threadpool_export = QThreadPool.globalInstance()            
+            self.threadpool_export.start(worker_export)    
             
     def showDeleteVersionDialog(self):
         try:
@@ -1160,7 +1294,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg.btn_loadProject.clicked.connect(self.loadSelectedProject)
             self.dlg.btn_configProject.clicked.connect(self.setProjectConfig)
             self.dlg.btn_importProject.clicked.connect(self.importProject)
-            self.dlg.btn_exportProject.clicked.connect(self.exportProject)
+            self.dlg.btn_exportProject.clicked.connect(self.showExportProject)
             self.dlg.btn_addVersion.clicked.connect(self.addBaseVersionDialog)
             self.dlg.btn_loadVersion.clicked.connect(self.loadVersion)
             self.dlg.btn_deleteVersion.clicked.connect(self.showDeleteVersionDialog)
