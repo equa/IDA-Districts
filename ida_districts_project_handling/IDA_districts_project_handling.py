@@ -62,7 +62,173 @@ from qgis.PyQt.QtWidgets import QShortcut
 
 from plugins.utility_functions.workers import *
 import shutil
-         
+
+def loadVersionLayers(dictDB,cur,plugin_dir):
+    """Loads the layers in QGIS"""
+    removeLayers()    
+            
+    print(dictDB['projectName'])
+    uri = QgsDataSourceUri()
+    uri.setConnection(dictDB['host'], dictDB['port'], dictDB['projectName'], dictDB['user'], dictDB['pwd'])
+    print(uri)
+
+    layerTreeRoot = QgsProject.instance().layerTreeRoot()    
+    view = iface.layerTreeView()
+    
+    try: 
+        uri.setDataSource(dictDB['versionName'], "submodels", "geom")
+        vlayer = QgsVectorLayer(uri.uri(False), "submodels", dictDB['user'])
+        QgsProject.instance().addMapLayer(vlayer)
+        single_symbol_renderer = vlayer.renderer()
+        symbol = single_symbol_renderer.symbol()
+        symbol.setColor(QColor.fromRgb(255, 0, 0))
+        view.setLayerVisible(vlayer, False)
+        view.refreshLayerSymbology(vlayer.id())
+
+        uri.setDataSource(dictDB['versionName'], "streets", "geom")
+        vlayer = QgsVectorLayer(uri.uri(False), "streets", dictDB['user'])
+        QgsProject.instance().addMapLayer(vlayer) 
+        single_symbol_renderer = vlayer.renderer()
+        symbol = single_symbol_renderer.symbol()
+        symbol.setColor(QColor.fromRgb(131, 131, 131))
+        symbol.setWidth(0.75)  
+        view.refreshLayerSymbology(vlayer.id())
+        
+        uri.setDataSource(dictDB['versionName'], "buildings", "geom")
+        vlayer = QgsVectorLayer(uri.uri(False), "buildings", dictDB['user'])
+        QgsProject.instance().addMapLayer(vlayer)
+        single_symbol_renderer = vlayer.renderer()
+        symbol = single_symbol_renderer.symbol()
+        symbol.setColor(QColor.fromRgb(25, 25, 25))
+        view.refreshLayerSymbology(vlayer.id())
+        
+    except Exception as e:
+        print(f'error: {e}')
+                
+    loadTopologyLayers(dictDB['versionName'],uri,layerTreeRoot,dictDB)   
+    loadProjectLayers(dictDB['versionName'],uri,dictDB,plugin_dir,cur)
+    
+    loadBoreholesLayer(dictDB['versionName'],uri,dictDB,plugin_dir,cur)
+
+   
+    versionLayersAliasNames()
+    setupVersionForm(cur,dictDB)
+    setupCustomerDataSheet()
+      
+    valueRelationPipeBundleType()    
+    valueRelationDhwId()    
+    valueRelationInternalLoadId() 
+        
+class WorkerLoadVersion(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,*args,**kwargs):
+        super().__init__()
+        self.args=args
+        print(args)
+        self.signals=APISignals()
+        self.dictDB=kwargs['dictDB']
+        self.cur=kwargs['cur']
+        self.plugin_dir=kwargs['plugin_dir']
+        self.dlg=kwargs['dlg']
+        self.item=kwargs['item']
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            print('Load project version')
+            self.signals.progress.emit(1)  
+            print (self.dictDB['versionName'])
+                
+            #check if there are changes in the child versions and append the changes to the diff script
+            sql='SELECT name AS version_name FROM public.versionhandling WHERE id_base in (SELECT id FROM public.versionhandling WHERE name=\'{}\');'.format(self.dictDB['versionName'])
+            print(sql)
+            self.cur.execute(sql)
+            childs = self.cur.fetchall()     
+            
+            print(childs)
+            for child in childs:
+                print(child['version_name'])
+                #read diff script
+                diffData=''
+
+                for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:
+                    #Check for inserted items
+                    print(table)
+                    sql="""SELECT id FROM "{}".{}
+                            EXCEPT
+                            SELECT id FROM "{}".{};""".format(child['version_name'],table,self.dictDB['versionName'],table)
+                    print(sql)
+                    self.cur.execute(sql)
+                    for result in self.cur.fetchall():
+                        sql='SELECT * FROM "{}".{} WHERE id={};'.format(child['version_name'],table,result['id'])     
+                        self.cur.execute(sql)
+                        diff ='INSERT INTO "{}".{} VALUES \n'.format(child['version_name'],table)+str(self.cur.fetchone()).replace('None','Null')+';'
+                        if diff not in diffData:
+                            diffData=diffData+diff
+
+                    #Check for deleted items
+                    sql="""SELECT id FROM "{}".{}
+                            EXCEPT
+                            SELECT id FROM "{}".{};""".format(self.dictDB['versionName'],table,child['version_name'],table)
+                    print(sql)
+                    self.cur.execute(sql)
+                    for result in self.cur.fetchall():
+                        diff ='DELETE FROM "{}".{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
+                        if diff not in diffData:
+                            diffData=diffData+diff
+                            
+                    #Check for updated items
+                    sql='SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=\'{}\' AND table_name=\'{}\';'.format(self.dictDB['versionName'],table)
+                    print(sql)
+                    self.cur.execute(sql)
+                    curUpdatedColumn=self.conn.cursor()  
+                    for column in self.cur.fetchall():
+                        sql="""SELECT id,{} FROM "{}".{}
+                            EXCEPT
+                            SELECT id,{} FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],self.dictDB['versionName'],table)
+                        print(sql)
+                        curUpdatedColumn.execute(sql)
+                        for updatedColumnValue in curUpdatedColumn:
+                            print ('+++++++++++++++++++++++++++')
+                            print (column['data_type'])
+                        
+                            if column['data_type'] in ['integer','numeric']:
+                                print('value')
+                                diff ='UPDATE "{}".{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
+                            else:
+                                print('geom')
+                                diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
+                            if diff not in diffData:
+                                diffData=diffData+diff
+                    curUpdatedColumn.close()
+                
+                print(diffData)
+                with open(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],child['version_name']),'w') as myfile:
+                    myfile.write(diffData)   
+            
+            #copy schema from parent version if version is a child 
+            if self.item.parent():
+                sql = 'DROP SCHEMA '+self.dictDB['versionName']+' CASCADE;'
+                print(sql)
+                self.cur.execute(sql)
+                copy_schema(self.item.parent().text(),self.dictDB['versionName'])
+                
+                if os.path.exists(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['versionName'])):
+                    os.environ['PGPASSWORD'] = self.dictDB['pwd']
+                    path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
+                    cmd = ' "{}\\bin\\psql" -d {} -h {} -U {} < "{}\\diff scripts\\version_{}_{}_diff_script.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['user'],self.plugin_dir,self.dictDB['projectName'],self.dictDB['versionName'])
+                    print(cmd)
+                    subprocess.call(cmd, shell=True)   
+                    
+            self.signals.progress.emit(10)  
+            loadVersionLayers(self.dictDB,self.cur,self.plugin_dir)
+            self.signals.progress.emit(100)            
+            print('finished tables')
+        except Exception as e:
+            print(f'error: {e}')
+            self.signals.error.emit("Loading version failed!")
+        
 class WorkerImportProject(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
@@ -252,6 +418,8 @@ class IDA_Districts_ProjectHandling:
         """
         # Save reference to the QGIS interface
         self.iface = iface
+        self.threadpool = QThreadPool()            
+
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__).replace('/','\\')
         # initialize locale
@@ -397,7 +565,19 @@ class IDA_Districts_ProjectHandling:
                 self.tr(u'&IDA Districts Project Handling'),
                 action)
             self.iface.removeToolBarIcon(action)
-       
+
+    # Function to load version from treeview
+    def TreeItem_Load(self, item, mdlIdx):
+        if self.conn != '':
+            self.dictDB['versionName'] = item.text()
+            writeDBSettings(self.plugin_dir,self.dictDB)        
+            self.worker_loadVersion = WorkerLoadVersion(dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur,dlg=self.dlg,item=item)
+            self.worker_loadVersion.signals.progress.connect(self.dlg.update_progress)
+            self.worker_loadVersion.signals.error.connect(self.dlg.show_error_message)      
+            self.threadpool.start(self.worker_loadVersion)    
+        else:
+            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+    
     def connectDB(self):
         """make a connection to the DB and list the DBs in the dropdown menue"""
         self.disconnectDB()
@@ -575,9 +755,9 @@ class IDA_Districts_ProjectHandling:
                         print(from_directory)
                         to_directory = dir_data_center+"\\"+self.dictDB['projectName']+"\\"+assettype+"_assettypes"
                         print(to_directory)
-                        Path(to_directory).mkdir(parents=True, exist_ok=True)
-                        if os.path.exists(to_directory):
-                            shutil.copytree(from_directory, to_directory)
+                        #Path(to_directory).mkdir(parents=True, exist_ok=True)
+                        #if os.path.exists(to_directory):
+                        shutil.copytree(from_directory, to_directory)
                             
                         #replace plugins path
                         for dname, dirs, files in os.walk(to_directory):
@@ -642,24 +822,6 @@ class IDA_Districts_ProjectHandling:
         act_del.triggered.connect(partial(self.TreeItem_Load, item, mdlIdx))
         right_click_menu.exec_(self.dlg.treeViewVersions.viewport().mapToGlobal(position))
         
-
-    def copy_schema(self,item,versionName):
-        """copy schema"""
-        baseName=item.text()
-        os.environ['PGPASSWORD'] = self.dictDB['pwd']
-        path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
-        cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n {} > "{}\\dump_schema.sql" '.format(path_postgres,self.dictDB['user'],self.dictDB['host'],self.dictDB['port'],self.dictDB['projectName'],baseName,self.plugin_dir)
-        print(cmd)
-        subprocess.call(cmd, shell=True)  
-        
-        sql = 'ALTER SCHEMA '+baseName+' RENAME TO '+versionName+' ;'
-        print(sql)
-        self.cur.execute(sql)           
-        
-        cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['port'], self.dictDB['user'],self.plugin_dir)
-        print(cmd)
-        subprocess.call(cmd, shell=True)  
-        
     def TreeItem_AddDialog(self, level, mdlIdx):
         """Project version add dialog --> connects to the TreeItem_Add function, which does the adding"""
         print('Add dialog started')
@@ -710,7 +872,7 @@ class IDA_Districts_ProjectHandling:
                 temp_key = QStandardItem(versionName)
                 temp_value1 = QStandardItem('')
                 self.model.itemFromIndex(mdlIdx).appendRow([temp_key, temp_value1])
-                self.copy_schema(item,versionName)
+                copy_schema(item.text(),versionName)
                 data=self.getVersionData()
                 self.importData(data)
                 self.dlg.treeViewVersions.expandAll()   
@@ -736,7 +898,7 @@ class IDA_Districts_ProjectHandling:
                 temp_key = QStandardItem(versionName)
                 temp_value1 = QStandardItem('')
                 self.model.itemFromIndex(mdlIdx).appendRow([temp_key, temp_value1])
-                self.copy_schema(item,versionName)
+                copy_schema(item.text(),versionName)
                 data=self.getVersionData()
                 self.importData(data)
                 self.dlg.treeViewVersions.expandAll()   
@@ -850,10 +1012,11 @@ class IDA_Districts_ProjectHandling:
         print('loadSelectedProject')    
         self.dictDB['projectName']=self.dlg.selectProject.currentText()
         self.conn=dbConnect(self.dictDB,True)
-        self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-        writeDBSettings(self.plugin_dir,self.dictDB)
-        data=self.getVersionData()
-        self.setTreeViewModel(data)
+        if self.conn:
+            self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+            writeDBSettings(self.plugin_dir,self.dictDB)
+            data=self.getVersionData()
+            self.setTreeViewModel(data)
             
     def checkIfVersionIsNew(self,versionName):
         sql='SELECT schema_name FROM information_schema.schemata;'
@@ -962,184 +1125,13 @@ class IDA_Districts_ProjectHandling:
         graduated_renderer.setClassAttribute(columnName)        
         vlayer.setRenderer(graduated_renderer)
         layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
-        vlayer.triggerRepaint()
-        
-    def loadTopologyLayers(self,version,uri,layerTreeRoot):
-        #load tables without geometry and hide them in layers panel
-        model = iface.layerTreeView().layerTreeModel()
-        ltv = iface.layerTreeView()
-        root = QgsProject.instance().layerTreeRoot()
-        for tableName in ['pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_junction_assetgroups','structure_junction_assettypes','structure_boundary_assetgroups',
-            'structure_boundary_assettypes','junction_assetgroups','devicestatus',
-            'structure_line_assetgroups','structure_line_assettypes','owner', 'maintby','associationstatus','lifecyclestatus','units','commodity',
-            'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes','isconnected','fromdeviceterminal','todeviceterminal','pipematerial','insulatingmaterial','casingmaterial',
-            'nominalpipediameter','nominalcasingdiamter','installlocation','installationmethod','manufacturer','pipematerialgrade','pipematerialstd','spatialaccuracyz','spatialaccuracyxy','spatialsource','cptraceability',
-            'bondedinsulated','ldtraceability','lengthsource']:
-            uri.setDataSource("public", tableName, "")
-            vlayer = QgsVectorLayer(uri.uri(False), tableName, self.dictDB['user'])
-            QgsProject.instance().addMapLayer(vlayer)
-            node = root.findLayer( vlayer.id())
-            index = model.node2index( node )
-            ltv.setRowHidden( index.row(), index.parent(), True)   
+        vlayer.triggerRepaint() 
     
     def loadStructureLayers(self,version,uri):
         for tableName in ['structure_lines','structure_junctions']:
             uri.setDataSource(version, tableName, "")
             vlayer = QgsVectorLayer(uri.uri(False), tableName, self.dictDB['user'])
             QgsProject.instance().addMapLayer(vlayer)
-        
-    # Function to load version from treeview
-    def TreeItem_Load(self, item, mdlIdx):
-        print ("Load selected version")
-        self.dictDB['versionName'] = item.text()
-        writeDBSettings(self.plugin_dir,self.dictDB)
-        print (self.dictDB['versionName'])
-            
-        #check if there are changes in the child versions and append the changes to the diff script
-        sql='SELECT name AS version_name FROM public.versionhandling WHERE id_base in (SELECT id FROM public.versionhandling WHERE name=\'{}\')'.format(self.dictDB['versionName'])
-        print(sql)
-        self.cur.execute(sql)
-        childs = self.cur.fetchall()     
-        
-        print(childs)
-        for child in childs:
-            print(child['version_name'])
-            #read diff script
-            diffData=''
-
-            for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:
-                #Check for inserted items
-                print(table)
-                sql="""SELECT id FROM "{}".{}
-                        EXCEPT
-                        SELECT id FROM "{}".{};""".format(child['version_name'],table,self.dictDB['versionName'],table)
-                print(sql)
-                self.cur.execute(sql)
-                for result in self.cur.fetchall():
-                    sql='SELECT * FROM "{}".{} WHERE id={};'.format(child['version_name'],table,result['id'])     
-                    self.cur.execute(sql)
-                    diff ='INSERT INTO "{}".{} VALUES \n'.format(child['version_name'],table)+str(self.cur.fetchone()).replace('None','Null')+';'
-                    if diff not in diffData:
-                        diffData=diffData+diff
-
-                #Check for deleted items
-                sql="""SELECT id FROM "{}".{}
-                        EXCEPT
-                        SELECT id FROM "{}".{};""".format(self.dictDB['versionName'],table,child['version_name'],table)
-                print(sql)
-                self.cur.execute(sql)
-                for result in self.cur.fetchall():
-                    diff ='DELETE FROM "{}".{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
-                    if diff not in diffData:
-                        diffData=diffData+diff
-                        
-                #Check for updated items
-                sql='SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=\'{}\' AND table_name=\'{}\';'.format(self.dictDB['versionName'],table)
-                print(sql)
-                self.cur.execute(sql)
-                curUpdatedColumn=self.conn.cursor()  
-                for column in self.cur.fetchall():
-                    sql="""SELECT id,{} FROM "{}".{}
-                        EXCEPT
-                        SELECT id,{} FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],self.dictDB['versionName'],table)
-                    print(sql)
-                    curUpdatedColumn.execute(sql)
-                    for updatedColumnValue in curUpdatedColumn:
-                        print ('+++++++++++++++++++++++++++')
-                        print (column['data_type'])
-                    
-                        if column['data_type'] in ['integer','numeric']:
-                            print('value')
-                            diff ='UPDATE "{}".{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
-                        else:
-                            print('geom')
-                            diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
-                        if diff not in diffData:
-                            diffData=diffData+diff
-                curUpdatedColumn.close()
-            
-            print(diffData)
-            with open(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],child['version_name']),'w') as myfile:
-                myfile.write(diffData)   
-        
-        #copy schema from parent version if version is a child 
-        if item.parent():
-            sql = 'DROP SCHEMA '+self.dictDB['versionName']+' CASCADE;'
-            print(sql)
-            self.cur.execute(sql)
-            self.copy_schema(item.parent(),self.dictDB['versionName'])
-            
-            if os.path.exists(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['versionName'])):
-                os.environ['PGPASSWORD'] = self.dictDB['pwd']
-                path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
-                cmd = ' "{}\\bin\\psql" -d {} -h {} -U {} < "{}\\diff scripts\\version_{}_{}_diff_script.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['user'],self.plugin_dir,self.dictDB['projectName'],self.dictDB['versionName'])
-                print(cmd)
-                subprocess.call(cmd, shell=True)   
-                
-        self.loadLayers()           
-        print('finished tables')
-        
-    def loadLayers(self):
-        """Loads the layers in QGIS"""
-        removeLayers()    
-                
-        print(self.dictDB['projectName'])
-        uri = QgsDataSourceUri()
-        uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
-        print(uri)
-
-        layerTreeRoot = QgsProject.instance().layerTreeRoot()              
-        """
-        self.loadResultLayer(self.dictDB['versionName'],"pipe_seg_results_mdot","results massflow","mdot_kg7s",uri,layerTreeRoot)
-        self.loadResultLayer(self.dictDB['versionName'],"pipe_seg_results_p","results pressure","dp_bar",uri,layerTreeRoot)
-        self.loadResultLayer(self.dictDB['versionName'],"pipe_seg_results_tret","results return temperature","tret_c",uri,layerTreeRoot)
-        self.loadResultLayer(self.dictDB['versionName'],"pipe_seg_results_tsup","results supply temperature","tsup_c",uri,layerTreeRoot)
-        self.loadResultLayer(self.dictDB['versionName'],"pipe_seg_results_v","results supply temperature","v_m7s",uri,layerTreeRoot)   
-        """
-        
-        try: 
-            uri.setDataSource(self.dictDB['versionName'], "submodels", "geom")
-            vlayer = QgsVectorLayer(uri.uri(False), "submodels", self.dictDB['user'])
-            QgsProject.instance().addMapLayer(vlayer)
-            single_symbol_renderer = vlayer.renderer()
-            symbol = single_symbol_renderer.symbol()
-            symbol.setColor(QColor.fromRgb(255, 0, 0))
-            layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
-            iface.layerTreeView().refreshLayerSymbology(vlayer.id())
-
-            uri.setDataSource(self.dictDB['versionName'], "streets", "geom")
-            vlayer = QgsVectorLayer(uri.uri(False), "streets", self.dictDB['user'])
-            QgsProject.instance().addMapLayer(vlayer) 
-            single_symbol_renderer = vlayer.renderer()
-            symbol = single_symbol_renderer.symbol()
-            symbol.setColor(QColor.fromRgb(131, 131, 131))
-            symbol.setWidth(0.75)  
-            iface.layerTreeView().refreshLayerSymbology(vlayer.id())
-            
-            uri.setDataSource(self.dictDB['versionName'], "buildings", "geom")
-            vlayer = QgsVectorLayer(uri.uri(False), "buildings", self.dictDB['user'])
-            QgsProject.instance().addMapLayer(vlayer)
-            single_symbol_renderer = vlayer.renderer()
-            symbol = single_symbol_renderer.symbol()
-            symbol.setColor(QColor.fromRgb(25, 25, 25))
-            iface.layerTreeView().refreshLayerSymbology(vlayer.id())
-            
-        except:
-            pass
-                    
-        loadTopologyLayers(self.dictDB['versionName'],uri,layerTreeRoot,self.dictDB)         
-        loadProjectLayers(self.dictDB['versionName'],uri,self.dictDB,self.plugin_dir,self.cur)
-        
-        loadBoreholesLayer(self.dictDB['versionName'],uri,self.dictDB,self.plugin_dir,self.cur)
-
-       
-        versionLayersAliasNames()
-        setupVersionForm(self.cur,self.dictDB)
-        setupCustomerDataSheet()
-          
-        valueRelationPipeBundleType()    
-        valueRelationDhwId()    
-        valueRelationInternalLoadId() 
             
     def saveIDADistrictsConfigSettings(self,dlg):
         """ save the config data to file configIDADistricts.txt"""
@@ -1164,7 +1156,7 @@ class IDA_Districts_ProjectHandling:
             if srid_old!=self.projectConfig['srid']:
                 updateTableSrid(projectVersions,self.cur,self.projectConfig['srid'])
             if checkDBVersionConnected(self.dictDB,False) and srid_old!=self.projectConfig['srid']:
-                self.loadLayers()
+                loadVersionLayers(self.dictDB,self.cur,self.plugin_dir)
                 
         dlg.close()
         
@@ -1256,6 +1248,7 @@ class IDA_Districts_ProjectHandling:
             item=self.model.itemFromIndex(self.dlg.treeViewVersions.selectedIndexes()[0])
             self.deleteVersionDialog(item)
         except:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             print('No item selected!')
     
     def loadVersion(self):
@@ -1264,6 +1257,7 @@ class IDA_Districts_ProjectHandling:
             item=self.model.itemFromIndex(mdlIdx)
             self.TreeItem_Load(item, mdlIdx)
         except:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             print('No item selected!')
 
     def renameVersion(self):
@@ -1277,6 +1271,7 @@ class IDA_Districts_ProjectHandling:
                 level += 1
             self.TreeItem_RenameDialog(level, mdlIdx,item)
         except:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             print('No item selected!')
         
         
