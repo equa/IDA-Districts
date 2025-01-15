@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/ida_districts_preprocessing" >
+        <file>icon-pre-processing.png</file>
+    </qresource>
+</RCC>

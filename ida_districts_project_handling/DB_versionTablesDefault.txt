@@ -1,0 +1,589 @@
+------------------------------ version tables ---------------------------------
+
+-------------------table "$versionName$".boreholes;----------------------------------------------------------
+DROP TABLE IF EXISTS "$versionName$".boreholes CASCADE;
+CREATE TABLE "$versionName$".boreholes(
+    id serial,
+    geom GEOMETRY (POINTZ,$srid$),
+    plant_id int DEFAULT 1,
+    "group" int DEFAULT 1,
+    mir boolean DEFAULT FALSE,
+    CONSTRAINT boreholes_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".borehole_fields;----------------------------------------------------------
+DROP TABLE IF EXISTS "$versionName$".borehole_fields CASCADE;
+CREATE TABLE "$versionName$".borehole_fields(
+    id serial,
+    zhole numeric CHECK (zhole > 0),
+    rhole numeric CHECK (rhole > 0),
+    rb numeric CHECK (rb >= 0), 
+    rpipeearth numeric CHECK (rpipeearth > 0), 
+    rpipegrout numeric CHECK (rpipegrout > 0), 
+    rringearth numeric CHECK (rringearth > 0), 
+    rgroutearth numeric CHECK (rgroutearth > 0), 
+    rgroutgrout numeric CHECK (rgroutgrout > 0), 
+    mir int,
+    rmax numeric CHECK (rmax > 0),
+    nring int CHECK (nring > 0),
+    nzhole int CHECK (nzhole > 0),
+    nlayt int CHECK (nlayt > 0),
+    n1 int CHECK (n1 >= 0),
+    n2 int CHECK (n2 >= 0),
+    n3 int CHECK (n3 >= 0),
+    toutput numeric CHECK (toutput >= 0),
+    cpgrd numeric CHECK (cpgrd > 0),
+    lambgrd numeric CHECK (lambgrd > 0),
+    rhogrd numeric CHECK (rhogrd > 0),
+    cpgrout numeric CHECK (cpgrout > 0),
+    lambgrout numeric CHECK (lambgrout > 0),
+    rhogrout numeric CHECK (rhogrout > 0),
+    rpipe numeric CHECK (rpipe > 0),
+    thickpipe numeric CHECK (thickpipe > 0),
+    cppipe numeric CHECK (cppipe > 0),
+    lambpipe numeric CHECK (lambpipe > 0),    
+    lcasting numeric CHECK (lcasting > 0),
+    lambda numeric CHECK (lambda > 0),
+    rhosurface numeric CHECK (rhosurface > 0),
+    cpsurface numeric CHECK (cpsurface > 0),  
+    liqtype int,
+    tfreeze numeric,
+    lambliq numeric CHECK (lambliq > 0),
+    tmean numeric,
+    geotgrad numeric,
+    CONSTRAINT borehole_fields_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".supervisory_ctrl;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".supervisory_ctrl CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".supervisory_ctrl
+(
+    id serial,
+    submodel integer,
+    CONSTRAINT supervisory_ctrl_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".customer_model_parms;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".customer_model_parms CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".customer_model_parms
+(
+    id serial,
+    parm_name character varying(100),
+    model_name character varying(100),
+    mapping_expression character varying(100),
+    macro_name character varying(100),
+    mapping_direction character varying (100) DEFAULT 'ToIDA',
+    CONSTRAINT customer_model_parms_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".feature_decoupling;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".feature_decoupling CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".feature_decoupling
+(
+    id serial,
+    assetgroup int,
+    assettype int,
+    comp_name character varying(100),
+    type character varying(100),
+    CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".sensors;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".sensors CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".sensors
+(
+    id serial,
+    CONSTRAINT sensors_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".sensor_source;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".sensor_source CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".sensor_source
+(
+    id serial,
+    sensor_id int,
+    type int,
+    assetgroup int,
+    assettype int,
+    measure int,
+    function int,
+    conn_type int,
+    conns int,
+    ids int,
+    test_value numeric DEFAULT 1,
+    description character varying(500),
+    CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
+    CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
+        REFERENCES "$versionName$".sensors (id) MATCH SIMPLE,
+    CONSTRAINT type_fk FOREIGN KEY (type)
+        REFERENCES public.type (id) MATCH SIMPLE
+);
+
+-------------------table "$versionName$".source_assetgroups;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".source_assetgroups CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".source_assetgroups
+(
+    id serial,
+    source_id int,
+    assetgroup int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".source_assettype;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".source_assettype CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".source_assettype
+(
+    id serial,
+    source_id int,
+    assetgroup int,
+    assettype int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_assettype_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".source_conn_type;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".source_conn_type CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".source_conn_type
+(
+    id serial,
+    source_id int,
+    conn_type int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_conn_type_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".source_conns;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".source_conns CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".source_conns
+(
+    id serial,
+    source_id integer,
+    connection_id integer,
+    active boolean DEFAULT false,
+    CONSTRAINT source_conns_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".source_ids;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".source_ids CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".source_ids
+(
+    id serial,
+    source_id int,
+    feature_id int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_ids_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".invoked_sensor_source_signals;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".invoked_sensor_source_signals CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_source_signals
+(
+    id serial,
+    type integer,
+    sensor_id integer,
+    assetgroup integer,
+    assettype integer,
+    measure integer,
+    function integer,
+    test_value numeric,
+    source_irefs text[],
+    source_assettype_names text[],
+    description character varying(500),
+    CONSTRAINT invoked_sensor_source_signals_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".sensor_target;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".sensor_target CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".sensor_target
+(
+    id serial,
+    sensor_id int,
+    type int,
+    assetgroup int,
+    assettype int,
+    ids int,
+    target int,
+    description character varying(500),
+    CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
+    CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
+        REFERENCES "$versionName$".sensors (id) MATCH SIMPLE,
+    CONSTRAINT type_fk FOREIGN KEY (type)
+        REFERENCES public.type (id) MATCH SIMPLE
+);
+
+-------------------table "$versionName$".target_assetgroups;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".target_assetgroups CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".target_assetgroups
+(
+    id serial,
+    target_id int,
+    assetgroup int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_assetgroups_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".target_assettype;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".target_assettype CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".target_assettype
+(
+    id serial,
+    target_id int,
+    assetgroup int,
+    assettype int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_assettype_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table "$versionName$".target_ids;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".target_ids CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".target_ids
+(
+    id serial,
+    target_id int,
+    feature_id int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_ids_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".invoked_sensor_target_signals;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".invoked_sensor_target_signals CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_target_signals
+(
+    id serial,
+    type integer,
+    sensor_id integer,
+    assetgroup integer,
+    assettype integer,
+    target integer,
+    test_value numeric,
+    target_irefs text[],
+    target_assettype_names text[],
+    description character varying(500),
+    CONSTRAINT invoked_sensor_target_signals_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".climate;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".climate CASCADE;
+CREATE TABLE "$versionName$".climate
+(
+  id serial,
+  name varchar(50) DEFAULT 'Graz',
+  file_name varchar(250) DEFAULT '$plugins_path$\ida_districts_data_center\Samples\climate\Graz-hour_std.prn',
+  latitude numeric DEFAULT 47.4,
+  longitude numeric DEFAULT -15.26,
+  timezone integer DEFAULT -1,
+  height numeric DEFAULT 353,
+  CONSTRAINT climate_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".submodels;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".submodels CASCADE;
+CREATE TABLE "$versionName$".submodels
+(
+  id serial,
+  submodel varchar(50),
+  geom geometry(MultiPolygon,$srid$),
+  CONSTRAINT submodel_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".network;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".network CASCADE;
+CREATE TABLE "$versionName$".network
+(
+  id serial,
+  description varchar(255),
+  CONSTRAINT network_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".customers;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".customers CASCADE;
+CREATE TABLE "$versionName$".customers
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+    assetgroup integer DEFAULT 0,
+	assettype integer DEFAULT 0,
+    usage character varying(80),
+    network integer[] DEFAULT ARRAY[1],
+	heat_e_kwh numeric DEFAULT 10000,
+    heat_p_kw numeric DEFAULT 10,
+    tsup_h_deg numeric DEFAULT 70,
+    cool_e_kwh numeric DEFAULT 5000,
+    cool_p_kw numeric DEFAULT 10,
+    tsup_c_deg numeric DEFAULT 15,
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+    dhw_id integer,
+    internal_load_id integer,   
+    scale_dhw numeric DEFAULT 1,
+    floor_area numeric DEFAULT 100,
+    u_value numeric DEFAULT 1,
+    phi_rad_nom numeric DEFAULT 85,
+    aperture numeric DEFAULT 0.05,
+    ach numeric DEFAULT 1,
+    tset numeric DEFAULT 21,
+	CONSTRAINT customers_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table "$versionName$".energy_plants;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".energy_plants CASCADE;
+CREATE TABLE "$versionName$".energy_plants
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+    assetgroup integer DEFAULT 0,
+	assettype integer DEFAULT 0,
+    network integer[] DEFAULT ARRAY[1],
+    main_plant integer[] DEFAULT ARRAY[1],
+    tsup_h_deg numeric DEFAULT 100,
+    heat_e_kwh numeric DEFAULT 1000000,
+    heat_p_kw numeric DEFAULT 1000,
+    tsup_c_deg numeric DEFAULT 14,
+    cold_e_kwh numeric DEFAULT 1000000,
+    cold_p_kw numeric DEFAULT 1000,    
+	asl_m numeric,
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table "$versionName$".lines;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".lines CASCADE;
+CREATE TABLE "$versionName$".lines
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+    network integer DEFAULT 1,
+	assetgroup integer,
+	assettype integer,
+    pipe_bundle_type_id integer DEFAULT 1,
+	length numeric,
+    zeta numeric DEFAULT 0,
+	submodel integer[] DEFAULT ARRAY[1],
+	peak_power_kw numeric,
+	no_customer integer,
+	CONSTRAINT lines_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".devices;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".devices CASCADE;
+CREATE TABLE "$versionName$".devices
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+	submodel integer, --reference to submodelname in subnet_line 
+    network integer[] DEFAULT ARRAY[1],
+    asl_m numeric,
+	CONSTRAINT devices_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".junctions------------------------------------
+DROP TABLE IF EXISTS "$versionName$".junctions CASCADE;
+CREATE TABLE "$versionName$".junctions
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+    n_connections integer check(n_connections >= 1),
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+    network integer DEFAULT 1, --reference to submodelname in subnet_line 
+    asl_m numeric,
+    zeta numeric DEFAULT 0,
+	CONSTRAINT junctions_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table "$versionName$".structure_boundarys;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".structure_boundarys CASCADE;
+CREATE TABLE "$versionName$".structure_boundarys
+(
+	id serial,
+	geom geometry(Multipolygon,$srid$),
+	assetgroup integer,
+	assettype integer,
+	f_vexp_m numeric,
+	submodel integer,
+	CONSTRAINT structure_boundarys_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".structure_junctions------------------------------------
+DROP TABLE IF EXISTS "$versionName$".structure_junctions CASCADE;
+CREATE TABLE "$versionName$".structure_junctions
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+	submodel integer,
+	CONSTRAINT structure_junctions_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".structure_lines------------------------------------
+DROP TABLE IF EXISTS "$versionName$".structure_lines CASCADE;
+CREATE TABLE "$versionName$".structure_lines
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+	assetgroup integer,
+	assettype integer,
+	submodel integer,
+	CONSTRAINT structure_lines_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".buildings
+-- DROP TABLE "$versionName$".buildings;
+CREATE TABLE "$versionName$".buildings
+(
+  id serial,
+  object_id integer,
+  b_id integer,
+  z_id integer,
+  status integer,
+  geom geometry(MultiPolygon,$srid$),
+  o_bassl_m numeric,
+  z_bh_m numeric,
+  z_vexp_m numeric,
+  z_basa_m2 numeric,
+  z_topa_m2 numeric,
+  f_vexp_m numeric,
+  z_numb_f numeric,
+  z_gfa_m2 numeric,
+  z_wn_p numeric,
+  z_ws_p numeric,
+  z_ww_p numeric,
+  z_we_p numeric,
+  o_vexp_m numeric,
+  o_basa_m2 numeric,
+  o_topa_m2 numeric,
+  o_gfa_m2 numeric,
+  o_ea_m2 numeric,
+  o_wrfa_p numeric,
+  o_gv_m3 numeric,
+  o_chl_m numeric,
+  z_typeid integer,
+  o_mu_wm2k numeric,
+  z_use_cat integer,
+  detached boolean,
+  z_heatd_kwh numeric,
+  z_dhwd_kwh numeric,
+  z_coold_kwh numeric,
+  z_eqd_kwh numeric,
+  z_ltd_kwh numeric,
+  z_hsed_kwh numeric,
+  z_hed_kwh numeric,
+  z_dhed_kwh numeric,
+  z_csed_kwh numeric,
+  z_ced_kwh numeric,
+  max_heat_kw numeric,
+  CONSTRAINT buildings_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".device_connections
+-- DROP TABLE "$versionName$".device_connections;
+CREATE TABLE "$versionName$".device_connections
+(
+  id serial,
+  did integer,
+  d_seq integer,
+  lid integer,
+  CONSTRAINT device_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".junction_connections
+-- DROP TABLE "$versionName$".junction_connections;
+CREATE TABLE "$versionName$".junction_connections
+(
+  id serial,
+  jid integer,
+  lid integer,
+  CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".customer_connections
+-- DROP TABLE "$versionName$".customer_connections;
+CREATE TABLE "$versionName$".customer_connections
+(
+  id serial,
+  cid integer,
+  c_seq integer,
+  lid integer,
+  CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
+);
+  
+-- Table: "$versionName$".energy_plant_connections
+-- DROP TABLE "$versionName$".energy_plant_connections;
+CREATE TABLE "$versionName$".energy_plant_connections
+(
+  id serial,
+  epid integer,
+  ep_seq integer,
+  lid integer,
+  CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".pipes_model
+-- DROP TABLE "$versionName$".pipes_model;
+CREATE TABLE "$versionName$".pipes_model
+(
+  id serial,
+  sim_model integer,
+  pid integer,
+  co_sim integer,
+  CONSTRAINT id_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".segment_lines_00
+-- DROP TABLE "$versionName$".segment_lines_00;
+CREATE TABLE "$versionName$".segment_lines_00
+(
+  lines_id integer,
+  rc_split_multi geometry
+);
+
+-- Index: "$versionName$".segment_lines_00_rc_split_multi_idx
+-- DROP INDEX "$versionName$".segment_lines_00_rc_split_multi_idx;
+CREATE INDEX segment_lines_00_rc_split_multi_idx
+  ON "$versionName$".segment_lines_00
+  USING gist
+  (rc_split_multi);
+
+-- Table: "$versionName$".streets
+-- DROP TABLE "$versionName$".streets;
+CREATE TABLE "$versionName$".streets
+(
+  id serial,
+  geom geometry(LineString,$srid$),
+  length_m double precision,
+  costs_eur7m numeric DEFAULT 100,
+  source integer,
+  target integer,
+  CONSTRAINT streets_pkey PRIMARY KEY (id)
+);
+
+	
+-- Table: "$versionName$".time_manager_tair
+-- DROP TABLE "$versionName$".time_manager_tair;
+CREATE TABLE "$versionName$".time_manager_tair
+(
+  id serial,
+  b_id serial,
+  the_geom geometry(MultiPolygon,$srid$),
+  time_h character varying(20),
+  time_stamp timestamp without time zone,
+  t_air_c numeric,
+  CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".invoked_sf
+-- DROP TABLE IF EXISTS "$versionName$".invoked_sf;
+CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sf
+(
+    id serial,
+    sf text,
+    vars text[],
+    CONSTRAINT invoked_sf_pkey PRIMARY KEY (id)
+);
