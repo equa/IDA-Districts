@@ -199,18 +199,12 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         
         #project labels
         layout_project_labels=QVBoxLayout()
-                
-        label_new_project =QLabel("New project name")
-        layout_project_labels.addWidget(label_new_project) 
         
         label_select_project =QLabel("Select project")
         layout_project_labels.addWidget(label_select_project) 
         
         #project input
         layout_project_input=QVBoxLayout()
-        
-        self.projectName =QLineEdit("")
-        layout_project_input.addWidget(self.projectName)
         
         self.selectProject =QComboBox()
         layout_project_input.addWidget(self.selectProject)

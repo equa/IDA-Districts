@@ -36,7 +36,7 @@ from qgis.PyQt.QtWidgets import QAction, QFileDialog, QApplication, QTreeWidget,
 from .resources import *
 # Import the code for the dialog
 from .IDA_districts_project_handling_dialog import IDA_Districts_ProjectHandlingDialog, ProjectConfigDialog,ExportProjectDialog
-from .Dialogs import IDA_Districts_NameDialog, ApproveDialog
+from .Dialogs import IDA_Districts_NameDialog, ApproveDialog, NameFieldDialog
 import os.path
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -307,11 +307,16 @@ class WorkerImportProject(QRunnable):
             self.dlg.selectProject.addItem(db_info['projectName'])
         else:
             self.signals.error.emit("Project already exists in DB!")
-            self.signals.progress.emit(0)   
+            self.signals.progress.emit(0)  
+                            dir=self.plugin_dir+'\\'+projectName
+            if os.name == 'nt':
+                dir='\\\\?\\'+dir
             shutil.rmtree(dir)            
             return False
             
-        shutil.rmtree(dir)
+        if os.name == 'nt':
+            dir='\\\\?\\'+dir
+        shutil.rmtree(dir)  
         self.signals.progress.emit(100)
             
 class WorkerExportProject(QRunnable):
@@ -349,7 +354,9 @@ class WorkerExportProject(QRunnable):
 
         # Check if the folder exists and delete it
         if os.path.exists(dir) and os.path.isdir(dir):
-            shutil.rmtree(dir)
+            if os.name == 'nt':
+                dir='\\\\?\\'+dir
+            shutil.rmtree(dir)  
             
         path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
         
@@ -399,7 +406,9 @@ class WorkerExportProject(QRunnable):
         cmd="""\"{}bin\\7za.exe" a -t7z -r "{}.ida" "{}/*.*\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],dir,dir)
         print(cmd)
         subprocess.call(cmd, shell=True) 
-        shutil.rmtree(dir)
+        if os.name == 'nt':
+            dir='\\\\?\\'+dir
+        shutil.rmtree(dir)  
         self.signals.progress.emit(100)
             
 class IDA_Districts_ProjectHandling:
@@ -677,101 +686,116 @@ class IDA_Districts_ProjectHandling:
             self.cur_postgres.execute(sql)
             self.dlg.selectProject.removeItem(index)
             #delete folders
-            print(self.plugin_dir+'/'+projectName)
-            if os.path.exists(self.plugin_dir+'/'+projectName):
-                shutil.rmtree(self.plugin_dir+'/'+projectName)
-            print(getDataCenterDir(self.plugin_dir)+'/'+projectName)
-            if os.path.exists(getDataCenterDir(self.plugin_dir)+'/'+projectName):
-                shutil.rmtree(getDataCenterDir(self.plugin_dir)+'/'+projectName)
-            print(getModellingDir(self.plugin_dir)+'/network_models/'+projectName)
-            if os.path.exists(getModellingDir(self.plugin_dir)+'/network_models/'+projectName):
-                shutil.rmtree(getModellingDir(self.plugin_dir)+'/network_models/'+projectName)
+            if os.path.exists(self.plugin_dir+'\\'+projectName):
+                dir=self.plugin_dir+'\\'+projectName
+                if os.name == 'nt':
+                    dir='\\\\?\\'+dir
+                    print(dir)
+                    shutil.rmtree(dir)
+            if os.path.exists(getDataCenterDir(self.plugin_dir)+'\\'+projectName):
+                dir=getDataCenterDir(self.plugin_dir)+'\\'+projectName
+                if os.name == 'nt':
+                    dir='\\\\?\\'+dir
+                    print(dir)
+                shutil.rmtree(dir)
+            if os.path.exists(getModellingDir(self.plugin_dir)+'\\network_models\\'+projectName):
+                dir=getModellingDir(self.plugin_dir)+'\\network_models\\'+projectName
+                if os.name == 'nt':
+                    dir='\\\\?\\'+dir
+                    print(dir)
+                shutil.rmtree(dir)
             self.dlg_deleteProject.close()
     
-    def createNewProject(self):
+    def showCreateNewProject(self):
         """Creates a new Project"""
-        if checkString(self.dlg.projectName.text()):
-            if self.conn_postgres != '':
-                if checkDBName(self.dlg.projectName.text(),self.cur_postgres,self.dictDB):
-                    self.dictDB['projectName']=self.dlg.projectName.text()
-        
-                    self.dlg.selectProject.addItem(self.dictDB['projectName'])
-                    print (self.dlg.selectProject.currentText())
-                    print (self.plugin_dir)
-                    
-                    dir_data_center=getDataCenterDir(self.plugin_dir)
-                    self.dlg.selectProject.setCurrentText(self.dictDB['projectName'])
-                            
-                    sql = 'CREATE database '+self.dictDB['projectName']+';'
-                    self.cur_postgres.execute(sql)
-                    
-                    #add extensions and topology tables to new project
-                    self.conn=dbConnect(self.dictDB,True)
-                    self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-                    self.cur.execute('CREATE EXTENSION postgis;')
-                    self.cur.execute('CREATE EXTENSION pgrouting;')
-                    self.cur.execute('CREATE EXTENSION dblink;')
-                    self.cur.execute('CREATE EXTENSION postgis_raster;')
-                    
-                    #create temp folder
-                    sql = 'CREATE SCHEMA IF NOT EXISTS temp;'
-                    print(sql)
-                    self.cur.execute(sql) 
-                    
-                    sql=""
-                    #project tables
-                    if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault.txt"):
-                        with open(self.plugin_dir+"\\DB_projectTablesDefault.txt", "r") as myfile:
-                            for line in myfile:
-                                sql=sql+line
-                        sql = sql.replace("$srid$", self.projectConfig['srid'])
-                        self.cur.execute(sql)
-                    sql=""
-                    #project values
-                    if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault_data.txt"):
-                        with open(self.plugin_dir+"\\DB_projectTablesDefault_data.txt", "r") as myfile:
-                            for line in myfile:
-                                sql=sql+line
-                        self.cur.execute(sql)
+        if self.conn_postgres != '':
+            self.dlg_createNewProject=NameFieldDialog('Create new project','Project name:','')
+            self.dlg_createNewProject.btn_ok.clicked.connect(lambda: self.createNewProject(self.dlg_createNewProject))
+            self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
+            self.dlg_createNewProject.show()   
+        else:
+            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            
+    def createNewProject(self,dlg):
+        if checkString(dlg.input.text()):
+            if checkDBName(dlg.input.text(),self.cur_postgres,self.dictDB):
+                self.dictDB['projectName']=dlg.input.text()
+                self.dlg.selectProject.addItem(self.dictDB['projectName'])
+                print (self.dlg.selectProject.currentText())
+                print (self.plugin_dir)
+                
+                dir_data_center=getDataCenterDir(self.plugin_dir)
+                self.dlg.selectProject.setCurrentText(self.dictDB['projectName'])
                         
-                    #add sql functions
-                    sql=""
-                    if os.path.exists(self.plugin_dir+"\\SQL_scripts.txt"):
-                        with open(self.plugin_dir+"\\SQL_scripts.txt", "r") as myfile:
-                            for line in myfile:
-                                sql=sql+line
-                        self.cur.execute(sql)
+                sql = 'CREATE database '+self.dictDB['projectName']+';'
+                self.cur_postgres.execute(sql)
+                
+                #add extensions and topology tables to new project
+                self.conn=dbConnect(self.dictDB,True)
+                self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.cur.execute('CREATE EXTENSION postgis;')
+                self.cur.execute('CREATE EXTENSION pgrouting;')
+                self.cur.execute('CREATE EXTENSION dblink;')
+                self.cur.execute('CREATE EXTENSION postgis_raster;')
+                
+                #create temp folder
+                sql = 'CREATE SCHEMA IF NOT EXISTS temp;'
+                print(sql)
+                self.cur.execute(sql) 
+                
+                sql=""
+                #project tables
+                if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault.txt"):
+                    with open(self.plugin_dir+"\\DB_projectTablesDefault.txt", "r") as myfile:
+                        for line in myfile:
+                            sql=sql+line
+                    sql = sql.replace("$srid$", self.projectConfig['srid'])
+                    self.cur.execute(sql)
+                sql=""
+                #project values
+                if os.path.exists(self.plugin_dir+"\\DB_projectTablesDefault_data.txt"):
+                    with open(self.plugin_dir+"\\DB_projectTablesDefault_data.txt", "r") as myfile:
+                        for line in myfile:
+                            sql=sql+line
+                    self.cur.execute(sql)
                     
-                    data=self.getVersionData()
-                    self.setTreeViewModel(data)
-                    
-                    #make dir with db name and create project config file projectConfig.txt in project handling
-                    to_directory=self.plugin_dir+"\\"+self.dictDB['projectName']
-                    Path(to_directory).mkdir(parents=True, exist_ok=True)
-                    writeProjectConfig(self.plugin_dir,self.dictDB['projectName'],self.projectConfig)
-                    writeDBSettings(self.plugin_dir,self.dictDB)
-                    
-                    # copy templates
-                    for assettype in ['customer','energy_plant','device']:
-                        from_directory = """{}\\templates\\{}_assettypes""".format(self.plugin_dir,assettype)
-                        print(from_directory)
-                        to_directory = dir_data_center+"\\"+self.dictDB['projectName']+"\\"+assettype+"_assettypes"
-                        print(to_directory)
-                        #Path(to_directory).mkdir(parents=True, exist_ok=True)
-                        #if os.path.exists(to_directory):
-                        shutil.copytree(from_directory, to_directory)
-                            
-                        #replace plugins path
-                        for dname, dirs, files in os.walk(to_directory):
-                            for fname in files:
-                                fpath = os.path.join(dname, fname)
-                                with open(fpath) as f:
-                                    s = f.read()
-                                s = s.replace("$plugins_path$", getQGISPluginsDir(self.plugin_dir).replace("\\","\\\\"))
-                                with open(fpath, "w") as f:
-                                    f.write(s)
-            else:
-                self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+                #add sql functions
+                sql=""
+                if os.path.exists(self.plugin_dir+"\\SQL_scripts.txt"):
+                    with open(self.plugin_dir+"\\SQL_scripts.txt", "r") as myfile:
+                        for line in myfile:
+                            sql=sql+line
+                    self.cur.execute(sql)
+                
+                data=self.getVersionData()
+                self.setTreeViewModel(data)
+                
+                #make dir with db name and create project config file projectConfig.txt in project handling
+                to_directory=self.plugin_dir+"\\"+self.dictDB['projectName']
+                Path(to_directory).mkdir(parents=True, exist_ok=True)
+                writeProjectConfig(self.plugin_dir,self.dictDB['projectName'],self.projectConfig)
+                writeDBSettings(self.plugin_dir,self.dictDB)
+                
+                # copy templates
+                for assettype in ['customer','energy_plant','device']:
+                    from_directory = """{}\\templates\\{}_assettypes""".format(self.plugin_dir,assettype)
+                    print(from_directory)
+                    to_directory = dir_data_center+"\\"+self.dictDB['projectName']+"\\"+assettype+"_assettypes"
+                    print(to_directory)
+                    #Path(to_directory).mkdir(parents=True, exist_ok=True)
+                    #if os.path.exists(to_directory):
+                    shutil.copytree(from_directory, to_directory)
+                        
+                    #replace plugins path
+                    for dname, dirs, files in os.walk(to_directory):
+                        for fname in files:
+                            fpath = os.path.join(dname, fname)
+                            with open(fpath) as f:
+                                s = f.read()
+                            s = s.replace("$plugins_path$", getQGISPluginsDir(self.plugin_dir).replace("\\","\\\\"))
+                            with open(fpath, "w") as f:
+                                f.write(s)         
+                closeDialog(dlg)
           
     def importData(self, data, root=None):
         self.model.setRowCount(0)
@@ -831,7 +855,7 @@ class IDA_Districts_ProjectHandling:
             title='Add project version'
             label_text='Project version name:'
             self.dlg_addVersion = IDA_Districts_NameDialog(title,label_text,'','')
-            self.dlg_addVersion.btn_ok.clicked.connect(lambda: self.TreeItem_Add(level,mdlIdx))
+            self.dlg_addVersion.btn_ok.clicked.connect(lambda: self.TreeItem_Add(level,mdlIdx,self.dlg_addVersion))
             self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
             self.dlg_addVersion.show()               
         else:
@@ -850,10 +874,10 @@ class IDA_Districts_ProjectHandling:
         else:
             self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
          
-    def TreeItem_Add(self, level, mdlIdx):
+    def TreeItem_Add(self, level, mdlIdx,dlg):
         """Function to add new project version and add child item to treeview"""
-        versionName=self.dlg_addVersion.input.text()
-        description=self.dlg_addVersion.input_description.text()
+        versionName=dlg.input.text()
+        description=dlg.input_description.text()
         if versionName:
             newVersionName=self.checkIfVersionIsNew(versionName)
             if newVersionName:
@@ -1206,17 +1230,21 @@ class IDA_Districts_ProjectHandling:
     def importProject(self):
         """ import a project from a sql file and write the data center and modelling files to the folders"""
         print("import project")
-        filename, _filter = QFileDialog.getOpenFileName(
-            self.dlg, "Import IDA Districts project",'','*.ida')
-        print(filename)
-        filename=filename.replace('/','\\')
+        if self.cur_postgres:
+            filename, _filter = QFileDialog.getOpenFileName(
+                self.dlg, "Import IDA Districts project",'','*.ida')
+            print(filename)
+            filename=filename.replace('/','\\')
 
-        if filename:
-            self.worker_import = WorkerImportProject(filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg)
-            self.worker_import.signals.progress.connect(self.dlg.update_progress)
-            self.worker_import.signals.error.connect(self.dlg.show_error_message)      
-            self.threadpool_import = QThreadPool()            
-            self.threadpool_import.start(self.worker_import)    
+            if filename:
+                self.worker_import = WorkerImportProject(filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg)
+                self.worker_import.signals.progress.connect(self.dlg.update_progress)
+                self.worker_import.signals.error.connect(self.dlg.show_error_message)      
+                self.threadpool_import = QThreadPool()            
+                self.threadpool_import.start(self.worker_import)    
+        else:
+            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+
         
     def showExportProject(self):
         if self.conn != '':
@@ -1292,7 +1320,7 @@ class IDA_Districts_ProjectHandling:
             self.first_start = False
             self.dlg = IDA_Districts_ProjectHandlingDialog()
             self.dictDB={'pwd' : '' , 'host' : self.dlg.host.text(), 'port' :  self.dlg.port.text(), 'user' : '', 'projectName' : '', 'versionName' : ''}
-            self.dlg.btn_createProject.clicked.connect(self.createNewProject)
+            self.dlg.btn_createProject.clicked.connect(self.showCreateNewProject)
             self.dlg.btn_deleteProject.clicked.connect(self.deleteProjectDialog)
             self.dlg.btn_loadProject.clicked.connect(self.loadSelectedProject)
             self.dlg.btn_configProject.clicked.connect(self.setProjectConfig)

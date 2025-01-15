@@ -256,6 +256,8 @@ class IDADistrictsDataCenter:
                         value=''
             if isinstance(value, str) and ':' in value and value.split(':')[0].isnumeric():
                 value=value.split(':')[0]
+            if not value:
+                return False
             if not isFloat(value) and value!='Null':
                 value="'"+value + "'" 
             values.append(value)
@@ -282,11 +284,17 @@ class IDADistrictsDataCenter:
         counter=1
         for row in range(dlg.tableWidget.rowCount()):
             values=self.getValuesFromTableRow(dlg,dropdowns,row,columns,[])
+            if not values:
+                self.iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
+                return False
             sql+="""INSERT INTO public.{} (id,{},{}) VALUES({},{},{});\n""".format(table,filter[5:-1],','.join(i for i in columns),maxId+counter,id,values)
             counter+=1
         print(sql)
-        self.cur.execute(sql)
-        
+        try:
+            self.cur.execute(sql)
+        except Exception as e:
+            self.iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
+            return False
         
         if trace in ['conn_type_trace','bt_conns_trace']:
             print(dlg.traceTableValues)
