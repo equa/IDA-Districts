@@ -1,4 +1,5 @@
 from plugins.utility_functions.files import *
+from plugins.utility_functions.db import *
 from qgis.core import  QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 
 
@@ -265,16 +266,22 @@ def showTempTables(uri,dictDB,plugin_dir,iface,cur):
         print('Load project layers failed')
 
 def setLayersHidden(tableNames):
-    model = iface.layerTreeView().layerTreeModel()
-    ltv = iface.layerTreeView()
-    root = QgsProject.instance().layerTreeRoot()
+
     for tableName in tableNames:
-        layer=QgsProject.instance().mapLayersByName(tableName)[0]
-        node = root.findLayer( layer.id())
-        index = model.node2index(node)
-        ltv.setRowHidden( index.row(), index.parent(), True)
+        print(tableName)
+        layer=QgsProject.instance().mapLayersByName(tableName)
+        if layer:
+            layer=layer[0]
+            model = iface.layerTreeView().layerTreeModel()
+            ltv = iface.layerTreeView()
+            root = QgsProject.instance().layerTreeRoot()
+            node = root.findLayer( layer.id())
+            index = model.node2index(node)
+            print(index)
+            print(index.row())
+            ltv.setRowHidden( index.row(), index.parent(), True)
         
-def loadTopologyLayers(version,uri,layerTreeRoot,dictDB):
+def loadTopologyLayers(version,uri,dictDB):
     #load tables without geometry and hide them in layers panel
     tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
         'structure_boundary_assettypes','junction_assetgroups','structure_line_assetgroups','structure_line_assettypes',

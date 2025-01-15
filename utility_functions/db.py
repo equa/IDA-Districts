@@ -6,20 +6,23 @@ from qgis.core import Qgis, QgsMessageLog
 from typing import Iterator, Optional,Dict, Any
 import io
 import subprocess
+import os
+from plugins.utility_functions.files import *
 
-def copy_schema(baseName,new_versionName):
+
+def copy_schema(baseName,new_versionName,dictDB,cur,plugin_dir):
     """copy schema"""
-    os.environ['PGPASSWORD'] = self.dictDB['pwd']
-    path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
-    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n {} > "{}\\dump_schema.sql" '.format(path_postgres,self.dictDB['user'],self.dictDB['host'],self.dictDB['port'],self.dictDB['projectName'],baseName,self.plugin_dir)
+    os.environ['PGPASSWORD'] = dictDB['pwd']
+    path_postgres=loadIDADistrictsConfig(plugin_dir)['path_postgresql']
+    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n {} > "{}\\dump_schema.sql" '.format(path_postgres,dictDB['user'],dictDB['host'],dictDB['port'],dictDB['projectName'],baseName,plugin_dir)
     print(cmd)
     subprocess.call(cmd, shell=True)  
     
     sql = 'ALTER SCHEMA '+baseName+' RENAME TO '+new_versionName+' ;'
     print(sql)
-    self.cur.execute(sql)           
+    cur.execute(sql)           
     
-    cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['port'], self.dictDB['user'],self.plugin_dir)
+    cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(path_postgres,dictDB['projectName'],dictDB['host'],dictDB['port'], dictDB['user'],plugin_dir)
     print(cmd)
     subprocess.call(cmd, shell=True)  
         
@@ -27,7 +30,7 @@ def setSeqIdToMax(seq,table,col,cur):
     sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table)
     print(sql)
     cur.execute(sql)
-    
+
 def getTimeDiff(cur,dictDB,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
     FROM (SELECT {} AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1) start_time,
@@ -35,7 +38,18 @@ def getTimeDiff(cur,dictDB,table,col,order_col):
     print(sql)
     cur.execute(sql)
     return cur.fetchone()['diff']
-
+    
+def getAvergageByMode(mode,cur,dictDB,table):
+    """return value in seconds"""
+    if mode=='Hourly average':
+        return 'hour'
+    elif mode=='Daily average':
+        return 'day'
+    elif mode=='Monthly average':
+        return 'month'
+    elif mode=='Values':
+        return getTimeDiff(cur,dictDB,table,'time','fid')/3600
+        
 def featureCount(cur,dictDB,network,type):
     sql="""SELECT count(*) FROM "{}".{}s WHERE network=array[{}];""".format(dictDB['versionName'],type,network)
     cur.execute(sql)

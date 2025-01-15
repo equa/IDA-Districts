@@ -1,18 +1,21 @@
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.utils import iface
 from datetime import datetime 
-from plugins.utility_functions.db import *
+#from plugins.utility_functions.db import *
 from scipy.interpolate import interp1d
 import numpy as np
 import shutil
 import time
+import os
 
-def copy_tree_filter_extensions_and_folders(src, dst, exclude_extensions=None, exclude_folders=None):
+def copy_tree_filter_extensions_and_folders(src, dst, signals=None,exclude_extensions=None, exclude_folders=None):
     # Set default values if no extensions or folders are provided
     if exclude_extensions is None:
         exclude_extensions = []
     if exclude_folders is None:
         exclude_folders = []
+    if exclude_folders is None:
+        signals = False
 
     # Ensure the extensions and folder names are in lowercase for case-insensitive comparison
     exclude_extensions = [ext.lower() for ext in exclude_extensions]
@@ -28,12 +31,19 @@ def copy_tree_filter_extensions_and_folders(src, dst, exclude_extensions=None, e
             full_file_path = os.path.join(root, file)
             relative_path = os.path.relpath(full_file_path, src)
             destination_file_path = os.path.join(dst, relative_path)
-            
-            # Make sure the destination directory exists
-            os.makedirs(os.path.dirname(destination_file_path), exist_ok=True)
-            
-            # Copy the file to the destination
-            shutil.copy2(full_file_path, destination_file_path)
+            try:
+                if os.name == 'nt' and len(destination_file_path)>=260:  # Windows OS
+                    destination_file_path = '\\\\?\\' + os.path.abspath(destination_file_path)
+                if os.name == 'nt' and len(full_file_path)>=260:  # Windows OS
+                    full_file_path = '\\\\?\\' + os.path.abspath(full_file_path)
+                # Make sure the destination directory exists
+                os.makedirs(os.path.dirname(destination_file_path), exist_ok=True)
+                
+                # Copy the file to the destination
+                shutil.copy2(full_file_path, destination_file_path)
+            except:
+                if signals:
+                    signals.error.emit("Failed to copy file (file path probably to long):"+destination_file_path)
         
         # Prevent os.walk from traversing excluded directories
         for dir_name in dirs[:]:
@@ -82,17 +92,6 @@ def getDateTime(y=2024,m=1,d=1,h=0,min=0,s=0):
 def getDatetimeFromString(date_string):
     time_split=date_string.split()
     return getDateTime(int(time_split[0].split('-')[0]), int(time_split[0].split('-')[1]), int(time_split[0].split('-')[2]), int(time_split[1].split(':')[0]), int(time_split[1].split(':')[1]),int(time_split[1].split(':')[2]))
-
-def getAvergageByMode(mode,cur,dictDB,table):
-    """return value in seconds"""
-    if mode=='Hourly average':
-        return 'hour'
-    elif mode=='Daily average':
-        return 'day'
-    elif mode=='Monthly average':
-        return 'month'
-    elif mode=='Values':
-        return getTimeDiff(cur,dictDB,table,'time','fid')/3600
 
 def getNTPTime(year,month,day,hour,minute,second):
     diff = datetime(year, month, day, hour, minute, second) - datetime(1900, 1, 1, 0, 0, 0)
@@ -161,23 +160,33 @@ def strToDict(str):
     return dict
 
     
-def checkString(str):
+def checkString(my_string):
     """Check if String contains upper cases, white spaces or spacial characters """
+
+    #checking empty string
+    if len(my_string)==0:
+        iface.messageBar().pushMessage("Error", "Please enter a project name!", level=Qgis.Critical)
+        return False
+
+    #start with a character
+    if not my_string[0].isalpha():
+        iface.messageBar().pushMessage("Error", "Please start with an alphabetic character!", level=Qgis.Critical)
+        return False
+        
     ok=True
-    
-    for char in str:
+    for char in my_string:
         # checking for uppercase character and flagging
         if char.isupper():
             ok = False
             break
       
     #checking for white spaces
-    if ' ' in str:
+    if ' ' in my_string:
         ok = False
         
     #checking for spacial characters
     special_characters="!@#$%^&*()-+?=,<>/\""
-    if any(c in special_characters for c in str):   
+    if any(c in special_characters for c in my_string):   
         ok = False
         
     if not ok:

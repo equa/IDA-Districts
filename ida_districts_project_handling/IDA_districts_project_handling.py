@@ -72,7 +72,6 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
     uri.setConnection(dictDB['host'], dictDB['port'], dictDB['projectName'], dictDB['user'], dictDB['pwd'])
     print(uri)
 
-    layerTreeRoot = QgsProject.instance().layerTreeRoot()    
     view = iface.layerTreeView()
     
     try: 
@@ -82,7 +81,6 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
         single_symbol_renderer = vlayer.renderer()
         symbol = single_symbol_renderer.symbol()
         symbol.setColor(QColor.fromRgb(255, 0, 0))
-        view.setLayerVisible(vlayer, False)
         view.refreshLayerSymbology(vlayer.id())
 
         uri.setDataSource(dictDB['versionName'], "streets", "geom")
@@ -104,8 +102,10 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
         
     except Exception as e:
         print(f'error: {e}')
-                
-    loadTopologyLayers(dictDB['versionName'],uri,layerTreeRoot,dictDB)   
+    
+    view = iface.layerTreeView()
+    view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
+    loadTopologyLayers(dictDB['versionName'],uri,dictDB)   
     loadProjectLayers(dictDB['versionName'],uri,dictDB,plugin_dir,cur)
     
     loadBoreholesLayer(dictDB['versionName'],uri,dictDB,plugin_dir,cur)
@@ -137,7 +137,7 @@ class WorkerLoadVersion(QRunnable):
     def run(self):
         try:
             print('Load project version')
-            self.signals.progress.emit(1)  
+            self.signals.progress.emit(10)  
             print (self.dictDB['versionName'])
                 
             #check if there are changes in the child versions and append the changes to the diff script
@@ -182,14 +182,14 @@ class WorkerLoadVersion(QRunnable):
                     sql='SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=\'{}\' AND table_name=\'{}\';'.format(self.dictDB['versionName'],table)
                     print(sql)
                     self.cur.execute(sql)
-                    curUpdatedColumn=self.conn.cursor()  
-                    for column in self.cur.fetchall():
+                    columns=self.cur.fetchall()
+                    for column in columns:
                         sql="""SELECT id,{} FROM "{}".{}
                             EXCEPT
                             SELECT id,{} FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],self.dictDB['versionName'],table)
                         print(sql)
-                        curUpdatedColumn.execute(sql)
-                        for updatedColumnValue in curUpdatedColumn:
+                        self.cur.execute(sql)
+                        for updatedColumnValue in self.cur.fetchall():
                             print ('+++++++++++++++++++++++++++')
                             print (column['data_type'])
                         
@@ -201,7 +201,6 @@ class WorkerLoadVersion(QRunnable):
                                 diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
                             if diff not in diffData:
                                 diffData=diffData+diff
-                    curUpdatedColumn.close()
                 
                 print(diffData)
                 with open(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],child['version_name']),'w') as myfile:
@@ -212,7 +211,7 @@ class WorkerLoadVersion(QRunnable):
                 sql = 'DROP SCHEMA '+self.dictDB['versionName']+' CASCADE;'
                 print(sql)
                 self.cur.execute(sql)
-                copy_schema(self.item.parent().text(),self.dictDB['versionName'])
+                copy_schema(self.item.parent().text(),self.dictDB['versionName'],self.dictDB,self.cur,self.plugin_dir)
                 
                 if os.path.exists(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['versionName'])):
                     os.environ['PGPASSWORD'] = self.dictDB['pwd']
@@ -221,8 +220,6 @@ class WorkerLoadVersion(QRunnable):
                     print(cmd)
                     subprocess.call(cmd, shell=True)   
                     
-            self.signals.progress.emit(10)  
-            loadVersionLayers(self.dictDB,self.cur,self.plugin_dir)
             self.signals.progress.emit(100)            
             print('finished tables')
         except Exception as e:
@@ -278,7 +275,7 @@ class WorkerImportProject(QRunnable):
             try:
                 print(dir+'\\ida_districts_data_center\\'+name)
                 print(getDataCenterDir(self.plugin_dir)+'\\'+name)
-                shutil.copytree(dir+'\\ida_districts_data_center\\'+name,getDataCenterDir(self.plugin_dir)+'\\'+name)
+                copy_tree_filter_extensions_and_folders(dir+'\\ida_districts_data_center\\'+name,getDataCenterDir(self.plugin_dir)+'\\'+name)
                 self.signals.progress.emit(30)
             except Exception as e:
                 print(f'error: {e}')
@@ -286,14 +283,14 @@ class WorkerImportProject(QRunnable):
                 return False
             try:
                 if os.path.exists(dir+'\\ida_districts_modeling_simulation'):
-                    shutil.copytree(dir+'\\ida_districts_modeling_simulation\\'+name,getModellingDir(self.plugin_dir)+'\\network_models\\'+name)
+                    copy_tree_filter_extensions_and_folders(dir+'\\ida_districts_modeling_simulation\\'+name,getModellingDir(self.plugin_dir)+'\\network_models\\'+name)
                 self.signals.progress.emit(50)
             except Exception as e:
                 print(f'error: {e}')
                 self.signals.error.emit("Modelling data copying failed!")
                 return False
             try:
-                shutil.copytree(dir+'\\ida_districts_project_handling\\'+name,self.plugin_dir+'\\'+name)
+                copy_tree_filter_extensions_and_folders(dir+'\\ida_districts_project_handling\\'+name,self.plugin_dir+'\\'+name)
                 self.signals.progress.emit(70)
             except Exception as e:
                 print(f'error: {e}')
@@ -377,20 +374,20 @@ class WorkerExportProject(QRunnable):
 
         print(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'])
         try:
-            copy_tree_filter_extensions_and_folders(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_data_center'+'\\'+name,self.filter_extensions,self.filter_folders)
+            copy_tree_filter_extensions_and_folders(getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_data_center'+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
         except Exception as e:
             print(f'error: {e}')
             self.signals.error.emit("Data center files export failed!")
         self.signals.progress.emit(40)    
         try:
-            copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name,self.filter_extensions,self.filter_folders)
+            copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
         except Exception as e:
             print(f'error: {e}')
             self.signals.error.emit("Project handling files export failed!") 
         self.signals.progress.emit(55)  
         if os.path.exists(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName']):
             try:
-                copy_tree_filter_extensions_and_folders(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_modeling_simulation'+'\\'+name,self.filter_extensions,self.filter_folders)
+                copy_tree_filter_extensions_and_folders(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_modeling_simulation'+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
             except Exception as e:
                 print(f'error: {e}')
                 self.signals.error.emit("Modelling files export failed!") 
@@ -569,12 +566,17 @@ class IDA_Districts_ProjectHandling:
     # Function to load version from treeview
     def TreeItem_Load(self, item, mdlIdx):
         if self.conn != '':
+            self.dlg.update_progress(1)
             self.dictDB['versionName'] = item.text()
-            writeDBSettings(self.plugin_dir,self.dictDB)        
+            writeDBSettings(self.plugin_dir,self.dictDB)
+            uri = QgsDataSourceUri()
+            uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
+            loadVersionLayers(self.dictDB,self.cur,self.plugin_dir)
+            
             self.worker_loadVersion = WorkerLoadVersion(dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur,dlg=self.dlg,item=item)
             self.worker_loadVersion.signals.progress.connect(self.dlg.update_progress)
             self.worker_loadVersion.signals.error.connect(self.dlg.show_error_message)      
-            self.threadpool.start(self.worker_loadVersion)    
+            self.threadpool.start(self.worker_loadVersion)
         else:
             self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
     
@@ -872,7 +874,7 @@ class IDA_Districts_ProjectHandling:
                 temp_key = QStandardItem(versionName)
                 temp_value1 = QStandardItem('')
                 self.model.itemFromIndex(mdlIdx).appendRow([temp_key, temp_value1])
-                copy_schema(item.text(),versionName)
+                copy_schema(item.text(),versionName,self.dictDB,self.cur,self.plugin_dir)
                 data=self.getVersionData()
                 self.importData(data)
                 self.dlg.treeViewVersions.expandAll()   
@@ -898,7 +900,7 @@ class IDA_Districts_ProjectHandling:
                 temp_key = QStandardItem(versionName)
                 temp_value1 = QStandardItem('')
                 self.model.itemFromIndex(mdlIdx).appendRow([temp_key, temp_value1])
-                copy_schema(item.text(),versionName)
+                copy_schema(item.text(),versionName,self.dictDB,self.cur,self.plugin_dir)
                 data=self.getVersionData()
                 self.importData(data)
                 self.dlg.treeViewVersions.expandAll()   
@@ -961,25 +963,31 @@ class IDA_Districts_ProjectHandling:
         """Function to delete project version and removes it from the tree"""
         print(item)
         print(item.parent())
-        sql = 'DROP SCHEMA '+item.text()+' CASCADE;'
-        print(sql)
-        self.cur.execute(sql)
- 
-        idBase=''
-        sql="SELECT id FROM public.versionhandling WHERE name = '"+item.text()+"';"
-        print(sql)
-        self.cur.execute(sql)
-        for base in self.cur.fetchall():
-            print(base)
-            print(base['id'])
-            idBase = base['id']
-        sql = 'UPDATE public.versionhandling SET id_base = 0 WHERE id_base ='+str(idBase)+';'
-        print(sql)
-        self.cur.execute(sql)         
+        try:
+            sql = 'DROP SCHEMA '+item.text()+' CASCADE;'
+            print(sql)
+            self.cur.execute(sql)
+        except:
+            pass
+        try:
+            idBase=''
+            sql="SELECT id FROM public.versionhandling WHERE name = '"+item.text()+"';"
+            print(sql)
+            self.cur.execute(sql)
+            for base in self.cur.fetchall():
+                print(base)
+                print(base['id'])
+                idBase = base['id']
+            sql = 'UPDATE public.versionhandling SET id_base = 0 WHERE id_base ='+str(idBase)+';'
+            print(sql)
+            self.cur.execute(sql)         
+            
+            sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'
+            print(sql)
+            self.cur.execute(sql)
+        except:
+            pass
         
-        sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'
-        print(sql)
-        self.cur.execute(sql)
         if item.parent():
             item.parent().removeRow(item.row())
         else:

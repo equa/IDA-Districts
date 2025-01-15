@@ -54,7 +54,7 @@ class ExportProjectDialog(QMainWindow):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton("Export")
         layout_buttons.addWidget(self.btn_ok)
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
