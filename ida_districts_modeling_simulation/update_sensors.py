@@ -22,8 +22,8 @@ class UpdateSensors():
     def writeSensorsToDB(self):
         """Write sensor data to the DB"""
         print('Save table to DB an close dialog')
-        sql="""TRUNCATE {}.sensors, {}.sensor_source,{}.source_assetgroups, {}.source_assettype, {}.source_ids, {}.source_conn_type, {}.source_conns,
-        {}.sensor_target,{}.target_assetgroups, {}.target_assettype, {}.target_ids
+        sql="""TRUNCATE "{}".sensors, "{}".sensor_source,"{}".source_assetgroups, "{}".source_assettype, "{}".source_ids, "{}".source_conn_type, "{}".source_conns,
+        "{}".sensor_target,"{}".target_assetgroups, "{}".target_assettype, "{}".target_ids
         CASCADE;""".format(
             self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'], self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         print(sql)
@@ -51,7 +51,7 @@ class UpdateSensors():
         closeDialog(self.dlg)
 
     def insertIntoSensorsTable(self,table,row,sensor_id):
-        sql="""INSERT INTO {}.sensors(id) VALUES ({});""".format(self.dictDB['versionName'],sensor_id)
+        sql="""INSERT INTO "{}".sensors(id) VALUES ({});""".format(self.dictDB['versionName'],sensor_id)
         print(sql)
         self.cur.execute(sql)
         
@@ -67,13 +67,13 @@ class UpdateSensors():
             measure=table.cellWidget(row, 7).currentIndex()+1
         if table.cellWidget(row, 8).currentText()=='Individual signals for each target':
             function=6
-        sql="""INSERT INTO {}.sensor_source(sensor_id,type,assetgroup,assettype,measure,function,conn_type,conns,ids,test_value,description) VALUES ({},{},{},{},{},{},{},{},{},{},'{}');""".format(
+        sql="""INSERT INTO "{}".sensor_source(sensor_id,type,assetgroup,assettype,measure,function,conn_type,conns,ids,test_value,description) VALUES ({},{},{},{},{},{},{},{},{},{},'{}');""".format(
             self.dictDB['versionName'],sensor_id,table.cellWidget(row, 1).currentText().split(':')[0],sensor_id,sensor_id,measure,function,sensor_id,sensor_id,sensor_id,table.item(row,9).text(),table.item(row,10).text())
         print(sql)
         self.cur.execute(sql)
 
     def insertIntoSensorTargetTable(self,table,row,sensor_id):
-        sql="""INSERT INTO {}.sensor_target(sensor_id,type,assetgroup,assettype,target,description) VALUES ({},{},{},{},{},'{}');""".format(
+        sql="""INSERT INTO "{}".sensor_target(sensor_id,type,assetgroup,assettype,target,description) VALUES ({},{},{},{},{},'{}');""".format(
             self.dictDB['versionName'],sensor_id,table.cellWidget(row, 1).currentText().split(':')[0],sensor_id,sensor_id,table.cellWidget(row, 5).currentIndex()+1,table.item(row,6).text())
         print(sql)
         self.cur.execute(sql)
@@ -131,7 +131,7 @@ class UpdateSensors():
         if dropDown!=None:
             for i in range(dropDown.count()):
                 if dropDown.itemText(i) != 'Check all items':  
-                    sql="""INSERT INTO {}.source_conns(source_id,connection_id,active) VALUES ({},{},{});""".format(
+                    sql="""INSERT INTO "{}".source_conns(source_id,connection_id,active) VALUES ({},{},{});""".format(
                         self.dictDB['versionName'],sensor_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
                     print(sql)
                     self.cur.execute(sql)
@@ -180,7 +180,7 @@ class UpdateSensors():
     def loadSensorTableValues(self):
         """Load the sensor table values """
         sql="""SELECT s_s.sensor_id, s_s.type AS source_type, type.name AS source_type_name, s_s.assetgroup AS source_assetgroup, s_s.assettype AS source, m.measure, f.function, s_s.test_value, s_s.description AS description_source, s_t.type AS target_type
-    FROM {}.sensor_source s_s, public.type, public.measure m, public.signal_function f, {}.sensor_target s_t
+    FROM "{}".sensor_source s_s, public.type, public.measure m, public.signal_function f, "{}".sensor_target s_t
     WHERE s_s.type=type.id AND s_s.measure=m.id AND s_s.function=f.id AND s_t.sensor_id=s_s.sensor_id
     ORDER BY s_s.sensor_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'])
         i=0
@@ -214,7 +214,7 @@ class UpdateSensors():
         
         i=0  
         sql="""SELECT s_t.sensor_id, s_t.type AS target_type, type.name AS target_type_name, s_t.assetgroup, s_t.assettype, t.target AS target_name, s_t.description AS description_target
-    FROM {}.sensor_target s_t, public.type, public.target t
+    FROM "{}".sensor_target s_t, public.type, public.target t
     WHERE s_t.type=type.id AND t.id=s_t.target
     ORDER BY s_t.sensor_id;""".format(self.dictDB['versionName'])
         self.cur.execute(sql)
@@ -272,7 +272,7 @@ class UpdateSensors():
         
     def setFilteredConnTypesDropdownItems(self,type,id,row):
         sql="""SELECT c_type.id AS conn_type_id, c_type.description, s_ct.active
-    FROM {}.source_conn_type s_ct, {}.source_ids s_id, public.connection_types c_type
+    FROM "{}".source_conn_type s_ct, "{}".source_ids s_id, public.connection_types c_type
     WHERE s_ct.source_id=s_id.source_id AND c_type.id=s_ct.conn_type AND s_id.source_id={}
     GROUP BY c_type.id, c_type.description, s_ct.active
     ORDER BY c_type.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
@@ -291,7 +291,7 @@ class UpdateSensors():
         
     def setFilteredConnsDropdownItems(self,type,id,row):
         sql="""SELECT conns.id AS conn_id, conns.description, s_conns.active
-    FROM {}.source_conns s_conns, public.connections conns
+    FROM "{}".source_conns s_conns, public.connections conns
     WHERE s_conns.connection_id=conns.id AND s_conns.source_id={}
     GROUP BY conns.id, conns.description, s_conns.active
     ORDER BY conns.id;""".format(self.dictDB['versionName'],id)
@@ -679,11 +679,11 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
                 
         #delete from invoked tables in DB
         if remove_sensor_source_ids:
-            sql="""DELETE FROM {}.invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
+            sql="""DELETE FROM "{}".invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
             print(sql)
             self.cur.execute(sql)
         if remove_sensor_target_ids:
-            sql="""DELETE FROM {}.invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
+            sql="""DELETE FROM "{}".invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
             print(sql)
             self.cur.execute(sql)  
         

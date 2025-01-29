@@ -78,7 +78,7 @@ class IDADistrictsModelingSimulation:
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
+        self.plugin_dir = os.path.dirname(__file__).replace('/','\\')
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(
@@ -216,18 +216,22 @@ class IDADistrictsModelingSimulation:
         
     def showCustomerParm(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_customerParm=CustomerModelParmDlg()
-            self.dlg_customerParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_customerParm))
-            self.dlg_customerParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_customerParm.tableWidget_parameters))
-            self.dlg_customerParm.btn_ok.clicked.connect(lambda: setCustParm(self.dlg_customerParm,self.conn,self.dictDB,self.plugin_dir))
-            self.dlg_customerParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_customerParm))
-            loadCustomerParm(self.dlg_customerParm,self.cur,self.dictDB)
-            loadLayerFieldsToList(self.dlg_customerParm.listWidget_customerFields,'customers')
-            self.dlg_customerParm.show()
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_customerParm=CustomerModelParmDlg()
+                self.dlg_customerParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_customerParm))
+                self.dlg_customerParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_customerParm.tableWidget_parameters))
+                self.dlg_customerParm.btn_ok.clicked.connect(lambda: setCustParm(self.dlg_customerParm,self.conn,self.dictDB,self.plugin_dir))
+                self.dlg_customerParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_customerParm))
+                loadCustomerParm(self.dlg_customerParm,self.cur,self.dictDB)
+                loadLayerFieldsToList(self.dlg_customerParm.listWidget_customerFields,'customers')
+                self.dlg_customerParm.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
         
     def setModellingSettings(self,dlg):
         """set modelling settings"""
@@ -298,14 +302,19 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.dlg_calibrateCustomers=CalibrateCustomers(self.dictDB,self.conn)
-            self.dlg_calibrateCustomers.btn_startCallibration.clicked.connect(lambda: startCallibration(self.dlg_calibrateCustomers,self.plugin_dir,self.conn,self.dictDB,self.iface))
-            self.dlg_calibrateCustomers.btn_saveCallibration.clicked.connect(lambda: saveCallibValues(self.dlg_calibrateCustomers,self.dictDB,self.conn,self.plugin_dir))
-            self.dlg_calibrateCustomers.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_calibrateCustomers))
-            self.dlg_calibrateCustomers.btn_openTemplate.clicked.connect(lambda: openTemplate(self.dlg_calibrateCustomers,plugin_dir,conn))
-            self.dlg_calibrateCustomers.btn_showCallibCust.clicked.connect(lambda: openResult(self.dlg_calibrateCustomers,plugin_dir,conn,cur))
-            loadCustomerCalibrationData(self.dlg_calibrateCustomers,self.dictDB,self.conn,self.plugin_dir)
-            self.dlg_calibrateCustomers.show()
+            if self.dictDB['versionName']:
+                self.dlg_calibrateCustomers=CalibrateCustomers(self.dictDB,self.conn)
+                self.dlg_calibrateCustomers.btn_startCallibration.clicked.connect(lambda: startCallibration(self.dlg_calibrateCustomers,self.plugin_dir,self.conn,self.dictDB,self.iface))
+                self.dlg_calibrateCustomers.btn_saveCallibration.clicked.connect(lambda: saveCallibValues(self.dlg_calibrateCustomers,self.dictDB,self.conn,self.plugin_dir))
+                self.dlg_calibrateCustomers.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_calibrateCustomers))
+                self.dlg_calibrateCustomers.btn_openTemplate.clicked.connect(lambda: openTemplate(self.dlg_calibrateCustomers,plugin_dir,conn))
+                self.dlg_calibrateCustomers.btn_showCallibCust.clicked.connect(lambda: openResult(self.dlg_calibrateCustomers,plugin_dir,conn,cur))
+                loadCustomerCalibrationData(self.dlg_calibrateCustomers,self.dictDB,self.conn,self.plugin_dir)
+                self.dlg_calibrateCustomers.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
 
     def showRunModel(self):
         """ Run IDA submodels; loop over submodels"""
@@ -313,17 +322,22 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_runModel=RunNetworkModelDialog(self.plugin_dir,self.dictDB)
-            self.dlg_runModel.combo_submodels.addItem('Check all items')
-            dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-            submodels=getNetworkFileSubmodels(dir)
-            self.dlg_runModel.combo_submodels.addItems(submodels)
-            for i in range(len(submodels)):
-                self.dlg_runModel.combo_submodels.setItemChecked(int(i)+1,False)
-            self.dlg_runModel.show()
-            self.dlg_runModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_runModel))
-            self.dlg_runModel.btn_runModel.clicked.connect(lambda: self.runModel(self.dlg_runModel))
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_runModel=RunNetworkModelDialog(self.plugin_dir,self.dictDB)
+                self.dlg_runModel.combo_submodels.addItem('Check all items')
+                dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+                submodels=getNetworkFileSubmodels(dir)
+                self.dlg_runModel.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                    self.dlg_runModel.combo_submodels.setItemChecked(int(i)+1,False)
+                self.dlg_runModel.show()
+                self.dlg_runModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_runModel))
+                self.dlg_runModel.btn_runModel.clicked.connect(lambda: self.runModel(self.dlg_runModel))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
 
     def showOpenModel(self):
         """ Show IDA submodels; loop over submodels"""
@@ -331,19 +345,27 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_openModel=OpenNetworkModelDialog()
-            self.dlg_openModel.combo_submodels.addItem('Check all items')
-            dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-            submodels=getNetworkFileSubmodels(dir)
-            print(submodels)
-            self.dlg_openModel.combo_submodels.addItems(submodels)
-            for i in range(len(submodels)):
-                self.dlg_openModel.combo_submodels.setItemChecked(i+1,False)
-            self.dlg_openModel.show()
-            self.dlg_openModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_openModel))
-            self.dlg_openModel.btn_openModel.clicked.connect(lambda: self.openModel(self.dlg_openModel))  
-    
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_openModel=OpenNetworkModelDialog()
+                self.dlg_openModel.combo_submodels.addItem('Check all items')
+                dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+                if os.path.exists(dir):
+                    submodels=getNetworkFileSubmodels(dir)
+                    print(submodels)
+                    self.dlg_openModel.combo_submodels.addItems(submodels)
+                    for i in range(len(submodels)):
+                        self.dlg_openModel.combo_submodels.setItemChecked(i+1,False)
+                    self.dlg_openModel.show()
+                    self.dlg_openModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_openModel))
+                    self.dlg_openModel.btn_openModel.clicked.connect(lambda: self.openModel(self.dlg_openModel))  
+                else:
+                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=Qgis.Info)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+ 
     def openModel(self,dlg):
         print('-***-')
         if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])==0:
@@ -425,15 +447,19 @@ class IDADistrictsModelingSimulation:
         
     def showModellingSettings(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
-            self.dlg_modellingSettings=ModellingSettings(self.plugin_dir,self.modellingSettings,self.cur)
-            self.dlg_modellingSettings.btn_ok.clicked.connect(lambda: self.setModellingSettings(self.dlg_modellingSettings))
-            self.dlg_modellingSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_modellingSettings))
-            self.dlg_modellingSettings.show()  
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
+                self.dlg_modellingSettings=ModellingSettings(self.plugin_dir,self.modellingSettings,self.cur)
+                self.dlg_modellingSettings.btn_ok.clicked.connect(lambda: self.setModellingSettings(self.dlg_modellingSettings))
+                self.dlg_modellingSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_modellingSettings))
+                self.dlg_modellingSettings.show() 
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
 
     def addTableRow(self,dlg):
         """Insert table row"""
@@ -485,11 +511,11 @@ class IDADistrictsModelingSimulation:
         dlg.tableWidget.setItem(0,36,QTableWidgetItem('0')) #geotgrad
 
     def setBoreholeFieldSettings(self,dlg):
-        sql="""TRUNCATE {}.borehole_fields;\n""".format(self.dictDB['versionName'])
+        sql="""TRUNCATE "{}".borehole_fields;\n""".format(self.dictDB['versionName'])
         for row in range(dlg.tableWidget.rowCount()):
             print(dlg.tableWidget.item(row,35).text())
             print(dlg.tableWidget.item(row,35).text().split(':')[0])
-            sql+="""INSERT INTO {}.borehole_fields(id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad)
+            sql+="""INSERT INTO "{}".borehole_fields(id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad)
     VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{});""".format(self.dictDB['versionName'],
                 dlg.tableWidget.cellWidget(row, 0).currentText(),dlg.tableWidget.item(row,1).text(),dlg.tableWidget.item(row,2).text(),
                 dlg.tableWidget.item(row,3).text(),dlg.tableWidget.item(row,4).text(),dlg.tableWidget.item(row,5).text(),dlg.tableWidget.item(row,6).text(),dlg.tableWidget.item(row,7).text(),dlg.tableWidget.item(row,8).text(),
@@ -509,7 +535,7 @@ class IDADistrictsModelingSimulation:
             self.iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
 
     def showBoreholeFieldSettingsData(self,dlg):
-        sql="""SELECT * FROM {}.borehole_fields;""".format(self.dictDB['versionName'])
+        sql="""SELECT * FROM "{}".borehole_fields;""".format(self.dictDB['versionName'])
         self.cur.execute(sql)
         boreholes_data=self.cur.fetchall()
         dropdowns=[[19,'public','liquids','id','liquid']]
@@ -570,42 +596,50 @@ class IDADistrictsModelingSimulation:
         
     def showBoreholeFieldSettings(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            headers=["Plant ID","Drilling (Borehole) Depth, m","Drilling (Borehole) Radius, m", "Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances",
-                "Heat resistance between pipe and inner grout, (m2 K)/W","Heat resistance between pipe and earth, (m2 K)/W", "Heat resistance between inner and outer grout, (m2 K)/W","Heat resistance between grout and earth, (m2 K)/W","Heat resistance between groutring and earth, (m2 K)/W",
-                "Heat capacity of ground, J/(kg K)","Heat transfer coefficient of ground, W/(m K)","Density of ground, kg/m3",
-                "Heat capacity of grout, J/(kg K)","Heat transfer coefficient of grout, W/(m K)","Density of grout, kg/m3",
-                "Radius of pipe, m","Thickness of Pipwe wall, m","Heat capacity of pipe, J/(kg K)","Heat transfer coefficient of pipe, W/(m K)",
-                "Type of liquid","Freezing point of liquid, °C","Heat transfer coefficient of liquid, W/(m K)",
-                "Lenght of surface casting, m","Heat transfer coefficient of surface layer, W/(m K)","Density of surface layer, kg/m3", "Heat capacity of surface layer, J/(kg K)",
-                "MIR","Distance from the borehole to the boundary of the calculation region","Number of earth rings around borehole","Number of nodes in borehole","Total number of nodes in extended domain in z-direction",
-                "Number of points in direction 1 of rectangulat result plane","Number of points in direction 2 of rectangulat result plane","Number of points in direction 3 of cubes","Timestep for output of temp field",
-                "Yearly mean temperature, °C","Temperature gradient in ground, K"]
-            self.dlg_boreholeFieldSettings=TableDialog("Borehole field settings",headers,False,False,False)
-            self.dlg_boreholeFieldSettings.btn_ok.clicked.connect(lambda: self.setBoreholeFieldSettings(self.dlg_boreholeFieldSettings))
-            self.dlg_boreholeFieldSettings.btn_add.clicked.connect(lambda: self.addTableRow(self.dlg_boreholeFieldSettings))
-            self.dlg_boreholeFieldSettings.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_boreholeFieldSettings))
-            self.dlg_boreholeFieldSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_boreholeFieldSettings))
-            self.showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings)
-            self.dlg_boreholeFieldSettings.show()  
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                headers=["Plant ID","Drilling (Borehole) Depth, m","Drilling (Borehole) Radius, m", "Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances",
+                    "Heat resistance between pipe and inner grout, (m2 K)/W","Heat resistance between pipe and earth, (m2 K)/W", "Heat resistance between inner and outer grout, (m2 K)/W","Heat resistance between grout and earth, (m2 K)/W","Heat resistance between groutring and earth, (m2 K)/W",
+                    "Heat capacity of ground, J/(kg K)","Heat transfer coefficient of ground, W/(m K)","Density of ground, kg/m3",
+                    "Heat capacity of grout, J/(kg K)","Heat transfer coefficient of grout, W/(m K)","Density of grout, kg/m3",
+                    "Radius of pipe, m","Thickness of Pipwe wall, m","Heat capacity of pipe, J/(kg K)","Heat transfer coefficient of pipe, W/(m K)",
+                    "Type of liquid","Freezing point of liquid, °C","Heat transfer coefficient of liquid, W/(m K)",
+                    "Lenght of surface casting, m","Heat transfer coefficient of surface layer, W/(m K)","Density of surface layer, kg/m3", "Heat capacity of surface layer, J/(kg K)",
+                    "MIR","Distance from the borehole to the boundary of the calculation region","Number of earth rings around borehole","Number of nodes in borehole","Total number of nodes in extended domain in z-direction",
+                    "Number of points in direction 1 of rectangulat result plane","Number of points in direction 2 of rectangulat result plane","Number of points in direction 3 of cubes","Timestep for output of temp field",
+                    "Yearly mean temperature, °C","Temperature gradient in ground, K"]
+                self.dlg_boreholeFieldSettings=TableDialog("Borehole field settings",headers,False,False,False,False)
+                self.dlg_boreholeFieldSettings.btn_ok.clicked.connect(lambda: self.setBoreholeFieldSettings(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_add.clicked.connect(lambda: self.addTableRow(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_boreholeFieldSettings))
+                self.showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings)
+                self.dlg_boreholeFieldSettings.show()  
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
             
     def showSupervisoryCtrl(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_supervisoryCrtl=SupervisoryCtrlDlg(self.cur,self.dictDB)
-            self.dlg_supervisoryCrtl.btn_ok.clicked.connect(lambda: self.setSupervisoryCrtlSubmodel(self.dlg_supervisoryCrtl))
-            self.dlg_supervisoryCrtl.btn_open.clicked.connect(lambda: self.openSupervisoryCtrl())
-            self.dlg_supervisoryCrtl.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_supervisoryCrtl))
-            self.dlg_supervisoryCrtl.show()  
-    
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_supervisoryCrtl=SupervisoryCtrlDlg(self.cur,self.dictDB)
+                self.dlg_supervisoryCrtl.btn_ok.clicked.connect(lambda: self.setSupervisoryCrtlSubmodel(self.dlg_supervisoryCrtl))
+                self.dlg_supervisoryCrtl.btn_open.clicked.connect(lambda: self.openSupervisoryCtrl())
+                self.dlg_supervisoryCrtl.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_supervisoryCrtl))
+                self.dlg_supervisoryCrtl.show()  
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
+            
     def setSupervisoryCrtlSubmodel(self,dlg):
-        sql="""UPDATE {}.supervisory_ctrl SET submodel={};""".format(self.dictDB['versionName'],dlg.combo_submodel.currentText())
+        sql="""UPDATE "{}".supervisory_ctrl SET submodel={};""".format(self.dictDB['versionName'],dlg.combo_submodel.currentText())
         self.cur.execute(sql)
         closeDialog(dlg)
         
@@ -615,23 +649,40 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.updateSensor=UpdateSensors(dictDB=self.dictDB,cur=self.cur,plugin_dir=self.plugin_dir)
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.updateSensor=UpdateSensors(dictDB=self.dictDB,cur=self.cur,plugin_dir=self.plugin_dir)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
             
     def showFeatureDecoupling(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_featureDecoupling=FeatureDecouplingDlg(self.plugin_dir,self.cur,self.dictDB)
-            self.dlg_featureDecoupling.btn_ok.clicked.connect(lambda: closeDialog(self.dlg_featureDecoupling))
-            self.dlg_featureDecoupling.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureDecoupling))
-            self.dlg_featureDecoupling.show()    
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_featureDecoupling=FeatureDecouplingDlg(self.plugin_dir,self.cur,self.dictDB)
+                self.dlg_featureDecoupling.btn_ok.clicked.connect(lambda: closeDialog(self.dlg_featureDecoupling))
+                self.dlg_featureDecoupling.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureDecoupling))
+                self.dlg_featureDecoupling.show()    
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
     
     def showInvokeFeatures(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        self.invoke_features=InvokeFeatures(self.plugin_dir,self.dictDB,self.iface)
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            if self.dictDB['versionName']:
+                self.dictDB=getDBConnectionData(self.plugin_dir)
+                self.invoke_features=InvokeFeatures(self.plugin_dir,self.dictDB,self.iface)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
      
     def showBuildModel(self):
         """ Build IDA subnetwork models; loop over subnetworks"""
@@ -639,24 +690,29 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_buildModel=BuildNetworkModelDialog()
-            sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.dictDB['versionName'])
-            self.cur.execute(sql)
-            self.dlg_buildModel.combo_network_models.addItem('Check all items')
-            networks=self.cur.fetchall()
-            self.dlg_buildModel.combo_network_models.addItems([str(i['network']) for i in networks])
-            for i in range(len(networks)):
-                self.dlg_buildModel.combo_network_models.setItemChecked(i+1,False)
-            
-            self.dlg_buildModel.combo_submodels.addItem('Check all items')
-            submodels=getUsedSubmodels(self.cur,self.dictDB)
-            self.dlg_buildModel.combo_submodels.addItems(submodels)
-            for i in range(len(submodels)):
-                self.dlg_buildModel.combo_submodels.setItemChecked(i+1,False)
-            self.dlg_buildModel.show()
-            self.dlg_buildModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildModel))
-            self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: self.buildModel(self.dlg_buildModel))
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_buildModel=BuildNetworkModelDialog()
+                sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.dictDB['versionName'])
+                self.cur.execute(sql)
+                self.dlg_buildModel.combo_network_models.addItem('Check all items')
+                networks=self.cur.fetchall()
+                self.dlg_buildModel.combo_network_models.addItems([str(i['network']) for i in networks])
+                for i in range(len(networks)):
+                    self.dlg_buildModel.combo_network_models.setItemChecked(i+1,False)
+                
+                self.dlg_buildModel.combo_submodels.addItem('Check all items')
+                submodels=getUsedSubmodels(self.cur,self.dictDB)
+                self.dlg_buildModel.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                    self.dlg_buildModel.combo_submodels.setItemChecked(i+1,False)
+                self.dlg_buildModel.show()
+                self.dlg_buildModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildModel))
+                self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: self.buildModel(self.dlg_buildModel))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
             
     def buildModel(self,dlg):
         networks=[]
@@ -700,16 +756,20 @@ class IDADistrictsModelingSimulation:
         
     def showRequestedOutputs(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
-            self.dictDB=getDBConnectionData(self.plugin_dir)
-            self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
-            self.dlg_outputs=RequestedOutputs(self.requestedOutputs)
-            self.dlg_outputs.btn_ok.clicked.connect(lambda: setRequestedOutputs(self.dlg_outputs,self.requestedOutputs,self.iface,self.plugin_dir,self.dictDB,self.cur))
-            self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
-            self.dlg_outputs.show()
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
+                self.dictDB=getDBConnectionData(self.plugin_dir)
+                self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
+                self.dlg_outputs=RequestedOutputs(self.requestedOutputs)
+                self.dlg_outputs.btn_ok.clicked.connect(lambda: setRequestedOutputs(self.dlg_outputs,self.requestedOutputs,self.iface,self.plugin_dir,self.dictDB,self.cur))
+                self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
+                self.dlg_outputs.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
         
     def showLoadResults(self):
         """ show load results; loop over submodels"""
@@ -717,17 +777,22 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-            self.dlg_loadResults=LoadResultsDialog()
-            self.dlg_loadResults.combo_submodels.addItem('Check all items')
-            dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-            submodels=getNetworkFileSubmodels(dir)
-            self.dlg_loadResults.combo_submodels.addItems(submodels)
-            for i in range(len(submodels)):
-               self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,False)
-            self.dlg_loadResults.show()
-            self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
-            self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: self.loadResults(self.dlg_loadResults))
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_loadResults=LoadResultsDialog()
+                self.dlg_loadResults.combo_submodels.addItem('Check all items')
+                dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+                submodels=getNetworkFileSubmodels(dir)
+                self.dlg_loadResults.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                   self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,False)
+                self.dlg_loadResults.show()
+                self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
+                self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: self.loadResults(self.dlg_loadResults))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
         
     def run(self):
         """Run method that performs all the real work"""

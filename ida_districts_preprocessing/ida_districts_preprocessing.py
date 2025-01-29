@@ -36,7 +36,7 @@ from qgis.PyQt.QtWidgets import QMessageBox, QTableWidgetItem,QAction,QMainWindo
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_preprocessing_dialog import ImportGeoDataDlg,PipeSizing, PipeBundleEditor, ImportPointLayer, ImportNetworkTopologyFromLayer, IdaDistrictsPreProcessingDialog, PipeLayingDialog, NetworkTopologyDialog, MapDevicesPlantsDialog
+from .ida_districts_preprocessing_dialog import ImportGeoDataDlg,PipeSizingDlg, PipeBundleEditor, ImportPointLayer, ImportNetworkTopologyFromLayer, IdaDistrictsPreProcessingDialog, PipeLayingDialog, NetworkTopologyDialog, MapDevicesPlantsDialog
 from .osm import *
 from .elevation_data import *
 from .pipe_sizing import *
@@ -68,7 +68,7 @@ class IdaDistrictsPreProcessing:
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
+        self.plugin_dir = os.path.dirname(__file__).replace('/','\\')
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(
@@ -219,35 +219,51 @@ class IdaDistrictsPreProcessing:
     def pipeLayingAlgorithm(self):
         print('pipe laying algorithm')
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
-        self.dlg_pipeLayingAlgorithm=PipeLayingDialog(self.dictDB,self.plugin_dir,self.iface)
-        self.dlg_pipeLayingAlgorithm.show()   
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            if self.dictDB['versionName']:
+                self.dlg_pipeLayingAlgorithm=PipeLayingDialog(self.dictDB,self.plugin_dir,self.iface)
+                self.dlg_pipeLayingAlgorithm.show()   
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
         
     def importPointLayer(self):
         print('Import device, plant or customer from point layer')
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
-        self.dlg_importPointLayer=ImportPointLayer(self.dictDB,self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            if self.dictDB['versionName']:
+                self.dlg_importPointLayer=ImportPointLayer(self.dictDB,self.plugin_dir)
 
-        self.dlg_importPointLayer.selectLayer.currentTextChanged.connect(lambda s: self.setLayerListAttributes(s,self.dlg_importPointLayer.listWidget_layerAttributes,self.dlg_importPointLayer))
-        self.dlg_importPointLayer.btn_import.pressed.connect(lambda: self.importLayerToDb('point',self.dlg_importPointLayer))
-        self.dlg_importPointLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importPointLayer))
-        self.dlg_importPointLayer.show()     
-        
+                self.dlg_importPointLayer.selectLayer.currentTextChanged.connect(lambda s: self.setLayerListAttributes(s,self.dlg_importPointLayer.listWidget_layerAttributes,self.dlg_importPointLayer))
+                self.dlg_importPointLayer.btn_import.pressed.connect(lambda: self.importLayerToDb('point',self.dlg_importPointLayer))
+                self.dlg_importPointLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importPointLayer))
+                self.dlg_importPointLayer.show()     
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
+            
     def importNetworkTopologyFromLayer(self):
         print('Import Network topology from layer')
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.dlg_importNetworkTopologyFromLayer=ImportNetworkTopologyFromLayer(self.dictDB,self.plugin_dir)
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_importNetworkTopologyFromLayer=ImportNetworkTopologyFromLayer(self.dictDB,self.plugin_dir)
 
-            self.dlg_importNetworkTopologyFromLayer.selectLayer.currentTextChanged.connect(lambda s: self.setLayerListAttributes(s,self.dlg_importNetworkTopologyFromLayer.listWidget_layerAttributes,self.dlg_importNetworkTopologyFromLayer))
-            self.dlg_importNetworkTopologyFromLayer.btn_import.pressed.connect(lambda: self.importLayerToDb('line',self.dlg_importNetworkTopologyFromLayer))
-            self.dlg_importNetworkTopologyFromLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importNetworkTopologyFromLayer))
-            self.dlg_importNetworkTopologyFromLayer.btn_generate_pipe_bundles.pressed.connect(lambda: self.showGeneratePipebundleTyps(self.dlg_importNetworkTopologyFromLayer))
-            self.dlg_importNetworkTopologyFromLayer.show() 
+                self.dlg_importNetworkTopologyFromLayer.selectLayer.currentTextChanged.connect(lambda s: self.setLayerListAttributes(s,self.dlg_importNetworkTopologyFromLayer.listWidget_layerAttributes,self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.btn_import.pressed.connect(lambda: self.importLayerToDb('line',self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.btn_generate_pipe_bundles.pressed.connect(lambda: self.showGeneratePipebundleTyps(self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.show() 
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
         
     def showGeneratePipebundleTyps(self,dlg):
         """Generate pipe bundle types based on layer attributes"""
@@ -583,91 +599,96 @@ TRUNCATE pipe_layers CASCADE;\n"""
         
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            if layer:
-                layer=layer[0]
-                layer_srid=layer.crs().authid().split(':')[1]
-                print(layer_srid)
-                self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
-                print(self.configProject)
-                print(self.configProject['srid'])
-                generateId=False
-                #attribute names
-                attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
-                print(attributes)
-                
-                if dlg.rbtn_truncate.isChecked():
-                    ids=[]
-                    sql='TRUNCATE "{}".{};'.format(self.dictDB['versionName'],layer_name)
-                    self.cur.execute(sql)
-                else:
-                    sql='SELECT id FROM "{}".{};'.format(self.dictDB['versionName'],layer_name)
-                    self.cur.execute(sql)
-                    ids=[i['id'] for i in self.cur.fetchall()]
-                
-                #check if id is mapped
-                if not 'id' in attributes:
-                    dlg_question = QMessageBox(dlg)
-                    dlg_question.setWindowTitle('Identifier is missing!')
-                    dlg_question.setText("""The id is not mapped in "{}". Do you want to use a serial id instead?""".format(layer_name))
-                    dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
-                    dlg_question.setIcon(QMessageBox.Question)
-                    button = dlg_question.exec()
-
-                    if button == QMessageBox.Yes:
-                        print("Use serial id")
-                        if dlg.rbtn_truncate.isChecked():
-                            generateId=1
-                        else:
-                            generateId=getMaxIdSchema(self.cur,layer_name,self.dictDB['versionName'])+1
-                    else:
-                        print("Cancel!")
-                        return False
-                        
-                sql=""
-                i=0 
-                attributes={}
-                for feature in layer.getFeatures():
-                    mappedAttributesValues=dlg.mappedAttributes.copy() #make a copy in order to lose reference
-                    print(mappedAttributesValues)
-                    attributes=self.getLayerAttributesDict(feature,layer=layer)
-                    for mappedAttribute in dlg.mappedAttributes:
-                        if dlg.mappedAttributes[mappedAttribute]:
-                            for attribute in attributes:
-                                if attribute in dlg.mappedAttributes[mappedAttribute]:
-                                    mappedAttributesValues[mappedAttribute]=mappedAttributesValues[mappedAttribute].replace('|'+attribute+'|',str(attributes[attribute]))
-                    values=[]
+            if self.dictDB['versionName']:
+                self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                if layer:
+                    layer=layer[0]
+                    layer_srid=layer.crs().authid().split(':')[1]
+                    print(layer_srid)
+                    self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+                    print(self.configProject)
+                    print(self.configProject['srid'])
+                    generateId=False
+                    #attribute names
+                    attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
                     print(attributes)
-                    attributes=[attribute for attribute in mappedAttributesValues if mappedAttributesValues[attribute]]
-                    print(mappedAttributesValues)
-                    for attribute in attributes:
-                        print(attribute)
-                        try:
-                            values.append(str(eval(mappedAttributesValues[attribute])))
-                        except:
-                            pass
+                    
+                    if dlg.rbtn_truncate.isChecked():
+                        ids=[]
+                        sql='TRUNCATE "{}".{};'.format(self.dictDB['versionName'],layer_name)
+                        self.cur.execute(sql)
+                    else:
+                        sql='SELECT id FROM "{}".{};'.format(self.dictDB['versionName'],layer_name)
+                        self.cur.execute(sql)
+                        ids=[i['id'] for i in self.cur.fetchall()]
+                    
+                    #check if id is mapped
+                    if not 'id' in attributes:
+                        dlg_question = QMessageBox(dlg)
+                        dlg_question.setWindowTitle('Identifier is missing!')
+                        dlg_question.setText("""The id is not mapped in "{}". Do you want to use a serial id instead?""".format(layer_name))
+                        dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+                        dlg_question.setIcon(QMessageBox.Question)
+                        button = dlg_question.exec()
 
-                    if type=='line':
-                        values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_LineMerge(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))),'+layer_srid+'),'+ str(self.configProject['srid'])+')')
-                    else:
-                        values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\')),'+layer_srid+'),'+ str(self.configProject['srid'])+')')
-                    if generateId:
-                        values.append(str(generateId+i))
-                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))
-                    else:
-                        if values[attributes.index('id')] in ids:
-                            iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=Qgis.Warning)
-                            return False
+                        if button == QMessageBox.Yes:
+                            print("Use serial id")
+                            if dlg.rbtn_truncate.isChecked():
+                                generateId=1
+                            else:
+                                generateId=getMaxIdSchema(self.cur,layer_name,self.dictDB['versionName'])+1
                         else:
-                            ids.append(values[attributes.index('id')])
-                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
-                    i+=1
-                print(sql)
-                self.cur.execute(sql)
-                closeDialog(dlg)
+                            print("Cancel!")
+                            return False
+                            
+                    sql=""
+                    i=0 
+                    attributes={}
+                    for feature in layer.getFeatures():
+                        mappedAttributesValues=dlg.mappedAttributes.copy() #make a copy in order to lose reference
+                        print(mappedAttributesValues)
+                        attributes=self.getLayerAttributesDict(feature,layer=layer)
+                        for mappedAttribute in dlg.mappedAttributes:
+                            if dlg.mappedAttributes[mappedAttribute]:
+                                for attribute in attributes:
+                                    if attribute in dlg.mappedAttributes[mappedAttribute]:
+                                        mappedAttributesValues[mappedAttribute]=mappedAttributesValues[mappedAttribute].replace('|'+attribute+'|',str(attributes[attribute]))
+                        values=[]
+                        print(attributes)
+                        attributes=[attribute for attribute in mappedAttributesValues if mappedAttributesValues[attribute]]
+                        print(mappedAttributesValues)
+                        for attribute in attributes:
+                            print(attribute)
+                            try:
+                                values.append(str(eval(mappedAttributesValues[attribute])))
+                            except:
+                                pass
 
+                        if type=='line':
+                            values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_LineMerge(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))),'+layer_srid+'),'+ str(self.configProject['srid'])+')')
+                        else:
+                            values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\')),'+layer_srid+'),'+ str(self.configProject['srid'])+')')
+                        if generateId:
+                            values.append(str(generateId+i))
+                            sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))
+                        else:
+                            if values[attributes.index('id')] in ids:
+                                iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=Qgis.Warning)
+                                return False
+                            else:
+                                ids.append(values[attributes.index('id')])
+                            sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
+                        i+=1
+                    print(sql)
+                    self.cur.execute(sql)
+                    closeDialog(dlg)
+
+                else:
+                    iface.messageBar().pushMessage("Info", "No Layer is selected!", level=Qgis.Info)
             else:
-                iface.messageBar().pushMessage("Info", "No Layer is selected!", level=Qgis.Info)
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
     
     def setLayerListAttributes(self,signal,list,dlg):
         """Sets the layer attributes if combobox has changed"""
@@ -686,29 +707,35 @@ TRUNCATE pipe_layers CASCADE;\n"""
         self.dictDB=getDBConnectionData(self.plugin_dir)
         conn=dbConnect(self.dictDB,True)
         if conn:
-            osmStreetFileName=dlg.lineEditFileName.text()
-            clearOldStreets=dlg.checkBoxClearOldFeatures.isChecked()    
-            self.worker_importStreets = WorkerOSMStreetsImport(filePath=osmStreetFileName,clearOldFeatures=clearOldStreets,dictDB=self.dictDB,plugin_dir=self.plugin_dir)
-            self.threadpool = QThreadPool()
-            self.threadpool.start(self.worker_importStreets) 
-            self.worker_importStreets.signals.error.connect(show_error_message)
-            self.worker_importStreets.signals.progress.connect(dlg.update_progress)
+            if self.dictDB['versionName']:
+                osmStreetFileName=dlg.lineEditFileName.text()
+                clearOldStreets=dlg.checkBoxClearOldFeatures.isChecked()    
+                self.worker_importStreets = WorkerOSMStreetsImport(filePath=osmStreetFileName,clearOldFeatures=clearOldStreets,dictDB=self.dictDB,plugin_dir=self.plugin_dir)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(self.worker_importStreets) 
+                self.worker_importStreets.signals.error.connect(show_error_message)
+                self.worker_importStreets.signals.progress.connect(dlg.update_progress)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
         
     def importElevationData(self,dlg):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            elevationFileName=dlg.lineEditFileName.text()
-            clearOldTerrain=dlg.checkBoxClearOldFeatures.isChecked()    
-            self.worker_importElevevationData = WorkerImportElevationData(filePath=elevationFileName,clearOldTerrain=clearOldTerrain,dictDB=self.dictDB,plugin_dir=self.plugin_dir,configIDADistricts=self.configIDADistricts)
-            self.threadpool = QThreadPool()
-            self.threadpool.start(self.worker_importElevevationData) 
-            self.worker_importElevevationData.signals.error.connect(show_error_message)
-            self.worker_importElevevationData.signals.progress.connect(dlg.update_progress)
+            if self.dictDB['versionName']:
+                elevationFileName=dlg.lineEditFileName.text()
+                clearOldTerrain=dlg.checkBoxClearOldFeatures.isChecked()    
+                self.worker_importElevevationData = WorkerImportElevationData(filePath=elevationFileName,clearOldTerrain=clearOldTerrain,dictDB=self.dictDB,plugin_dir=self.plugin_dir,configIDADistricts=self.configIDADistricts)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(self.worker_importElevevationData) 
+                self.worker_importElevevationData.signals.error.connect(show_error_message)
+                self.worker_importElevevationData.signals.progress.connect(dlg.update_progress)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)           
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)           
 
     def fileDialog(self,dlg,dir,extensions):
         print(dir)
@@ -723,29 +750,33 @@ TRUNCATE pipe_layers CASCADE;\n"""
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            print(self.dictDB)
-            sql="SELECT id FROM {}.subnetwork;".format(self.dictDB['versionName'])
-            print(sql)
-            self.cur.execute(sql)
-            for subnetwork in self.cur.fetchall():
-                print (subnetwork[0])
-                #junctions
-                sql="""UPDATE"{}".junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM {}.subnetwork sn,"{}".junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                sql="""SELECT id FROM "{}".subnetwork;""".format(self.dictDB['versionName'])
                 print(sql)
                 self.cur.execute(sql)
-                #customers
-                sql="""UPDATE "{}".customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM {}.subnetwork sn, "{}".customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                print(sql)
-                self.cur.execute(sql)
-                #energy_plants
-                sql="""UPDATE "{}".energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM {}.subnetwork sn, "{}".energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                print(sql)
-                self.cur.execute(sql)
-                #lines
-                sql="""UPDATE "{}".lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM {}.subnetwork sn, "{}".lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                print(sql)
-                self.cur.execute(sql)
+                for subnetwork in self.cur.fetchall():
+                    print (subnetwork[0])
+                    #junctions
+                    sql="""UPDATE"{}".junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM "{}".subnetwork sn,"{}".junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                    print(sql)
+                    self.cur.execute(sql)
+                    #customers
+                    sql="""UPDATE "{}".customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM "{}".subnetwork sn, "{}".customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                    print(sql)
+                    self.cur.execute(sql)
+                    #energy_plants
+                    sql="""UPDATE "{}".energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM "{}".subnetwork sn, "{}".energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                    print(sql)
+                    self.cur.execute(sql)
+                    #lines
+                    sql="""UPDATE "{}".lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM "{}".subnetwork sn, "{}".lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
+                    print(sql)
+                    self.cur.execute(sql)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
             
     def generateNetworkTopology(self):
         """ Generate network topology"""
@@ -753,24 +784,35 @@ TRUNCATE pipe_layers CASCADE;\n"""
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.window_topology=NetworkTopologyDialog(self.dictDB,self.plugin_dir,self.iface)
-            self.window_topology.show()  
+            if self.dictDB['versionName']:
+                self.window_topology=NetworkTopologyDialog(self.dictDB,self.plugin_dir,self.iface)
+                self.window_topology.show() 
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
             
     def pipeSizing(self):
         """Pipe sizing"""
         print ('Pipe sizing')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.dlg_pipeSizing=PipeSizing(self.dictDB,self.plugin_dir,self.cur)
-            
-            self.dlg_pipeSizing.btn_start.pressed.connect(lambda: startPipeSizing(self.dictDB,self.conn,self.dlg_pipeSizing,self.plugin_dir))
-            self.dlg_pipeSizing.btn_save.pressed.connect(lambda: savePipeSizingResults(self.dictDB,self.conn,self.dlg_pipeSizing))
-            self.dlg_pipeSizing.btn_reject.pressed.connect(lambda: rejectPipeSizingResults(self.dictDB,self.conn,self.dlg_pipeSizing))
-            
-            loadPipes(self.dictDB, self.cur,self.dlg_pipeSizing)
-            self.dlg_pipeSizing.show()  
+        if self.conn: 
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_pipeSizing=PipeSizingDlg(self.dictDB,self.plugin_dir,self.cur)
+                
+                self.dlg_pipeSizing.btn_start.pressed.connect(lambda: startPipeSizing(self.dictDB,self.conn,self.dlg_pipeSizing,self.plugin_dir))
+                self.dlg_pipeSizing.btn_save.pressed.connect(lambda: savePipeSizingResults(self.dictDB,self.conn,self.dlg_pipeSizing))
+                self.dlg_pipeSizing.btn_reject.pressed.connect(lambda: rejectPipeSizingResults(self.dictDB,self.conn,self.dlg_pipeSizing))
+                
+                loadPipes(self.dictDB, self.cur,self.dlg_pipeSizing)
+                self.dlg_pipeSizing.show()  
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+        
     
     def mapDevicesPlants(self):
         """Map Devices and plants to lines"""
@@ -778,35 +820,48 @@ TRUNCATE pipe_layers CASCADE;\n"""
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.window_mapDevicesPlants=MapDevicesPlantsDialog(self.dictDB,self.plugin_dir)
-            self.window_mapDevicesPlants.show()     
+            if self.dictDB['versionName']:
+                self.window_mapDevicesPlants=MapDevicesPlantsDialog(self.dictDB,self.plugin_dir)
+                self.window_mapDevicesPlants.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)            
         
     def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
         print(default_path)
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.dlg_import=ImportGeoDataDlg(title=title,default_path=default_path)
-            self.dlg_import.btn_import.clicked.connect(lambda: ok_fn(self.dlg_import))
-            self.dlg_import.btn_cancel.clicked.connect(lambda: ok_fn(lambda: closeDialog(self.dlg_import)))
-            
-            self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
-            self.dlg_import.show()
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_import=ImportGeoDataDlg(title=title,default_path=default_path)
+                self.dlg_import.btn_import.clicked.connect(lambda: ok_fn(self.dlg_import))
+                self.dlg_import.btn_cancel.clicked.connect(lambda: ok_fn(lambda: closeDialog(self.dlg_import)))
+                
+                self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
+                self.dlg_import.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
         
     def importBuildingsFromOSM(self,dlg):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         conn=dbConnect(self.dictDB,True)
         if conn:
-            osmBuildingsFileName=dlg.lineEditFileName.text()
-            clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()     
-            self.worker_importBuildings = WorkerOSMBuildingsImport(filePath=osmBuildingsFileName,clearOldFeatures=clearOldBuildings,dictDB=self.dictDB,plugin_dir=self.plugin_dir)
-            self.threadpool = QThreadPool()
-            self.threadpool.start(self.worker_importBuildings) 
-            self.worker_importBuildings.signals.error.connect(show_error_message)
-            self.worker_importBuildings.signals.progress.connect(dlg.update_progress)    
+            if self.dictDB['versionName']:
+                osmBuildingsFileName=dlg.lineEditFileName.text()
+                clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()     
+                self.worker_importBuildings = WorkerOSMBuildingsImport(filePath=osmBuildingsFileName,clearOldFeatures=clearOldBuildings,dictDB=self.dictDB,plugin_dir=self.plugin_dir)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(self.worker_importBuildings) 
+                self.worker_importBuildings.signals.error.connect(show_error_message)
+                self.worker_importBuildings.signals.progress.connect(dlg.update_progress)    
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
  
     def run(self):
         """Run method that performs all the real work"""

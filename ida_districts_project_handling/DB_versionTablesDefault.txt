@@ -584,6 +584,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sf
 (
     id serial,
     sf text,
+    type text,
     vars text[],
     CONSTRAINT invoked_sf_pkey PRIMARY KEY (id)
 );

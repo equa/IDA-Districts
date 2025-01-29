@@ -43,8 +43,8 @@ class WorkerLoadResults(QRunnable):
         modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
 
         #re-create table line_seg for temperature (according to the pipe distrectization) and pressure (2 segments per line), which holds the geometry of the simulated pipe segements
-        sql='\n'.join(["""DROP TABLE IF EXISTS {}.line_seg_{};
-CREATE TABLE IF NOT EXISTS {}.line_seg_{}
+        sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_seg_{};
+CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
 (
     id serial,
     lid integer NOT NULL,
@@ -397,8 +397,8 @@ CREATE TABLE "{}".energy_plant_s_power${}
                 #lines tables: line_s_t,line_s_v,nodes_s_mdot,nodes_s_p,nodes_s_t
                 line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
                 if line_outputs:
-                    sql='\n'.join(["""DROP TABLE IF EXISTS {}.line_s_{}${} CASCADE;
-CREATE TABLE {}.line_s_{}${}
+                    sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_s_{}${} CASCADE;
+CREATE TABLE "{}".line_s_{}${}
 (
 	id serial,
     fid integer,

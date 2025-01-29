@@ -692,7 +692,6 @@ class RunNetworkModelDialog(QMainWindow):
             self.status_bar.showMessage(message)
     
     def show_error_message(self,message):
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         self.status_bar.showMessage("Simulation failed")
         
 class CalibrateCustomers(QMainWindow):
@@ -924,12 +923,12 @@ class FeatureDecouplingDlg(QMainWindow):
         self.listWidget_featureModels.clear()
         if self.rbtn_customers.isChecked():
             sql="""SELECT f_dec.comp_name
-    FROM customer_assettypes c_at, customer_assetgroups c_ag, {}.feature_decoupling f_dec
+    FROM customer_assettypes c_at, customer_assetgroups c_ag, "{}".feature_decoupling f_dec
     WHERE c_at.assetgroup=c_ag.id AND c_at.assettype_name||'('||c_ag.assetgroup||')'='{}' AND f_dec.assetgroup=c_at.assetgroup AND f_dec.assettype=c_at.assettype;
 """.format(self.dictDB['versionName'],self.feature_template.itemText(s))
         else:
             sql="""SELECT f_dec.comp_name
-    FROM energy_plant_assettypes ep_at, customer_assetgroups ep_ag, {}.feature_decoupling f_dec
+    FROM energy_plant_assettypes ep_at, customer_assetgroups ep_ag, "{}".feature_decoupling f_dec
     WHERE ep_at.assetgroup=ep_ag.id AND ep_at.assettype_name||'('||ep_ag.assetgroup||')'='{}' AND f_dec.assetgroup=ep_at.assetgroup AND f_dec.assettype=ep_at.assettype;
 """.format(self.dictDB['versionName'],self.feature_template.itemText(s))
         print(sql)
@@ -955,8 +954,8 @@ class FeatureDecouplingDlg(QMainWindow):
         assettype_id=self.cur.fetchone()['assettype']
         print(assettype_id)
         
-        sql="""DELETE FROM {}.feature_decoupling WHERE assetgroup ={} AND assettype={};\n""".format(self.dictDB['versionName'],assetgroup_id,assettype_id)
-        sql+='\n'.join(["""INSERT INTO {}.feature_decoupling (assetgroup,assettype,comp_name,type) VALUES ({},{},'{}','{}');""".format(self.dictDB['versionName'],assetgroup_id,assettype_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
+        sql="""DELETE FROM "{}".feature_decoupling WHERE assetgroup ={} AND assettype={};\n""".format(self.dictDB['versionName'],assetgroup_id,assettype_id)
+        sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (assetgroup,assettype,comp_name,type) VALUES ({},{},'{}','{}');""".format(self.dictDB['versionName'],assetgroup_id,assettype_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
 
         try:
             no_submodels=int(self.no_submodels.text())
@@ -1166,7 +1165,8 @@ class InvokeFeaturesDlg(QMainWindow):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        #iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        pass
         
     def update_progress(self,progress):
         self.progress.setValue(progress)

@@ -62,7 +62,6 @@ shutil.copy(src_dir+'invoke_sensors.py', trg_dir+'invoke_sensors.py')
 shutil.copy(src_dir+'load_results.py', trg_dir+'load_results.py')
 shutil.copy(src_dir+'supervisory_control.py', trg_dir+'supervisory_control.py')
 shutil.copy(src_dir+'update_sensors.py', trg_dir+'update_sensors.py')
-shutil.copy(src_dir+'util.py', trg_dir+'util.py')
 copyMetaFiles(src_dir,trg_dir)
 
 
@@ -98,6 +97,7 @@ shutil.copy(src_dir+'DB_projectTablesDefault_data.txt', trg_dir+'DB_projectTable
 shutil.copy(src_dir+'DB_versionTablesDefault.txt', trg_dir+'DB_versionTablesDefault.txt')
 shutil.copy(src_dir+'DB_versionTablesDefault_data.txt', trg_dir+'DB_versionTablesDefault_data.txt')
 shutil.copy(src_dir+'dbSettings.txt', trg_dir+'dbSettings.txt')
+shutil.copy(src_dir+'dbSettings_lastLoad.txt', trg_dir+'dbSettings_lastLoad.txt')
 shutil.copy(src_dir+'Dialogs.py', trg_dir+'Dialogs.py')
 shutil.copy(src_dir+'IDA_districts_project_handling.py', trg_dir+'IDA_districts_project_handling.py')
 shutil.copy(src_dir+'IDA_districts_project_handling_dialog.py', trg_dir+'IDA_districts_project_handling_dialog.py')
@@ -140,6 +140,26 @@ shutil.copy(src_dir+'flowmeter2.eo', trg_dir+'flowmeter2.eo')
 shutil.copy(src_dir+'flowmeter2.dll', trg_dir+'flowmeter2.dll')
 os.mkdir(trg_dir+'x64')
 shutil.copy(src_dir+'x64\\flowmeter2.dll', trg_dir+'x64\\flowmeter2.dll')
+
+#MinMax continious
+src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\MinMaxD_continuous'+'\\'
+trg_dir=target_model_dir+'MinMaxD_continuous\\'
+os.mkdir(trg_dir)
+shutil.copy(src_dir+'minmaxd_cont.nmf', trg_dir+'minmaxd_cont.nmf')
+shutil.copy(src_dir+'minmaxd_cont.eo', trg_dir+'minmaxd_cont.eo')
+shutil.copy(src_dir+'minmaxd_cont.dll', trg_dir+'minmaxd_cont.dll')
+os.mkdir(trg_dir+'x64')
+shutil.copy(src_dir+'x64\\minmaxd_cont.dll', trg_dir+'x64\\minmaxd_cont.dll')
+
+#Adder continious
+src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Adder_continuous'+'\\'
+trg_dir=target_model_dir+'Adder_continuous\\'
+os.mkdir(trg_dir)
+shutil.copy(src_dir+'Adder_cont.nmf', trg_dir+'Adder_cont.nmf')
+shutil.copy(src_dir+'Adder_cont.eo', trg_dir+'Adder_cont.eo')
+shutil.copy(src_dir+'Adder_cont.dll', trg_dir+'Adder_cont.dll')
+os.mkdir(trg_dir+'x64')
+shutil.copy(src_dir+'x64\\Adder_cont.dll', trg_dir+'x64\\Adder_cont.dll')
 
 #pipe bundle
 src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\PipeBundle\Bundle18_7_2023'+'\\'
@@ -202,3 +222,10 @@ print(target_doc_dir)
 os.mkdir(target_doc_dir)
 src_dir=r'G:\Projekt\Districts\Dokumentation'+'\\'
 shutil.copy(src_dir+'IDA Districts Getting Started Guide.docx', target_doc_dir+'IDA Districts Getting Started Guide.docx')
+
+#installation
+target_install_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\installation\\'
+print(target_install_dir)
+os.mkdir(target_install_dir)
+src_dir=r'C:\Users\Peter\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\test_functions'+'\\'
+shutil.copy(src_dir+'plugin_installer.py', target_install_dir+'plugin_installer.py')

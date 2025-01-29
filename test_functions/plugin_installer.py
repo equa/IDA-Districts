@@ -1,199 +1,164 @@
-from plugins.utility_functions.files import *
-from plugins.utility_functions.db import *
 from datetime import datetime
 import shutil
+import os
+from pathlib import Path
 
-plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
+installation_dir='\\'.join(str(Path(__file__).resolve()).split('\\')[:-2])+'\\plugins\\'
+print(installation_dir)
 
-current_date = datetime.now().strftime('%Y-%m-%d-%H%M')
-target_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\'
+plugin_dir = QgsApplication.qgisSettingsDirPath().replace('/','\\') + "python\\plugins\\"
+print(plugin_dir)
 
-# Check if the folder exists and delete it
-if os.path.exists(target_dir) and os.path.isdir(target_dir):
-    shutil.rmtree(target_dir)
+def rmtree_long_path(dir):
+    if os.path.exists(dir) and os.path.isdir(dir):
+        if os.name == 'nt':
+            dir='\\\\?\\'+dir
+        shutil.rmtree(dir)
 
-#------------plugins--------------
-target_plugin_dir=target_dir+'plugins\\'
-print(target_plugin_dir)
+def copy_tree_filter_extensions_and_folders(src, dst, signals=None,exclude_extensions=None, exclude_folders=None):
+    # Set default values if no extensions or folders are provided
+    if exclude_extensions is None:
+        exclude_extensions = []
+    if exclude_folders is None:
+        exclude_folders = []
+    if exclude_folders is None:
+        signals = False
 
-def copyMetaFiles(src_dir,trg_dir):
-    os.mkdir(trg_dir+'__pycache__')
-    for file_name in ['__init__.py','Makefile','metadata.txt','pb_tool.cfg','pylintrc','resources.py','resources.qrc']:
-        shutil.copy(src_dir+file_name, trg_dir+file_name)
+    # Ensure the extensions and folder names are in lowercase for case-insensitive comparison
+    exclude_extensions = [ext.lower() for ext in exclude_extensions]
+    exclude_folders = [folder.lower() for folder in exclude_folders]
+
+    # Walk through the source directory
+    for root, dirs, files in os.walk(src):
+        # Filter out files with the specified extensions
+        files_to_copy = [f for f in files if not any(f.lower().endswith(ext) for ext in exclude_extensions)]
         
+        # Copy each file to the destination, skipping excluded extensions
+        for file in files_to_copy:
+            full_file_path = os.path.join(root, file)
+            relative_path = os.path.relpath(full_file_path, src)
+            destination_file_path = os.path.join(dst, relative_path)
+            try:
+                if os.name == 'nt':  # Windows OS
+                    destination_file_path = '\\\\?\\' + os.path.abspath(destination_file_path)
+                if os.name == 'nt':  # Windows OS
+                    full_file_path = '\\\\?\\' + os.path.abspath(full_file_path)
+                # Make sure the destination directory exists
+                os.makedirs(os.path.dirname(destination_file_path), exist_ok=True)
+                
+                # Copy the file to the destination
+                shutil.copy2(full_file_path, destination_file_path)
+            except:
+                if signals:
+                    signals.error.emit("Failed to copy file (file path probably to long):"+destination_file_path)
+        
+        # Prevent os.walk from traversing excluded directories
+        for dir_name in dirs[:]:
+            if dir_name.lower() in exclude_folders:
+                dirs.remove(dir_name)  # Remove directory from traversal list
+
+def find_folders_not_in_list(directory, name_list):
+    # List to store folders not in name_list
+    folders_not_in_list = []
+    if os.path.isdir(directory):
+        # Loop through all the items in the directory
+        for item in os.listdir(directory):
+            # Construct the full path of the item
+            item_path = os.path.join(directory, item)
+
+            # Check if the item is a directory and if its name is not in name_list
+            if os.path.isdir(item_path) and item not in name_list:
+                folders_not_in_list.append(item)
+
+    return folders_not_in_list
+
+def strToDict(str):
+    str=str.replace('"','').replace("'",'')
+    dict={}
+    try:
+        for i in str[1:-1].split(","):
+            entry=i.split(": ")[1].strip()
+            if entry == "True" or entry == "False":
+                if entry == "True":
+                    dict[i.split(": ")[0].strip()]=True
+                else:
+                    dict[i.split(": ")[0].strip()]=False
+            else:
+                dict[i.split(": ")[0].strip()]=entry
+    except:
+        pass
+    return dict
     
+def loadIDADistrictsConfig(plugin_dir):
+    """ load IDA Districts config data from configIDADistrict.txt in project handling"""
+    config_f=plugin_dir+"\\ida_districts_project_handling\\configIDADistricts.txt"
+    config=""
+    if os.path.exists(config_f):
+        with open(config_f, "r") as myfile:   
+            for line in myfile:        
+                config+=line
+    config=strToDict(config)
+    print(config)
+    return config
+    
+def copyProjectFolders(dir,plugin_dir,name_list):
+    project_folders = find_folders_not_in_list(dir, name_list)
+    print(project_folders)
+    for folder in project_folders:
+        copy_tree_filter_extensions_and_folders(dir+folder,plugin_dir+'\\'+folder)
+        
 #utility functions
-shutil.copytree(plugin_dir+'utility_functions',target_plugin_dir+'utility_functions')
+rmtree_long_path(plugin_dir+'utility_functions')
+print(installation_dir+'utility_functions')
+copy_tree_filter_extensions_and_folders(installation_dir+'utility_functions',plugin_dir+'utility_functions')
 
 #data center
-src_dir=plugin_dir+'ida_districts_data_center\\'
-trg_dir=target_plugin_dir+'ida_districts_data_center\\'
-os.mkdir(trg_dir)
-shutil.copytree(src_dir+'config',trg_dir+'config')
-shutil.copytree(src_dir+'help',trg_dir+'help')
-shutil.copytree(src_dir+'Samples',trg_dir+'Samples')
-shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
-shutil.copy(src_dir+'icon-data-center.png', trg_dir+'icon-data-center.png')
-shutil.copy(src_dir+'ida_districts_data_center.py', trg_dir+'ida_districts_data_center.py')
-shutil.copy(src_dir+'ida_districts_data_center_dialog.py', trg_dir+'ida_districts_data_center_dialog.py')
-shutil.copy(src_dir+'update_boundaries.py', trg_dir+'update_boundaries.py')
-copyMetaFiles(src_dir,trg_dir)
+dir=plugin_dir+'ida_districts_data_center\\'
+name_list = ['config', 'help', 'Samples','scripts','i18n','__pycache__']
+copyProjectFolders(dir,plugin_dir+'dc_temp',name_list)
+rmtree_long_path(dir)
+copy_tree_filter_extensions_and_folders(installation_dir+'ida_districts_data_center',dir)
+copy_tree_filter_extensions_and_folders(plugin_dir+'dc_temp',dir)
+rmtree_long_path(plugin_dir+'dc_temp')
 
 #modelling
-src_dir=plugin_dir+'\ida_districts_modeling_simulation\\'
-trg_dir=target_plugin_dir+'\ida_districts_modeling_simulation\\'
-os.mkdir(trg_dir)
-os.mkdir(trg_dir+'network_models')
-shutil.copytree(src_dir+'help',trg_dir+'help')
-shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
-shutil.copytree(src_dir+'graphics',trg_dir+'graphics')
-shutil.copy(src_dir+'icon-mo-sim.png', trg_dir+'icon-mo-sim.png')
-shutil.copy(src_dir+'calibrate_customers.py', trg_dir+'calibrate_customers.py')
-shutil.copy(src_dir+'calibrate_features.py', trg_dir+'calibrate_features.py')
-shutil.copy(src_dir+'cosim.py', trg_dir+'cosim.py')
-shutil.copy(src_dir+'ida_districts_modeling_simulation.py', trg_dir+'ida_districts_modeling_simulation.py')
-shutil.copy(src_dir+'ida_districts_modeling_simulation_dialog.py', trg_dir+'ida_districts_modeling_simulation_dialog.py')
-shutil.copy(src_dir+'invoke.py', trg_dir+'invoke.py')
-shutil.copy(src_dir+'invoke_network.py', trg_dir+'invoke_network.py')
-shutil.copy(src_dir+'outputs.py', trg_dir+'outputs.py')
-shutil.copy(src_dir+'invoke_sensors.py', trg_dir+'invoke_sensors.py')
-shutil.copy(src_dir+'load_results.py', trg_dir+'load_results.py')
-shutil.copy(src_dir+'supervisory_control.py', trg_dir+'supervisory_control.py')
-shutil.copy(src_dir+'update_sensors.py', trg_dir+'update_sensors.py')
-shutil.copy(src_dir+'util.py', trg_dir+'util.py')
-copyMetaFiles(src_dir,trg_dir)
-
+dir=plugin_dir+'ida_districts_modeling_simulation\\'
+copyProjectFolders(dir+'network_models',plugin_dir+'mosim_temp',[])
+rmtree_long_path(dir)
+os.makedirs(dir+'network_models')
+copy_tree_filter_extensions_and_folders(installation_dir+'ida_districts_modeling_simulation',dir)
+copy_tree_filter_extensions_and_folders(plugin_dir+'mosim_temp',dir)
+rmtree_long_path(plugin_dir+'mosim_temp')
 
 #preprocessing
-src_dir=plugin_dir+'ida_districts_preprocessing\\'
-trg_dir=target_plugin_dir+'ida_districts_preprocessing\\'
-os.mkdir(trg_dir)
-shutil.copytree(src_dir+'help',trg_dir+'help')
-shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
-shutil.copy(src_dir+'icon-pre-processing.png', trg_dir+'icon-pre-processing.png')
-shutil.copy(src_dir+'elevation_data.py', trg_dir+'elevation_data.py')
-shutil.copy(src_dir+'GenerateNetworkTopology.py', trg_dir+'GenerateNetworkTopology.py')
-shutil.copy(src_dir+'ida_districts_preprocessing.py', trg_dir+'ida_districts_preprocessing.py')
-shutil.copy(src_dir+'ida_districts_preprocessing_dialog.py', trg_dir+'ida_districts_preprocessing_dialog.py')
-shutil.copy(src_dir+'osm.py', trg_dir+'osm.py')
-shutil.copy(src_dir+'pipe_sizing.py', trg_dir+'pipe_sizing.py')
-shutil.copy(src_dir+'PipeLayingAlgorithm.py', trg_dir+'PipeLayingAlgorithm.py')
-copyMetaFiles(src_dir,trg_dir)
+dir=plugin_dir+'ida_districts_preprocessing\\'
+rmtree_long_path(dir)
+copy_tree_filter_extensions_and_folders(installation_dir+'ida_districts_preprocessing',dir)
 
 #project handling
-src_dir=plugin_dir+'ida_districts_project_handling\\'
-trg_dir=target_plugin_dir+'ida_districts_project_handling\\'
-os.mkdir(trg_dir)
-shutil.copytree(src_dir+'help',trg_dir+'help')
-shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
-shutil.copytree(src_dir+'icons',trg_dir+'icons')
-shutil.copytree(src_dir+'templates',trg_dir+'templates')
-shutil.copy(src_dir+'configIDADistricts.txt', trg_dir+'configIDADistricts.txt')
-shutil.copy(src_dir+'DB_projectTablesDefault.txt', trg_dir+'DB_projectTablesDefault.txt')
-shutil.copy(src_dir+'DB_projectTablesDefault_data.txt', trg_dir+'DB_projectTablesDefault_data.txt')
-shutil.copy(src_dir+'DB_versionTablesDefault.txt', trg_dir+'DB_versionTablesDefault.txt')
-shutil.copy(src_dir+'DB_versionTablesDefault_data.txt', trg_dir+'DB_versionTablesDefault_data.txt')
-shutil.copy(src_dir+'dbSettings.txt', trg_dir+'dbSettings.txt')
-shutil.copy(src_dir+'Dialogs.py', trg_dir+'Dialogs.py')
-shutil.copy(src_dir+'IDA_districts_project_handling.py', trg_dir+'IDA_districts_project_handling.py')
-shutil.copy(src_dir+'IDA_districts_project_handling_dialog.py', trg_dir+'IDA_districts_project_handling_dialog.py')
-copyMetaFiles(src_dir,trg_dir)
+dir=plugin_dir+'ida_districts_project_handling\\'
+name_list = ['config', 'help', 'Samples','scripts','i18n','__pycache__','templates','icons']
+copyProjectFolders(dir,plugin_dir+'pro_temp',name_list)
+if os.path.isdir(dir):
+    shutil.copy2(dir+'dbSettings.txt',plugin_dir+'dbSettings.txt')
+    if len(loadIDADistrictsConfig(plugin_dir))==3:
+        shutil.copy2(dir+'configIDADistricts.txt',plugin_dir+'configIDADistricts.txt')
+rmtree_long_path(dir)
+copy_tree_filter_extensions_and_folders(installation_dir+'ida_districts_project_handling',dir)
+copy_tree_filter_extensions_and_folders(plugin_dir+'pro_temp',dir)
+if os.path.exists(plugin_dir+'dbSettings.txt'):
+    shutil.copy2(plugin_dir+'dbSettings.txt',dir+'dbSettings.txt')
+if os.path.exists(plugin_dir+'dbSettings_lastLoad.txt'):
+    shutil.copy2(plugin_dir+'dbSettings_lastLoad.txt',dir+'dbSettings_lastLoad.txt')
+if os.path.exists(plugin_dir+'configIDADistricts.txt'):
+    shutil.copy2(plugin_dir+'configIDADistricts.txt',dir+'configIDADistricts.txt')
+if os.path.exists(plugin_dir+'dbSettings.txt'):
+    os.remove(plugin_dir+'dbSettings.txt')
+if os.path.exists(plugin_dir+'configIDADistricts.txt'):
+    os.remove(plugin_dir+'configIDADistricts.txt')
+rmtree_long_path(plugin_dir+'pro_temp')
 
 #result visualization
-src_dir=plugin_dir+'ida_districts_result_visualization\\'
-trg_dir=target_plugin_dir+'ida_districts_result_visualization\\'
-os.mkdir(trg_dir)
-shutil.copytree(src_dir+'help',trg_dir+'help')
-shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
-shutil.copy(src_dir+'icon-result-visualization.png', trg_dir+'icon-result-visualization.png')
-shutil.copy(src_dir+'ida_districts_result_visualization.py', trg_dir+'ida_districts_result_visualization.py')
-shutil.copy(src_dir+'ida_districts_result_visualization_dialog.py', trg_dir+'ida_districts_result_visualization_dialog.py')
-shutil.copy(src_dir+'show_on_map.py', trg_dir+'show_on_map.py')
-copyMetaFiles(src_dir,trg_dir)
-
-#------------models--------------
-target_model_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\models\\'
-print(target_model_dir)
-os.mkdir(target_model_dir)
-
-#kusuda
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Ground Temperature Modelling\Kusuda'+'\\'
-trg_dir=target_model_dir+'kusuda\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'kusuda.mo', trg_dir+'kusuda.mo')
-shutil.copy(src_dir+'kusuda.eo', trg_dir+'kusuda.eo')
-shutil.copy(src_dir+'kusuda.dll', trg_dir+'kusuda.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\kusuda.dll', trg_dir+'x64\\kusuda.dll')
-
-#Flowmeter2
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\FlowMeter2'+'\\'
-trg_dir=target_model_dir+'FlowMeter2\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'FlowMeter2.nmf', trg_dir+'FlowMeter2.nmf')
-shutil.copy(src_dir+'flowmeter2.eo', trg_dir+'flowmeter2.eo')
-shutil.copy(src_dir+'flowmeter2.dll', trg_dir+'flowmeter2.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\flowmeter2.dll', trg_dir+'x64\\flowmeter2.dll')
-
-#pipe bundle
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\PipeBundle\Bundle18_7_2023'+'\\'
-trg_dir=target_model_dir+'pipebundlef\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'pipebundlef.mo', trg_dir+'pipebundlef.mo')
-shutil.copy(src_dir+'PipeBiFD.mo', trg_dir+'PipeBiFD.mo')
-shutil.copy(src_dir+'pipebundlef.eo', trg_dir+'pipebundlef.eo')
-shutil.copy(src_dir+'pipebundlef.dll', trg_dir+'pipebundlef.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\pipebundlef.dll', trg_dir+'x64\\pipebundlef.dll')
-
-#node bundle
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\PipeBundle\nodebundle'+'\\'
-trg_dir=target_model_dir+'nodebundle\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'nodebundle.mo', trg_dir+'nodebundle.mo')
-shutil.copy(src_dir+'nodebundle.eo', trg_dir+'nodebundle.eo')
-shutil.copy(src_dir+'nodebundle.dll', trg_dir+'nodebundle.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\nodebundle.dll', trg_dir+'x64\\nodebundle.dll')
-
-#customer models
-#lm_h_g_l
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Customermodel\development\loadModel_H_gains_limit'+'\\'
-trg_dir=target_model_dir+'lm_h_g_l\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'lm_h_g_l.mo', trg_dir+'lm_h_g_l.mo')
-shutil.copy(src_dir+'lM_base_v1.mo', trg_dir+'lM_base_v1.mo')
-shutil.copy(src_dir+'lm_h_g_l.eo', trg_dir+'lm_h_g_l.eo')
-shutil.copy(src_dir+'lm_h_g_l.dll', trg_dir+'lm_h_g_l.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\lm_h_g_l.dll', trg_dir+'x64\\lm_h_g_l.dll')
-
-#lm_hc_g_l
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Customermodel\development\loadModel_HC_gains_limit'+'\\'
-trg_dir=target_model_dir+'lm_hc_g_l\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'lm_hc_g_l.mo', trg_dir+'lm_hc_g_l.mo')
-shutil.copy(src_dir+'lM_base_v1.mo', trg_dir+'lM_base_v1.mo')
-shutil.copy(src_dir+'lm_hc_g_l.eo', trg_dir+'lm_hc_g_l.eo')
-shutil.copy(src_dir+'lm_hc_g_l.dll', trg_dir+'lm_hc_g_l.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\lm_hc_g_l.dll', trg_dir+'x64\\lm_hc_g_l.dll')
-
-#lm_hc_4_g_l
-src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Customermodel\development\loadModel_HC_4_gains_limit'+'\\'
-trg_dir=target_model_dir+'lm_hc_4_g_l\\'
-os.mkdir(trg_dir)
-shutil.copy(src_dir+'lm_hc_4_g_l.mo', trg_dir+'lm_hc_4_g_l.mo')
-shutil.copy(src_dir+'lM_base_v1.mo', trg_dir+'lM_base_v1.mo')
-shutil.copy(src_dir+'lm_hc_4_g_l.eo', trg_dir+'lm_hc_4_g_l.eo')
-shutil.copy(src_dir+'lm_hc_4_g_l.dll', trg_dir+'lm_hc_4_g_l.dll')
-os.mkdir(trg_dir+'x64')
-shutil.copy(src_dir+'x64\\lm_hc_4_g_l.dll', trg_dir+'x64\\lm_hc_4_g_l.dll')
-
-#documentation
-target_doc_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\documentation\\'
-print(target_doc_dir)
-os.mkdir(target_doc_dir)
-src_dir=r'G:\Projekt\Districts\Dokumentation'+'\\'
-shutil.copy(src_dir+'IDA Districts Getting Started Guide.docx', target_doc_dir+'IDA Districts Getting Started Guide.docx')
+dir=plugin_dir+'ida_districts_result_visualization\\'
+rmtree_long_path(dir)
+copy_tree_filter_extensions_and_folders(installation_dir+'ida_districts_result_visualization',dir)

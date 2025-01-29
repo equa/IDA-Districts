@@ -1,1 +1,1 @@
-{'path_ice': 'C:\Program Files (x86)\IDA51Beta\', 'path_postgresql': 'C:\Program Files\PostgreSQL\17\'}
+{'path_ice': 'C:\Program Files (x86)\IDA51Beta\', 'ice_api_delay': '2', 'path_postgresql': 'C:\Program Files\PostgreSQL\17\'}

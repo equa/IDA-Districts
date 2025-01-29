@@ -61,7 +61,7 @@ def getMaxTimeTableValue(mode,cur,dictDB,table,colmn,starttime,endtime):
         
 def getMinValueAvgTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,avg("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid
+    SELECT fid,avg("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime)
     cur.execute(sql)
@@ -69,7 +69,7 @@ SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
 
 def getMaxSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,sum("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid,segment
+    SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid,segment
 )
 SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime)
     cur.execute(sql)
@@ -78,7 +78,7 @@ SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table
     
 def getMinSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
-    SELECT fid,sum("${}") AS value FROM {}.{} WHERE time>='{}' AND time <='{}' GROUP BY fid,segment
+    SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid,segment
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime)
     print(sql)

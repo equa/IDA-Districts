@@ -58,8 +58,7 @@ class WorkerInvokeFeatures(QRunnable):
         
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
         invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
-        sql="""TRUNCATE {}.invoked_sf;
-SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+        sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],self.type)
         self.cur.execute(sql)
         
         rows_count=len(self.rows)
@@ -177,14 +176,16 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
     """Invoke the selected feature. Copy the files from the assettype templates to ida_districts_modeling_simulation\invoked_"feature"s
         If dlg is not given the id is the idx"""    
     print('idx='+str(idx))
-    print(parmRun)
     if idx !=-1:
         if dlg and not saveParmRunResults:
             id=dlg.tableWidget_customer.item(idx,0).text()  
         else:
             id=idx
-        print('id='+id)            
+        print('id='+id)     
+        if os.name == 'nt' and '\\\\?\\' not in plugin_dir:        
+            plugin_dir='\\\\?\\'+plugin_dir        
         dir=plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\".format(dictDB['projectName'],dictDB['versionName'],type)
+        print(dir)
             
         sql="""SELECT c.assetgroup, c.assettype, at.assettype_name, at.conn_bundle_type 
             FROM "{}".{}s c,{}_assettypes at 
@@ -290,7 +291,8 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                         elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
                             if not internal_loads_file:
                                 if parallize:
-                                    signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
+                                    if signals:
+                                        signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
                                 else:
                                     iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
                                 return False
@@ -337,18 +339,19 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         except:
                             ng_dict[i['group']]=1
                     print(ng_dict)
+
                     ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
                     
-                    sql='SELECT * FROM {}.borehole_fields WHERE id={};'.format(dictDB['versionName'],id)
+                    sql='SELECT * FROM "{}".borehole_fields WHERE id={};'.format(dictDB['versionName'],id)
+                    print(sql)
                     cur.execute(sql)
-                    field_data=cur.fetchall()
-                    if field_data:
-                        field_data=field_data[0]
-                    else:
+                    field_data=cur.fetchone()
+                    print(field_data)
+                    if not field_data:
                         if parallize:
-                            signals.error.emit("No borehole field data for id={} available!".format(id))
+                            signals.error.emit("No borehole field data for plant id={} (layer boreholes) available!".format(id))
                         else:
-                            iface.messageBar().pushMessage("Critical", "No borehole field data for id={} available!".format(id), level=Qgis.Critical)
+                            iface.messageBar().pushMessage("Critical", "No borehole field data for plant id={} (layer boreholes) available!".format(id), level=Qgis.Critical)
                         return False
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
                     cur.execute(sql)
@@ -364,7 +367,6 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
                         'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
             print(replaceDict)
-
             CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
             f_idc=dir+type.capitalize()+"_"+id+".idc"
@@ -563,10 +565,11 @@ class CopyAssettypeFiles:
         print('++++++++++++++++++++++++++CopyAssettypeFiles++++++++++++++')
         print(parmRun)
         self.dictDB=dictDB
+        type_name=type
         if update_sensors:
             type=getTypeIdByName(type)
             sql="""SELECT s.sensor_id, s_ids.feature_id 
-        FROM {}.sensor_source s, {}.source_assetgroups s_ag, {}.source_assettype s_at, {}.source_ids s_ids
+        FROM "{}".sensor_source s, "{}".source_assetgroups s_ag, "{}".source_assettype s_at, "{}".source_ids s_ids
         WHERE s.sensor_id=s_ag.source_id AND s.sensor_id=s_at.source_id AND s_ag.assetgroup={} AND s_at.assettype={} AND s.measure=5 AND s.type={} AND
             s.sensor_id=s_ids.source_id AND s_at.active=true AND s_ag.active=true AND s_ids.active=false AND s_ids.feature_id={};""".format(
                 self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],assetgroup,assettype,type,str(id))
@@ -576,7 +579,7 @@ class CopyAssettypeFiles:
             print(remove_sensor_source_ids)
             
             sql="""SELECT t.sensor_id, t_ids.feature_id 
-        FROM {}.sensor_target t,{}.target_ids t_ids
+        FROM "{}".sensor_target t,"{}".target_ids t_ids
         WHERE t.type={} AND t.sensor_id=t_ids.target_id AND t_ids.active=false AND t_ids.feature_id={};""".format(
                 self.dictDB['versionName'],self.dictDB['versionName'],type,str(id))
             print(sql)
@@ -619,13 +622,13 @@ class CopyAssettypeFiles:
             sf=getSFList(pList,[])
 
             if sf:
-                sql='\n'.join(["""INSERT INTO {}.invoked_sf (sf,vars)
-    SELECT '{}', ARRAY[{}] WHERE NOT EXISTS (
-        SELECT 1 FROM {}.invoked_sf WHERE sf = '{}'
-    );""".format(self.dictDB['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),self.dictDB['versionName'],i[0][':SF'])  for i in sf])
+                sql='\n'.join(["""INSERT INTO "{}".invoked_sf (sf,vars,type)
+    SELECT '{}', ARRAY[{}], '{}' WHERE NOT EXISTS (
+        SELECT 1 FROM "{}".invoked_sf WHERE sf = '{}' AND type='{}'
+    );""".format(self.dictDB['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),type_name,self.dictDB['versionName'],i[0][':SF'],type_name)  for i in sf])
                 print(sql)
                 cur.execute(sql)
-            sql="SELECT id,sf FROM {}.invoked_sf;".format(self.dictDB['versionName'])
+            sql="""SELECT id,sf FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],type_name)
             cur.execute(sql)
             sf_ids=cur.fetchall()
             pList=delSFAndConnsAddLinks(pList,sf,sf_ids)
@@ -669,28 +672,23 @@ class CopyAssettypeFiles:
 
         #check if folder contains macros
         print('+++check if folder contains macros+++')
-        print(['sensor-macro.idm',source_name+'.idm',source_name+'.idc','sf-macro.idm','sf-macro.idc'])
-        print(source_dir+'\\'+source_name)
         if os.path.exists(source_dir+'\\'+source_name):
             for root, dirs, files in os.walk(source_dir+'\\'+source_name):
                 for file in files:
                     if (file.endswith('.idm') or file.endswith('.idc')) and file.lower() not in ['sensor-macro.idm',source_name.lower()+'.idm',source_name.lower()+'.idc','sf-macro.idm','sf-macro.idc']:
-                        print('---------copy file---------')
-                        print(file)
-                        print(os.path.join(root, file))
                         #subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(source_name+'\\'+source_name)[1]
                         #print(path)
                         #print(os.path.splitext(os.path.basename(file))[0])
                         path_target=dir_macro+os.path.join(root, file).split(source_dir+'\\'+source_name)[1].split(file)[0]
-                        print(path_target)
-                        print({j : replaceDict[i][j] for i in replaceDict if file.lower().split('.')[0]==i.lower() for j in replaceDict[i]})
                         copyFileReplaceStr(os.path.join(root, file),path_target,path_target+file,[source_name],[target_name],{j : replaceDict[i][j] for i in replaceDict if file.lower().split('.')[0]==i.lower() for j in replaceDict[i]})
 
                         #copyFile(os.path.join(root, file),path_target,path_target+'\\'+file)
                         
                 for dir in dirs: 
-                    print('+++create subdir++++')
-                    print(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     createSubDir(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
+            try:
+                os.rename(dir_macro+'\\'+source_name.lower(), dir_macro+'\\'+target_name)
+            except:
+                pass
                                 
         

@@ -17,7 +17,7 @@ source_dir=plugin_dir+"ida_districts_modeling_simulation\\network_models\\cosim_
  
 def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     sql="""SELECT f_dec.comp_name
-    FROM {}.{}s f, {}.feature_decoupling f_dec
+    FROM "{}".{}s f, "{}".feature_decoupling f_dec
     WHERE f.id={} AND f.assettype=f_dec.assettype AND f.assetgroup=f_dec.assetgroup AND f_dec.type='{}';""".format(
         dictDB['versionName'],feature['feature'],dictDB['versionName'],feature['id'],feature['feature'])
     print(sql)

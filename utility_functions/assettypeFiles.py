@@ -10,7 +10,7 @@ import os
 from plugins.ida_districts_modeling_simulation.invoke import *
 from plugins.utility_functions.topology import *
 
-def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,iface,plugin_dir,sensor_data):
+def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,plugin_dir,sensor_data):
     target_dir=dir+"\\network_"+str(submodel)
                     
     submodels=getUsedSubmodels(cur,dictDB)
@@ -113,7 +113,7 @@ class CopyDecoupledAssettypeMacro:
         * import/export:
             -sensor signals
             -connections"""
-    def __init__(self,submodel,dir,dictDB,cur,iface,plugin_dir,sensor_data):
+    def __init__(self,submodel,dir,dictDB,cur,plugin_dir,sensor_data):
         print('copy decoupled feature macro')
         target_dir=dir+"\\network_"+str(submodel)
                     
@@ -137,13 +137,13 @@ class CopyDecoupledAssettypeMacro:
 
             #idm
             source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
-            print(source_f)
+            #print(source_f)
             if not os.path.exists(source_f):
                 invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],False)
             
             file_data=readFileToList(source_f)
             resource=getResourcesFromFileDataList(file_data)
-            print()
+
             if resource not in self.resources:
                 self.resources+=resource
             #too slow
@@ -657,16 +657,19 @@ class RenameAssettypeFiles:
 
 class CopyAssettypeMacro:
     """ Copy invoked assettype macros to IDA network project: customers,plants and devices"""
-    def __init__(self,submodel,dir,type,dictDB,cur,iface,plugin_dir,reinvoke,invokedOutputs,requestedOutputs):
+    def __init__(self,submodel,dir,type,dictDB,cur,plugin_dir,reinvoke,invokedOutputs,requestedOutputs,parallize=False,signals=False):
         print('copy {} macro'.format(type))
         print(f"---------------reinvoke: {reinvoke}----------------")
+        print(plugin_dir)
+        print(parallize)
+        print(signals)
         #print(invokedOutputs)
         type_name=type[:-1]
         target_dir=dir+"\\network_"+str(submodel)
         source_dir=dir+'\\invoked_'+type_name+'s'
                             
         sql="""SELECT f.id, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, l.submodel
-    FROM "{}".{} f, "{}".lines l, {}.{}_connections conn 
+    FROM "{}".{} f, "{}".lines l, "{}".{}_connections conn 
     WHERE f.submodel={} AND l.id=conn.lid AND f.id=conn.{}id AND f.submodel = ANY(l.submodel)
     ORDER BY id;""".format(submodel,dictDB['versionName'],type,dictDB['versionName'],dictDB['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'd' if type_name=='device' else 'ep')
         print(sql)
@@ -692,7 +695,7 @@ class CopyAssettypeMacro:
             
             print(source_f_idm)
             if not os.path.exists(source_f_idm) or reinvoke:
-                invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,type_name,False,False)
+                invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,type_name,False,False,parallize=parallize,signals=signals)
                 if type=='energy_plants':
                     self.invokedFeatureOutputs[feature['id']]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
                 elif type=='customers':
@@ -730,11 +733,13 @@ class CopyAssettypeMacro:
                 copyFile(source_f_idc,target_dir,f_idc_target)
             
             #check if folder contains macros
+            #print('----------------------------------------check if macros exist----------------------')
+            #print(source_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+'\\'+type_name.capitalize()+"_"+str(feature['id']))
             if os.path.exists(source_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+'\\'+type_name.capitalize()+"_"+str(feature['id'])):
                 for root, dirs, files in os.walk(source_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+'\\'+type_name.capitalize()+"_"+str(feature['id'])):
                     for file in files:
                         if file.endswith('.idm') or file.endswith('.idc'):
-                            print('---------macro exists: '+file)
+                            #print('---------macro exists: '+file)
                             subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(type_name.capitalize()+"_"+str(feature['id'])+'\\'+type_name.capitalize()+"_"+str(feature['id']))[1]
                             path=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+subfolder
                             createSubDir(path)

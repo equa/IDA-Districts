@@ -59,9 +59,9 @@ def copy_string_iterator_customer_sData(connection, sdata,fid,col_dict,start_dat
                 ))) + '\n'
                 for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,col]))
             ))
-            cursor.copy_expert("COPY {}.{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')".format(dictDB['versionName'],table_name),mdata_string_iterator)
+            cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')""".format(dictDB['versionName'],table_name),mdata_string_iterator)
 
-        sql="""UPDATE {}.{} r set geom = f.geom 
+        sql="""UPDATE "{}".{} r set geom = f.geom 
     FROM (SELECT id, geom FROM "{}".customers) f
     WHERE f.id=r.fid;""".format(dictDB['versionName'],table_name,dictDB['versionName'])
         print(sql)

@@ -44,7 +44,7 @@ class IDADistrictsResultVisualization:
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
+        self.plugin_dir = os.path.dirname(__file__).replace('/','\\')
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(
@@ -351,7 +351,6 @@ class IDADistrictsResultVisualization:
         """Just fo supply and return line. Todo update to all connection types"""
         print('generate path diagram')
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if dlg.rbtn_pathTemp.isChecked():
             quantity='temperature'
@@ -540,7 +539,6 @@ SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".
         """Just fo supply and return line. Todo update to all connection types"""
         print('generate path diagram')
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        print(self.dictDB)
         self.conn=dbConnect(self.dictDB,False)
         if dlg.rbtn_pathTemp.isChecked():
             quantity='temperature'

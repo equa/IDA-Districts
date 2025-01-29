@@ -8,6 +8,12 @@ import shutil
 import time
 import os
 
+def rmtree_long_path(path):
+    if os.path.exists(dir) and os.path.isdir(dir):
+        if os.name == 'nt':
+            dir='\\\\?\\'+dir
+        shutil.rmtree(dir)
+        
 def copy_tree_filter_extensions_and_folders(src, dst, signals=None,exclude_extensions=None, exclude_folders=None):
     # Set default values if no extensions or folders are provided
     if exclude_extensions is None:
@@ -32,9 +38,9 @@ def copy_tree_filter_extensions_and_folders(src, dst, signals=None,exclude_exten
             relative_path = os.path.relpath(full_file_path, src)
             destination_file_path = os.path.join(dst, relative_path)
             try:
-                if os.name == 'nt' and len(destination_file_path)>=260:  # Windows OS
+                if os.name == 'nt' and '\\\\?\\' not in destination_file_path:  # Windows OS
                     destination_file_path = '\\\\?\\' + os.path.abspath(destination_file_path)
-                if os.name == 'nt' and len(full_file_path)>=260:  # Windows OS
+                if os.name == 'nt' and '\\\\?\\' not in full_file_path:  # Windows OS
                     full_file_path = '\\\\?\\' + os.path.abspath(full_file_path)
                 # Make sure the destination directory exists
                 os.makedirs(os.path.dirname(destination_file_path), exist_ok=True)

@@ -12,11 +12,12 @@ class Util_api:
         path_to_ice = loadIDADistrictsConfig(plugin_dir)['path_ice'].replace("\\","\\\\")+"bin\\\\"
         command = path_to_ice + "ida-ice.exe \"" + path_to_ice + "ida.img\" -G 1"
         print(command)
+        configIDADistricts=loadIDADistrictsConfig(plugin_dir)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
         self.pid = str(ret[2])
         print(self.pid)
-        time.sleep(5)
+        time.sleep(float(configIDADistricts['ice_api_delay']))
         #Add path_to_ice to PATH variable, is removed when program finishes
         os.environ['PATH'] = path_to_ice + os.pathsep  + os.environ['PATH']
 

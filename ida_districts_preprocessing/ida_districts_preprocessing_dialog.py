@@ -1,6 +1,7 @@
 """ This file contains the dialog code for IDA Districts Preprocessing"""
 
 from plugins.utility_functions.db import *
+from plugins.utility_functions.topology import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.error_handling import *
 from plugins.utility_functions.layer_visualization import *
@@ -8,7 +9,7 @@ from .PipeLayingAlgorithm import WorkerPipeLaying
 from .pipe_sizing import * 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 from qgis.PyQt.QtCore import Qt, QThreadPool
-from qgis.PyQt.QtWidgets import QSpacerItem,QSizePolicy,QGroupBox,QMessageBox,QButtonGroup, QInputDialog, QTableWidgetItem,QTableWidget, QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QComboBox, QCheckBox, QRadioButton, QListWidget
+from qgis.PyQt.QtWidgets import QSpacerItem,QSizePolicy,QGroupBox,QMessageBox,QButtonGroup, QInputDialog, QTableWidgetItem,QTableWidget, QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QComboBox, QProgressBar, QComboBox, QCheckBox, QRadioButton, QListWidget
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  
@@ -805,7 +806,6 @@ class PipeLayingDialog(QMainWindow):
         self.cooling_assettype_customer.setCurrentText('keep type')
         
     def execute(self):  
-        print(self.dictDB)
         layerCheck=checkPipeLayingLayerData(self.dictDB,self.cur,self.combo_network.currentText())
         if layerCheck=='no_streets':
             self.iface.messageBar().pushMessage("Error", "Please insert streets into the streets layer.", level=Qgis.Critical)
@@ -1198,57 +1198,20 @@ class NetworkTopologyDialog(QMainWindow):
         self.iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         
     def execute(self):  
-        print(self.dictDB)
-        
         if self.conn:
-            print(self.dictDB)
             networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != 'Check all items' and self.combo_network_models.itemChecked(i)]
-            if self.checkNetwork(self.dictDB['versionName'],networks):                 
+            if checkNetwork(self.cur,self.dictDB['versionName'],networks):                 
                 worker = WorkerGenerateNetworkTopology(iface=self.iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
                     connectCustomers=self.check_connectCustomers.isChecked(),connectCustomers_assettype_lines=self.connectCustomers_assettype_lines.currentText(),connectCustomers_assettype_pipeBundle=self.connectCustomers_assettype_pipeBundle.currentText(),
                     addCustomers=self.check_add_customers_network_ends.isChecked(),addCustomers_assettype_customers=self.addCustomers_assettype_customers.currentText(),
                     connectPlants=self.check_connectPlants.isChecked(),connectPlants_assettype_lines=self.connectPlants_assettype_lines.currentText(),connectPlants_assettype_pipeBundle=self.connectPlants_assettype_pipeBundle.currentText(),
                     deleteUnconnectedNetworkEnds=self.check_del_network_ends.isChecked(),
                     keepAssettypes=self.rbtn_keep_assettypes.isChecked(),
-                    overrideAssettypes=self.rbtn_override_assettypes.isChecked(),overrideAssettypes_customers=self.overrideAssettype_customer.currentText(), overrideAssettypes_lines=self.overrideAssettype_lines.currentText(),overrideAssettypes_pipeBundle=self.overrideAssettype_pipeBundle.currentText(),tolerance=self.tolerance.text())
+                    overrideAssettypes=self.rbtn_override_assettypes.isChecked(),overrideAssettypes_customers=self.overrideAssettype_customer.currentText(), overrideAssettypes_lines=self.overrideAssettype_lines.currentText(),overrideAssettypes_pipeBundle=self.overrideAssettype_pipeBundle.currentText(),tolerance=self.tolerance.text(),
+                    showTempTables=True)
                 self.threadpool.start(worker) 
                 worker.signals.error.connect(self.show_error_message)
                 worker.signals.progress.connect(self.update_progress)
-
-    def checkNetwork(self,version,networks):
-        sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version)
-        self.cur.execute(sql)
-        networkNullCount=self.cur.fetchone()['count']
-        
-        mainPlant_counter={}
-        for network in networks:
-            sql="""SELECT count(*) as count FROM "{}".energy_plants WHERE network && ARRAY[{}] AND main_plant && ARRAY[{}];""".format(version,network,network)
-            self.cur.execute(sql)        
-            mainPlant_counter[network]=self.cur.fetchone()['count']
-        print(mainPlant_counter)
-        if networkNullCount>0:
-            print('Network attribute not set!')
-
-            dlg_question = QMessageBox(self)
-            dlg_question.setWindowTitle('Network attribute value missing!')
-            dlg_question.setText("""{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?""".format(networkNullCount))
-            dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
-            dlg_question.setIcon(QMessageBox.Question)
-            button = dlg_question.exec()
-
-            if button == QMessageBox.Yes:
-                sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version)
-                print(sql)
-                self.cur.execute(sql)
-                return True
-            else:
-                print("Cancel!")
-                return False
-        elif any(x != 1 for x in mainPlant_counter.values()):
-            self.iface.messageBar().pushMessage("Error", "Please set 1 energy plant as your main plant of each network!", level=Qgis.Critical)
-            return False
-        else:
-            return True
                 
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -2197,7 +2160,7 @@ class PipeBundleEditor(QMainWindow):
         else:
             iface.messageBar().pushMessage("Info", "No pipe bundle type attribute selected!", level=Qgis.Info)
 
-class PipeSizing(QMainWindow):
+class PipeSizingDlg(QMainWindow):
     def __init__(self,dictDB,plugin_dir,cur):     
         """Initialize GUI to Import Network Topology From Point Layer"""
         super().__init__()
@@ -2207,6 +2170,7 @@ class PipeSizing(QMainWindow):
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.pipes={}
         self.new_pipe_bundles=[]
+        self.sequences=[]
         
         
         self.setWindowTitle("Pipe sizing")
@@ -2233,7 +2197,7 @@ class PipeSizing(QMainWindow):
         self.label_kin_viscosity =QLabel("Kinematic viscosity, m2/s")
         layout_label.addWidget(self.label_kin_viscosity)  
 
-        layout_label.addWidget(QLabel("Networks"))
+        layout_label.addWidget(QLabel("Network"))
         
         
         #values
@@ -2256,12 +2220,9 @@ class PipeSizing(QMainWindow):
         self.kin_viscosity =QLineEdit("")
         layout_values.addWidget(self.kin_viscosity)     
         
-        self.combo_network_models = CheckableComboBox()     
-        self.combo_network_models.addItem('Check all items')
+        self.combo_network_models = QComboBox()     
         networks=getNetworks(cur,dictDB)
-        self.combo_network_models.addItems(networks)  
-        for i in range(len(networks)):
-            self.combo_network_models.setItemChecked(i+1,False)        
+        self.combo_network_models.addItems(networks)      
         layout_values.addWidget(self.combo_network_models)        
     
 
@@ -2269,9 +2230,55 @@ class PipeSizing(QMainWindow):
         layout_inputs.addLayout(layout_label)
         layout_inputs.addLayout(layout_values)
         
-                
+        #radio sizing option
+        self.rbtn_customers = QRadioButton('Sizing according to customer`s energy demand & shortest path from customer to main energy plant')
+        self.rbtn_customers.setChecked(True)
+        self.rbtn_lines = QRadioButton('Line`s energy demand')
+        
+        self.rbtn_customers.toggled.connect(self.updateCircuitsTable)
+        
+        layout_sizing_options = QHBoxLayout()
+        layout_sizing_options.addWidget(self.rbtn_customers)
+        layout_sizing_options.addWidget(self.rbtn_lines)
+        
+        #simultaneity
+        self.checkBoxSimultaneity=QCheckBox("Consider the simultaneity of energy consumption")
+        self.checkBoxSimultaneity.setChecked(True) 
+        self.checkBoxSimultaneity.stateChanged.connect(lambda: self.updateSimultaneity())
+        self.combo_simultaneity=QComboBox(self)
+        self.combo_simultaneity.addItems(getTableAttr(self.cur,self.dictDB,'line'))
+        self.combo_simultaneity.setHidden(True)
+
+        
+        #------liquid circuits----
+        #label water circuits
+        self.label_circuits =QLabel("Liquid circuits")
+        font=self.label_circuits.font()
+        font.setPointSize(15)
+        self.label_circuits.setFont(font)
+        
+        #circuits buttons options
+        layout_buttons_circuits = QHBoxLayout()
+        
+        self.btn_add_circuit=QPushButton("Add circuit")
+        layout_buttons_circuits.addWidget(self.btn_add_circuit)
+        self.btn_add_circuit.clicked.connect(self.addRow)
+        
+        self.btn_del_circuit=QPushButton("Delete circuit")
+        layout_buttons_circuits.addWidget(self.btn_del_circuit)
+        self.btn_del_circuit.clicked.connect(self.deleteRow)
+        
+        #table
+        #table for sequence mapping 
+        self.table_sequences = QTableWidget(0,6)   
+        self.table_sequences.setHorizontalHeaderLabels(['Supply','T supply, °C','','Return','T return, °C','Load column'])     
+        #self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
+        
         #list of considered pipes
         label_pipes_list =QLabel("Check considered pipes")
+        font=label_pipes_list.font()
+        font.setPointSize(15)
+        label_pipes_list.setFont(font)
         self.pipes_list=QListWidget()
           
         #buttons       
@@ -2291,6 +2298,12 @@ class PipeSizing(QMainWindow):
         #set layouts together
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_inputs)
+        layout_win.addLayout(layout_sizing_options)
+        layout_win.addWidget(self.checkBoxSimultaneity)
+        layout_win.addWidget(self.combo_simultaneity)
+        layout_win.addWidget(self.label_circuits)
+        layout_win.addLayout(layout_buttons_circuits)
+        layout_win.addWidget(self.table_sequences)
         layout_win.addWidget(label_pipes_list)
         layout_win.addWidget(self.pipes_list)
         layout_win.addLayout(layout_buttons)
@@ -2302,3 +2315,54 @@ class PipeSizing(QMainWindow):
     def closeEvent(self, *args, **kwargs):
         print ("you just closed the PipeSizingWindow!!!")
         rejectPipeSizingResults(self.dictDB,self.conn,self)
+        
+    def updateCircuitsTable(self): 
+        self.updateSimultaneity()
+            
+        for row in range(self.table_sequences.rowCount()):
+            energy_demand_colmn = QComboBox(self)
+            energy_demand_colmn.addItems(getTableAttr(self.cur,self.dictDB,'customer' if self.rbtn_customers.isChecked() else 'line'))    
+            self.table_sequences.setCellWidget(row, 5, energy_demand_colmn)
+            
+    def updateSimultaneity(self): 
+        if self.rbtn_lines.isChecked() and self.checkBoxSimultaneity.isChecked():
+            self.combo_simultaneity.setHidden(False)
+        else:
+            self.combo_simultaneity.setHidden(True)
+            
+    def addRow(self):
+        self.table_sequences.insertRow(0)
+        self.sequences=getNetworkSequences(self.cur,self.dictDB,self.combo_network_models.currentText())
+        combo_box_seq_sup = QComboBox(self)
+        combo_box_seq_sup.addItems(self.sequences)
+        self.table_sequences.setCellWidget(0, 0, combo_box_seq_sup)
+        
+        self.table_sequences.setItem(0, 1, QTableWidgetItem(""))
+ 
+        item = QTableWidgetItem("-->")
+        # Make the item non-editable by setting its flags
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        self.table_sequences.setItem(0, 2, item)
+        
+        combo_box_seq_ret = QComboBox(self)
+        combo_box_seq_ret.addItems(self.sequences)
+        self.table_sequences.setCellWidget(0, 3, (combo_box_seq_ret))
+        
+        self.table_sequences.setItem(0, 4, QTableWidgetItem(""))
+
+        #energy demand
+        energy_demand_colmn = QComboBox(self)
+        energy_demand_colmn.addItems(getTableAttr(self.cur,self.dictDB,'customer' if self.rbtn_customers.isChecked() else 'line'))            
+        self.table_sequences.setCellWidget(0, 5, energy_demand_colmn)
+        
+        
+    def deleteRow(self):
+        selected_indexes = self.table_sequences.selectedIndexes()
+        if selected_indexes:
+            # Find the row of the first selected index (all selected indexes in the same row)
+            selected_row = selected_indexes[0].row()
+
+            # Remove the row
+            self.table_sequences.removeRow(selected_row)
+        else:
+            iface.messageBar().pushMessage("Info", "No row selected!", level=Qgis.Info)

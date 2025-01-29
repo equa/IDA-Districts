@@ -12,14 +12,40 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPoo
 from plugins.utility_functions.util import *
 from plugins.utility_functions.workers import WorkerOpenAPI
     
+def cleanupSensorSignals(cur,dictDB):
+    #tables source_ids,target_ids
+    sql="""DELETE FROM "{}".source_ids WHERE id NOT IN ( 
+    SELECT s_ids.id
+        FROM "{}".sensor_source ss, "{}".source_ids s_ids, "{}".source_assetgroups s_ag, "{}".source_assettype s_at,
+        (SELECT id,assetgroup,assettype FROM "{}".customers) f
+        WHERE ss.type=1 AND ss.sensor_id=s_ids.source_id AND ss.sensor_id=s_ag.source_id AND ss.sensor_id=s_at.source_id AND s_ids.feature_id=f.id AND s_ag.assetgroup=f.assetgroup AND s_at.assettype=f.assettype
+    UNION
+    SELECT s_ids.id
+        FROM "{}".sensor_source ss, "{}".source_ids s_ids, "{}".source_assetgroups s_ag, "{}".source_assettype s_at,
+        (SELECT id,assetgroup,assettype FROM "{}".energy_plants) f
+        WHERE ss.type=2 AND ss.sensor_id=s_ids.source_id AND ss.sensor_id=s_ag.source_id AND ss.sensor_id=s_at.source_id AND s_ids.feature_id=f.id AND s_ag.assetgroup=f.assetgroup AND s_at.assettype=f.assettype
+    UNION
+    SELECT s_ids.id
+        FROM "{}".sensor_source ss, "{}".source_ids s_ids, "{}".source_assetgroups s_ag, "{}".source_assettype s_at,
+        (SELECT id,assetgroup,assettype FROM "{}".devices) f
+        WHERE ss.type=3 AND ss.sensor_id=s_ids.source_id AND ss.sensor_id=s_ag.source_id AND ss.sensor_id=s_at.source_id AND s_ids.feature_id=f.id AND s_ag.assetgroup=f.assetgroup AND s_at.assettype=f.assettype
+);""".format(dictDB['versionName'],
+    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
+    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
+    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+    cur.execute(sql) 
+    
 def getSubmodelFromSensorSource(cur,dictDB,sensor,source):
-    return str((getSupervisorySubmodel(cur,dictDB) if sensor['source_type']==4 else getSubmodelPerFeatureIdTypename(source.split('_')[1],sensor['source_type_name'],cur,dictDB))['submodel'])
-
+    try:
+        return str((getSupervisorySubmodel(cur,dictDB) if sensor['source_type']==4 else getSubmodelPerFeatureIdTypename(source.split('_')[1],sensor['source_type_name'],cur,dictDB))['submodel'])
+    except:
+        return ''
 def getSubmodelFromSensorTarget(cur,dictDB,sensor,target):
     return str((getSupervisorySubmodel(cur,dictDB) if sensor['target_type']==4 else getSubmodelPerFeatureIdTypename(target.split('_')[1],sensor['target_type_name'],cur,dictDB))['submodel'])
     
 def getSensorDecData(sensor_data,feature_dec_irefs,cur,dictDB):
     sensor_dec_data=[]
+    print(sensor_data)
     for sensor in sensor_data:
         irefs_source=[]
         for source in sensor['irefs_source']:
@@ -226,7 +252,7 @@ def delSensorComp(file_data,remove_sensor_ids,type):
     
 def getRemovedSensorSourceData(cur,dictDB,source_types=[1,2,3,4],filter=""):
     print('--------------getRemovedSensorSourceData------------')
-    sql="""SELECT i_s.sensor_id, i_s.source_assettype_names FROM {}.invoked_sensor_source_signals i_s
+    sql="""SELECT i_s.sensor_id, i_s.source_assettype_names FROM "{}".invoked_sensor_source_signals i_s
     WHERE i_s.type IN ({}) AND NOT EXISTS (
         SELECT 1 FROM 
             (\n""".format(dictDB['versionName'],','.join([str(i) for i in source_types]))
@@ -239,7 +265,7 @@ def getRemovedSensorSourceData(cur,dictDB,source_types=[1,2,3,4],filter=""):
 
 def getRemovedSensorTargetData(cur,dictDB,target_types=[1,2,3,4],filter=""):
     print('--------------getRemovedSensorTargetData------------')
-    sql="""SELECT i_t.sensor_id, i_t.target_assettype_names FROM {}.invoked_sensor_target_signals i_t
+    sql="""SELECT i_t.sensor_id, i_t.target_assettype_names FROM "{}".invoked_sensor_target_signals i_t
     WHERE i_t.type IN ({}) AND NOT EXISTS (
         SELECT 1 FROM 
             (\n""".format(dictDB['versionName'],','.join([str(i) for i in target_types]))
@@ -256,7 +282,7 @@ def getAddedSensorSourceData(cur,dictDB,source_types=[1,2,3,4],filter=""):
     sql+=getSensorData(cur,dictDB,execute_query=False,source_types=source_types,filter=filter)[:-1]
     sql+=""")
 SELECT * FROM sub WHERE
-    NOT EXISTS (SELECT 1 FROM {}.invoked_sensor_source_signals i_s
+    NOT EXISTS (SELECT 1 FROM "{}".invoked_sensor_source_signals i_s
                             WHERE i_s.type IN ({}) AND sub.sensor_id=i_s.sensor_id AND i_s.type=sub.source_type AND ARRAY(SELECT unnest(sub.irefs_source)) =i_s.source_irefs AND i_s.test_value=sub.test_value AND i_s.function=sub.function);""".format(dictDB['versionName'],','.join([str(i) for i in source_types]))
     print(sql)
     cur.execute(sql)
@@ -268,7 +294,7 @@ def getAddedSensorTargetData(cur,dictDB,target_types=[1,2,3,4],filter=""):
     sql+=getSensorData(cur,dictDB,execute_query=False,target_types=target_types,filter=filter)[:-1]
     sql+=""")
 SELECT * FROM sub WHERE
-    NOT EXISTS (SELECT 1 FROM {}.invoked_sensor_target_signals i_t
+    NOT EXISTS (SELECT 1 FROM "{}".invoked_sensor_target_signals i_t
                             WHERE i_t.type IN ({}) AND sub.sensor_id=i_t.sensor_id AND i_t.type=sub.target_type AND ARRAY(SELECT unnest(sub.irefs_target)) =i_t.target_irefs);""".format(dictDB['versionName'],','.join([str(i) for i in target_types])) 
     print(sql)
     cur.execute(sql)
@@ -276,13 +302,13 @@ SELECT * FROM sub WHERE
 
 def writeInvokedSensorSourceSignals (cur,dictDB,add_sensor_source_idsValues):
     if add_sensor_source_idsValues:
-        sql="\n".join(["""INSERT INTO {}.invoked_sensor_source_signals(sensor_id,type,measure,function,test_value,source_irefs,source_assettype_names) VALUES ({},{},{},{},{},{},{});""".format(dictDB['versionName'],sensor['sensor_id'],sensor['source_type'],sensor['measure'],sensor['function'],sensor['test_value'],"'{"+','.join([iref for iref in sensor['irefs_source']])+"}'","'{"+','.join([k for k in sensor['source_assettype_names']])+"}'") for sensor in add_sensor_source_idsValues])
+        sql="\n".join(["""INSERT INTO "{}".invoked_sensor_source_signals(sensor_id,type,measure,function,test_value,source_irefs,source_assettype_names) VALUES ({},{},{},{},{},{},{});""".format(dictDB['versionName'],sensor['sensor_id'],sensor['source_type'],sensor['measure'],sensor['function'],sensor['test_value'],"'{"+','.join([iref for iref in sensor['irefs_source']])+"}'","'{"+','.join([k for k in sensor['source_assettype_names']])+"}'") for sensor in add_sensor_source_idsValues])
         print(sql)
         cur.execute(sql)
   
 def writeInvokedSensorTargetSignals (cur,dictDB,add_target_idsValues):
     if add_target_idsValues:
-        sql="\n".join(["""INSERT INTO {}.invoked_sensor_target_signals(sensor_id,type,target_irefs,target,target_assettype_names) VALUES ({},{},{},{},{});""".format(dictDB['versionName'],sensor['sensor_id'],sensor['target_type'],"'{"+','.join([iref for iref in sensor['irefs_target']])+"}'",sensor['target'],"'{"+','.join([k for k in sensor['target_assettype_names']])+"}'") for sensor in add_target_idsValues])
+        sql="\n".join(["""INSERT INTO "{}".invoked_sensor_target_signals(sensor_id,type,target_irefs,target,target_assettype_names) VALUES ({},{},{},{},{});""".format(dictDB['versionName'],sensor['sensor_id'],sensor['target_type'],"'{"+','.join([iref for iref in sensor['irefs_target']])+"}'",sensor['target'],"'{"+','.join([k for k in sensor['target_assettype_names']])+"}'") for sensor in add_target_idsValues])
         print(sql)
         cur.execute(sql) 
 
@@ -293,9 +319,9 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
             WITH sub AS(
                 --customer (type:1); temp,mass,p(measure:1,2,3) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM {}.source_ids s_ids, "{}".customers f, customer_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM {}.source_conns 
+                        FROM "{}".source_ids s_ids, "{}".customers f, customer_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, "{}".sensor_source s,
+                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM "{}".source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE s_ids.active=True AND f.id=s_ids.feature_id
@@ -307,9 +333,9 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
                 UNION
                 --plant (type:2); temp,mass,p(measure:1,2,3) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM {}.source_ids s_ids, "{}".energy_plants f, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM {}.source_conns 
+                        FROM "{}".source_ids s_ids, "{}".energy_plants f, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, "{}".sensor_source s,
+                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM "{}".source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE s_ids.active=True AND f.id=s_ids.feature_id
@@ -321,9 +347,9 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
                         UNION
                 --device (type:3); temp,mass,p(measure:1,2,3) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM {}.source_ids s_ids, "{}".devices f, device_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM {}.source_conns 
+                        FROM "{}".source_ids s_ids, "{}".devices f, device_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, "{}".sensor_source s,
+                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM "{}".source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE s_ids.active=True AND f.id=s_ids.feature_id
@@ -335,8 +361,8 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
                 UNION
                 --customer (type:1); power(measure:4) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM {}.source_ids s_ids, "{}".customers f, customer_assettypes f_at, bundle_type_conns b_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        FROM "{}".source_ids s_ids, "{}".customers f, customer_assettypes f_at, bundle_type_conns b_t_conns, "{}".sensor_source s,
+                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE s_ids.active=True AND f.id=s_ids.feature_id
                             AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=1
@@ -345,8 +371,8 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
                 UNION
                 --plant (type:2); power(measure:4) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM {}.source_ids s_ids, "{}".energy_plants f, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        FROM "{}".source_ids s_ids, "{}".energy_plants f, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, "{}".sensor_source s,
+                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE s_ids.active=True AND f.id=s_ids.feature_id
                             AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=2
@@ -355,8 +381,8 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
                 UNION
                 --device (type:3); power(measure:4) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM {}.source_ids s_ids, "{}".devices f, device_assettypes f_at, bundle_type_conns b_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        FROM "{}".source_ids s_ids, "{}".devices f, device_assettypes f_at, bundle_type_conns b_t_conns, "{}".sensor_source s,
+                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE s_ids.active=True AND f.id=s_ids.feature_id
                             AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=3
@@ -365,21 +391,21 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
                 UNION
                 --customer,plant,device; custom (measure:5) 
                 (SELECT s_ids.source_id, s_ids.feature_id::text, 'X', 'X','X'
-                        FROM {}.source_ids s_ids, {}.sensor_source s
+                        FROM "{}".source_ids s_ids, "{}".sensor_source s
                         WHERE s_ids.active=True AND s.sensor_id=s_ids.source_id AND s.measure=5
                         GROUP BY s_ids.source_id, s_ids.feature_id
                         ORDER BY s_ids.source_id, s_ids.feature_id)
                 --supervisory ctrl; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN t_ids.feature_id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
-                        FROM {}.sensor_source s,{}.sensor_target t,{}.target_ids t_ids
+                        FROM "{}".sensor_source s,"{}".sensor_target t,"{}".target_ids t_ids
                         WHERE s.type=4 AND s.sensor_id=t.sensor_id AND t_ids.target_id=t.sensor_id
                         --GROUP BY s.sensor_id
                         ORDER BY s.sensor_id)
             )
             SELECT source_id, s.function, s.type, sub.feature_id,
                 replace(replace(ARRAY_AGG(source_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source 
-                FROM sub, {}.sensor_source s WHERE s.sensor_id=sub.source_id GROUP BY s.function,source_id,sub.feature_id,conn_type_id, s.type
+                FROM sub, "{}".sensor_source s WHERE s.sensor_id=sub.source_id GROUP BY s.function,source_id,sub.feature_id,conn_type_id, s.type
         )
         SELECT source_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.assettype_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
             FROM sub,
@@ -402,24 +428,24 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
         FROM sub,
             (--Customer target irefs
                 SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t,  {}.target_ids t_ids, "{}".customers f
+                FROM "{}".sensor_target t,  "{}".target_ids t_ids, "{}".customers f
                 WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t.type =1 AND t_ids.feature_id=f.id
                 GROUP BY t.sensor_id,t.type
             UNION
             --Energy plants target irefs
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t,  {}.target_ids t_ids, "{}".energy_plants f
+                FROM "{}".sensor_target t,  "{}".target_ids t_ids, "{}".energy_plants f
                 WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t.type =2 AND t_ids.feature_id=f.id
                 GROUP BY t.sensor_id,t.type
             UNION
             --Devices target irefs
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t,  {}.target_ids t_ids, "{}".customers f
+                FROM "{}".sensor_target t,  "{}".target_ids t_ids, "{}".customers f
                 WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t.type =3 AND t_ids.feature_id=f.id
                 GROUP BY t.sensor_id,t.type
             UNION
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_X_X_X'::text ORDER BY t.sensor_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t
+                FROM "{}".sensor_target t
                 WHERE t.type =4 
                 GROUP BY t.sensor_id,t.type
             ) a,
@@ -433,12 +459,12 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
             SELECT sub2.source_id, sub2.function,ARRAY_AGG(sub2.source_assettype_name) AS source_assettype_name FROM sub2 GROUP BY sub2.source_id, sub2.function) c,    
             (WITH sub AS(
                 SELECT t.sensor_id,sub.assettype_name AS target_assettype_name
-                    FROM sub, {}.sensor_target t,  {}.target_ids t_ids 
+                    FROM sub, "{}".sensor_target t,  "{}".target_ids t_ids 
                     WHERE  t.sensor_id=sub.source_id AND t_ids.target_id=t.sensor_id AND t_ids.active=True AND sub.at_names_type=t.type AND sub.at_names_feature_id=t_ids.feature_id::text
                     GROUP BY t.sensor_id,sub.feature_id,sub.assettype_name
                 UNION
                 SELECT t.sensor_id, 'Supervisory_control' AS target_assettype_name
-                    FROM sub, {}.sensor_target t
+                    FROM sub, "{}".sensor_target t
                     WHERE t.type =4 AND t.sensor_id=sub.source_id
                     GROUP BY t.sensor_id
                 )
@@ -449,7 +475,7 @@ def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_ty
 SELECT sub.source_id AS sensor_id, s.type AS source_type, type2.name AS source_type_name, sub.source_assettype_name AS source_assettype_names, t.type AS target_type, type1.name AS target_type_name, sub.target_assettype_name AS target_assettype_names,
     sub.function, s_f.function AS function_name, s.measure, m.measure AS measure_name, 
     sub.irefs_source,sub.irefs_target, s.test_value, t.target, target.target AS target_name,s.description AS description_source, t.description AS description_target
-    FROM sub, {}.sensor_source s, {}.sensor_target t, signal_function s_f, measure m, type type1, type type2, target
+    FROM sub, "{}".sensor_source s, "{}".sensor_target t, signal_function s_f, measure m, type type1, type type2, target
     WHERE target.id=t.target AND s.sensor_id=sub.source_id AND t.sensor_id=s.sensor_id AND m.id=s.measure AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) {}
     GROUP BY sub.source_assettype_name, sub.target_assettype_name, target.target, s.measure,sub.function,sub.source_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,t.target,s.description, t.description,irefs_target
     ORDER BY sub.source_id;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
@@ -469,218 +495,6 @@ SELECT sub.source_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     
     dictDB['versionName'],
     dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],
-    ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter)
-    print(sql)
-    if execute_query:
-        cur.execute(sql)
-        return cur.fetchall()  
-    else:
-        return sql
-        
-def getSensorData_old(cur,dictDB,execute_query=True,source_types=[1,2,3,4],target_types=[1,2,3,4],filter=""):
-    sql="""WITH sub AS(
-    WITH sub AS(
-        WITH sub AS(
-            WITH sub AS(
-                --customer (type:1); temp,mass,p(measure:1,2,3) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text, f.submodel
-                        FROM {}.source_ids s_ids, "{}".customers f, customer_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM {}.source_conns 
-                                WHERE active=True  
-                                GROUP BY source_id,connection_id)  s_c
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s_c.source_id=s_ids.source_id AND s.sensor_id=s_ids.source_id
-                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s_ids.source_id AND s.type=1
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id, f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --plant (type:2); temp,mass,p(measure:1,2,3) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text, f.submodel
-                        FROM {}.source_ids s_ids, "{}".energy_plants f, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM {}.source_conns 
-                                WHERE active=True  
-                                GROUP BY source_id,connection_id)  s_c
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s_c.source_id=s_ids.source_id AND s.sensor_id=s_ids.source_id
-                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s_ids.source_id AND s.type=2
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id, f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                        UNION
-                --device (type:3); temp,mass,p(measure:1,2,3) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text, f.submodel
-                        FROM {}.source_ids s_ids, "{}".devices f, device_assettypes f_at, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM {}.source_conns 
-                                WHERE active=True  
-                                GROUP BY source_id,connection_id)  s_c
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s_c.source_id=s_ids.source_id AND s.sensor_id=s_ids.source_id
-                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s_ids.source_id AND s.type=3
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id, f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --customer (type:1); power(measure:4) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X',f.submodel
-                        FROM {}.source_ids s_ids, "{}".customers f, customer_assettypes f_at, bundle_type_conns b_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=1
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id,f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --plant (type:2); power(measure:4) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X',f.submodel
-                        FROM {}.source_ids s_ids, "{}".energy_plants f, energy_plant_assettypes f_at, bundle_type_conns b_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=2
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id,f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --device (type:3); power(measure:4) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X',f.submodel
-                        FROM {}.source_ids s_ids, "{}".devices f, device_assettypes f_at, bundle_type_conns b_t_conns, {}.sensor_source s,
-                            (SELECT source_id, conn_type FROM {}.source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype AND b_t_conns.conn_bundle_type_id=f_at.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=3
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id,f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --customer; custom (measure:5) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, 'X', 'X','X',f.submodel
-                        FROM {}.source_ids s_ids, {}.sensor_source s, "{}".customers f
-                        WHERE s_ids.active=True AND s.sensor_id=s_ids.source_id AND s.measure=5 AND s.type=1
-                        GROUP BY s_ids.source_id, s_ids.feature_id,f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --plant,device; custom (measure:5) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, 'X', 'X','X',f.submodel
-                        FROM {}.source_ids s_ids, {}.sensor_source s, "{}".energy_plants f
-                        WHERE s_ids.active=True AND s.sensor_id=s_ids.source_id AND s.measure=5 AND s.type=2
-                        GROUP BY s_ids.source_id, s_ids.feature_id,f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
-                --device; custom (measure:5) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, 'X', 'X','X',f.submodel
-                        FROM {}.source_ids s_ids, {}.sensor_source s, "{}".devices f
-                        WHERE s_ids.active=True AND s.sensor_id=s_ids.source_id AND s.measure=5 AND s.type=3
-                        GROUP BY s_ids.source_id, s_ids.feature_id,f.submodel
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                --supervisory ctrl; custom (measure:5) 
-                UNION
-                (SELECT s.sensor_id, CASE WHEN s.function=6 THEN t_ids.feature_id::text ELSE 'X' END AS feature_id, 'X', 'X','X',ctrl.submodel
-                        FROM {}.sensor_source s,{}.sensor_target t,{}.target_ids t_ids, {}.supervisory_ctrl ctrl
-                        WHERE s.type=4 AND s.sensor_id=t.sensor_id AND t_ids.target_id=t.sensor_id
-                        --GROUP BY s.sensor_id
-                        ORDER BY s.sensor_id)
-            )
-            SELECT source_id, s.function, s.type, sub.feature_id,sub.submodel,
-                replace(replace(ARRAY_AGG(source_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source 
-                FROM sub, {}.sensor_source s WHERE s.sensor_id=sub.source_id GROUP BY s.function,source_id,sub.feature_id,conn_type_id, s.type,sub.submodel
-        )
-        SELECT source_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.assettype_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id, sub.submodel
-            FROM sub,
-                (SELECT at.type, f.feature_id, at.assettype_name 
-                                        FROM
-                                            (SELECT 1 AS type,assetgroup,assettype,'1'||':'||assetgroup::text||'_'||assettype::text||'_'||assettype_name AS assettype_name FROM customer_assettypes
-                                            UNION
-                                            SELECT 2 AS type,assetgroup,assettype,'2'||':'||assetgroup::text||'_'||assettype::text||'_'||assettype_name AS assettype_name FROM energy_plant_assettypes
-                                            UNION
-                                            SELECT 3 AS type,assetgroup,assettype,'3'||':'||assetgroup::text||'_'||assettype::text||'_'||assettype_name AS assettype_name FROM device_assettypes) at,
-                                            (SELECT 1 AS type,id::text AS feature_id,assetgroup,assettype FROM "{}".customers
-                                            UNION
-                                            SELECT 2 AS type,id::text AS feature_id,assetgroup,assettype FROM "{}".energy_plants
-                                            UNION
-                                            SELECT 3 AS type,id::text AS feature_id,assetgroup,assettype FROM "{}".devices) f
-                                        WHERE at.type=f.type AND at.assetgroup=f.assetgroup AND at.assettype=f.assettype) at_names
-            GROUP BY at_names.type,at_names.feature_id,at_names.assettype_name,sub.type,source_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')), sub.submodel
-    )
-    SELECT b.source_id, sub.type,b.function, 
-            CASE WHEN sub.function=6 AND a.target_type=4 THEN e.irefs_source ELSE a.irefs_target END AS irefs_target, 
-            b.irefs_source, c.source_assettype_name, d.target_assettype_name
-        FROM sub,
-            (--Customer target irefs
-            SELECT t.sensor_id, ARRAY_AGG(array[f.submodel::text,t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text] ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t,  {}.target_ids t_ids, "{}".customers f
-                WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t_ids.feature_id=f.id AND t.type=1
-                GROUP BY t.sensor_id,t.type
-            UNION
-            --Energy plants target irefs
-            SELECT t.sensor_id, ARRAY_AGG(array[f.submodel::text,t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text] ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t,  {}.target_ids t_ids, "{}".energy_plants f
-                WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t_ids.feature_id=f.id AND t.type=2
-                GROUP BY t.sensor_id,t.type 
-            UNION
-            --Devices target irefs
-            SELECT t.sensor_id, ARRAY_AGG(array[f.submodel::text,t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text] ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t,  {}.target_ids t_ids, "{}".devices f
-                WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t_ids.feature_id=f.id AND t.type=3
-                GROUP BY t.sensor_id,t.type 
-            UNION
-            --Supervisory target irefs
-            SELECT t.sensor_id, ARRAY_AGG(array[ctrl.submodel::text,t.sensor_id::text||'_X_X_X'::text] ORDER BY t.sensor_id) AS irefs_target, t.type AS target_type
-                FROM {}.sensor_target t, {}.supervisory_ctrl ctrl
-                WHERE t.type =4 
-                GROUP BY t.sensor_id,t.type
-            ) a,
-            (WITH sub AS (SELECT sub.source_id, sub.function, sub.irefs_source,sub.submodel FROM sub GROUP BY sub.source_id, sub.function, sub.irefs_source,sub.submodel)
-            SELECT  sub.source_id, sub.function, ARRAY_AGG(array[sub.submodel::text,sub.irefs_source] ORDER BY irefs_source) AS irefs_source FROM sub GROUP BY sub.source_id, sub.function) b,
-            (WITH sub2 AS(WITH sub1 AS (SELECT sub.source_id, sub.function, sub.feature_id,sub.type,sub.assettype_name FROM sub 
-                                        WHERE (sub.at_names_type=sub.type AND sub.at_names_feature_id=sub.feature_id) OR sub.type=4
-                                        GROUP BY sub.assettype_name,sub.type,sub.source_id, sub.function,sub.feature_id)
-                            SELECT sub1.source_id, sub1.function,CASE WHEN sub1.type=4 THEN 'X' ELSE sub1.assettype_name END AS source_assettype_name FROM sub1
-                                GROUP BY sub1.source_id, sub1.function,sub1.type,sub1.assettype_name)
-            SELECT sub2.source_id, sub2.function,ARRAY_AGG(sub2.source_assettype_name) AS source_assettype_name FROM sub2 GROUP BY sub2.source_id, sub2.function) c,    
-            (WITH sub AS(
-                SELECT t.sensor_id,sub.assettype_name AS target_assettype_name
-                    FROM sub, {}.sensor_target t,  {}.target_ids t_ids 
-                    WHERE  t.sensor_id=sub.source_id AND t_ids.target_id=t.sensor_id AND t_ids.active=True AND sub.at_names_type=t.type AND sub.at_names_feature_id=t_ids.feature_id::text
-                    GROUP BY t.sensor_id,sub.feature_id,sub.assettype_name
-                UNION
-                SELECT t.sensor_id, 'Supervisory_control' AS target_assettype_name
-                    FROM sub, {}.sensor_target t
-                    WHERE t.type =4 AND t.sensor_id=sub.source_id
-                    GROUP BY t.sensor_id
-                )
-            SELECT sub.sensor_id,ARRAY_AGG(sub.target_assettype_name::text) AS target_assettype_name FROM sub GROUP BY sub.sensor_id) d,
-            (WITH sub AS (SELECT sub.source_id, sub.irefs_source,sub.submodel FROM sub GROUP BY sub.source_id, sub.function, sub.irefs_source,sub.submodel)
-            SELECT  sub.source_id, ARRAY_AGG(array[ctrl.submodel::text,sub.irefs_source] ORDER BY irefs_source) AS irefs_source FROM sub, {}.supervisory_ctrl ctrl GROUP BY sub.source_id) e
-        WHERE c.source_id=d.sensor_id AND c.source_id=a.sensor_id AND a.sensor_id=b.source_id AND sub.source_id=a.sensor_id AND a.sensor_id=e.source_id
-        GROUP BY sub.type,c.source_assettype_name, d.target_assettype_name, b.source_id, b.function, a.irefs_target,b.irefs_source,e.irefs_source, sub.function, target_type
-)
-SELECT sub.source_id AS sensor_id, s.type AS source_type, type2.name AS source_type_name, sub.source_assettype_name AS source_assettype_names, t.type AS target_type, type1.name AS target_type_name, sub.target_assettype_name AS target_assettype_names,
-    sub.function, s_f.function AS function_name, s.measure, m.measure AS measure_name, 
-    sub.irefs_source,sub.irefs_target, s.test_value, t.target, target.target AS target_name,s.description AS description_source, t.description AS description_target
-    FROM sub, {}.sensor_source s, {}.sensor_target t, signal_function s_f, measure m, type type1, type type2, target
-    WHERE target.id=t.target AND s.sensor_id=sub.source_id AND t.sensor_id=s.sensor_id AND m.id=s.measure AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
-    GROUP BY sub.source_assettype_name, sub.target_assettype_name, target.target, s.measure,sub.function,sub.source_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,t.target,s.description, t.description,irefs_target
-    ORDER BY sub.source_id;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],        
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],
     dictDB['versionName'],dictDB['versionName'],
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter)
     print(sql)
@@ -725,7 +539,7 @@ class AssettypeSensorSignals():
         
         #get number of old sensor source signals --> for component placement in .idc
         sql="""WITH sub AS(
-    SELECT sensor_id, unnest(source_assettype_names) AS source_assettype_name FROM {}.invoked_sensor_source_signals
+    SELECT sensor_id, unnest(source_assettype_names) AS source_assettype_name FROM "{}".invoked_sensor_source_signals
 )
 SELECT count(sensor_id) count FROM sub WHERE source_assettype_name='{}';""".format(dictDB['versionName'],assettype_name)
         print(sql)
@@ -734,7 +548,7 @@ SELECT count(sensor_id) count FROM sub WHERE source_assettype_name='{}';""".form
         
         #get number of old sensor target signals --> for component placement in .idc
         sql="""WITH sub AS(
-    SELECT sensor_id, unnest(target_assettype_names) AS target_assettype_name FROM {}.invoked_sensor_target_signals
+    SELECT sensor_id, unnest(target_assettype_names) AS target_assettype_name FROM "{}".invoked_sensor_target_signals
 )
 SELECT count(sensor_id) AS count FROM sub WHERE target_assettype_name='{}';""".format(dictDB['versionName'],assettype_name)
         print(sql)

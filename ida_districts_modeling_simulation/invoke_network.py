@@ -47,9 +47,7 @@ class WorkerBuildNetworkModel(QRunnable):
         self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
         self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
         self.networkSimData=loadNetworkSimData(self.plugin_dir,self.dictDB)
-        InvokeNetworkModel(self.plugin_dir,self.requestedOutputs,self.modellingSettings,iface,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == Qt.Checked,self.signals)
-        
-        self.signals.progress.emit(100)  
+        InvokeNetworkModel(self.plugin_dir,self.requestedOutputs,self.modellingSettings,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == Qt.Checked,self.signals)
         
 class PageSettings:
     def __init__(self,cur,submodel,versionName,networks):
@@ -116,173 +114,183 @@ class InvokeNetworkModel:
         3) insert energy plants
         4) insert pipes between customers and nodes 
         5) insert pipes between nodes"""
-    def __init__(self,dir,requestedOutputs,modellingSettings,iface,networks,submodels,networkSimData,reinvoke,signals):
+    def __init__(self,dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
         print('**********invoke network*********')
+        if os.name == 'nt' and '\\\\?\\' not in dir:
+            dir='\\\\?\\'+dir
         self.plugin_dir=dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         self.signals=signals
         if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.projectConfig=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
-            self.configIDADistricts=loadIDADistrictsConfig(self.plugin_dir)
-            dir+='\\network_models'
-            createDir(dir,self.dictDB['projectName'])
-            dir+='\\'+self.dictDB['projectName']
-            createDir(dir,self.dictDB['versionName'])
-            dir+='\\'+self.dictDB['versionName']
-            
-            #clean dir
-            for submodel in submodels:
-                self.buildingDirPath = """{}\\{}""".format(dir.replace('/','\\'),'network_'+str(submodel))
-                removeFilesInDir(self.buildingDirPath)
+            try:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.projectConfig=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+                self.configIDADistricts=loadIDADistrictsConfig(self.plugin_dir)
+                dir+='\\network_models'
+                createDir(dir,self.dictDB['projectName'])
+                dir+='\\'+self.dictDB['projectName']
+                createDir(dir,self.dictDB['versionName'])
+                dir+='\\'+self.dictDB['versionName']
                 
-            #simulated outputs
-            self.invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
-            print(self.invokedOutputs)
-            self.invokedOutputs['lines'] = {'v_lines': True if requestedOutputs['v_lines'] else False, 'mdot_lines': True if requestedOutputs['mdot_lines'] else False, 'p_lines': True if requestedOutputs['p_lines'] else False, 'temp_lines': True if requestedOutputs['temp_lines'] else False}
-            print(self.invokedOutputs)
+                #clean dir
+                for submodel in submodels:
+                    self.buildingDirPath = """{}\\{}""".format(dir.replace('/','\\'),'network_'+str(submodel))
+                    removeFilesInDir(self.buildingDirPath)
+                    
+                #simulated outputs
+                self.invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
+                print(self.invokedOutputs)
+                self.invokedOutputs['lines'] = {'v_lines': True if requestedOutputs['v_lines'] else False, 'mdot_lines': True if requestedOutputs['mdot_lines'] else False, 'p_lines': True if requestedOutputs['p_lines'] else False, 'temp_lines': True if requestedOutputs['temp_lines'] else False}
+                print(self.invokedOutputs)
+   
+                #setSubnetwork(self.cur,self.dictDB)
+                feature_dec_irefs=[]
+                resources=[]
+                filter=''
+                
+                #clean up data which might be removed since adding the sensor
+                cleanupSensorSignals(self.cur,self.dictDB)
+                sensor_data=getSensorData(self.cur,self.dictDB,filter=filter)
+                print(sensor_data)
 
-
+                print(getUsedSubmodels(self.cur, self.dictDB))
+                for submodel in getUsedSubmodels(self.cur, self.dictDB):
+                    self.buildingDirPath = """{}\\{}\\""".format(dir.replace('/','\\'),'network_'+str(submodel))
+                    #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
+                    print('//////************------//////*------')
+                    for i in readDecoupledFeatureSensorSignals(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
+                        print('++++++++--++')
+                        print(i)
+                        if i not in feature_dec_irefs:
+                            feature_dec_irefs.append(i)
+                print(feature_dec_irefs)
                 
-            #setSubnetwork(self.cur,self.dictDB)
-            feature_dec_irefs=[]
-            resources=[]
-            filter=''
-            sensor_data=getSensorData(self.cur,self.dictDB,filter=filter)
-            print(sensor_data)
-
-            print(getUsedSubmodels(self.cur, self.dictDB))
-            for submodel in getUsedSubmodels(self.cur, self.dictDB):
-                self.buildingDirPath = """{}\\{}\\""".format(dir.replace('/','\\'),'network_'+str(submodel))
-                #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
-                print('//////************------//////*------')
-                for i in readDecoupledFeatureSensorSignals(submodel,dir,self.dictDB,self.cur,iface,self.plugin_dir,sensor_data):
-                    print('++++++++--++')
-                    print(i)
-                    if i not in feature_dec_irefs:
-                        feature_dec_irefs.append(i)
-                
-            print(feature_dec_irefs)
-            
-            sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)      
-            supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.dictDB)['submodel'])
-            self.signals.progress.emit(2)
-            for submodel in submodels: 
-                print(submodel)
-                self.pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
-                idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
-                dec_assettypes=CopyDecoupledAssettypeMacro(submodel,dir,self.dictDB,self.cur,iface,self.plugin_dir,sensor_data)
-                self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
-                resources.extend(dec_assettypes.resources)
-                print('*****************************************************************')
-                print(dec_assettypes.resources)
-                
-                import_counter=dec_assettypes.import_counter
-                print('*-+')
-                print(import_counter)
-                
-                idc=self.writeNetworkTemplateIdc(submodel,dir,networks,supervisory_submodel)
-                
-                createDir(dir,'network_'+str(submodel))
-                #climate
-                writeMacroClimateIdm(self.dictDB,self.cur,'network_'+str(submodel),dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.dictDB),getClimateData(self.cur,self.dictDB,True))
-                writeMacroClimateIdc('network_'+str(submodel),dir,loadModellingSettings(self.plugin_dir,self.dictDB))
-                self.signals.progress.emit(int(2+4*(submodels.index(submodel)+1)/len(submodels)*97))
-                
-                #decoupling
-                idm+=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data)
-                writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir)
-                self.signals.progress.emit(int(2+8*(submodels.index(submodel)+1)/len(submodels)*97))
-                
-                idm_conn="\n(CONNECTIONS"
-                idc_conn=""
-                
-                #supervisory control
-                sql="""SELECT submodel from {}.supervisory_ctrl;""".format(self.dictDB['versionName'])
-                self.cur.execute(sql)
-                if submodel==str(self.cur.fetchone()['submodel']):
-                    """*-*-*-*-copy supervisory*-*-*-*-"""
-                    if not os.path.exists(dir+'\\supervisory_control\\supervisory_control.idm'):
-                        Supervisory_control(self.plugin_dir)                     
-                    resources.extend(CopySupervisoryControl(dir,self.dictDB,self.cur,submodel).resources)
-                self.signals.progress.emit(int(2+10*(submodels.index(submodel)+1)/len(submodels)*97))
-               
-                #Sensors
-                #NetworkSensorSignals(self.cur,self.dictDB,dir+'\\network_'+str(submodel))
-                dir=dir+'\\network_'+str(submodel)
-                print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
-                sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir)
-                sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir,self.plugin_dir)
-                self.signals.progress.emit(int(2+12*(submodels.index(submodel)+1)/len(submodels)*97))
-                
-                dir=self.plugin_dir+"""\\network_models\\{}\\{}""".format(self.dictDB['projectName'],self.dictDB['versionName'])
-                idm_conn=sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn)
-                idm=sensorProjectIdmMacro(submodel,supervisory_submodel,sensor_dec_data,idm)
-                 
-                #----------------supervisory ctrl------------------------
-                if submodel==supervisory_submodel:
-                    idm+="""\n((MACRO-OBJECT :N "Supervisory_control" :T ICE-MACRO :ETM 3857526820 :STM 3857526845){}{}{})""".format(
-                        #iref sources if source type is supervisory ctrl (4) and function == Same signal for all targets (5))
-                        ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j['iref']) 
-                            for i in sensor_dec_data if i['source_type']==4 and i['function']==5 for j in i['irefs_source']]),  
-                        #iref sources if source type is supervisory ctrl (4) and function == Individual signals for each target (6)
-                        ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j['iref']) 
-                            for i in sensor_dec_data if i['source_type']==4 and i['function']==6 for j in i['irefs_target']]),  
-                        #iref targets connections from Sensor to feature if type Supervisory Ctrl (4) 
-                        ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
-                            for i in sensor_dec_data if i['target_type']==4 for j in i['irefs_target']]))                
-
-                if reinvoke:
-                    sql="""TRUNCATE {}.invoked_sf;
-SELECT setval('{}.invoked_sf_id_seq', 1, false);""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+                self.signals.progress.emit(2)
+                sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)      
+                self.signals.progress.emit(3)
+                supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.dictDB)['submodel'])
+                self.signals.progress.emit(4)
+                for submodel in submodels: 
+                    print(submodel)
+                    self.pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
+                    idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
+                    dec_assettypes=CopyDecoupledAssettypeMacro(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data)
+                    self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
+                    resources.extend(dec_assettypes.resources)
+                    print('*****************************************************************')
+                    print(dec_assettypes.resources)
+                    
+                    import_counter=dec_assettypes.import_counter
+                    print('*-+')
+                    print(import_counter)
+                    
+                    idc=self.writeNetworkTemplateIdc(submodel,dir,networks,supervisory_submodel)
+                    
+                    createDir(dir,'network_'+str(submodel))
+                    #climate
+                    writeMacroClimateIdm(self.dictDB,self.cur,'network_'+str(submodel),dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.dictDB),getClimateData(self.cur,self.dictDB,True))
+                    writeMacroClimateIdc('network_'+str(submodel),dir,loadModellingSettings(self.plugin_dir,self.dictDB))
+                    self.signals.progress.emit(int(2+4*(submodels.index(submodel)+1)/len(submodels)*97))
+                    
+                    #decoupling
+                    idm+=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data)
+                    writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir)
+                    self.signals.progress.emit(int(2+8*(submodels.index(submodel)+1)/len(submodels)*97))
+                    
+                    idm_conn="\n(CONNECTIONS"
+                    idc_conn=""
+                    
+                    #supervisory control
+                    sql="""SELECT submodel from "{}".supervisory_ctrl;""".format(self.dictDB['versionName'])
                     self.cur.execute(sql)
-                for type in ["customers","energy_plants","devices"]:
-                    copyAssettypeMacro=CopyAssettypeMacro(submodel,dir,type,self.dictDB,self.cur,iface,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs)
-                    if type!="devices":
-                        self.invokedOutputs[type]=copyAssettypeMacro.invokedFeatureOutputs
-                    resources.extend(copyAssettypeMacro.resources)
-                self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
+                    if submodel==str(self.cur.fetchone()['submodel']):
+                        """*-*-*-*-copy supervisory*-*-*-*-"""
+                        if not os.path.exists(dir+'\\supervisory_control\\supervisory_control.idm'):
+                            Supervisory_control(self.plugin_dir)                     
+                        resources.extend(CopySupervisoryControl(dir,self.dictDB,self.cur,submodel).resources)
+                    self.signals.progress.emit(int(2+10*(submodels.index(submodel)+1)/len(submodels)*97))
 
-                print('&&&&&&&&&&&&&&&&&&&&&&')
-                print(set(resources))
-                idm+=''.join(["\n"+i for i in set(resources)])
-                
-                #sf-macro
-                self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
-                self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
-                self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
-                
-                # Define the path to the building idm file
-                self.buildingIdmFilePath = """{}\\{}.idm""".format(dir.replace('/','\\'),'network_'+str(submodel))
-                self.buildingIdcFilePath = """{}\\{}.idc""".format(dir.replace('/','\\'),'network_'+str(submodel))
-                
-                idm,idc=self.insertLines(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
-                self.signals.progress.emit(int(2+25*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
-                self.signals.progress.emit(int(2+35*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
-                self.signals.progress.emit(int(2+45*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm,idc=self.insertDevices(submodel,idm,idc,networks)
-                self.signals.progress.emit(int(2+55*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
-                self.signals.progress.emit(int(2+65*(submodels.index(submodel)+1)/len(submodels)*97))
+                    #Sensors
+                    #NetworkSensorSignals(self.cur,self.dictDB,dir+'\\network_'+str(submodel))
+                    dir=dir+'\\network_'+str(submodel)
+                    print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
+                    sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir,import_counter)
+                    sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir,self.plugin_dir)
+                    self.signals.progress.emit(int(2+12*(submodels.index(submodel)+1)/len(submodels)*97))
+                    
+                    dir=self.plugin_dir+"""\\network_models\\{}\\{}""".format(self.dictDB['projectName'],self.dictDB['versionName'])
+                    idm_conn=sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn)
+                    idm=sensorProjectIdmMacro(submodel,supervisory_submodel,sensor_dec_data,idm)
+                     
+                    #----------------supervisory ctrl------------------------
+                    if submodel==supervisory_submodel:
+                        idm+="""\n((MACRO-OBJECT :N "Supervisory_control" :T ICE-MACRO :ETM 3857526820 :STM 3857526845){}{}{})""".format(
+                            #iref sources if source type is supervisory ctrl (4) and function == Same signal for all targets (5))
+                            ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j['iref']) 
+                                for i in sensor_dec_data if i['source_type']==4 and i['function']==5 for j in i['irefs_source']]),  
+                            #iref sources if source type is supervisory ctrl (4) and function == Individual signals for each target (6)
+                            ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j['iref']) 
+                                for i in sensor_dec_data if i['source_type']==4 and i['function']==6 for j in i['irefs_target']]),  
+                            #iref targets connections from Sensor to feature if type Supervisory Ctrl (4) 
+                            ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
+                                for i in sensor_dec_data if i['target_type']==4 for j in i['irefs_target']]))                
 
+                    for type in ["customers","energy_plants","devices"]:
+                        if reinvoke:
+                            sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],type)
+                            self.cur.execute(sql)
+                        print(self.signals)
+                        copyAssettypeMacro=CopyAssettypeMacro(submodel,dir,type,self.dictDB,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals)
+                        if type!="devices":
+                            self.invokedOutputs[type]=copyAssettypeMacro.invokedFeatureOutputs
+                        resources.extend(copyAssettypeMacro.resources)
+                    self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
+                    print('&&&&&&&&&&&&&&&&&&&&&&')
+                    print(set(resources))
+                    idm+=''.join(["\n"+i for i in set(resources)])
+                    
+                    #sf-macro
+                    self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
+                    self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
+                    self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
+                    
+                    # Define the path to the building idm file
+                    self.buildingIdmFilePath = """{}\\{}.idm""".format(dir.replace('/','\\'),'network_'+str(submodel))
+                    self.buildingIdcFilePath = """{}\\{}.idc""".format(dir.replace('/','\\'),'network_'+str(submodel))
+                    
+                    idm,idc=self.insertLines(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
+                    self.signals.progress.emit(int(2+25*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
+                    self.signals.progress.emit(int(2+35*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
+                    self.signals.progress.emit(int(2+45*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm,idc=self.insertDevices(submodel,idm,idc,networks)
+                    self.signals.progress.emit(int(2+55*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
+                    self.signals.progress.emit(int(2+65*(submodels.index(submodel)+1)/len(submodels)*97))
+
+                    
+                    idm_conn,idc_conn=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks)
+                    self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm_conn,idc_conn=self.insertConnections(submodel,'devices',idm_conn,idc_conn,networks)
+                    self.signals.progress.emit(int(2+85*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm_conn,idc_conn=self.insertConnections(submodel,'energy_plants',idm_conn,idc_conn,networks)
+                    self.signals.progress.emit(int(2+95*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm_conn,idc_conn=self.insertJunctionConnections(submodel,idm_conn,idc_conn,networks)
+                    self.signals.progress.emit(int(2+97*(submodels.index(submodel)+1)/len(submodels)*97))
+                    idm_conn+=")"
+                    idm+=idm_conn
+                    idc+=idc_conn
+                    writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
+                    writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
+                writeInvokedOutputs(self.plugin_dir,self.dictDB,self.invokedOutputs)
+                self.signals.progress.emit(100)  
+
+            except Exception as e:
+                self.signals.error.emit(str(e))
+                self.signals.progress.emit(0)
                 
-                idm_conn,idc_conn=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks)
-                self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm_conn,idc_conn=self.insertConnections(submodel,'devices',idm_conn,idc_conn,networks)
-                self.signals.progress.emit(int(2+85*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm_conn,idc_conn=self.insertConnections(submodel,'energy_plants',idm_conn,idc_conn,networks)
-                self.signals.progress.emit(int(2+95*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm_conn,idc_conn=self.insertJunctionConnections(submodel,idm_conn,idc_conn,networks)
-                self.signals.progress.emit(int(2+97*(submodels.index(submodel)+1)/len(submodels)*97))
-                idm_conn+=")"
-                idm+=idm_conn
-                idc+=idc_conn
-                writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
-                writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
-            writeInvokedOutputs(self.plugin_dir,self.dictDB,self.invokedOutputs)
             
     def closeDocument(self):
         """Close IDA project"""
@@ -453,7 +461,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                                                 mdot,
                                                 p)
             idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "{}\\\\graphics\\\\pipebifd_bundle.ids" :SYMMETRY {} :SLOT ("Pipebundlef_{}") :NAME "Pipebundlef_{}" :DATA MODEL) 
-""".format(coordinates['x_pipe'],coordinates['y_pipe'],self.plugin_dir.replace("\\","\\\\"),coordinates['angle'],lid,lid)
+""".format(coordinates['x_pipe'],coordinates['y_pipe'],self.plugin_dir.replace("\\\\?\\",'').replace("\\","\\\\"),coordinates['angle'],lid,lid)
         
         return idm,idc
     
@@ -546,8 +554,9 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,d.id AS did, ST_AsText(d.geom) AS d_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN conn.p IS NULL THEN 'liqL' ELSE 'liqR' END AS dir
     FROM "{}".{} d, "{}".{}_connections dc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_assettypes da, public.connections conn, public.connection_type_connections conn_t_conns
     WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND dc.{}=conn_b_t.sequence AND da.assettype=d.assettype AND da.assetgroup=d.assetgroup AND l.id=dc.lid AND d.id=dc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
-    ORDER BY d.id, conn_b_t.sequence;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
+    ORDER BY d.id, conn_b_t.sequence, conn_type_seq;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
         print(sql)
+        
         self.cur.execute(sql)
         seq_counter=1
         lid_old=0
@@ -932,7 +941,7 @@ output to current demand. It can also be operated in installations with differen
                     for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                     for i in sensor_dec_data if i['target_type']==1 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "{}\\\\graphics\\\\customer_assettypes\\\\{}.ids" :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,self.plugin_dir.replace('\\','\\\\'),assettype_name_old,cid_old,cid_old)
+                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "{}\\\\graphics\\\\customer_assettypes\\\\{}.ids" :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,self.plugin_dir.replace('\\\\?\\','').replace('\\','\\\\'),assettype_name_old,cid_old,cid_old)
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             cid_old=cid
             iref_old=iref
@@ -947,7 +956,7 @@ output to current demand. It can also be operated in installations with differen
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                         for i in sensor_dec_data if i['target_type']==1 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "{}\\\\graphics\\\\customer_assettypes\\\\{}.ids" :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,self.plugin_dir.replace('\\','\\\\'),assettype_name,cid,cid)
+            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "{}\\\\graphics\\\\customer_assettypes\\\\{}.ids" :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,self.plugin_dir.replace('\\\\?\\','').replace('\\','\\\\'),assettype_name,cid,cid)
         
         return idm,idc
         
@@ -1058,7 +1067,7 @@ output to current demand. It can also be operated in installations with differen
         return idm,idc
         
     def writeMacroSFIdm(self,dir):
-        sql="SELECT id,sf,vars FROM {}.invoked_sf;".format(self.dictDB['versionName'])
+        sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(self.dictDB['versionName'])
         self.cur.execute(sql)
         sf_ids=self.cur.fetchall()     
         print(sf_ids)
@@ -1069,7 +1078,7 @@ output to current demand. It can also be operated in installations with differen
         writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm')        
                 
     def writeMacroSFIdc(self,dir):
-        sql="SELECT id,sf FROM {}.invoked_sf;".format(self.dictDB['versionName'])
+        sql='SELECT id,sf FROM "{}".invoked_sf;'.format(self.dictDB['versionName'])
         self.cur.execute(sql)
         sf_ids=self.cur.fetchall()
             

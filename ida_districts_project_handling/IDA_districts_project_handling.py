@@ -132,6 +132,7 @@ class WorkerLoadVersion(QRunnable):
         self.plugin_dir=kwargs['plugin_dir']
         self.dlg=kwargs['dlg']
         self.item=kwargs['item']
+        self.dictDB_lastLoad=getDBConnectionData(self.plugin_dir,filename='dbSettings_lastLoad')
 
     @pyqtSlot()
     def run(self):
@@ -141,90 +142,109 @@ class WorkerLoadVersion(QRunnable):
             print (self.dictDB['versionName'])
                 
             #check if there are changes in the child versions and append the changes to the diff script
-            sql='SELECT name AS version_name FROM public.versionhandling WHERE id_base in (SELECT id FROM public.versionhandling WHERE name=\'{}\');'.format(self.dictDB['versionName'])
-            print(sql)
-            self.cur.execute(sql)
-            childs = self.cur.fetchall()     
             
-            print(childs)
-            for child in childs:
-                print(child['version_name'])
-                #read diff script
-                diffData=''
+            self.generateDiffData_walkThroughChilds(self.dictDB['versionName'])
 
-                for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:
-                    #Check for inserted items
-                    print(table)
-                    sql="""SELECT id FROM "{}".{}
-                            EXCEPT
-                            SELECT id FROM "{}".{};""".format(child['version_name'],table,self.dictDB['versionName'],table)
-                    print(sql)
-                    self.cur.execute(sql)
-                    for result in self.cur.fetchall():
-                        sql='SELECT * FROM "{}".{} WHERE id={};'.format(child['version_name'],table,result['id'])     
-                        self.cur.execute(sql)
-                        diff ='INSERT INTO "{}".{} VALUES \n'.format(child['version_name'],table)+str(self.cur.fetchone()).replace('None','Null')+';'
-                        if diff not in diffData:
-                            diffData=diffData+diff
-
-                    #Check for deleted items
-                    sql="""SELECT id FROM "{}".{}
-                            EXCEPT
-                            SELECT id FROM "{}".{};""".format(self.dictDB['versionName'],table,child['version_name'],table)
-                    print(sql)
-                    self.cur.execute(sql)
-                    for result in self.cur.fetchall():
-                        diff ='DELETE FROM "{}".{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
-                        if diff not in diffData:
-                            diffData=diffData+diff
-                            
-                    #Check for updated items
-                    sql='SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=\'{}\' AND table_name=\'{}\';'.format(self.dictDB['versionName'],table)
-                    print(sql)
-                    self.cur.execute(sql)
-                    columns=self.cur.fetchall()
-                    for column in columns:
-                        sql="""SELECT id,{} FROM "{}".{}
-                            EXCEPT
-                            SELECT id,{} FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],self.dictDB['versionName'],table)
-                        print(sql)
-                        self.cur.execute(sql)
-                        for updatedColumnValue in self.cur.fetchall():
-                            print ('+++++++++++++++++++++++++++')
-                            print (column['data_type'])
-                        
-                            if column['data_type'] in ['integer','numeric']:
-                                print('value')
-                                diff ='UPDATE "{}".{} SET {} = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
-                            else:
-                                print('geom')
-                                diff ='UPDATE "{}".{} SET {} = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue[1],updatedColumnValue[0])
-                            if diff not in diffData:
-                                diffData=diffData+diff
-                
-                print(diffData)
-                with open(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],child['version_name']),'w') as myfile:
-                    myfile.write(diffData)   
             
-            #copy schema from parent version if version is a child 
-            if self.item.parent():
-                sql = 'DROP SCHEMA '+self.dictDB['versionName']+' CASCADE;'
+            #copy schema from parent version if version is a child and last load differs from current load
+            if self.item.parent() and (self.dictDB_lastLoad['versionName']!=self.dictDB['versionName'] or self.dictDB_lastLoad['projectName']!=self.dictDB['projectName']):
+                sql = 'DROP SCHEMA "'+self.dictDB['versionName']+'" CASCADE;'
                 print(sql)
                 self.cur.execute(sql)
                 copy_schema(self.item.parent().text(),self.dictDB['versionName'],self.dictDB,self.cur,self.plugin_dir)
                 
-                if os.path.exists(self.plugin_dir+"\\diff scripts\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['versionName'])):
+                if os.path.exists(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],self.dictDB['versionName'])):
                     os.environ['PGPASSWORD'] = self.dictDB['pwd']
                     path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
-                    cmd = ' "{}\\bin\\psql" -d {} -h {} -U {} < "{}\\diff scripts\\version_{}_{}_diff_script.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['user'],self.plugin_dir,self.dictDB['projectName'],self.dictDB['versionName'])
+                    cmd = ' "{}\\bin\\psql" -d {} -h {} -U {} -p {} < "{}\\{}\\version_{}_{}_diff_script.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['user'],self.dictDB['port'],self.plugin_dir,self.dictDB['projectName'],self.dictDB['projectName'],self.dictDB['versionName'])
                     print(cmd)
                     subprocess.call(cmd, shell=True)   
                     
+            writeDBSettings(self.plugin_dir,self.dictDB,filename='dbSettings_lastLoad')
             self.signals.progress.emit(100)            
             print('finished tables')
         except Exception as e:
             print(f'error: {e}')
             self.signals.error.emit("Loading version failed!")
+            
+    def generateDiffData_walkThroughChilds(self,base):
+        print('++++base: '+base)
+        childs = self.getChilds(base)     
+        print(childs)
+        for child in childs:
+            print(child)
+            self.generateChildDiffData(child) 
+            child_childs=self.getChilds(child)
+            if child_childs:
+                self.generateDiffData_walkThroughChilds(child['version_name'])
+                    
+    def getChilds(self,name):
+        sql='SELECT name AS version_name FROM public.versionhandling WHERE id_base in (SELECT id FROM public.versionhandling WHERE name=\'{}\');'.format(name['version_name'] if isinstance(name,dict) else name)
+        print(sql)
+        self.cur.execute(sql)
+        childs = self.cur.fetchall()     
+        return childs
+        
+    def generateChildDiffData(self,child):
+        print(child['version_name'])
+        #read diff script
+        diffData=''
+
+        for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines','boreholes']:
+            #Check for inserted items
+            print(table)
+            sql="""SELECT id FROM "{}".{}
+                    EXCEPT
+                    SELECT id FROM "{}".{};""".format(child['version_name'],table,self.dictDB['versionName'],table)
+            print(sql)
+            self.cur.execute(sql)
+            for result in self.cur.fetchall():
+                sql='SELECT * FROM "{}".{} WHERE id={};'.format(child['version_name'],table,result['id'])     
+                self.cur.execute(sql)
+                values=self.cur.fetchone()
+                print(values)
+                diff ='INSERT INTO "{}".{} VALUES ('.format(child['version_name'],table)+','.join(['NULL' if values[i] is None else "'"+str(values[i])+"'" if isinstance(values[i], str) else 'array'+str(values[i]) if isinstance(values[i], list) else str(values[i]) for i in values])+');\n'
+                if diff not in diffData:
+                    diffData=diffData+diff
+
+            #Check for deleted items
+            sql="""SELECT id FROM "{}".{}
+                    EXCEPT
+                    SELECT id FROM "{}".{};""".format(self.dictDB['versionName'],table,child['version_name'],table)
+            print(sql)
+            self.cur.execute(sql)
+            for result in self.cur.fetchall():
+                diff ='DELETE FROM "{}".{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
+                if diff not in diffData:
+                    diffData=diffData+diff
+                    
+            #Check for updated items
+            sql='SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=\'{}\' AND table_name=\'{}\';'.format(self.dictDB['versionName'],table)
+            print(sql)
+            self.cur.execute(sql)
+            columns=self.cur.fetchall()
+            for column in columns:
+                sql="""SELECT id,"{}" AS column FROM "{}".{}
+                    EXCEPT
+                    SELECT id,"{}" FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],self.dictDB['versionName'],table)
+                print(sql)
+                self.cur.execute(sql)
+                for updatedColumnValue in self.cur.fetchall():
+                    print ('+++++++++++++++++++++++++++')
+                    print (column['data_type'])
+                
+                    if column['data_type'] in ['integer','numeric']:
+                        print('value')
+                        diff ='UPDATE "{}".{} SET "{}" = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
+                    else:
+                        print('geom')
+                        diff ='UPDATE "{}".{} SET "{}" = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
+                    if diff not in diffData:
+                        diffData=diffData+diff
+        
+        print(diffData)
+        with open(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],child['version_name']),'w') as myfile:
+            myfile.write(diffData)  
         
 class WorkerImportProject(QRunnable):
     """Worker thread
@@ -270,6 +290,8 @@ class WorkerImportProject(QRunnable):
         #check if project already exists
         if checkDBName(db_info['projectName'],self.cur,self.dictDB):
             print('project does not exist')
+            if os.name == 'nt' and '\\\\?\\' not in dir:
+                dir='\\\\?\\'+dir
             print(dir)
             self.signals.progress.emit(20)
             try:
@@ -308,14 +330,12 @@ class WorkerImportProject(QRunnable):
         else:
             self.signals.error.emit("Project already exists in DB!")
             self.signals.progress.emit(0)  
-                            dir=self.plugin_dir+'\\'+projectName
+            dir=self.plugin_dir+'\\'+projectName
             if os.name == 'nt':
                 dir='\\\\?\\'+dir
             shutil.rmtree(dir)            
             return False
             
-        if os.name == 'nt':
-            dir='\\\\?\\'+dir
         shutil.rmtree(dir)  
         self.signals.progress.emit(100)
             
@@ -354,9 +374,7 @@ class WorkerExportProject(QRunnable):
 
         # Check if the folder exists and delete it
         if os.path.exists(dir) and os.path.isdir(dir):
-            if os.name == 'nt':
-                dir='\\\\?\\'+dir
-            shutil.rmtree(dir)  
+            shutil.rmtree('\\\\?\\'+dir if os.name == 'nt' else dir)  
             
         path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
         
@@ -388,6 +406,12 @@ class WorkerExportProject(QRunnable):
         self.signals.progress.emit(40)    
         try:
             copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\'+self.dictDB['projectName'], dir+'\\ida_districts_project_handling'+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+            for version in getProjectVersionNames(self.cur):
+                print(version)
+                print(dir+'\\ida_districts_project_handling'+'\\'+name+'\\version_{}_{}_diff_script.sql'.format(self.dictDB['projectName'],version))
+                if os.path.exists(dir+'\\ida_districts_project_handling'+'\\'+name+'\\version_{}_{}_diff_script.sql'.format(self.dictDB['projectName'],version)):
+                    os.rename(dir+'\\ida_districts_project_handling'+'\\'+name+'\\version_{}_{}_diff_script.sql'.format(self.dictDB['projectName'],version), dir+'\\ida_districts_project_handling'+'\\'+name+'\\version_{}_{}_diff_script.sql'.format(name,version))
+            
         except Exception as e:
             print(f'error: {e}')
             self.signals.error.emit("Project handling files export failed!") 
@@ -406,9 +430,7 @@ class WorkerExportProject(QRunnable):
         cmd="""\"{}bin\\7za.exe" a -t7z -r "{}.ida" "{}/*.*\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],dir,dir)
         print(cmd)
         subprocess.call(cmd, shell=True) 
-        if os.name == 'nt':
-            dir='\\\\?\\'+dir
-        shutil.rmtree(dir)  
+        shutil.rmtree( '\\\\?\\'+dir if os.name == 'nt' else dir)  
         self.signals.progress.emit(100)
             
 class IDA_Districts_ProjectHandling:
@@ -587,7 +609,7 @@ class IDA_Districts_ProjectHandling:
             self.worker_loadVersion.signals.error.connect(self.dlg.show_error_message)      
             self.threadpool.start(self.worker_loadVersion)
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
     
     def connectDB(self):
         """make a connection to the DB and list the DBs in the dropdown menue"""
@@ -614,7 +636,6 @@ class IDA_Districts_ProjectHandling:
             self.dictDB['host']=self.dlg.host.text()            
 
         writeDBSettings(self.plugin_dir,self.dictDB)
-        print(self.dictDB)
         self.conn_postgres=dbConnectPerName(self.dictDB,"postgres",True)
         if self.conn_postgres:
             self.cur_postgres=self.conn_postgres.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -653,7 +674,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg_deleteProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteProject))
             self.dlg_deleteProject.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
 
     def deleteVersionDialog(self,item):
         """Delete project version dialog"""
@@ -667,7 +688,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg_deleteVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteVersion))
             self.dlg_deleteVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
         
     def deleteProject(self,projectName):
         """Drop selected DB """
@@ -714,7 +735,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
             self.dlg_createNewProject.show()   
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
             
     def createNewProject(self,dlg):
         if checkString(dlg.input.text()):
@@ -859,7 +880,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
             self.dlg_addVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
 
     def TreeItem_SaveAsDialog(self, level, mdlIdx):
         """Project version Save As dialog --> connects to the TreeItem_SaveAs function, which does the Save As"""
@@ -872,15 +893,21 @@ class IDA_Districts_ProjectHandling:
             self.dlg_saveAsVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_saveAsVersion))
             self.dlg_saveAsVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
          
     def TreeItem_Add(self, level, mdlIdx,dlg):
         """Function to add new project version and add child item to treeview"""
         versionName=dlg.input.text()
         description=dlg.input_description.text()
+        print('****************add version*****************')
         if versionName:
             newVersionName=self.checkIfVersionIsNew(versionName)
             if newVersionName:
+                #delete diff script if exists
+                print(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName))
+                if os.path.exists(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName)):
+                    os.remove(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName))
+                
                 #Creating version --> new schema in project        
                 idBase=0
                 item = self.model.itemFromIndex(mdlIdx)
@@ -914,6 +941,10 @@ class IDA_Districts_ProjectHandling:
         if versionName:
             newVersionName=self.checkIfVersionIsNew(versionName)
             if newVersionName:
+                #delete diff script if exists
+                print(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName))
+                if os.path.exists(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName)):
+                    os.remove(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName))
                 #Creating version --> new schema in project        
                 item = self.model.itemFromIndex(mdlIdx)
 
@@ -950,7 +981,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg_renameVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_renameVersion))
             self.dlg_renameVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
         
     def TreeItem_Rename(self,level,mdlIdx): 
         """ Renames a project version, if the version name does not exist and is not empty"""
@@ -988,21 +1019,20 @@ class IDA_Districts_ProjectHandling:
         print(item)
         print(item.parent())
         try:
-            sql = 'DROP SCHEMA '+item.text()+' CASCADE;'
+            sql = 'DROP SCHEMA "'+item.text()+'" CASCADE;'
             print(sql)
             self.cur.execute(sql)
         except:
             pass
         try:
             idBase=''
-            sql="SELECT id FROM public.versionhandling WHERE name = '"+item.text()+"';"
+            sql="SELECT id, id_base FROM public.versionhandling WHERE name = '"+item.text()+"';"
             print(sql)
             self.cur.execute(sql)
+            sql=''
             for base in self.cur.fetchall():
                 print(base)
-                print(base['id'])
-                idBase = base['id']
-            sql = 'UPDATE public.versionhandling SET id_base = 0 WHERE id_base ='+str(idBase)+';'
+                sql += 'UPDATE public.versionhandling SET id_base = {} WHERE id_base ='.format(base['id_base'])+str(base['id'])+';\n'
             print(sql)
             self.cur.execute(sql)         
             
@@ -1129,7 +1159,7 @@ class IDA_Districts_ProjectHandling:
             self.dlg_addBase.btn_cancel.clicked.connect(self.closeBaseVersionDialog)
             self.dlg_addBase.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
 
     def loadResultLayer(self,version,tableName,layerName,columnName,uri,layerTreeRoot):
         uri.setDataSource(version, tableName, "geom")
@@ -1170,7 +1200,8 @@ class IDA_Districts_ProjectHandling:
         print('saveIDADistrictsConfigSettings')
         configIDADistricts={}
         configIDADistricts['path_ice']=dlg.input[0].text()
-        configIDADistricts['path_postgresql']=dlg.input[1].text()
+        configIDADistricts['ice_api_delay']=dlg.input[1].text()
+        configIDADistricts['path_postgresql']=dlg.input[2].text()
         print(configIDADistricts)
         if writeIDADistrictsConfig(self.plugin_dir,configIDADistricts):
             dlg.close()
@@ -1197,7 +1228,8 @@ class IDA_Districts_ProjectHandling:
         print('showConfigData')
         configIDADistricts=loadIDADistrictsConfig(self.plugin_dir)
         dlg.input[0].setText(configIDADistricts['path_ice'])
-        dlg.input[1].setText(configIDADistricts['path_postgresql'])
+        dlg.input[1].setText(configIDADistricts['ice_api_delay'])
+        dlg.input[2].setText(configIDADistricts['path_postgresql'])
         
     def showProjectConfigData(self,dlg):
         """ Show the onfiguration data from file configIDADistricts.txt"""
@@ -1211,7 +1243,7 @@ class IDA_Districts_ProjectHandling:
         """ open Dialog to set IDA Districts configuration data"""
         print("IDA Districts config dialog")
         title="IDA Districts Configuration Settings"
-        inputs=[{'label':'IDA ICE path','text':'path_ice'},{'label':'PostgreSQL path','text':'path_postgresql'}]
+        inputs=[{'label':'IDA ICE path','text':'path_ice'},{'label':'IDA ICE API delay, s','text':'ice_api_delay'},{'label':'PostgreSQL path','text':'path_postgresql'}]
         dlg = LabelTextOkCancelDialog(title,inputs)
         dlg.btn_ok.clicked.connect(lambda: self.saveIDADistrictsConfigSettings(dlg))
         dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
@@ -1243,7 +1275,7 @@ class IDA_Districts_ProjectHandling:
                 self.threadpool_import = QThreadPool()            
                 self.threadpool_import.start(self.worker_import)    
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
 
         
     def showExportProject(self):
@@ -1253,31 +1285,32 @@ class IDA_Districts_ProjectHandling:
             self.dlg_export.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_export))
             self.dlg_export.show()               
         else:
-            self.iface.messageBar().pushMessage("Error", "You are not connected to the DB!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
     
     def exportProject(self,dlg):
         """Export the DB to a sql file and write the data center and modelling files to the folders + dDB description file --> zip"""
         print("Export project")
         filename=dlg.filename.text()
-        filter_extensions=[]
-        if not dlg.exportPrn.isChecked():
-            filter_extensions.append('.prn')
-        filter_folders=[]
-        if not dlg.exportInvokedFeatures.isChecked():
-            filter_folders.append('invoked_customers')
-            filter_folders.append('invoked_energy_plants')
-            filter_folders.append('invoked_devices')
-        if not dlg.exportDBResults.isChecked():
-            no_db_results=True
-        else:
-            no_db_results=False
-        
-        if filename and self.dictDB['projectName']:
-            worker_export = WorkerExportProject(filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
-            worker_export.signals.progress.connect(dlg.update_progress)
-            worker_export.signals.error.connect(dlg.show_error_message)      
-            self.threadpool_export = QThreadPool.globalInstance()            
-            self.threadpool_export.start(worker_export)    
+        if filename.split('\\') and filename.split('\\')[-1].split('.') and checkString(filename.split('\\')[-1].split('.')[0]):
+            filter_extensions=[]
+            if not dlg.exportPrn.isChecked():
+                filter_extensions.append('.prn')
+            filter_folders=[]
+            if not dlg.exportInvokedFeatures.isChecked():
+                filter_folders.append('invoked_customers')
+                filter_folders.append('invoked_energy_plants')
+                filter_folders.append('invoked_devices')
+            if not dlg.exportDBResults.isChecked():
+                no_db_results=True
+            else:
+                no_db_results=False
+            
+            if filename and self.dictDB['projectName']:
+                worker_export = WorkerExportProject(filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+                worker_export.signals.progress.connect(dlg.update_progress)
+                worker_export.signals.error.connect(dlg.show_error_message)      
+                self.threadpool_export = QThreadPool.globalInstance()            
+                self.threadpool_export.start(worker_export)    
             
     def showDeleteVersionDialog(self):
         try:

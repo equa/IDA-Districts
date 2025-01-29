@@ -69,7 +69,7 @@ class Supervisory_control():
                 remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[4])
                 print(remove_sensor_source_ids)
                 if remove_sensor_source_ids:
-                    sql="""DELETE FROM {}.invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
+                    sql="""DELETE FROM "{}".invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
                     print(sql)
                     self.cur.execute(sql)
                     
@@ -81,7 +81,7 @@ class Supervisory_control():
                 #Get all removed sensor targets (table $versionName$.invoked_sensor_target_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
                 remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[4])
                 if remove_sensor_target_ids:
-                    sql="""DELETE FROM {}.invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
+                    sql="""DELETE FROM "{}".invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
                     print(sql)
                     self.cur.execute(sql)
                     
@@ -121,7 +121,7 @@ class Supervisory_control():
                 
                 #get number of old sensor source signals --> for component placement in .idc
                 sql="""WITH sub AS(
-    SELECT sensor_id, unnest(source_irefs) FROM {}.invoked_sensor_source_signals WHERE type=4
+    SELECT sensor_id, unnest(source_irefs) FROM "{}".invoked_sensor_source_signals WHERE type=4
 )
 SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 print(sql)
@@ -130,7 +130,7 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 
                 #get number of old sensor target signals --> for component placement in .idc
                 sql="""WITH sub AS(
-    SELECT sensor_id, unnest(target_irefs) FROM {}.invoked_sensor_target_signals WHERE type=4
+    SELECT sensor_id, unnest(target_irefs) FROM "{}".invoked_sensor_target_signals WHERE type=4
 )
 SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 print(sql)

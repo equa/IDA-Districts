@@ -21,9 +21,11 @@ def checkIntersectingFeatures(cur,dictDB):
     return False
     
 def checkLoopInConnections(cur,version,table,type):
-    sql="""SELECT f1.id AS id1,f2.id AS id2
-    FROM {} sh, "{}".{}s f1,{}.{}s f2
-    WHERE ST_dWithIn(ST_StartPoint(sh.geom),f1.geom,0.001) AND ST_dWithIn(ST_EndPoint(sh.geom),f2.geom,0.001) AND f1.id!=f2.id;""".format(table,version,type,version,type)
+    sql="""SELECT f1.id
+    FROM {} sh, "{}".{}s f1,"{}".energy_plants f2, "{}".customers f3
+    WHERE ST_dWithIn(ST_StartPoint(sh.geom),f1.geom,0.001) AND (ST_dWithIn(ST_EndPoint(sh.geom),f2.geom,0.001) OR ST_dWithIn(ST_EndPoint(sh.geom),f3.geom,0.001)) OR 
+        ST_dWithIn(ST_EndPoint(sh.geom),f1.geom,0.001) AND (ST_dWithIn(ST_StartPoint(sh.geom),f2.geom,0.001) OR ST_dWithIn(ST_StartPoint(sh.geom),f3.geom,0.001))
+    GROUP BY f1.id;""".format(table,version,type,version,version)
     cur.execute(sql)
     return cur.fetchall()
     

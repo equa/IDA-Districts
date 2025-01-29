@@ -5,6 +5,49 @@ from plugins.utility_functions.utility import *
 from plugins.utility_functions.db import *
 from qgis.PyQt.QtWidgets import QMessageBox
 
+def checkNetwork(cur,version,networks):
+    sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version)
+    cur.execute(sql)
+    networkNullCount=cur.fetchone()['count']
+    
+    mainPlant_counter={}
+    for network in networks:
+        sql="""SELECT count(*) as count FROM "{}".energy_plants WHERE network && ARRAY[{}] AND main_plant && ARRAY[{}];""".format(version,network,network)
+        cur.execute(sql)        
+        mainPlant_counter[network]=cur.fetchone()['count']
+    print(mainPlant_counter)
+    if networkNullCount>0:
+        print('Network attribute not set!')
+
+        dlg_question = QMessageBox()
+        dlg_question.setWindowTitle('Network attribute value missing!')
+        dlg_question.setText("""{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?""".format(networkNullCount))
+        dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        dlg_question.setIcon(QMessageBox.Question)
+        button = dlg_question.exec()
+
+        if button == QMessageBox.Yes:
+            sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version)
+            print(sql)
+            cur.execute(sql)
+            return True
+        else:
+            print("Cancel!")
+            return False
+    elif any(x != 1 for x in mainPlant_counter.values()):
+        iface.messageBar().pushMessage("Error", "Please set 1 energy plant as your main plant of each network!", level=Qgis.Critical)
+        return False
+    else:
+        return True
+            
+def getNetworkSequences(cur,dictDB,network):
+    sql="""SELECT COALESCE(max(bp.sequence),0) AS number_of
+    FROM "{}".lines f, bundle_pipes bp
+    WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(dictDB['versionName'],network)
+    print(sql)
+    cur.execute(sql)
+    return [str(i) for i in range(1,cur.fetchone()['number_of']+1)]
+    
 def redrawSubnetworkIncludingLines(table,cur,dictDB,srid):
     sql="""TRUNCATE "{}".submodels;
 
@@ -156,7 +199,7 @@ def getLineConnType(cur,dictDB,id):
 
 def getUsedPipeBundleSequences(cur,dictDB):
     sql=f"""WITH sub AS(
-    SELECT pipe_bundle_type_id FROM {dictDB['versionName']}.lines GROUP BY pipe_bundle_type_id 
+    SELECT pipe_bundle_type_id FROM "{dictDB['versionName']}".lines GROUP BY pipe_bundle_type_id 
 )
 SELECT sequence 
     FROM bundle_pipes bp,sub 

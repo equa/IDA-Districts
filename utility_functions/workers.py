@@ -202,12 +202,13 @@ class WorkerSimulateAPI(QRunnable):
                 self.signals.error.emit("Sim model does not exist!")
             print('++++simulation-finished++++')
         except:
-            self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
+            self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
             
 class APISignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
     status=pyqtSignal(str)
+    finished =pyqtSignal()
     
 class WorkerOpenAPI(QRunnable):
     """Worker thread

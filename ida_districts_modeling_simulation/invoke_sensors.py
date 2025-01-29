@@ -1,7 +1,9 @@
 from plugins.utility_functions.util import *
+from plugins.utility_functions.sensor_signals import *
+
 import psycopg2.extras
 
-def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,dictDB,dir):
+def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,dictDB,dir,import_counter):
     #----------------------sensor idm macro file------------------------
     file=dir+"""\\Sensor-macro.idm"""
     data=[""";IDA 5.1 Data UTF-8\n""","""(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3879491673 :APP (ICE :VER 5.1))\n"""]
@@ -47,6 +49,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)]))
     print('**********----*****************')
     print(data)
+    print(sensor_dec_data)
 
     #Add Adder if source type in 1,2,3 and function Average, Add (3,4) and measure==Custom (5)        
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER_CONT)
@@ -68,6 +71,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
         for i in sensor_dec_data if i['source_type'] in (1,2,3) and i['measure']==5 and i['function'] in (3,4,5) and 
             ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim'] and not j['network_side']] or [True for j in i['irefs_target'] if submodel==j['submodel'] or submodel==j['cosim']])]))
 
+    print('-------------')
     #add Min/Max comp for function Min(1) or Max(2) if measure in (1,2,3,4) and source type in (1,2,3)                    
     data.append("".join(["""((:EO :N "Sensor_{}" :T MINMAXD)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))

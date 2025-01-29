@@ -56,12 +56,12 @@ def readFileToList(file):
     return data
 
     
-def getDBConnectionData(plugin_dir):
+def getDBConnectionData(plugin_dir,filename='dbSettings'):
     """ load the DB connection data from file dbSettings.txt"""
     print('get DB settings')
     dbSettings=""
     dir=getProjectHandlingDir(plugin_dir)
-    file="{}\\dbSettings.txt".format(dir)
+    file="{}\\{}.txt".format(dir,filename)
     if os.path.exists(file):
         with open(file, "r") as myfile:   
             for line in myfile:        
@@ -259,10 +259,10 @@ def loadNetworkSimData(plugin_dir,dictDB):
         print('No project name')
     return networkSimData
             
-def writeDBSettings(plugin_dir,dictDB):
+def writeDBSettings(plugin_dir,dictDB,filename='dbSettings'):
     """ write db settings to file dbSettings.txt in project handling."""
     dir=getProjectHandlingDir(plugin_dir)
-    file=dir+"\\dbSettings.txt"
+    file=dir+f"\\{filename}.txt"
     if os.path.exists(dir):
         with open(file, "w") as myfile:   
             myfile.write(str(dictDB))
@@ -273,6 +273,9 @@ def writeIDADistrictsConfig(plugin_dir,configIDADistricts):
     config_f="{}\\configIDADistricts.txt".format(dir)
     if os.path.exists(config_f):
         if checkDirExists("IDA Path",configIDADistricts['path_ice']) and checkDirExists("PostgreSQL Path",configIDADistricts['path_postgresql']):
+            if not isNumber(configIDADistricts['ice_api_delay']):
+                iface.messageBar().pushMessage('Error', "Please enter a number as IDA ICE API delay!", level=Qgis.Critical)
+                return False
             if configIDADistricts['path_ice'][-1]!="\\":
                 configIDADistricts['path_ice']=configIDADistricts['path_ice']+"\\"
             if configIDADistricts['path_postgresql'][-1]!="\\":
@@ -312,10 +315,15 @@ def getNetworkFileSubmodels(dir):
 def createSubDir(dir):
     """ makes a new folder and subfolders if it does not exists"""
     if not os.path.exists(dir):
+        print(len(dir))
+        if os.name == 'nt' and '\\\\?\\' not in dir:
+            dir='\\\\?\\'+dir
         os.makedirs(dir)  
             
 def removeFilesInDir(dir):
     if os.path.exists(dir):
+        if os.name == 'nt' and '\\\\?\\' not in dir:
+            dir='\\\\?\\'+dir
         for root, dirs, files in os.walk(dir, topdown=False):
             for name in files:
                 os.remove(os.path.join(root, name))
@@ -326,6 +334,8 @@ def writePropertyListIDMToFile(plist,dir,file):
     print (dir)
     if os.path.exists(dir):
         print (file)
+        if os.name == 'nt' and '\\\\?\\' not in dir:
+            dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
             myfile.write(';IDA '+plist[0][':APP'].split(':VER ')[1].split(')')[0]+' Data UTF-8\n')
             for comp in plist:
@@ -336,6 +346,8 @@ def writePropertyListIDCToFile(plist,dir,file):
     print (dir)
     if os.path.exists(dir):
         print (file)
+        if os.name == 'nt' and '\\\\?\\' not in dir:
+            dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
             myfile.write(';IDA 5.1 Form UTF-8\n')
             for comp in plist:
@@ -383,7 +395,7 @@ def checkFilePathExists(title,file_path):
     if os.path.exists(file_path):
         return True
     else:
-        iface.messageBar().pushMessage(title, "File not found: {}!".format(file_path), level=Qgis.Critical)
+        #iface.messageBar().pushMessage(title, "File not found: {}!".format(file_path), level=Qgis.Critical)
         return False
  
 def checkDirExists(title,dir):
@@ -392,7 +404,7 @@ def checkDirExists(title,dir):
     if os.path.exists(dir):
         return True
     else:
-        iface.messageBar().pushMessage(title, "Directory not found: {}!".format(dir), level=Qgis.Critical)
+        #iface.messageBar().pushMessage(title, "Directory not found: {}!".format(dir), level=Qgis.Critical)
         return False
         
 def copyFile(src_file,dst_dir,dst_file):
@@ -685,7 +697,7 @@ def getResourcesFromFileDataList(file_data):
     ressources=[]
     while i < len(file_data):
         if "(SCHEDULE-DATA :N" in file_data[i] and file_data[i] not in ressources: #or ":T PLINSEGM" in file_data[i]: #todo check for more ressources 
-            print('ressource exists: '+file_data[i])
+            #print('ressource exists: '+file_data[i])
             ressource=[file_data[i].replace('\n','')]
             openCloseBracktesCounter=file_data[i].count('(')-file_data[i].count(')')
             i+=1

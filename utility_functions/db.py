@@ -9,16 +9,30 @@ import subprocess
 import os
 from plugins.utility_functions.files import *
 
-
+def dbColumnDataType(cur,version,table,col):
+    sql="""SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_schema = '{}' 
+    AND table_name = '{}' 
+    AND column_name = '{}';""".format(version,table,col)
+    cur.execute(sql)
+    return cur.fetchone()['data_type']
+    
+def dbColumnIsNumeric(cur,version,table,col):
+    if dbColumnDataType(cur,version,table,col) in ['integer', 'numeric', 'decimal', 'double precision', 'real', 'smallint']:
+        return True
+    else:
+        return False
+    
 def copy_schema(baseName,new_versionName,dictDB,cur,plugin_dir):
     """copy schema"""
     os.environ['PGPASSWORD'] = dictDB['pwd']
     path_postgres=loadIDADistrictsConfig(plugin_dir)['path_postgresql']
-    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n {} > "{}\\dump_schema.sql" '.format(path_postgres,dictDB['user'],dictDB['host'],dictDB['port'],dictDB['projectName'],baseName,plugin_dir)
+    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n """{}""" > "{}\\dump_schema.sql" '.format(path_postgres,dictDB['user'],dictDB['host'],dictDB['port'],dictDB['projectName'],baseName,plugin_dir)
     print(cmd)
     subprocess.call(cmd, shell=True)  
     
-    sql = 'ALTER SCHEMA '+baseName+' RENAME TO '+new_versionName+' ;'
+    sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;'
     print(sql)
     cur.execute(sql)           
     
@@ -223,7 +237,7 @@ def getDrawnSubmodels(cur,dictDB):
         return submodels
         
 def getSupervisorySubmodel(cur,dictDB):
-    sql="""SELECT submodel FROM {}.supervisory_ctrl;""".format(dictDB['versionName'])
+    sql="""SELECT submodel FROM "{}".supervisory_ctrl;""".format(dictDB['versionName'])
     cur.execute(sql)
     return cur.fetchone()
             
@@ -476,8 +490,6 @@ def getMaxIdSchema(cur,table_name,schema):
 def checkDBProjectConnected(dictDB,errorMsg):
     """ Check if connected to DB project"""
     print('check project connection')
-    print(dictDB)
-    print(dictDB['pwd'])
     if dictDB['pwd'] and dictDB['user'] and dictDB['host'] and dictDB['port'] and dictDB['projectName']:
         print('connected to project!')
         return True

@@ -266,9 +266,7 @@ def showTempTables(uri,dictDB,plugin_dir,iface,cur):
         print('Load project layers failed')
 
 def setLayersHidden(tableNames):
-
     for tableName in tableNames:
-        print(tableName)
         layer=QgsProject.instance().mapLayersByName(tableName)
         if layer:
             layer=layer[0]
@@ -277,8 +275,6 @@ def setLayersHidden(tableNames):
             root = QgsProject.instance().layerTreeRoot()
             node = root.findLayer( layer.id())
             index = model.node2index(node)
-            print(index)
-            print(index.row())
             ltv.setRowHidden( index.row(), index.parent(), True)
         
 def loadTopologyLayers(version,uri,dictDB):
@@ -315,7 +311,7 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
             else:
                 vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
             QgsProject.instance().addMapLayer(vlayer)  
-            print(vlayerName[:-1] + '_assetgroups')
+            #print(vlayerName[:-1] + '_assetgroups')
             target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assetgroups')[0]
             config = {'AllowMulti': False,
                       'AllowNull': True,
@@ -343,8 +339,6 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
             categorized_renderer = QgsCategorizedSymbolRenderer()            
             categorized_renderer.setClassAttribute('assetgroup') 
             for category,id in zip(categories,ids):      
-                print(vlayerName)
-                print(vlayer)
                 symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
                 if vlayerName in ['lines','structure_lines']:
                     symbol.setWidth(0.75) 
