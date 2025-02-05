@@ -68,11 +68,11 @@ DROP TABLE IF EXISTS "$versionName$".customer_model_parms CASCADE;
 CREATE TABLE IF NOT EXISTS "$versionName$".customer_model_parms
 (
     id serial,
-    parm_name character varying(100),
-    model_name character varying(100),
-    mapping_expression character varying(100),
-    macro_name character varying(100),
-    mapping_direction character varying (100) DEFAULT 'ToIDA',
+    parm_name text,
+    model_name text,
+    mapping_expression text,
+    macro_name text,
+    mapping_direction text DEFAULT 'ToIDA',
     CONSTRAINT customer_model_parms_pkey PRIMARY KEY (id)
 );
 
@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".feature_decoupling
     id serial,
     assetgroup int,
     assettype int,
-    comp_name character varying(100),
-    type character varying(100),
+    comp_name text,
+    type text,
     CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
 );
 
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_source
     conns int,
     ids int,
     test_value numeric DEFAULT 1,
-    description character varying(500),
+    description text,
     CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
     CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
         REFERENCES "$versionName$".sensors (id) MATCH SIMPLE,
@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_source_signals
     test_value numeric,
     source_irefs text[],
     source_assettype_names text[],
-    description character varying(500),
+    description text,
     CONSTRAINT invoked_sensor_source_signals_pkey PRIMARY KEY (id)
 );
 
@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_target
     assettype int,
     ids int,
     target int,
-    description character varying(500),
+    description text,
     CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
     CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
         REFERENCES "$versionName$".sensors (id) MATCH SIMPLE,
@@ -260,7 +260,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_target_signals
     test_value numeric,
     target_irefs text[],
     target_assettype_names text[],
-    description character varying(500),
+    description text,
     CONSTRAINT invoked_sensor_target_signals_pkey PRIMARY KEY (id)
 );
 
@@ -305,24 +305,11 @@ CREATE TABLE "$versionName$".customers
 	geom geometry(PointZ,$srid$),
     assetgroup integer DEFAULT 0,
 	assettype integer DEFAULT 0,
-    usage character varying(80),
     network integer[] DEFAULT ARRAY[1],
-	heat_e_kwh numeric DEFAULT 10000,
-    heat_p_kw numeric DEFAULT 10,
-    tsup_h_deg numeric DEFAULT 70,
-    cool_e_kwh numeric DEFAULT 5000,
-    cool_p_kw numeric DEFAULT 10,
-    tsup_c_deg numeric DEFAULT 15,
+    load_w numeric DEFAULT 10000,
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
     dhw_id integer,
     internal_load_id integer,   
-    scale_dhw numeric DEFAULT 1,
-    floor_area numeric DEFAULT 100,
-    u_value numeric DEFAULT 1,
-    phi_rad_nom numeric DEFAULT 85,
-    aperture numeric DEFAULT 0.05,
-    ach numeric DEFAULT 1,
-    tset numeric DEFAULT 21,
 	CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 
@@ -337,13 +324,6 @@ CREATE TABLE "$versionName$".energy_plants
 	assettype integer DEFAULT 0,
     network integer[] DEFAULT ARRAY[1],
     main_plant integer[] DEFAULT ARRAY[1],
-    tsup_h_deg numeric DEFAULT 100,
-    heat_e_kwh numeric DEFAULT 1000000,
-    heat_p_kw numeric DEFAULT 1000,
-    tsup_c_deg numeric DEFAULT 14,
-    cold_e_kwh numeric DEFAULT 1000000,
-    cold_p_kw numeric DEFAULT 1000,    
-	asl_m numeric,
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
 	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
 );
@@ -362,8 +342,6 @@ CREATE TABLE "$versionName$".lines
 	length numeric,
     zeta numeric DEFAULT 0,
 	submodel integer[] DEFAULT ARRAY[1],
-	peak_power_kw numeric,
-	no_customer integer,
 	CONSTRAINT lines_pkey PRIMARY KEY (id)
 );
 
@@ -377,7 +355,6 @@ CREATE TABLE "$versionName$".devices
 	assettype integer,
 	submodel integer, --reference to submodelname in subnet_line 
     network integer[] DEFAULT ARRAY[1],
-    asl_m numeric,
 	CONSTRAINT devices_pkey PRIMARY KEY (id)
 );
 
@@ -391,7 +368,6 @@ CREATE TABLE "$versionName$".junctions
     n_connections integer check(n_connections >= 1),
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
     network integer DEFAULT 1, --reference to submodelname in subnet_line 
-    asl_m numeric,
     zeta numeric DEFAULT 0,
 	CONSTRAINT junctions_pkey PRIMARY KEY (id)
 );
@@ -408,30 +384,6 @@ CREATE TABLE "$versionName$".structure_boundarys
 	f_vexp_m numeric,
 	submodel integer,
 	CONSTRAINT structure_boundarys_pkey PRIMARY KEY (id)
-);
-
--------------------table "$versionName$".structure_junctions------------------------------------
-DROP TABLE IF EXISTS "$versionName$".structure_junctions CASCADE;
-CREATE TABLE "$versionName$".structure_junctions
-(
-	id serial,
-	geom geometry(PointZ,$srid$),
-	assetgroup integer,
-	assettype integer,
-	submodel integer,
-	CONSTRAINT structure_junctions_pkey PRIMARY KEY (id)
-);
-
--------------------table "$versionName$".structure_lines------------------------------------
-DROP TABLE IF EXISTS "$versionName$".structure_lines CASCADE;
-CREATE TABLE "$versionName$".structure_lines
-(
-	id serial,
-	geom geometry(LineStringZ,$srid$),
-	assetgroup integer,
-	assettype integer,
-	submodel integer,
-	CONSTRAINT structure_lines_pkey PRIMARY KEY (id)
 );
 
 -- Table: "$versionName$".buildings
@@ -572,7 +524,7 @@ CREATE TABLE "$versionName$".time_manager_tair
   id serial,
   b_id serial,
   the_geom geometry(MultiPolygon,$srid$),
-  time_h character varying(20),
+  time_h text,
   time_stamp timestamp without time zone,
   t_air_c numeric,
   CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)

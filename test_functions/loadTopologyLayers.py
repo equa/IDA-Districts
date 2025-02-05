@@ -26,8 +26,7 @@ def setLayersHidden(tableNames):
         
 def loadTopologyLayers(version,uri,dictDB):
     #load tables without geometry and hide them in layers panel
-    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
-        'structure_boundary_assettypes','junction_assetgroups','structure_line_assetgroups','structure_line_assettypes',
+    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
         'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
@@ -39,10 +38,8 @@ def loadTopologyLayers(version,uri,dictDB):
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_junction_assetgroups',
-            'structure_junction_assettypes','structure_boundary_assetgroups','structure_boundary_assettypes','junction_assetgroups','junction_assettypes','junctions',
-            'structure_line_assetgroups','structure_line_assettypes','structure_boundarys','structure_junctions','structure_lines',
-            'streets', 'buildings','network','cosim',
+        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes',
+            'energy_plant_assetgroups','junction_assettypes','junctions','structure_boundarys','streets', 'buildings','network','cosim',
             'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
             'pipematerial']:
             QgsProject.instance().removeMapLayer(layer)

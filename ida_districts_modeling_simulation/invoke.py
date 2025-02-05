@@ -374,7 +374,8 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             
             try:
                 if invoked:
-                    dlg.tableWidget_customer.setItem(idx,1,QTableWidgetItem('True'))
+                    dlg.tableWidget_customer.setItem(idx,1,QTableWidgetItem('Yes'))
+                    dlg.tableWidget_customer.viewport().update()
             except:
                 pass
             type_old=type
@@ -406,6 +407,7 @@ class InvokeFeatures():
             self.dlg_invokeFeatures.btn_showFeatureLoad.clicked.connect(lambda: self.showFeatureLoad(self.dlg_invokeFeatures))
             self.dlg_invokeFeatures.btn_ok.clicked.connect(lambda: closeDialog(self.dlg_invokeFeatures))
             self.loadInvokeFeatureData(self.dlg_invokeFeatures)
+            self.dlg_invokeFeatures.tableWidget_customer.resizeColumnsToContents()
             self.dlg_invokeFeatures.show()
             
     def invokeSelectedFeatures(self):
@@ -455,9 +457,9 @@ class InvokeFeatures():
             dlg.tableWidget_customer.insertRow(i)
             dlg.tableWidget_customer.setItem(i,0,QTableWidgetItem(str(id['id'])))
             if os.path.exists(self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),str(id['id']))): 
-                exists=True
+                exists='Yes'
             else:
-                exists=False
+                exists='No'
             dlg.tableWidget_customer.setItem(i,1,QTableWidgetItem(str(exists)))
             i+=1
                   

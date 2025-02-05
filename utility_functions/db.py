@@ -572,9 +572,8 @@ def loadProjectNames(cur,dictDB):
     print(project_names)
     return project_names
         
-def checkDBName(nameDb,cur,dictDB):
+def checkDBName(nameDb,projectNames):
     """Check if the DB name already exists """
-    projectNames=loadProjectNames(cur,dictDB)
     if nameDb not in projectNames:
         return True
     else:

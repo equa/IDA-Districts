@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS public.pipe_ambient CASCADE;
 CREATE TABLE IF NOT EXISTS public.pipe_ambient
 (
     id serial,
-    ambient character varying(50),
+    ambient text,
     CONSTRAINT pipe_ambient_pkey PRIMARY KEY (id)
 );
 
@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS public.type CASCADE;
 CREATE TABLE IF NOT EXISTS public.type
 (
     id serial,
-    name character varying(50),
+    name text,
     CONSTRAINT type_pkey PRIMARY KEY (id)
 );
 
@@ -29,8 +29,8 @@ DROP TABLE IF EXISTS public.measure CASCADE;
 CREATE TABLE IF NOT EXISTS public.measure
 (
     id serial,
-    measure character varying(50),
-    unit character varying(50),
+    measure text,
+    unit text,
     CONSTRAINT measure_pkey PRIMARY KEY (id)
 );
 
@@ -39,7 +39,7 @@ DROP TABLE IF EXISTS public.target CASCADE;
 CREATE TABLE IF NOT EXISTS public.target
 (
     id serial,
-    target character varying(50),
+    target text,
     CONSTRAINT target_pkey PRIMARY KEY (id)
 );
 
@@ -48,7 +48,7 @@ DROP TABLE IF EXISTS public.signal_function CASCADE;
 CREATE TABLE IF NOT EXISTS public.signal_function
 (
     id serial,
-    function character varying(50),
+    function text,
     CONSTRAINT signal_function_pkey PRIMARY KEY (id)
 );
 
@@ -57,7 +57,7 @@ DROP TABLE IF EXISTS public.prefered_conn_dir CASCADE;
 CREATE TABLE public.prefered_conn_dir
 (
   id serial,
-  name character varying(55),
+  name text,
   CONSTRAINT prefered_conn_dir_pkey PRIMARY KEY (id)
 );
 
@@ -79,7 +79,7 @@ DROP TABLE IF EXISTS public.internal_loads_profiles CASCADE;
 CREATE TABLE public.internal_loads_profiles
 (
   id serial,
-  description character varying(500),
+  description text,
   CONSTRAINT internal_loads_profiles_pkey PRIMARY KEY (id)
 );
 
@@ -99,7 +99,7 @@ DROP TABLE IF EXISTS public.customer_loads_profiles CASCADE;
 CREATE TABLE public.customer_loads_profiles
 (
   id serial,
-  description character varying(500),
+  description text,
   CONSTRAINT customer_loads_profiles_pkey PRIMARY KEY (id)
 );
 
@@ -108,7 +108,7 @@ DROP TABLE IF EXISTS public.dhw_timeseries CASCADE;
 CREATE TABLE public.dhw_timeseries
 (
   id serial,
-  description character varying(500),
+  description text,
   CONSTRAINT dhw_timeseries_pkey PRIMARY KEY (id)
 );
 
@@ -139,7 +139,7 @@ DROP TABLE IF EXISTS temp_timeseries CASCADE;
 CREATE TABLE public.temp_timeseries
 (
     id serial,
-    description character varying(500),
+    description text,
     CONSTRAINT temp_timeseries_pkey PRIMARY KEY (id)
 );
 
@@ -171,7 +171,7 @@ DROP TABLE IF EXISTS public.conn_bundle_types CASCADE;
 CREATE TABLE public.conn_bundle_types
 (
   id serial,
-  description character varying(250),
+  description text,
   CONSTRAINT conn_bundle_types_pkey PRIMARY KEY (id)
 );
 
@@ -183,7 +183,7 @@ CREATE TABLE public.bundle_type_conns
   conn_bundle_type_id integer,
   sequence int,
   conn_type_id numeric,
-  description character varying(250),
+  description text,
   CONSTRAINT bundle_type_conns_pkey PRIMARY KEY (id)
 );
 
@@ -192,7 +192,7 @@ DROP TABLE IF EXISTS public.connection_types CASCADE;
 CREATE TABLE public.connection_types
 (
   id serial,
-  description character varying(50),
+  description text,
   CONSTRAINT connection_types_pkey PRIMARY KEY (id)
 );
 
@@ -217,7 +217,7 @@ CREATE TABLE public.connections
   temp numeric,
   p numeric,
   mdot numeric,
-  description character varying(250),
+  description text,
   CONSTRAINT connections_pkey PRIMARY KEY (id)
 );
 
@@ -226,7 +226,7 @@ DROP TABLE IF EXISTS public.pipe_bundle_types CASCADE;
 CREATE TABLE public.pipe_bundle_types
 (
   id serial,
-  description character varying(250),
+  description text,
   CONSTRAINT pipe_bundle_types_pkey PRIMARY KEY (id)
 );
 
@@ -249,11 +249,11 @@ DROP TABLE IF EXISTS public.pipes CASCADE;
 CREATE TABLE public.pipes
 (
   id serial,
-  name character varying(255),
+  name text,
   innerpipediameter numeric,
   piperoughnessfactor numeric,
   pipe_construction_id integer,
-  description character varying(255),
+  description text,
   CONSTRAINT pipes_pkey PRIMARY KEY (id)
 );
   
@@ -262,7 +262,7 @@ DROP TABLE IF EXISTS public.pipe_constructions CASCADE;
 CREATE TABLE public.pipe_constructions
 (
   id serial,
-  name character varying(255),
+  name text,
   CONSTRAINT pipe_constructions_pkey PRIMARY KEY (id)
 );  
 
@@ -283,7 +283,7 @@ DROP TABLE IF EXISTS public.materials CASCADE;
 CREATE TABLE public.materials
 (
   id serial,
-  name character varying,
+  name text,
   thermal_conductivity_w7mkelvin numeric,
   specific_heat_j7kgkelvin numeric,
   density_kg7m3 numeric,
@@ -295,64 +295,9 @@ DROP TABLE IF EXISTS public.versionhandling CASCADE;
 CREATE TABLE public.versionhandling
 (
   id serial,
-  name character varying(255),
+  name text,
   id_base int,
-  description character varying(255)
-);
-
--------------------------meta tables not used in light DB-----------------
--------------------table public.owner------------------------------------
-DROP TABLE IF EXISTS public.owner CASCADE;
-CREATE TABLE public.owner
-(
-	id serial,
-	owner varchar(25), 
-	CONSTRAINT owner_pkey PRIMARY KEY (id)
-);
-
--------------------table public.maintby------------------------------------
-DROP TABLE IF EXISTS public.maintby CASCADE;
-CREATE TABLE public.maintby
-(
-	id serial,
-	maintby varchar(25), 
-	CONSTRAINT maintby_pkey PRIMARY KEY (id)
-);
-
--------------------table public.lifecyclestatus------------------------------------
-DROP TABLE IF EXISTS public.lifecyclestatus CASCADE;
-CREATE TABLE public.lifecyclestatus
-(
-	id serial,
-	lifecyclestatus varchar(25), 
-	CONSTRAINT lifecyclestatus_pkey PRIMARY KEY (id)
-);
-
--------------------table public.installlocation------------------------------------
-DROP TABLE IF EXISTS public.installlocation CASCADE;
-CREATE TABLE public.installlocation
-(
-	id serial,
-	installlocation varchar(100), 
-	CONSTRAINT installlocation_pkey PRIMARY KEY (id)
-);
-
--------------------table public.installationmethod------------------------------------
-DROP TABLE IF EXISTS public.installationmethod CASCADE;
-CREATE TABLE public.installationmethod
-(
-	id serial,
-	installationmethod varchar(100), 
-	CONSTRAINT installationmethod_pkey PRIMARY KEY (id)
-);
-
--------------------table public.spatialsource------------------------------------
-DROP TABLE IF EXISTS public.spatialsource CASCADE;
-CREATE TABLE public.spatialsource
-(
-	id serial,
-	spatialsource varchar(100), 
-	CONSTRAINT spatialsource_pkey PRIMARY KEY (id)
+  description text
 );
 
 -------------------table public.customer_assetgroups------------------------------------
@@ -479,50 +424,6 @@ CREATE TABLE public.structure_boundary_assettypes
 	CONSTRAINT structure_boundary_assettypes_pkey PRIMARY KEY (id)
 );
 
--------------------table public.structure_line_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.structure_line_assetgroups CASCADE;
-CREATE TABLE public.structure_line_assetgroups
-(
-	id serial,
-	assetgroup varchar(25),
-	description varchar(500),
-	CONSTRAINT structure_line_assetgroups_pkey PRIMARY KEY (id)
-);
-
--------------------table public.structure_line_assettypes------------------------------------
-DROP TABLE IF EXISTS public.structure_line_assettypes CASCADE;
-CREATE TABLE public.structure_line_assettypes
-(
-	id serial,
-	assetgroup integer,
-	assettype integer,
-	assettype_name varchar(50),
-	description varchar(255),
-	CONSTRAINT structure_line_assettypes_pkey PRIMARY KEY (id)
-);
-
--------------------table public.structure_junction_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.structure_junction_assetgroups CASCADE;
-CREATE TABLE public.structure_junction_assetgroups
-(
-	id serial,
-	assetgroup varchar(25),
-	description varchar(500),
-	CONSTRAINT structure_junction_assetgroups_pkey PRIMARY KEY (id)
-);
-
--------------------table public.structure_junction_assettypes------------------------------------
-DROP TABLE IF EXISTS public.structure_junction_assettypes CASCADE;
-CREATE TABLE public.structure_junction_assettypes
-(
-	id serial,
-	assetgroup integer,
-	assettype integer,
-	assettype_name varchar(50),
-	description varchar(255),
-	CONSTRAINT structure_junction_assettypes_pkey PRIMARY KEY (id)
-);
-
 --------------------------------------------------------------------------------
 ------------------temp tables-----------------------------------------
 
@@ -568,55 +469,3 @@ CREATE TABLE temp.energy_plant_connections
   lid integer,
   CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
 );
-
--------------------table temp.lines_heating;------------------------------------
-DROP TABLE IF EXISTS temp.lines_heating CASCADE;
-CREATE TABLE temp.lines_heating
-(
-	id serial,
-	geom geometry(LineStringZ,$srid$),
-    network integer,
-	assetgroup integer,
-	assettype integer,
-    pipe_bundle_type_id integer,
-	length numeric,
-    zeta numeric DEFAULT 0,
-	submodel integer, --reference to submodelname in  subnet_line
-	peak_power_kw numeric,
-	no_customer integer,
-	CONSTRAINT lines_heating_pkey PRIMARY KEY (id)
-);
-
--------------------table temp.lines_cooling;------------------------------------
-DROP TABLE IF EXISTS temp.lines_cooling CASCADE;
-CREATE TABLE temp.lines_cooling
-(
-	id serial,
-	geom geometry(LineStringZ,$srid$),
-    network integer,
-	assetgroup integer,
-	assettype integer,
-    pipe_bundle_type_id integer,
-	length numeric,
-    zeta numeric DEFAULT 0,
-	submodel integer, --reference to submodelname in  subnet_line
-	peak_power_kw numeric,
-	no_customer integer,
-	CONSTRAINT lines_cooling_pkey PRIMARY KEY (id)
-);
-
--------------------table temp.streets_help------------------------------------
-DROP TABLE IF EXISTS temp.streets_help CASCADE;
-CREATE TABLE temp.streets_help
-(
-  id serial,
-  geom geometry(LineString,$srid$),
-  assetgroup integer,
-  assettype integer,
-  pipe_bundle_type_id integer,
-  length_m double precision,
-  costs_eur7m numeric DEFAULT 100,
-  source integer,
-  target integer,
-  CONSTRAINT streets_help_pkey PRIMARY KEY (id)
-);  

@@ -179,7 +179,7 @@ def doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,a
         pipe_bundle=[]
         Re=100000
         if dlg.checkBoxSimultaneity.isChecked():
-            simulaneity=0.55*1.01**((line['no_customer']-1)*-1)+0.45
+            simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
         else:
             simulaneity=1
         print(simulaneity)
@@ -340,7 +340,9 @@ END $$;""".format(i,i) for i in energy_columns])
     
     sql="""INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(dictDB['versionName'])
     print(sql) 
-    cur.execute(sql)  
+    cur.execute(sql)
+
+    dlg.new_pipe_bundles=[]   
     
     removeTempLayers()
     

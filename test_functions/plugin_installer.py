@@ -140,21 +140,21 @@ dir=plugin_dir+'ida_districts_project_handling\\'
 name_list = ['config', 'help', 'Samples','scripts','i18n','__pycache__','templates','icons']
 copyProjectFolders(dir,plugin_dir+'pro_temp',name_list)
 if os.path.isdir(dir):
-    shutil.copy2(dir+'dbSettings.txt',plugin_dir+'dbSettings.txt')
-    if len(loadIDADistrictsConfig(plugin_dir))==3:
+    if len(loadIDADistrictsConfig(plugin_dir))==7:
+        shutil.copy2(dir+'dbSettings.txt',plugin_dir+'dbSettings.txt')
+    if len(loadIDADistrictsConfig(plugin_dir))==8:
         shutil.copy2(dir+'configIDADistricts.txt',plugin_dir+'configIDADistricts.txt')
 rmtree_long_path(dir)
 copy_tree_filter_extensions_and_folders(installation_dir+'ida_districts_project_handling',dir)
 copy_tree_filter_extensions_and_folders(plugin_dir+'pro_temp',dir)
 if os.path.exists(plugin_dir+'dbSettings.txt'):
     shutil.copy2(plugin_dir+'dbSettings.txt',dir+'dbSettings.txt')
+    os.remove(plugin_dir+'dbSettings.txt')
 if os.path.exists(plugin_dir+'dbSettings_lastLoad.txt'):
     shutil.copy2(plugin_dir+'dbSettings_lastLoad.txt',dir+'dbSettings_lastLoad.txt')
+    os.remove(plugin_dir+'dbSettings_lastLoad.txt')
 if os.path.exists(plugin_dir+'configIDADistricts.txt'):
     shutil.copy2(plugin_dir+'configIDADistricts.txt',dir+'configIDADistricts.txt')
-if os.path.exists(plugin_dir+'dbSettings.txt'):
-    os.remove(plugin_dir+'dbSettings.txt')
-if os.path.exists(plugin_dir+'configIDADistricts.txt'):
     os.remove(plugin_dir+'configIDADistricts.txt')
 rmtree_long_path(plugin_dir+'pro_temp')
 

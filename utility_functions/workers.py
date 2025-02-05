@@ -208,7 +208,7 @@ class APISignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
     status=pyqtSignal(str)
-    finished =pyqtSignal()
+    finished =pyqtSignal(str)
     
 class WorkerOpenAPI(QRunnable):
     """Worker thread

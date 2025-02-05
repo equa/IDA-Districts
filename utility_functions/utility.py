@@ -171,7 +171,7 @@ def checkString(my_string):
 
     #checking empty string
     if len(my_string)==0:
-        iface.messageBar().pushMessage("Error", "Please enter a project name!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "Please enter a name!", level=Qgis.Critical)
         return False
 
     #start with a character
@@ -196,7 +196,7 @@ def checkString(my_string):
         ok = False
         
     if not ok:
-        iface.messageBar().pushMessage("Error", "Please don`t use upper cases, white spaces or special characters in your name!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Info", "Please don`t use upper cases, white spaces or special characters in your name!", level=Qgis.Info)
     
     return ok
     

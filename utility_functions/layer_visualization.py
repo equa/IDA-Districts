@@ -2,6 +2,21 @@ from plugins.utility_functions.files import *
 from plugins.utility_functions.db import *
 from qgis.core import  QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 
+def zoomToLayer(layer_name):
+    # Get the active QGIS map canvas
+    canvas = iface.mapCanvas()
+
+    # Get the layer you want to zoom to (replace with your layer name)
+    layer = QgsProject.instance().mapLayersByName(layer_name)[0]
+
+    # Get the extent of the layer
+    layer_extent = layer.extent()
+
+    # Set the canvas to zoom to the layer's extent
+    canvas.setExtent(layer_extent)
+
+    # Refresh the canvas to apply the change
+    canvas.refresh()
 
 def setEditorWidgetListType(list_type_dict):
     """{layer: [col_names]}"""
@@ -32,7 +47,7 @@ def setFieldConstraints(constraints_dict):
                 layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
             
 def getDHCLayerNames():
-    return ["lines","junctions","energy_plants","devices","structure_lines","structure_junctions","structure_boundarys"]
+    return ["lines","junctions","energy_plants","devices","structure_boundarys"]
     
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
@@ -41,7 +56,7 @@ def updateTableSrid(versions,cur,srid):
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
-        for table in ['devices','lines','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines','buildings','streets','submodels','boreholes']:
+        for table in ['devices','lines','junctions','customers','energy_plants','structure_boundarys','buildings','streets','submodels','boreholes']:
             print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
@@ -110,7 +125,7 @@ def valueRelationInternalLoadId():
  
 def setupVersionForm(cur,dictDB):  
     """ setup form for version layers"""
-    for vlayerName in ['lines','devices','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines']:
+    for vlayerName in ['lines','devices','junctions','customers','energy_plants','structure_boundarys']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         fc = vlayer.editFormConfig()
@@ -126,45 +141,36 @@ def setupVersionForm(cur,dictDB):
                             ['submodel'],[]]
         elif vlayerName=='lines':
             attrNamesTabs= [['id','assetgroup','assettype','pipe_bundle_type_id','network'],
-                            ['length','nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure','zeta','no_customer','peak_power_kw'],
+                            ['length','zeta'],
                             ['submodel'],[]]
         elif vlayerName=='customers':
             attrNamesTabs= [['id','assetgroup','assettype','network'],
-                            ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
-                            ['dhw_id', 'dhw_scale','internal_load_id','submodel'],
-                            ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
+                            ['load_w'],
+                            ['dhw_id','internal_load_id','submodel'],
+                            []]
         elif vlayerName=='energy_plants':
             attrNamesTabs= [['id','assetgroup','assettype','network'],
-                            ['main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
+                            ['main_plant'],
                             ['submodel'],[]]
         elif vlayerName=='structure_boundarys':
             attrNamesTabs= [['assetgroup','assettype'],
                             ['f_vexp_m'],
                             ['submodel'],[]]
-        elif vlayerName=='structure_junctions':
-            attrNamesTabs= [['assetgroup','assettype'],
-                            [],
-                            ['submodel'],[]]
-        elif vlayerName=='structure_lines':
-            attrNamesTabs= [['assetgroup','assettype'],
-                            [],
-                            ['submodel'],[]]
         for tab, attrNamesTab in zip(['General', 'Physical data', 'Simulation data', 'Metadata'], attrNamesTabs):
-            if attrNamesTab:
-                c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
-                # Instead of setIsGroupBox, we directly use the container for tabs
-                for attrName in attrNamesTab:
-                    if isinstance(attrName, list):
-                        c1 = QgsAttributeEditorContainer("Modelparameter", c)  # Set parent as 'c'
-                        # Adding child elements as part of a new container
-                        for param_name in attrName:
-                            field_idx = fields.indexOf(param_name)
-                            c1.addChildElement(QgsAttributeEditorField(param_name, field_idx, c1))
-                        c.addChildElement(c1)  # Add the container to the tab
-                    else:
-                        field_idx = fields.indexOf(attrName)
-                        c.addChildElement(QgsAttributeEditorField(attrName, field_idx, c))
-                fc.addTab(c)  # Add the tab to the form configuration
+            c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
+            # Instead of setIsGroupBox, we directly use the container for tabs
+            for attrName in attrNamesTab:
+                if isinstance(attrName, list):
+                    c1 = QgsAttributeEditorContainer("Modelparameter", c)  # Set parent as 'c'
+                    # Adding child elements as part of a new container
+                    for param_name in attrName:
+                        field_idx = fields.indexOf(param_name)
+                        c1.addChildElement(QgsAttributeEditorField(param_name, field_idx, c1))
+                    c.addChildElement(c1)  # Add the container to the tab
+                else:
+                    field_idx = fields.indexOf(attrName)
+                    c.addChildElement(QgsAttributeEditorField(attrName, field_idx, c))
+            fc.addTab(c)  # Add the tab to the form configuration
         
         vlayer.setEditFormConfig(fc)
             
@@ -180,11 +186,11 @@ def versionLayersAliasNames():
             attrNames=['assetgroup','assettype','pipe_bundle_type_id','network','submodel','length']
             aliasNames=['Asset group','Asset type','Pipe bundle type','Network','Co-sim','Length, m']
         elif vlayerName=='customers':
-            attrNames=['assetgroup','assettype','submodel','dhw_id','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','dhw_scale','internal_load_id']
-            aliasNames=['Asset group','Asset type','Co-sim','Domestic hot water ID','Heating demand, kWh','Heating load, kW','Supply setpoint temp. heating, °C','Cooling demand, kWh','Cooling load, kW','Supply setpoint temp. cooling, °C','DHW scale factor','Internal load ID']
+            attrNames=['assetgroup','assettype','submodel','load_w','dhw_id','internal_load_id']
+            aliasNames=['Asset group','Asset type','Co-sim','Load, W','Domestic hot water ID','Internal load ID']
         elif vlayerName=='energy_plants':
-            attrNames=['assetgroup','assettype','submodel','main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg']
-            aliasNames=['Asset group','Asset type','Co-sim','Is this the main plant','Heating demand, kWh','Heating load, kW','Setpoint temp. heating, °C','Cooling demand, kWh','Cooling load, kW','Setpoint temp. cooling, °C']
+            attrNames=['assetgroup','assettype','submodel','main_plant']
+            aliasNames=['Asset group','Asset type','Co-sim','Is this the main plant']
         elif vlayerName=='junctions':
             attrNames=['assetgroup','assettype','submodel','n_connections']
             aliasNames=['Asset group','Asset type','Co-sim','Number of connections']
@@ -233,9 +239,9 @@ def loadBoreholesLayer(version,uri,dictDB,plugin_dir,cur):
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_junction_assetgroups',
-            'structure_junction_assettypes','structure_boundary_assetgroups','structure_boundary_assettypes','junction_assetgroups','junction_assettypes','junctions',
-            'structure_line_assetgroups','structure_line_assettypes','structure_boundarys','structure_junctions','structure_lines',
+        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
+            'structure_boundary_assetgroups','structure_boundary_assettypes','junction_assetgroups','junction_assettypes','junctions',
+            'structure_boundarys',
             'streets', 'buildings','network','cosim',
             'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
             'pipematerial']:
@@ -279,8 +285,8 @@ def setLayersHidden(tableNames):
         
 def loadTopologyLayers(version,uri,dictDB):
     #load tables without geometry and hide them in layers panel
-    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups','structure_junction_assetgroups','structure_junction_assettypes',
-        'structure_boundary_assettypes','junction_assetgroups','structure_line_assetgroups','structure_line_assettypes',
+    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups',
+        'structure_boundary_assettypes','junction_assetgroups',
         'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
@@ -301,10 +307,10 @@ def getConstraintExpressionDict(networks_array):
     
 def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
     dir=getProjectHandlingDir(plugin_dir)
-    for vlayerName in ['energy_plants','customers','lines','devices','junctions','structure_boundarys','structure_junctions','structure_lines']:  
+    for vlayerName in ['energy_plants','customers','lines','devices','junctions','structure_boundarys']:  
         categories=featureLayerAssetgroups(vlayerName,cur)
         ids=featureLayerAssetgroupIds(vlayerName,cur)
-        if not (vlayerName in ['devices','structure_boundarys','structure_junctions','structure_lines'] and version=='temp'):
+        if not (vlayerName in ['devices','structure_boundarys'] and version=='temp'):
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
                 vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])
@@ -340,7 +346,7 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
             categorized_renderer.setClassAttribute('assetgroup') 
             for category,id in zip(categories,ids):      
                 symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
-                if vlayerName in ['lines','structure_lines']:
+                if vlayerName in ['lines']:
                     symbol.setWidth(0.75) 
                 elif vlayerName in ['structure_boundarys']:
                     #print(vlayerName)
@@ -433,7 +439,7 @@ def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
         print(vlayer)
         symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
         print(symbol)
-        if vlayerName in ['lines','structure_lines']:
+        if vlayerName in ['lines']:
             symbol.setWidth(0.75) 
         else:
             symbol.setSize(2)

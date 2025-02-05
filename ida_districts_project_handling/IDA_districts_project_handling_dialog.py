@@ -25,9 +25,164 @@
 import os
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QObject,pyqtSignal
-from qgis.PyQt.QtWidgets import QTreeView,QAction,QMainWindow,QWidget,QPushButton,QRadioButton, QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar,QFileDialog
+from qgis.PyQt.QtWidgets import QTreeView,QAction,QMainWindow,QWidget,QPushButton,QRadioButton, QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar,QFileDialog,QGroupBox
 from qgis.core import Qgis
+from plugins.utility_functions.db import *
+from qgis.PyQt.QtCore import Qt
 
+class NewProjectDlg(QMainWindow):
+    def __init__(self):
+        """Constructor NewProjectDlg"""
+        super().__init__()
+        self.setWindowTitle("New IDA Districts project")  
+
+        #project name 
+        layout_project= QHBoxLayout() 
+
+        label_project_name =QLabel('Project name:')
+        layout_project.addWidget(label_project_name)
+        
+        self.project_name=QLineEdit()
+        layout_project.addWidget(self.project_name)
+      
+        #template 
+        self.selectTemplate =QComboBox()
+        self.selectTemplate.addItems(['Empty project','DB default values','Heating network'])
+        self.selectTemplate.setCurrentText('Heating network')
+        self.selectTemplate.currentTextChanged.connect(self.update_checkbox_dbDefaultValues)
+
+        #Qheckboxes
+        layout_settings = QVBoxLayout()
+        self.checkbox_db_defaultValues =QCheckBox("DB default values")
+        self.checkbox_db_defaultValues.setDisabled(True) 
+        self.checkbox_invokedFeatures =QCheckBox("Invoked features") 
+        self.checkbox_prn =QCheckBox(".prn results") 
+        self.checkbox_DBResults =QCheckBox("Database results") 
+        layout_settings.addWidget(self.checkbox_db_defaultValues)
+        layout_settings.addWidget(self.checkbox_invokedFeatures)
+        layout_settings.addWidget(self.checkbox_prn)
+        layout_settings.addWidget(self.checkbox_DBResults)
+        layout_settings.setContentsMargins(30, 0, 0, 0)
+        
+        self.group_box_autsave = QGroupBox("")
+        self.group_box_autsave.setLayout(layout_settings)
+        
+        #buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_ok=QPushButton("Create")
+        layout_buttons.addWidget(self.btn_ok)
+        self.btn_cancel=QPushButton("Cancel")
+        layout_buttons.addWidget(self.btn_cancel)
+        
+        #---------------set layouts together-------------------
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_project)
+        layout_win.addWidget(self.selectTemplate)
+        layout_win.addWidget(self.group_box_autsave)
+        layout_win.addLayout(layout_buttons)
+        
+        widget=QWidget()
+        widget.setLayout(layout_win)
+        self.setCentralWidget(widget)
+        #self.update_checkbox_dbDefaultValues() 
+        
+    def update_checkbox_dbDefaultValues(self,text):
+        if text in ['DB default values','Empty project']:
+            self.checkbox_db_defaultValues.setCheckState(Qt.Checked)
+            self.checkbox_invokedFeatures.setCheckState(Qt.Unchecked)
+            self.checkbox_prn.setCheckState(Qt.Unchecked)
+            self.checkbox_DBResults.setCheckState(Qt.Unchecked)
+            self.checkbox_invokedFeatures.setDisabled(True) 
+            self.checkbox_prn.setDisabled(True) 
+            self.checkbox_DBResults.setDisabled(True) 
+        else:
+            self.checkbox_db_defaultValues.setCheckState(Qt.Unchecked)
+            self.checkbox_invokedFeatures.setEnabled(True) 
+            self.checkbox_prn.setEnabled(True) 
+            self.checkbox_DBResults.setEnabled(True) 
+            
+class IDADistrictsPreferencesDlg(QMainWindow):
+    def __init__(self):
+        """Constructor ExportProjectDialog"""
+        super().__init__()
+        self.setWindowTitle("IDA Districts Preferences")  
+
+        #input 
+        inputs=[{'label':'IDA ICE path','text':'path_ice'},{'label':'IDA ICE API delay, s','text':'ice_api_delay'},{'label':'PostgreSQL path','text':'path_postgresql'}]
+        i=0
+        layout_label = QVBoxLayout() 
+        layout_input = QVBoxLayout() 
+        self.input=[]
+        for input in inputs:
+            #label 
+            label =QLabel(input['label'])
+            layout_label.addWidget(label)
+            
+            #input          
+            self.input.append(QLineEdit(input['text']))
+            layout_input.addWidget(self.input[i])
+            i+=1  
+        
+        #set name settings together
+        layout_settings = QHBoxLayout() 
+        layout_settings.addLayout(layout_label)
+        layout_settings.addLayout(layout_input)
+
+        #Autosave
+        self.checkbox_autosave =QCheckBox('Autosave')
+        self.checkbox_autosave.stateChanged.connect(self.update_checkbox_autosave)
+
+        #interval
+        label_interval = QLabel('Time interval, min') 
+        self.interval = QLineEdit('15') 
+        
+        layout_interval=QHBoxLayout()
+        layout_interval.addWidget(label_interval)
+        layout_interval.addWidget(self.interval)
+        layout_interval.setContentsMargins(30, 0, 0, 0)
+        
+        #Qheckboxes
+        layout_autosave_settings = QVBoxLayout()
+        self.exportInvokedFeatures =QCheckBox("Invoked features") 
+        self.exportPrn =QCheckBox(".prn results") 
+        self.exportDBResults =QCheckBox("Database results") 
+        layout_autosave_settings.addWidget(self.exportInvokedFeatures)
+        layout_autosave_settings.addWidget(self.exportPrn)
+        layout_autosave_settings.addWidget(self.exportDBResults)
+        layout_autosave_settings.setContentsMargins(30, 0, 0, 0)
+        
+        layout_autosave=QVBoxLayout()
+        layout_autosave.addLayout(layout_interval)
+        layout_autosave.addLayout(layout_autosave_settings)
+        
+        self.group_box_autsave = QGroupBox("")
+        self.group_box_autsave.setLayout(layout_autosave)
+        
+        #buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_ok=QPushButton("Ok")
+        layout_buttons.addWidget(self.btn_ok)
+        self.btn_cancel=QPushButton("Cancel")
+        layout_buttons.addWidget(self.btn_cancel)
+        
+        #---------------set layouts together-------------------
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_settings)
+        layout_win.addWidget(self.checkbox_autosave)
+        layout_win.addWidget(self.group_box_autsave)
+        layout_win.addLayout(layout_buttons)
+        
+        widget=QWidget()
+        widget.setLayout(layout_win)
+        self.setCentralWidget(widget)
+        self.update_checkbox_autosave() 
+        
+    def update_checkbox_autosave(self):
+        if self.checkbox_autosave.isChecked():
+            self.group_box_autsave.show()
+        else:
+            self.group_box_autsave.hide()
+        
 class ExportProjectDialog(QMainWindow):
     def __init__(self):
         """Constructor ExportProjectDialog"""
@@ -122,10 +277,11 @@ class ProjectConfigDialog(QMainWindow):
         self.setCentralWidget(widget)
         
 class IDA_Districts_ProjectHandlingDialog(QMainWindow):
-    def __init__(self):
+    def __init__(self,plugin_dir):
         """Constructor."""
         super().__init__()
         self.setWindowTitle("IDA Project Handling")     
+        self.dictDB=getDBConnectionData(plugin_dir)
                 
         #-----------------Config data-------------------------
         #titel
@@ -165,11 +321,15 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         #input DB connection
         layout_db_input = QVBoxLayout()
         
-        self.host =QLineEdit("localhost")
+        self.host =QLineEdit(self.dictDB['host'] if self.dictDB['storeCredentials'] else '')
         layout_db_input.addWidget(self.host)
         
-        self.port =QLineEdit("5434")
+        self.port =QLineEdit(self.dictDB['port'] if self.dictDB['storeCredentials'] else '')
         layout_db_input.addWidget(self.port)
+        
+        #store last DB session
+        self.checkbox_storeLastDBSession=QCheckBox('Save credentials of last DB session')
+        self.checkbox_storeLastDBSession.setCheckState(Qt.Checked if self.dictDB['storeCredentials'] else Qt.Unchecked)
         
         #buttons
         layout_db_buttons = QHBoxLayout()
@@ -188,6 +348,7 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         layout_db = QVBoxLayout()
         layout_db.addWidget(label_db_titel)
         layout_db.addLayout(layout_db_settings)
+        layout_db.addWidget(self.checkbox_storeLastDBSession)
         layout_db.addLayout(layout_db_buttons)
         
         #---------------Project settings-------------------

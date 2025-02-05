@@ -709,7 +709,7 @@ INSERT INTO temp.lines_{} (id,assetgroup,assettype,geom,length,pipe_bundle_type_
                 count=self.cur.fetchone()['count_pipes']
                 if count==count_old:
                     flag=True
-                    #print("""single connection not successful ; count={}""".format(count))
+                    print("""single connection not successful ; count={}""".format(count))
                 else:
                     customer_count += 1
                     self.progress_value= int(customer_count / customer_sum / progress_mode * 100)

@@ -1,1 +1,1 @@
-{'pwd': 'p3t3r', 'host': 'localhost', 'port': '5434', 'user': 'postgres', 'projectName': 'test222', 'versionName': 'Child7'}
+{'pwd': 'p3t3r', 'host': 'localhost', 'port': '5434', 'user': 'postgres', 'projectName': 'test000', 'versionName': 'base1', 'storeCredentials': True}

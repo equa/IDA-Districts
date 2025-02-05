@@ -1134,7 +1134,7 @@ class InvokeFeaturesDlg(QMainWindow):
         
         #table
         self.tableWidget_customer = QTableWidget(0,2)   
-        self.tableWidget_customer.setHorizontalHeaderLabels(["Id","Invoked"])      
+        self.tableWidget_customer.setHorizontalHeaderLabels(["  ID    ","Feature is invoked"])      
 
         #---------------ok/Open buttons     
         layout_buttons = QHBoxLayout()

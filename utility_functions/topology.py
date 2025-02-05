@@ -371,14 +371,15 @@ def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
     sql="""SELECT st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);""".format(tolerance,network,network)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep'] 
     sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point, ST_EndPoint(geom) AS l_end_point FROM temp.lines;"""
-    #print(sql) 
+    print(sql) 
     cur.execute(sql) 
     lines=cur.fetchall()
-    for line in lines:
+    for counter,line in enumerate(lines,1):
+        #print(counter)
         #print(line)
         lid=line['lid']
         start_point=line['l_start_point']
@@ -393,7 +394,7 @@ def checkLineDirectionPipeLaying(cur,version,tolerance,network):
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.lines l where St_contains(l.geom,sh.geom)',
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
                 {}, 
                 {},
                 false
@@ -417,7 +418,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh, temp.lines l where St_contains(l.geom,sh.geom)',
+                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
                 {}, 
                 {},
                 false

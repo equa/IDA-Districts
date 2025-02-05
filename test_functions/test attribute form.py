@@ -1,6 +1,6 @@
 def setupVersionForm_light():  
     """ setup form for version layers"""
-    for vlayerName in ['lines','devices','junctions','customers','energy_plants','structure_boundarys','structure_junctions','structure_lines']:
+    for vlayerName in ['lines','devices','junctions','customers','energy_plants','structure_boundarys']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         fc = vlayer.editFormConfig()
@@ -37,14 +37,6 @@ def setupVersionForm_light():
         elif vlayerName=='structure_boundarys':
             attrNamesTabs= [['assetgroup','assettype','submodel'],
                             ['f_vexp_m'],
-                            [],[]]
-        elif vlayerName=='structure_junctions':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            [],
-                            [],[]]
-        elif vlayerName=='structure_lines':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            [],
                             [],[]]
         for tab,attrNamesTab in zip(['General','Physical data','Simulation data','Metadata'],attrNamesTabs):
             if attrNamesTab:
