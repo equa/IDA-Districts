@@ -18,13 +18,27 @@ class WorkerShowOnMap(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        print('WorkerShowOnMap')
+        print(kwargs)
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
+        self.vars=kwargs['vars']
+        self.feature= kwargs['feature']
+        self.layer_name= kwargs['layer_name']
+        self.colorramp= kwargs['colorramp']
+        self.color_classes= kwargs['color_classes']
+        self.size_symbolMin= kwargs['size_symbolMin']
+        self.size_symbolMax= kwargs['size_symbolMax']
+        self.rotation_symbolMin= kwargs['rotation_symbolMin']
+        self.rotation_symbolMax= kwargs['rotation_symbolMax']
+        self.lineSegVisLength= kwargs['lineSegVis']
+        self.enable= kwargs['enable']
         self.conn=""
         self.cur=""
         self.plugin_dir=kwargs['plugin_dir']
+        self.simData=kwargs['simData']
+        self.time_values=['Values','Hourly average','Daily average','Monthly average']
         self.conn = dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -37,49 +51,53 @@ class WorkerShowOnMap(QRunnable):
             'time': {'starttime': '', 'endtime':'', 'dt':False, 'first_time_var': ''},
             'data': ''}
             
-        if self.dlg.checkbox_varColor.isChecked():
-            if self.dlg.rbtn_colorVar.isChecked():
-                vars['color']['mode']='var'
-                vars['color']['var_function']=self.dlg.color_function.currentText()
-                vars['time']['starttime']=self.dlg.starttime.text()
-                vars['time']['endtime']=self.dlg.endtime.text()
-                name=self.dlg.color_var.currentText()
-                vars['color']['table_name']=self.dlg.color_table_name
-            else:
-                vars['color']['mode']='par'
-                name=self.dlg.color_par.currentText()
-                vars['color']['table_name']=self.dlg.feature+'s'
-            if name:
-                vars['color']['name']=name
-        if self.dlg.checkbox_varSize.isChecked():
-            if self.dlg.rbtn_sizeVar.isChecked():
-                vars['size']['mode']='var'
-                vars['size']['var_function']=self.dlg.size_function.currentText()
-                vars['time']['starttime']=self.dlg.starttime.text()
-                vars['time']['endtime']=self.dlg.endtime.text()
-                name=self.dlg.size_var.currentText()
-                vars['size']['table_name']=self.dlg.size_table_name    
-            else:
-                vars['size']['mode']='par'
-                name=self.dlg.size_par.currentText()
-                vars['size']['table_name']=self.dlg.feature+'s'
-            if name:
-                vars['size']['name']=name
-        if self.dlg.checkbox_varRotation.isChecked():
-            if self.dlg.rbtn_rotationVar.isChecked():
-                vars['rotation']['mode']='var'
-                vars['rotation']['var_function']=self.dlg.rotation_function.currentText()
-                vars['time']['starttime']=self.dlg.starttime.text()
-                vars['time']['endtime']=self.dlg.endtime.text()
-                name=self.dlg.rotation_var.currentText()
-                vars['rotation']['table_name']=self.dlg.rotation_table_name
-            else:
-                vars['rotation']['mode']='par'
-                name=self.dlg.rotation_par.currentText()
-                vars['rotation']['table_name']=self.dlg.feature+'s'
-            if name:
-                vars['rotation']['name']=name
-         
+        if self.dlg:
+            if self.dlg.checkbox_varColor.isChecked():
+                if self.dlg.rbtn_colorVar.isChecked():
+                    vars['color']['mode']='var'
+                    vars['color']['var_function']=self.dlg.color_function.currentText()
+                    vars['time']['starttime']=self.dlg.starttime.text()
+                    vars['time']['endtime']=self.dlg.endtime.text()
+                    name=self.dlg.color_var.currentText()
+                    vars['color']['table_name']=self.dlg.color_table_name
+                else:
+                    vars['color']['mode']='par'
+                    name=self.dlg.color_par.currentText()
+                    vars['color']['table_name']=self.dlg.feature+'s'
+                if name:
+                    vars['color']['name']=name
+            if self.dlg.checkbox_varSize.isChecked():
+                if self.dlg.rbtn_sizeVar.isChecked():
+                    vars['size']['mode']='var'
+                    vars['size']['var_function']=self.dlg.size_function.currentText()
+                    vars['time']['starttime']=self.dlg.starttime.text()
+                    vars['time']['endtime']=self.dlg.endtime.text()
+                    name=self.dlg.size_var.currentText()
+                    vars['size']['table_name']=self.dlg.size_table_name    
+                else:
+                    vars['size']['mode']='par'
+                    name=self.dlg.size_par.currentText()
+                    vars['size']['table_name']=self.dlg.feature+'s'
+                if name:
+                    vars['size']['name']=name
+            if self.dlg.checkbox_varRotation.isChecked():
+                if self.dlg.rbtn_rotationVar.isChecked():
+                    vars['rotation']['mode']='var'
+                    vars['rotation']['var_function']=self.dlg.rotation_function.currentText()
+                    vars['time']['starttime']=self.dlg.starttime.text()
+                    vars['time']['endtime']=self.dlg.endtime.text()
+                    name=self.dlg.rotation_var.currentText()
+                    vars['rotation']['table_name']=self.dlg.rotation_table_name
+                else:
+                    vars['rotation']['mode']='par'
+                    name=self.dlg.rotation_par.currentText()
+                    vars['rotation']['table_name']=self.dlg.feature+'s'
+                if name:
+                    vars['rotation']['name']=name
+        else:
+            print('kwargs vars')
+            vars=self.vars
+            
         self.signals.progress.emit(5)  
         vars=self.getShowOnMapData(vars)
         return vars
@@ -97,15 +115,15 @@ SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
     FROM tables_to_drop;""".format(self.dictDB['versionName'],self.dictDB['versionName'])
         self.cur.execute(sql)
         
-        if vars['color']['var_function'] in self.dlg.time_values:
+        if vars['color']['var_function'] in self.time_values:
             time_color=True
         else:
             time_color=False
-        if vars['size']['var_function'] in self.dlg.time_values:
+        if vars['size']['var_function'] in self.time_values:
             time_size=True
         else:
             time_size=False  
-        if vars['rotation']['var_function'] in self.dlg.time_values:
+        if vars['rotation']['var_function'] in self.time_values:
             time_rotation=True
         else:
             time_rotation=False
@@ -123,11 +141,10 @@ SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
         first_group=first_time_var if first_time_var else first_par_var
         
         #if simulation results and line feature
-        if self.dlg.rbtn_simData.isChecked() and self.dlg.rbtn_lines.isChecked():
+        if self.simData and self.feature=='line':
             print('update DB with visualization tables')
             #re-create table line_seg_vis, which holds the geometry of the visualized pipe segements
             #check if > calculated segments
-            lineSegVisLength=int(self.dlg.lineSegVis.text())
                 
             srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
             
@@ -141,7 +158,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
     lid_seg integer NOT NULL,
     geom geometry(LineStringZ,{})
 );
-SELECT segmentize({},'{}','line_seg_vis');""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid,lineSegVisLength,self.dictDB['versionName'])
+SELECT segmentize({},'{}','line_seg_vis');""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid,self.lineSegVisLength,self.dictDB['versionName'])
                 self.cur.execute(sql)
             
                 #load var data to the coresponding visualization table using averaged values for merged segments
@@ -208,7 +225,8 @@ CREATE TABLE "{}".line_s_{}_vis
                     
                     vars['size']['table_name']=vars['size']['table_name']+'_vis'
                     
-        self.signals.progress.emit(10)      
+        self.signals.progress.emit(10)
+        print('get-data')
         if first_time_var or first_par_var:
             sql="""SELECT {}.{} AS fid, ST_AsText({}.geom) AS geom {}, {}
     FROM {}{}{}
@@ -239,13 +257,13 @@ CREATE TABLE "{}".line_s_{}_vis
                     ' AND '.join([first_group+'.geom='+var+'.geom' 
                         for var in vars if first_time_var and var not in ['time','data']+[first_time_var] and vars[var]['mode']=='var']),    
                         
-                    ' AND '.join([first_time_var+'.time='+var+'.time' for var in vars if var not in ['time','data']+[first_time_var] and vars[var]['var_function'] in self.dlg.time_values]),
+                    ' AND '.join([first_time_var+'.time='+var+'.time' for var in vars if var not in ['time','data']+[first_time_var] and vars[var]['var_function'] in self.time_values]),
                     """{}.time <= '{}' AND {}.time >= '{}'""".format(first_time_var,vars['time']['endtime'],first_time_var,vars['time']['starttime']) if first_time_var else ''] if i]),
                 ','.join([i for i in #group by
                     ["ST_asText({}.geom)".format(first_group),
                     """date_trunc('{}', {}.time)""".format(dt,first_time_var) if first_time_var and dt in ['hour','day','month'] else ('{}.time'.format(first_time_var) if first_time_var else ''),
                     '{}.{}'.format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id'),
-                    ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.dlg.time_values or vars[var]['var_function']=='Values')])] if i]),
+                    ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]),
                 """date_trunc('{}', {}.time),""".format(dt,first_time_var) if first_time_var and dt in ['hour','day','month'] else ('{}.time,'.format(first_time_var) if first_time_var else ''), #order by
                 first_group,'fid' if vars[first_group]['mode']=='var' else 'id')
         print(sql)
@@ -300,21 +318,21 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
         self.signals.progress.emit(65)  
         self.showOnMapMemoryLayer(vars)
 
-    def showOnMapMemoryLayer(self,vars):            
+    def showOnMapMemoryLayer(self,vars):   
+        print('showOnMapMemoryLayer')
         column_names=[vars[var]['name'].split('$')[0] for var in vars if var not in ['time','data'] and vars[var]['mode']]
         column_types=[var for var in vars if var not in ['time','data'] and vars[var]['mode']]
         print(column_names)
         print(column_types)
         
-        sLayerName = "{}s".format(self.dlg.feature)
-        sLayer = QgsProject.instance().mapLayersByName(sLayerName)[0]
         # make new memory layer
         temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
-            'LineStringZ' if self.dlg.feature=='line' else 'PointZ',
+            'LineStringZ' if self.feature=='line' else 'PointZ',
             loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid'],
             'field=time:datetime&' if vars['time']['first_time_var'] else '',
-            '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),self.dlg.layer_name.text(), "memory")
+            '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),self.layer_name, "memory")
         temp_layer.startEditing()
+        print('temp_layer generated')
 
         #make new features
         for i in vars['data']:
@@ -326,8 +344,10 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             for type,name in zip(column_types,column_names):
                 feat[type+'_'+name]=float(i[type])
             temp_layer.addFeature(feat)
+        print('features added')
 
-        temp_layer.commitChanges()
+        temp_layer.commitChanges()            
+            
         self.signals.progress.emit(90)  
         
         if vars['time']['first_time_var']:
@@ -377,24 +397,20 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             target_field = 'color_'+vars['color']['name'].split('$')[0]
             print(target_field)
 
-            num_classes = int(self.dlg.color_classes.text())
-            print(num_classes)
-            ramp_name = self.dlg.colorramp.currentText()
-            print(ramp_name)
             classification_method = QgsClassificationEqualInterval()
             classification_method.setLabelPrecision(1)
             classification_method.setLabelTrimTrailingZeroes(True)
     
             default_style = QgsStyle().defaultStyle()
-            color_ramp = default_style.colorRamp(ramp_name)
+            color_ramp = default_style.colorRamp(self.colorramp)
 
             renderer = QgsGraduatedSymbolRenderer()
             renderer.setClassAttribute(target_field)
             renderer.setClassificationMethod(classification_method)
-            renderer.updateClasses(temp_layer, num_classes)
+            renderer.updateClasses(temp_layer, self.color_classes)
             renderer.updateColorRamp(color_ramp)
             symbol=QgsSymbol.defaultSymbol(temp_layer.geometryType())
-            if self.dlg.rbtn_lines.isChecked():
+            if self.feature=='line':
                 symbol.setWidth(2)
             else:
                 symbol.setSize(4)
@@ -409,7 +425,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             symbol=QgsSymbol.defaultSymbol(temp_layer.geometryType())
             style={}
             
-            if self.dlg.checkbox_varRotation.isChecked():
+            if self.dlg and self.dlg.checkbox_varRotation.isChecked():
                 style['name']='arrow'
             else:
                 style['name']='point'
@@ -419,25 +435,25 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
 
             symbol.changeSymbolLayer(0, symbolLayer)
             
-            if self.dlg.checkbox_varSize.isChecked():
+            if vars['size']['mode']:
                 if vars['size']['mode']=='var':
                     min_value=getMinTimeTableValue(vars['size']['var_function'],self.cur,self.dictDB,vars['size']['table_name'],vars['size']['name'].split('$')[0],vars['time']['starttime'],vars['time']['endtime'])
                     max_value=getMaxTimeTableValue(vars['size']['var_function'],self.cur,self.dictDB,vars['size']['table_name'],vars['size']['name'].split('$')[0],vars['time']['starttime'],vars['time']['endtime'])
                 elif vars['size']['mode']=='par':
                     min_value=getMinTableValue(self.cur,self.dictDB,vars['size']['table_name'],vars['size']['name'])
                     max_value=getMaxTableValue(self.cur,self.dictDB,vars['size']['table_name'],vars['size']['name'])
-                scale="""coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format('size_'+vars['size']['name'].split('$')[0],min_value,max_value,self.dlg.size_symbolMin.text(),self.dlg.size_symbolMax.text())
+                scale="""coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format('size_'+vars['size']['name'].split('$')[0],min_value,max_value,self.size_symbolMin,self.size_symbolMax)
                 print(scale)
-                symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyStrokeWidth if self.dlg.rbtn_lines.isChecked() else QgsSymbolLayer.PropertySize,QgsProperty.fromExpression(scale))
+                symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyStrokeWidth if self.feature=='line' else QgsSymbolLayer.PropertySize,QgsProperty.fromExpression(scale))
 
-            if self.dlg.checkbox_varRotation.isChecked():
+            if vars['rotation']['mode']:
                 if vars['rotation']['mode']=='var':
                     min_value=getMinTimeTableValue(vars['rotation']['var_function'],self.cur,self.dictDB,vars['rotation']['table_name'],vars['rotation']['name'].split('$')[0],vars['time']['starttime'],vars['time']['endtime'])
                     max_value=getMaxTimeTableValue(vars['rotation']['var_function'],self.cur,self.dictDB,vars['rotation']['table_name'],vars['rotation']['name'].split('$')[0],vars['time']['starttime'],vars['time']['endtime'])
                 elif vars['rotation']['mode']=='par':
                     min_value=getMinTableValue(self.cur,self.dictDB,vars['rotation']['table_name'],vars['rotation']['name'])
                     max_value=getMaxTableValue(self.cur,self.dictDB,vars['rotation']['table_name'],vars['rotation']['name'])
-                rotation="""coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format('rotation_'+vars['rotation']['name'].split('$')[0],min_value,max_value,self.dlg.rotation_symbolMin.text(),self.dlg.rotation_symbolMax.text())
+                rotation="""coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format('rotation_'+vars['rotation']['name'].split('$')[0],min_value,max_value,self.rotation_symbolMin,self.rotation_symbolMax)
                 print(rotation)
                 symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyAngle,QgsProperty.fromExpression(rotation))
                 if not self.dlg.checkbox_varSize.isChecked():
@@ -452,6 +468,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
         temp_layer.setRenderer(renderer)
         
         QgsProject.instance().addMapLayer(temp_layer)
+        self.signals.finished.emit('')
         
     @pyqtSlot()
     def run(self):

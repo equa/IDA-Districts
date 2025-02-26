@@ -274,9 +274,6 @@ class SupervisoryCtrlDlg(QMainWindow):
         super().__init__()
         self.setWindowTitle("Supervisory control") 
         
-        #btn open
-        self.btn_open=QPushButton("Open")
-        
         #networks
         layout_submodel=QHBoxLayout()
         label_submodel =QLabel("Submodel")
@@ -292,12 +289,13 @@ class SupervisoryCtrlDlg(QMainWindow):
         layout_buttons = QHBoxLayout()
         self.btn_ok=QPushButton("Ok")
         layout_buttons.addWidget(self.btn_ok)
+        self.btn_open=QPushButton("Open")
+        layout_buttons.addWidget(self.btn_open)
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addWidget(self.btn_open)
         layout_win.addLayout(layout_submodel)
         layout_win.addLayout(layout_buttons)
         

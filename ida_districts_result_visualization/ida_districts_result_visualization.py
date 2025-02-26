@@ -8,11 +8,11 @@ from plugins.utility_functions.util import *
 from plugins.utility_functions.files import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
+from plugins.utility_functions.show_on_map import *
 from qgis.PyQt import sip
 
 # Initialize Qt resources from file resources.py
 from .resources import *
-from .show_on_map import *
 
 import os.path
 import psycopg2
@@ -1086,12 +1086,14 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
         if int(dlg.lineSegVis.text())==0:
             iface.messageBar().pushMessage("Info", f"The line segment length for visualization should be greater than 0.", level=Qgis.Info)
             return False
-        
-        self.worker_showOnMap = WorkerShowOnMap(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg)
+        self.worker_showOnMap = WorkerShowOnMap(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,vars=None,feature=dlg.feature,layer_name=dlg.layer_name.text(),colorramp=dlg.colorramp.currentText(),
+            color_classes=int(dlg.color_classes.text()),size_symbolMin=dlg.size_symbolMin.text(),size_symbolMax=dlg.size_symbolMax.text(),lineSegVis=int(dlg.lineSegVis.text()),
+            rotation_symbolMin=dlg.rotation_symbolMin.text(),rotation_symbolMax=dlg.rotation_symbolMax.text(),simData=dlg.rbtn_simData.isChecked(),enable=True)
+                
         self.threadpool_showOnMap = QThreadPool()
-        self.threadpool_showOnMap.start(self.worker_showOnMap) 
         self.worker_showOnMap.signals.error.connect(show_error_message)
-        self.worker_showOnMap.signals.progress.connect(dlg.update_progress)    
+        self.worker_showOnMap.signals.progress.connect(dlg.update_progress)  
+        self.threadpool_showOnMap.start(self.worker_showOnMap) 
 
     def run(self):
         """Run method that performs all the real work"""

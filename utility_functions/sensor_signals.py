@@ -159,18 +159,13 @@ def getSensorIrefsFeatureSource(sensor_data,submodel,feature_id,cur,dictDB,featu
     return [j for i in sensor_data for j in i['irefs_source'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['source_type'] and j.split('_')[1]==str(k['id']) and j.split('_')[1]==str(feature_id)]]
 
 def getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target):
+    print('*/-')
+    print(sensor_data_target)
     sensor_description="""(TEXT-OBJECT :VALUE (ENGLISH "<meta name=\\"sensor-description\\"><b>Sensor descriptions:</b><br>"""
-    #fix to long string
-    #sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+j +"</b> --> "+"Source description='"+i['description_source']+"'; Target description='"+i['description_target']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Target type='"+i['target_type_name']+"'; Target='" + 
-    #    ';'.join(['Feature: '+iref.split('_')[1]+', Connection type: '+iref.split('_')[2]+', Connection: '+iref.split('_')[3] for iref in i['irefs_target']]) +"'"  for i in sensor_data_source for j in i['irefs_source']])
-    #sensor_description+="<br>"
-    #sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Target_"+j +"</b> --> "+"Source description='"+i['description_source']+"'; Target description='"+i['description_target']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Source type='"+i['source_type_name']+"'; Source='"+
-    #    ';'.join(['Feature: '+iref.split('_')[1]+', Connection type: '+iref.split('_')[2]+', Connection: '+iref.split('_')[3] for iref in i['irefs_source']]) +"'" for i in sensor_data_target for j in i['irefs_target']])
-        
-    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+j +"</b> --> "+"Source description='"+(i['description_source'] if i['description_source'] else "")+"'; Target description='"+(i['description_target'] if i['description_target'] else "")+"'; Sensor ID='"+str(i['sensor_id'])+"'"
+    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+j +"</b> --> "+"Source description='"+(i['description_source'] if i['description_source'] else "")+"'; Sensor ID='"+str(i['sensor_id'])+"'; Target feature ID`s='{}'".format(','.join([id.split('_')[1] for id in ([j] if i['function']==6 else i['irefs_target'])]))
                                         for i in sensor_data_source for j in i['irefs_source']])
     sensor_description+="<br>"
-    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Target_"+j +"</b> --> "+"Source description='"+(i['description_source'] if i['description_source'] else "")+"'; Target description='"+(i['description_target'] if i['description_target'] else "")+"'; Sensor ID='"+str(i['sensor_id'])+"'" 
+    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Target_"+j +"</b> --> "+"'; Target description='"+(i['description_target'] if i['description_target'] else "")+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source feature ID`s='{}'".format(','.join([id.split('_')[1] for id in ([j] if i['function']==6 else i['irefs_source'])]))
                                     for i in sensor_data_target for j in i['irefs_target']])
     
     sensor_description+="""\") :AT ((8 380) (694 {})) :STYLE NOTE :MARKUP HTML)\n """.format(str((len(sensor_data_source)+len(sensor_data_target))*30+400))
@@ -178,12 +173,12 @@ def getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target):
 
 def getSensorDescriptionsAssettype(sensor_data_source,sensor_data_target):
     sensor_description="""(TEXT-OBJECT :VALUE (ENGLISH "<meta name=\\"sensor-description\\"><b>Sensor descriptions:</b><br>"""
-    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+str(i['sensor_id']) +"</b> --> "+"Source description='"+i['description_source']+"'; Target description='"+i['description_target']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Target type='"+i['target_type_name']+"'; Target='" + 
-        ';'.join(['Feature: '+iref.split('_')[1]+', Connection type: '+iref.split('_')[2]+', Connection: '+iref.split('_')[3] for iref in i['irefs_target']]) +"'"  
+    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+str(i['sensor_id']) +"</b> --> "+"Source description='"+i['description_source']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Target type='"+i['target_type_name']+
+        "'; Target feature ID`s='" + ','.join(['Supervisory control' if iref.split('_')[1]=='X' else iref.split('_')[1] for iref in i['irefs_target']]) +"'"  
         for i in sensor_data_source])
     sensor_description+="<br>"
-    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Target_"+str(i['sensor_id']) +"</b> --> "+"Source description='"+i['description_source']+"'; Target description='"+i['description_target']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Source type='"+i['source_type_name']+"'; Source='"+
-        ';'.join(['Feature: '+iref.split('_')[1]+', Connection type: '+iref.split('_')[2]+', Connection: '+iref.split('_')[3] for iref in i['irefs_source']]) +"'" 
+    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Target_"+str(i['sensor_id']) +"</b> --> "+"'; Target description='"+i['description_target']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Source type='"+i['source_type_name']+
+        "'; Source feature ID´s='"+','.join(['Supervisory control' if iref.split('_')[1]=='X' else iref.split('_')[1] for iref in i['irefs_source']]) +"'" 
         for i in sensor_data_target])
     sensor_description+="""\") :AT ((8 380) (694 {})) :STYLE NOTE :MARKUP HTML)\n """.format(str((len(sensor_data_source)+len(sensor_data_target))*30+400))
     return sensor_description

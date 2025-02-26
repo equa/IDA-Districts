@@ -310,6 +310,7 @@ CREATE TABLE "$versionName$".customers
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
     dhw_id integer,
     internal_load_id integer,   
+    gfa numeric DEFAULT 100,   
 	CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 

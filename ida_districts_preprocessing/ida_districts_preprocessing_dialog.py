@@ -1209,9 +1209,9 @@ class NetworkTopologyDialog(QMainWindow):
                     keepAssettypes=self.rbtn_keep_assettypes.isChecked(),
                     overrideAssettypes=self.rbtn_override_assettypes.isChecked(),overrideAssettypes_customers=self.overrideAssettype_customer.currentText(), overrideAssettypes_lines=self.overrideAssettype_lines.currentText(),overrideAssettypes_pipeBundle=self.overrideAssettype_pipeBundle.currentText(),tolerance=self.tolerance.text(),
                     showTempTables=True)
-                self.threadpool.start(worker) 
                 worker.signals.error.connect(self.show_error_message)
                 worker.signals.progress.connect(self.update_progress)
+                self.threadpool.start(worker)  
                 
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -2271,7 +2271,7 @@ class PipeSizingDlg(QMainWindow):
         #table
         #table for sequence mapping 
         self.table_sequences = QTableWidget(0,6)   
-        self.table_sequences.setHorizontalHeaderLabels(['Supply','T supply, °C','','Return','T return, °C','Load column'])     
+        self.table_sequences.setHorizontalHeaderLabels(['Supply','T supply, °C','','Return','T return, °C','Load column, W'])     
         #self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
         
         #list of considered pipes
@@ -2287,12 +2287,16 @@ class PipeSizingDlg(QMainWindow):
         
         self.btn_start=QPushButton("Start")
         layout_buttons.addWidget(self.btn_start)
+        #self.btn_start.pressed.connect(lambda: self.execute([self.combo_network_models.currentText()]))
         
         self.btn_save=QPushButton("Save")
         layout_buttons.addWidget(self.btn_save)
         
         self.btn_reject=QPushButton("Reject")
         layout_buttons.addWidget(self.btn_reject)
+        
+        #progress bar
+        self.progress=QProgressBar()
         
         
         #set layouts together
@@ -2307,10 +2311,12 @@ class PipeSizingDlg(QMainWindow):
         layout_win.addWidget(label_pipes_list)
         layout_win.addWidget(self.pipes_list)
         layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
         
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
+        self.threadpool = QThreadPool()
         
     def closeEvent(self, *args, **kwargs):
         print ("you just closed the PipeSizingWindow!!!")
@@ -2366,3 +2372,31 @@ class PipeSizingDlg(QMainWindow):
             self.table_sequences.removeRow(selected_row)
         else:
             iface.messageBar().pushMessage("Info", "No row selected!", level=Qgis.Info)
+            
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+        
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        self.iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        
+    def execute(self,networks):  
+        if self.conn:
+            if checkNetwork(self.cur,self.dictDB['versionName'],networks):                 
+                self.worker = WorkerGenerateNetworkTopology(iface=iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=False, deleteUnconnectedCustomers=False, deleteUnconnectedLines=False,
+                    connectCustomers=False,connectCustomers_assettype_lines=0,connectCustomers_assettype_pipeBundle=0,
+                    addCustomers=False,addCustomers_assettype_customers=0,
+                    connectPlants=False,connectPlants_assettype_lines=0,connectPlants_assettype_pipeBundle=0,
+                    deleteUnconnectedNetworkEnds=False,
+                    keepAssettypes=True,
+                    overrideAssettypes=False,overrideAssettypes_customers=0, overrideAssettypes_lines=0,overrideAssettypes_pipeBundle=0,tolerance=0.001,
+                    showTempTables=False)
+                self.worker.signals.error.connect(self.show_error_message)
+                self.worker.signals.progress.connect(self.update_progress)
+                self.threadpool.start(self.worker) 
+
+    def doSizing(self,cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipes,pipe_bundles):
+        worker_pipeSizing=WorkerPipeSizing(cur=cur,dictDB=dictDB,dlg=dlg,network=network,plugin_dir=plugin_dir,dp=dp,epsilon=epsilon,rho=rho,cp=cp,kin_viscosity=kin_viscosity,ambient=ambient,pipes=pipes,pipe_bundles=pipe_bundles)
+        worker_pipeSizing.signals.error.connect(dlg.show_error_message)
+        worker_pipeSizing.signals.progress.connect(dlg.update_progress)
+        self.threadpool.start(worker_pipeSizing) 

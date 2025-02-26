@@ -244,7 +244,7 @@ def removeLayers():
             'structure_boundarys',
             'streets', 'buildings','network','cosim',
             'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
-            'pipematerial']:
+            'pipematerial','lines_results_supply_temperature','customer_results_load']:
             QgsProject.instance().removeMapLayer(layer)
         
 def removeTempLayers():

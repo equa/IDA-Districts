@@ -226,6 +226,8 @@ DROP TABLE IF EXISTS public.pipe_bundle_types CASCADE;
 CREATE TABLE public.pipe_bundle_types
 (
   id serial,
+  invest_costs numeric,
+  operation_costs numeric,
   description text,
   CONSTRAINT pipe_bundle_types_pkey PRIMARY KEY (id)
 );
@@ -253,6 +255,7 @@ CREATE TABLE public.pipes
   innerpipediameter numeric,
   piperoughnessfactor numeric,
   pipe_construction_id integer,
+  costs numeric,
   description text,
   CONSTRAINT pipes_pkey PRIMARY KEY (id)
 );
@@ -468,4 +471,19 @@ CREATE TABLE temp.energy_plant_connections
   ep_seq integer,
   lid integer,
   CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: temp.streets_help
+-- DROP TABLE temp.streets_help;
+CREATE TABLE temp.streets_help (
+    id serial,
+    geom public.geometry(LineString,25832),
+    assetgroup integer,
+    assettype integer,
+    pipe_bundle_type_id integer,
+    length_m double precision,
+    costs_eur7m numeric DEFAULT 100,
+    source integer,
+    target integer,
+    CONSTRAINT streets_help_pkey PRIMARY KEY (id)
 );

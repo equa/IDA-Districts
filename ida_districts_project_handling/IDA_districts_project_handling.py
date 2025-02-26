@@ -28,6 +28,7 @@ from plugins.utility_functions.utility import *
 from plugins.utility_functions.files import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.reports import * 
+from plugins.utility_functions.show_on_map import * 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,pyqtSignal,QThreadPool
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QApplication, QTreeWidget, QTreeWidgetItem
@@ -126,6 +127,22 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
     valueRelationInternalLoadId() 
     zoomToLayer('customers')
 
+def reset_items_background(item):
+    # Set the background of the current item to white
+    item.setBackground(QColor(255, 255, 255))  # White color
+
+    # Recursively reset the background of child items
+    for row in range(item.rowCount()):
+        reset_items_background(item.child(row))    
+
+# Function to highlight a specific item
+def highlight_item(item,root_item):
+    # Reset background of all items first
+    reset_items_background(root_item)
+    
+    # Highlight the specific item
+    item.setBackground(QColor(211, 211, 211))  # Bright Grey (RGB)
+        
 def getTreeViewBaseVersionName(item):
     if item.parent():
         return getTreeViewBaseVersionName(item.parent())
@@ -146,6 +163,7 @@ class WorkerLoadVersion(QRunnable):
         self.dlg=kwargs['dlg']
         self.item=kwargs['item']
         self.dictDB_lastLoad=getDBConnectionData(self.plugin_dir,filename='dbSettings_lastLoad')
+        self.root_item=kwargs['root_item']
 
     @pyqtSlot()
     def run(self):
@@ -176,12 +194,14 @@ class WorkerLoadVersion(QRunnable):
                     
             writeDBSettings(self.plugin_dir,self.dictDB)
             writeDBSettings(self.plugin_dir,self.dictDB,filename='dbSettings_lastLoad')
+            highlight_item(self.item,self.root_item)
+            self.dlg.treeViewVersions.viewport().update()
             self.signals.progress.emit(100)            
             print('finished tables')
         except Exception as e:
             print(f'error: {e}')
-            self.signals.error.emit("Loading version failed!")
-            
+            self.signals.error.emit("Loading version failed!") 
+    
     def generateDiffData_walkThroughChilds(self,base):
         print('++++base: '+str(base))
         childs = self.getChilds(base)     
@@ -205,7 +225,7 @@ class WorkerLoadVersion(QRunnable):
         #read diff script
         diffData=''
 
-        for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','boreholes']:
+        for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','boreholes']: #to do for sensor tables as well: ,'sensors','source_assetgroups','source_assettype','source_conn_type','source_conns','source_ids','target_assetgroups','target_assettype','target_ids','invoked_sensor_source_signals','invoked_sensor_target_signals']:
             #Check for inserted items
             print(table)
             sql="""SELECT id FROM "{}".{}
@@ -253,7 +273,8 @@ class WorkerLoadVersion(QRunnable):
                         diff ='UPDATE "{}".{} SET "{}" = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
                     else:
                         print('geom')
-                        diff ='UPDATE "{}".{} SET "{}" = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
+                        diff ='UPDATE "{}".{} SET "{}" = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],'NULL' if updatedColumnValue['column'] is None else "'"+str(updatedColumnValue['column'])+"'" if isinstance(updatedColumnValue['column'], str) else 'array'+str(updatedColumnValue['column']) if isinstance(updatedColumnValue['column'], list) else str(updatedColumnValue['column']),updatedColumnValue['id'])
+                        #diff ='UPDATE "{}".{} SET "{}" = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
                     if diff not in diffData:
                         diffData=diffData+diff
         
@@ -757,6 +778,7 @@ class IDA_Districts_ProjectHandling:
         index=self.dlg.selectProject.findText(projectName)
         if index!=-1:
             print('Delete DB: {}'.format(projectName))
+            
             #close open connections
             sql="""SELECT pg_terminate_backend(pg_stat_activity.pid)
     FROM pg_stat_activity
@@ -788,6 +810,13 @@ class IDA_Districts_ProjectHandling:
                     print(dir)
                 shutil.rmtree(dir)
             self.projectNames=[i for i in self.projectNames if i!=projectName]
+            if projectName==self.dictDB['projectName']:
+                self.dictDB['projectName']=''
+                self.dictDB['versionName']=''
+                writeDBSettings(self.plugin_dir,self.dictDB)
+                removeLayers()
+                data=[]
+                self.importData(data)
             self.dlg_deleteProject.close()
     
     def showCreateNewProject(self):
@@ -831,15 +860,45 @@ class IDA_Districts_ProjectHandling:
                 self.worker_newProject = WorkerImportProject(projectNames=self.projectNames,project_name=self.dictDB['projectName'],filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
                 self.worker_newProject.signals.progress.connect(self.dlg.update_progress)
                 self.worker_newProject.signals.error.connect(self.dlg.show_error_message)
-                self.worker_newProject.signals.finished.connect(lambda: self.finishedImportProject(dlg=dlg))                
+                self.worker_newProject.signals.finished.connect(lambda: self.finishedImportProject(dlg=dlg,projectName=project_name))                
                 self.threadpool_newProject = QThreadPool()            
                 self.threadpool_newProject.start(self.worker_newProject)    
 
-    def finishedImportProject(self,dlg=None):
-        self.projectNames.append(self.dictDB['projectName'])
-        self.dlg.selectProject.setCurrentText(self.dictDB['projectName'])
+    def DisableShowOnMapLayer(self,layer_name):
+        temp_layer=QgsProject.instance().mapLayersByName(layer_name)
+        if temp_layer:
+            iface.layerTreeView().setLayerVisible(temp_layer[0], False) 
+
         
+    def finishedImportProject(self,dlg=None,projectName=''):
+        print('+++finished import project+++')
+        self.projectNames.append(self.dictDB['projectName'])
+        if dlg==None:
+            self.dictDB['projectName']=projectName
+            self.dictDB['versionName']=''
+        self.dlg.selectProject.setCurrentText(self.dictDB['projectName'])
+
+        writeDBSettings(self.plugin_dir,self.dictDB)
         self.loadProject()
+        
+        if dlg and projectName=='heating_network'  and dlg.checkbox_DBResults.isChecked():
+            self.threadpool_showOnMap = QThreadPool()
+
+            #generate line result memory layer (supply temperature as color)
+            vars={'color': {'mode': 'var', 'name': 'temp$1', 'var_function': 'Values', 'table_name': 'line_s_temp$1'}, 'size': {'mode': False, 'name': '', 'var_function': '', 'table_name': ''}, 'rotation': {'mode': False, 'name': '', 'var_function': '', 'table_name': ''}, 'time': {'starttime': '2024-01-01 00:00:00', 'endtime': '2024-01-01 23:54:00', 'dt': False, 'first_time_var': ''}, 'data': ''}
+            self.worker_showOnMapLines = WorkerShowOnMap(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=None,vars=vars,feature='line',layer_name='lines_results_supply_temperature',colorramp='Magma',
+                color_classes=10,size_symbolMin=None,size_symbolMax=None,lineSegVis=10,
+                rotation_symbolMin=None,rotation_symbolMax=None,simData=True,enable=False)
+            self.worker_showOnMapLines.signals.finished.connect(lambda: self.DisableShowOnMapLayer('lines_results_supply_temperature'))                  
+            self.threadpool_showOnMap.start(self.worker_showOnMapLines)
+            
+            #generate customer result memory layer (load as color; gfa as size)
+            vars={'color': {'mode': 'var', 'name': 'power$1_1', 'var_function': 'Values', 'table_name': 'customer_s_power$1_1'}, 'size': {'mode': 'par', 'name': 'gfa', 'var_function': '', 'table_name': 'customers'}, 'rotation': {'mode': False, 'name': '', 'var_function': '', 'table_name': ''}, 'time': {'starttime': '2024-01-01 00:00:00', 'endtime': '2024-01-01 23:54:00', 'dt': False, 'first_time_var': ''}, 'data': ''}
+            self.worker_showOnMapCustomers = WorkerShowOnMap(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=None,vars=vars,feature='customer',layer_name='customer_results_load',colorramp='Magma',
+                color_classes=10,size_symbolMin=1,size_symbolMax=10,lineSegVis=10,
+                rotation_symbolMin=None,rotation_symbolMax=None,simData=True,enable=False)
+            self.worker_showOnMapLines.signals.finished.connect(lambda: self.DisableShowOnMapLayer('customer_results_load'))                  
+            self.threadpool_showOnMap.start(self.worker_showOnMapCustomers) 
 
         data=self.getVersionData()
         self.importData(data)
@@ -849,7 +908,6 @@ class IDA_Districts_ProjectHandling:
             self.loadVersion()
         else:
             removeLayers()
-        writeDBSettings
         if dlg:
             closeDialog(dlg)
           
@@ -962,9 +1020,21 @@ class IDA_Districts_ProjectHandling:
                     temp_value1 = QStandardItem('')
                     self.model.itemFromIndex(mdlIdx).appendRow([temp_key, temp_value1])
                     copy_schema(item.text(),versionName,self.dictDB,self.cur,self.plugin_dir)
+                    
+                    #check if supervisory control exists
+                    if os.path.exists(getModellingDir(self.plugin_dir)+'\\network_models\\{}\\{}\\supervisory_control\\supervisory_control.idm'.format(self.dictDB['projectName'],item.text())):
+                        copy_tree_filter_extensions_and_folders(getModellingDir(self.plugin_dir)+'\\network_models\\{}\\{}\\supervisory_control\\'.format(self.dictDB['projectName'],item.text()),getModellingDir(self.plugin_dir)+'\\network_models\\{}\\{}\\supervisory_control\\'.format(self.dictDB['projectName'],versionName))
+                    
                     data=self.getVersionData()
                     self.importData(data)
                     self.dlg.treeViewVersions.expandAll()   
+                    self.dictDB['versionName']=versionName
+                    writeDBSettings(self.plugin_dir,self.dictDB)
+                    self.loadVersion()
+                    item=self.get_item_by_text(versionName)
+                    highlight_item(item,self.model.invisibleRootItem())
+                    self.dlg.treeViewVersions.viewport().update()
+                    closeDialog(dlg)
             else:
                 self.iface.messageBar().pushMessage("Info", "Base version {} does already exist!".format(versionName), level=Qgis.Info)
         else:
@@ -1075,8 +1145,21 @@ class IDA_Districts_ProjectHandling:
             sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'
             print(sql)
             self.cur.execute(sql)
+            
+            #delete modelling plugin folder if exists
+            if os.path.exists(getModellingDir(self.plugin_dir)+'\\network_models\\{}\\{}\\supervisory_control\\'.format(self.dictDB['projectName'],item.text())):
+                print('***supervisory path exists***')
+                print(getModellingDir(self.plugin_dir)+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],item.text()))
+                shutil.rmtree(getModellingDir(self.plugin_dir)+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],item.text()))
+            if item.parent():
+                self.dictDB['versionName']=item.parent().text()
+            else:
+                self.dictDB['versionName']=''
+            writeDBSettings(self.plugin_dir,self.dictDB)
+            removeLayers() 
+            self.dlg.update_progress(100)
         except:
-            pass
+            self.dlg.update_progress(0)
         
         if item.parent():
             item.parent().removeRow(item.row())
@@ -1129,6 +1212,8 @@ class IDA_Districts_ProjectHandling:
     def loadSelectedProject(self):
         print('loadSelectedProject')    
         self.dictDB['projectName']=self.dlg.selectProject.currentText()
+        self.dictDB['versionName']=''
+        removeLayers()   
         self.loadProject()
         self.dlg.update_progress(100)
             
@@ -1141,7 +1226,7 @@ class IDA_Districts_ProjectHandling:
                 newVersionName=False   
         return newVersionName
                 
-    def addBaseVersion(self):
+    def addBaseVersion(self,dlg):
         """add new base version to DB if a version name is entered and version does not exists in DB"""
         self.dictDB['versionName']=self.dlg_addBase.input.text()
         description=self.dlg_addBase.input_description.text()
@@ -1152,7 +1237,8 @@ class IDA_Districts_ProjectHandling:
             print (newVersionName)        
             if newVersionName:
                 if checkString(self.dictDB['versionName']):
-                    writeDBSettings(self.plugin_dir,self.dictDB)
+                    self.dlg.update_progress(1)
+
                     #Creating version --> new schema in project      
                     sql = 'CREATE SCHEMA IF NOT EXISTS "'+self.dictDB['versionName']+'";'
                     print(sql)
@@ -1193,6 +1279,8 @@ class IDA_Districts_ProjectHandling:
                     data=self.getVersionData()
                     self.importData(data)
                     self.dlg.treeViewVersions.expandAll() 
+                    self.loadVersion()
+                    closeDialog(dlg)
             else:
                 self.iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(self.dictDB['versionName']), level=Qgis.Critical)
         else:
@@ -1208,7 +1296,7 @@ class IDA_Districts_ProjectHandling:
             title='Add base version'
             label_text='Add base version:'
             self.dlg_addBase = IDA_Districts_NameDialog(title,label_text,'','')
-            self.dlg_addBase.btn_ok.clicked.connect(self.addBaseVersion)
+            self.dlg_addBase.btn_ok.clicked.connect(lambda: self.addBaseVersion(self.dlg_addBase))
             self.dlg_addBase.btn_cancel.clicked.connect(self.closeBaseVersionDialog)
             self.dlg_addBase.show()               
         else:
@@ -1332,7 +1420,7 @@ class IDA_Districts_ProjectHandling:
                 self.worker_import = WorkerImportProject(projectNames=self.projectNames,project_name=False,filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False)
                 self.worker_import.signals.progress.connect(self.dlg.update_progress)
                 self.worker_import.signals.error.connect(self.dlg.show_error_message)   
-                self.worker_import.signals.finished.connect(lambda: self.finishedImportProject(dlg=None))                  
+                self.worker_import.signals.finished.connect(lambda: self.finishedImportProject(dlg=None,projectName=filename.split('\\')[-1].split('.')[0]))                  
                 self.threadpool_import = QThreadPool()            
                 self.threadpool_import.start(self.worker_import)    
         else:
@@ -1405,7 +1493,7 @@ class IDA_Districts_ProjectHandling:
             uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
             loadVersionLayers(self.dictDB,self.cur,self.plugin_dir)
             
-            self.worker_loadVersion = WorkerLoadVersion(dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur,dlg=self.dlg,item=item)
+            self.worker_loadVersion = WorkerLoadVersion(dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur,dlg=self.dlg,item=item,root_item=self.model.invisibleRootItem())
             self.worker_loadVersion.signals.progress.connect(self.dlg.update_progress)
             self.worker_loadVersion.signals.error.connect(self.dlg.show_error_message)      
             self.threadpool.start(self.worker_loadVersion)

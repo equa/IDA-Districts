@@ -440,10 +440,10 @@ class InvokeFeatures():
                 self.dlg_invokeFeatures.tableWidget_customer.insertRow(i)
                 self.dlg_invokeFeatures.tableWidget_customer.setItem(i,0,QTableWidgetItem(id))
                 if os.path.exists(self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}.idm".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id)): 
-                    exists=True
+                    exists='Yes'
                 else:
-                    exists=False
-                self.dlg_invokeFeatures.tableWidget_customer.setItem(i,1,QTableWidgetItem(str(exists)))
+                    exists='No'
+                self.dlg_invokeFeatures.tableWidget_customer.setItem(i,1,QTableWidgetItem(exists))
                 i+=1        
             
     def loadInvokeFeatureData(self,dlg):
@@ -609,6 +609,8 @@ class CopyAssettypeFiles:
             filedata=delSensorConnection(filedata,remove_sensor_target_ids,'Target')
         writeToFileFromList(filedata,target_dir,target_dir+'\\'+target_name+'.idc')     
       
+        if os.path.exists(target_dir+'\\'+target_name):
+            shutil.rmtree(target_dir+'\\'+target_name)
         createDir(target_dir,target_name)
         dir_macro=target_dir+'\\'+target_name
         print(source_dir+'\\'+source_name+'\\'+source_name+'.idm')
@@ -674,6 +676,8 @@ class CopyAssettypeFiles:
 
         #check if folder contains macros
         print('+++check if folder contains macros+++')
+        print(dir_macro)
+        print(source_dir)
         if os.path.exists(source_dir+'\\'+source_name):
             for root, dirs, files in os.walk(source_dir+'\\'+source_name):
                 for file in files:
@@ -686,11 +690,17 @@ class CopyAssettypeFiles:
 
                         #copyFile(os.path.join(root, file),path_target,path_target+'\\'+file)
                         
+                print(dirs)
                 for dir in dirs: 
+                    print(os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     createSubDir(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
+                    print(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
             try:
                 os.rename(dir_macro+'\\'+source_name.lower(), dir_macro+'\\'+target_name)
             except:
-                pass
+                try:
+                    os.rename(dir_macro+'\\'+source_name, dir_macro+'\\'+target_name)
+                except:
+                    pass
                                 
         

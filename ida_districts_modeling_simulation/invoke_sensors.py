@@ -1,5 +1,6 @@
 from plugins.utility_functions.util import *
 from plugins.utility_functions.sensor_signals import *
+from plugins.utility_functions.topology import *
 
 import psycopg2.extras
 
@@ -34,20 +35,21 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     print(data)  
 
     #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2,3)
-    data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER)
+    data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER_CONT)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
  (:PAR :N COEFF :DIM ({}) :V #({}{}))
  (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']),
                         " ".join(["""({} :SYSTEM "{}" "{}" {})""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getPMT2muxName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][0].split('_')[3]), returnVarName(i['measure'])) 
-                            for conn in enumerate([[j[1],getConnValuesByFeature(i['source_type'],j[1].split('_')[1],j[1].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure'] in (1,2,3)]),
+                            for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure'] in (1,2,3)]),
                         " ".join(["""({} :SYSTEM "{}" "{}" P)""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getMeterName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][1]['conn_type_id'])) 
-                            for conn in enumerate([[j[1],getConnValuesByFeature(i['source_type'],j[1].split('_')[1],j[1].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure']==4]),
+                            for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure']==4]),
                         str(max(1,len([j for j in i['irefs_source']]))),
                         ' '.join(['1' for j in range(max(1,len([j for j in i['irefs_source']]))) if i['function']==4]),
                         ' '.join([str(round(1/max(1,len([j for j in i['irefs_source']])),5)) for z in range(max(1,len([j for j in i['irefs_source']]))) if i['function']==3]),
                         str(max(1,len([j for j in i['irefs_source']])))) 
-                        for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)]))
+                        for i in sensor_dec_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)]))
     print('**********----*****************')
+    print(sensor_data)
     print(data)
     print(sensor_dec_data)
 
@@ -73,18 +75,19 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
 
     print('-------------')
     #add Min/Max comp for function Min(1) or Max(2) if measure in (1,2,3,4) and source type in (1,2,3)                    
-    data.append("".join(["""((:EO :N "Sensor_{}" :T MINMAXD)
+    data.append("".join(["""((:EO :N "Sensor_{}" :T MINMAXD_CONT)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
  (:PAR :N SELECTOR :V {}{})
  (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']),
                         " ".join(["""({} :SYSTEM "{}" "{}" {})""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getPMT2muxName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][0].split('_')[3]), returnVarName(i['measure'])) 
-                            for conn in enumerate([[j,getConnValuesByFeature(i['source_type'],j[1].split('_')[1],j[1].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure'] in (1,2,3)]),
+                            for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure'] in (1,2,3)]),
                         " ".join(["""({} :SYSTEM "{}" "{}" P)""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getMeterName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][1]['conn_type_id'])) 
-                            for conn in enumerate([[j,getConnValuesByFeature(i['source_type'],j[1].split('_')[1],j[1].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure']==4]),
+                            for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)] for j in i['irefs_source']],1) if i['measure']==4]),
                         "".join([j for j in ['1'] if i['function']==2]),"".join([j for j in ['0'] if i['function']==1]),
                         str(max(1,len([j for j in i['irefs_source']])))) 
-                        for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)]))  
+                        for i in sensor_dec_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)]))  
                         
+    print('------++-------')
     
     #Add Min/Max if source type in 1,2,3 and function is Min or Max (1,2) and measure==Custom (5)
     data.append("".join(["""((:EO :N "Sensor_{}" :T MINMAXD_CONT)
@@ -108,10 +111,11 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
  (:PAR :N COEFF :DIM (1) :V #(1))
- (:PAR :N N_IN :V 1))\n""".format(j[1],
-                        " ".join(["""(1 :SYSTEM "{}" "{}" {})""".format(getMacroTypeName(i['source_type'])+'_'+j[1].split('_')[1], getPMT2muxName(cur,getConnValuesByFeature(i['source_type'],j[1].split('_')[1],j[1].split('_')[3],cur,dictDB)['conn_bundle_type_id'],j[1].split('_')[3]), returnVarName(i['measure']))]),
-                        " ".join(["""(1 :SYSTEM "{}" "{}" P)""".format(getMacroTypeName(i['source_type'])+'_'+j[1].split('_')[1], getMeterName(cur,getConnValuesByFeature(i['source_type'],j[1].split('_')[1],j[1].split('_')[3],cur,dictDB)['conn_bundle_type_id'],getConnValuesByFeature(i['source_type'],j.split('_')[1],j[1].split('_')[3],cur,dictDB)['conn_type_id']))])) 
-                        for i in sensor_data if i['function'] ==6 and i['measure'] in (1,2,3,4) for j in i['irefs_source']]))
+ (:PAR :N N_IN :V 1))\n""".format(j['iref'],
+                        " ".join(["""(1 :SYSTEM "{}" "{}" {})""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getPMT2muxName(cur,getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)['conn_bundle_type_id'],j['iref'].split('_')[3]), returnVarName(i['measure']))]),
+                        " ".join(["""(1 :SYSTEM "{}" "{}" P)""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getMeterName(cur,getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)['conn_bundle_type_id'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,dictDB)['conn_type_id']))])) 
+                        for i in sensor_dec_data if i['function'] ==6 and i['measure'] in (1,2,3,4) for j in i['irefs_source']]))
+    print('add Adder comp for function  Individual signals for each target (6) if measure in (1,2,3,4) finished')
                         
     #add Adder comp if function  Individual signals for each target (6) and target!=Custom(1) and source type in (4)
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER_CONT)
@@ -208,6 +212,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
   
     data[-1]=data[-1].rstrip()+')'
     writeToFileFromList(data,dir,file)
+    print('sensor macro idm finished')
     
 def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,dictDB,dir,plugin_dir):
     #---------------------------sensor idc macro file--------------------------------
@@ -252,26 +257,27 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
         str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id']) 
         for i in enumerate([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
-        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1][1].split('_')[0],j[1][1]) 
-        for i in enumerate([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)],1+count_sensors) for j in enumerate(i['irefs_target'],0)]))
+        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1].split('_')[0],j[1]) 
+        for i in enumerate([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)],1+count_sensors) for j in enumerate(i[1]['irefs_target'],0)]))
     count_sensors+=len([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)])
-    
+
+    print('add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2,3)')   
     #add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2,3)
     data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:minmaxd.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id']) 
         for i in enumerate([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
-        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1][1].split('_')[0],j[1][1]) 
-        for i in enumerate([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)],1+count_sensors) for j in enumerate(i['irefs_target'],0)]))
+        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1].split('_')[0],j[1]) 
+        for i in enumerate([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)],1+count_sensors) for j in enumerate(i[1]['irefs_target'],0)]))
     count_sensors+=len([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3)])
-    
+    print('add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2,3) finished')       
 
     #add Adder comp for function Individual signals for each target (6) if measure in (1,2,3,4) and source type in (1,2,3) for decoupling mode if network_side
     data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
-        str(50+35*i[0]),i[1][1],i[1][1]) 
+        str(50+35*i[0]),i[1],i[1]) 
         for i in enumerate([j for i in sensor_data if i['function']==6 and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3) for j in i['irefs_source']],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
-        str(50+35*sensor[0]),str(50+35*sensor[0]),sensor[1][1],sensor[1][1]) 
+        str(50+35*sensor[0]),str(50+35*sensor[0]),sensor[1],sensor[1]) 
         for sensor in enumerate([j for i in sensor_data if i['function']==6 and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3) for j in i['irefs_source']],1+count_sensors)]))
     count_sensors+=len([j for i in sensor_data if i['function']==6 and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2,3) for j in i['irefs_source']])  
     

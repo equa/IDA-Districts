@@ -105,12 +105,9 @@ def delSFAndConnsAddLinks(plist,sf):
                 data.append(new_comp)
             elif getCompClass(comp)=='CONNECTIONS':
                 new_conns=[]
-                print('****')
                 for i in comp[':CONNS']:
-                    print(i)
-                    print(i[1][0])
                     if i[0][0] in sf_names or i[1][0] in sf_names:
-                        print('++del conn++')
+                        #print('++del conn++')
                         pass
                     else:
                         new_conns.append(i)

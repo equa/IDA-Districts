@@ -80,6 +80,7 @@ class Supervisory_control():
                     
                 #Get all removed sensor targets (table $versionName$.invoked_sensor_target_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
                 remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[4])
+                
                 if remove_sensor_target_ids:
                     sql="""DELETE FROM "{}".invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
                     print(sql)
@@ -221,8 +222,8 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                         supervisory_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']])
                         sensor_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']])
                         connections+='\n'+'\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])
-                file_data=""";IDA 4.99023 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "supervisory_control" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 4.99023)) 
+                file_data=""";IDA 5.1 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "supervisory_control" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.1)) 
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -256,7 +257,7 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
             if os.path.exists(file):
                 pass
             else:
-                file_data=""";IDA 4.99023 Form UTF-8
+                file_data=""";IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 197 :PAGE-HEIGHT 290) 
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((352 348)) :R (203.5 126.5) :ICON "sys:eo.ids" :SLOT ("Supervisory_control") :NAME "Supervisory_control" :DATA MACRO-OBJECT) 
@@ -288,8 +289,8 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                     file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
                 writeToFileFromList(file_data,dir,file)
             else:
-                file_data=""";IDA 4.99023 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 4.99023))\n{}{}""".format(
+                file_data=""";IDA 5.1 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1))\n{}{}""".format(
                     ''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]),
                     ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))                
                 writeToFile(file_data,dir,file)
@@ -310,7 +311,7 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 file_data.append(sensor_description)
                 writeToFileFromList(file_data,dir,file)
             else:
-                file_data.append(""";IDA 4.99023 Form UTF-8
+                file_data.append(""";IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 140) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n""")
                 file_data.append(sensor_description)
@@ -327,7 +328,7 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 if add_sensor_target_idsValues:
                     file_data.insert(2,''.join(["""((:EO :N "Sensor_Target_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 . {}))))
- (:PAR :N N_IN :V 1))\n""".format(j[1],str(i['test_value'])) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+ (:PAR :N N_IN :V 1))\n""".format(j,str(i['test_value'])) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
                     file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
                     connections=False
                     data=[]
@@ -360,8 +361,8 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                     conns+='\n'+'\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])                          
                     conns+=')'
 
-                file_data=""";IDA 4.99023 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 4.99023))\n{}{}{}""".format(
+                file_data=""";IDA 5.1 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1))\n{}{}{}""".format(
                     ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]),
                     ''.join(["""((:EO :N "Sensor_Target_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 . {}))))
@@ -380,9 +381,10 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                         for i in enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)]))
                     file_data.insert(2,''.join(["""(CONNECTION-LINE :AT ((660 {}) (694 {})) :FIRST-LINK ("Sensor_Target_{}" (0 0.491) OUTSIGNALLINK) :LAST-LINK (:SELF (0.0 0.144) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(str(50+35*i[0]),str(50+35*i[0]),i[1],i[1]) 
                         for i in enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)]))
+                    file_data[1]=file_data[1].split(':PAGE-HEIGHT ')[0]+':PAGE-HEIGHT '+str(50+50+35*max(list(enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)))[0])+')\n'
                 writeToFileFromList(file_data,dir,file)  
             else:
-                file_data=""";IDA 4.99023 Form UTF-8
+                file_data=""";IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n{}{}""".format(
                     ''.join(["""(EQUATION-FRAME :AT ((643 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_Target_{}") :NAME "Sensor_Target_{}" :PADDING 3 :DATA :EO)\n""".format(str(50+35*i[0]),i[1],i[1])

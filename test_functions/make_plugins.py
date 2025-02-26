@@ -9,7 +9,7 @@ current_date = datetime.now().strftime('%Y-%m-%d-%H%M')
 target_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\'
 
 # Check if the folder exists and delete it
-if os.path.exists(target_dir) and os.path.isdir(target_dir):
+if os.path.exists(target_dir) and os.path.isdi r(target_dir):
     shutil.rmtree(target_dir)
 
 #------------plugins--------------
@@ -83,6 +83,7 @@ shutil.copy(src_dir+'PipeLayingAlgorithm.py', trg_dir+'PipeLayingAlgorithm.py')
 copyMetaFiles(src_dir,trg_dir)
 
 #project handling
+print('project plugin')
 src_dir=plugin_dir+'ida_districts_project_handling\\'
 trg_dir=target_plugin_dir+'ida_districts_project_handling\\'
 os.mkdir(trg_dir)
@@ -90,7 +91,10 @@ shutil.copytree(src_dir+'help',trg_dir+'help')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
 shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copytree(src_dir+'icons',trg_dir+'icons')
-shutil.copytree(src_dir+'templates',trg_dir+'templates')
+os.mkdir(trg_dir+'templates')
+for template in ['heating_network.ida','empty_project.ida','db_default_values.ida']:
+    shutil.copy(src_dir+'templates\\'+template, trg_dir+'templates\\'+template)
+#shutil.copytree(src_dir+'templates',trg_dir+'templates')
 shutil.copy(src_dir+'configIDADistricts.txt', trg_dir+'configIDADistricts.txt')
 shutil.copy(src_dir+'DB_projectTablesDefault.txt', trg_dir+'DB_projectTablesDefault.txt')
 shutil.copy(src_dir+'DB_projectTablesDefault_data.txt', trg_dir+'DB_projectTablesDefault_data.txt')
@@ -104,6 +108,7 @@ shutil.copy(src_dir+'IDA_districts_project_handling_dialog.py', trg_dir+'IDA_dis
 copyMetaFiles(src_dir,trg_dir)
 
 #result visualization
+print('result visualization')
 src_dir=plugin_dir+'ida_districts_result_visualization\\'
 trg_dir=target_plugin_dir+'ida_districts_result_visualization\\'
 os.mkdir(trg_dir)
@@ -113,7 +118,6 @@ shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copy(src_dir+'icon-result-visualization.png', trg_dir+'icon-result-visualization.png')
 shutil.copy(src_dir+'ida_districts_result_visualization.py', trg_dir+'ida_districts_result_visualization.py')
 shutil.copy(src_dir+'ida_districts_result_visualization_dialog.py', trg_dir+'ida_districts_result_visualization_dialog.py')
-shutil.copy(src_dir+'show_on_map.py', trg_dir+'show_on_map.py')
 copyMetaFiles(src_dir,trg_dir)
 
 #------------models--------------
@@ -216,6 +220,27 @@ shutil.copy(src_dir+'lm_hc_4_g_l.dll', trg_dir+'lm_hc_4_g_l.dll')
 os.mkdir(trg_dir+'x64')
 shutil.copy(src_dir+'x64\\lm_hc_4_g_l.dll', trg_dir+'x64\\lm_hc_4_g_l.dll')
 
+#lm_h_g_l_mctrl
+src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Customermodel\development\loadModel_H_gains_noHs_idealMdot'+'\\'
+trg_dir=target_model_dir+'lm_h_g_l_mctrl\\'
+os.mkdir(trg_dir)
+shutil.copy(src_dir+'lm_h_g_l_mctrl.mo', trg_dir+'lm_h_g_l_mctrl.mo')
+shutil.copy(src_dir+'lM_base_v1.mo', trg_dir+'lM_base_v1.mo')
+shutil.copy(src_dir+'lm_h_g_l_mctrl.eo', trg_dir+'lm_h_g_l_mctrl.eo')
+shutil.copy(src_dir+'lm_h_g_l_mctrl.dll', trg_dir+'lm_h_g_l_mctrl.dll')
+os.mkdir(trg_dir+'x64')
+shutil.copy(src_dir+'x64\\lm_h_g_l_mctrl.dll', trg_dir+'x64\\lm_h_g_l_mctrl.dll')
+
+#hx
+src_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\Customermodel\development\hx'+'\\'
+trg_dir=target_model_dir+'hx\\'
+os.mkdir(trg_dir)
+shutil.copy(src_dir+'hx.mo', trg_dir+'hx.mo')
+shutil.copy(src_dir+'hx.eo', trg_dir+'hx.eo')
+shutil.copy(src_dir+'hx.dll', trg_dir+'hx.dll')
+os.mkdir(trg_dir+'x64')
+shutil.copy(src_dir+'x64\\hx.dll', trg_dir+'x64\\hx.dll')
+
 #documentation
 target_doc_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\documentation\\'
 print(target_doc_dir)
@@ -229,3 +254,5 @@ print(target_install_dir)
 os.mkdir(target_install_dir)
 src_dir=r'C:\Users\Peter\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\test_functions'+'\\'
 shutil.copy(src_dir+'plugin_installer.py', target_install_dir+'plugin_installer.py')
+
+print('finished')

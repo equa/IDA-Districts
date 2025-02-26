@@ -791,7 +791,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
-            
+        
     def pipeSizing(self):
         """Pipe sizing"""
         print ('Pipe sizing')
@@ -801,9 +801,8 @@ TRUNCATE pipe_layers CASCADE;\n"""
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
                 self.dlg_pipeSizing=PipeSizingDlg(self.dictDB,self.plugin_dir,self.cur)
-                
-                self.dlg_pipeSizing.btn_start.pressed.connect(lambda: startPipeSizing(self.dictDB,self.conn,self.dlg_pipeSizing,self.plugin_dir))
                 self.dlg_pipeSizing.btn_save.pressed.connect(lambda: savePipeSizingResults(self.dictDB,self.conn,self.dlg_pipeSizing))
+                self.dlg_pipeSizing.btn_start.pressed.connect(lambda: startPipeSizing(self.dictDB,self.dlg_pipeSizing,self.plugin_dir))
                 self.dlg_pipeSizing.btn_reject.pressed.connect(lambda: rejectPipeSizingResults(self.dictDB,self.conn,self.dlg_pipeSizing))
                 
                 loadPipes(self.dictDB, self.cur,self.dlg_pipeSizing)

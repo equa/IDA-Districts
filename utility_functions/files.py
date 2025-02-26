@@ -315,7 +315,6 @@ def getNetworkFileSubmodels(dir):
 def createSubDir(dir):
     """ makes a new folder and subfolders if it does not exists"""
     if not os.path.exists(dir):
-        print(len(dir))
         if os.name == 'nt' and '\\\\?\\' not in dir:
             dir='\\\\?\\'+dir
         os.makedirs(dir)  
@@ -614,10 +613,10 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                 data.append(new_comp)
             elif getCompClass(comp)=='CONNECTIONS':
                 new_conns=[]
-                print('****')
+                #print('****')
                 for i in comp[':CONNS']:
-                    print(i)
-                    print(i[1][0])
+                    #print(i)
+                    #print(i[1][0])
                     if i[0][0] in sf_names or i[1][0] in sf_names:
                         print('++del conn++')
                         pass

@@ -143,8 +143,8 @@ INSERT INTO public.connections VALUES (11,1,TRUE,10,Null,-0.1,'Supply: 10 °C;-0
 INSERT INTO public.connections VALUES (12,2,TRUE,18,Null,0.1,'Return: 18 °C;0.1kg/s');
 
 -------------------table public.pipe_bundle_types------------------------------------
-INSERT INTO public.pipe_bundle_types VALUES (1,'2 pipes; 1m depth; 0.5m distance'); 
-INSERT INTO public.pipe_bundle_types VALUES (2,'4 pipes; 1m depth; 0.5m distance'); 
+INSERT INTO public.pipe_bundle_types VALUES (1,NULL,NULL,'2 pipes; 1m depth; 0.5m distance'); 
+INSERT INTO public.pipe_bundle_types VALUES (2,NULL,NULL,'4 pipes; 1m depth; 0.5m distance'); 
 
 -------------------table public.bundle_pipes------------------------------------
 INSERT INTO public.bundle_pipes VALUES (1,1,1,1,-0.25,1,2); 
@@ -155,34 +155,34 @@ INSERT INTO public.bundle_pipes VALUES (5,2,3,1,0.25,1,2);
 INSERT INTO public.bundle_pipes VALUES (6,2,4,1,0.75,1,2); 
 
 -------------------table public.pipes------------------------------------
-INSERT INTO public.pipes VALUES (1,'Isoplus DRE-20',0.0217,0.000045,1,'DN20; Da Casing Pipe 90 mm Standard'); 
-INSERT INTO public.pipes VALUES (2,'Isoplus DRE-25',0.0273,0.000045,1,'DN25; Da Casing Pipe 90 mm Standard'); 
-INSERT INTO public.pipes VALUES (3,'Isoplus DRE-32',0.036,0.000045,1,'DN32; Da Casing Pipe 110 mm Standard'); 
-INSERT INTO public.pipes VALUES (4,'Isoplus DRE-40',0.0419,0.000045,1,'DN40; Da Casing Pipe 110 mm Standard'); 
-INSERT INTO public.pipes VALUES (5,'Isoplus DRE-50',0.0539,0.000045,1,'DN50; Da Casing Pipe 125 mm Standard'); 
-INSERT INTO public.pipes VALUES (6,'Isoplus DRE-65',0.0697,0.000045,1,'DN65; Da Casing Pipe 140 mm Standard'); 
-INSERT INTO public.pipes VALUES (7,'Isoplus DRE-80',0.0825,0.000045,1,'DN80; Da Casing Pipe 160 mm Standard'); 
-INSERT INTO public.pipes VALUES (8,'Isoplus DRE-100',0.1071,0.000045,1,'DN100; Da Casing Pipe 200 mm Standard'); 
-INSERT INTO public.pipes VALUES (9,'Isoplus DRE-125',0.1325,0.000045,1,'DN125; Da Casing Pipe 225 mm Standard'); 
-INSERT INTO public.pipes VALUES (10,'Isoplus DRE-150',0.1603,0.000045,1,'DN150; Da Casing Pipe 250 mm Standard'); 
-INSERT INTO public.pipes VALUES (11,'Isoplus DRE-175',0.1847,0.000045,1,'DN175; Da Casing Pipe 280 mm Standard'); 
-INSERT INTO public.pipes VALUES (12,'Isoplus DRE-200',0.2101,0.000045,1,'DN200; Da Casing Pipe 315 mm Standard'); 
-INSERT INTO public.pipes VALUES (13,'Isoplus DRE-225',0.2345,0.000045,1,'DN225; Da Casing Pipe 355 mm Standard'); 
-INSERT INTO public.pipes VALUES (14,'Isoplus DRE-250',0.263,0.000045,1,'DN250; Da Casing Pipe 400 mm Standard'); 
-INSERT INTO public.pipes VALUES (15,'Isoplus DRE-300',0.3127,0.000045,1,'DN300; Da Casing Pipe 450 mm Standard'); 
-INSERT INTO public.pipes VALUES (16,'Isoplus DRE-350',0.3444,0.000045,1,'DN350; Da Casing Pipe 500 mm Standard'); 
-INSERT INTO public.pipes VALUES (17,'Isoplus DRE-400',0.3938,0.000045,1,'DN400; Da Casing Pipe 560 mm Standard'); 
-INSERT INTO public.pipes VALUES (18,'Isoplus DRE-450',0.4444,0.000045,1,'DN450; Da Casing Pipe 630 mm Standard'); 
-INSERT INTO public.pipes VALUES (19,'Isoplus DRE-500',0.4954,0.000045,1,'DN500; Da Casing Pipe 710 mm Standard'); 
-INSERT INTO public.pipes VALUES (20,'Isoplus DRE-550',0.5462,0.000045,1,'DN550; Da Casing Pipe 710 mm Standard'); 
-INSERT INTO public.pipes VALUES (21,'Isoplus DRE-600',0.5958,0.000045,1,'DN600; Da Casing Pipe 800 mm Standard'); 
-INSERT INTO public.pipes VALUES (22,'Isoplus DRE-650',0.6458,0.000045,1,'DN650; Da Casing Pipe 900 mm Standard'); 
-INSERT INTO public.pipes VALUES (23,'Isoplus DRE-700',0.695,0.000045,1,'DN700; Da Casing Pipe 900 mm Standard'); 
-INSERT INTO public.pipes VALUES (24,'Isoplus DRE-750',0.746,0.000045,1,'DN750; Da Casing Pipe 1000 mm Standard'); 
-INSERT INTO public.pipes VALUES (25,'Isoplus DRE-800',0.7954,0.000045,1,'DN800; Da Casing Pipe 1000 mm Standard'); 
-INSERT INTO public.pipes VALUES (26,'Isoplus DRE-850',0.8464,0.000045,1,'DN850; Da Casing Pipe 1100 mm Standard'); 
-INSERT INTO public.pipes VALUES (27,'Isoplus DRE-900',0.894,0.000045,1,'DN900; Da Casing Pipe 1100 mm Standard'); 
-INSERT INTO public.pipes VALUES (28,'Isoplus DRE-1000',0.994,0.000045,1,'DN1000; Da Casing Pipe 1200 mm Standard'); 
+INSERT INTO public.pipes VALUES (1,'Isoplus DRE-20',0.0217,0.000045,1,NULL,'DN20; Da Casing Pipe 90 mm Standard'); 
+INSERT INTO public.pipes VALUES (2,'Isoplus DRE-25',0.0273,0.000045,1,NULL,'DN25; Da Casing Pipe 90 mm Standard'); 
+INSERT INTO public.pipes VALUES (3,'Isoplus DRE-32',0.036,0.000045,1,NULL,'DN32; Da Casing Pipe 110 mm Standard'); 
+INSERT INTO public.pipes VALUES (4,'Isoplus DRE-40',0.0419,0.000045,1,NULL,'DN40; Da Casing Pipe 110 mm Standard'); 
+INSERT INTO public.pipes VALUES (5,'Isoplus DRE-50',0.0539,0.000045,1,NULL,'DN50; Da Casing Pipe 125 mm Standard'); 
+INSERT INTO public.pipes VALUES (6,'Isoplus DRE-65',0.0697,0.000045,1,NULL,'DN65; Da Casing Pipe 140 mm Standard'); 
+INSERT INTO public.pipes VALUES (7,'Isoplus DRE-80',0.0825,0.000045,1,NULL,'DN80; Da Casing Pipe 160 mm Standard'); 
+INSERT INTO public.pipes VALUES (8,'Isoplus DRE-100',0.1071,0.000045,1,NULL,'DN100; Da Casing Pipe 200 mm Standard'); 
+INSERT INTO public.pipes VALUES (9,'Isoplus DRE-125',0.1325,0.000045,1,NULL,'DN125; Da Casing Pipe 225 mm Standard'); 
+INSERT INTO public.pipes VALUES (10,'Isoplus DRE-150',0.1603,0.000045,1,NULL,'DN150; Da Casing Pipe 250 mm Standard'); 
+INSERT INTO public.pipes VALUES (11,'Isoplus DRE-175',0.1847,0.000045,1,NULL,'DN175; Da Casing Pipe 280 mm Standard'); 
+INSERT INTO public.pipes VALUES (12,'Isoplus DRE-200',0.2101,0.000045,1,NULL,'DN200; Da Casing Pipe 315 mm Standard'); 
+INSERT INTO public.pipes VALUES (13,'Isoplus DRE-225',0.2345,0.000045,1,NULL,'DN225; Da Casing Pipe 355 mm Standard'); 
+INSERT INTO public.pipes VALUES (14,'Isoplus DRE-250',0.263,0.000045,1,NULL,'DN250; Da Casing Pipe 400 mm Standard'); 
+INSERT INTO public.pipes VALUES (15,'Isoplus DRE-300',0.3127,0.000045,1,NULL,'DN300; Da Casing Pipe 450 mm Standard'); 
+INSERT INTO public.pipes VALUES (16,'Isoplus DRE-350',0.3444,0.000045,1,NULL,'DN350; Da Casing Pipe 500 mm Standard'); 
+INSERT INTO public.pipes VALUES (17,'Isoplus DRE-400',0.3938,0.000045,1,NULL,'DN400; Da Casing Pipe 560 mm Standard'); 
+INSERT INTO public.pipes VALUES (18,'Isoplus DRE-450',0.4444,0.000045,1,NULL,'DN450; Da Casing Pipe 630 mm Standard'); 
+INSERT INTO public.pipes VALUES (19,'Isoplus DRE-500',0.4954,0.000045,1,NULL,'DN500; Da Casing Pipe 710 mm Standard'); 
+INSERT INTO public.pipes VALUES (20,'Isoplus DRE-550',0.5462,0.000045,1,NULL,'DN550; Da Casing Pipe 710 mm Standard'); 
+INSERT INTO public.pipes VALUES (21,'Isoplus DRE-600',0.5958,0.000045,1,NULL,'DN600; Da Casing Pipe 800 mm Standard'); 
+INSERT INTO public.pipes VALUES (22,'Isoplus DRE-650',0.6458,0.000045,1,NULL,'DN650; Da Casing Pipe 900 mm Standard'); 
+INSERT INTO public.pipes VALUES (23,'Isoplus DRE-700',0.695,0.000045,1,NULL,'DN700; Da Casing Pipe 900 mm Standard'); 
+INSERT INTO public.pipes VALUES (24,'Isoplus DRE-750',0.746,0.000045,1,NULL,'DN750; Da Casing Pipe 1000 mm Standard'); 
+INSERT INTO public.pipes VALUES (25,'Isoplus DRE-800',0.7954,0.000045,1,NULL,'DN800; Da Casing Pipe 1000 mm Standard'); 
+INSERT INTO public.pipes VALUES (26,'Isoplus DRE-850',0.8464,0.000045,1,NULL,'DN850; Da Casing Pipe 1100 mm Standard'); 
+INSERT INTO public.pipes VALUES (27,'Isoplus DRE-900',0.894,0.000045,1,NULL,'DN900; Da Casing Pipe 1100 mm Standard'); 
+INSERT INTO public.pipes VALUES (28,'Isoplus DRE-1000',0.994,0.000045,1,NULL,'DN1000; Da Casing Pipe 1200 mm Standard'); 
 
 -------------------table public.pipe_constructions------------------------------------
 INSERT INTO public.pipe_constructions VALUES (1,'0.01 m P235TR1 0.08 m Polyurethan foam'); 
