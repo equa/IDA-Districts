@@ -8,7 +8,7 @@ import shutil
 import time
 import os
 
-def rmtree_long_path(path):
+def rmtree_long_path(dir):
     if os.path.exists(dir) and os.path.isdir(dir):
         if os.name == 'nt':
             dir='\\\\?\\'+dir

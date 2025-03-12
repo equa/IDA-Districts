@@ -113,10 +113,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_source
     test_value numeric DEFAULT 1,
     description text,
     CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
-    CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
-        REFERENCES "$versionName$".sensors (id) MATCH SIMPLE,
-    CONSTRAINT type_fk FOREIGN KEY (type)
-        REFERENCES public.type (id) MATCH SIMPLE
+    FOREIGN KEY (sensor_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".source_assetgroups;------------------------------------
@@ -127,7 +124,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".source_assetgroups
     source_id int,
     assetgroup int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT source_assetgroups_pkey PRIMARY KEY (id)
+    CONSTRAINT source_assetgroups_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".source_assettype;------------------------------------
@@ -139,7 +137,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".source_assettype
     assetgroup int,
     assettype int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT source_assettype_pkey PRIMARY KEY (id)
+    CONSTRAINT source_assettype_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".source_conn_type;------------------------------------
@@ -150,7 +149,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".source_conn_type
     source_id int,
     conn_type int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT source_conn_type_pkey PRIMARY KEY (id)
+    CONSTRAINT source_conn_type_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".source_conns;------------------------------------
@@ -161,7 +161,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".source_conns
     source_id integer,
     connection_id integer,
     active boolean DEFAULT false,
-    CONSTRAINT source_conns_pkey PRIMARY KEY (id)
+    CONSTRAINT source_conns_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".source_ids;------------------------------------
@@ -172,7 +173,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".source_ids
     source_id int,
     feature_id int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT source_ids_pkey PRIMARY KEY (id)
+    CONSTRAINT source_ids_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".invoked_sensor_source_signals;------------------------------------
@@ -206,10 +208,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_target
     target int,
     description text,
     CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
-    CONSTRAINT sensor_id_fk FOREIGN KEY (sensor_id)
-        REFERENCES "$versionName$".sensors (id) MATCH SIMPLE,
-    CONSTRAINT type_fk FOREIGN KEY (type)
-        REFERENCES public.type (id) MATCH SIMPLE
+    FOREIGN KEY (sensor_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".target_assetgroups;------------------------------------
@@ -220,7 +219,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".target_assetgroups
     target_id int,
     assetgroup int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT target_assetgroups_pkey PRIMARY KEY (id)
+    CONSTRAINT target_assetgroups_pkey PRIMARY KEY (id),
+    FOREIGN KEY (target_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".target_assettype;------------------------------------
@@ -232,7 +232,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".target_assettype
     assetgroup int,
     assettype int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT target_assettype_pkey PRIMARY KEY (id)
+    CONSTRAINT target_assettype_pkey PRIMARY KEY (id),
+    FOREIGN KEY (target_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 
@@ -244,7 +245,8 @@ CREATE TABLE IF NOT EXISTS "$versionName$".target_ids
     target_id int,
     feature_id int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT target_ids_pkey PRIMARY KEY (id)
+    CONSTRAINT target_ids_pkey PRIMARY KEY (id),
+    FOREIGN KEY (target_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
 -------------------table "$versionName$".invoked_sensor_target_signals;------------------------------------

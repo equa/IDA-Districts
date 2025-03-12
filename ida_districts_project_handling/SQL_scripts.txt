@@ -1,3 +1,489 @@
+--version handling: update trigger
+
+CREATE OR REPLACE FUNCTION my_trigger_update_function() 
+RETURNS TRIGGER AS $$
+DECLARE
+    col_name text;
+    old_value text;
+    new_value text;
+    version RECORD;
+    col_data_type text;
+    column_exists BOOLEAN;
+BEGIN
+    -- Loop through each version schema
+    FOR version IN
+        SELECT name FROM get_version_hierarchy(TG_TABLE_SCHEMA) WHERE name != TG_TABLE_SCHEMA
+    LOOP 
+        -- Loop through each column in the table for the version schema
+        FOR col_name IN
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = TG_TABLE_NAME AND table_schema = version.name
+        LOOP
+            -- Check if the column exists in the version schema (before attempting to process it)
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = TG_TABLE_NAME AND table_schema = TG_TABLE_SCHEMA AND column_name = col_name
+            ) INTO column_exists;
+
+            IF column_exists THEN
+                -- Get the column's data type
+                SELECT data_type INTO col_data_type
+                FROM information_schema.columns
+                WHERE table_name = TG_TABLE_NAME AND table_schema = version.name AND column_name = col_name;
+
+                -- Construct the old and new values dynamically using the column name
+                BEGIN
+                    EXECUTE format('SELECT $1.%I, $2.%I', col_name, col_name) INTO old_value, new_value USING OLD, NEW;
+
+                    -- Check if the column has been updated
+                    IF old_value IS DISTINCT FROM new_value THEN
+                        -- If the column is one of the specified types, use quotes
+                        IF col_data_type IN ('geometry', 'text', 'character varying', 'char') THEN
+                            -- Modify old and new values to use quotes for these specific types
+                            old_value := COALESCE(old_value, ''''::text);  -- Use a single quote
+                            new_value := COALESCE(new_value, ''''::text);  -- Use a single quote
+                        END IF;
+
+                        -- Update the value in the corresponding version schema
+                        EXECUTE format('UPDATE "%I".%I SET %I = %L WHERE id = %s', version.name, TG_TABLE_NAME, col_name, new_value, OLD.id);
+                    END IF;
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        RAISE NOTICE 'Error processing column % in schema %: %', col_name, version.name, SQLERRM;
+                END;
+            END IF;
+        END LOOP;
+    END LOOP;
+
+    -- Return the new row after the update
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+--version handling: delete trigger
+
+CREATE OR REPLACE FUNCTION my_trigger_delete_function() 
+RETURNS trigger AS $$
+DECLARE
+    recB RECORD;
+BEGIN
+    -- RAISE notice '%',TG_OP;
+    -- Handling delete trigger (for normal DELETE operations)
+    IF TG_OP = 'DELETE' THEN
+        FOR recB IN 
+            SELECT * FROM get_version_hierarchy(TG_TABLE_SCHEMA) WHERE name != TG_TABLE_SCHEMA
+        LOOP
+            -- Performing delete operation in related tables
+            EXECUTE format('DELETE FROM "%s".%s WHERE id=%s', recB.name, TG_TABLE_NAME, OLD.id);
+        END LOOP;
+        -- Return the new row for AFTER INSERT triggers (although it's not really used in DELETE triggers)
+        RETURN NEW;
+    END IF;
+    
+END;
+$$ LANGUAGE plpgsql;
+
+--version handling: truncate trigger
+
+CREATE OR REPLACE FUNCTION my_trigger_truncate_function() 
+RETURNS trigger AS $$
+DECLARE
+    recB RECORD;
+BEGIN
+    -- Handling truncate operation (for TRUNCATE operations)
+    IF TG_OP = 'TRUNCATE' THEN
+        FOR recB IN 
+            SELECT * FROM get_version_hierarchy(TG_TABLE_SCHEMA) WHERE name != TG_TABLE_SCHEMA
+        LOOP
+            -- Performing truncate operation in related tables
+            EXECUTE format('TRUNCATE TABLE "%s".%s CASCADE', recB.name, TG_TABLE_NAME);
+        END LOOP;
+        -- No need to return anything for truncate, as no row is affected
+        RETURN NULL;
+    END IF;
+    
+END;
+$$ LANGUAGE plpgsql;
+
+--versionhandling: insert trigger (update the id, if child versions has higher id) 
+
+
+CREATE OR REPLACE FUNCTION my_trigger_insert_function() 
+RETURNS trigger AS $$
+DECLARE
+	recB Record;
+    max_id int;
+    common_columns text;
+    sql_query text;
+BEGIN
+    sql_query := format('SELECT * FROM get_highest_id_across_schemas(''%s'', (SELECT array_agg(name) FROM get_version_hierarchy(''%s'') WHERE name NOT IN (''%s'',''temp'')))', TG_TABLE_NAME,TG_TABLE_SCHEMA,TG_TABLE_SCHEMA);
+    --RAISE NOTICE 'query: %', sql_query;
+    EXECUTE sql_query INTO max_id;
+    max_id := max_id+1;
+    --RAISE NOTICE 'Max_id: % ', max_id;
+    IF max_id > New.id THEN
+        --RAISE NOTICE '+++++update id: % ++++++',max_id;
+        EXECUTE format('UPDATE "%s"."%s" SET id = %s WHERE id=%s',TG_TABLE_SCHEMA,TG_TABLE_NAME,max_id,New.id);
+        EXECUTE format('SELECT SETVAL(''%s.%s_id_seq'',%s)',TG_TABLE_SCHEMA,TG_TABLE_NAME,max_id);
+    END IF;
+    max_id:= GREATEST(max_id,New.id);
+    --RAISE NOTICE 'Max_id: % ', max_id;
+
+	FOR recB IN 
+		EXECUTE format('SELECT * FROM get_version_hierarchy(''%s'') WHERE name!=''%s''',TG_TABLE_SCHEMA,TG_TABLE_SCHEMA)
+	LOOP
+        --RAISE NOTICE 'New row inserted:% ; %',recB.name ,TG_TABLE_NAME;
+        
+        SELECT string_agg('"'||column_name||'"',',') INTO common_columns
+        FROM information_schema.columns
+        WHERE table_name = TG_TABLE_NAME AND table_schema = TG_TABLE_SCHEMA
+            AND column_name IN (
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = TG_TABLE_NAME AND table_schema = recB.name
+            );
+        --RAISE NOTICE '%',common_columns;
+
+        -- Remove trailing comma and space
+        common_columns := rtrim(common_columns, ', ');
+
+        -- Create the dynamic SQL query for insertion
+        sql_query := 'INSERT INTO "' || recB.name ||'".' || TG_TABLE_NAME || ' (' || common_columns || ') ' ||
+                     'SELECT ' || common_columns || ' FROM "' || TG_TABLE_SCHEMA ||'".' || TG_TABLE_NAME || ' WHERE id = '|| max_id;
+
+        --RAISE NOTICE 'Insert query: % ', sql_query;
+        -- Execute the dynamic SQL
+        EXECUTE sql_query;
+    END LOOP; 
+    
+	FOR recB IN 
+		EXECUTE format('SELECT * FROM get_version_tree(''%s'')',TG_TABLE_SCHEMA)
+	LOOP    
+        --update sequence
+        EXECUTE format('SELECT SETVAL(''%s.%s_id_seq'',%s)',recB.name,TG_TABLE_NAME,max_id);
+    END LOOP; 
+    -- Return the new row (for `AFTER INSERT` triggers)
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+--get all child versions (including version) of version
+
+CREATE OR REPLACE FUNCTION public.get_version_hierarchy(versionname text) RETURNS TABLE(id INT, name TEXT, id_base INT)
+    LANGUAGE plpgsql
+    AS $_$DECLARE
+BEGIN		
+	RETURN QUERY
+    EXECUTE format('WITH RECURSIVE version_hierarchy AS (
+    SELECT id, name,id_base FROM versionhandling WHERE name=''%s''
+    
+    UNION ALL
+    
+    SELECT v.id, v.name,v.id_base FROM versionhandling v JOIN version_hierarchy vh ON v.id_base = vh.id
+)
+SELECT id,name,id_base FROM version_hierarchy;', versionName);
+END;
+$_$;
+
+CREATE OR REPLACE FUNCTION public.get_version_tree(versionname text) 
+RETURNS TABLE(id INT, name TEXT, id_base INT)
+LANGUAGE plpgsql
+AS $_$
+DECLARE
+BEGIN
+    RETURN QUERY
+    EXECUTE format('WITH RECURSIVE version_hierarchy AS (
+        -- Non-recursive part: Start from the specified version
+        SELECT id, name, id_base
+        FROM versionhandling 
+        WHERE name = ''%s''
+
+        UNION ALL
+
+        -- Recursive part: Get ancestor versions (parent versions)
+        SELECT v.id, v.name, v.id_base
+        FROM versionhandling v
+        JOIN version_hierarchy vh ON v.id = vh.id_base
+    ),
+    -- Another CTE to get descendants (child versions)
+    descendants AS (
+        SELECT id, name, id_base
+        FROM versionhandling
+        WHERE name = ''%s''
+
+        UNION ALL
+        
+        SELECT v.id, v.name, v.id_base
+        FROM versionhandling v
+        JOIN descendants d ON v.id_base = d.id
+    )
+    -- Combine both parents and children in the final result
+    SELECT id, name, id_base
+    FROM version_hierarchy
+    UNION
+    SELECT id, name, id_base
+    FROM descendants;', versionname, versionname);
+END;
+$_$;
+
+--get max id of table accross versions (used in insert trigger function)
+
+CREATE OR REPLACE FUNCTION get_highest_id_across_schemas(table_name text, schemas text[])
+RETURNS bigint AS
+$$
+DECLARE
+    schema text;
+    query text;
+    max_id bigint;
+    overall_max_id bigint := 0;  -- To store the highest value across all schemas
+BEGIN
+    IF schemas IS NOT NULL THEN 
+        -- Loop through each schema in the array
+        FOREACH schema IN ARRAY schemas LOOP
+            -- Construct the dynamic query for each schema
+            query := 'SELECT MAX(id) FROM ' || quote_ident(schema) || '.' || quote_ident(table_name);
+
+            -- Execute the query dynamically and store the result in max_id
+            EXECUTE query INTO max_id;
+
+            -- Update the overall_max_id if we found a higher ID
+            IF max_id IS NOT NULL AND max_id > overall_max_id THEN
+                overall_max_id := max_id;
+            END IF;
+        END LOOP;
+    END IF;
+    
+    -- Return the highest ID found across all schemas
+    RETURN overall_max_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Version handling for: ADD, DROP and RENAME COLUMN & ALTER DATA TYPE 
+
+CREATE OR REPLACE FUNCTION table_alterations()
+RETURNS event_trigger AS $$
+DECLARE
+    command_text TEXT;
+    command_parts TEXT[];
+    version RECORD;
+    schema_name TEXT;
+    table_name_ TEXT;
+    column_name TEXT;
+    new_column_name TEXT;
+    new_data_type TEXT;
+    sql_query TEXT;
+BEGIN
+    -- Check if the temporary table 'event_trigger_flag' exists
+    -- If not, create it to track the function execution flag
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'event_trigger_flag') THEN
+        CREATE TEMPORARY TABLE event_trigger_flag (is_running BOOLEAN);
+        -- Initially set flag to false
+        INSERT INTO event_trigger_flag VALUES (false);
+    END IF;
+
+    -- Check if the event trigger function is already running in this session
+    IF (SELECT is_running FROM event_trigger_flag) = true THEN
+        -- Skip processing if the flag is already set (i.e., the function is already running)
+        RETURN;
+    END IF;
+
+    -- Set the flag to true indicating the function is running
+    UPDATE event_trigger_flag SET is_running = true;
+
+    -- Capture the executed DDL command (the query)
+    command_text := current_query();
+    --RAISE NOTICE 'command text: %',command_text;
+    
+    -- Check if it's an ALTER TABLE command
+    IF command_text ILIKE 'ALTER TABLE%' THEN
+        -- If it's an ALTER TABLE ADD COLUMN, extract the details
+        IF command_text ILIKE '%ADD COLUMN%' THEN
+            -- Extract table name, column name, and data type using regexp_split_to_array
+            command_parts := regexp_split_to_array(REGEXP_REPLACE(command_text, '\sIF\sNOT\sEXISTS', '', 'gi'), '\s+');
+
+            -- Extract schema and table names
+            schema_name := (string_to_array(command_parts[3],'.'))[1];
+            table_name_ := (string_to_array(command_parts[3],'.'))[2];
+            column_name := TRIM(command_parts[6],'"');
+            new_data_type := command_parts[7];
+            
+            --RAISE NOTICE 'Schema: %, Table: %, Column added: %, Data type: %',
+            --   schema_name,  -- Schema name (before the table name)
+            --    table_name_,   -- Table name (after ALTER TABLE)
+            --    column_name,  -- Column name (after ADD COLUMN)
+            --    new_data_type;    -- Data type (after column name)
+
+            FOR version IN 
+                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+            LOOP
+                -- Generate the ALTER TABLE command for the other schemas
+                sql_query := format('ALTER TABLE %I.%I ADD COLUMN IF NOT EXISTS %I %s', version.name, table_name_, column_name, new_data_type);
+                -- Log the generated query
+                --RAISE NOTICE 'Query: %', sql_query; 
+                -- Execute the generated ALTER TABLE command
+                EXECUTE sql_query;
+            END LOOP;
+
+        -- If it's an ALTER TABLE DROP COLUMN, extract the details
+        ELSIF command_text ILIKE '%DROP COLUMN%' THEN
+            -- Extract table name and column name using regexp_split_to_array
+            command_parts := regexp_split_to_array(REGEXP_REPLACE(command_text, '\sIF\sEXISTS', '', 'gi'), '\s+');
+
+            -- Extract schema and table names
+            schema_name := (string_to_array(command_parts[3],'.'))[1];
+            table_name_ := (string_to_array(command_parts[3],'.'))[2];
+            column_name := TRIM(TRIM(command_parts[6],';'),'"');
+            
+            RAISE NOTICE 'Schema: %, Table: %, Column dropped: %',
+                schema_name,  -- Schema name (before the table name)
+                table_name_,   -- Table name (after ALTER TABLE)
+                column_name;  -- Column name (after DROP COLUMN)
+
+            FOR version IN 
+                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+            LOOP
+                -- Generate the ALTER TABLE command for the other schemas
+                sql_query := format('ALTER TABLE %I.%I DROP COLUMN IF EXISTS %I', version.name, table_name_, column_name);
+                -- Log the generated query
+                --RAISE NOTICE 'Query: %', sql_query; 
+                -- Execute the generated ALTER TABLE command
+                EXECUTE sql_query;
+            END LOOP;
+
+        -- If it's an ALTER TABLE RENAME COLUMN, extract the details
+        ELSIF command_text ILIKE '%RENAME COLUMN%' THEN
+            -- Extract table name, old column name, and new column name
+            command_parts := regexp_split_to_array(command_text, '\s+');
+
+            -- Extract schema and table names
+            schema_name := (string_to_array(command_parts[3],'.'))[1];
+            table_name_ := (string_to_array(command_parts[3],'.'))[2];
+            column_name := TRIM(command_parts[6],'"');
+            new_column_name := TRIM(TRIM(command_parts[8],';'),'"');
+
+            --RAISE NOTICE 'Schema: %, Table: %, Column renamed: % -> %',
+            --    schema_name,  -- Schema name (before the table name)
+            --    table_name_,  -- Table name (after ALTER TABLE)
+            --    column_name,  -- Old column name (after RENAME COLUMN)
+            --    new_column_name;  -- New column name
+
+            FOR version IN 
+                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+            LOOP
+                -- Generate the ALTER TABLE command for the other schemas
+                sql_query := format('ALTER TABLE %I.%I RENAME COLUMN %I TO %I', version.name, table_name_, column_name, new_column_name);
+                -- Log the generated query
+                --RAISE NOTICE 'Query: %', sql_query; 
+                -- Execute the generated ALTER TABLE command
+                EXECUTE sql_query;
+            END LOOP;
+
+        -- If it's an ALTER TABLE SET DATA TYPE, extract the details
+        ELSIF command_text ILIKE '%SET DATA TYPE%' THEN
+            -- Extract table name, column name, and new data type
+            command_parts := regexp_split_to_array(command_text, '\s+');
+
+            -- Extract schema and table names
+            schema_name := (string_to_array(command_parts[3],'.'))[1];
+            table_name_ := (string_to_array(command_parts[3],'.'))[2];
+            column_name := TRIM(command_parts[6],'"');
+            new_data_type := TRIM(command_parts[8],';');
+
+            --RAISE NOTICE 'Schema: %, Table: %, Column data type changed: % -> %',
+            --    schema_name,  -- Schema name (before the table name)
+            --    table_name_,  -- Table name (after ALTER TABLE)
+            --    column_name,  -- Column name (after SET DATA TYPE)
+            --    new_data_type;  -- New data type
+
+            FOR version IN 
+                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+            LOOP
+                -- Generate the ALTER TABLE command for the other schemas
+                sql_query := format('ALTER TABLE %I.%I ALTER COLUMN %I SET DATA TYPE %s', version.name, table_name_, column_name, new_data_type);
+                -- Log the generated query
+                RAISE NOTICE 'Query: %', sql_query; 
+                -- Execute the generated ALTER TABLE command
+                EXECUTE sql_query;
+            END LOOP;
+        END IF;
+    END IF;
+
+    -- Reset the flag to false after the function execution is complete
+    UPDATE event_trigger_flag SET is_running = false;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP EVENT TRIGGER IF EXISTS track_alter_table;
+
+CREATE EVENT TRIGGER track_alter_table
+ON ddl_command_end
+WHEN TAG IN ('ALTER TABLE', 'DROP TABLE')
+EXECUTE FUNCTION table_alterations();
+
+-- Create the event trigger function with an array of restricted column names
+
+CREATE OR REPLACE FUNCTION restrict_column_alterations()
+RETURNS event_trigger AS
+$$
+DECLARE
+    restricted_columns text[] := ARRAY['id', 'assetgroup', 'assettype','network','submodel']; -- List of restricted columns
+    col_name text;
+    ddl_command text; -- To hold the DDL command text
+    schema_name text;
+    table_name text;
+    matches text[];
+BEGIN
+    -- Get the current query being executed using current_query()
+    ddl_command := current_query();
+
+    -- Capture the DDL commands that triggered the event (executed before the command)
+    --RAISE NOTICE 'Captured command: %', ddl_command;
+    
+    -- Extract the schema and table name from the current DDL command (assuming ALTER TABLE statement)
+    -- This pattern is for ALTER TABLE only; further handling is required for different commands
+    IF ddl_command ILIKE 'ALTER TABLE%' THEN
+        -- Use regex to capture the schema and table name from the command
+         matches := regexp_matches(ddl_command, 'ALTER TABLE\s+(\S+)\.(\S+)', 'g');
+        
+        -- If a match is found, extract the schema and table names
+        IF matches IS NOT NULL THEN
+            schema_name := matches[1];
+            table_name := matches[2];
+        END IF;
+        
+        --RAISE NOTICE 'schema name: %',schema_name;
+        
+        -- If schema is 'temp', skip restrictions
+        IF schema_name = 'temp' THEN
+            RETURN; -- Exit the function without applying restrictions
+        END IF;
+        
+        -- Loop through each restricted column and check if it's part of the ALTER TABLE command
+        FOREACH col_name IN ARRAY restricted_columns LOOP
+            -- Check for ALTER COLUMN operations first
+            IF ddl_command ILIKE '%ALTER COLUMN ' || col_name || '%' OR ddl_command ILIKE '%ALTER COLUMN "' || col_name || '"%' THEN
+                RAISE EXCEPTION 'Altering the column "%" is not allowed', col_name;
+            END IF;
+
+            -- Specifically check for renaming columns
+            IF ddl_command ILIKE '%RENAME COLUMN ' || col_name || ' TO%' OR ddl_command ILIKE '%RENAME COLUMN "' || col_name || '"%' THEN
+                -- If column rename is detected, raise an exception
+                RAISE EXCEPTION 'Renaming the column "%" is not allowed', col_name;
+            END IF;
+        END LOOP;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP EVENT TRIGGER IF EXISTS prevent_column_alter;
+
+CREATE EVENT TRIGGER prevent_column_alter
+ON ddl_command_start  -- Triggered before the DDL command is executed
+WHEN TAG IN ('ALTER TABLE')
+EXECUTE FUNCTION restrict_column_alterations();
+
 -- FUNCTION: public.rc_split_multi(geometry, geometry, double precision)
 -- DROP FUNCTION public.rc_split_multi(geometry, geometry, double precision);
 

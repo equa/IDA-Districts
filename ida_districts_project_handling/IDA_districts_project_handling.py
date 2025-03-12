@@ -170,28 +170,53 @@ class WorkerLoadVersion(QRunnable):
         try:
             print('Load project version')
             self.signals.progress.emit(10)  
-            print (self.dictDB['versionName'])
-                
-            #check if there are changes in the child versions and append the changes to the diff script
-            print('********diff************')
-            print(getTreeViewBaseVersionName(self.item))
-            self.generateDiffData_walkThroughChilds(getTreeViewBaseVersionName(self.item))
-
+            print(self.dictDB['versionName'])
             
-            #copy schema from parent version if version is a child and last loaded version differs from current load
-            if self.item.parent() and (self.dictDB_lastLoad['versionName']!=self.dictDB['versionName'] or self.dictDB_lastLoad['projectName']!=self.dictDB['projectName']):
-                sql = 'DROP SCHEMA "'+self.dictDB['versionName']+'" CASCADE;'
-                print(sql)
-                self.cur.execute(sql)
-                copy_schema(self.item.parent().text(),self.dictDB['versionName'],self.dictDB,self.cur,self.plugin_dir)
-                
-                if os.path.exists(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],self.dictDB['versionName'])):
-                    os.environ['PGPASSWORD'] = self.dictDB['pwd']
-                    path_postgres=loadIDADistrictsConfig(self.plugin_dir)['path_postgresql']
-                    cmd = ' "{}\\bin\\psql" -d {} -h {} -U {} -p {} < "{}\\{}\\version_{}_{}_diff_script.sql"'.format(path_postgres,self.dictDB['projectName'],self.dictDB['host'],self.dictDB['user'],self.dictDB['port'],self.plugin_dir,self.dictDB['projectName'],self.dictDB['projectName'],self.dictDB['versionName'])
-                    print(cmd)
-                    subprocess.call(cmd, shell=True)   
-                    
+            #version handling 
+            #feature tables: customers, energy_plants, devices, lines
+            
+            #sensor tables: 
+            #building related tables:
+            traced_tables=['customers','energy_plants','devices','lines']
+            
+            sql="""SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = '{}'
+  AND table_type = 'BASE TABLE';""".format(self.dictDB['versionName'])
+            self.cur.execute(sql)
+            table_names=[table['table_name'] for table in self.cur.fetchall()]
+            
+            #update triggers: delete last loaded versions triggers if exists and create new triggers
+            sql=''
+            for table in table_names:
+                print(table)
+                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
+                sql+="""CREATE TRIGGER my_insert_trigger
+AFTER INSERT ON {}.{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_insert_function();\n""".format(self.dictDB['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
+                sql+="""CREATE TRIGGER my_delete_trigger
+AFTER DELETE ON {}.{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_delete_function();\n""".format(self.dictDB['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
+                sql+="""CREATE TRIGGER my_truncate_trigger
+AFTER TRUNCATE ON {}.{}
+FOR EACH STATEMENT
+EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(self.dictDB['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
+                sql+="""CREATE TRIGGER column_update_trigger
+AFTER UPDATE ON {}.{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_update_function();\n""".format(self.dictDB['versionName'],table)
+            print(sql)
+            self.cur.execute(sql)
+  
             writeDBSettings(self.plugin_dir,self.dictDB)
             writeDBSettings(self.plugin_dir,self.dictDB,filename='dbSettings_lastLoad')
             highlight_item(self.item,self.root_item)
@@ -202,85 +227,6 @@ class WorkerLoadVersion(QRunnable):
             print(f'error: {e}')
             self.signals.error.emit("Loading version failed!") 
     
-    def generateDiffData_walkThroughChilds(self,base):
-        print('++++base: '+str(base))
-        childs = self.getChilds(base)     
-        print(childs)
-        for child in childs:
-            print('+++child: '+str(child))
-            self.generateChildDiffData(child,base) 
-            child_childs=self.getChilds(child)
-            if child_childs:
-                self.generateDiffData_walkThroughChilds(child['version_name'])
-                    
-    def getChilds(self,name):
-        sql='SELECT name AS version_name FROM public.versionhandling WHERE id_base in (SELECT id FROM public.versionhandling WHERE name=\'{}\');'.format(name['version_name'] if isinstance(name,dict) else name)
-        print(sql)
-        self.cur.execute(sql)
-        childs = self.cur.fetchall()     
-        return childs
-        
-    def generateChildDiffData(self,child,base):
-        print(child['version_name'])
-        #read diff script
-        diffData=''
-
-        for table in ['customers','energy_plants','lines','devices','junctions','structure_boundarys','boreholes']: #to do for sensor tables as well: ,'sensors','source_assetgroups','source_assettype','source_conn_type','source_conns','source_ids','target_assetgroups','target_assettype','target_ids','invoked_sensor_source_signals','invoked_sensor_target_signals']:
-            #Check for inserted items
-            print(table)
-            sql="""SELECT id FROM "{}".{}
-                    EXCEPT
-                    SELECT id FROM "{}".{};""".format(child['version_name'],table,base,table)
-            print(sql)
-            self.cur.execute(sql)
-            for result in self.cur.fetchall():
-                sql='SELECT * FROM "{}".{} WHERE id={};'.format(child['version_name'],table,result['id'])     
-                self.cur.execute(sql)
-                values=self.cur.fetchone()
-                print(values)
-                diff ='INSERT INTO "{}".{} VALUES ('.format(child['version_name'],table)+','.join(['NULL' if values[i] is None else "'"+str(values[i])+"'" if isinstance(values[i], str) else 'array'+str(values[i]) if isinstance(values[i], list) else str(values[i]) for i in values])+');\n'
-                if diff not in diffData:
-                    diffData=diffData+diff
-
-            #Check for deleted items
-            sql="""SELECT id FROM "{}".{}
-                    EXCEPT
-                    SELECT id FROM "{}".{};""".format(base,table,child['version_name'],table)
-            print(sql)
-            self.cur.execute(sql)
-            for result in self.cur.fetchall():
-                diff ='DELETE FROM "{}".{} WHERE id={}; \n'.format(child['version_name'],table,result['id'])
-                if diff not in diffData:
-                    diffData=diffData+diff
-                    
-            #Check for updated items
-            sql='SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=\'{}\' AND table_name=\'{}\';'.format(base,table)
-            print(sql)
-            self.cur.execute(sql)
-            columns=self.cur.fetchall()
-            for column in columns:
-                sql="""SELECT id,"{}" AS column FROM "{}".{}
-                    EXCEPT
-                    SELECT id,"{}" FROM "{}".{};""".format(column['column_name'],child['version_name'],table,column['column_name'],base,table)
-                print(sql)
-                self.cur.execute(sql)
-                for updatedColumnValue in self.cur.fetchall():
-                    print ('+++++++++++++++++++++++++++')
-                    print (column['data_type'])
-                
-                    if column['data_type'] in ['integer','numeric']:
-                        print('value')
-                        diff ='UPDATE "{}".{} SET "{}" = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
-                    else:
-                        print('geom')
-                        diff ='UPDATE "{}".{} SET "{}" = {} WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],'NULL' if updatedColumnValue['column'] is None else "'"+str(updatedColumnValue['column'])+"'" if isinstance(updatedColumnValue['column'], str) else 'array'+str(updatedColumnValue['column']) if isinstance(updatedColumnValue['column'], list) else str(updatedColumnValue['column']),updatedColumnValue['id'])
-                        #diff ='UPDATE "{}".{} SET "{}" = \'{}\' WHERE id={}; \n'.format(child['version_name'],table,column['column_name'],updatedColumnValue['column'],updatedColumnValue['id'])
-                    if diff not in diffData:
-                        diffData=diffData+diff
-        
-        print(diffData)
-        with open(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],child['version_name']),'w') as myfile:
-            myfile.write(diffData)  
         
 class WorkerImportProject(QRunnable):
     """Worker thread
@@ -300,7 +246,8 @@ class WorkerImportProject(QRunnable):
         self.no_db_results=kwargs['no_db_results']
         self.project_name=kwargs['project_name']
         self.projectNames=kwargs['projectNames']
-
+        self.versionNames=kwargs['versionNames']
+        
     @pyqtSlot()
     def run(self):
         print('Import project')
@@ -310,18 +257,21 @@ class WorkerImportProject(QRunnable):
         name=self.filename.split('\\')[-1].split('.')[0]
         dir=dir+name
         print(dir)
+        print(self.dictDB)
         print(name)
         
         if os.path.exists(dir):
-            shutil.rmtree(dir)  
-        if os.path.exists(loadIDADistrictsConfig(self.plugin_dir)['path_ice']+"bin\\7za.exe"):
-            cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],self.filename,dir)
-            print(cmd)
-            subprocess.call(cmd, shell=True)
-        else:
-            self.signals.error.emit("IDA ICE Directory cannot be found. Please check IDA Districts configuration data!")
-            self.signals.progress.emit(0)            
-            return False
+            rmtree_long_path(dir)
+        
+        if not os.path.exists(dir): 
+            if os.path.exists(loadIDADistrictsConfig(self.plugin_dir)['path_ice']+"bin\\7za.exe"):
+                cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(loadIDADistrictsConfig(self.plugin_dir)['path_ice'],self.filename,dir)
+                print(cmd)
+                subprocess.call(cmd, shell=True)
+            else:
+                self.signals.error.emit("IDA ICE Directory cannot be found. Please check IDA Districts configuration data!")
+                self.signals.progress.emit(0)            
+                return False
         self.signals.progress.emit(15)            
 
         #get project name
@@ -332,7 +282,7 @@ class WorkerImportProject(QRunnable):
                     db_info+=line
             db_info=strToDict(db_info)
         else:
-            db_info={'projectName': self.project_name}
+            db_info={'projectName': self.project_name}                
         
         #check if project already exists
         if db_info['projectName'] not in self.projectNames:
@@ -372,17 +322,50 @@ class WorkerImportProject(QRunnable):
                 print(f'error: {e}')
                 self.signals.error.emit("Copying data failed!")
                 return False
-            sql = 'CREATE database '+db_info['projectName']+';'
+            sql = """CREATE database {};""".format(db_info['projectName'])
             self.cur.execute(sql)
+            self.conn=dbConnect(self.dictDB,True)
+            self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
+            sql="""CREATE SCHEMA IF NOT EXISTS temp;
+CREATE SCHEMA IF NOT EXISTS topology;
+CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS pgrouting WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS postgis_raster WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
+            self.cur.execute(sql)
+            self.signals.progress.emit(71)
+            filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt")
+            self.cur.execute(filedata)
+            self.signals.progress.emit(72)
+            if self.project_name:
+                sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames])
+                print(sql)
+                self.cur.execute(sql)
+                self.signals.progress.emit(73)
+                if self.versionNames:
+                    #create tables in new schema
+                    #project tables
+                    filedata=readFileToString(self.plugin_dir+"\\DB_projectTablesDefault.txt")
+                    self.cur.execute(filedata)
+                    
+                    #version tables
+                    self.projectConfig=loadProjectConfig(self.plugin_dir,self.project_name)  
+                    filedata=readFileToString(self.plugin_dir+"\\DB_versionTablesDefault.txt")
+                    filedata = filedata.replace("$srid$", self.projectConfig['srid'])
+                    filedata = filedata.replace("$plugins_path$", getQGISPluginsDir(self.plugin_dir))
+                    for version in self.versionNames:
+                        newdata = filedata.replace("$versionName$", self.dictDB['versionName'])   
+                        self.cur.execute(newdata)
             self.signals.progress.emit(75)
 
             cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
-                loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir,('db_tables' if self.project_name else name))
+                loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir.replace('\\\\?\\',''),('db_tables' if self.project_name else name))
             print(cmd)
             subprocess.call(cmd, shell=True)             
             if self.project_name and not self.no_db_results:
                 cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
-                    loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir,'db_results')
+                    loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir.replace('\\\\?\\',''),'db_results')
                 print(cmd)
                 subprocess.call(cmd, shell=True) 
             self.dlg.selectProject.addItem(db_info['projectName'])
@@ -778,6 +761,7 @@ class IDA_Districts_ProjectHandling:
         index=self.dlg.selectProject.findText(projectName)
         if index!=-1:
             print('Delete DB: {}'.format(projectName))
+            self.dlg.update_progress(1)
             
             #close open connections
             sql="""SELECT pg_terminate_backend(pg_stat_activity.pid)
@@ -818,6 +802,7 @@ class IDA_Districts_ProjectHandling:
                 data=[]
                 self.importData(data)
             self.dlg_deleteProject.close()
+            self.dlg.update_progress(100)
     
     def showCreateNewProject(self):
         """Creates a new Project"""
@@ -835,8 +820,10 @@ class IDA_Districts_ProjectHandling:
                 self.dictDB['projectName']=dlg.project_name.text()
                 if dlg.selectTemplate.currentText() in ['DB default values','No template']:
                     self.dictDB['versionName']=''
+                    versionNames=[]
                 else:
                     self.dictDB['versionName']='base1'
+                    versionNames=['base1']
                 print (self.dlg.selectProject.currentText())
                 print (self.plugin_dir)
                 project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
@@ -855,9 +842,9 @@ class IDA_Districts_ProjectHandling:
                 if not dlg.checkbox_invokedFeatures.isChecked():
                     filter_folders.append('invoked_customers')
                     filter_folders.append('invoked_energy_plants')
-                    filter_folders.append('invoked_devices')
-
-                self.worker_newProject = WorkerImportProject(projectNames=self.projectNames,project_name=self.dictDB['projectName'],filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+                    filter_folders.append('invoked_devices')           
+                
+                self.worker_newProject = WorkerImportProject(versionNames=versionNames,projectNames=self.projectNames,project_name=self.dictDB['projectName'],filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
                 self.worker_newProject.signals.progress.connect(self.dlg.update_progress)
                 self.worker_newProject.signals.error.connect(self.dlg.show_error_message)
                 self.worker_newProject.signals.finished.connect(lambda: self.finishedImportProject(dlg=dlg,projectName=project_name))                
@@ -997,10 +984,6 @@ class IDA_Districts_ProjectHandling:
             newVersionName=self.checkIfVersionIsNew(versionName)
             if newVersionName:
                 if checkString(versionName):
-                    #delete diff script if exists
-                    print(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName))
-                    if os.path.exists(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName)):
-                        os.remove(self.plugin_dir+"\\{}\\version_{}_{}_diff_script.sql".format(self.dictDB['projectName'],self.dictDB['projectName'],versionName))
                     
                     #Creating version --> new schema in project        
                     idBase=0
@@ -1207,7 +1190,6 @@ class IDA_Districts_ProjectHandling:
                 self.timer.timeout.connect(lambda: self.exportProject(exportPrn=None,exportInvokedFeatures=None,exportDBResults=None))
                 self.timer.start(int(float(self.districts_config['autosave_dt'])*60*1000))
             writeDBSettings(self.plugin_dir,self.dictDB)
-
                 
     def loadSelectedProject(self):
         print('loadSelectedProject')    
@@ -1417,7 +1399,7 @@ class IDA_Districts_ProjectHandling:
             filename=filename.replace('/','\\')
 
             if filename:
-                self.worker_import = WorkerImportProject(projectNames=self.projectNames,project_name=False,filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False)
+                self.worker_import = WorkerImportProject(versionNames=[],projectNames=self.projectNames,project_name=False,filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False)
                 self.worker_import.signals.progress.connect(self.dlg.update_progress)
                 self.worker_import.signals.error.connect(self.dlg.show_error_message)   
                 self.worker_import.signals.finished.connect(lambda: self.finishedImportProject(dlg=None,projectName=filename.split('\\')[-1].split('.')[0]))                  

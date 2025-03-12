@@ -9,6 +9,11 @@ import subprocess
 import os
 from plugins.utility_functions.files import *
 
+def getMaxIdAcrossSchemas(dictDB,cur,table_name):
+    sql="""SELECT * FROM get_highest_id_across_schemas('{}', (SELECT array_agg(name) FROM get_version_tree('{}'))) AS max_id;""".format(table_name,dictDB['versionName'])
+    cur.execute(sql)
+    return cur.fetchone()['max_id']
+    
 def dbColumnDataType(cur,version,table,col):
     sql="""SELECT column_name, data_type 
     FROM information_schema.columns 
@@ -36,9 +41,20 @@ def copy_schema(baseName,new_versionName,dictDB,cur,plugin_dir):
     print(sql)
     cur.execute(sql)           
     
+    sql="DROP EVENT TRIGGER IF EXISTS prevent_column_alter;"
+    print(sql)
+    cur.execute(sql)
+    
     cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(path_postgres,dictDB['projectName'],dictDB['host'],dictDB['port'], dictDB['user'],plugin_dir)
     print(cmd)
     subprocess.call(cmd, shell=True)  
+    
+    sql="""CREATE EVENT TRIGGER prevent_column_alter
+ON ddl_command_start  -- Triggered before the DDL command is executed
+WHEN TAG IN ('ALTER TABLE')
+EXECUTE FUNCTION restrict_column_alterations();"""
+    print(sql)
+    cur.execute(sql)
         
 def setSeqIdToMax(seq,table,col,cur):
     sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table)

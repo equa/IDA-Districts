@@ -300,7 +300,8 @@ CREATE TABLE public.versionhandling
   id serial,
   name text,
   id_base int,
-  description text
+  description text,
+  CONSTRAINT versionhandling_pkey PRIMARY KEY (id)
 );
 
 -------------------table public.customer_assetgroups------------------------------------
