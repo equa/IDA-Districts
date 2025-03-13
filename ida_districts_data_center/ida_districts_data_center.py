@@ -235,6 +235,7 @@ class IDADistrictsDataCenter:
         mdot=False
         #print(row)
         for col in range(dlg.tableWidget.columnCount()):
+            print(columns[col])
             if col in list([i[0] for i in dropdowns]):
                 value=dlg.tableWidget.cellWidget(row, col).currentText()
             elif col in checkBoxes:
@@ -242,22 +243,23 @@ class IDADistrictsDataCenter:
             else:
                 if dlg.tableWidget.item(row,col):
                     value=dlg.tableWidget.item(row,col).text()
+                    print(value)
                     if value and columns[col]=='p':
                         p=True
                     if value and columns[col]=='mdot':
                         mdot=True
-                    if not value and (columns[col] in ['p','mdot','costs','invest_costs','operation_costs']):
+                    if not value and (columns[col].lower() in ['p','mdot','costs','invest_costs','operation_costs']):
                         value='Null'
                 else:
-                    if columns[col] in ['p','mdot','costs','invest_costs','operation_costs']:
+                    if columns[col].lower() in ['p','mdot','costs','invest_costs','operation_costs']:
                         value='Null'
                     else:
                         value=''
             if isinstance(value, str) and ':' in value and value.split(':')[0].isnumeric():
                 value=value.split(':')[0]
-            if not value:
+            if not value and columns[col] not in ['description']:
                 return False
-            if not isFloat(value) and value!='Null':
+            if not isFloat(value) and value!='Null' or columns[col] in ['description']:
                 value="'"+value + "'" 
             values.append(value)
         #print(values)
@@ -283,6 +285,7 @@ class IDADistrictsDataCenter:
         counter=1
         for row in range(dlg.tableWidget.rowCount()):
             values=self.getValuesFromTableRow(dlg,dropdowns,row,columns,[])
+            print(values)
             if not values:
                 self.iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
                 return False
@@ -1280,7 +1283,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             file_name_old=assetgroup+'_'+str(assettype_id)+'_'+dlg.tableWidget.item(row_idx, 1).text()
             file_name_new=assetgroup+'_'+str(maxId+1)+'_'+assettype_name
             if not os.path.exists(self.plugin_dir+"\\{}\\{}\\{}.idm".format(self.dictDB['projectName'],table_name,file_name_new)): 
-                CopyAssettypeFiles(source_dir=self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),source_name=file_name_old,target_dir=self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),target_name=file_name_new)
+                CopyAssettypeFiles(source_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),source_name=file_name_old,target_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),target_name=file_name_new)
             
             self.addTableRow(dlg,dropdowns,True,[])
             dlg.tableWidget.setItem(0,0,QTableWidgetItem(str(maxId+1)))

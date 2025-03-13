@@ -242,10 +242,6 @@ class UpdateSensors():
         self.sensorData[int(sensor_id)]['source']['function']=function
         self.sensorData[int(sensor_id)]['source']['test_value']=float(table.item(row,9).text())
         self.sensorData[int(sensor_id)]['source']['description']=table.item(row,10).text()
-        #sql="""INSERT INTO "{}".sensor_source(sensor_id,type,assetgroup,assettype,measure,function,conn_type,conns,ids,test_value,description) VALUES ({},{},{},{},{},{},{},{},{},{},'{}');""".format(
-        #    self.dictDB['versionName'],sensor_id,table.cellWidget(row, 1).currentText().split(':')[0],sensor_id,sensor_id,measure,function,sensor_id,sensor_id,sensor_id,table.item(row,9).text(),table.item(row,10).text())
-        #print(sql)
-        #self.cur.execute(sql)
 
     def collectCheckableDropdownTableData(self,table,row,sensor_id,table_col):
         dropDown=table.cellWidget(row, table_col)
@@ -255,73 +251,30 @@ class UpdateSensors():
         self.sensorData[int(sensor_id)]['target']['type']=int(table.cellWidget(row, 1).currentText().split(':')[0])
         self.sensorData[int(sensor_id)]['target']['description']=table.item(row,6).text()
         self.sensorData[int(sensor_id)]['target']['target']=table.cellWidget(row, 5).currentIndex()+1
-        #sql="""INSERT INTO "{}".sensor_target(sensor_id,type,assetgroup,assettype,target,description) VALUES ({},{},{},{},{},'{}');""".format(
-        #    self.dictDB['versionName'],sensor_id,table.cellWidget(row, 1).currentText().split(':')[0],sensor_id,sensor_id,table.cellWidget(row, 5).currentIndex()+1,table.item(row,6).text())
-        #print(sql)
-        #self.cur.execute(sql)
         
     def collectSensorAssetgroupsTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 2)
         if dropDown!=None:
             self.sensorData[int(sensor_id)][sensor]['assetgroups']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemText(i).split(':')[0]} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']
-            #for i in range(dropDown.count()):
-                #if dropDown.itemText(i) != 'Check all items':
-                    #sql="""INSERT INTO "{}".{}_assetgroups({}_id,assetgroup,active) VALUES ({},{},{});""".format(
-                    #    self.dictDB['versionName'],sensor,sensor,sensor_id,dropDown.itemText(i).split(':')[0],dropDown.itemText(i).split(':')[0])
-                    #print(sql)
-                    #self.cur.execute(sql)
         
     def collectSensorAssettypesTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 3)
         if dropDown!=None:
             self.sensorData[int(sensor_id)][sensor]['assettypes']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
-            #for i in range(dropDown.count()):
-                #if dropDown.itemText(i) != 'Check all items': 
-                    #assetgroup=dropDown.itemText(i).split('(')[1][:-1]
-                    #type=table.cellWidget(row, 1).currentText()
-                    #print(type)
-                    #sql="""SELECT id AS assetgroup FROM public.{}_assetgroups WHERE assetgroup='{}';""".format(type.split(':')[1].replace(' ','_'),assetgroup)
-                    #print(sql)
-                    #self.cur.execute(sql)
-                    #assetgroup_id=self.cur.fetchone()['assetgroup']
-                    #print(assetgroup_id) 
-                    #sql="""INSERT INTO "{}".{}_assettype({}_id,assetgroup,assettype,active) VALUES ({},{},{},{});""".format(
-                    #self.dictDB['versionName'],sensor,sensor,sensor_id,assetgroup_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
-                    #print(sql)
-                    #self.cur.execute(sql)
                     
     def collectSensorIdsTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 4)
         if dropDown!=None:
             self.sensorData[int(sensor_id)][sensor]['ids']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
-            #for i in range(dropDown.count()):
-                #if dropDown.itemText(i) != 'Check all items':  
-                    #sql="""INSERT INTO "{}".{}_ids({}_id,feature_id,active) VALUES ({},{},{});""".format(
-                    #    self.dictDB['versionName'],sensor,sensor,sensor_id,dropDown.itemText(i).split('(')[0],dropDown.itemChecked(i))
-                    #print(sql)
-                    #self.cur.execute(sql)
                     
     def insertIntoSensorSourceConntypesTable(self,table,row,sensor_id):
         dropDown=table.cellWidget(row, 5)
         if dropDown!=None:
-            self.sensorData[int(sensor_id)][sensor]['conn_types']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
-            #for i in range(dropDown.count()):
-            #    if dropDown.itemText(i) != 'Check all items':  
-            #        sql="""INSERT INTO "{}".source_conn_type(source_id,conn_type,active) VALUES ({},{},{});""".format(
-            #            self.dictDB['versionName'],sensor_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
-            #        print(sql)
-            #        self.cur.execute(sql)    
+            self.sensorData[int(sensor_id)][sensor]['conn_types']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                  
                     
     def insertIntoSensorSourceConnsTable(self,table,row,sensor_id):
         dropDown=table.cellWidget(row, 6)
-        #if dropDown!=None:
-            #for i in range(dropDown.count()):
-            #    if dropDown.itemText(i) != 'Check all items':  
-            #        sql="""INSERT INTO "{}".source_conns(source_id,connection_id,active) VALUES ({},{},{});""".format(
-            #            self.dictDB['versionName'],sensor_id,dropDown.itemText(i).split(':')[0],dropDown.itemChecked(i))
-            #        print(sql)
-            #        self.cur.execute(sql)
-       
+
     def addSensor(self):
         """INSERT a sensor to the source and target table"""
         rowPosition = self.dlg.tableWidget_source.rowCount()
