@@ -332,7 +332,7 @@ class IDADistrictsDataCenter:
                                 return False
                             wroteAssettype=True
                         else:
-                            RenameAssettypeFiles(self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
+                            RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
                 if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteAssettype:
                     if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
                         print('Changed conn bundle type')
@@ -622,7 +622,7 @@ class IDADistrictsDataCenter:
             if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
                 if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
                     print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
-                    RenameAssettypeFiles(self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
+                    RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
                     dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
                     dlg.traceTableValues[row_index][1]=''
                     file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])

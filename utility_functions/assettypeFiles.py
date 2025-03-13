@@ -653,6 +653,11 @@ class RenameAssettypeFiles:
         os.rename(dir_macro,dir_macro_new)
         os.rename(dir_macro_new+'\\'+name+'.idm',dir_macro_new+'\\'+new_name+'.idm')
         os.rename(dir_macro_new+'\\'+name+'.idc',dir_macro_new+'\\'+new_name+'.idc')
+        
+        print('should rename:'+dir_macro_new+'\\'+name)
+        if os.path.exists(dir_macro_new+'\\'+name):
+            print('rename to: '+dir_macro_new+'\\'+new_name)
+            os.rename(dir_macro_new+'\\'+name,dir_macro_new+'\\'+new_name)
         print('rename finished')
 
 class CopyAssettypeMacro:
