@@ -631,33 +631,27 @@ class RenameAssettypeFiles:
             sql=f"""DELETE FROM {type}_assettypes WHERE assetgroup={name.split('_')[0]} AND assettype={name.split('_')[1]};"""
             cur.execute(sql)
             return False
-            
-        with open(dir+'\\'+name+'.idm', "r") as myfile:
-            for line in myfile:
-                filedata=filedata+line
-        filedata=filedata.replace('"'+name+'"','"'+new_name+'"')
-        writeToFile(filedata,dir,dir+'\\'+new_name+'.idm')     
-            
-        filedata=""
-        with open(dir+'\\'+name+'.idc', "r") as myfile:
-            for line in myfile:
-                filedata=filedata+line
-        print('"'+name+'"')
-        filedata=filedata.replace('"'+name+'"','"'+new_name+'"')
-        writeToFile(filedata,dir,dir+'\\'+new_name+'.idc') 
+               
+        moveFileReplaceStr(dir+'\\'+name+'.idm',dir,dir+'\\'+new_name+'.idm',[name],[new_name],replaceDict=False)     
+        moveFileReplaceStr(dir+'\\'+name+'.idc',dir,dir+'\\'+new_name+'.idc',[name],[new_name],replaceDict=False)           
         
         dir_macro_new=dir+'\\'+new_name
         print(dir_macro_new)
         dir_macro=dir+'\\'+name
         print(dir_macro)
         os.rename(dir_macro,dir_macro_new)
-        os.rename(dir_macro_new+'\\'+name+'.idm',dir_macro_new+'\\'+new_name+'.idm')
+        #os.rename(dir_macro_new+'\\'+name+'.idm',dir_macro_new+'\\'+new_name+'.idm')
+        moveFileReplaceStr(dir_macro_new+'\\'+name+'.idm',dir_macro_new,dir_macro_new+'\\'+new_name+'.idm',[name],[new_name],replaceDict=False)   
         os.rename(dir_macro_new+'\\'+name+'.idc',dir_macro_new+'\\'+new_name+'.idc')
         
         print('should rename:'+dir_macro_new+'\\'+name)
         if os.path.exists(dir_macro_new+'\\'+name):
             print('rename to: '+dir_macro_new+'\\'+new_name)
             os.rename(dir_macro_new+'\\'+name,dir_macro_new+'\\'+new_name)
+            for root, dirs, files in os.walk(dir_macro_new+'\\'+new_name):
+                for file in files:
+                    if file.endswith('.idm') or file.endswith('.idc'):
+                        copyFileReplaceStr(os.path.join(root, file),root,os.path.join(root, file),[name],[new_name],replaceDict=False)
         print('rename finished')
 
 class CopyAssettypeMacro:

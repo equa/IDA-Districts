@@ -678,6 +678,12 @@ def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,r
             filedata=replaceKeywordsInFiledata(filedata,replaceDict)
         writeToFileFromList(filedata,dst_dir,dst_file)
 
+def moveFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False):
+    """move a file within given directory and replace strings in a list"""
+    copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=replaceDict)
+    if os.path.exists(src_file):
+        os.remove(src_file)
+
 def writeTempTimeseries(dir,id,name,cur):
     createDir(dir,'timeseries')
     dir+='\\timeseries'

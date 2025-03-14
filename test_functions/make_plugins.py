@@ -9,7 +9,7 @@ current_date = datetime.now().strftime('%Y-%m-%d-%H%M')
 target_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\'
 
 # Check if the folder exists and delete it
-if os.path.exists(target_dir) and os.path.isdi r(target_dir):
+if os.path.exists(target_dir) and os.path.isdir(target_dir):
     shutil.rmtree(target_dir)
 
 #------------plugins--------------

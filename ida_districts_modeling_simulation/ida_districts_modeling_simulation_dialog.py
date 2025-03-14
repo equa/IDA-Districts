@@ -1022,7 +1022,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         
         #-------------Modeling---------------
         #titel
-        label_modeling_title =QLabel("Modeling")
+        label_modeling_title =QLabel("Network modeling")
         font=label_modeling_title.font()
         font.setPointSize(15)
         label_modeling_title.setFont(font)
