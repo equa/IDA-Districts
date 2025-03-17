@@ -40,7 +40,7 @@ from scipy.interpolate import interp1d
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_modeling_simulation_dialog import LoadResultsDialog,CalibrateCustomers, OpenNetworkModelDialog,SupervisoryCtrlDlg, FeatureDecouplingDlg, CustomerModelParmDlg, ModellingSettings, IDADistrictsModelingSimulationDialog, RequestedOutputs, BuildNetworkModelDialog, CheckableComboBox, RunNetworkModelDialog
+from .ida_districts_modeling_simulation_dialog import BuildBuildingModelDialog, LoadResultsDialog,CalibrateCustomers, OpenNetworkModelDialog,SupervisoryCtrlDlg, FeatureDecouplingDlg, CustomerModelParmDlg, ModellingSettings, IDADistrictsModelingSimulationDialog, RequestedOutputs, BuildNetworkModelDialog, CheckableComboBox, RunNetworkModelDialog
 from .supervisory_control import Supervisory_control
 from .invoke import *
 from .outputs import *
@@ -221,7 +221,7 @@ class IDADistrictsModelingSimulation:
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
                 self.dlg_customerParm=CustomerModelParmDlg()
-                self.dlg_customerParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_customerParm))
+                self.dlg_customerParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_customerParm,self.cur,self.dictDB))
                 self.dlg_customerParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_customerParm.tableWidget_parameters))
                 self.dlg_customerParm.btn_ok.clicked.connect(lambda: setCustParm(self.dlg_customerParm,self.conn,self.dictDB,self.plugin_dir))
                 self.dlg_customerParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_customerParm))
@@ -713,6 +713,29 @@ class IDADistrictsModelingSimulation:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showBuildBuildingModel(self):
+        """ Build IDA building models; loop over subnetworks"""
+        print('Build IDA model')
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_buildBuildingModel=BuildBuildingModelDialog()
+                
+                self.dlg_buildBuildingModel.combo_submodels.addItem('Check all items')
+                submodels=getUsedSubmodels(self.cur,self.dictDB)
+                self.dlg_buildBuildingModel.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                    self.dlg_buildBuildingModel.combo_submodels.setItemChecked(i+1,False)
+                self.dlg_buildBuildingModel.show()
+                self.dlg_buildBuildingModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildBuildingModel))
+                self.dlg_buildBuildingModel.btn_buildBuildingModel.clicked.connect(lambda: self.buildBuildingModel(self.dlg_buildBuildingModel))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
             
     def buildModel(self,dlg):
         networks=[]
@@ -731,6 +754,15 @@ class IDADistrictsModelingSimulation:
             self.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
         else:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
+
+    def buildBuildingModel(self,dlg):
+                    
+        submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
+
+        if submodels:
+            print(submodels)
+        else:
+            self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
 
     def loadResults(self,dlg):
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
@@ -815,6 +847,7 @@ class IDADistrictsModelingSimulation:
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(self.showOpenModel)
             self.dlg.btn_runModel.clicked.connect(self.showRunModel)
+            self.dlg.btn_buildBuildingModel.clicked.connect(self.showBuildBuildingModel)
             self.dlg.btn_loadResults.clicked.connect(self.showLoadResults)
 
             # show the dialog

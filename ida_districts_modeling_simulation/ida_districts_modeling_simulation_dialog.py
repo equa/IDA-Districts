@@ -357,6 +357,46 @@ class BuildNetworkModelDialog(QMainWindow):
                   
     def update_progress(self,progress):
         self.progress.setValue(progress)
+        
+class BuildBuildingModelDialog(QMainWindow):
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+        self.setWindowTitle("Build building model") 
+        
+        
+        layout_networks=QVBoxLayout()
+        self.label_submodels =QLabel("Submodels")
+        font=self.label_submodels.font()
+        font.setPointSize(15)
+        self.label_submodels.setFont(font)
+        layout_networks.addWidget(self.label_submodels)
+        self.combo_submodels = CheckableComboBox()
+        layout_networks.addWidget(self.combo_submodels)
+        
+        
+        #buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_buildBuildingModel=QPushButton("Build building model")
+        layout_buttons.addWidget(self.btn_buildBuildingModel)
+        self.btn_cancel=QPushButton("Cancel")
+        layout_buttons.addWidget(self.btn_cancel)
+        
+        #progress bar
+        self.progress=QProgressBar()
+        
+        #---------------set layouts together-------------------
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_networks)
+        layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
+        
+        widget=QWidget()
+        widget.setLayout(layout_win)
+        self.setCentralWidget(widget)
+                  
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
 
 class OpenNetworkModelDialog(QMainWindow):
     def __init__(self):
@@ -775,6 +815,7 @@ class CustomerModelParmDlg(QMainWindow):
         """Constructor."""
         super().__init__()
         self.setWindowTitle("Customer model parameter mapping") 
+        self.loadedMappingParms={}
         
         layout_list=QHBoxLayout()
         #list widget for layer attributes
@@ -790,8 +831,8 @@ class CustomerModelParmDlg(QMainWindow):
         layout_list.addWidget(label_list_helptext)
        
         #table for mapped attributes  
-        self.tableWidget_parameters = QTableWidget(0,5)   
-        self.tableWidget_parameters.setHorizontalHeaderLabels(['Mapping expression','Mapping direction','Parameter name','Model name','Macro name'])
+        self.tableWidget_parameters = QTableWidget(0,6)   
+        self.tableWidget_parameters.setHorizontalHeaderLabels(['Id','Mapping expression','Mapping direction','Parameter name','Model name','Macro name'])
         
         #---------------ok/cancel buttons     
         layout_buttons_conns = QHBoxLayout()
@@ -821,7 +862,7 @@ class CustomerModelParmDlg(QMainWindow):
     def mapAttributesDoubleClick(self,s):
         table_index=self.tableWidget_parameters.currentRow()
         if table_index!=-1:
-            self.tableWidget_parameters.setItem(table_index,0,QTableWidgetItem(self.tableWidget_parameters.item(table_index,0).text()+'|'+s.text()+'|'))
+            self.tableWidget_parameters.setItem(table_index,1,QTableWidgetItem(self.tableWidget_parameters.item(table_index,0).text()+'|'+s.text()+'|'))
         else:
             iface.messageBar().pushMessage("Info", "No model parameter selected!", level=Qgis.Info)
 
@@ -1020,7 +1061,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         layout_settings.addLayout(layout_modeling_settings)
         
         
-        #-------------Modeling---------------
+        #-------------Network Modeling---------------
         #titel
         label_modeling_title =QLabel("Network modeling")
         font=label_modeling_title.font()
@@ -1063,6 +1104,26 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         layout_modeling.addWidget(label_modeling_title)
         layout_modeling_btn.addLayout(layout_model_btn)
         layout_modeling.addLayout(layout_modeling_btn)
+
+        #-------------Building Modeling---------------
+        #titel
+        label_modeling_title =QLabel("Building modeling")
+        font=label_modeling_title.font()
+        font.setPointSize(15)
+        label_modeling_title.setFont(font)
+               
+        layout_building_model_btn = QHBoxLayout()      
+        
+        self.btn_buildBuildingModel=QPushButton("Build model")
+        layout_building_model_btn.addWidget(self.btn_buildBuildingModel)
+        
+        self.btn_openBuildingModel=QPushButton("Open model")
+        layout_building_model_btn.addWidget(self.btn_openBuildingModel)
+        
+        #set modeling layout together
+        layout_building_modeling = QVBoxLayout()
+        layout_building_modeling.addWidget(label_modeling_title)
+        layout_building_modeling.addLayout(layout_building_model_btn)
         
         #-------------Simulation---------------
         #titel
@@ -1090,6 +1151,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_settings)
         layout_win.addLayout(layout_modeling)
+        layout_win.addLayout(layout_building_modeling)
         layout_win.addLayout(layout_simulation)
         
         widget=QWidget()

@@ -77,23 +77,23 @@ class WorkerInvokeFeatures(QRunnable):
 def loadCustomerParm(dlg,cur,dictDB):
     sql="""SELECT * FROM "{}".customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
     cur.execute(sql)
-    i=0
     table=dlg.tableWidget_parameters
-    for parm in cur.fetchall():
+    for i,parm in enumerate(cur.fetchall()):
+        dlg.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction']}
         table.insertRow(i)
-            
-        table.setItem(i,0,QTableWidgetItem(parm['mapping_expression']))
+        item = QTableWidgetItem(str(parm['id']))
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        table.setItem(i,0,item)
+        table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
                     
         comboBox = QComboBox()
         comboBox.addItems(['<-->','<--','-->'])
         comboBox.setCurrentText(parm['mapping_direction'])
-        table.setCellWidget(i, 1, comboBox)  
+        table.setCellWidget(i, 2, comboBox)  
         
-        table.setItem(i,2,QTableWidgetItem(parm['parm_name']))
-        table.setItem(i,3,QTableWidgetItem(parm['model_name']))
-        table.setItem(i,4,QTableWidgetItem(parm['macro_name']))
-
-        i+=1
+        table.setItem(i,3,QTableWidgetItem(parm['parm_name']))
+        table.setItem(i,4,QTableWidgetItem(parm['model_name']))
+        table.setItem(i,5,QTableWidgetItem(parm['macro_name']))
         
 def loadLayerFieldsToList(list,layer_name):
     layer=QgsProject.instance().mapLayersByName(layer_name)
@@ -108,19 +108,37 @@ def setCustParm(dlg,conn,dictDB,plugin_dir):
     """" Save table to DB an close dialog"""
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
-        
-        sql="""TRUNCATE "{}".customer_model_parms CASCADE;\n""".format(dictDB['versionName'])
-        columns='id,mapping_expression,parm_name,model_name,macro_name,mapping_direction'
         table=dlg.tableWidget_parameters
+        mappingParms={}
         
-        i=0
         for row in range(table.rowCount()):
-            #write data to DB table customer_model_parms
-            values=str(row)+", '"+(table.item(row, 0).text().replace("'","''") if table.item(row, 0) else '') +"', '"+(table.item(row, 2).text() if table.item(row, 2) else '')+"', '"+(table.item(row, 3).text() if table.item(row, 3) else '')+"', '"+(table.item(row, 4).text() if table.item(row, 4) else '')+"', '"+table.cellWidget(row, 1).currentText()+"'"
-            sql+="""INSERT INTO "{}".customer_model_parms ({}) VALUES ({});\n""".format(dictDB['versionName'],columns,values)
-            
-        print(sql)
-        cur.execute(sql)
+            mappingParms[int(table.item(row, 0).text())]={'parm_name' : table.item(row, 3).text(),'model_name' : table.item(row, 4).text(),'mapping_expression' : table.item(row, 1).text().replace("'","''"),'macro_name' : table.item(row, 5).text() ,'mapping_direction' : table.cellWidget(row, 2).currentText()}
+
+        print(dlg.loadedMappingParms)
+        print(mappingParms)
+        
+        sql=""
+        #deleted
+        for key_loaded in dlg.loadedMappingParms:
+            if key_loaded not in mappingParms: 
+                print('removed sensor')
+                sql+="""DELETE FROM "{}".customer_model_parms WHERE id={};""".format(dictDB['versionName'],key_loaded)
+        
+        #added
+        for key_table in mappingParms:
+            if key_table not in dlg.loadedMappingParms: 
+                print('added parm')
+                sql+="""INSERT INTO "{}".customer_model_parms (id,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},'{}','{}','{}','{}','{}');\n""".format(
+                    dictDB['versionName'],key_table,mappingParms[key_table]['mapping_expression'],mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'])               
+            else:   
+                #Check for updated columns
+                for col in ['mapping_expression','parm_name','model_name','macro_name','mapping_direction']:
+                    if dlg.loadedMappingParms[key_table][col]!=mappingParms[key_table][col]:
+                        sql+="""UPDATE "{}".customer_model_parms SET {} = '{}' WHERE id = {} ;\n""".format(dictDB['versionName'],col,mappingParms[key_table][col],key_table)   
+        
+        if sql:
+            print(sql)
+            cur.execute(sql)
  
         dlg.close()
     
@@ -161,16 +179,20 @@ def setupCustomerVersionForm(cur,dictDB,plugin_dir):
             fc.addTab(c)
     vlayer.setEditFormConfig(fc)
 
-def addParmTableRow(dlg):
+def addParmTableRow(dlg,cur,dictDB):
     addTableRow(dlg.tableWidget_parameters)
-    dlg.tableWidget_parameters.setItem(0 , 0, QTableWidgetItem(''))
+    maxId=getMaxIdAcrossSchemas(dictDB,cur,'customer_model_parms')
+    item = QTableWidgetItem(str(maxId+1))
+    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+    dlg.tableWidget_parameters.setItem(0 , 0, item)
+    dlg.tableWidget_parameters.setItem(0 , 1, QTableWidgetItem(''))
     comboBox = QComboBox()
     comboBox.addItems(['<-->','<--','-->'])
     comboBox.setCurrentText('<-->')
-    dlg.tableWidget_parameters.setCellWidget(0, 1, comboBox)  
-    dlg.tableWidget_parameters.setItem(0 , 2, QTableWidgetItem(''))
-    dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))        
+    dlg.tableWidget_parameters.setCellWidget(0, 2, comboBox)  
+    dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))
     dlg.tableWidget_parameters.setItem(0 , 4, QTableWidgetItem(''))        
+    dlg.tableWidget_parameters.setItem(0 , 5, QTableWidgetItem(''))        
         
 def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False,signals=False):
     """Invoke the selected feature. Copy the files from the assettype templates to ida_districts_modeling_simulation\invoked_"feature"s

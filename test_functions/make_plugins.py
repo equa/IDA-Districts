@@ -100,6 +100,7 @@ shutil.copy(src_dir+'DB_projectTablesDefault.txt', trg_dir+'DB_projectTablesDefa
 shutil.copy(src_dir+'DB_projectTablesDefault_data.txt', trg_dir+'DB_projectTablesDefault_data.txt')
 shutil.copy(src_dir+'DB_versionTablesDefault.txt', trg_dir+'DB_versionTablesDefault.txt')
 shutil.copy(src_dir+'DB_versionTablesDefault_data.txt', trg_dir+'DB_versionTablesDefault_data.txt')
+shutil.copy(src_dir+'SQL_scripts.txt', trg_dir+'SQL_scripts.txt')
 shutil.copy(src_dir+'dbSettings.txt', trg_dir+'dbSettings.txt')
 shutil.copy(src_dir+'dbSettings_lastLoad.txt', trg_dir+'dbSettings_lastLoad.txt')
 shutil.copy(src_dir+'Dialogs.py', trg_dir+'Dialogs.py')

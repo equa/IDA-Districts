@@ -25,31 +25,12 @@ class UpdateSensors():
     def writeSensorsToDB(self):
         """Write sensor data to the DB"""
         print('Save table to DB an close dialog')
-        #sql="""DELETE FROM  "{}".sensor_source;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".source_assetgroups;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".source_assettype;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".source_ids;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".source_conn_type;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".source_conns;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".sensor_target;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".target_assetgroups;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".target_assetgroups;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".target_assettype;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM  "{}".target_ids;\n""".format(self.dictDB['versionName'])
-        #sql+="""DELETE FROM "{}".sensors;""".format(self.dictDB['versionName'])
-        #sql="""TRUNCATE "{}".sensors, "{}".sensor_source,"{}".source_assetgroups, "{}".source_assettype, "{}".source_ids, "{}".source_conn_type, "{}".source_conns,
-        #"{}".sensor_target,"{}".target_assetgroups, "{}".target_assettype, "{}".target_ids
-        #CASCADE;""".format(
-        #    self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'], self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
-        #print(sql)
-        #self.cur.execute(sql)
         
         #get sensorData
         for row in range(self.dlg.tableWidget_source.rowCount()):
             sensor_id=self.dlg.tableWidget_source.item(row,0).text()
             self.sensorData[int(sensor_id)]={'source' : {'type' : None,'assetgroups' : [],'assettypes' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : None,'function' : None,'test_value' : None,'description' : None}, 
                 'target': {'type' : None,'assetgroups' : [],'assettypes' : [],'ids' : [],'target' : None,'description' : ''}}
-            #self.insertIntoSensorsTable(self.dlg.tableWidget_source,row,sensor_id)
             
             #source
             self.collectSensorSourceTableData(self.dlg.tableWidget_source,row,sensor_id)
@@ -57,34 +38,23 @@ class UpdateSensors():
             self.sensorData[int(sensor_id)]['source']['assettypes']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,3)
             self.sensorData[int(sensor_id)]['source']['ids']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,4)
             self.sensorData[int(sensor_id)]['source']['conn_types']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,5)
-            self.sensorData[int(sensor_id)]['source']['conns']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,6)
-            
-            #self.collectSensorAssetgroupsTableData(self.dlg.tableWidget_source,row,sensor_id,'source')
-            #self.collectSensorAssettypesTableData(self.dlg.tableWidget_source,row,sensor_id,'source')
-            #self.collectSensorIdsTableData(self.dlg.tableWidget_source,row,sensor_id,'source')
-            #self.collectSensorSourceConntypesTableData(self.dlg.tableWidget_source,row,sensor_id)
-            #self.collectSensorSourceConnsTableData(self.dlg.tableWidget_source,row,sensor_id)
+            self.sensorData[int(sensor_id)]['source']['conns']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,6)   
             
             #target
             self.collectSensorTargetTableData(self.dlg.tableWidget_target,row,sensor_id)
             self.sensorData[int(sensor_id)]['target']['assetgroups']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,2)
             self.sensorData[int(sensor_id)]['target']['assettypes']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,3)
             self.sensorData[int(sensor_id)]['target']['ids']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,4)
-            #self.collectSensorAssetgroupsTableData(self.dlg.tableWidget_target,row,sensor_id,'target')
-            #self.collectSensorAssettypesTableData(self.dlg.tableWidget_target,row,sensor_id,'target')
-            #self.collectSensorIdsTableData(self.dlg.tableWidget_target,row,sensor_id,'target')
 
+        sql=""
         #deleted
         print(self.loadedSensorData)
         print(self.sensorData)
         for key_loaded in self.loadedSensorData:
             if key_loaded not in self.sensorData: 
                 print('removed sensor')
-                sql="""DELETE FROM "{}".sensors WHERE id={};""".format(self.dictDB['versionName'],key_loaded)
-                print(sql)
-                self.cur.execute(sql)
+                sql+="""DELETE FROM "{}".sensors WHERE id={};""".format(self.dictDB['versionName'],key_loaded)
         
-        sql=""
         #added
         for row,key_table in enumerate(self.sensorData):
             if key_table not in self.loadedSensorData: 
