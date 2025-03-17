@@ -464,71 +464,106 @@ class IDADistrictsModelingSimulation:
     def addTableRow(self,dlg):
         """Insert table row"""
         print('-------insert row---------------')
-        dropdowns=[[19,'public','liquids','id','liquid']]
+        dropdowns=[[20,'public','liquids','id','liquid']]
+
+        maxId=max([getMaxIdAcrossSchemas(self.dictDB,self.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
         dlg.tableWidget.insertRow(0)
         dropdownItems=getDropDownItems(self.cur,dropdowns)
+
+        item = QTableWidgetItem(str(maxId))
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        dlg.tableWidget.setItem(0 , 0, item)
         
         comboBox = QComboBox()
         comboBox.addItems([str(i['id']) for i in getTableIds(self.cur,self.dictDB['versionName'],'energy_plants','id')])
-        dlg.tableWidget.setCellWidget(0, 0, comboBox) #plant id
-        dlg.tableWidget.setItem(0,1,QTableWidgetItem('190')) #zhole
-        dlg.tableWidget.setItem(0,2,QTableWidgetItem('0.0575')) #rhole
-        dlg.tableWidget.setItem(0,3,QTableWidgetItem('0.039')) #RB
-        dlg.tableWidget.setItem(0,4,QTableWidgetItem('0.001')) #RPIPEGROUT
-        dlg.tableWidget.setItem(0,5,QTableWidgetItem('100')) #RPIPEEARTH
-        dlg.tableWidget.setItem(0,6,QTableWidgetItem('0.0147')) #RGROUTGROUT
-        dlg.tableWidget.setItem(0,7,QTableWidgetItem('0.0423')) #RGROUTEARTH
-        dlg.tableWidget.setItem(0,8,QTableWidgetItem('0.0147')) #RRINGEARTH
-        dlg.tableWidget.setItem(0,9,QTableWidgetItem('840')) #cpgrd
-        dlg.tableWidget.setItem(0,10,QTableWidgetItem('3.8')) #lambgrd
-        dlg.tableWidget.setItem(0,11,QTableWidgetItem('2880')) #rhogrd
-        dlg.tableWidget.setItem(0,12,QTableWidgetItem('4180')) #cpgrout
-        dlg.tableWidget.setItem(0,13,QTableWidgetItem('0.6')) #lambgrout
-        dlg.tableWidget.setItem(0,14,QTableWidgetItem('1000')) #rhogrout
-        dlg.tableWidget.setItem(0,15,QTableWidgetItem('0.016')) #rpipe
-        dlg.tableWidget.setItem(0,16,QTableWidgetItem('0.0026')) #thickpipe
-        dlg.tableWidget.setItem(0,17,QTableWidgetItem('2200')) #cppipe
-        dlg.tableWidget.setItem(0,18,QTableWidgetItem('0.42')) #lambpipe
+        dlg.tableWidget.setCellWidget(0, 1, comboBox) #plant id
+        dlg.tableWidget.setItem(0,2,QTableWidgetItem('190')) #zhole
+        dlg.tableWidget.setItem(0,3,QTableWidgetItem('0.0575')) #rhole
+        dlg.tableWidget.setItem(0,4,QTableWidgetItem('0.039')) #RB
+        dlg.tableWidget.setItem(0,5,QTableWidgetItem('0.001')) #RPIPEGROUT
+        dlg.tableWidget.setItem(0,6,QTableWidgetItem('100')) #RPIPEEARTH
+        dlg.tableWidget.setItem(0,7,QTableWidgetItem('0.0147')) #RGROUTGROUT
+        dlg.tableWidget.setItem(0,8,QTableWidgetItem('0.0423')) #RGROUTEARTH
+        dlg.tableWidget.setItem(0,9,QTableWidgetItem('0.0147')) #RRINGEARTH
+        dlg.tableWidget.setItem(0,10,QTableWidgetItem('840')) #cpgrd
+        dlg.tableWidget.setItem(0,11,QTableWidgetItem('3.8')) #lambgrd
+        dlg.tableWidget.setItem(0,12,QTableWidgetItem('2880')) #rhogrd
+        dlg.tableWidget.setItem(0,13,QTableWidgetItem('4180')) #cpgrout
+        dlg.tableWidget.setItem(0,14,QTableWidgetItem('0.6')) #lambgrout
+        dlg.tableWidget.setItem(0,15,QTableWidgetItem('1000')) #rhogrout
+        dlg.tableWidget.setItem(0,16,QTableWidgetItem('0.016')) #rpipe
+        dlg.tableWidget.setItem(0,17,QTableWidgetItem('0.0026')) #thickpipe
+        dlg.tableWidget.setItem(0,18,QTableWidgetItem('2200')) #cppipe
+        dlg.tableWidget.setItem(0,19,QTableWidgetItem('0.42')) #lambpipe
         comboBox = QComboBox()
-        comboBox.addItems(dropdownItems[19])
-        dlg.tableWidget.setCellWidget(0, 19, comboBox) #liquid
-        dlg.tableWidget.setItem(0,20,QTableWidgetItem('0')) #Tfreeze
-        dlg.tableWidget.setItem(0,21,QTableWidgetItem('0.42')) #lambliq
-        dlg.tableWidget.setItem(0,22,QTableWidgetItem('2')) #lcasting
-        dlg.tableWidget.setItem(0,23,QTableWidgetItem('0.1')) #lambda
-        dlg.tableWidget.setItem(0,24,QTableWidgetItem('1000')) #rhosurface
-        dlg.tableWidget.setItem(0,25,QTableWidgetItem('4180')) #cpsurface
-        dlg.tableWidget.setItem(0,26,QTableWidgetItem('0')) #mir
-        dlg.tableWidget.setItem(0,27,QTableWidgetItem('100')) #rmax
-        dlg.tableWidget.setItem(0,28,QTableWidgetItem('10')) #nring
-        dlg.tableWidget.setItem(0,29,QTableWidgetItem('10')) #nzhole
-        dlg.tableWidget.setItem(0,30,QTableWidgetItem('12')) #nlayt
-        dlg.tableWidget.setItem(0,31,QTableWidgetItem('0')) #n1
-        dlg.tableWidget.setItem(0,32,QTableWidgetItem('0')) #n2
-        dlg.tableWidget.setItem(0,33,QTableWidgetItem('0')) #n3
-        dlg.tableWidget.setItem(0,34,QTableWidgetItem('0')) #toutput
-        dlg.tableWidget.setItem(0,35,QTableWidgetItem('5')) #tmean
-        dlg.tableWidget.setItem(0,36,QTableWidgetItem('0')) #geotgrad
+        comboBox.addItems(dropdownItems[20])
+        dlg.tableWidget.setCellWidget(0, 20, comboBox) #liquid
+        dlg.tableWidget.setItem(0,21,QTableWidgetItem('0')) #Tfreeze
+        dlg.tableWidget.setItem(0,22,QTableWidgetItem('0.42')) #lambliq
+        dlg.tableWidget.setItem(0,23,QTableWidgetItem('2')) #lcasting
+        dlg.tableWidget.setItem(0,24,QTableWidgetItem('0.1')) #lambda
+        dlg.tableWidget.setItem(0,25,QTableWidgetItem('1000')) #rhosurface
+        dlg.tableWidget.setItem(0,26,QTableWidgetItem('4180')) #cpsurface
+        dlg.tableWidget.setItem(0,27,QTableWidgetItem('0')) #mir
+        dlg.tableWidget.setItem(0,28,QTableWidgetItem('100')) #rmax
+        dlg.tableWidget.setItem(0,29,QTableWidgetItem('10')) #nring
+        dlg.tableWidget.setItem(0,30,QTableWidgetItem('10')) #nzhole
+        dlg.tableWidget.setItem(0,31,QTableWidgetItem('12')) #nlayt
+        dlg.tableWidget.setItem(0,32,QTableWidgetItem('0')) #n1
+        dlg.tableWidget.setItem(0,33,QTableWidgetItem('0')) #n2
+        dlg.tableWidget.setItem(0,34,QTableWidgetItem('0')) #n3
+        dlg.tableWidget.setItem(0,35,QTableWidgetItem('0')) #toutput
+        dlg.tableWidget.setItem(0,36,QTableWidgetItem('5')) #tmean
+        dlg.tableWidget.setItem(0,37,QTableWidgetItem('0')) #geotgrad
 
     def setBoreholeFieldSettings(self,dlg):
-        sql="""TRUNCATE "{}".borehole_fields;\n""".format(self.dictDB['versionName'])
+        table=dlg.tableWidget
+        boreholefieldsData={}
+        
+        sql=""
         for row in range(dlg.tableWidget.rowCount()):
-            print(dlg.tableWidget.item(row,35).text())
-            print(dlg.tableWidget.item(row,35).text().split(':')[0])
-            sql+="""INSERT INTO "{}".borehole_fields(id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad)
-    VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{});""".format(self.dictDB['versionName'],
-                dlg.tableWidget.cellWidget(row, 0).currentText(),dlg.tableWidget.item(row,1).text(),dlg.tableWidget.item(row,2).text(),
-                dlg.tableWidget.item(row,3).text(),dlg.tableWidget.item(row,4).text(),dlg.tableWidget.item(row,5).text(),dlg.tableWidget.item(row,6).text(),dlg.tableWidget.item(row,7).text(),dlg.tableWidget.item(row,8).text(),
-                dlg.tableWidget.item(row,26).text(),dlg.tableWidget.item(row,27).text(),dlg.tableWidget.item(row,28).text(),dlg.tableWidget.item(row,29).text(),dlg.tableWidget.item(row,30).text(),
-                dlg.tableWidget.item(row,31).text(),dlg.tableWidget.item(row,32).text(),dlg.tableWidget.item(row,33).text(),dlg.tableWidget.item(row,34).text(),
-                dlg.tableWidget.item(row,9).text(),dlg.tableWidget.item(row,10).text(),dlg.tableWidget.item(row,11).text(),
-                dlg.tableWidget.item(row,12).text(),dlg.tableWidget.item(row,13).text(),dlg.tableWidget.item(row,14).text(),
-                dlg.tableWidget.item(row,15).text(),dlg.tableWidget.item(row,16).text(),dlg.tableWidget.item(row,17).text(),dlg.tableWidget.item(row,18).text(),
-                dlg.tableWidget.item(row,22).text(),dlg.tableWidget.item(row,23).text(),dlg.tableWidget.item(row,24).text(),dlg.tableWidget.item(row,25).text(),
-                dlg.tableWidget.cellWidget(row, 19).currentText().split(':')[0],dlg.tableWidget.item(row,20).text(),dlg.tableWidget.item(row,21).text(),
-                dlg.tableWidget.item(row,35).text(),dlg.tableWidget.item(row,36).text())
-        print(sql)
+            boreholefieldsData[int(table.item(row, 0).text())]={'ep_id': dlg.tableWidget.cellWidget(row, 1).currentText(),'zhole': table.item(row,2).text(),'rhole': table.item(row,3).text(),'rb': table.item(row,4).text(),
+                'rpipegrout': table.item(row,5).text(),'rpipeearth': table.item(row,6).text(),'rgroutgrout': table.item(row,7).text(),'rgroutearth': table.item(row,8).text(), 'rringearth': table.item(row,9).text(),
+                'cpgrd': table.item(row,10).text(),'lambgrd': table.item(row,11).text(),'rhogrd': table.item(row,12).text(),'cpgrout': table.item(row,13).text(),
+                'lambgrout': table.item(row,14).text(),'rhogrout': table.item(row,15).text(),'rpipe': table.item(row,16).text(),'thickpipe': table.item(row,17).text(),
+                'cppipe': table.item(row,18).text(),'lambpipe': table.item(row,19).text(),'liqtype': table.cellWidget(row, 20).currentText().split(':')[0],'tfreeze': table.item(row,21).text(),
+                'lambliq': table.item(row,22).text(),'lcasting': table.item(row,23).text(),'lambda': table.item(row,24).text(),'rhosurface': table.item(row,25).text(),
+                'cpsurface': table.item(row,26).text(),'mir': table.item(row,27).text(),'rmax': table.item(row,28).text(),'nring': table.item(row,29).text(),
+                'nzhole': table.item(row,30).text(),'nlayt': table.item(row,31).text(),'n1': table.item(row,32).text(),'n2': table.item(row,33).text(),
+                'n3': table.item(row,34).text(),'toutput': table.item(row,35).text(),'tmean': table.item(row,36).text(),'geotgrad': table.item(row,37).text()}
+        
+        print(self.loadedBoreholefieldsData)
+        print(boreholefieldsData)
+        
+        #deleted
+        for key_loaded in self.loadedBoreholefieldsData:
+            if key_loaded not in boreholefieldsData: 
+                print('removed sensor')
+                sql+="""DELETE FROM "{}".borehole_fields WHERE id={};""".format(self.dictDB['versionName'],key_loaded)
+        
+        #added
+        for key_table in boreholefieldsData:
+            if key_table not in self.loadedBoreholefieldsData: 
+                print('added field data')
+                sql+="""INSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});\n""".format(
+                    self.dictDB['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
+                    boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
+                    boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['mir'],boreholefieldsData[key_table]['rmax'],
+                    boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'],
+                    boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'],
+                    boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'],
+                    boreholefieldsData[key_table]['rhogrout'],boreholefieldsData[key_table]['rpipe'],boreholefieldsData[key_table]['thickpipe'],
+                    boreholefieldsData[key_table]['cppipe'],boreholefieldsData[key_table]['lambpipe'],boreholefieldsData[key_table]['lcasting'],boreholefieldsData[key_table]['lambda'],               
+                    boreholefieldsData[key_table]['rhosurface'],boreholefieldsData[key_table]['cpsurface'],boreholefieldsData[key_table]['liqtype'],boreholefieldsData[key_table]['tfreeze'],               
+                    boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad'])               
+            else:   
+                #Check for updated columns
+                for col in ['ep_id','zhole','rhole','rb','rpipeearth','rpipegrout','rringearth','rgroutearth','rgroutgrout','mir','rmax','nring','nzhole','nlayt','n1','n2','n3','toutput','cpgrd','lambgrd','rhogrd','cpgrout','lambgrout','rhogrout','rpipe','thickpipe','cppipe','lambpipe','lcasting','lambda','rhosurface','cpsurface','liqtype','tfreeze','lambliq','tmean','geotgrad']:
+                    if self.loadedBoreholefieldsData[key_table][col]!=boreholefieldsData[key_table][col]:
+                        sql+="""UPDATE "{}".borehole_fields SET {} = {} WHERE id = {} ;\n""".format(self.dictDB['versionName'],col,boreholefieldsData[key_table][col],key_table)   
+        
         try:
+            print(sql)
             self.cur.execute(sql)
             closeDialog(dlg)
         except Exception as e:
@@ -538,59 +573,69 @@ class IDADistrictsModelingSimulation:
         sql="""SELECT * FROM "{}".borehole_fields;""".format(self.dictDB['versionName'])
         self.cur.execute(sql)
         boreholes_data=self.cur.fetchall()
-        dropdowns=[[19,'public','liquids','id','liquid']]
+        dropdowns=[[20,'public','liquids','id','liquid']]
         dlg.tableWidget.setRowCount(len(boreholes_data))
+        boreholefieldsData={}
 
         for counter,i in enumerate(boreholes_data):
             print(counter)
             print(i)
+            boreholefieldsData[i['id']]={'ep_id': str(i['ep_id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
+                'rgroutgrout': str(i['rgroutgrout']),'rringearth': str(i['rringearth']),'cpgrd': str(i['cpgrd']),'lambgrd': str(i['lambgrd']),'rhogrd': str(i['rhogrd']),'cpgrout': str(i['cpgrout']),'lambgrout': str(i['lambgrout']),
+                'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
+                'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'mir': str(i['mir']),'rmax': str(i['rmax']),
+                'nring': str(i['nring']),'nzhole': str(i['nzhole']),'nlayt': str(i['nlayt']),'n1': str(i['n1']),'n2': str(i['n2']),'n3': str(i['n3']),'toutput': str(i['toutput']),'tmean': str(i['tmean']),'geotgrad': str(i['geotgrad'])}
             dropdownItems=getDropDownItems(self.cur,dropdowns)
             
+            item = QTableWidgetItem(str(i['id'])) #id
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            dlg.tableWidget.setItem(counter,0,item)
             comboBox = QComboBox()
             comboBox.addItems([str(ids['id']) for ids in getTableIds(self.cur,self.dictDB['versionName'],'energy_plants','id')])
-            comboBox.setCurrentText(str(i['id']))
-            dlg.tableWidget.setCellWidget(counter, 0, comboBox) #plant id
-            dlg.tableWidget.setItem(counter,1,QTableWidgetItem(str(i['zhole']))) #zhole
-            dlg.tableWidget.setItem(counter,2,QTableWidgetItem(str(i['rhole']))) #rhole
-            dlg.tableWidget.setItem(counter,3,QTableWidgetItem(str(i['rb']))) #RB
-            dlg.tableWidget.setItem(counter,4,QTableWidgetItem(str(i['rpipegrout']))) #RPIPEGROUT
-            dlg.tableWidget.setItem(counter,5,QTableWidgetItem(str(i['rpipeearth']))) #RPIPEEARTH
-            dlg.tableWidget.setItem(counter,6,QTableWidgetItem(str(i['rgroutgrout']))) #RGROUTGROUT
-            dlg.tableWidget.setItem(counter,7,QTableWidgetItem(str(i['rgroutearth']))) #RGROUTEARTH
-            dlg.tableWidget.setItem(counter,8,QTableWidgetItem(str(i['rringearth']))) #RRINGEARTH
-            dlg.tableWidget.setItem(counter,9,QTableWidgetItem(str(i['cpgrd']))) #cpgrd
-            dlg.tableWidget.setItem(counter,10,QTableWidgetItem(str(i['lambgrd']))) #lambgrd
-            dlg.tableWidget.setItem(counter,11,QTableWidgetItem(str(i['rhogrd']))) #rhogrd
-            dlg.tableWidget.setItem(counter,12,QTableWidgetItem(str(i['cpgrout']))) #cpgrout
-            dlg.tableWidget.setItem(counter,13,QTableWidgetItem(str(i['lambgrout']))) #lambgrout
-            dlg.tableWidget.setItem(counter,14,QTableWidgetItem(str(i['rhogrout']))) #rhogrout
-            dlg.tableWidget.setItem(counter,15,QTableWidgetItem(str(i['rpipe']))) #rpipe
-            dlg.tableWidget.setItem(counter,16,QTableWidgetItem(str(i['thickpipe']))) #thickpipe
-            dlg.tableWidget.setItem(counter,17,QTableWidgetItem(str(i['cppipe']))) #cppipe
-            dlg.tableWidget.setItem(counter,18,QTableWidgetItem(str(i['lambpipe']))) #lambpipe
+            comboBox.setCurrentText(str(i['ep_id']))
+            dlg.tableWidget.setCellWidget(counter, 1, comboBox) #plant id
+            dlg.tableWidget.setItem(counter,2,QTableWidgetItem(str(i['zhole']))) #zhole
+            dlg.tableWidget.setItem(counter,3,QTableWidgetItem(str(i['rhole']))) #rhole
+            dlg.tableWidget.setItem(counter,4,QTableWidgetItem(str(i['rb']))) #RB
+            dlg.tableWidget.setItem(counter,5,QTableWidgetItem(str(i['rpipegrout']))) #RPIPEGROUT
+            dlg.tableWidget.setItem(counter,6,QTableWidgetItem(str(i['rpipeearth']))) #RPIPEEARTH
+            dlg.tableWidget.setItem(counter,7,QTableWidgetItem(str(i['rgroutgrout']))) #RGROUTGROUT
+            dlg.tableWidget.setItem(counter,8,QTableWidgetItem(str(i['rgroutearth']))) #RGROUTEARTH
+            dlg.tableWidget.setItem(counter,9,QTableWidgetItem(str(i['rringearth']))) #RRINGEARTH
+            dlg.tableWidget.setItem(counter,10,QTableWidgetItem(str(i['cpgrd']))) #cpgrd
+            dlg.tableWidget.setItem(counter,11,QTableWidgetItem(str(i['lambgrd']))) #lambgrd
+            dlg.tableWidget.setItem(counter,12,QTableWidgetItem(str(i['rhogrd']))) #rhogrd
+            dlg.tableWidget.setItem(counter,13,QTableWidgetItem(str(i['cpgrout']))) #cpgrout
+            dlg.tableWidget.setItem(counter,14,QTableWidgetItem(str(i['lambgrout']))) #lambgrout
+            dlg.tableWidget.setItem(counter,15,QTableWidgetItem(str(i['rhogrout']))) #rhogrout
+            dlg.tableWidget.setItem(counter,16,QTableWidgetItem(str(i['rpipe']))) #rpipe
+            dlg.tableWidget.setItem(counter,17,QTableWidgetItem(str(i['thickpipe']))) #thickpipe
+            dlg.tableWidget.setItem(counter,18,QTableWidgetItem(str(i['cppipe']))) #cppipe
+            dlg.tableWidget.setItem(counter,19,QTableWidgetItem(str(i['lambpipe']))) #lambpipe
             comboBox = QComboBox()
-            comboBox.addItems(dropdownItems[19])
+            comboBox.addItems(dropdownItems[20])
             sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype'])
             self.cur.execute(sql)
             comboBox.setCurrentText(str(i['liqtype'])+':'+self.cur.fetchone()['liquid'])
-            dlg.tableWidget.setCellWidget(counter, 19, comboBox) #liquid
-            dlg.tableWidget.setItem(counter,20,QTableWidgetItem(str(i['tfreeze']))) #tfreeze
-            dlg.tableWidget.setItem(counter,21,QTableWidgetItem(str(i['lambliq']))) #lambliq
-            dlg.tableWidget.setItem(counter,22,QTableWidgetItem(str(i['lcasting']))) #lcasting
-            dlg.tableWidget.setItem(counter,23,QTableWidgetItem(str(i['lambda']))) #lambda
-            dlg.tableWidget.setItem(counter,24,QTableWidgetItem(str(i['rhosurface']))) #rhosurface
-            dlg.tableWidget.setItem(counter,25,QTableWidgetItem(str(i['cpsurface']))) #cpsurface
-            dlg.tableWidget.setItem(counter,26,QTableWidgetItem(str(i['mir']))) #mir
-            dlg.tableWidget.setItem(counter,27,QTableWidgetItem(str(i['rmax']))) #rmax
-            dlg.tableWidget.setItem(counter,28,QTableWidgetItem(str(i['nring']))) #nring
-            dlg.tableWidget.setItem(counter,29,QTableWidgetItem(str(i['nzhole']))) #nzhole
-            dlg.tableWidget.setItem(counter,30,QTableWidgetItem(str(i['nlayt']))) #nlayt
-            dlg.tableWidget.setItem(counter,31,QTableWidgetItem(str(i['n1']))) #n1
-            dlg.tableWidget.setItem(counter,32,QTableWidgetItem(str(i['n2']))) #n2
-            dlg.tableWidget.setItem(counter,33,QTableWidgetItem(str(i['n3']))) #n3
-            dlg.tableWidget.setItem(counter,34,QTableWidgetItem(str(i['toutput']))) #toutput
-            dlg.tableWidget.setItem(counter,35,QTableWidgetItem(str(i['tmean']))) #tmean
-            dlg.tableWidget.setItem(counter,36,QTableWidgetItem(str(i['geotgrad']))) #geotgrad
+            dlg.tableWidget.setCellWidget(counter, 20, comboBox) #liquid
+            dlg.tableWidget.setItem(counter,21,QTableWidgetItem(str(i['tfreeze']))) #tfreeze
+            dlg.tableWidget.setItem(counter,22,QTableWidgetItem(str(i['lambliq']))) #lambliq
+            dlg.tableWidget.setItem(counter,23,QTableWidgetItem(str(i['lcasting']))) #lcasting
+            dlg.tableWidget.setItem(counter,24,QTableWidgetItem(str(i['lambda']))) #lambda
+            dlg.tableWidget.setItem(counter,25,QTableWidgetItem(str(i['rhosurface']))) #rhosurface
+            dlg.tableWidget.setItem(counter,26,QTableWidgetItem(str(i['cpsurface']))) #cpsurface
+            dlg.tableWidget.setItem(counter,27,QTableWidgetItem(str(i['mir']))) #mir
+            dlg.tableWidget.setItem(counter,28,QTableWidgetItem(str(i['rmax']))) #rmax
+            dlg.tableWidget.setItem(counter,29,QTableWidgetItem(str(i['nring']))) #nring
+            dlg.tableWidget.setItem(counter,30,QTableWidgetItem(str(i['nzhole']))) #nzhole
+            dlg.tableWidget.setItem(counter,31,QTableWidgetItem(str(i['nlayt']))) #nlayt
+            dlg.tableWidget.setItem(counter,32,QTableWidgetItem(str(i['n1']))) #n1
+            dlg.tableWidget.setItem(counter,33,QTableWidgetItem(str(i['n2']))) #n2
+            dlg.tableWidget.setItem(counter,34,QTableWidgetItem(str(i['n3']))) #n3
+            dlg.tableWidget.setItem(counter,35,QTableWidgetItem(str(i['toutput']))) #toutput
+            dlg.tableWidget.setItem(counter,36,QTableWidgetItem(str(i['tmean']))) #tmean
+            dlg.tableWidget.setItem(counter,37,QTableWidgetItem(str(i['geotgrad']))) #geotgrad
+        return boreholefieldsData
             
         
         
@@ -600,7 +645,7 @@ class IDADistrictsModelingSimulation:
         if self.conn:
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-                headers=["Plant ID","Drilling (Borehole) Depth, m","Drilling (Borehole) Radius, m", "Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances",
+                headers=["Id","Plant ID","Drilling (Borehole) Depth, m","Drilling (Borehole) Radius, m", "Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances",
                     "Heat resistance between pipe and inner grout, (m2 K)/W","Heat resistance between pipe and earth, (m2 K)/W", "Heat resistance between inner and outer grout, (m2 K)/W","Heat resistance between grout and earth, (m2 K)/W","Heat resistance between groutring and earth, (m2 K)/W",
                     "Heat capacity of ground, J/(kg K)","Heat transfer coefficient of ground, W/(m K)","Density of ground, kg/m3",
                     "Heat capacity of grout, J/(kg K)","Heat transfer coefficient of grout, W/(m K)","Density of grout, kg/m3",
@@ -615,7 +660,7 @@ class IDADistrictsModelingSimulation:
                 self.dlg_boreholeFieldSettings.btn_add.clicked.connect(lambda: self.addTableRow(self.dlg_boreholeFieldSettings))
                 self.dlg_boreholeFieldSettings.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_boreholeFieldSettings))
                 self.dlg_boreholeFieldSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_boreholeFieldSettings))
-                self.showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings)
+                self.loadedBoreholefieldsData=self.showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings)
                 self.dlg_boreholeFieldSettings.show()  
             else:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
@@ -745,7 +790,7 @@ class IDADistrictsModelingSimulation:
                     
         print(networks)
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
-
+        print(submodels)
         if networks and submodels:
             self.worker_invokeNetwork = WorkerBuildNetworkModel(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
             self.threadpool_invokeNetwork = QThreadPool()

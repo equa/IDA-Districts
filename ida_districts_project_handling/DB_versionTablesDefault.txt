@@ -15,6 +15,7 @@ CREATE TABLE "$versionName$".boreholes(
 DROP TABLE IF EXISTS "$versionName$".borehole_fields CASCADE;
 CREATE TABLE "$versionName$".borehole_fields(
     id serial,
+    ep_id integer,
     zhole numeric CHECK (zhole > 0),
     rhole numeric CHECK (rhole > 0),
     rb numeric CHECK (rb >= 0), 

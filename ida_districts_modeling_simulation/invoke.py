@@ -180,9 +180,10 @@ def setupCustomerVersionForm(cur,dictDB,plugin_dir):
     vlayer.setEditFormConfig(fc)
 
 def addParmTableRow(dlg,cur,dictDB):
-    addTableRow(dlg.tableWidget_parameters)
-    maxId=getMaxIdAcrossSchemas(dictDB,cur,'customer_model_parms')
-    item = QTableWidgetItem(str(maxId+1))
+    maxId=max([getMaxIdAcrossSchemas(dictDB,cur,'customer_model_parms')+1]+[int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())])
+    dlg.tableWidget_parameters.insertRow(0)
+        
+    item = QTableWidgetItem(str(maxId))
     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
     dlg.tableWidget_parameters.setItem(0 , 0, item)
     dlg.tableWidget_parameters.setItem(0 , 1, QTableWidgetItem(''))

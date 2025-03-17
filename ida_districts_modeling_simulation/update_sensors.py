@@ -250,11 +250,14 @@ class UpdateSensors():
         rowPosition = self.dlg.tableWidget_source.rowCount()
         print('&&&&&&&&&&&&&&&&&&&&&&&&&')
         print(rowPosition)
-        maxId=getMaxIdAcrossSchemas(self.dictDB,self.cur,'sensors')
+        
+        maxId=max([getMaxIdAcrossSchemas(self.dictDB,self.cur,'sensors')+1]+[int(self.dlg.tableWidget_source.item(i,0).text())+1 for i in range(self.dlg.tableWidget_source.rowCount())])        
         
         #source table
         self.dlg.tableWidget_source.insertRow(rowPosition)
-        self.dlg.tableWidget_source.setItem(rowPosition,0,QTableWidgetItem(str(maxId+1)))
+        item = QTableWidgetItem(str(maxId))
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        self.dlg.tableWidget_source.setItem(rowPosition,0,item)
         for i in range(2,7):
             self.setCheckableDropDownItemsTable(self.dlg.tableWidget_source,[],rowPosition,i,[])
         self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,6]]]),'1',7,rowPosition,self.measureChanged)
@@ -267,7 +270,9 @@ class UpdateSensors():
         
         #target table
         self.dlg.tableWidget_target.insertRow(rowPosition)
-        self.dlg.tableWidget_target.setItem(rowPosition,0,QTableWidgetItem(str(maxId+1)))
+        item = QTableWidgetItem(str(maxId))
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        self.dlg.tableWidget_target.setItem(rowPosition,0,item)
         for i in range(2,5):
             self.setCheckableDropDownItemsTable(self.dlg.tableWidget_target,[],rowPosition,i,[])
         self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),'4:Supervisory control',1,rowPosition,self.targetTypeChanged) #dropdown type
@@ -298,7 +303,9 @@ class UpdateSensors():
             self.loadedSensorData[sensor_data['sensor_id']]={'source' : {'type' : sensor_data['source_type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure_id'],'function' : sensor_data['function_id'],'test_value' : float(sensor_data['test_value']),'description' : sensor_data['description_source']}, 
                 'target': {'type' : sensor_data['target_type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'target' : None,'description' : ''}}
             self.dlg.tableWidget_source.insertRow(i)
-            self.dlg.tableWidget_source.setItem(i,0,QTableWidgetItem(str(sensor_data['sensor_id'])))
+            item = QTableWidgetItem(str(sensor_data['sensor_id']))
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            self.dlg.tableWidget_source.setItem(i , 0, item)
             self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),str(sensor_data['source_type'])+':'+sensor_data['source_type_name'],1,i,self.sourceTypeChanged) #dropdown type
             if sensor_data['source_type']==4:
                 self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[5]]]),sensor_data['measure'],7,i,self.measureChanged)
@@ -333,7 +340,9 @@ class UpdateSensors():
             self.loadedSensorData[sensor_data['sensor_id']]['target']['description_target']=sensor_data['description_target']
             self.loadedSensorData[sensor_data['sensor_id']]['target']['target']=sensor_data['target_name']
             self.dlg.tableWidget_target.insertRow(i)
-            self.dlg.tableWidget_target.setItem(i,0,QTableWidgetItem(str(sensor_data['sensor_id'])))
+            item = QTableWidgetItem(str(sensor_data['sensor_id']))
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            self.dlg.tableWidget_target.setItem(i , 0, item)
             self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),str(sensor_data['target_type'])+':'+sensor_data['target_type_name'],1,i,self.targetTypeChanged) #dropdown type
             if sensor_data['target_type']==4:
                 for col in range(2,5):
