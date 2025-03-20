@@ -9,6 +9,46 @@ import subprocess
 import os
 from plugins.utility_functions.files import *
 
+def dropDBTriggers(cur,dictDB):
+    sql=''
+    for table in getDBTableNames(cur,dictDB):
+        sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
+        sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
+        sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
+        sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
+    print(sql)
+    cur.execute(sql)
+
+def insertDBTriggers(cur,dictDB):
+    sql=''
+    for table in getDBTableNames(cur,dictDB):
+        sql+="""CREATE TRIGGER my_insert_trigger
+AFTER INSERT ON {}.{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_insert_function();\n""".format(dictDB['versionName'],table)
+        sql+="""CREATE TRIGGER my_delete_trigger
+AFTER DELETE ON {}.{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_delete_function();\n""".format(dictDB['versionName'],table)
+        sql+="""CREATE TRIGGER my_truncate_trigger
+AFTER TRUNCATE ON {}.{}
+FOR EACH STATEMENT
+EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(dictDB['versionName'],table)
+        sql+="""CREATE TRIGGER column_update_trigger
+AFTER UPDATE ON {}.{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_update_function();\n""".format(dictDB['versionName'],table)
+    print(sql)
+    cur.execute(sql)
+    
+def getDBTableNames(cur,dictDB):
+    sql="""SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = '{}'
+    AND table_type = 'BASE TABLE';""".format(dictDB['versionName'])
+    cur.execute(sql)
+    return [table['table_name'] for table in cur.fetchall()]
+            
 def getMaxIdAcrossSchemas(dictDB,cur,table_name):
     sql="""SELECT * FROM get_highest_id_across_schemas('{}', (SELECT array_agg(name) FROM get_version_tree('{}'))) AS max_id;""".format(table_name,dictDB['versionName'])
     cur.execute(sql)

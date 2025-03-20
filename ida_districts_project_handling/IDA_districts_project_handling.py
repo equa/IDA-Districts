@@ -172,50 +172,12 @@ class WorkerLoadVersion(QRunnable):
             self.signals.progress.emit(10)  
             print(self.dictDB['versionName'])
             
-            #version handling 
-            #feature tables: customers, energy_plants, devices, lines
-            
-            #sensor tables: 
-            #building related tables:
-            traced_tables=['customers','energy_plants','devices','lines']
-            
-            sql="""SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = '{}'
-  AND table_type = 'BASE TABLE';""".format(self.dictDB['versionName'])
-            self.cur.execute(sql)
-            table_names=[table['table_name'] for table in self.cur.fetchall()]
+            #version handling            
             
             #update triggers: delete last loaded versions triggers if exists and create new triggers
-            sql=''
-            for table in table_names:
-                print(table)
-                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
-                sql+="""CREATE TRIGGER my_insert_trigger
-AFTER INSERT ON {}.{}
-FOR EACH ROW
-EXECUTE FUNCTION my_trigger_insert_function();\n""".format(self.dictDB['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
-                sql+="""CREATE TRIGGER my_delete_trigger
-AFTER DELETE ON {}.{}
-FOR EACH ROW
-EXECUTE FUNCTION my_trigger_delete_function();\n""".format(self.dictDB['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
-                sql+="""CREATE TRIGGER my_truncate_trigger
-AFTER TRUNCATE ON {}.{}
-FOR EACH STATEMENT
-EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(self.dictDB['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(self.dictDB_lastLoad['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(self.dictDB['versionName'],table)
-                sql+="""CREATE TRIGGER column_update_trigger
-AFTER UPDATE ON {}.{}
-FOR EACH ROW
-EXECUTE FUNCTION my_trigger_update_function();\n""".format(self.dictDB['versionName'],table)
-            print(sql)
-            self.cur.execute(sql)
+            dropDBTriggers(self.cur,self.dictDB_lastLoad)
+            dropDBTriggers(self.cur,self.dictDB)
+            insertDBTriggers(self.cur,self.dictDB)
   
             writeDBSettings(self.plugin_dir,self.dictDB)
             writeDBSettings(self.plugin_dir,self.dictDB,filename='dbSettings_lastLoad')

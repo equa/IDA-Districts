@@ -6,6 +6,14 @@ CREATE TABLE public.liquids(
     CONSTRAINT liquids_pkey PRIMARY KEY (id)
 );
 
+-------------------table public.usage_category------------------------------------
+DROP TABLE IF EXISTS public.usage_category CASCADE;
+CREATE TABLE public.usage_category(
+    id serial,
+    name text,
+    CONSTRAINT usage_category_pkey PRIMARY KEY (id)
+);
+
 -------------------table public.pipe_ambient------------------------------------
 DROP TABLE IF EXISTS public.pipe_ambient CASCADE;
 CREATE TABLE IF NOT EXISTS public.pipe_ambient

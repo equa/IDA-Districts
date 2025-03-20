@@ -908,14 +908,8 @@ class PipeLayingDialog(QMainWindow):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
 
-        sql=""" DELETE FROM "{}".lines;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".customers;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".junctions;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".customer_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".junction_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".energy_plant_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".device_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".energy_plants;\n""".format(self.dictDB['versionName'])
+        dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
+        sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
@@ -925,6 +919,8 @@ class PipeLayingDialog(QMainWindow):
         sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
+        insertDBTriggers(self.cur,self.dictDB)
+
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
@@ -1308,14 +1304,8 @@ class NetworkTopologyDialog(QMainWindow):
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
-        sql=""" DELETE FROM "{}".lines;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".customers;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".junctions;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".customer_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".junction_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".energy_plant_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".device_connections;\n""".format(self.dictDB['versionName'])
-        sql+=""" DELETE FROM "{}".energy_plants;\n""".format(self.dictDB['versionName'])
+        dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
+        sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
         sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
@@ -1325,6 +1315,7 @@ class NetworkTopologyDialog(QMainWindow):
         sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.dictDB['versionName'])
         print(sql) 
         self.cur.execute(sql)  
+        insertDBTriggers(self.cur,self.dictDB) 
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)

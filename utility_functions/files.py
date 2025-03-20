@@ -650,7 +650,12 @@ def replaceKeywordsInPList(plist,replaceDict):
                 for i in comp:
                     i_name=getCompName(i).replace('|','')
                     if i_name in replaceDict[comp_name]:
-                        i[':V']=str(replaceDict[comp_name][i_name])
+                        if isinstance(replaceDict[comp_name][i_name], dict):
+                            print("It's a dictionary!")
+                            for key,value in replaceDict[comp_name][i_name].items():
+                                i[key]=str(value)
+                        else:
+                            i[':V']=str(replaceDict[comp_name][i_name])
                         parms.append(getCompName(i))
                         new_comp.append(i)
                     else:
@@ -661,7 +666,7 @@ def replaceKeywordsInPList(plist,replaceDict):
                 data.append(new_comp)
         else:
             data.append(comp)
-    #print('---finish replace kewords----')    
+    print('---finish replace kewords----')    
     return data
     
 def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False):

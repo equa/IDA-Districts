@@ -352,6 +352,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                 print(boreholes)
                 if boreholes:
                     x="#("+" ".join([str(i['x']) for i in boreholes])+")"
+                    x_source="(:DEFAULT #S (MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ("+" ".join(['('+str(counter)+')' for counter,i in enumerate(boreholes,1)])+")) 2)"
                     y="#("+" ".join([str(i['y']) for i in boreholes])+")"
                     nholes=len([str(i['x']) for i in boreholes])
                     ngroups=len(set([str(i['group']) for i in boreholes]))
@@ -379,7 +380,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
-                    replaceDict={':FEATURE': {'GHX_MANY': {'X': x,'Y':y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
+                    replaceDict={':FEATURE': {'GHX_MANY': {'X': {':V' : x, ':S': x_source},'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
                         'ZHOLE':field_data['zhole'],'RHOLE':field_data['rhole'],
                         'RB':field_data['rb'],'RPIPEEARTH':field_data['rpipeearth'],'RPIPEGROUT':field_data['rpipegrout'],'RRINGEARTH':field_data['rringearth'],'RGROUTEARTH':field_data['rgroutearth'],'RGROUTGROUT':field_data['rgroutgrout'],
                         'MIR':field_data['mir'],'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
@@ -390,6 +391,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
                         'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
             print(replaceDict)
+            
             CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
             f_idc=dir+type.capitalize()+"_"+id+".idc"
