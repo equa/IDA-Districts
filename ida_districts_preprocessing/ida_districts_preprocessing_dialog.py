@@ -907,28 +907,30 @@ class PipeLayingDialog(QMainWindow):
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
         print('save Results')
+        self.conn=dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
+            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.dictDB['versionName']) 
+            sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.dictDB['versionName'])  
+            sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.dictDB['versionName'])
+            print(sql) 
+            self.cur.execute(sql)  
+            insertDBTriggers(self.cur,self.dictDB)
 
-        dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
-        sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.dictDB['versionName']) 
-        sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.dictDB['versionName'])  
-        sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        insertDBTriggers(self.cur,self.dictDB)
-
-        removeLayers()
-        layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-        iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-        for layer in ['lines','junctions','customers','energy_plants']:
-            vlayer= QgsProject.instance().mapLayersByName(layer)[0]
-            layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
-            vlayer.emitDataChanged()
-        refreshMap()
+            removeLayers()
+            layerTreeRoot = QgsProject.instance().layerTreeRoot()  
+            iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
+            for layer in ['lines','junctions','customers','energy_plants']:
+                vlayer= QgsProject.instance().mapLayersByName(layer)[0]
+                layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
+                vlayer.emitDataChanged()
+            refreshMap()
         
     def rejectResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
@@ -1201,7 +1203,9 @@ class NetworkTopologyDialog(QMainWindow):
         self.iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         
     def execute(self):  
+        self.conn=dbConnect(self.dictDB,True)
         if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != 'Check all items' and self.combo_network_models.itemChecked(i)]
             if checkNetwork(self.cur,self.dictDB['versionName'],networks):                 
                 worker = WorkerGenerateNetworkTopology(iface=self.iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
@@ -1303,27 +1307,30 @@ class NetworkTopologyDialog(QMainWindow):
 
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
-        print('save Results')
-        dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
-        sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(self.dictDB['versionName'])
-        sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.dictDB['versionName']) 
-        sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.dictDB['versionName'])  
-        sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.dictDB['versionName'])
-        print(sql) 
-        self.cur.execute(sql)  
-        insertDBTriggers(self.cur,self.dictDB) 
-        removeLayers()
-        layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-        iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-        for layer in ['lines','junctions','customers','energy_plants']:
-            vlayer= QgsProject.instance().mapLayersByName(layer)[0]
-            layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
-            vlayer.emitDataChanged()
-        refreshMap()
+        self.conn=dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            print('save Results')
+            dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
+            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(self.dictDB['versionName'])
+            sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.dictDB['versionName']) 
+            sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.dictDB['versionName'])  
+            sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.dictDB['versionName'])
+            print(sql) 
+            self.cur.execute(sql)  
+            insertDBTriggers(self.cur,self.dictDB) 
+            removeLayers()
+            layerTreeRoot = QgsProject.instance().layerTreeRoot()  
+            iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
+            for layer in ['lines','junctions','customers','energy_plants']:
+                vlayer= QgsProject.instance().mapLayersByName(layer)[0]
+                layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
+                vlayer.emitDataChanged()
+            refreshMap()
         
     def rejectResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""

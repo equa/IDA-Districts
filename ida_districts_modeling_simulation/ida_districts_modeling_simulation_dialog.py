@@ -363,16 +363,18 @@ class BuildBuildingModelDialog(QMainWindow):
         """Constructor."""
         super().__init__()
         self.setWindowTitle("Build building model") 
+
+        layout_buttons_table = QHBoxLayout()
+        self.btn_add=QPushButton("Add")
+        layout_buttons_table.addWidget(self.btn_add)
+        self.btn_delete=QPushButton("Delete")
+        layout_buttons_table.addWidget(self.btn_delete)
         
-        
-        layout_networks=QVBoxLayout()
-        self.label_submodels =QLabel("Submodels")
-        font=self.label_submodels.font()
-        font.setPointSize(15)
-        self.label_submodels.setFont(font)
-        layout_networks.addWidget(self.label_submodels)
-        self.combo_submodels = CheckableComboBox()
-        layout_networks.addWidget(self.combo_submodels)
+        #Table
+        layout_table = QHBoxLayout() 
+        self.tableWidget = QTableWidget(0,2)
+        self.tableWidget.setHorizontalHeaderLabels(['Submodel','Building template'])     
+        layout_table.addWidget(self.tableWidget)
         
         
         #buttons     
@@ -387,7 +389,8 @@ class BuildBuildingModelDialog(QMainWindow):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_networks)
+        layout_win.addLayout(layout_buttons_table)
+        layout_win.addLayout(layout_table)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         

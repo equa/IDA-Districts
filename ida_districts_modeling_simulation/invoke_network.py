@@ -297,17 +297,17 @@ class InvokeNetworkModel:
         script="""((close-document [@])
 (close-unused-documents))"""
         print(script)
-        changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))   
+        changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
     
     def openFile(self):
         """ Save the file"""
         # Open the building with the IDA ICE Python API
-        self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.buildingIdmFilePath.encode('ascii'))
+        self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.buildingIdmFilePath.encode('utf-8'))
     
     def saveFile(self):
         """ Save the file"""
         # Save the new building using the API
-        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('ascii'), 1) 
+        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1) 
         
     def replaceFile(self,dir,file):
         dir_plugin_split=self.plugin_dir.split('\\')

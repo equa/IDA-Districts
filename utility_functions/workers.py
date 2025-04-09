@@ -135,16 +135,16 @@ class WorkerSimulateFilesAPI(QRunnable):
                     print(file_path)
                     #open file
                     print('+++++++++opening+++++++++++')
-                    building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('ascii'))
+                    building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
                     print('+++++++++opened+++++++++++')
                     #run sim
                     script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
                     print(script)
-                    self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('ascii'))
+                    self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
                     #print('save doc')
-                    #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('ascii'), 1)   
+                    #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('utf-8'), 1)   
                     print('+++++++++saved++++++++++++++++')
                     self.progress_value=int(counter/len(self.file_pathes)*98)+1
                     print(self.progress_value)
@@ -185,14 +185,14 @@ class WorkerSimulateAPI(QRunnable):
                 print(self.file_path)
                 #open file
                 print('+++++++++opening+++++++++++')
-                self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+                self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
                 print('+++++++++opened+++++++++++')
                 #run sim
                 script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(self.file_path.replace('\\','\\\\'))
                 print(script)
-                self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))
+                self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))
                 print(self.result)
                 if self.result:
                     self.signals.status.emit('Simulation finished')
@@ -230,7 +230,39 @@ class WorkerOpenAPI(QRunnable):
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
         print(connectionTest)
         try:
-            result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+            result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
+            self.signals.progress.emit(100)
+        except:
+            self.signals.progress.emit(0)
+            self.signals.error.emit("Failed to open the feature!")  
+            
+class WorkerOpenRunScriptAPI(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,file_path,plugin_dir,script):
+        super().__init__()
+        self.file_path=file_path.replace('/','\\')
+        self.plugin_dir=plugin_dir
+        self.signals=APISignals()
+        self.script=script
+            
+    @pyqtSlot()
+    def run(self):
+        #open file in IDA
+        self.signals.progress.emit(1)
+        self.util=Util_api(self.plugin_dir)
+
+        print(self.util.pid)
+        
+        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
+        print(connectionTest)
+        try:
+            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
+            print('+++++++++')
+            print(self.building)
+            self.signals.progress.emit(50)
+            result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8')) 
+            
             self.signals.progress.emit(100)
         except:
             self.signals.progress.emit(0)
@@ -247,7 +279,7 @@ class WorkerOpenParRunAPI():
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
         print(connectionTest)
         try:
-            building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+            building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             if parmRun=='New Parametric Run':
                 script="""((:set name (:call get-unique-component-name "ParmRun_1" [@ :SYSTEM]))
 (:set value (:call make-component [@ :SYSTEM] '(macro-object :t parmrun-info :n (:eval name))))
@@ -260,7 +292,7 @@ class WorkerOpenParRunAPI():
 (open-as parm_name 'form))""".format(parmRun)
             
             print(script)
-            script_result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('ascii'))
+            script_result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
             print(script_result)
         except:
             pass
@@ -278,7 +310,7 @@ class WorkerRunAutoMooAPI():
         print(connectionTest)
         try:
             print('**************ParmRunSkopt*****************')
-            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             print(self.building)
 
             print('save doc')
@@ -294,13 +326,13 @@ class WorkerRunAutoMooAPI():
 (PARMRUN-SKOPT parmrun_)
 )""".format(parmRun,parmRun)
             print(script)
-            self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))   
+            self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
       
             print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
 
             print('exit')
-            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('ascii'))
+            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
             os.system("taskkill /f /im ida-ice.exe")
             #Disconnect
             #print('disconnect')

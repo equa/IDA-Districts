@@ -27,7 +27,7 @@ def setLayersHidden(tableNames):
 def loadTopologyLayers(version,uri,dictDB):
     #load tables without geometry and hide them in layers panel
     tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
-        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']
+        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes','room_units','building_constructions','building_templates']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
         layer = QgsVectorLayer(uri.uri(False), tableName, dictDB['user'])
@@ -39,7 +39,7 @@ def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
         if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes',
-            'energy_plant_assetgroups','junction_assettypes','junctions','structure_boundarys','streets', 'buildings','network','cosim',
+            'energy_plant_assetgroups','junction_assettypes','junctions','streets', 'buildings','network','cosim',
             'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
             'pipematerial']:
             QgsProject.instance().removeMapLayer(layer)

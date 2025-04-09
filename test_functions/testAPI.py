@@ -18,20 +18,20 @@ class WorkerRunAutoMooAPI():
         print(connectionTest)
         try:
             print('**************ParmRunSkopt*****************')
-            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('ascii'))
+            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
 
                 
             print('--script---')
             #execute AutoMOO
             script="""(PARMRUN-SKOPT [@ :SYSTEM "ParmRun_annualCallib"])"""
             print(script)
-            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('ascii'))   
+            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
       
             print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
 
             print('exit')
-            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('ascii'))
+            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
             os.system("taskkill /f /im ida-ice.exe")
             #Disconnect
             #print('disconnect')

@@ -1,3 +1,200 @@
+-------------------table public.zone_templates------------------------------------
+INSERT INTO public.zone_templates (id,name,description) VALUES (1,'1.01 Wohnen MFH_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (2,'1.02 Wohnen EFH_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (3,'2.01 Hotelzimmer_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (4,'2.02 Empfang, Lobby_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (5,'3.01 Einzel-, Gruppenbüro_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (6,'3.02 Grossraumbüro_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (7,'3.03 Sitzungszimmer_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (8,'3.04 Schalterhalle, Empfang_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (9,'4.01 Schulzimmer_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (10,'4.02 Lehrerzimmer_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (11,'4.03 Bibliothek_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (12,'4.04 Hörsaal_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (13,'4.05 Schulfachraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (14,'5.01 Lebensmittelverkauf_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (15,'5.02 Fachgeschäft_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (16,'5.03 Verkauf Möbel, Bau, Garten_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (17,'6.01 Restaurant_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (18,'6.02 Selbstbedienungsrestaurant_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (19,'6.03 Küche zu Restaurant_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (20,'6.04 Küche zu Selbstbedienungsrestaurant_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (21,'7.01 Vorstellungsraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (22,'7.02 Mehrzweckhalle_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (23,'7.03 Ausstellungshalle_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (24,'8.01 Bettenzimmer_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (25,'8.02 Stationszimmer_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (26,'8.03 Behandlungsraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (27,'9.01 Produktion (grobe Arbeit)_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (28,'9.02 Produktion (feine Arbeit)_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (29,'9.03 Laborraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (30,'10.01 Lagerhalle_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (31,'11.01 Turnhalle_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (32,'11.02 Fitnessraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (33,'11.03 Schwimmhalle_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (34,'12.01 Verkehrsfläche_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (35,'12.02 Verkehrsfläche 24h_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (36,'12.03 Treppenhaus_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (37,'12.04 Nebenraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (38,'12.05 Küche, Teeküche_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (39,'12.06 WC, Bad, Dusche_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (40,'12.07 WC_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (41,'12.08 Garderobe, Dusche_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (42,'12.09 Parkhaus_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (43,'12.10 Wasch- und Trockenraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (44,'12.11 Kühlraum_Best.','SIA Standard for existing buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (45,'12.12 Serverraum_Best.','SIA Standard for existing buildings');
+
+INSERT INTO public.zone_templates (id,name,description) VALUES (46,'1.01 Wohnen MFH_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (47,'1.02 Wohnen EFH_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (48,'2.01 Hotelzimmer_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (49,'2.02 Empfang, Lobby_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (50,'3.01 Einzel-, Gruppenbüro_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (51,'3.02 Grossraumbüro_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (52,'3.03 Sitzungszimmer_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (53,'3.04 Schalterhalle, Empfang_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (54,'4.01 Schulzimmer_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (55,'4.02 Lehrerzimmer_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (56,'4.03 Bibliothek_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (57,'4.04 Hörsaal_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (58,'4.05 Schulfachraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (59,'5.01 Lebensmittelverkauf_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (60,'5.02 Fachgeschäft_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (61,'5.03 Verkauf Möbel, Bau, Garten_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (62,'6.01 Restaurant_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (63,'6.02 Selbstbedienungsrestaurant_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (64,'6.03 Küche zu Restaurant_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (65,'6.04 Küche zu Selbstbedienungsrestaurant_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (66,'7.01 Vorstellungsraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (67,'7.02 Mehrzweckhalle_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (68,'7.03 Ausstellungshalle_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (69,'8.01 Bettenzimmer_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (70,'8.02 Stationszimmer_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (71,'8.03 Behandlungsraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (72,'9.01 Produktion (grobe Arbeit)_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (73,'9.02 Produktion (feine Arbeit)_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (74,'9.03 Laborraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (75,'10.01 Lagerhalle_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (76,'11.01 Turnhalle_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (77,'11.02 Fitnessraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (78,'11.03 Schwimmhalle_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (79,'12.01 Verkehrsfläche_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (80,'12.02 Verkehrsfläche 24h_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (81,'12.03 Treppenhaus_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (82,'12.04 Nebenraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (83,'12.05 Küche, Teeküche_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (84,'12.06 WC, Bad, Dusche_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (85,'12.07 WC_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (86,'12.08 Garderobe, Dusche_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (87,'12.09 Parkhaus_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (88,'12.10 Wasch- und Trockenraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (89,'12.11 Kühlraum_Std.','SIA Standard for standard buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (90,'12.12 Serverraum_Std.','SIA Standard for standard buildings');
+
+INSERT INTO public.zone_templates (id,name,description) VALUES (91,'1.01 Wohnen MFH_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (92,'1.02 Wohnen EFH_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (93,'2.01 Hotelzimmer_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (94,'2.02 Empfang, Lobby_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (95,'3.01 Einzel-, Gruppenbüro_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (96,'3.02 Grossraumbüro_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (97,'3.03 Sitzungszimmer_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (98,'3.04 Schalterhalle, Empfang_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (99,'4.01 Schulzimmer_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (100,'4.02 Lehrerzimmer_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (101,'4.03 Bibliothek_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (102,'4.04 Hörsaal_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (103,'4.05 Schulfachraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (104,'5.01 Lebensmittelverkauf_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (105,'5.02 Fachgeschäft_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (106,'5.03 Verkauf Möbel, Bau, Garten_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (107,'6.01 Restaurant_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (108,'6.02 Selbstbedienungsrestaurant_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (109,'6.03 Küche zu Restaurant_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (110,'6.04 Küche zu Selbstbedienungsrestaurant_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (111,'7.01 Vorstellungsraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (112,'7.02 Mehrzweckhalle_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (113,'7.03 Ausstellungshalle_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (114,'8.01 Bettenzimmer_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (115,'8.02 Stationszimmer_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (116,'8.03 Behandlungsraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (117,'9.01 Produktion (grobe Arbeit)_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (118,'9.02 Produktion (feine Arbeit)_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (119,'9.03 Laborraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (120,'10.01 Lagerhalle_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (121,'11.01 Turnhalle_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (122,'11.02 Fitnessraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (123,'11.03 Schwimmhalle_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (124,'12.01 Verkehrsfläche_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (125,'12.02 Verkehrsfläche 24h_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (126,'12.03 Treppenhaus_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (127,'12.04 Nebenraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (128,'12.05 Küche, Teeküche_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (129,'12.06 WC, Bad, Dusche_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (130,'12.07 WC_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (131,'12.08 Garderobe, Dusche_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (132,'12.09 Parkhaus_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (133,'12.10 Wasch- und Trockenraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (134,'12.11 Kühlraum_Zielw.','SIA Standard for target buildings');
+INSERT INTO public.zone_templates (id,name,description) VALUES (135,'12.12 Serverraum_Zielw.','SIA Standard for target buildings');
+
+
+-------------------table public.room_units------------------------------------
+INSERT INTO public.room_units (id,name) VALUES (1,'Ideal units');
+INSERT INTO public.room_units (id,name) VALUES (2,'Radiator');
+INSERT INTO public.room_units (id,name) VALUES (3,'Heating/cooling floor');
+
+-------------------table public.building_templates------------------------------------
+INSERT INTO public.building_templates (id,template_name,description) VALUES (1,'SIABestandGeb','SIA Standard for existing buildings based on Swiss localization');
+INSERT INTO public.building_templates (id,template_name,description) VALUES (2,'SIAStandardGeb','SIA Standard for standard buildings based on Swiss localization');
+INSERT INTO public.building_templates (id,template_name,description) VALUES (3,'SIAZielGeb','SIA Standard for target buildings based on Swiss localization');
+
+-------------------table public.building_construction_types------------------------------------
+INSERT INTO public.building_construction_types (id,type,name) VALUES (1,'external_walls','External walls');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (2,'internal_walls','Internal walls');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (3,'internal_floors,'Internal floors');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (4,'roof','Roof');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (5,'external_floors','External floor');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (6,'ground_walls','Basement wall towards ground');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (7,'ground_floors','Slab towards ground');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (8,'glazing','Glazing');
+INSERT INTO public.building_construction_types (id,type,name) VALUES (9,'win_template','Window template');
+
+-------------------table public.building_construction_standard------------------------------------
+INSERT INTO public.building_construction_standard (id,construction_standard_name,description) VALUES (1,'SIA existing buildings','SIA Standard based on Swiss localization');
+INSERT INTO public.building_construction_standard (id,construction_standard_name,description) VALUES (2,'SIA standard buildings','SIA Standard based on Swiss localization');
+INSERT INTO public.building_construction_standard (id,construction_standard_name,description) VALUES (3,'SIA target buildings','SIA Standard based on Swiss localization');
+
+-------------------table public.building_constructions------------------------------------
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (1,1,1,'Exterior wall SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (2,1,2,'Interior wall SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (3,1,3,'Slab SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (4,1,4,'Flat roof SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (5,1,5,'Slab against unconditioned SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (6,1,6,'Exterior wall against ground SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (7,1,7,'Floor against ground SIA existing','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (8,1,8,'Glazing SIA existant','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (9,1,9,'Window SIA','');
+
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (10,2,1,'Exterior wall limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (11,2,2,'Interior non-bearing limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (12,2,3,'Slab limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (13,2,4,'Flat roof limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (14,2,5,'Slab against unconditioned limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (15,2,6,'Exterior wall against ground limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (16,2,7,'Floor against ground limit SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (17,2,8,'Glass SIA limit/target value simple','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (18,2,9,'SIA limit value simplified','');
+
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (19,3,1,'Exterior wall target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (20,3,2,'Interior non-bearing target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (21,3,3,'Slab target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (22,3,4,'Flat roof target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (23,3,5,'Slab against unconditioned target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (24,3,6,'Exterior wall against ground target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (25,3,7,'Floor against ground target SIA 380/2:2022','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (26,3,8,'Glass SIA limit/target value simple','');
+INSERT INTO public.building_constructions (id,construction_standard_id,construction_type_id,construction_name,description) VALUES (27,3,9,'SIA target value simplified','');
+
 -------------------table public.liquids------------------------------------
 INSERT INTO public.liquids(id,liquid) VALUES(1,'Water');
 INSERT INTO public.liquids(id,liquid) VALUES(2,'Freezium');
@@ -382,22 +579,3 @@ INSERT INTO public.junction_assetgroups VALUES (2,'End Cap','An end cap is a cou
 INSERT INTO public.junction_assetgroups VALUES (3,'Reducer','A coupling where one socket opening has a smaller diameter than the other socket opening.');
 INSERT INTO public.junction_assetgroups VALUES (4,'Tee','A fitting for combining or dividing flow. It has three or four socket openings.');
 INSERT INTO public.junction_assetgroups VALUES (5,'Y-Connector','A type of tee which allows three pipe segments to be joined. Two of the pipe sockecs are at a 45 degree angle to each other.');
-
--------------------table public.structure_boundary_assetgroups------------------------------------
-INSERT INTO public.structure_boundary_assetgroups VALUES (0,'Unkown','Unkown');
-INSERT INTO public.structure_boundary_assetgroups VALUES (1,'Pipe Station','The subtype feature layer Pipe Station describes the above ground structure used to house pipe system facilities such as pumps, pump stations, production units, chiller units, and valves.');
-INSERT INTO public.structure_boundary_assetgroups VALUES (2,'Pipe Vault','The subtype feature layer Pipe Vault describes the below ground structure used to house oil and gas facilities such as pumps, pump stations, steam traps and valves.');
-INSERT INTO public.structure_boundary_assetgroups VALUES (4,'Pipe Customer Building','The subtype feature layer Pipe Customer Building describes the building containing customers.');
-
--------------------table public.structure_boundary_assettypes------------------------------------
-INSERT INTO public.structure_boundary_assettypes VALUES (0,0,0,'Unkown','Unkown');
-INSERT INTO public.structure_boundary_assettypes VALUES (1,1,0,'Unkown','An unknown is a structure whose type is not known.');
-INSERT INTO public.structure_boundary_assettypes VALUES (2,1,20,'Energy Plant Building','Structure where energy is generated');
-INSERT INTO public.structure_boundary_assettypes VALUES (3,1,21,'Substation Building','Strructure where energy is transferred');
-INSERT INTO public.structure_boundary_assettypes VALUES (4,2,0,'Unkown','An unknown is a vault whose type is not known.');
-INSERT INTO public.structure_boundary_assettypes VALUES (5,2,81,'Vault Boundary','A generic vault facility.');
-INSERT INTO public.structure_boundary_assettypes VALUES (6,4,0,'Unkown','An unknown is a building whose type is not known.');
-INSERT INTO public.structure_boundary_assettypes VALUES (7,4,60,'Residential','A customer building which is classified as residential.');
-INSERT INTO public.structure_boundary_assettypes VALUES (8,4,61,'Commercial','A customer building which is classified as commercial.');
-INSERT INTO public.structure_boundary_assettypes VALUES (9,4,62,'Industrial','A customer buiding which is classified as industrial.');
-INSERT INTO public.structure_boundary_assettypes VALUES (10,4,63,'Public','A customer building which is classified as public.');

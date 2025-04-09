@@ -16,8 +16,9 @@ def dropDBTriggers(cur,dictDB):
         sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
         sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
         sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
-    print(sql)
-    cur.execute(sql)
+    if sql:
+        print(sql)
+        cur.execute(sql)
 
 def insertDBTriggers(cur,dictDB):
     sql=''
@@ -38,8 +39,9 @@ EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(dictDB['versionName
 AFTER UPDATE ON {}.{}
 FOR EACH ROW
 EXECUTE FUNCTION my_trigger_update_function();\n""".format(dictDB['versionName'],table)
-    print(sql)
-    cur.execute(sql)
+    if sql:
+        print(sql)
+        cur.execute(sql)
     
 def getDBTableNames(cur,dictDB):
     sql="""SELECT table_name
@@ -256,6 +258,12 @@ def getUsedSubmodels(cur,dictDB):
     SELECT submodel FROM "{}".devices GROUP BY submodel
 )
 ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+    cur.execute(sql)
+    submodels=[str(i['submodel']) for i in cur.fetchall()]
+    return submodels
+    
+def getUsedBuildingSubmodels(cur,dictDB):
+    sql="""SELECT submodel FROM "{}".buildings GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'])
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels

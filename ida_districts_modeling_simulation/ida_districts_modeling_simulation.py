@@ -461,6 +461,23 @@ class IDADistrictsModelingSimulation:
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
 
+    def addBuildingSubmodelTableRow(self,dlg):
+        """Insert table row"""
+        print('-------insert row---------------')
+        dlg.tableWidget.insertRow(0)
+
+        comboBox = QComboBox() #submodels
+        submodels=getUsedBuildingSubmodels(self.cur,self.dictDB)
+        comboBox.addItems(submodels)
+        dlg.tableWidget.setCellWidget(0, 0, comboBox) 
+
+        comboBox = QComboBox() #building templates
+        sql="""SELECT template_name FROM building_templates ORDER BY id;"""
+        self.cur.execute(sql)
+        building_templates=[i['template_name'] for i in self.cur.fetchall()]
+        comboBox.addItems(building_templates)
+        dlg.tableWidget.setCellWidget(0, 1, comboBox) 
+        
     def addTableRow(self,dlg):
         """Insert table row"""
         print('-------insert row---------------')
@@ -636,9 +653,7 @@ class IDADistrictsModelingSimulation:
             dlg.tableWidget.setItem(counter,36,QTableWidgetItem(str(i['tmean']))) #tmean
             dlg.tableWidget.setItem(counter,37,QTableWidgetItem(str(i['geotgrad']))) #geotgrad
         return boreholefieldsData
-            
-        
-        
+
     def showBoreholeFieldSettings(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
@@ -769,14 +784,11 @@ class IDADistrictsModelingSimulation:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
                 self.dlg_buildBuildingModel=BuildBuildingModelDialog()
                 
-                self.dlg_buildBuildingModel.combo_submodels.addItem('Check all items')
-                submodels=getUsedSubmodels(self.cur,self.dictDB)
-                self.dlg_buildBuildingModel.combo_submodels.addItems(submodels)
-                for i in range(len(submodels)):
-                    self.dlg_buildBuildingModel.combo_submodels.setItemChecked(i+1,False)
                 self.dlg_buildBuildingModel.show()
                 self.dlg_buildBuildingModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildBuildingModel))
                 self.dlg_buildBuildingModel.btn_buildBuildingModel.clicked.connect(lambda: self.buildBuildingModel(self.dlg_buildBuildingModel))
+                self.dlg_buildBuildingModel.btn_add.clicked.connect(lambda: self.addBuildingSubmodelTableRow(self.dlg_buildBuildingModel))
+                self.dlg_buildBuildingModel.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_buildBuildingModel))
             else:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
@@ -802,10 +814,141 @@ class IDADistrictsModelingSimulation:
 
     def buildBuildingModel(self,dlg):
                     
-        submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
+        submodel_templates={dlg.tableWidget.cellWidget(i,0).currentText(): dlg.tableWidget.cellWidget(i,1).currentText() for i in range(dlg.tableWidget.rowCount())}
 
-        if submodels:
-            print(submodels)
+        if submodel_templates:
+            print(submodel_templates)
+            self.dictDB=getDBConnectionData(self.plugin_dir)
+            self.conn=dbConnect(self.dictDB,False)
+            if self.conn:
+                if self.dictDB['versionName']:
+                    self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
+            
+                    for submodel in submodel_templates:
+                        print(submodel)
+                        sql="""SELECT 
+  (ST_XMax(ST_Extent(geom))-ST_XMin(ST_Extent(geom)))/2 + ST_XMin(ST_Extent(geom)) AS x_center, 
+  (ST_YMax(ST_Extent(geom))-ST_YMin(ST_Extent(geom)))/2 + ST_YMin(ST_Extent(geom)) AS y_center
+FROM {}.buildings
+WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
+                        self.cur.execute(sql)
+                        center=self.cur.fetchone()
+                        print(center)
+                        
+                        sql="""SELECT b.id,b_id,z_id,ST_AsText(geom) AS geom,z_height_m,z_bh_m, win_facade_ratio, z_construction, zt.name AS z_template, u.name AS room_unit 
+    FROM {}.buildings b, room_units u, zone_templates zt
+    WHERE b.submodel={} AND u.id=b.room_unit AND zt.id=b.z_template
+    ORDER BY b_id,z_id;""".format(self.dictDB['versionName'],submodel)
+                        print(sql)
+                        self.cur.execute(sql)
+                        zones=self.cur.fetchall()
+
+                        ida_script="""((set-slot [@] 'name "building_{}")
+(apply 'delete-components (:call :sections [@]))\n""".format(submodel)
+                        
+                        zone_win_dict={}
+                        for counter,zone in enumerate(zones):
+                            #print(zone)
+                            wkt_string=zone['geom']
+                            
+                            # Regular expression to match coordinates in the format (x y)
+                            pattern = r"(\d+\.\d+ \d+\.\d+)"
+
+                            # Find all the coordinates
+                            coordinates = re.findall(pattern, wkt_string)
+                            #print(coordinates)
+
+                            corners = []
+                            for coordinate in coordinates:
+                                # Split each coordinate pair and adjust with the center
+                                x, y = coordinate.split(' ')
+                                corners.append((round(float(x) - center['x_center'],2), round(float(y) - center['y_center'],2)))
+
+                            # Format the corners with brackets but no commas between coordinates
+                            corners_str = f"({') ('.join([f'{x} {y}' for x, y in corners[:-1]])})"
+                            #print(corners_str)
+                            
+                            #constructions
+                            sql="""SELECT bc.construction_type_id, bc.construction_name,bct.type AS construction_type
+    FROM building_constructions bc, building_construction_types bct
+    WHERE bc.construction_standard_id={} AND bc.construction_type_id=bct.id 
+    ORDER BY bc.construction_type_id;""".format(zone['z_construction'])
+                            self.cur.execute(sql)
+                            constructions=self.cur.fetchall()
+                            constructions_dict={i['construction_type'] : i['construction_name'] for i in constructions}
+                            #print(constructions)
+                            #print(constructions_dict)
+                            zone_win_dict["Zone_{}_{}".format(zone['b_id'],zone['z_id'])]={'temp_name':constructions_dict['win_template'],'win_facade_ratio':zone['win_facade_ratio']}
+                            
+                            ida_script+="""(make-zone-from-qgis [@] "Zone_{}_{}" {} {} {} #2A({}))\n""".format(
+                                zone['b_id'],zone['z_id'],zone['z_bh_m'],zone['z_height_m'],str(len(corners)-1),corners_str)
+                            
+                            #internal loads (reset templates)
+                            ida_script+="""(apply-zone-template [@] "Zone_{}_{}" "{}" '(:SETPOINTS :CONSTRUCTIONS :INTERNAL-MASSES :INTERNAL-GAINS :vent-system-type :vent-air-flows))\n""".format(
+                                zone['b_id'],zone['z_id'],zone['z_template'])
+                            
+                            ida_script+="""(:SET z_ [@ "Zone_{}_{}"])\n""".format(zone['b_id'],zone['z_id'])
+                            #constructions
+                            construction_plist="'("+' '.join([":" + i + ' "' +constructions_dict[i]+'"' for i in constructions_dict])+")"
+                            #print(construction_plist)
+                            ida_script+="""(set-zone-constructions [@ z_] {})\n""".format(construction_plist)
+                            
+                            #room units
+                            if zone['room_unit']=='Ideal units':
+                                ida_script+="""(make-component z_ '((HC-UNIT :N "Ideal heater" :T IDEAL-HEATER)
+  (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'heating-power VALUE])))))
+(make-component z_ '((HC-UNIT :N "Ideal cooler" :T IDEAL-COOLER)
+  (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'cooling-power VALUE])))))\n"""
+                            elif zone['room_unit']=='Radiator':
+                                ida_script+="""(make-component z_ '((HC-UNIT :N "WatRad" :T WATER_HEATER)
+  (:PAR :N CONTROLLER :V PI_CONTR)             
+  (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'heating-power VALUE])))
+  (:RES :N MODEL :F 2560)))\n"""
+                            elif zone['room_unit']=='Heating/cooling floor':
+                                ida_script+="""(make-component [z_ FLOOR] '((floor-heat :n "hc-floor" :t therm_floor)
+  (:par :n pheat :v (:eval (* [z_ zone-usage 'heating-power VALUE])))))
+(:set hc_ [z_ FLOOR "hc-floor"])
+(make-component hc_ '(aggregate :n shape :t shape2d))
+(:set corn (:call ice-surface-offset (:call ice-3d-pane hc_ t t) (or (:call :wall (:call parent hc_)) (:call parent hc_)) 0 (:zone hc_) 0))
+(:set ncorn (:call length corn))
+(:set corn-array (:call make-array (:call list ncorn 2) :initial-contents corn))
+(set-values [hc_ SHAPE] 'ncorn ncorn 'CORNERS corn-array)\n"""
+
+                        for zone in zone_win_dict:
+                            ida_script+="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 T :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
+
+                            
+                        ida_script+='(save-document [@]))'
+                        print(ida_script)
+                        
+                        src_dir=getDataCenterDir(self.plugin_dir)+"\\{}\\building_templates\\".format(self.dictDB['projectName'])
+                        print(src_dir)
+                        buildingModel_dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+                        print(buildingModel_dir)
+                        file_path=buildingModel_dir+'building_{}.idm'.format(submodel)
+                        print(file_path)
+                        copyFile(src_dir+submodel_templates[submodel]+'.idm',buildingModel_dir,file_path)
+                        copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
+                    
+                        """self.util=Util_api(self.plugin_dir)
+                        print(self.util.pid)
+                        # IDA ICE connection test
+                        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
+                        print(connectionTest)
+                        self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
+                        print(self.building)
+                        changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""
+                        
+                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_script)
+                        self.threadpool_buildBuildingModel = QThreadPool()
+                        self.threadpool_buildBuildingModel.start(self.worker_buildBuildingModel)
+                        self.worker_buildBuildingModel.signals.error.connect(show_error_message)
+                        self.worker_buildBuildingModel.signals.progress.connect(dlg.update_progress)
+
+                else:
+                    self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+            else:
+                self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
         else:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
 

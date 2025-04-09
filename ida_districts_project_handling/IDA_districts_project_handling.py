@@ -66,7 +66,64 @@ import shutil
 import tempfile
 import datetime
 
+def loadBuildingsLayer(uri,dictDB,view):
 
+    uri.setDataSource(dictDB['versionName'], "buildings", "geom")
+    vlayer = QgsVectorLayer(uri.uri(False), "buildings", dictDB['user'])
+    QgsProject.instance().addMapLayer(vlayer)
+    
+    target_layer = QgsProject.instance().mapLayersByName('room_units')[0]
+    config = {'AllowMulti': False,
+              'AllowNull': True,
+              'FilterExpression': '',
+              'Key': 'id',
+              'Layer': target_layer.id(),
+              'NofColumns': 1,
+              'OrderByValue': False,
+              'UseCompleter': False,
+              'Value': 'name'}
+    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+    fields=vlayer.fields()
+    field_idx = fields.indexOf('room_unit')
+    vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
+
+    target_layer = QgsProject.instance().mapLayersByName('building_construction_standard')[0]
+    config = {'AllowMulti': False,
+              'AllowNull': True,
+              'FilterExpression': '',
+              'Key': 'id',
+              'Layer': target_layer.id(),
+              'NofColumns': 1,
+              'OrderByValue': False,
+              'UseCompleter': False,
+              'Value': 'construction_standard_name'}
+    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+    fields=vlayer.fields()
+    field_idx = fields.indexOf('z_construction')
+    vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
+
+    target_layer = QgsProject.instance().mapLayersByName('zone_templates')[0]
+    config = {'AllowMulti': False,
+              'AllowNull': True,
+              'FilterExpression': '',
+              'Key': 'id',
+              'Layer': target_layer.id(),
+              'NofColumns': 1,
+              'OrderByValue': False,
+              'UseCompleter': False,
+              'Value': 'name'}
+    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+    fields=vlayer.fields()
+    field_idx = fields.indexOf('z_template')
+    vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
+    
+    single_symbol_renderer = vlayer.renderer()
+    symbol = single_symbol_renderer.symbol()
+    symbol.setColor(QColor.fromRgb(25, 25, 25))
+    
+    vlayer.triggerRepaint()  # Refresh the layer to apply the changes
+    view.refreshLayerSymbology(vlayer.id())
+              
 def loadVersionLayers(dictDB,cur,plugin_dir):
     """Loads the layers in QGIS"""
     removeLayers()    
@@ -77,7 +134,8 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
     print(uri)
 
     view = iface.layerTreeView()
-    
+    loadTopologyLayers(dictDB['versionName'],uri,dictDB)   
+    loadBuildingsLayer(uri,dictDB,view)    
     try: 
         uri.setDataSource(dictDB['versionName'], "submodels", "geom")
         vlayer = QgsVectorLayer(uri.uri(False), "submodels", dictDB['user'])
@@ -96,18 +154,11 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
         symbol.setWidth(0.75)  
         view.refreshLayerSymbology(vlayer.id())
         
-        uri.setDataSource(dictDB['versionName'], "buildings", "geom")
-        vlayer = QgsVectorLayer(uri.uri(False), "buildings", dictDB['user'])
-        QgsProject.instance().addMapLayer(vlayer)
-        single_symbol_renderer = vlayer.renderer()
-        symbol = single_symbol_renderer.symbol()
-        symbol.setColor(QColor.fromRgb(25, 25, 25))
-        view.refreshLayerSymbology(vlayer.id())
+        #loadBuildingsLayer(uri,dictDB)
         
     except Exception as e:
         print(f'error: {e}')
     
-    loadTopologyLayers(dictDB['versionName'],uri,dictDB)   
     loadProjectLayers(dictDB['versionName'],uri,dictDB,plugin_dir,cur)
     view = iface.layerTreeView()
     view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
@@ -1139,6 +1190,7 @@ class IDA_Districts_ProjectHandling:
         if self.conn:
             self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
             data=self.getVersionData()
+            print(data)
             self.setTreeViewModel(data)
             self.districts_config=loadIDADistrictsConfig(self.plugin_dir)
             #timer if autosave

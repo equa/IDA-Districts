@@ -325,6 +325,8 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         self.btn_dhw_profiles=QPushButton("DHW profiles")
         self.btn_temp_profiles=QPushButton("Temperature profiles")
         self.btn_internal_loads=QPushButton("Internal load profiles")
+        self.btn_building_construction_standards=QPushButton("Building construction standards")
+        self.btn_building_zone_templates=QPushButton("Building zone templates")
         self.btn_manageLinesAssetgroups=QPushButton("Lines")
         
         layout_DB=QVBoxLayout()
@@ -337,6 +339,8 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_DB.addWidget(self.btn_dhw_profiles)
         layout_DB.addWidget(self.btn_temp_profiles)
         layout_DB.addWidget(self.btn_internal_loads)
+        layout_DB.addWidget(self.btn_building_construction_standards)
+        layout_DB.addWidget(self.btn_building_zone_templates)
         
         #manage connection types
         #title
@@ -387,11 +391,25 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         label_titel.setFont(font)
         
         self.btn_manageNetworks=QPushButton("Networks")
-        
+
         #set networks together
         layout_networks=QVBoxLayout()
         layout_networks.addWidget(label_titel)
         layout_networks.addWidget(self.btn_manageNetworks)
+        
+        #manage building templates
+        #title
+        label_titel =QLabel('Manage building templates')
+        font=label_titel.font()
+        font.setPointSize(15)
+        label_titel.setFont(font)
+        
+        self.btn_manageBuildingTemplates=QPushButton("Building templates")
+        
+        #set building templates together
+        layout_building_templates=QVBoxLayout()
+        layout_building_templates.addWidget(label_titel)
+        layout_building_templates.addWidget(self.btn_manageBuildingTemplates)
         
         #contracts
         #title
@@ -418,6 +436,7 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_win.addLayout(layout_connection_types)
         layout_win.addLayout(layout_manage_assetgroups)
         layout_win.addLayout(layout_networks)
+        layout_win.addLayout(layout_building_templates)
         layout_win.addLayout(layout_contracts)
         layout_win.addStretch()
         

@@ -15,19 +15,22 @@ def deleteTableRow (dlg):
         self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
 class TableDialog(QMainWindow):
-    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace):
+    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True):
         """Constructor"""
         super().__init__()
         self.setWindowTitle(title)   
         
         self.trace_type=trace
+        print('++++++trace: '+str(trace))
         self.assetgroup=title.split(':')[-1].strip()
         #table buttons     
         layout_buttons_table = QHBoxLayout()
-        self.btn_add=QPushButton("Add")
-        layout_buttons_table.addWidget(self.btn_add)
-        self.btn_delete=QPushButton("Delete")
-        layout_buttons_table.addWidget(self.btn_delete)
+        if addBtn:
+            self.btn_add=QPushButton("Add")
+            layout_buttons_table.addWidget(self.btn_add)
+        if deleteBtn:
+            self.btn_delete=QPushButton("Delete")
+            layout_buttons_table.addWidget(self.btn_delete)
         if openBtn:
             self.btn_open=QPushButton("Open and Save")
             layout_buttons_table.addWidget(self.btn_open)
@@ -83,12 +86,16 @@ class TableDialog(QMainWindow):
         row = item.row()
         print('changed')
         print(row)
+        print(item)
         print(self.traceTableValues)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
             try:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
             except:
                 pass
+        elif self.trace_type == 'building_template':
+            print(item.text())
+            self.traceTableValues[row][item.column()][1]=item.text()
         elif self.trace_type:
             changedValue=self.assetgroup+'_'
             if self.tableWidget.item(row,0):

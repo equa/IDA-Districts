@@ -539,9 +539,54 @@ class IDADistrictsDataCenter:
         """ Count the rows of table with filter"""
         sql="SELECT count(*) AS count FROM {} {};".format(table,filter)
         self.cur.execute(sql)
-        return self.cur.fetchone()['count']          
+        return self.cur.fetchone()['count']        
+    
+    def saveBuildingConstructions(self,dlg,id):
+        print('Save table to DB an close dialog')
+        sql="""DELETE FROM building_constructions WHERE construction_standard_id={};\n""".format(id)
+        for row in range(dlg.tableWidget.rowCount()):
+            sql+="""INSERT INTO building_constructions (construction_standard_id,construction_type_id,construction_name,description) VALUES ({},{},'{}','{}');\n""".format(
+                id,dlg.tableWidget.item(row,0).text(),dlg.tableWidget.item(row,1).text(),dlg.tableWidget.item(row,2).text())
+        print(sql)
+        try:
+            self.cur.execute(sql)
+        except Exception as e:
+            self.iface.messageBar().pushMessage("Error", f"An error occurred: {str(e)}", level=Qgis.Critical)
+            return False
+        closeDialog(dlg)
         
-    def show_TableCurrentRowDialog(self,table,dlg,id,openFnArg):
+    def showTableBuildingConstructions(self,dlg,id):
+        """show filtered table content"""
+        print('show filtered table content')
+        dlg.tableWidget.setRowCount(self.rowCountDB('building_construction_types',''))
+        sql="""SELECT bct.id, bct.name, bc.construction_name, bc.description
+    FROM building_constructions bc,building_construction_types bct 
+    WHERE bc.construction_type_id=bct.id AND bc.construction_standard_id={} ORDER BY bct.id;""".format(id)
+        print(sql)
+        self.cur.execute(sql) 
+        data = self.cur.fetchall()
+
+        for rowCounter,row in enumerate(data):
+            print(row)
+            for colCounter,col in enumerate(row):
+                item=QTableWidgetItem(str(row[col]))
+                if colCounter in [0,1]:
+                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                dlg.tableWidget.setItem(rowCounter , colCounter, item)
+                    
+
+    def show_buildingConstructions(self,table,columns,dropdowns,dlg,selected_row_id,openFnArg,trace=False):
+        print('show Building constructions')
+        print(selected_row_id)
+        constr_std_id=dlg.tableWidget.item(selected_row_id,0).text()
+        print(constr_std_id)
+        dlg = TableDialog('Building constructions',['Id','Construction type','Construction name','Description'],False,False,False,False,addBtn=False,deleteBtn=False)   
+        dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))   
+        dlg.btn_ok.clicked.connect(lambda: self.saveBuildingConstructions(dlg,constr_std_id))
+        self.showTableBuildingConstructions(dlg,constr_std_id)
+        dlg.show() 
+        
+    def show_TableCurrentRowDialog(self,table,columns,dropdowns,dlg,id,openFnArg,trace=False):
         """ Show current row in table; openFnArg: 0) table; 1) columns in String; 2) headers in list; 3) filter in String; 4) dropdowns """
         print('Open current row dialog started: ')
         columns=openFnArg[1]
@@ -555,7 +600,6 @@ class IDADistrictsDataCenter:
         if id!=-1:
             id=dlg.tableWidget.item(id, 0).text()
             title=openFnArg[0]+': ' + id
-            dlg='self.dlg_'+openFnArg[0]        
             dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace)           
             if openFnArg[6]:
                 dlg.btn_open.clicked.connect(lambda: openFnArg[6](openFnArg[7],dlg,id))
@@ -653,6 +697,27 @@ class IDADistrictsDataCenter:
             self.threadpool_openAssettype.start(self.worker_openAssettype)
             
             print('finished open assettype')
+        else:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            
+    def openBuildingTemplate(self,table,columns,dropdowns,dlg,row_index,openFnArg,trace=False):
+        """ Open an building template in IDA"""
+        print('Open Building template')
+        print(dlg)
+        print(dlg.tableWidget)
+        print(row_index)
+        if row_index!=-1:
+            self.saveTable(dlg,table,columns,dropdowns,openFnArg,[],False,False,trace)
+            
+            # Open the building with the IDA ICE Python API
+            print('**********************************')
+            file=self.plugin_dir+"\\{}\\building_templates\\{}.idm".format(self.dictDB['projectName'],dlg.tableWidget.item(row_index, 1).text())
+            print(file)
+            self.worker_openBuildingTemplate = WorkerOpenAPI(file,self.plugin_dir)
+            self.threadpool_openBuildingTemplate = QThreadPool()
+            self.threadpool_openBuildingTemplate.start(self.worker_openBuildingTemplate)
+            
+            print('finished building template')
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
         
@@ -866,14 +931,20 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         
         dropdownItems=getDropDownItems(self.cur,dropdowns)
         rowPosition = 0
+        traceTableValues={}
         for row in data:
+            if dlg.trace_type:
+                traceTableValues[rowPosition]={}
             for col in range(len(row)):
                 if col in list([i[0] for i in dropdowns]):
                     print('dropdown: '+str(col))
                     comboBox = QComboBox()
                     comboBox.addItems(dropdownItems[col])
-                    comboBox.setCurrentText(str([i for i in dropdownItems[col] if str(row[col]) == i.split(':')[0]][0]))
+                    currentText=str([i for i in dropdownItems[col] if str(row[col]) == i.split(':')[0]][0])
+                    comboBox.setCurrentText(currentText)
                     dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)   
+                    if dlg.trace_type:
+                        traceTableValues[rowPosition][col]=[currentText,'']
                 else:
                     if row[col]==None:
                         value=''
@@ -883,7 +954,10 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     if col == 0:
                         item.setFlags(QtCore.Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowPosition , col, item)
+                    if dlg.trace_type:
+                        traceTableValues[rowPosition][col]=[value,'']
             rowPosition+=1
+        return traceTableValues
         
     def showFilteredTableContent(self,dlg,table,columns,filter,orderby,dropdowns,trace,deactivated):
         """show filtered table content"""
@@ -1079,6 +1153,20 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.show_TableDialog(title='Pipe bundles',table='pipe_bundle_types',headers=['Pipe bundle Id','Investment costs, €/m pipe','Operating costs, €/(m pipe * a)','Description'],columns='(id,invest_costs,operation_costs,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],['Sequence','Pipe ID','x, m','y, m','Ambient'],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[]]) 
             
+    def manageBuildingConstructions(self):
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            self.show_TableDialog(title='Building constructions',table='building_construction_standard',headers=['Id','Construction standard name','Description'],columns='(id,construction_standard_name,description)', openFn=self.show_buildingConstructions) 
+ 
+    def manageBuildingZoneTemplates(self):
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            self.show_TableDialog(title='Building zone templates',table='zone_templates',headers=['Id','Zone template name','Description'],columns='(id,name,description)') 
+            
     def manageMaterials(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
@@ -1106,6 +1194,13 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.show_TableDialog(title='DHW timeseries',table='dhw_timeseries',headers=['DHW id','Name'],columns='(id,description)',importFn=self.importFn,openFn=self.show_TableCurrentRowDialog,openFnArg=['dhw',['time_h','kg7s'],['Time', 'dhw demand, kg/s',],'WHERE dhw_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
+    
+    def manageBuildingTemplates(self):
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            self.show_TableDialog(title='Building templates',table='building_templates',headers=['Id','Name','Description'],columns='(id,template_name,description)',openFn=self.openBuildingTemplate,trace='building_template') 
     
     def manageTempTimeseries(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1155,7 +1250,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 print(sql)
                 self.cur.execute(sql)
             
-    def saveTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg):
+    def saveTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg,trace=False):
         """" Save table to DB an close dialog"""
         print('Save table to DB an close dialog')
         sql="""TRUNCATE {} CASCADE;\n""".format(table)
@@ -1175,6 +1270,32 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         if ok_fn:
             print('----ok-fn---')
             ok_fn(ok_fn_arg[0],ok_fn_arg[1])
+            
+        if trace =='building_template':
+            print(dlg.traceTableValues)
+            for row in dlg.traceTableValues:
+                if not dlg.traceTableValues[row][1][0] and dlg.traceTableValues[row][1][1]:
+                    #add default building (located project handling)
+                    print('***added building type***')
+                    src_dir=loadIDADistrictsConfig(self.plugin_dir)['path_ice']+'lib\\ice\\building\\'
+                    templates_dir=self.plugin_dir+'\\{}\\building_templates\\'.format(self.dictDB['projectName'])
+                    copyFile(src_dir+'default.idm',templates_dir,templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][1]))
+                    copy_tree_filter_extensions_and_folders(src_dir+'default', templates_dir+dlg.traceTableValues[row][1][1])
+
+                elif dlg.traceTableValues[row][1][0] and dlg.traceTableValues[row][1][1]:
+                    if dlg.traceTableValues[row][1][0]!= dlg.traceTableValues[row][1][1]:
+                        #rename building template
+                        print('***updated building type name***')
+                        templates_dir=self.plugin_dir+'\\{}\\building_templates\\'.format(self.dictDB['projectName'])
+                        if os.path.exists(templates_dir):
+                            file_src=templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][0])
+                            file_tar=templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][1])
+                            try:
+                                os.rename(file_src, file_tar)
+                                os.rename(templates_dir+'{}'.format(dlg.traceTableValues[row][1][0]), templates_dir+'{}'.format(dlg.traceTableValues[row][1][1]))
+                            except:
+                                self.iface.messageBar().pushMessage("Error", "File bot found: {}!".format(file_src), level=Qgis.Critical)
+                        
         dlg.close()
         
     def addTableRow(self,dlg,dropdowns,trace,deactivated):
@@ -1197,22 +1318,27 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 else:
                     item=QTableWidgetItem('')
                 if col in deactivated:
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    item.setFlags(Qt.ItemIsEnabled)
                 dlg.tableWidget.setItem(0,col,item)
                 
         #add row to dlg.traceTableValues in order to trace the changed values     
         if trace:
+            print('----------trace-------')
             for row in reversed(sorted(traceTableValues)):
+                print(row)
+                print(traceTableValues[row])
                 dlg.traceTableValues[row+1]=traceTableValues[row]
             try:
                 print('--add trace values of row 0--')
-                print(dlg.traceTableValues)
-                print(dlg.assetgroup)
-                print(dlg.tableWidget.item(0,1))
-                print(dlg.tableWidget.item(0,1).text())
-                print(str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
-                dlg.traceTableValues[0]=['',str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
-                print('--finished trace values of row 0--')
+                if trace=='building_template':
+                    dlg.traceTableValues[0]={i: ['',str(getMaxTableId(dlg.tableWidget)) if i==0 else ''] for i in range(dlg.tableWidget.columnCount())}            
+                else:
+                    print(dlg.assetgroup)
+                    print(dlg.tableWidget.item(0,1))
+                    print(dlg.tableWidget.item(0,1).text())
+                    print(str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
+                    dlg.traceTableValues[0]=['',str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
+                    print('--finished trace values of row 0--')
             except:
                 pass
             print(dlg.traceTableValues)
@@ -1328,7 +1454,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
     
-    def show_TableDialog(self,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]]):
+    def show_TableDialog(self,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]],trace=False):
         """Show types from table in DB"""
         print('Manage connection types')
         openBtn=False
@@ -1338,18 +1464,20 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         if importFn:
             importBtn=True
             
-        dlg='self.dlg_' + table
-        dlg = TableDialog(title,headers,openBtn,importFn,True,False)
+        dlg = TableDialog(title,headers,openBtn,importFn,True,trace)
         dlg.btn_saveAs.clicked.connect(lambda: self.copyTableRow(dlg,dlg.tableWidget.currentRow(),dropdowns,openFn,openFnArg))
         if openFn:
-            dlg.btn_open.clicked.connect(lambda: openFn(table,dlg,dlg.tableWidget.currentRow(),openFnArg))
+            dlg.btn_open.clicked.connect(lambda: openFn(table,columns,dropdowns,dlg,dlg.tableWidget.currentRow(),openFnArg,trace=trace))
         if importFn:
             dlg.btn_import.clicked.connect(lambda: importFn(dlg,table,openFnArg,dropdowns))
-        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,[],ok_fn,ok_fn_arg))
+        dlg.btn_ok.clicked.connect(lambda: self.saveTable(dlg,table,columns,dropdowns,openFnArg,[],ok_fn,ok_fn_arg,trace=trace))
         dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))
-        dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,False))
-        dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,False,[]))
-        self.showTableContent(dlg,table,dropdowns)
+        dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
+        dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,trace,[0]))
+        dlg.traceTableValues=self.showTableContent(dlg,table,dropdowns)
+        print(dlg.traceTableValues)
+        if trace:
+            dlg.tableWidget.itemChanged.connect(dlg.changeItem)
         dlg.show()
     
     def run(self):
@@ -1375,11 +1503,14 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.dlg.btn_dhw_profiles.clicked.connect(lambda: self.manageDHWTimeseries())
             self.dlg.btn_temp_profiles.clicked.connect(lambda: self.manageTempTimeseries())
             self.dlg.btn_internal_loads.clicked.connect(lambda: self.manageInternalLoadProfiles())
+            self.dlg.btn_building_construction_standards.clicked.connect(lambda: self.manageBuildingConstructions())
+            self.dlg.btn_building_zone_templates.clicked.connect(lambda: self.manageBuildingZoneTemplates())
             self.dlg.btn_manageLinesAssetgroups.clicked.connect(lambda: self.manageAssetgroups('line'))
             self.dlg.btn_manageCustomerAssetgroups.clicked.connect(lambda: self.manageAssetgroups('customer'))
             self.dlg.btn_manageEnergyPlantAssetgroups.clicked.connect(lambda: self.manageAssetgroups('energy_plant'))
             self.dlg.btn_manageDevicesAssetgroups.clicked.connect(lambda: self.manageAssetgroups('device'))
             self.dlg.btn_manageNetworks.clicked.connect(self.manageNetworks)
+            self.dlg.btn_manageBuildingTemplates.clicked.connect(self.manageBuildingTemplates)
             # show the dialog
             self.dlg.show()
             print ('finish')

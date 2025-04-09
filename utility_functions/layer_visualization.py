@@ -47,7 +47,7 @@ def setFieldConstraints(constraints_dict):
                 layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
             
 def getDHCLayerNames():
-    return ["lines","junctions","energy_plants","devices","structure_boundarys"]
+    return ["lines","junctions","energy_plants","devices"]
     
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
@@ -56,7 +56,7 @@ def updateTableSrid(versions,cur,srid):
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
-        for table in ['devices','lines','junctions','customers','energy_plants','structure_boundarys','buildings','streets','submodels','boreholes']:
+        for table in ['devices','lines','junctions','customers','energy_plants','buildings','streets','submodels','boreholes']:
             print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
@@ -125,7 +125,7 @@ def valueRelationInternalLoadId():
  
 def setupVersionForm(cur,dictDB):  
     """ setup form for version layers"""
-    for vlayerName in ['lines','devices','junctions','customers','energy_plants','structure_boundarys']:
+    for vlayerName in ['lines','devices','junctions','customers','energy_plants']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         fc = vlayer.editFormConfig()
@@ -151,10 +151,6 @@ def setupVersionForm(cur,dictDB):
         elif vlayerName=='energy_plants':
             attrNamesTabs= [['id','assetgroup','assettype','network'],
                             ['main_plant'],
-                            ['submodel'],[]]
-        elif vlayerName=='structure_boundarys':
-            attrNamesTabs= [['assetgroup','assettype'],
-                            ['f_vexp_m'],
                             ['submodel'],[]]
         for tab, attrNamesTab in zip(['General', 'Physical data', 'Simulation data', 'Metadata'], attrNamesTabs):
             c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
@@ -240,11 +236,11 @@ def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
         if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
-            'structure_boundary_assetgroups','structure_boundary_assettypes','junction_assetgroups','junction_assettypes','junctions',
-            'structure_boundarys',
+            'junction_assetgroups','junction_assettypes','junctions',
             'streets', 'buildings','network','cosim',
             'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
-            'pipematerial','lines_results_supply_temperature','customer_results_load']:
+            'pipematerial','lines_results_supply_temperature','customer_results_load',
+            'room_units','zone_templates','building_construction_standard']:
             QgsProject.instance().removeMapLayer(layer)
         
 def removeTempLayers():
@@ -285,9 +281,9 @@ def setLayersHidden(tableNames):
         
 def loadTopologyLayers(version,uri,dictDB):
     #load tables without geometry and hide them in layers panel
-    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups','structure_boundary_assetgroups',
-        'structure_boundary_assettypes','junction_assetgroups',
-        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes']
+    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
+        'junction_assetgroups',
+        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes','room_units','building_construction_standard','zone_templates']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
         layer = QgsVectorLayer(uri.uri(False), tableName, dictDB['user'])
@@ -307,10 +303,10 @@ def getConstraintExpressionDict(networks_array):
     
 def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
     dir=getProjectHandlingDir(plugin_dir)
-    for vlayerName in ['energy_plants','customers','lines','devices','junctions','structure_boundarys']:  
+    for vlayerName in ['energy_plants','customers','lines','devices','junctions']:  
         categories=featureLayerAssetgroups(vlayerName,cur)
         ids=featureLayerAssetgroupIds(vlayerName,cur)
-        if not (vlayerName in ['devices','structure_boundarys'] and version=='temp'):
+        if not (vlayerName in ['devices'] and version=='temp'):
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
                 vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])
@@ -348,9 +344,6 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
                 symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
                 if vlayerName in ['lines']:
                     symbol.setWidth(0.75) 
-                elif vlayerName in ['structure_boundarys']:
-                    #print(vlayerName)
-                    pass
                 else:
                     symbol.setSize(2)
                     svgStyle = {}

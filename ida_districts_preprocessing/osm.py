@@ -36,13 +36,13 @@ class WorkerOSMBuildingsImport(QRunnable):
         buildings=self.readOSMBuildings(nodes)
         self.signals.progress.emit(50)
         if self.clearOldFeatures:
-            sql='TRUNCATE "'+self.dictDB['versionName']+'".customers,"'+self.dictDB['versionName']+'".structure_boundarys;'
+            sql='TRUNCATE "'+self.dictDB['versionName']+'".customers,"'+self.dictDB['versionName']+'".buildings;'
             self.cur.execute(sql)
         for counter,b in enumerate(buildings,1):
             if len(b.geom.split(","))>2:
-                #insert structure_boundarys
+                #insert into buildings
                 try:
-                    sql='INSERT INTO "'+self.dictDB['versionName']+'".structure_boundarys(assetgroup,geom,f_vexp_m) VALUES ('+self.assetgroup+",ST_Multi(ST_Transform(ST_GeomFromText('"+b.geom+"',4326),"+self.srid+")),"+b.height+");"
+                    sql='INSERT INTO "'+self.dictDB['versionName']+'".buildings(geom,b_id,z_id,z_bh_m,z_height_m,z_template,z_construction,room_unit,win_facade_ratio) VALUES ('+self.assetgroup+",ST_Multi(ST_Transform(ST_GeomFromText('"+b.geom+"',4326),"+self.srid+")),"+str(counter)+',1,0,'+','+b.height+",1,1,30);"
                     print(sql)
                     self.cur.execute(sql)
                     

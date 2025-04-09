@@ -1,3 +1,64 @@
+-------------------table public.zone_templates------------------------------------
+DROP TABLE IF EXISTS public.zone_templates CASCADE;
+CREATE TABLE IF NOT EXISTS public.zone_templates
+(
+    id serial,
+    name text,
+    description text,
+    CONSTRAINT zone_templates_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.room_units------------------------------------
+DROP TABLE IF EXISTS public.room_units CASCADE;
+CREATE TABLE IF NOT EXISTS public.room_units
+(
+    id serial,
+    name text,
+    CONSTRAINT room_units_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_construction_standard------------------------------------
+DROP TABLE IF EXISTS public.building_construction_standard CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_construction_standard
+(
+    id serial,
+    construction_standard_name text,
+    description text,
+    CONSTRAINT building_construction_standard_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_constructions------------------------------------
+DROP TABLE IF EXISTS public.building_constructions CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_constructions
+(
+    id serial,
+    construction_standard_id int,
+    construction_type_id int,
+    construction_name text,
+    description text,
+    CONSTRAINT building_constructions_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_construction_types------------------------------------
+DROP TABLE IF EXISTS public.building_construction_types CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_construction_types
+(
+    id serial,
+    type text,
+    name text,
+    CONSTRAINT building_construction_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_templates------------------------------------
+DROP TABLE IF EXISTS public.building_templates CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_templates
+(
+    id serial,
+    template_name text,
+    description text,
+    CONSTRAINT building_templates_pkey PRIMARY KEY (id)
+);
+
 -------------------table public.liquids------------------------------------
 DROP TABLE IF EXISTS public.liquids CASCADE;
 CREATE TABLE public.liquids(
@@ -414,27 +475,6 @@ CREATE TABLE public.junction_assetgroups
 	CONSTRAINT junction_assetgroups_pkey PRIMARY KEY (id)
 );
 
--------------------table public.structure_boundary_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.structure_boundary_assetgroups CASCADE;
-CREATE TABLE public.structure_boundary_assetgroups
-(
-	id serial,
-	assetgroup varchar(25),
-	description varchar(500),
-	CONSTRAINT structure_boundary_assetgroups_pkey PRIMARY KEY (id)
-);
-
--------------------table public.structure_boundary_assettypes------------------------------------
-DROP TABLE IF EXISTS public.structure_boundary_assettypes CASCADE;
-CREATE TABLE public.structure_boundary_assettypes
-(
-	id serial,
-	assetgroup integer,
-	assettype integer,
-	assettype_name varchar(50),
-	description varchar(255),
-	CONSTRAINT structure_boundary_assettypes_pkey PRIMARY KEY (id)
-);
 
 --------------------------------------------------------------------------------
 ------------------temp tables-----------------------------------------

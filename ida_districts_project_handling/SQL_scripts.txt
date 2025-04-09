@@ -647,3 +647,30 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql' STRICT;
 ALTER FUNCTION set_building_height() OWNER TO postgres;
+
+CREATE OR REPLACE FUNCTION public.createFloors()
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE
+	recB Record;
+    f_height integer Default 0;
+    room_height integer Default 3;
+    z_id integer;
+BEGIN		
+	FOR recB IN 
+		SELECT * FROM base1.structure_boundarys
+	LOOP	
+		RAISE NOTICE 'id=%; f_vexp_m=%',recB.id,recB.f_vexp_m;
+        z_id := 1;
+        f_height:=0;
+        WHILE f_height < recB.f_vexp_m LOOP
+            RAISE NOTICE '  f_height=%',f_height;
+            INSERT INTO base1.buildings(b_id,z_id,geom,substation_id,z_bh_m,z_height_m,z_template,z_construction,room_unit,submodel) VALUES 
+                (recB.id,z_id,recB.geom,recB.id,f_height,2.7,1,1,2,2);
+            f_height:= f_height + room_height;
+            z_id := z_id+1;
+        END LOOP;
+END LOOP;
+END;
+$BODY$;
