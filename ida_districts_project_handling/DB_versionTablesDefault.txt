@@ -185,14 +185,10 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_source_signals
     id serial,
     type integer,
     sensor_id integer,
-    assetgroup integer,
-    assettype integer,
-    measure integer,
-    function integer,
+    assettypes integer[],
     test_value numeric,
-    source_irefs text[],
-    source_assettype_names text[],
     description text,
+    CONSTRAINT unique_sensor_source_id UNIQUE (sensor_id),
     CONSTRAINT invoked_sensor_source_signals_pkey PRIMARY KEY (id)
 );
 
@@ -207,6 +203,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_target
     assettype int,
     ids int,
     target int,
+    test_value numeric,
     description text,
     CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
     FOREIGN KEY (sensor_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
@@ -257,13 +254,11 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_target_signals
     id serial,
     type integer,
     sensor_id integer,
-    assetgroup integer,
-    assettype integer,
+    assettypes integer[],
     target integer,
     test_value numeric,
-    target_irefs text[],
-    target_assettype_names text[],
     description text,
+    CONSTRAINT unique_sensor_target_id UNIQUE (sensor_id),
     CONSTRAINT invoked_sensor_target_signals_pkey PRIMARY KEY (id)
 );
 
@@ -272,8 +267,8 @@ DROP TABLE IF EXISTS "$versionName$".climate CASCADE;
 CREATE TABLE "$versionName$".climate
 (
   id serial,
-  name varchar(50) DEFAULT 'Graz',
-  file_name varchar(250) DEFAULT '$plugins_path$\ida_districts_data_center\Samples\climate\Graz-hour_std.prn',
+  name text DEFAULT 'Graz',
+  file_name text DEFAULT '$plugins_path$\ida_districts_data_center\Samples\climate\Graz-hour_std.prn',
   latitude numeric DEFAULT 47.4,
   longitude numeric DEFAULT -15.26,
   timezone integer DEFAULT -1,
@@ -286,7 +281,7 @@ DROP TABLE IF EXISTS "$versionName$".submodels CASCADE;
 CREATE TABLE "$versionName$".submodels
 (
   id serial,
-  submodel varchar(50),
+  submodel text,
   geom geometry(MultiPolygon,$srid$),
   CONSTRAINT submodel_pkey PRIMARY KEY (id)
 );
@@ -296,7 +291,7 @@ DROP TABLE IF EXISTS "$versionName$".network CASCADE;
 CREATE TABLE "$versionName$".network
 (
   id serial,
-  description varchar(255),
+  description text,
   CONSTRAINT network_pkey PRIMARY KEY (id)
 );
 

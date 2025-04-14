@@ -64,6 +64,7 @@ class Supervisory_control():
             #get sensor data
             sensor_data_source=getSensorData(self.cur,self.dictDB,source_types=[4])
             sensor_data_target=getSensorData(self.cur,self.dictDB,target_types=[4])
+
             if update_sensors:
                 #Get all removed sensor sources (table $versionName$.invoked_sensor_source_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
                 remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[4])
@@ -100,6 +101,14 @@ class Supervisory_control():
                     add_sensor_source_idsValues=getSensorData(self.cur,self.dictDB,source_types=[4])
                     add_sensor_target_idsValues=getSensorData(self.cur,self.dictDB,target_types=[4])
                 
+            print('++++++Supervisory sensor data+++++++++')
+            print(add_sensor_source_idsValues)
+            print(add_sensor_target_idsValues)
+            print(sensor_data_source)
+            print(sensor_data_target)
+            print([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
+            print([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
+            
             #2)
             #dir
             createDir(plugin_dir+'\\network_models',self.dictDB['projectName'])
@@ -120,34 +129,18 @@ class Supervisory_control():
                 file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 
-                #get number of old sensor source signals --> for component placement in .idc
-                sql="""WITH sub AS(
-    SELECT sensor_id, unnest(source_irefs) FROM "{}".invoked_sensor_source_signals WHERE type=4
-)
-SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
+                #todo get number of old sensor source signals --> for component placement in .idc
+                sql="""SELECT count(assettypes) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
                 print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorSources=self.cur.fetchone()['count']
                 
-                #get number of old sensor target signals --> for component placement in .idc
-                sql="""WITH sub AS(
-    SELECT sensor_id, unnest(target_irefs) FROM "{}".invoked_sensor_target_signals WHERE type=4
-)
-SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
+                #todo get number of old sensor target signals --> for component placement in .idc
+                sql="""SELECT count(assettypes) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
                 print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorTargets=self.cur.fetchone()['count'] 
                 
-                #print(file_data)
-                print('++++++++++++++---------+++++/////////')
-                print('--------------add_sensor_source_idsValues------------')
-                print(add_sensor_source_idsValues)
-                print('--------------add_sensor_target_idsValues--------------')
-                print(add_sensor_target_idsValues)
-                print('----------remove_sensor_source_ids------------')
-                print(remove_sensor_source_ids)
-                print('------------remove_sensor_target_ids--------------')
-                print(remove_sensor_target_ids)
                 if add_sensor_source_idsValues or add_sensor_target_idsValues:
                     data=[]
                     connections=False
@@ -157,26 +150,26 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                             idx=file_data.index(line)
                             if file_data[idx].count('(')-file_data[idx].count(')')==0:
                                 data[-1]=data[-1].replace('\n','').rstrip()[:-1]+'\n'
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))
                                 if add_sensor_target_idsValues and add_sensor_source_idsValues:
                                     data[-1]+='\n'
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']]))
                                 data[-1]+=")\n"
                             else:
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                         if """(MACRO-OBJECT :N "Sensor-macro\"""" in line:
                             idx=file_data.index(line)
                             if file_data[idx].count('(')-file_data[idx].count(')')==0:
                                 data[-1]=data[-1].replace('\n','').rstrip()[:-1]+'\n'
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))
                                 if add_sensor_target_idsValues and add_sensor_source_idsValues:
                                     data[-1]+='\n'
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                                 data[-1]+=")\n"
                             else:
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))  
-                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))  
+                                data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                         if """(CONNECTIONS""" in line:
                             connections=True
                             idx=file_data.index(line)
@@ -185,24 +178,24 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                                     data[-1]='(CONNECTIONS \n'+data[-1].replace('\n','').rstrip()[:-1].rstrip().split('CONNECTIONS')[1]+'\n'
                                 else:
                                     data[-1]='(CONNECTIONS \n'
-                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_source_idsValues for j in i['irefs_source']])) 
+                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])) 
                                 if add_sensor_target_idsValues and add_sensor_source_idsValues:
                                     data[-1]+='\n'                                
-                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                                 data[-1]+=")"
                             else:
-                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))   
-                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))   
+                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))   
+                                data.append('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))   
                     if not connections and (add_sensor_source_idsValues or add_sensor_target_idsValues):
                         connections="(CONNECTIONS \n"
                         if add_sensor_source_idsValues:
-                            connections+="""(CONNECTIONS \n{})""".format('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))
+                            connections+="""(CONNECTIONS \n{})""".format('\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))
                             if add_sensor_target_idsValues:
                                 connections+="\n"
                             else:
                                 connections+=")"
                         if add_sensor_target_idsValues:
-                            connections+='\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])+')'
+                            connections+='\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])+')'
                         data.append(connections)
                     writeToFileFromList(data,dir,file)
                 else:
@@ -215,13 +208,13 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 numberOf_oldSensorTargets=0
                 if add_sensor_source_idsValues or add_sensor_target_idsValues:
                     if add_sensor_source_idsValues:
-                        supervisory_conns='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']])
-                        sensor_conns='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']])
+                        supervisory_conns='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
+                        sensor_conns='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T IN :F 208)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
                         connections='\n'+'\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Source_{}") ("Supervisory_control" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_source_idsValues for j in i['irefs_source']])
                     if add_sensor_target_idsValues:
-                        supervisory_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']])
-                        sensor_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']])
-                        connections+='\n'+'\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])
+                        supervisory_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])
+                        sensor_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])
+                        connections+='\n'+'\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])
                 file_data=""";IDA 5.1 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "supervisory_control" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.1)) 
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
@@ -284,15 +277,15 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 if add_sensor_source_idsValues:
-                    file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]))
+                    file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))
                 if add_sensor_target_idsValues:
-                    file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+                    file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                 writeToFileFromList(file_data,dir,file)
             else:
                 file_data=""";IDA 5.1 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1))\n{}{}""".format(
-                    ''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_source_idsValues for j in i['irefs_source']]),
-                    ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))                
+                    ''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]),
+                    ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))                
                 writeToFile(file_data,dir,file)
                 
             #supervisory idc macro file
@@ -328,8 +321,8 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 if add_sensor_target_idsValues:
                     file_data.insert(2,''.join(["""((:EO :N "Sensor_Target_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 . {}))))
- (:PAR :N N_IN :V 1))\n""".format(j,str(i['test_value'])) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
-                    file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))
+ (:PAR :N N_IN :V 1))\n""".format(k,str(i['test_value'])) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
+                    file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                     connections=False
                     data=[]
                     for line in file_data:
@@ -342,14 +335,14 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                                     data[-1]='(CONNECTIONS \n'+data[-1].replace('\n','').rstrip()[:-1].rstrip().split('CONNECTIONS')[1]+'\n'
                                 else:
                                     data[-1]='(CONNECTIONS \n'                            
-                                data.append('\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])) 
+                                data.append('\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])) 
                                 data[-1]+=")"
                                 
                             else:
-                                data.append(''.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)\n""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']]))  
+                                data.append(''.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)\n""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))  
                     if not connections and [True for i in add_sensor_target_idsValues] :
                         connections="(CONNECTIONS"
-                        connections+='\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])+')'
+                        connections+='\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])+')'
                         data.append(connections)
                     writeToFileFromList(data,dir,file)
                 else:
@@ -358,15 +351,15 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 conns=""
                 if add_sensor_target_idsValues:
                     conns="(CONNECTIONS"
-                    conns+='\n'+'\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(j,j) for i in add_sensor_target_idsValues for j in i['irefs_target']])                          
+                    conns+='\n'+'\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])                          
                     conns+=')'
 
                 file_data=""";IDA 5.1 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1))\n{}{}{}""".format(
-                    ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(j) for i in add_sensor_target_idsValues for j in i['irefs_target']]),
+                    ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]),
                     ''.join(["""((:EO :N "Sensor_Target_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 . {}))))
- (:PAR :N N_IN :V 1))\n""".format(j,i['test_value']) for i in add_sensor_target_idsValues for j in i['irefs_target']]),conns)
+ (:PAR :N N_IN :V 1))\n""".format(k,i['test_value']) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]),conns)
                 writeToFile(file_data,dir,file)
                 
             #sensor idc macro file
@@ -378,19 +371,19 @@ SELECT count(sensor_id) AS count FROM sub;""".format(self.dictDB['versionName'])
                 file_data=delSensorComp(file_data,remove_sensor_target_ids,'Target')
                 if add_sensor_target_idsValues:
                     file_data.insert(2,''.join(["""(EQUATION-FRAME :AT ((643 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_Target_{}") :NAME "Sensor_Target_{}" :PADDING 3 :DATA :EO)\n""".format(str(50+35*i[0]),i[1],i[1]) 
-                        for i in enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)]))
+                        for i in enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)]))
                     file_data.insert(2,''.join(["""(CONNECTION-LINE :AT ((660 {}) (694 {})) :FIRST-LINK ("Sensor_Target_{}" (0 0.491) OUTSIGNALLINK) :LAST-LINK (:SELF (0.0 0.144) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(str(50+35*i[0]),str(50+35*i[0]),i[1],i[1]) 
-                        for i in enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)]))
-                    file_data[1]=file_data[1].split(':PAGE-HEIGHT ')[0]+':PAGE-HEIGHT '+str(50+50+35*max(list(enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)))[0])+')\n'
+                        for i in enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)]))
+                    file_data[1]=file_data[1].split(':PAGE-HEIGHT ')[0]+':PAGE-HEIGHT '+str(50+50+35*max(list(enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)))[0])+')\n'
                 writeToFileFromList(file_data,dir,file)  
             else:
                 file_data=""";IDA 5.1 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n{}{}""".format(
                     ''.join(["""(EQUATION-FRAME :AT ((643 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_Target_{}") :NAME "Sensor_Target_{}" :PADDING 3 :DATA :EO)\n""".format(str(50+35*i[0]),i[1],i[1])
-                        for i in enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)]),
+                        for i in enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)]),
                     ''.join(["""(CONNECTION-LINE :AT ((660 {}) (694 {})) :FIRST-LINK ("Sensor_Target_{}" (0 0.491) OUTSIGNALLINK) :LAST-LINK (:SELF (0.0 0.144) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(str(50+35*i[0]),str(50+35*i[0]),i[1],i[1]) 
-                        for i in enumerate([j for i in add_sensor_target_idsValues for j in i['irefs_target']],numberOf_oldSensorTargets+1)]))
+                        for i in enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)]))
                 writeToFile(file_data,dir,file)
                 
             #climate macro

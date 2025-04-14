@@ -247,63 +247,120 @@ def delSensorComp(file_data,remove_sensor_ids,type):
     
 def getRemovedSensorSourceData(cur,dictDB,source_types=[1,2,3,4],filter=""):
     print('--------------getRemovedSensorSourceData------------')
-    sql="""SELECT i_s.sensor_id, i_s.source_assettype_names FROM "{}".invoked_sensor_source_signals i_s
-    WHERE i_s.type IN ({}) AND NOT EXISTS (
-        SELECT 1 FROM 
-            (\n""".format(dictDB['versionName'],','.join([str(i) for i in source_types]))
-    sql+=getSensorData(cur,dictDB,execute_query=False,source_types=source_types,filter=filter)[:-1]
-    sql+=""") a 
-            WHERE a.sensor_id=i_s.sensor_id AND i_s.type=a.source_type AND i_s.source_irefs=ARRAY(SELECT unnest(a.irefs_source)) AND i_s.test_value=a.test_value AND i_s.function=a.function AND i_s.type IN ({}));""".format(','.join([str(i) for i in source_types]))
-    print(sql)
-    cur.execute(sql)
-    return cur.fetchall()     
-
-def getRemovedSensorTargetData(cur,dictDB,target_types=[1,2,3,4],filter=""):
-    print('--------------getRemovedSensorTargetData------------')
-    sql="""SELECT i_t.sensor_id, i_t.target_assettype_names FROM "{}".invoked_sensor_target_signals i_t
-    WHERE i_t.type IN ({}) AND NOT EXISTS (
-        SELECT 1 FROM 
-            (\n""".format(dictDB['versionName'],','.join([str(i) for i in target_types]))
-    sql+=getSensorData(cur,dictDB,execute_query=False,target_types=target_types,filter=filter)[:-1]
-    sql+=""") a 
-            WHERE a.sensor_id=i_t.sensor_id AND i_t.type=a.target_type AND i_t.target_irefs=ARRAY(SELECT unnest(a.irefs_target)) AND i_t.type IN ({}));""".format(','.join([str(i) for i in target_types]))
-    print(sql)
-    cur.execute(sql)
-    return cur.fetchall()  
-
-def getAddedSensorSourceData(cur,dictDB,source_types=[1,2,3,4],filter=""):
-    print('--------------getAddedSensorSourceData------------')
-    sql="""WITH sub AS(\n""".format(dictDB['versionName'],','.join([str(i) for i in source_types]))
-    sql+=getSensorData(cur,dictDB,execute_query=False,source_types=source_types,filter=filter)[:-1]
-    sql+=""")
-SELECT * FROM sub WHERE
-    NOT EXISTS (SELECT 1 FROM "{}".invoked_sensor_source_signals i_s
-                            WHERE i_s.type IN ({}) AND sub.sensor_id=i_s.sensor_id AND i_s.type=sub.source_type AND ARRAY(SELECT unnest(sub.irefs_source)) =i_s.source_irefs AND i_s.test_value=sub.test_value AND i_s.function=sub.function);""".format(dictDB['versionName'],','.join([str(i) for i in source_types]))
+    sql="""{}{}{}
+EXCEPT
+{}{}{};""".format("""SELECT sensor_id,type,unnest(assettypes) AS assettype FROM {}.invoked_sensor_source_signals s WHERE s.type IN ({})""".format(dictDB['versionName'],','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in source_types if i in [1,2,3]] and 4 in source_types else "",
+        """SELECT sensor_id,type,NULL AS assettype FROM {}.invoked_sensor_source_signals s WHERE s.type IN (4)""".format(dictDB['versionName']) if 4 in source_types else "",
+        """SELECT s.sensor_id,s.type,at.assettype
+    FROM {}.source_assettype at, {}.sensor_source s
+    WHERE at.source_id=s.sensor_id AND at.active=True AND s.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in source_types if i!=4]),filter) if [True for i in source_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in source_types if i in [1,2,3]] and 4 in source_types else "",
+        """SELECT s.sensor_id,s.type,NULL AS assettype
+    FROM {}.sensor_source s 
+    WHERE s.type IN (4)""".format(dictDB['versionName']) if 4 in source_types else "")
     print(sql)
     cur.execute(sql)
     return cur.fetchall()   
 
-def getAddedSensorTargetData(cur,dictDB,target_types=[1,2,3,4],filter=""):
-    print('-------------getAddedSensorTargetData-----------------')
-    sql="""WITH sub AS(\n""".format(dictDB['versionName'],','.join([str(i) for i in target_types]))
-    sql+=getSensorData(cur,dictDB,execute_query=False,target_types=target_types,filter=filter)[:-1]
-    sql+=""")
-SELECT * FROM sub WHERE
-    NOT EXISTS (SELECT 1 FROM "{}".invoked_sensor_target_signals i_t
-                            WHERE i_t.type IN ({}) AND sub.sensor_id=i_t.sensor_id AND i_t.type=sub.target_type AND ARRAY(SELECT unnest(sub.irefs_target)) =i_t.target_irefs);""".format(dictDB['versionName'],','.join([str(i) for i in target_types])) 
+def getRemovedSensorTargetData(cur,dictDB,target_types=[1,2,3,4],filter=""):
+    print('--------------getRemovedSensorTargetData------------')
+    sql="""{}{}{}
+EXCEPT
+{}{}{};""".format("""SELECT sensor_id,type,unnest(assettypes) AS assettype FROM {}.invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(dictDB['versionName'],','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in target_types if i in [1,2,3]] and 4 in target_types else "",
+        """SELECT sensor_id,type,NULL AS assettype FROM {}.invoked_sensor_target_signals t WHERE t.type IN (4)""".format(dictDB['versionName']) if 4 in target_types else "",
+        """SELECT t.sensor_id,t.type,at.assettype
+    FROM {}.target_assettype at, {}.sensor_target t
+    WHERE at.target_id=t.sensor_id AND at.active=True AND t.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in target_types if i!=4]),filter) if [True for i in target_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in target_types if i in [1,2,3]] and 4 in target_types else "",
+        """SELECT t.sensor_id,t.type,NULL AS assettype
+    FROM {}.sensor_target t 
+    WHERE t.type IN (4)""".format(dictDB['versionName']) if 4 in target_types else "")
     print(sql)
     cur.execute(sql)
-    return cur.fetchall()  
+    return cur.fetchall()    
+
+def getAddedSensorSourceData(cur,dictDB,source_types=[1,2,3,4],filter=""):
+    print('--------------getAddedSensorSourceData------------')
+    sql="""{}{}{}
+EXCEPT
+{}{}{};""".format("""SELECT s.sensor_id,s.type,at.assettype,s.test_value
+    FROM {}.source_assettype at, {}.sensor_source s
+    WHERE at.source_id=s.sensor_id AND at.active=True AND s.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in source_types if i!=4]),filter) if [True for i in source_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in source_types if i in [1,2,3]] and 4 in source_types else "",
+        """SELECT s.sensor_id,s.type,NULL AS assettype,s.test_value
+    FROM {}.sensor_source s 
+    WHERE s.type IN (4) """.format(dictDB['versionName']) if 4 in source_types else "",
+        """SELECT sensor_id,type,unnest(assettypes) AS assettype,test_value FROM {}.invoked_sensor_source_signals s WHERE s.type IN ({})""".format(dictDB['versionName'],','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in source_types if i in [1,2,3]] and 4 in source_types else "",
+        """SELECT sensor_id,type,NULL AS assettype,test_value FROM {}.invoked_sensor_source_signals s WHERE s.type IN (4)""".format(dictDB['versionName']) if 4 in source_types else "")
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
+
+def getAddedSensorTargetData(cur,dictDB,target_types=[1,2,3,4],filter=""):
+    print('-------------getAddedSensorTargetData-----------------')
+    sql="""{}{}{}
+EXCEPT
+{}{}{};""".format(
+    """SELECT t.sensor_id,t.type,at.assettype, t.test_value,t.target
+    FROM {}.target_assettype at, {}.sensor_target t
+    WHERE at.target_id=t.sensor_id AND at.active=True AND t.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in target_types if i!=4]),filter) if [True for i in target_types if i in [1,2,3]] else "",
+    "\nUNION\n" if [True for i in target_types if i in [1,2,3]] and 4 in target_types else "",
+        """SELECT t.sensor_id,t.type,NULL AS assettype,t.test_value,t.target
+    FROM {}.sensor_target t 
+    WHERE t.type IN (4)""".format(dictDB['versionName']) if 4 in target_types else "",
+        """SELECT sensor_id,type,unnest(assettypes) AS assettype,test_value,target FROM {}.invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(dictDB['versionName'],','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2,3]] else "",
+        "\nUNION\n" if [True for i in target_types if i in [1,2,3]] and 4 in target_types else "",
+        """SELECT sensor_id,type,NULL AS assettype,test_value,target FROM {}.invoked_sensor_target_signals t WHERE t.type IN (4)""".format(dictDB['versionName']) if 4 in target_types else "")
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
 
 def writeInvokedSensorSourceSignals (cur,dictDB,add_sensor_source_idsValues):
+    print(add_sensor_source_idsValues)
     if add_sensor_source_idsValues:
-        sql="\n".join(["""INSERT INTO "{}".invoked_sensor_source_signals(sensor_id,type,measure,function,test_value,source_irefs,source_assettype_names) VALUES ({},{},{},{},{},{},{});""".format(dictDB['versionName'],sensor['sensor_id'],sensor['source_type'],sensor['measure'],sensor['function'],sensor['test_value'],"'{"+','.join([iref for iref in sensor['irefs_source']])+"}'","'{"+','.join([k for k in sensor['source_assettype_names']])+"}'") for sensor in add_sensor_source_idsValues])
+        sensor_data = {}
+        for entry in add_sensor_source_idsValues:
+            sensor_id = entry['sensor_id']
+            assettype = entry['assettype']
+            if sensor_id not in sensor_data:
+                sensor_data[sensor_id]={'assettypes':[assettype],'source_type':entry['type'],'test_value': entry['test_value']}
+            else:
+                if assettype not in sensor_data[sensor_id]['assettypes']:
+                    sensor_data[sensor_id]['assettypes'].append(assettype)
+        print(sensor_data)
+                
+        for sensor in sensor_data:
+            print(sensor)
+            sql="\n".join(["""INSERT INTO "{}".invoked_sensor_source_signals(sensor_id,type,assettypes,test_value) VALUES ({},{},array{}::INTEGER[],{})
+    ON CONFLICT (sensor_id)
+    DO UPDATE SET
+        assettypes = "{}".invoked_sensor_source_signals.assettypes || EXCLUDED.assettypes,
+        test_value = EXCLUDED.test_value;""".format(
+                dictDB['versionName'],sensor,sensor_data[sensor]['source_type'],sensor_data[sensor]['assettypes'] if sensor_data[sensor]['assettypes']!=[None] else '[]','NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'],
+                dictDB['versionName'])])
         print(sql)
         cur.execute(sql)
   
 def writeInvokedSensorTargetSignals (cur,dictDB,add_target_idsValues):
     if add_target_idsValues:
-        sql="\n".join(["""INSERT INTO "{}".invoked_sensor_target_signals(sensor_id,type,target_irefs,target,target_assettype_names) VALUES ({},{},{},{},{});""".format(dictDB['versionName'],sensor['sensor_id'],sensor['target_type'],"'{"+','.join([iref for iref in sensor['irefs_target']])+"}'",sensor['target'],"'{"+','.join([k for k in sensor['target_assettype_names']])+"}'") for sensor in add_target_idsValues])
+        sensor_data = {}
+        for entry in add_target_idsValues:
+            sensor_id = entry['sensor_id']
+            assettype = entry['assettype']
+            target = entry['target']
+            if sensor_id not in sensor_data:
+                sensor_data[sensor_id]={'assettypes':[assettype],'target_type':entry['type'],'test_value': entry['test_value'],'target': entry['target']}
+            else:
+                if assettype not in sensor_data[sensor_id]['assettypes']:
+                    sensor_data[sensor_id]['assettypes'].append(assettype)
+        for sensor in sensor_data:
+            print(sensor)
+            print(sensor_data[sensor])
+            sql="\n".join(["""INSERT INTO "{}".invoked_sensor_target_signals(sensor_id,type,target,assettypes,test_value) VALUES ({},{},{},array{}::INTEGER[],{});""".format(
+                dictDB['versionName'],sensor,sensor_data[sensor]['target_type'],sensor_data[sensor]['target'],sensor_data[sensor]['assettypes'] if sensor_data[sensor]['assettypes']!=[None] else '[]','NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
         print(sql)
         cur.execute(sql) 
 
@@ -527,28 +584,22 @@ class NetworkSensorSignals():
         writeToFileFromList(data,dir,file)
         
 class AssettypeSensorSignals():
-    def __init__(self,cur,dictDB,dir,assettype,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
+    def __init__(self,cur,dictDB,dir,assettype_name,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
         print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-        print(assettype)
-        assettype_name=assettype.split(':')[1]
-        
-        #get number of old sensor source signals --> for component placement in .idc
-        sql="""WITH sub AS(
-    SELECT sensor_id, unnest(source_assettype_names) AS source_assettype_name FROM "{}".invoked_sensor_source_signals
-)
-SELECT count(sensor_id) count FROM sub WHERE source_assettype_name='{}';""".format(dictDB['versionName'],assettype_name)
-        print(sql)
-        cur.execute(sql)
-        numberOf_oldSensorSources=cur.fetchone()['count']
+        print(dir)
+        print(assettype_name)
         
         #get number of old sensor target signals --> for component placement in .idc
         sql="""WITH sub AS(
-    SELECT sensor_id, unnest(target_assettype_names) AS target_assettype_name FROM "{}".invoked_sensor_target_signals
+    SELECT sensor_id,unnest(assettypes) AS assettype
+        FROM {}.invoked_sensor_target_signals
+        WHERE type = {}
 )
-SELECT count(sensor_id) AS count FROM sub WHERE target_assettype_name='{}';""".format(dictDB['versionName'],assettype_name)
+SELECT count(sub.assettype) FROM sub WHERE sub.assettype={};""".format(dictDB['versionName'],type,assettype_name.split('_')[1])
         print(sql)
-        cur.execute(sql)
-        numberOf_oldSensorTargets=cur.fetchone()['count']           
+        #cur.execute(sql)
+        #numberOf_oldSensorTargets=cur.fetchone()['count']      
+        numberOf_oldSensorTargets=1        
         
         print(add_sensor_source_idsValues)
         print(remove_sensor_source_ids)            
@@ -623,9 +674,10 @@ SELECT count(sensor_id) AS count FROM sub WHERE target_assettype_name='{}';""".f
             file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')
             file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
             file_data=self.removeHCModeLink(file_data,remove_sensor_target_ids)
-            if [True for i in add_sensor_target_idsValues if i['target']==2]:
-                file_data=self.removeHCModeConnection(file_data)
-                file_data=self.addHCModeLink(file_data,add_sensor_target_idsValues)
+            #todo if needed
+            #if [True for i in add_sensor_target_idsValues if i['target']==2]:
+            #    file_data=self.removeHCModeConnection(file_data)
+            #    file_data=self.addHCModeLink(file_data,add_sensor_target_idsValues)
             if add_sensor_source_idsValues:
                 file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(str(i['sensor_id'])) for i in add_sensor_source_idsValues]))
             if add_sensor_target_idsValues:
@@ -642,15 +694,17 @@ SELECT count(sensor_id) AS count FROM sub WHERE target_assettype_name='{}';""".f
             file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
             file_data=delSensorDescription(file_data)
             file_data=setPageHeightSensorDescription(file_data,(len(add_sensor_source_idsValues)+len(add_sensor_target_idsValues)-len(remove_sensor_source_ids)-len(remove_sensor_target_ids)))
-            if [True for i in add_sensor_target_idsValues if i['target']==2]:
-                file_data=self.removeHCModeConnection(file_data)
+            
+            #todo: update if still needed
+            #if [True for i in add_sensor_target_idsValues if i['target']==2]:
+            #    file_data=self.removeHCModeConnection(file_data)
                 
             sensor_data_source=getSensorData(cur,dictDB,source_types=[type],filter=" AND s.measure=5")
             sensor_data_target=getSensorData(cur,dictDB,target_types=[type],filter=" AND t.target=1")
             print('---------------------------+++++++++++++++-----------------------')
 
-            sensor_data_source=[sensor for sensor in sensor_data_source for at_name in sensor['source_assettype_names'] if at_name==assettype]
-            sensor_data_target=[sensor for sensor in sensor_data_target for at_name in sensor['target_assettype_names'] if at_name==assettype]
+            sensor_data_source=[sensor for sensor in sensor_data_source for at_name in sensor['source_assettype_names'] if at_name==assettype_name]
+            sensor_data_target=[sensor for sensor in sensor_data_target for at_name in sensor['target_assettype_names'] if at_name==assettype_name]
             print(sensor_data_source)
             print(sensor_data_target)
                 

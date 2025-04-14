@@ -27,7 +27,6 @@ from plugins.utility_functions.utility import *
 from plugins.utility_functions.topology import *
 from plugins.utility_functions.layer_visualization import *
 from plugins.utility_functions.workers import WorkerOpenAPI
-from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
 
 from PyQt5.QtCore import Qt
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPool
@@ -268,6 +267,30 @@ class IDADistrictsDataCenter:
             return False
         return ','.join(str(i) for i in values)
         
+    def writeRenameExchangeConntype(self,dlg,traceValue,table_name):
+        wroteAssettype=False
+        if dlg.traceTableValues[traceValue][1]:
+            if dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1]:
+                print(dlg.traceTableValues[traceValue])
+                if not dlg.traceTableValues[traceValue][0]:
+                    if dlg.traceTableValues[traceValue][3]:
+                        WriteAssettypeFiles(self.plugin_dir,dlg.traceTableValues[traceValue][1],table_name,self.cur,dlg.traceTableValues[traceValue][3])
+                    else:
+                        self.iface.messageBar().pushMessage("Error", "No assettype is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
+                        return False
+                    wroteAssettype=True
+                else:
+                    RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
+        if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteAssettype:
+            if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
+                print('Changed conn bundle type')
+                print(dlg.traceTableValues[traceValue])
+                if dlg.traceTableValues[traceValue][1]:
+                    name=dlg.traceTableValues[traceValue][1]
+                else:
+                    name=dlg.traceTableValues[traceValue][0]
+                ExchangeConntypeFiles(self.plugin_dir,name,table_name,dlg.traceTableValues[traceValue][3],dlg.traceTableValues[traceValue][2],self.cur)
+    
     def saveContent(self,dlg,id,table,columns,filter,dropdowns,trace):
         """" Save table to DB an close dialog"""
         print('Save table content to DB an close dialog')
@@ -320,29 +343,7 @@ class IDADistrictsDataCenter:
         elif trace:
             print(dlg.traceTableValues)
             for traceValue in dlg.traceTableValues:
-                wroteAssettype=False
-                if dlg.traceTableValues[traceValue][1]:
-                    if dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1]:
-                        print(dlg.traceTableValues[traceValue])
-                        if not dlg.traceTableValues[traceValue][0]:
-                            if dlg.traceTableValues[traceValue][3]:
-                                WriteAssettypeFiles(self.plugin_dir,dlg.traceTableValues[traceValue][1],table_name,self.cur,dlg.traceTableValues[traceValue][3])
-                            else:
-                                self.iface.messageBar().pushMessage("Error", "No assettype is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
-                                return False
-                            wroteAssettype=True
-                        else:
-                            RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
-                if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteAssettype:
-                    if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
-                        print('Changed conn bundle type')
-                        print(dlg.traceTableValues[traceValue])
-                        if dlg.traceTableValues[traceValue][1]:
-                            name=dlg.traceTableValues[traceValue][1]
-                        else:
-                            name=dlg.traceTableValues[traceValue][0]
-                        ExchangeConntypeFiles(self.plugin_dir,name,table_name,dlg.traceTableValues[traceValue][3],dlg.traceTableValues[traceValue][2],self.cur)
-                        
+                self.writeRenameExchangeConntype(dlg,traceValue,table_name)
             
             #delete templates in directory if they are not in dlg.traceTableValues[traceValue][0]
             dir=self.plugin_dir+'\\'+self.dictDB['projectName']+"\\{}_assettypes".format(table_name)
@@ -600,7 +601,7 @@ class IDADistrictsDataCenter:
         if id!=-1:
             id=dlg.tableWidget.item(id, 0).text()
             title=openFnArg[0]+': ' + id
-            dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace)           
+            dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace,type=getTypeIdByName(openFnArg[7]))           
             if openFnArg[6]:
                 dlg.btn_open.clicked.connect(lambda: openFnArg[6](openFnArg[7],dlg,id))
             if columns[0]=='time_h':
@@ -610,7 +611,7 @@ class IDADistrictsDataCenter:
             dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))   
             dlg.btn_ok.clicked.connect(lambda: self.saveContent(dlg,id,openFnArg[0],columns,filter,dropdowns,trace))
             if save_as:
-                dlg.btn_saveAs.clicked.connect(lambda: self.saveAsAssettype(dlg,openFnArg[0],id,dropdowns))
+                dlg.btn_saveAs.clicked.connect(lambda: self.saveAsAssettype(dlg,openFnArg[0],id,dropdowns,trace))
             
             dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
             dlg.traceTableValues=self.showFilteredTableContent(dlg,openFnArg[0],columns,filter+id,orderby,dropdowns,trace,deactivated)
@@ -645,6 +646,17 @@ class IDADistrictsDataCenter:
             name=assetgroup+'_'+assettype+'_'+assettype_name
             dir=self.plugin_dir.replace('/','\\')+"\\{}\\{}_assettypes\\".format(self.dictDB['projectName'],type)
             file=dir+"{}.idm".format(name)
+            print(file)
+            print(dlg.traceTableValues)
+            
+            if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
+                if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
+                    print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
+                    RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
+                    dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
+                    dlg.traceTableValues[row_index][1]=''
+                    file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])
+                    
             wroteAssettype=False
             if not os.path.exists(file): 
                 WriteAssettypeFiles(self.plugin_dir,name,type,self.cur,conn_bundle_type)
@@ -659,17 +671,7 @@ class IDADistrictsDataCenter:
                     ExchangeConntypeFiles(self.plugin_dir,name,type,dlg.traceTableValues[row_index][3],dlg.traceTableValues[row_index][2],self.cur)
                     dlg.traceTableValues[row_index][2]=dlg.traceTableValues[row_index][3]
                     dlg.traceTableValues[row_index][3]=''
-                    print(dlg.traceTableValues[row_index])
-                       
-            #AssettypeSensorSignals(self.cur,self.dictDB,dir,file,type,conn_bundle_type,assetgroup,assettype,assettype_name,name)
-            
-            if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
-                if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
-                    print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
-                    RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
-                    dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
-                    dlg.traceTableValues[row_index][1]=''
-                    file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])
+                    print(dlg.traceTableValues[row_index])                
 
             #write to DB
             sql="DELETE FROM public.{}_assettypes WHERE assettype={} AND assetgroup ={};".format(type,assettype,assetgroup)
@@ -1393,7 +1395,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             print(sql)
             self.cur.execute(sql)
             
-    def saveAsAssettype(self,dlg,table_name,assetgroup,dropdowns):
+    def saveAsAssettype(self,dlg,table_name,assetgroup,dropdowns,trace):
         """Save as the assettype"""
         row_idx=dlg.tableWidget.currentRow()
         
@@ -1420,6 +1422,26 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             #replace values of dlg.traceTableValues [0] in order to trace the changed values         
             dlg.traceTableValues[0]=[file_name_new,'',conn_bundle_type_old.split(':')[0],'']
             print(dlg.traceTableValues)
+            
+            #add sensor data to source and target assettypes and invoked signals
+            sql="""INSERT INTO {}.target_assettype(target_id,assetgroup,assettype,active) 
+    SELECT at.target_id,at.assetgroup,{},at.active FROM {}.target_assettype at, {}.sensor_target t 
+        WHERE at.assettype = {} AND at.target_id=t.sensor_id AND t.type = {};
+INSERT INTO {}.source_assettype(source_id,assetgroup,assettype,active) 
+    SELECT at.source_id,at.assetgroup,{},at.active FROM {}.source_assettype at, {}.sensor_source s 
+        WHERE at.assettype = {} AND at.source_id=s.sensor_id AND s.type = {};
+UPDATE {}.invoked_sensor_source_signals
+    SET assettypes = assettypes || {}
+    WHERE {} = ANY(assettypes)  AND type = {};
+UPDATE {}.invoked_sensor_target_signals
+    SET assettypes = assettypes || {}
+    WHERE {} = ANY(assettypes) AND type = {};""".format(
+        self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],assettype_id,dlg.type,
+        self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],assettype_id,dlg.type,
+        self.dictDB['versionName'],str(maxId+1),assettype_id,dlg.type,
+        self.dictDB['versionName'],str(maxId+1),assettype_id,dlg.type)
+            print(sql)
+            self.cur.execute(sql)
 
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 

@@ -3,7 +3,6 @@ from plugins.utility_functions.files import *
 from plugins.utility_functions.topology import *
 from plugins.utility_functions.macros import *
 from plugins.utility_functions.dialog import *
-from plugins.utility_functions.sensor_signals import AssettypeSensorSignals
 
 
 import psycopg2

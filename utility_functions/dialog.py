@@ -15,7 +15,7 @@ def deleteTableRow (dlg):
         self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
 class TableDialog(QMainWindow):
-    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True):
+    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type=''):
         """Constructor"""
         super().__init__()
         self.setWindowTitle(title)   
@@ -23,6 +23,7 @@ class TableDialog(QMainWindow):
         self.trace_type=trace
         print('++++++trace: '+str(trace))
         self.assetgroup=title.split(':')[-1].strip()
+        self.type=type
         #table buttons     
         layout_buttons_table = QHBoxLayout()
         if addBtn:

@@ -378,8 +378,8 @@ DROP TABLE IF EXISTS public.customer_assetgroups CASCADE;
 CREATE TABLE public.customer_assetgroups
 (
 	id serial,
-	assetgroup varchar(50),
-	description varchar(500),
+	assetgroup text,
+	description text,
 	CONSTRAINT customer_assetgroups_pkey PRIMARY KEY (id)
 );
 
@@ -390,9 +390,9 @@ CREATE TABLE public.customer_assettypes
 	id serial,
     assetgroup integer,
     assettype integer,
-	assettype_name varchar(50),
+	assettype_name text,
     conn_bundle_type integer,
-	description varchar(255),
+	description text,
 	CONSTRAINT customer_assettypes_pkey PRIMARY KEY (id)
 );
 
@@ -401,8 +401,8 @@ DROP TABLE IF EXISTS public.energy_plant_assetgroups CASCADE;
 CREATE TABLE public.energy_plant_assetgroups
 (
 	id serial,
-	assetgroup varchar(50),
-	description varchar(500),
+	assetgroup text,
+	description text,
 	CONSTRAINT energy_plant_assetgroups_pkey PRIMARY KEY (id)
 );
 
@@ -414,9 +414,9 @@ CREATE TABLE public.energy_plant_assettypes
 	id serial,
     assetgroup integer,
 	assettype integer,
-	assettype_name varchar(50),
+	assettype_name text,
 	conn_bundle_type integer DEFAULT 2,
-	description varchar(255),
+	description text,
 	CONSTRAINT energy_plant_assettypes_pkey PRIMARY KEY (id)
 );
 
@@ -425,8 +425,8 @@ DROP TABLE IF EXISTS public.line_assetgroups CASCADE;
 CREATE TABLE public.line_assetgroups
 (
 	id serial,
-	assetgroup varchar(25),
-	description varchar(500),
+	assetgroup text,
+	description text,
 	CONSTRAINT line_assetgroups_pkey PRIMARY KEY (id)
 );
 
@@ -437,8 +437,8 @@ CREATE TABLE public.line_assettypes
 	id serial,
 	assetgroup integer,
 	assettype integer,
-	assettype_name varchar(80),
-	description varchar(255),
+	assettype_name text,
+	description text,
 	CONSTRAINT line_assettypes_pkey PRIMARY KEY (id)
 );
 
@@ -447,8 +447,8 @@ DROP TABLE IF EXISTS public.device_assetgroups CASCADE;
 CREATE TABLE public.device_assetgroups
 (
 	id serial,
-	assetgroup varchar(25),
-	description varchar(500),
+	assetgroup text,
+	description text,
 	CONSTRAINT device_assetgroups_pkey PRIMARY KEY (id)
 );
 
@@ -459,9 +459,9 @@ CREATE TABLE public.device_assettypes
 	id serial,
 	assetgroup integer,
 	assettype integer,
-	assettype_name varchar(50),
+	assettype_name text,
     conn_bundle_type integer,
-	description varchar(255),
+	description text,
 	CONSTRAINT device_assettypes_pkey PRIMARY KEY (id)
 );
 
@@ -470,8 +470,8 @@ DROP TABLE IF EXISTS public.junction_assetgroups CASCADE;
 CREATE TABLE public.junction_assetgroups
 (
 	id serial,
-	assetgroup varchar(25),
-	description varchar(500),
+	assetgroup text,
+	description text,
 	CONSTRAINT junction_assetgroups_pkey PRIMARY KEY (id)
 );
 

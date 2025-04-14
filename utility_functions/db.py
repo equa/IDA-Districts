@@ -613,6 +613,11 @@ def getAssettypeNames(cur,feature):
     cur.execute(sql)
     return [i['assettyp_names'] for i in cur.fetchall()]
     
+def getAssettypeName(cur,assettype_name,assettype_id):
+    sql="""SELECT assetgroup::text || '_' || assettype::text || '_' || assettype_name AS assettyp_names FROM {} WHERE assettype={} ORDER BY assetgroup,assettype;""".format(assettype_name,assettype_id)
+    cur.execute(sql)
+    return [i['assettyp_names'] for i in cur.fetchall()]
+    
 def loadProjectNames(cur,dictDB):
     """load the project names into comboBox selectProject """
     print('Load project names')
@@ -739,11 +744,11 @@ def getAssetgroupsInfo(feature,cur):
     cur.execute(sql)
     return cur.fetchall()   
     
-def getAssettypesInfo(feature,assetgroup_id,cur):
+def getAssettypesInfo(feature,assetgroup_ids,cur):
     sql="""SELECT at.assettype, at.assettype_name, ag.id AS assetgroup,ag.assetgroup AS assetgroup_name, at.assettype::text||':'||at.assettype_name||'('||ag.assetgroup::text||')' AS name
     FROM {}_assettypes at, {}_assetgroups ag
-    WHERE at.assetgroup=ag.id AND ag.id={}
-    ORDER BY at.assettype; """.format(feature,feature,assetgroup_id)
+    WHERE at.assetgroup=ag.id AND ag.id IN ({})
+    ORDER BY ag.assetgroup, at.assettype; """.format(feature,feature,','.join(assetgroup_ids))
     cur.execute(sql)
     return cur.fetchall()    
     
