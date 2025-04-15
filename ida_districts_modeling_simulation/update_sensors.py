@@ -263,7 +263,7 @@ class UpdateSensors():
             self.setCheckableDropDownItemsTable(self.dlg.tableWidget_source,[],rowPosition,i,[])
         self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,6]]]),'1',7,rowPosition,self.measureChanged)
         self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItemNames(self.cur,[[1,'public','signal_function','function']]),'1',8,rowPosition,False)
-        self.dlg.tableWidget_source.setItem(rowPosition,9,QTableWidgetItem('1'))
+        self.dlg.tableWidget_source.setItem(rowPosition,9,QTableWidgetItem('1.0'))
         self.dlg.tableWidget_source.setItem(rowPosition,10,QTableWidgetItem(''))
         self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),'1:Customer',1,rowPosition,self.sourceTypeChanged) #dropdown type
         self.sourceTypeChanged(self.dlg.tableWidget_source,'',1,rowPosition)
@@ -464,15 +464,6 @@ class UpdateSensors():
         if dropDown!=None:
             assetgroups=self.getAssetgroupsFromTable(dropDown)
             if assetgroups:
-                sql="""SELECT ag.assetgroup, at.assettype, at.assettype_name
-    FROM "{}".{}s f, public.{}_assettypes at, public.{}_assetgroups ag
-    WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup AND f.assetgroup IN ({})
-    GROUP BY ag.assetgroup, at.assettype, at.assettype_name
-    ORDER BY ag.assetgroup, at.assettype; """.format(self.dictDB['versionName'],type,type,type,','.join(assetgroups))
-                print(sql)
-                self.cur.execute(sql)
-                assettypes=self.cur.fetchall()
-                print(assettypes)
                 dropdownItems=[i['name'] for i in getAssettypesInfo(type,assetgroups,self.cur)]
                 print(dropdownItems)
                 self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[self.setDropDownIds,4,type])
@@ -486,21 +477,12 @@ class UpdateSensors():
                         self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
     def setDropDownAssettypesTarget(self,table,col,row,type):
-        print('set assettypes')
+        print('set assettypes target')
         dropDown=table.cellWidget(row, col)
         if dropDown!=None:
             assetgroups=self.getAssetgroupsFromTable(dropDown)
             if assetgroups:
-                sql="""SELECT ag.assetgroup, at.assettype, at.assettype_name
-    FROM "{}".{}s f, public.{}_assettypes at, public.{}_assetgroups ag
-    WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup AND f.assetgroup IN ({})
-    GROUP BY ag.assetgroup, at.assettype, at.assettype_name
-    ORDER BY ag.assetgroup, at.assettype; """.format(self.dictDB['versionName'],type,type,type,','.join(assetgroups))
-                print(sql)
-                self.cur.execute(sql)
-                assettypes=self.cur.fetchall()
-                print(assettypes)
-                dropdownItems=[str(i['assettype'])+':'+i['assettype_name']+'('+i['assetgroup']+')' for i in assettypes]
+                dropdownItems=[i['name'] for i in getAssettypesInfo(type,assetgroups,self.cur)]
                 print(dropdownItems)
                 self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[self.setDropDownIds,4,type])
                 if not dropdownItems:
