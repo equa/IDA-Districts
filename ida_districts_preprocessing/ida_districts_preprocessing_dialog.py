@@ -1509,10 +1509,10 @@ class MapDevicesPlantsDialog(QMainWindow):
             print(conn['connection'])
             self.tableWidget.insertRow(rowPosition)
             item=QTableWidgetItem(str(conn['sequence']))
-            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.tableWidget.setItem(rowPosition,0,item)
             item=QTableWidgetItem(conn['connection'])
-            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.tableWidget.setItem(rowPosition,1,item)
             rowPosition+=1
         
@@ -1836,10 +1836,10 @@ def mapAttributes(dlg):
         dlg.tableWidget.insertRow(rowPosition)
         dlg.tableWidget.setItem(rowPosition,0,QTableWidgetItem(currentLayerAttribute))            
         item=QTableWidgetItem('-->')
-        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
         dlg.tableWidget.setItem(rowPosition,1,item)
         item=QTableWidgetItem(currentLayer_attribute)
-        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
         dlg.tableWidget.setItem(rowPosition,2,item)
     else:            
         iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=Qgis.Info)  
@@ -2097,10 +2097,10 @@ class PipeBundleEditor(QMainWindow):
         for i in range(0,len(self.pipe_bundle_type_attributes)):
             self.tableWidget.insertRow(i)
             item=QTableWidgetItem('-->')
-            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             self.tableWidget.setItem(i,1,item)
             item=QTableWidgetItem(self.pipe_bundle_type_attributes[i])
-            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             self.tableWidget.setItem(i,2,item)
             item=QTableWidgetItem('')
             self.tableWidget.setItem(i,0,item)
@@ -2113,7 +2113,7 @@ class PipeBundleEditor(QMainWindow):
             for i in range(0,int(sequences)):
                 self.tableWidget_pipe.insertRow(i)
                 item=QTableWidgetItem(str(i+1))
-                item.setFlags(QtCore.Qt.ItemIsEnabled)
+                item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.tableWidget_pipe.setItem(i,0,item)
                 comboBox = QComboBox()
                 comboBox.addItems(getDropDownItems(self.cur,[[1,'public','materials','id','name']])[1])

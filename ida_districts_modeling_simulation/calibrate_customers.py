@@ -59,15 +59,15 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
             print(template)
             dlg.tableWidget_templates.insertRow(i)
             item=QTableWidgetItem(str(template['id']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,0,item)
             
             item=QTableWidgetItem(str(template['assettype_name']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,1,item)
             
             item=QTableWidgetItem(str(template['assetgroup_name']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,2,item)
                         
             comboBox = QComboBox()
@@ -77,7 +77,7 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
             dlg.tableWidget_templates.setCellWidget(i, 3, comboBox)
                 
             item=QTableWidgetItem(str(template['used']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,4,item)
 
             i+=1    
@@ -94,15 +94,15 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
             print(customer)
             dlg.tableWidget_customer.insertRow(i)
             item=QTableWidgetItem(str(customer['c_id']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,0,item)
             
             item=QTableWidgetItem(str(customer['assettype_name']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,1,item)
             
             item=QTableWidgetItem(str(customer['assetgroup_name']))
-            item.setFlags(Qt.ItemIsEnabled)
+            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,2,item)
             
             comboBox = QComboBox()

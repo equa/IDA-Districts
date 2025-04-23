@@ -115,18 +115,18 @@ def startCallibration(dlg,plugin_dir,conn,dictDB,iface):
                 dlg.list_tableWidgetResults[list_counter].setHorizontalHeaderLabels(columns)
                                                 
                 item=QTableWidgetItem(id)
-                item.setFlags(Qt.ItemIsEnabled)
+                item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 dlg.list_tableWidgetResults[list_counter].setItem(i,0,item)
         
                 input_counter=0
                 for input in bestParmRuns[1]:
                     item=QTableWidgetItem(str(input))
-                    item.setFlags(Qt.ItemIsEnabled)
+                    item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                     dlg.list_tableWidgetResults[list_counter].setItem(i,1 + input_counter,item)
                     input_counter+=1
 
                 item=QTableWidgetItem('')
-                item.setFlags(Qt.ItemIsEnabled)
+                item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 dlg.list_tableWidgetResults[list_counter].setItem(i,1+input_counter,item)
                 
                 output_counter=0

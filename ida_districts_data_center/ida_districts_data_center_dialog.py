@@ -30,7 +30,7 @@ class ConnectionsDialog(QMainWindow):
 
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton("Save")
         layout_buttons.addWidget(self.btn_ok)
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
@@ -47,28 +47,45 @@ class ConnectionsDialog(QMainWindow):
         self.traceTableValues={}      
         self.resize(900, 500)  # Width of 900 pixels, height of 500 pixels        
     
-    def changedCheckboxState(self, s, row,col):
-        print('+++++')
+    def changedDropdownItem(self, s):
+        print('changed drop down item')
+        combo = self.sender()  # Get the combo box that sent the signal
+        selected_option = combo.currentText().split(':')[0]
+        print(selected_option)
+
+        index = self.tableWidget.indexAt(combo.pos())
+        row = index.row()
+        print(row)
+        self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],self.traceTableValues[row][7],self.traceTableValues[row][8],selected_option]
+        print(self.traceTableValues[row])
+    
+    def changedCheckboxState(self,s):
+        print('+++changed state++')
+        checkbox = self.sender()
+        index = self.tableWidget.indexAt(checkbox.pos())
+        row = index.row()
+        col = index.column()
+        print(row)
         print(col)
         print(s)
         if s==2: #checked
             item=QTableWidgetItem('')
             self.tableWidget.setItem(row,5,item)
             item=QTableWidgetItem('')
-            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.tableWidget.setItem(row,4,item)
             try:
-                self.traceTableValues[row]=[self.traceTableValues[row][0],'',self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],True]
+                self.traceTableValues[row]=[self.traceTableValues[row][0],'',self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],True,self.traceTableValues[row][8],self.traceTableValues[row][9]]
             except:
                 pass
         else:
             item=QTableWidgetItem('')
             self.tableWidget.setItem(row,4,item)
             item=QTableWidgetItem('')
-            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.tableWidget.setItem(row,5,item)
             try:
-                self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],'',self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],False]
+                self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],'',self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],False,self.traceTableValues[row][8],self.traceTableValues[row][9]]
             except:
                 pass
         

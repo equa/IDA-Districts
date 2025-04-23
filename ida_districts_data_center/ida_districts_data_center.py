@@ -238,7 +238,9 @@ class IDADistrictsDataCenter:
             if col in list([i[0] for i in dropdowns]):
                 value=dlg.tableWidget.cellWidget(row, col).currentText()
             elif col in checkBoxes:
+                print ('check box')
                 value=dlg.tableWidget.cellWidget(row, col).isChecked()
+                print(value)
             else:
                 if dlg.tableWidget.item(row,col):
                     value=dlg.tableWidget.item(row,col).text()
@@ -256,7 +258,7 @@ class IDADistrictsDataCenter:
                         value=''
             if isinstance(value, str) and ':' in value and value.split(':')[0].isnumeric():
                 value=value.split(':')[0]
-            if not value and columns[col] not in ['description']:
+            if col not in checkBoxes and not value and columns[col] not in ['description']:
                 return False
             if not isFloat(value) and value!='Null' or columns[col] in ['description']:
                 value="'"+value + "'" 
@@ -557,8 +559,8 @@ class IDADistrictsDataCenter:
         closeDialog(dlg)
         
     def showTableBuildingConstructions(self,dlg,id):
-        """show filtered table content"""
-        print('show filtered table content')
+        """showTableBuildingConstructions"""
+        print('showTableBuildingConstructions')
         dlg.tableWidget.setRowCount(self.rowCountDB('building_construction_types',''))
         sql="""SELECT bct.id, bct.name, bc.construction_name, bc.description
     FROM building_constructions bc,building_construction_types bct 
@@ -572,7 +574,7 @@ class IDADistrictsDataCenter:
             for colCounter,col in enumerate(row):
                 item=QTableWidgetItem(str(row[col]))
                 if colCounter in [0,1]:
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 dlg.tableWidget.setItem(rowCounter , colCounter, item)
                     
 
@@ -954,7 +956,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                         value=str(row[col])
                     item=QTableWidgetItem(value)
                     if col == 0:
-                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowPosition , col, item)
                     if dlg.trace_type:
                         traceTableValues[rowPosition][col]=[value,'']
@@ -990,19 +992,19 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     comboBox.setCurrentText(currentText)
                     if trace in ['conn_type_trace','bt_conns_trace']:
                         changedConnectionBundleType=currentText
-                        comboBox.currentTextChanged.connect(lambda signal, row=rowCount, col=col: dlg.changedDropdownItem(signal,row,col))
+                        comboBox.currentTextChanged.connect(dlg.changedDropdownItem)
                     elif trace:
                         if col in [2,3]:
                             if col==2:
                                 changedConnectionBundleType=currentText
                             if col==3:
                                 changedSimModel=currentText
-                            comboBox.currentTextChanged.connect(lambda signal, row=rowCount, col=col: dlg.changedDropdownItem(signal,row,col))
+                            comboBox.currentTextChanged.connect(dlg.changedDropdownItem)
                     dlg.tableWidget.setCellWidget(rowCount, col, comboBox)   
                 else:
                     item=QTableWidgetItem(str(row[col]))
                     if col in deactivated:
-                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowCount , col, item)
             if trace in ['conn_type_trace','bt_conns_trace']:
                 table_trace[rowCount]= [str(row[0]),'',changedConnectionBundleType.split(':')[0],'']
@@ -1028,7 +1030,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dlg.btn_ok.clicked.connect(lambda: self.saveConnectionsTable(dlg,'connections',columns,dropdowns,False,checkBoxes))
             dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
             dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,True))
-            dlg.btn_add.clicked.connect(lambda: self.addConnectionsTableRow(dlg,dropdowns))
+            dlg.btn_add.clicked.connect(lambda: self.addConnectionsTableRow(dlg,dropdowns,0))
             self.showConnectionsContent(dlg,dropdowns)         
             dlg.tableWidget.itemChanged.connect(dlg.changedItem)
             dlg.show()
@@ -1040,6 +1042,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         if self.checkConnsInputValues(dlg):
             updateAssettypeBoundaryValues(dlg,self.plugin_dir,self.dictDB,self.cur)
             self.saveTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes,False,False)
+            
     
     def checkConnsInputValues(self,dlg):
         """is value (p,m,T)"""
@@ -1053,7 +1056,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         
 
             
-    def addConnectionsTableRow(self,dlg,dropdowns):
+    def addConnectionsTableRow(self,dlg,dropdowns,row):
         """Insert table row"""
         rowPosition = 0
         dlg.tableWidget.insertRow(rowPosition)
@@ -1065,17 +1068,19 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 comboBox = QComboBox()
                 comboBox.addItems(dropdownItems[col])
                 dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)
+                comboBox.currentIndexChanged.connect(dlg.changedDropdownItem)            
             elif col==2:
                 checkBox=QCheckBox()
                 dlg.tableWidget.setCellWidget(0, col, checkBox)
-                checkBox.stateChanged.connect(lambda signal, row=0,colmn=col: dlg.changedCheckboxState(signal,row,colmn))
+                checkBox.stateChanged.connect(dlg.changedCheckboxState)
             else:
                 if col in [0,5]:
                     if col==0:
-                        item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)))
+                        item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)+1))
+                        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                     else:
                         item=QTableWidgetItem('')
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(0,col,item)
                 else:
                     item=QTableWidgetItem('')
@@ -1084,12 +1089,12 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         for row in reversed(sorted(dlg.traceTableValues)):
             dlg.traceTableValues[row+1]=dlg.traceTableValues[row]
         print(dlg.traceTableValues)
-        dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,4).text(),'',dlg.tableWidget.item(0,5).text(),'',dlg.tableWidget.item(0,3).text(),'',False] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new
+        dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,4).text(),'',dlg.tableWidget.item(0,5).text(),'',dlg.tableWidget.item(0,3).text(),'',False,dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0],''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
         print(dlg.traceTableValues)
             
     def showConnectionsContent(self,dlg,dropdowns): 
         """show connections table content"""
-        print('show filtered table content')
+        print('show connections table content')
         table='connections'
         cur=self.conn.cursor()
         dlg.tableWidget.setRowCount(self.rowCountDB(table,''))
@@ -1114,23 +1119,24 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                                 currentText=dropDownItem
                     comboBox.setCurrentText(currentText)
                     dlg.tableWidget.setCellWidget(rowCount, col, comboBox)   
+                    comboBox.currentIndexChanged.connect(dlg.changedDropdownItem)            
                 elif col==2:
                     checkBox=QCheckBox()
                     if row[col]==True:
                         checkBox.setChecked(True)
-                    checkBox.stateChanged.connect(lambda signal, row=rowCount,colmn=col: dlg.changedCheckboxState(signal,row,colmn))
+                    checkBox.stateChanged.connect(dlg.changedCheckboxState)
                     dlg.tableWidget.setCellWidget(rowCount, col, checkBox)
                 else:
                     item=QTableWidgetItem('' if row[col]==None else str(row[col]))
                     if col == 0:
-                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                     elif col == 4 and row[2]==True:
-                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                     elif col == 5 and row[2]==False:
-                        item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowCount , col, item)
             
-            dlg.traceTableValues[rowCount]= ['' if row[4]==None else str(row[4]),'','' if row[5]==None else str(row[5]),'',str(row[3]),'',row[2],''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new
+            dlg.traceTableValues[rowCount]= ['' if row[4]==None else str(row[4]),'','' if row[5]==None else str(row[5]),'',str(row[3]),'',row[2],'',str(row[1]),''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
             rowCount+=1
         print(dlg.traceTableValues)
                     
@@ -1313,14 +1319,14 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 comboBox.addItems(dropdownItems[col])
                 dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)
                 if trace:
-                    comboBox.currentTextChanged.connect(lambda signal, row=0,colmn=col: dlg.changedDropdownItem(signal,row,colmn))
+                    comboBox.currentTextChanged.connect(dlg.changedDropdownItem)
             else:
                 if col==0:
                     item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)+1))
                 else:
                     item=QTableWidgetItem('')
                 if col in deactivated:
-                    item.setFlags(Qt.ItemIsEnabled)
+                    item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 dlg.tableWidget.setItem(0,col,item)
                 
         #add row to dlg.traceTableValues in order to trace the changed values     

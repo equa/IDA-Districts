@@ -72,8 +72,13 @@ class TableDialog(QMainWindow):
         #self.fitToTable()
         self.traceTableValues=[] 
     
-    def changedDropdownItem(self, s, row,col):
+    def changedDropdownItem(self, s):
         print('+++++')
+        combo = self.sender()  # Get the combo box that sent the signal
+        index = self.tableWidget.indexAt(combo.pos())
+        row = index.row()
+        col = index.column()
+        print(row)
         print(col)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
             self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]

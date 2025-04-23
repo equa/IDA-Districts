@@ -142,6 +142,7 @@ INSERT INTO public.zone_templates (id,name,description) VALUES (135,'12.12 Serve
 INSERT INTO public.room_units (id,name) VALUES (1,'Ideal units');
 INSERT INTO public.room_units (id,name) VALUES (2,'Radiator');
 INSERT INTO public.room_units (id,name) VALUES (3,'Heating/cooling floor');
+INSERT INTO public.room_units (id,name) VALUES (4,'HK element');
 
 -------------------table public.building_templates------------------------------------
 INSERT INTO public.building_templates (id,template_name,description) VALUES (1,'SIABestandGeb','SIA Standard for existing buildings based on Swiss localization');
@@ -243,6 +244,14 @@ INSERT INTO public.signal_function (id,function) VALUES (6,'Individual signals f
 -------------------table public.prefered_conn_dir------------------------------------
 INSERT INTO public.prefered_conn_dir VALUES(1,'Supply');
 INSERT INTO public.prefered_conn_dir VALUES(2,'Return');
+INSERT INTO public.prefered_conn_dir VALUES(3,'Zone_sup_hot');
+INSERT INTO public.prefered_conn_dir VALUES(4,'Zone_rtn_hot');
+INSERT INTO public.prefered_conn_dir VALUES(5,'Zone_sup_cold');
+INSERT INTO public.prefered_conn_dir VALUES(6,'Zone_ret_cold');
+INSERT INTO public.prefered_conn_dir VALUES(7,'AHU_sup_hot');
+INSERT INTO public.prefered_conn_dir VALUES(8,'AHU_rtn_hot');
+INSERT INTO public.prefered_conn_dir VALUES(9,'AHU_sup_cold');
+INSERT INTO public.prefered_conn_dir VALUES(10,'AHU_rtn_cold');
 
 ---------------------------------connections----------------------------------------------
 -------------------table public.conn_bundle_types------------------------------------
@@ -332,12 +341,20 @@ INSERT INTO public.connections VALUES (3,1,FALSE,10,100000,Null,'Supply: 10 °C;
 INSERT INTO public.connections VALUES (4,2,FALSE,18,0,Null,'Return: 18 °C;0Pa');
 INSERT INTO public.connections VALUES (5,1,FALSE,18,100000,Null,'Supply: 18 °C;100000Pa');
 INSERT INTO public.connections VALUES (6,2,FALSE,10,0,Null,'Return: 10 °C;0Pa');
-INSERT INTO public.connections VALUES (7,1,TRUE,70,Null,-0.1,'Supply: 70 °C;-0.1kg/s');
+INSERT INTO public.connections VALUES (7,1,TRUE,70,Null,0.1,'Supply: 70 °C;0.1kg/s');
 INSERT INTO public.connections VALUES (8,2,TRUE,30,Null,0.1,'Return: 30 °C;0.1kg/s');
-INSERT INTO public.connections VALUES (9,1,TRUE,18,Null,-0.1,'Supply: 18 °C;-0.1kg/s');
+INSERT INTO public.connections VALUES (9,1,TRUE,18,Null,0.1,'Supply: 18 °C;0.1kg/s');
 INSERT INTO public.connections VALUES (10,2,TRUE,10,Null,0.1,'Return: 10 °C;0.1kg/s');
-INSERT INTO public.connections VALUES (11,1,TRUE,10,Null,-0.1,'Supply: 10 °C;-0.1kg/s');
+INSERT INTO public.connections VALUES (11,1,TRUE,10,Null,0.1,'Supply: 10 °C;0.1kg/s');
 INSERT INTO public.connections VALUES (12,2,TRUE,18,Null,0.1,'Return: 18 °C;0.1kg/s');
+INSERT INTO public.connections VALUES (13,3,TRUE,70,Null,0.1,'Zone supply hot');
+INSERT INTO public.connections VALUES (14,4,TRUE,30,Null,0.1,'Zone return hot');
+INSERT INTO public.connections VALUES (15,5,TRUE,16,Null,0.1,'Zone supply cold');
+INSERT INTO public.connections VALUES (16,6,TRUE,20,Null,0.1,'Zone return cold');
+INSERT INTO public.connections VALUES (17,7,TRUE,70,Null,0.1,'AHU supply hot');
+INSERT INTO public.connections VALUES (18,8,TRUE,30,Null,0.1,'AHU return hot');
+INSERT INTO public.connections VALUES (19,9,TRUE,16,Null,0.1,'AHU return cold');
+INSERT INTO public.connections VALUES (20,10,TRUE,20,Null,0.1,'AHU supply cold');
 
 -------------------table public.pipe_bundle_types------------------------------------
 INSERT INTO public.pipe_bundle_types VALUES (1,NULL,NULL,'2 pipes; 1m depth; 0.5m distance'); 

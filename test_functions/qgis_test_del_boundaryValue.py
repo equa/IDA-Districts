@@ -69,18 +69,13 @@ def getBoundaryUpdateData(connsValues,changedValues):
                 ctrl=changedValues[connValues['conn_id']]['ctrl']
                 new_var='M' if ctrl else 'P'
                 new_var_value=changedValues[connValues['conn_id']]['m' if ctrl else 'p']['new']
-                old_var_value=changedValues[connValues['conn_id']]['p']['old'] if ctrl else changedValues[connValues['conn_id']]['m']['old']
                 disconnect='|P_var|' if ctrl else '|M_var|'
-                del_constants.append('{}{}{}"'.format(ident,
-                                                        'P' if ctrl else 'M',
-                                                        old_var_value))
+                del_constants.append('{}_{}"'.format(ident,'P' if ctrl else 'M'))
                 connect='|M_var|' if ctrl else '|P_var|'
-                add_constant_name='{}{}{}"'.format(ident,
-                                                'M' if ctrl else 'P',
-                                                new_var_value)
+                add_constant_name='{}_{}"'.format(ident,'M' if ctrl else 'P')
                 add_constants[add_constant_name]= {':V': new_var_value,
                                                     ':FIRST-LINK': [PMT2muxName,new_var],
-                                                    ':LAST-LINK':[ident+new_var+new_var_value+'"','LINK']}
+                                                    ':LAST-LINK':['"'+ident+'_'+new_var+'"','LINK']}
 
             
             pmt2_update_dict[PMT2muxName]={'disconnect':disconnect,

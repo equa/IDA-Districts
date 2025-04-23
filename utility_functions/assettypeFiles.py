@@ -957,7 +957,7 @@ class WriteAssettypeFiles:
  (:VAR :N |{}_var| :B (-1 {} 0))
  ((CONNECTOR :N |term_a|)
   (:VAR :N |inStream(T)| :B {})))""".format(name_pmtmux,variable,variable,value['temp'])
-            name_const="{}_{}_{}_{}_{}{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],variable,var_value)
+            name_const="{}_{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],variable)
             data=data+"""\n((SOURCE-CONSTANT :N "{}" :T CONSTANT)
  (:PAR :N X :V {}))  """.format(name_const,var_value)
         data+="""\n((MACRO-OBJECT :N "Climate-macro" :T ICE-MACRO :ETM 3857526820 :STM 3857526845))"""
@@ -966,14 +966,14 @@ class WriteAssettypeFiles:
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
-                name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
+                name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="P"
             else:
-                name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
+                name_const="{}_{}_{}_{}_M".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="M"
             data+="""\n (("{}" "{}") ("{}" |term_b|) 0 2 NIL)
  (("{}" {}) ("{}" LINK) 0 0 NIL)""".format(name,name_pmtmux,name_pmtmux,name_pmtmux,variable,name_const)
-        data+="""\n)"""
+        data+=""")"""
         writeToFile(data,dir,dir+"""\\{}.idm""".format(name))
 
     def writeIdc(self,dir,name,connValues):
@@ -994,7 +994,7 @@ class WriteAssettypeFiles:
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
-                name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
+                name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="p"
                 y=240+counter_p*40
                 data+="""\n(EQUATION-FRAME :AT ((96 {})) :R (9 18.5) :ICON "lib:pmt2mux.ids" :SYMMETRY (180.0) :SLOT ("{}") :NAME "{}" :DATA :EO) """.format(y,name_pmtmux,name_pmtmux)
@@ -1006,7 +1006,7 @@ class WriteAssettypeFiles:
                 data+="""\n(CONNECTION-LINE :AT ((307/5 {}) (87 {})) :FIRST-LINK ("{}" (1 0.5) LINK) :LAST-LINK ("{}" (0.0 0.139) {}) :DIR :RIGHT :ARROW (19 8 8)) """.format(y,y,name_const,name_pmtmux,variable)
                 counter_p+=1
             else:
-                name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
+                name_const="{}_{}_{}_{}_M".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="M"
                 y=240+counter_mdot*40
                 data+="""\n(EQUATION-FRAME :AT ((597 {})) :R (9 18.5) :ICON "lib:pmt2mux.ids" :SLOT ("{}") :NAME "{}" :DATA :EO) """.format(y,name_pmtmux,name_pmtmux)
