@@ -310,7 +310,10 @@ def getDirFiles(dir,extension):
     return [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and os.path.join(dir, f).endswith(extension)]
 
 def getNetworkFileSubmodels(dir):
-    return [f.split('_')[1].split('.')[0] for f in getDirFiles(dir,'.idm')]
+    return [f.split('_')[1].split('.')[0] for f in getDirFiles(dir,'.idm') if f.split('_')[0]=='network']
+    
+def getBuildingFileSubmodels(dir):
+    return [f.split('_')[1].split('.')[0] for f in getDirFiles(dir,'.idm') if f.split('_')[0]=='building']
 
 def createSubDir(dir):
     """ makes a new folder and subfolders if it does not exists"""
@@ -348,7 +351,7 @@ def writePropertyListIDCToFile(plist,dir,file):
         if os.name == 'nt' and '\\\\?\\' not in dir:
             dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
-            myfile.write(';IDA 5.1 Form UTF-8\n')
+            myfile.write(';IDA 5.11 Form UTF-8\n')
             for comp in plist:
                 myfile.write(pListToCompString(comp,0)+'\n')
                 

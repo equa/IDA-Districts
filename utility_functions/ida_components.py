@@ -1,6 +1,5 @@
 from plugins.utility_functions.utility import *
 from plugins.utility_functions.db import *
-from plugins.utility_functions.utility import *
 
 import re
 
@@ -154,7 +153,7 @@ def getImportVars(f_ids,assettype_data_ex,sensor_dec_data):
     print([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==4)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
     return importVars+[j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==4)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]]
 
-def getExportVars(f_ids,assettype_data_ex,sensor_dec_data):
+def getExportVars(f_ids,assettype_data_ex,sensor_dec_data,mode):
     exportVars=[]
     counter = alt_count(start=1)
     print(assettype_data_ex)
@@ -167,7 +166,7 @@ def getExportVars(f_ids,assettype_data_ex,sensor_dec_data):
                     for var in data_ex[':EXPORT']:
                         sensor_id=var.replace('"','').split('_')[-1]
                         if not data_ex[':N']==':SELF':
-                            exportVars.append("""({} :SYSTEM "{}_{}" {} {})""".format(next(counter),f['feature'].capitalize(),f['id'],data_ex[':N'],var))
+                            exportVars.append("""({} {} "{}{}" {} {})""".format(next(counter),':SYSTEM' if mode=='network' else ":PLANT",'{}_'.format(f['feature'].capitalize()) if mode=='network' else 'substation b',f['id'],data_ex[':N'],var))
                         elif [True for i in sensor_dec_data for j in i['irefs_source'] if str(i['sensor_id'])==sensor_id and j['iref'].split('_')[1]==str(f['id'])]:
                             #print(var)
                             sensor_id=int(sensor_id)
@@ -355,6 +354,18 @@ def getModelInterfaces(model):
 
 def checkFeatureSubmodel(id,submodel,feature,feature_ids_per_submodel,cur,dictDB):
     return [True for k in feature_ids_per_submodel if str(k['id'])==str(id) and k['feature']==feature]
+
+def getFeatureIdsPerSubmodel(submodel,cur,dictDB):
+    sql="""(
+    SELECT 1 AS feature, id FROM "{}".customers WHERE submodel={}
+    UNION
+    SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
+    UNION
+    SELECT 3 AS feature, id FROM "{}".devices WHERE submodel={}
+)
+ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,dictDB['versionName'],submodel)
+    cur.execute(sql)
+    return cur.fetchall()
     
 def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_data,submodel,feature_id,cur,dictDB):
     data_ex=[]

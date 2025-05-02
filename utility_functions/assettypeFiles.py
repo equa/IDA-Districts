@@ -113,10 +113,10 @@ class CopyDecoupledAssettypeMacro:
         * import/export:
             -sensor signals
             -connections"""
-    def __init__(self,submodel,dir,dictDB,cur,plugin_dir,sensor_data):
+    def __init__(self,submodel,dir,dictDB,cur,plugin_dir,sensor_data,mode='network'):
         print('copy decoupled feature macro')
-        target_dir=dir+"\\network_"+str(submodel)
-                    
+        target_dir=dir+"\\{}_".format(mode)+str(submodel)+("\\plant" if mode=='building' else "")
+        print(target_dir)  
         submodels=getUsedSubmodels(cur,dictDB)
         submodels.remove(str(submodel))
         print(submodels)
@@ -126,33 +126,31 @@ class CopyDecoupledAssettypeMacro:
         self.resources=[]
         self.data_ex_f=[]
         for feature in features: 
+            print(feature)
             try:
                 self.import_counter[str(feature['submodel'])]=self.import_counter[str(feature['submodel'])]
             except:
                 self.import_counter[str(feature['submodel'])]=0
-            f_idc_target=target_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+".idc"
-            f_idm_target=target_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+".idm"
+            f_idc_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idc"
+            f_idm_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idm"
             print(f_idm_target)
             source_dir=dir+'\\invoked_'+feature['feature']+'s'
 
-            #idm
-            source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
-            #print(source_f)
-            if not os.path.exists(source_f):
+            if not os.path.exists("{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']))):
                 invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],False)
             
-            file_data=readFileToList(source_f)
+            file_data=readFileToList("{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id'])))
             resource=getResourcesFromFileDataList(file_data)
 
             if resource not in self.resources:
                 self.resources+=resource
-            #too slow
-            #data_idm=OneOrMore(nestedExpr()).parseString(readFileToString(source_f))
-            #data_idc=OneOrMore(nestedExpr()).parseString(readFileToString("{}\\{}_{}\\{}_{}.idc".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))))
+
+            #idm
+            source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
             print('++++++++++++++++start read file components ++++++++++++++++++++++++ ')
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f)))
             components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString("{}\\{}_{}\\{}_{}.idc".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id'])))))
-            print('++++++++++++++++start read file components  ++++++++++++++++++++++++ ')
+            print('++++++++++++++++end read file components  ++++++++++++++++++++++++ ')
 
             conns_idc=[comp for comp in components_idc if comp[':C']=='CONNECTION-LINE']
 
@@ -163,30 +161,40 @@ class CopyDecoupledAssettypeMacro:
             data_idc=[]
                   
             dec_models=getDecoupledFeatureCompPerFeature(feature,cur,dictDB)
-            pmtmux_names=[getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id']) for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB)]
+            print(dec_models)
+            pmtmux_names=[getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id']) for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] in [1,2]]
+            print(pmtmux_names)
+            building_pmt2s=['"'+getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] not in [1,2]]
+            building_irefs=['"'+i.split('PMT2mux_')[1] for i in building_pmt2s]
             dec_models.extend(pmtmux_names)
             dec_models.extend([i.split('PMT2mux_')[1] for i in pmtmux_names])
-            for emeter in [getMeterName(cur,i['conn_bundle_type_id'],i['conn_type_id']) for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB)]:
+            for emeter in [getMeterName(cur,i['conn_bundle_type_id'],i['conn_type_id']) for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] in [1,2]]:
                 if emeter not in dec_models:
                     dec_models.append(emeter)
             dec_models.append(':SELF')
+            print(dec_models)
+            
+            #idc
             data_ex=getDataExFeature(conns_idc,dec_models,components_idm,feature['network_side'],sensor_data,submodel,feature['id'],cur,dictDB)
             print(data_ex)
-            
-            
             irefs=getSensorIrefsFeatureSource(sensor_data,feature['submodel'],feature['id'],cur,dictDB,feature['feature'])
             irefs_target=getSensorIrefsFeatureTarget(sensor_data,feature['submodel'],feature['id'],cur,dictDB,feature['feature'])
-            dec_models.extend(['Int_Ref_Sensor_Source_'+i.split('_')[0] for i in irefs])
-            dec_models.extend(['Int_Ref_Sensor_Target_'+i.split('_')[0] for i in irefs_target])
-            dec_models=['"'+i+'"' if i != ':SELF' else i for i in dec_models]
-            print(dec_models)
+            
+            dec_models_idc=copy.copy(dec_models)
+            dec_models_idc.extend(['Int_Ref_Sensor_Source_'+i.split('_')[0] for i in irefs])
+            print(dec_models_idc)
+            dec_models_idc.extend(['Int_Ref_Sensor_Target_'+i.split('_')[0] for i in irefs_target])
+            dec_models_idc=['"'+i+'"' if i != ':SELF' else i for i in dec_models]
+            print(dec_models_idc)
             keep_irefs=[]
             hx=[j[':N'] for j in data_ex if j[':T']=='|hx|']
-            dec_models_=[i for i in dec_models if i not in hx]
+            dec_models_idc_=[i for i in dec_models_idc if i not in hx]
             PhiHxLimit_signal=False
             TbSet_signal=False
+            print(feature['network_side'])
+            print(building_irefs)
+            
             for comp in components_idc:
-                #print(comp)
                 comp_class=getCompClass(comp)
                 if comp_class=='CONNECTION-LINE':
                     if (comp[':FIRST-LINK'][0] ==':SELF' and comp[':LAST-LINK'][0] in hx or
@@ -196,17 +204,17 @@ class CopyDecoupledAssettypeMacro:
                         if '|TbSet|' in str(comp):
                             TbSet_signal=True
                     if (        
-                                (comp[':LAST-LINK'][2] in dec_models             
+                                (comp[':LAST-LINK'][2] in dec_models_idc or comp[':LAST-LINK'][2] in building_irefs             
                             if comp[':LAST-LINK'][0]==':SELF' else
-                                (comp[':LAST-LINK'][0] in dec_models 
+                                (comp[':LAST-LINK'][0] in dec_models_idc 
                                 if feature['network_side'] else 
-                                comp[':LAST-LINK'][0] not in dec_models_))
+                                comp[':LAST-LINK'][0] not in dec_models_idc_))
                         and 
-                                (comp[':FIRST-LINK'][2] in dec_models             
+                                (comp[':FIRST-LINK'][2] in dec_models_idc or comp[':FIRST-LINK'][2] in building_irefs              
                             if comp[':FIRST-LINK'][0]==':SELF' else
-                                (comp[':FIRST-LINK'][0] in dec_models 
+                                (comp[':FIRST-LINK'][0] in dec_models_idc 
                                 if feature['network_side'] else 
-                                comp[':FIRST-LINK'][0] not in dec_models_))
+                                comp[':FIRST-LINK'][0] not in dec_models_idc_))
                         and 
                             (True if feature['network_side'] else 
                                 not (comp[':FIRST-LINK'][0] ==':SELF' and comp[':LAST-LINK'][0] in hx or
@@ -218,34 +226,44 @@ class CopyDecoupledAssettypeMacro:
                             keep_irefs.append(comp[':FIRST-LINK'][2])   
                         if comp[':LAST-LINK'][0]==':SELF':
                             keep_irefs.append(comp[':LAST-LINK'][2])
-                elif (comp_class=='EQUATION-FRAME' or comp_class=='LINK-FRAME') and ((comp[':NAME'] in dec_models if feature['network_side'] else comp[':NAME'] not in dec_models or comp[':NAME'] in hx) ):
+                elif (comp_class=='EQUATION-FRAME' or comp_class=='LINK-FRAME') and ((comp[':NAME'] in dec_models_idc if feature['network_side'] else comp[':NAME'] not in dec_models_idc or comp[':NAME'] in hx) ):
                     #print('keep EQUATION-FRAME')
                     #print(comp[':NAME'])
                     data_idc.append(comp)
                 elif comp_class in keep_class:
                     #print('keep')
                     data_idc.append(comp)
+            #print(data_idc)
             writePropertyListIDCToFile(data_idc,target_dir,f_idc_target)  
             
             
             #idm
-            dec_models=getDecoupledFeatureCompPerFeature(feature,cur,dictDB)
-            pmtmux_names=[getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id']) for i in getConnsValuesByFeature(1,str(feature['id']),cur,dictDB)]
-            dec_models.extend(pmtmux_names)
-            dec_models.extend([i.split('PMT2mux_')[1] for i in pmtmux_names])
-            for emeter in [getMeterName(cur,i['conn_bundle_type_id'],i['conn_type_id']) for i in getConnsValuesByFeature(1,str(feature['id']),cur,dictDB)]:
-                if emeter not in dec_models:
-                    dec_models.append(emeter)
-            dec_models.append(':SELF')
             dec_models=['"'+i+'"' if i != ':SELF' else i for i in dec_models]
             dec_models_=[i for i in dec_models if i not in hx]
-            print(dec_models)
             data_idm=[]
             for comp in components_idm:
                 comp_name=getCompName(comp)
                 if (comp_name in dec_models if feature['network_side'] else comp_name not in dec_models or comp_name in hx) and getCompClass(comp) not in keep_class or comp_name in keep_irefs:
                     #print('++++**++++')
                     #print('keep: '+comp_name)
+                    if getCompName(comp) in building_pmt2s:
+                        data=[]
+                        for i in comp:
+                            if getCompName(i)=='|M_var|':
+                                print('|M_var|')
+                                i[':B']=['-1','|term_b|','1']
+                                data.append(i)
+                            elif getCompName(i)=='|term_b|':
+                                instream_data=[]
+                                for j in i:
+                                    if getCompName(j)=='|inStream(T)|':
+                                        print('|inStream(T)|')
+                                        j[':B']=['-1','|term_b|','2']
+                                    instream_data.append(j)
+                                data.append(instream_data)
+                            else:
+                                data.append(i)
+                        data_idm.append(data)
                     if getCompTemplate(comp)=='|hx|':
                         data_idm.append({':C':'OUTPUT-FILE',':N': '"HX decoupling"',':T':'OUTPUT-FILE', ':COL':'T',':STM':'1'})
                         if feature['network_side']:
@@ -270,7 +288,7 @@ class CopyDecoupledAssettypeMacro:
                             data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_BSide|'},
                                              {':C':':VAR', ':N': '|PhiHxLimit_var|', ':B': '-1' if PhiHxLimit_signal else ['-1','|PhiHxLimit|','0']},
                                              {':C':':VAR', ':N': '|TbSet_var|', ':B': '-1' if TbSet_signal else ['-1','|TbSet|','0'],':L':'"HX decoupling"', ':AS':'"TbSet"'},
-                                             {':C':':VAR', ':N': '|TbOut|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['submodel'],
+                                             {':C':':VAR', ':N': '|TbOut|', ':B': [':SYSTEM' if mode=='network' else ':PLANT','"Co-simulation-macro"','"{}<--{}"'.format(feature['submodel'],
                                             feature['cosim']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|TbOut|',data_ex))],':L':'"HX decoupling"', ':AS':'"TbOut"'},
                                             {':C':':VAR',':N': '|PhiHx|',':L':'"HX decoupling"', ':AS':'"PhiHX"'},
@@ -333,6 +351,19 @@ class CopyDecoupledAssettypeMacro:
             
              
             writePropertyListIDMToFile(data_idm,target_dir,f_idm_target)
+            
+            #check if folder contains macros
+            #print('----------------------------------------check if macros exist----------------------')
+            #print(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id']))
+            if os.path.exists(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])):
+                for root, dirs, files in os.walk(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])):
+                    for file in files:
+                        if file.endswith('.idm') or file.endswith('.idc'):
+                            print('---------macro exists: '+file)
+                            subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id']))[1]
+                            path=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+subfolder
+                            createSubDir(path)
+                            copyFile(os.path.join(root, file),path,path+'\\'+file)
         
 class ExchangeConntypeFiles:
     """ Exchanges connection types: 1) Removes the old connection type; 2) add the new connection type !!!!To do!!!!"""
@@ -376,12 +407,13 @@ class ExchangeConntypeFiles:
                         
                     if conn['mdot']!=None:
                         variable="M"
-                        var_value=conn['mdot']
+                        inverse_value=-1 if conn['type'] in [1,3,5,7,9] else 1
+                        var_value=conn['mdot'] * inverse_value
                     data.append("""((MODEL :N "{}" :T PMT2\\m\\u\\x)
  (:VAR :N |{}_var| :B (-1 {} 0))
  ((CONNECTOR :N |term_a|)
   (:VAR :N |inStream(T)| :B {})))\n""".format(name_pmtmux,variable,variable,conn['temp']))
-                    name_const="{}_{}_{}_{}_{}{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],variable,var_value)
+                    name_const="{}_{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],variable)
                     data.append("""((SOURCE-CONSTANT :N "{}" :T CONSTANT)
  (:PAR :N X :V {}))  \n""".format(name_const,var_value))
  
@@ -389,10 +421,10 @@ class ExchangeConntypeFiles:
                 for value in connValues:
                     name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                     if value['p']!=None:
-                        name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
+                        name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                         variable="P"
                     else:
-                        name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
+                        name_const="{}_{}_{}_{}_M".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                         variable="M"
                     data.append(""" (("{}" "{}") ("{}" |term_b|) 0 2 NIL)
  (("{}" {}) ("{}" LINK) 0 0 NIL)\n""".format(name,name_pmtmux,name_pmtmux,name_pmtmux,variable,name_const))
@@ -408,22 +440,23 @@ class ExchangeConntypeFiles:
                     
                 if conn['mdot']!=None:
                     variable="M"
-                    var_value=conn['mdot']
+                    inverse_value=-1 if conn['type'] in [1,3,5,7,9] else 1
+                    var_value=conn['mdot'] * inverse_value
                 data.append("""((MODEL :N "{}" :T PMT2\\m\\u\\x)
  (:VAR :N |{}_var| :B (-1 {} 0))
  ((CONNECTOR :N |term_a|)
   (:VAR :N |inStream(T)| :B {})))\n""".format(name_pmtmux,variable,variable,conn['temp']))
-                name_const="{}_{}_{}_{}_{}{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],variable,var_value)
+                name_const="{}_{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],variable)
                 data.append("""((SOURCE-CONSTANT :N "{}" :T CONSTANT)
  (:PAR :N X :V {}))  \n""".format(name_const,var_value))        
             data.append("(CONNECTIONS\n")
             for value in connValues:
                 name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 if value['p']!=None:
-                    name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
+                    name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                     variable="P"
                 else:
-                    name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
+                    name_const="{}_{}_{}_{}_M".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                     variable="M"
                 data.append(""" (("{}" "{}") ("{}" |term_b|) 0 2 NIL)
  (("{}" {}) ("{}" LINK) 0 0 NIL)\n""".format(name,name_pmtmux,name_pmtmux,name_pmtmux,variable,name_const))
@@ -438,7 +471,7 @@ class ExchangeConntypeFiles:
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
-                name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
+                name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="p"
                 y=240+counter_p*40
                 filedata.append("""(EQUATION-FRAME :AT ((96 {})) :R (9 18.5) :ICON "lib:pmt2mux.ids" :SYMMETRY (180.0) :SLOT ("{}") :NAME "{}" :DATA :EO)\n""".format(y,name_pmtmux,name_pmtmux))
@@ -450,7 +483,7 @@ class ExchangeConntypeFiles:
                 filedata.append("""(CONNECTION-LINE :AT ((307/5 {}) (87 {})) :FIRST-LINK ("{}" (1 0.5) LINK) :LAST-LINK ("{}" (0.0 0.139) {}) :DIR :RIGHT :ARROW (19 8 8))\n""".format(y,y,name_const,name_pmtmux,variable))
                 counter_p+=1
             else:
-                name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
+                name_const="{}_{}_{}_{}_M".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="M"
                 y=240+counter_mdot*40
                 filedata.append("""(EQUATION-FRAME :AT ((597 {})) :R (9 18.5) :ICON "lib:pmt2mux.ids" :SLOT ("{}") :NAME "{}" :DATA :EO)\n""".format(y,name_pmtmux,name_pmtmux))
@@ -479,10 +512,10 @@ class ExchangeConntypeFiles:
             filedata.insert(2,"""(MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)\n""".format(name_pmtmux))
             if value['mdot']!=None:
                 meter['p']=False
-            if value['type']==1:
+            if value['type'] in [1,3,5,7,9]:
                 meter['n_sup']+=1
                 meter['sup_conn'].append('PMT2mux_{}'.format(name_pmtmux))
-            elif value['type']==2:
+            elif value['type'] in [2,4,6,8,10]:
                 meter['n_ret']+=1
                 meter['ret_conn'].append('PMT2mux_{}'.format(name_pmtmux))
             meter['name']=str(value['conn_bundle_type_id'])+'_'+str(value['conn_type_seq'])
@@ -547,7 +580,7 @@ class ExchangeConntypeFiles:
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
-                name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
+                name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="P"
                 y=37+counter_p*45
                 filedata.append("""(CONNECTION-LINE :AT ((10 {}) (50 {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK (:SELF (0.0 0.094) "{}") :LAST-LINK ("PMT2mux_{}" (0 0.278) |term_b|))\n""".format(y,y,name_pmtmux,name_pmtmux))
@@ -555,7 +588,7 @@ class ExchangeConntypeFiles:
                 filedata.append("""(EQUATION-FRAME :AT ((59 {})) :R (8 18) :ICON "lib:pmt2mux.ids" :SLOT ("PMT2mux_{}") :NAME "PMT2mux_{}" :DATA :EO)\n""".format(y,name_pmtmux,name_pmtmux))
                 counter_p+=1
             else:
-                name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
+                name_const="{}_{}_{}_{}_M".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="M"
                 y=37+counter_mdot*45
                 filedata.append("""(CONNECTION-LINE :AT ((694 {}) (641 {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK (:SELF (0.0 0.094) "{}") :LAST-LINK ("PMT2mux_{}" (0 0.278) |term_b|))\n""".format(y,y,name_pmtmux,name_pmtmux))
@@ -576,8 +609,8 @@ class ExchangeConntypeFiles:
         print('del Connection')
         for line in file_data:
             if [True for conn in 
-                ["""\"{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
-                ["""\"{}_{}_{}_{}_P{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['p']) for conn in oldConnValues]+
+                ["""\"{}_{}_{}_{}_M\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
+                ["""\"{}_{}_{}_{}_P\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""\"{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""\"PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+ 
                 ["""\"{}_{}_Flowmeter2\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
@@ -596,8 +629,8 @@ class ExchangeConntypeFiles:
         print('-------------del comp----------')
         while counter < len(file_data):
             while [True for conn in 
-                ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
-                ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_P{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['p']) for conn in oldConnValues]+
+                ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_M\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
+                ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_P\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(MODEL :N "{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(MODEL :N "PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(:EO :N "{}_{}_Flowmeter2" :T FLOWMETER2)""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
@@ -825,8 +858,8 @@ class WriteAssettypeFiles:
         createDir(dir,name)
     
     def writeMacroIdm(self,dir,name,connValues):
-        data=""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1)) """
+        data=""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """
         meters=[]
         meter={'name':'','n_sup':0,'n_ret':0,'sup_conn':[],'ret_conn':[],'p':True}
         sequence_old=0        
@@ -842,18 +875,18 @@ class WriteAssettypeFiles:
             data+="""\n(MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)""".format(name_pmtmux)
             if value['mdot']!=None:
                 meter['p']=False
-            if value['type']==1:
+            if value['type'] in [1,3,5,7,9]:
                 meter['n_sup']+=1
                 meter['sup_conn'].append('PMT2mux_{}'.format(name_pmtmux))
-            elif value['type']==2:
+            elif value['type'] in [2,4,6,8,10]:
                 meter['n_ret']+=1
                 meter['ret_conn'].append('PMT2mux_{}'.format(name_pmtmux))
             meter['name']=str(value['conn_bundle_type_id'])+'_'+str(value['conn_type_seq'])
             if value['conn_type_seq']!=sequence_old and i!=0:
-                if value['type']==1:
+                if value['type'] in [1,3,5,7,9]:
                     meters.append({'name': meter_name_old_old,'n_sup':meter['n_sup']-1,'n_ret':meter['n_ret'],'sup_conn':meter['sup_conn'][:-1],'ret_conn':meter['sup_conn'],'p': p_old_old})
                     meter={'name':'','n_sup':1,'n_ret':0,'sup_conn':[meter['sup_conn'][-1]],'ret_conn':[],'p':True}
-                elif value['type']==2:
+                elif value['type'] in [2,4,6,8,10]:
                     meters.append({'name': meter_name_old_old,'n_sup':meter['n_sup'],'n_ret':meter['n_ret']-1,'sup_conn':meter['sup_conn'],'ret_conn':meter['sup_conn'][:-1],'p': p_old_old})
                     meter={'name':'','n_sup':0,'n_ret':1,'sup_conn':[],'ret_conn': [meter['ret_conn'][-1]],'p':True}
                 if value['mdot']!=None:
@@ -865,6 +898,8 @@ class WriteAssettypeFiles:
             meter_name_old=meter['name']
             meter_name_old_old=meter_name_old
         meters.append(meter)   
+        print(meters)
+
         for meter in meters:
             sup_m_conn=' '.join(['('+str(meter['sup_conn'].index(i)+1)+' :MACRO "'+i+'" |M_var|)' for i in meter['sup_conn']])
             sup_t_conn=sup_m_conn.replace('|M_var|','|T_var|')
@@ -886,7 +921,7 @@ class WriteAssettypeFiles:
         return meters
 
     def writeMacroIdc(self,dir,name,connValues,meters):
-        data=""";IDA 5.1 Form UTF-8
+        data=""";IDA 5.11 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """
         counter_p=0
@@ -894,16 +929,12 @@ class WriteAssettypeFiles:
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             if value['p']!=None:
-                name_const="{}_{}_{}_{}_P{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['p'])
-                variable="P"
                 y=37+counter_p*45
                 data+="""\n(CONNECTION-LINE :AT ((10 {}) (50 {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK (:SELF (0.0 0.094) "{}") :LAST-LINK ("PMT2mux_{}" (0 0.278) |term_b|))""".format(y,y,name_pmtmux,name_pmtmux)
                 y=45+counter_p*45
                 data+="""\n(EQUATION-FRAME :AT ((59 {})) :R (8 18) :ICON "lib:pmt2mux.ids" :SLOT ("PMT2mux_{}") :NAME "PMT2mux_{}" :DATA :EO) """.format(y,name_pmtmux,name_pmtmux)
                 counter_p+=1
             else:
-                name_const="{}_{}_{}_{}_M{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'],value['mdot'])
-                variable="M"
                 y=37+counter_mdot*45
                 data+="""\n(CONNECTION-LINE :AT ((694 {}) (641 {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK (:SELF (0.0 0.094) "{}") :LAST-LINK ("PMT2mux_{}" (0 0.278) |term_b|))""".format(y,y,name_pmtmux,name_pmtmux)
                 y=45+counter_mdot*45
@@ -917,8 +948,8 @@ class WriteAssettypeFiles:
         writeToFile(data,dir,dir+"""\\{}\\{}.idc""".format(name,name))         
     
     def writeIdm(self,dir,name,connValues):    
-        data=""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "{}" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.1)) 
+        data=""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "{}" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.11)) 
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -952,7 +983,8 @@ class WriteAssettypeFiles:
                 
             if value['mdot']!=None:
                 variable="M"
-                var_value=value['mdot']
+                inverse_value=-1 if value['type'] in [1,3,5,7,9] else 1
+                var_value=value['mdot']*inverse_value
             data=data+"""\n((MODEL :N "{}" :T PMT2\\m\\u\\x)
  (:VAR :N |{}_var| :B (-1 {} 0))
  ((CONNECTOR :N |term_a|)
@@ -977,7 +1009,7 @@ class WriteAssettypeFiles:
         writeToFile(data,dir,dir+"""\\{}.idm""".format(name))
 
     def writeIdc(self,dir,name,connValues):
-        data=""";IDA 5.1 Form UTF-8
+        data=""";IDA 5.11 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 197 :PAGE-HEIGHT 290) 
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((352 348)) :R (203.5 126.5) :ICON "sys:eo.ids" :SLOT ("{}") :NAME "{}" :DATA MACRO-OBJECT)

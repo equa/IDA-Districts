@@ -376,6 +376,13 @@ class BuildBuildingModelDialog(QMainWindow):
         self.tableWidget.setHorizontalHeaderLabels(['Submodel','Building template'])     
         layout_table.addWidget(self.tableWidget)
         
+        #reinvoke feature templates
+        self.checkbox_reinvokeFeatures = QCheckBox("Reinvoke substation templates")
+        self.checkbox_reinvokeFeatures.setChecked(True)
+        
+        #Co-sim
+        self.checkbox_cosim = QCheckBox("Co-simulation to network model")
+        self.checkbox_cosim.setChecked(False)
         
         #buttons     
         layout_buttons = QHBoxLayout()
@@ -391,6 +398,8 @@ class BuildBuildingModelDialog(QMainWindow):
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_buttons_table)
         layout_win.addLayout(layout_table)
+        layout_win.addWidget(self.checkbox_reinvokeFeatures)
+        layout_win.addWidget(self.checkbox_cosim)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
@@ -401,11 +410,11 @@ class BuildBuildingModelDialog(QMainWindow):
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
-class OpenNetworkModelDialog(QMainWindow):
-    def __init__(self):
+class OpenModelDialog(QMainWindow):
+    def __init__(self,mode):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Open network submodels") 
+        self.setWindowTitle("Open {} submodels".format(mode)) 
         
         #submodels
         layout_submodels=QVBoxLayout()
@@ -419,7 +428,7 @@ class OpenNetworkModelDialog(QMainWindow):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_openModel=QPushButton("Open network submodels")
+        self.btn_openModel=QPushButton("Open {} submodels".format(mode))
         layout_buttons.addWidget(self.btn_openModel)
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)

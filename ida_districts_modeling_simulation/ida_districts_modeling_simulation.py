@@ -25,10 +25,13 @@
 from plugins.utility_functions.util import *
 from plugins.utility_functions.macros import *
 from plugins.utility_functions.files import *
+from plugins.utility_functions.ida_components import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.topology import *
+from plugins.utility_functions.assettypeFiles import *
 from .update_sensors import *
+from .cosim import *
 
 import math
 import time
@@ -40,7 +43,7 @@ from scipy.interpolate import interp1d
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_modeling_simulation_dialog import BuildBuildingModelDialog, LoadResultsDialog,CalibrateCustomers, OpenNetworkModelDialog,SupervisoryCtrlDlg, FeatureDecouplingDlg, CustomerModelParmDlg, ModellingSettings, IDADistrictsModelingSimulationDialog, RequestedOutputs, BuildNetworkModelDialog, CheckableComboBox, RunNetworkModelDialog
+from .ida_districts_modeling_simulation_dialog import BuildBuildingModelDialog, LoadResultsDialog,CalibrateCustomers, OpenModelDialog,SupervisoryCtrlDlg, FeatureDecouplingDlg, CustomerModelParmDlg, ModellingSettings, IDADistrictsModelingSimulationDialog, RequestedOutputs, BuildNetworkModelDialog, CheckableComboBox, RunNetworkModelDialog
 from .supervisory_control import Supervisory_control
 from .invoke import *
 from .outputs import *
@@ -63,7 +66,8 @@ from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QShortcut
 from PyQt5.QtCore import Qt
 import datetime
-    
+
+
 class IDADistrictsModelingSimulation:
     """QGIS Plugin Implementation."""
 
@@ -339,7 +343,7 @@ class IDADistrictsModelingSimulation:
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
 
-    def showOpenModel(self):
+    def showOpenModel(self,mode='network'):
         """ Show IDA submodels; loop over submodels"""
         print('Show IDA model')
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -347,18 +351,18 @@ class IDADistrictsModelingSimulation:
         if self.conn:
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-                self.dlg_openModel=OpenNetworkModelDialog()
+                self.dlg_openModel=OpenModelDialog(mode)
                 self.dlg_openModel.combo_submodels.addItem('Check all items')
                 dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                 if os.path.exists(dir):
-                    submodels=getNetworkFileSubmodels(dir)
+                    submodels=getNetworkFileSubmodels(dir) if mode=='network' else getBuildingFileSubmodels(dir) 
                     print(submodels)
                     self.dlg_openModel.combo_submodels.addItems(submodels)
                     for i in range(len(submodels)):
                         self.dlg_openModel.combo_submodels.setItemChecked(i+1,False)
                     self.dlg_openModel.show()
                     self.dlg_openModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_openModel))
-                    self.dlg_openModel.btn_openModel.clicked.connect(lambda: self.openModel(self.dlg_openModel))  
+                    self.dlg_openModel.btn_openModel.clicked.connect(lambda: self.openModel(self.dlg_openModel,mode))  
                 else:
                     self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=Qgis.Info)
             else:
@@ -366,7 +370,7 @@ class IDADistrictsModelingSimulation:
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
  
-    def openModel(self,dlg):
+    def openModel(self,dlg,mode='network'):
         print('-***-')
         if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])==0:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
@@ -377,7 +381,7 @@ class IDADistrictsModelingSimulation:
                 submodel=dlg.combo_submodels.itemText(i)
                 print(submodel)
                 dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-                fname=dir+'network_{}.idm'.format(submodel)
+                fname=dir+'{}_{}.idm'.format(mode,submodel)
                 print(fname)
                 self.worker_openNetwork = WorkerOpenAPI(fname,self.plugin_dir)
                 self.threadpool_openNetwork = QThreadPool()
@@ -823,7 +827,6 @@ class IDADistrictsModelingSimulation:
             if self.conn:
                 if self.dictDB['versionName']:
                     self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
-            
                     for submodel in submodel_templates:
                         print(submodel)
                         sql="""SELECT 
@@ -842,13 +845,40 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         print(sql)
                         self.cur.execute(sql)
                         zones=self.cur.fetchall()
-
+                        b_ids=set(str(zone["b_id"]) for zone in zones)
+                        sql="""SELECT b.b_id,at.conn_bundle_type 
+    FROM {}.buildings b,{}.customers c, customer_assettypes at
+    WHERE b.b_id IN ({}) AND c.id=b.substation_id AND c.assetgroup=at.assetgroup AND c.assettype=at.assettype
+    GROUP BY at.conn_bundle_type, b.b_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],','.join(b_ids))
+                        self.cur.execute(sql)
+                        conn_data={i['b_id']: getConnsValuesIdentTypeDict(self.cur,i['conn_bundle_type']) for i in self.cur.fetchall()}
+                        print(conn_data)
+                        conn_data_alist="""'({})""".format(' '.join(["""({} . ({}))""".format(i,' '.join(['(:N "'+j +
+                                                                                                '" :T ' + str(conn_data[i][j][':T'])+
+                                                                                                ' :V-VAR '+str(conn_data[i][j][':V-VAR'])+
+                                                                                                ' :VAR "'+str(conn_data[i][j][':VAR'])+
+                                                                                                '" :V-T '+str(conn_data[i][j][':V-T'])+')' for j in conn_data[i]])) for i in conn_data]))
+                        print(conn_data_alist)
                         ida_script="""((set-slot [@] 'name "building_{}")
-(apply 'delete-components (:call :sections [@]))\n""".format(submodel)
+(apply 'delete-components (:call :sections [@]))
+(insert-district-distr [@] '({}))
+(invoke-esbo-plant [@ plant])
+(add-substations-to-plant [@] {} {})
+(:UPDATE [@ plant]
+  (:ADD (:CEO :SYMBOL '(:AT ((36 24)) :R (14 14) :ICON "lib:emeter.ids" :SLOT ("EmeterWater") :NAME "EmeterWater" :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) :N "EmeterWater" :T EMETER)
+   (:PAR :N N_IN :V 0)
+   (:PAR :N N_MONTH :V 13))
+  (:ADD (:CEO :SYMBOL '(:AT ((104 24)) :R (14 14) :ICON "lib:emeter.ids" :SLOT ("EmeterLocalChil") :NAME "EmeterLocalChil" :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) :N "EmeterLocalChil" :T EMETER)
+   (:PAR :N N_IN :V 0)
+   (:PAR :N N_MONTH :V 13))
+  (:ADD (:CEO :SYMBOL '(:AT ((70 24)) :R (14 14) :ICON "lib:emeter.ids" :SLOT ("EmeterLocalBoil") :NAME "EmeterLocalBoil" :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) :N "EmeterLocalBoil" :T EMETER)
+   (:PAR :N N_IN :V 0)
+   (:PAR :N N_MONTH :V 13))
+  (:ADD MACRO-OBJECT SCHEMA '((FORM-DOCUMENT :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)) :SYMBOL '(:AT ((46 74)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT) :N "Co-simulation-macro" :T ICE-MACRO :D "ICE macro"))\n""".format(submodel,' '.join(b_ids),conn_data_alist,'T' if dlg.checkbox_cosim.isChecked() else 'nil')
                         
                         zone_win_dict={}
                         for counter,zone in enumerate(zones):
-                            #print(zone)
+                            print(zone)
                             wkt_string=zone['geom']
                             
                             # Regular expression to match coordinates in the format (x y)
@@ -903,22 +933,25 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                                 ida_script+="""(make-component z_ '((HC-UNIT :N "WatRad" :T WATER_HEATER)
   (:PAR :N CONTROLLER :V PI_CONTR)             
   (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'heating-power VALUE])))
-  (:RES :N MODEL :F 2560)))\n"""
+  (:RES :N MODEL :F 2560)
+  (:PAR :N HEAT_SUP :V (:EVAL (:CALL ESBO-ADV-DISTR-KEY [@ :building PLANT DISTRIBUTION HEAT TO-ZONE "heat{}"])))))\n""".format(zone['b_id'])
                             elif zone['room_unit']=='Heating/cooling floor':
                                 ida_script+="""(make-component [z_ FLOOR] '((floor-heat :n "hc-floor" :t therm_floor)
-  (:par :n pheat :v (:eval (* [z_ zone-usage 'heating-power VALUE])))))
+  (:par :n pheat :v (:eval (* [z_ zone-usage 'heating-power VALUE]))))
+  (:PAR :N HEAT_SUP :V (:EVAL (:CALL ESBO-ADV-DISTR-KEY [@ :building PLANT DISTRIBUTION HEAT TO-ZONE "heat{}"])))
+  (:PAR :N HEAT_SUP :V (:EVAL (:CALL ESBO-ADV-DISTR-KEY[@ :building PLANT DISTRIBUTION COLD TO-ZONE "cold{}"]))))
 (:set hc_ [z_ FLOOR "hc-floor"])
 (make-component hc_ '(aggregate :n shape :t shape2d))
 (:set corn (:call ice-surface-offset (:call ice-3d-pane hc_ t t) (or (:call :wall (:call parent hc_)) (:call parent hc_)) 0 (:zone hc_) 0))
 (:set ncorn (:call length corn))
 (:set corn-array (:call make-array (:call list ncorn 2) :initial-contents corn))
-(set-values [hc_ SHAPE] 'ncorn ncorn 'CORNERS corn-array)\n"""
+(set-values [hc_ SHAPE] 'ncorn ncorn 'CORNERS corn-array)\n""".format(zone['b_id'],zone['b_id'])
 
                         for zone in zone_win_dict:
                             ida_script+="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 T :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
 
                             
-                        ida_script+='(save-document [@]))'
+                        ida_script+="""(save-document [@]))"""
                         print(ida_script)
                         
                         src_dir=getDataCenterDir(self.plugin_dir)+"\\{}\\building_templates\\".format(self.dictDB['projectName'])
@@ -930,6 +963,15 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         copyFile(src_dir+submodel_templates[submodel]+'.idm',buildingModel_dir,file_path)
                         copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
                     
+                        
+                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_script,exit_ida=True,finished_fn=self.finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
+                        self.threadpool_buildBuildingModel = QThreadPool()
+                        self.threadpool_buildBuildingModel.start(self.worker_buildBuildingModel)
+                        self.worker_buildBuildingModel.signals.error.connect(show_error_message)
+                        self.worker_buildBuildingModel.signals.progress.connect(dlg.update_progress)
+                        #self.finishedBuildBuildingModel({'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
+
+                        
                         """self.util=Util_api(self.plugin_dir)
                         print(self.util.pid)
                         # IDA ICE connection test
@@ -937,13 +979,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         print(connectionTest)
                         self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
                         print(self.building)
-                        changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""
-                        
-                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_script)
-                        self.threadpool_buildBuildingModel = QThreadPool()
-                        self.threadpool_buildBuildingModel.start(self.worker_buildBuildingModel)
-                        self.worker_buildBuildingModel.signals.error.connect(show_error_message)
-                        self.worker_buildBuildingModel.signals.progress.connect(dlg.update_progress)
+                        changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
                 else:
                     self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
@@ -952,6 +988,110 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
         else:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
 
+    def finishedBuildBuildingModel(self,args):
+        print('------finished build building model----------')
+        dlg=args['dlg']
+        submodel=args['submodel']
+        conn_data=args['conn_data']
+        co_sim=dlg.checkbox_cosim.isChecked()
+        reinvoke=dlg.checkbox_reinvokeFeatures.isChecked()
+        print(co_sim)
+        print(reinvoke)    
+        print(submodel)    
+        print(conn_data) 
+        source_dir=self.plugin_dir+'\\network_models\\{}\\{}\\invoked_customers\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+        target_dir=self.plugin_dir+'\\network_models\\{}\\{}\\building_{}\\plant\\'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel)
+        print(source_dir) 
+        sensor_data=getSensorData(self.cur,self.dictDB,filter='')
+        print(sensor_data)
+
+                    
+        for b_id in conn_data:
+            print(b_id)
+            #idm
+            source_f="{}\\Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
+            print(source_f)
+            if not os.path.exists(source_f) or reinvoke:
+                print('reinvoke')
+                invokeOneFeature(False,str(b_id),self.plugin_dir,self.cur,self.dictDB,'customer',False)
+        
+        if co_sim:
+            print('+++++++cosim++++++')
+            dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+            print(dir)
+            dec_assettypes=CopyDecoupledAssettypeMacro(str(submodel),dir,self.dictDB,self.cur,self.plugin_dir,sensor_data,mode='building')
+            print('---finished dec---')
+            print(dec_assettypes.resources)
+            if dec_assettypes.resources:
+                file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
+                file_data[2:2]=dec_assettypes.resources
+                writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
+                
+            #decoupling
+            feature_dec_irefs=[]
+            for submodel_ in getUsedSubmodels(self.cur, self.dictDB):
+                #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
+                print('//////************------//////*------')
+                for i in readDecoupledFeatureSensorSignals(submodel_,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
+                    print('++++++++--++')
+                    print(i)
+                    if i not in feature_dec_irefs:
+                        feature_dec_irefs.append(i)
+            print(feature_dec_irefs)
+
+            sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)   
+            #print(sensor_dec_data)
+
+            print(dir)
+            print(type(submodel))
+            data_dec_idm=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data,mode='building')
+            print(data_dec_idm)
+
+            writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir,mode='building')
+    
+        else:
+            for b_id in conn_data:
+                print(b_id)
+                #idm
+                source_f_idm="{}Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
+                print(source_f_idm)
+                components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f_idm)))
+                print(getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB))
+                building_pmt2s=['"'+getPMT2muxName(self.cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB) if i['type'] not in [1,2]]
+                print(building_pmt2s)
+                data_idm=[]
+                for comp in components_idm:
+                    if getCompName(comp) in building_pmt2s:
+                        data=[]
+                        for i in comp:
+                            if getCompName(i)=='|M_var|':
+                                print('|M_var|')
+                                i[':B']=['-1','|term_b|','1']
+                                data.append(i)
+                            elif getCompName(i)=='|term_b|':
+                                instream_data=[]
+                                for j in i:
+                                    if getCompName(j)=='|inStream(T)|':
+                                        print('|inStream(T)|')
+                                        j[':B']=['-1','|term_b|','2']
+                                    instream_data.append(j)
+                                data.append(instream_data)
+                            else:
+                                data.append(i)
+                        data_idm.append(data)
+                    else:
+                        data_idm.append(comp)
+                writePropertyListIDMToFile(data_idm,target_dir,target_dir+'substation b{}.idm'.format(b_id))
+
+
+                source_f_idc="{}Customer_{}\\Customer_{}.idc".format(source_dir,b_id,b_id)
+                print(source_f_idc)
+                copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
+                if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
+                    copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
+                
+        
+    
     def loadResults(self,dlg):
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
         
@@ -1033,9 +1173,10 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
             self.dlg.btn_featureDecoupling.clicked.connect(self.showFeatureDecoupling)
             
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
-            self.dlg.btn_openModel.clicked.connect(self.showOpenModel)
+            self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
             self.dlg.btn_runModel.clicked.connect(self.showRunModel)
             self.dlg.btn_buildBuildingModel.clicked.connect(self.showBuildBuildingModel)
+            self.dlg.btn_openBuildingModel.clicked.connect(lambda: self.showOpenModel(mode='building'))
             self.dlg.btn_loadResults.clicked.connect(self.showLoadResults)
 
             # show the dialog

@@ -426,24 +426,7 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         #set building templates together
         layout_building_templates=QVBoxLayout()
         layout_building_templates.addWidget(label_titel)
-        layout_building_templates.addWidget(self.btn_manageBuildingTemplates)
-        
-        #contracts
-        #title
-        label_titel =QLabel('Contracts')
-        font=label_titel.font()
-        font.setPointSize(15)
-        label_titel.setFont(font)
-        #manage assettype buttons
-        layout_contracts_btn=QVBoxLayout()
-                
-        self.btn_contracts=QPushButton("Energy contracts")
-        layout_contracts_btn.addWidget(self.btn_contracts)
-        
-        #set manageassettypes together
-        layout_contracts=QVBoxLayout()
-        layout_contracts.addWidget(label_titel)
-        layout_contracts.addLayout(layout_contracts_btn)
+        layout_building_templates.addWidget(self.btn_manageBuildingTemplates) 
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
@@ -454,7 +437,6 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_win.addLayout(layout_manage_assetgroups)
         layout_win.addLayout(layout_networks)
         layout_win.addLayout(layout_building_templates)
-        layout_win.addLayout(layout_contracts)
         layout_win.addStretch()
         
         widget=QWidget()

@@ -4,13 +4,13 @@ from plugins.utility_functions.sensor_signals import *
 from plugins.utility_functions.topology import *
 import psycopg2.extras
 
-def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec_data):
+def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec_data,mode='network'):
     """check if features are decoupled 
     --> import/export components
     --> collect pmt2 signals
     --> collect sensor signals"""
-    data=[""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :APP (ICE :VER 5.1)) \n"""]
+    data=[""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :APP (ICE :VER 5.11)) \n"""]
 
     submodels=getUsedSubmodels(cur,dictDB)
     submodels.remove(str(submodel))
@@ -73,13 +73,13 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
     for cosim in submodels:
         f_ids=getFeatureIds(dictDB,cur,submodel,[cosim])
         print(f_ids)
-        if [True for f_id in f_ids if submodel==str(f_id['submodel']) and cosim==f_id['cosim'] or submodel==f_id['cosim'] and str(f_id['submodel'])==cosim]:
+        if [True for f_id in f_ids if str(submodel)==str(f_id['submodel']) and str(cosim)==str(f_id['cosim']) or str(submodel)==str(f_id['cosim']) and str(f_id['submodel'])==str(cosim)]:
             print(assettype_data_ex)
             print('-*-*')
             importVars=getImportVars(f_ids,assettype_data_ex,sensor_dec_data)
             print('------importVars-----')
             print(importVars)
-            exportVars=getExportVars(f_ids,assettype_data_ex,sensor_dec_data)
+            exportVars=getExportVars(f_ids,assettype_data_ex,sensor_dec_data,mode)
             print('------exportVars-----')
             print(exportVars)
             
@@ -125,12 +125,12 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
 (OUTPUT-FILE :N "{}-->{}_data" :T OUTPUT-FILE :COL T :STM 1)\n""".format(submodel,cosim,submodel,cosim))
     
 
-    file=dir+"\\network_{}\\Co-simulation-macro.idm".format(submodel)
-    writeToFileFromList(data,dir,file)
+    file=dir+"\\{}_{}\\{}Co-simulation-macro.idm".format(mode,submodel,("" if mode=='network' else "plant\\"))
+    writeToFileFromList(data,dir+"\\{}_{}\\{}".format(mode,submodel,("" if mode=='network' else "plant\\")),file)
     return '\n'.join(resources)
     
-def writeCosimMacroIdc(dictDB,cur,submodel,dir,plugin_dir):
-    data=[""";IDA 5.1 Form UTF-8
+def writeCosimMacroIdc(dictDB,cur,submodel,dir,plugin_dir,mode='network'):
+    data=[""";IDA 5.11 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) \n"""]
 
@@ -149,6 +149,6 @@ def writeCosimMacroIdc(dictDB,cur,submodel,dir,plugin_dir):
             data.append("""(EQUATION-FRAME :AT ((271 {})) :R (24 24) :ICON "sys:eo.ids" :SLOT ("{}<--{}_data") :NAME "{}<--{}_data" :DATA OUTPUT-FILE) \n""".format(y,submodel,cosim,submodel,cosim))
             i+=1
     
-    file=dir+"\\network_{}\\Co-simulation-macro.idc".format(submodel)
-    writeToFileFromList(data,dir,file)
+    file=dir+"\\{}_{}\\{}Co-simulation-macro.idc".format(mode,submodel,("" if mode=='network' else "plant\\"))
+    writeToFileFromList(data,dir+"\\{}_{}\\{}".format(mode,submodel,("" if mode=='network' else "plant\\")),file)
     

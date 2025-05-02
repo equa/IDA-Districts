@@ -190,7 +190,7 @@ ORDER BY feature,id;""".format(submodel,dictDB['versionName'],dictDB['versionNam
 
 def getFeatureIdFromName(dictDB,cur,feature):
     sql="""SELECT id FROM type WHERE replace(lower(name),' ','_')='{}';""".format(feature)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchone()['id']
     
@@ -267,18 +267,6 @@ def getUsedBuildingSubmodels(cur,dictDB):
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
-
-def getFeatureIdsPerSubmodel(submodel,cur,dictDB):
-    sql="""(
-    SELECT 1 AS feature, id FROM "{}".customers WHERE submodel={}
-    UNION
-    SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
-    UNION
-    SELECT 3 AS feature, id FROM "{}".devices WHERE submodel={}
-)
-ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,dictDB['versionName'],submodel)
-    cur.execute(sql)
-    return cur.fetchall()
     
 def getFeatureIdsPerSubmodelAndTypename(submodel,type,cur,dictDB):
     sql="""SELECT id FROM "{}".{}s WHERE submodel={};""".format(dictDB['versionName'],submodel)

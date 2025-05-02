@@ -679,15 +679,15 @@ class CopyAssettypeFiles:
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idc')   
         
         #sf-macro.idm
-        filedata=[""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1)) """]
+        filedata=[""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
         for i in sf:
             i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
             filedata+=["""\n{}""".format(pListToCompString(i,0))]
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idm')
 
         #sf-macro.idc
-        filedata=[""";IDA 5.1 Data UTF-8
+        filedata=[""";IDA 5.11 Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
         filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate([j for i in sf for j in sf_ids if i[0][':SF']==j['sf']],1)]

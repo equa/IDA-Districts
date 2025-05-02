@@ -1026,7 +1026,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dropdowns=[[1,'public','prefered_conn_dir','id','name']]
             checkBoxes=[2]
             columns='(id,type,p_ctrl,temp,p,mdot,description)'
-            dlg = ConnectionsDialog('Connections',['Connection Id','Type','Pressure controlled','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'])
+            dlg = ConnectionsDialog('Connections',['Connection Id','Type','Massflow set as boundary condition','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'])
             dlg.btn_ok.clicked.connect(lambda: self.saveConnectionsTable(dlg,'connections',columns,dropdowns,False,checkBoxes))
             dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
             dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,True))
@@ -1145,21 +1145,21 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Connection types',table='connection_types',headers=['Connection Type Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'','conn_type_trace',False,[]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn
+            self.show_TableDialog(title='Connection types',table='connection_types',headers=['Connection Type Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'','conn_type_trace',False,[]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn,[deactivated]
 
     def manageConnBundleTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Connection bundles',table='conn_bundle_types',headers=['Connection bundle Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'','bt_conns_trace',False,[]]) 
+            self.show_TableDialog(title='Connection bundles',table='conn_bundle_types',headers=['Connection bundle Id','Description'],columns='(id,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'','bt_conns_trace',False,[0]]) 
 
     def managePipeBundlesTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Pipe bundles',table='pipe_bundle_types',headers=['Pipe bundle Id','Investment costs, €/m pipe','Operating costs, €/(m pipe * a)','Description'],columns='(id,invest_costs,operation_costs,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],['Sequence','Pipe ID','x, m','y, m','Ambient'],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[]]) 
+            self.show_TableDialog(title='Pipe bundles',table='pipe_bundle_types',headers=['Pipe bundle Id','Investment costs, €/m pipe','Operating costs, €/(m pipe * a)','Description'],columns='(id,invest_costs,operation_costs,description)', openFn=self.show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],['Sequence','Pipe ID','x, m','y, m','Ambient'],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[0]]) 
             
     def manageBuildingConstructions(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1331,7 +1331,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 
         #add row to dlg.traceTableValues in order to trace the changed values     
         if trace:
-            print('----------trace-------')
+            print('----------trace-------'+str(trace))
             for row in reversed(sorted(traceTableValues)):
                 print(row)
                 print(traceTableValues[row])
@@ -1340,13 +1340,19 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 print('--add trace values of row 0--')
                 if trace=='building_template':
                     dlg.traceTableValues[0]={i: ['',str(getMaxTableId(dlg.tableWidget)) if i==0 else ''] for i in range(dlg.tableWidget.columnCount())}            
-                else:
+                elif trace in ['conn_type_trace','bt_conns_trace']:
+                    print('conn_type_trace or bt_conns_trace')
+                    print(dlg.tableWidget.item(0,0).text())
+                    print(dlg.tableWidget.cellWidget(0,1).currentText())
+                    dlg.traceTableValues[0]= ['',dlg.tableWidget.item(0,0).text(),'',dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0]]
+                elif trace:                   
                     print(dlg.assetgroup)
                     print(dlg.tableWidget.item(0,1))
                     print(dlg.tableWidget.item(0,1).text())
                     print(str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
                     dlg.traceTableValues[0]=['',str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
-                    print('--finished trace values of row 0--')
+                print(dlg.traceTableValues)
+                print('--finished trace values of row 0--')
             except:
                 pass
             print(dlg.traceTableValues)

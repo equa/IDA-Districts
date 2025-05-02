@@ -239,12 +239,15 @@ class WorkerOpenAPI(QRunnable):
 class WorkerOpenRunScriptAPI(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,plugin_dir,script):
+    def __init__(self,file_path,plugin_dir,script,exit_ida=False,finished_fn=False,finished_fn_args=None):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
         self.plugin_dir=plugin_dir
         self.signals=APISignals()
         self.script=script
+        self.exit_ida=exit_ida
+        self.finished_fn=finished_fn
+        self.finished_fn_args=finished_fn_args
             
     @pyqtSlot()
     def run(self):
@@ -261,12 +264,33 @@ class WorkerOpenRunScriptAPI(QRunnable):
             print('+++++++++')
             print(self.building)
             self.signals.progress.emit(50)
-            result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8')) 
+            result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
+            print(result)
             
-            self.signals.progress.emit(100)
+            if self.exit_ida:
+                try:
+                    print ('exit-ida')
+                    self.script="(exit-ida)"
+                    print(self.script.encode('utf-8'))
+                    self.signals.progress.emit(90)
+                    print(self.finished_fn)
+                    if callable(self.finished_fn):
+                        self.finished_fn(self.finished_fn_args)
+                    self.signals.progress.emit(100)
+                    self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
+                except Exception as e:
+                    print(e)
+                    self.signals.progress.emit(0)
+                    self.signals.error.emit("Failed to exit ida!")  
+            else:    
+                self.signals.progress.emit(90)
+                if callable(self.finished_fn):
+                    self.finished_fn(self.finished_fn_args)
+                self.signals.progress.emit(100)
+
         except:
             self.signals.progress.emit(0)
-            self.signals.error.emit("Failed to open the feature!")     
+            self.signals.error.emit("Failed to open the feature or run the script!")     
             
 class WorkerOpenParRunAPI():
     """ Class to open IDA Doc with API """

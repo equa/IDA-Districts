@@ -623,8 +623,8 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         print('write idm network model')
         print(networkSimData)
         simulation_data=getSimData(requestedOutputs,networkSimData)
-        data=""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 5.1))
+        data=""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 5.11))
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -764,7 +764,7 @@ output to current demand. It can also be operated in installations with differen
         print('write idc network model')
         pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
         print(pageSettings)
-        data=""";IDA 5.1 Form UTF-8
+        data=""";IDA 5.11 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {})
 (EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((26 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT)  
@@ -1072,8 +1072,8 @@ output to current demand. It can also be operated in installations with differen
         sf_ids=self.cur.fetchall()     
         print(sf_ids)
 
-        filedata=[""";IDA 5.1 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.1)) """]
+        filedata=[""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
         filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
         writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm')        
                 
@@ -1082,7 +1082,7 @@ output to current demand. It can also be operated in installations with differen
         self.cur.execute(sql)
         sf_ids=self.cur.fetchall()
             
-        filedata=[""";IDA 5.1 Data UTF-8
+        filedata=[""";IDA 5.11 Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
         filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]

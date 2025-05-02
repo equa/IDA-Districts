@@ -135,7 +135,7 @@ def getConnsValuesByFeature(type_id,feature_id,cur,dictDB):
     return getConnsValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),cur)
     
 def getConnsValues(bundle,cur):
-    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
+    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id, conns.p_ctrl
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
 	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle)
@@ -277,13 +277,11 @@ def getPMT2muxName(cur,conn_bundle_type,connection_id):
         return ""
         
 def getPMT2muxIdents(cur,conn_bundle_type):
-    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_t_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp
-	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
-	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type)
-    cur.execute(sql)
+    return ["{}_{}_{}_{}".format(str(connValue['conn_bundle_type_id']),str(connValue['conn_type_seq']),str(connValue['conn_type_id']),str(connValue['conn_seq'])) for connValue in getConnsValues(conn_bundle_type,cur)]
     
-    return ["{}_{}_{}_{}".format(str(connValue['conn_bundle_type_id']),str(connValue['conn_t_seq']),str(connValue['conn_type_id']),str(connValue['conn_seq'])) for connValue in cur.fetchall()]
+def getConnsValuesIdentTypeDict(cur,conn_bundle_type):
+    return {"{}_{}_{}_{}".format(str(connValue['conn_bundle_type_id']),str(connValue['conn_type_seq']),str(connValue['conn_type_id']),str(connValue['conn_seq'])) : {':T' : connValue['type'], ':V-VAR' : connValue['mdot'] if connValue['p_ctrl'] else connValue['p'], ':VAR' : 'M' if connValue['p_ctrl'] else 'P', ':V-T': connValue['temp']} 
+        for connValue in getConnsValues(conn_bundle_type,cur)}
     
 def getPMT2muxIdentFromConnValues(connValues,conn_seq):
     try:
