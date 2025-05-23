@@ -183,9 +183,10 @@ class IDADistrictsResultVisualization:
     def getMainEnergyPlantId(self,network):
         sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
     FROM "{}".energy_plants ep, "{}".lines l,energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
-    WHERE {} = ANY (ep.network) AND l.network={} AND {} = ANY (main_plant) AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND
+    WHERE {} = ANY (ep.network) AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND
         ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
-    GROUP BY ep.id,l.id, height,l.geom, b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],network,network,network)
+    GROUP BY ep.id,l.id, height,l.geom, b_t_conns.conn_type_id
+    ORDER BY ep.id LIMIT 1;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],network,network)
         print(sql)
         self.cur.execute(sql)
         data=self.cur.fetchone()
@@ -423,9 +424,9 @@ UNION
 SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
     FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
     WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
-        NOT {}=ANY(ep.main_plant) AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup
+        NOT ep.id={} AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup
 )
-ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),dlg.network.currentText())
+ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid,dlg.network.currentText())
                 elif dlg.rbtn_customer.isChecked():
                     sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
     FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
@@ -435,7 +436,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                     sql="""SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
     FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
     WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
-        NOT {}=ANY(ep.main_plant) AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND ep.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
+        NOT ep.id={} AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND ep.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid,dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
                 print(sql)
                 self.cur.execute(sql)
                 fids=[[str(f['id']), f['height'],f['feature'],f['submodel'],f['conn_type_id']] for f in self.cur.fetchall()]

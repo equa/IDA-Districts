@@ -71,7 +71,7 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
 
 
     for cosim in submodels:
-        f_ids=getFeatureIds(dictDB,cur,submodel,[cosim])
+        f_ids=getFeatureDecIds(dictDB,cur,submodel,[cosim])
         print(f_ids)
         if [True for f_id in f_ids if str(submodel)==str(f_id['submodel']) and str(cosim)==str(f_id['cosim']) or str(submodel)==str(f_id['cosim']) and str(f_id['submodel'])==str(cosim)]:
             print(assettype_data_ex)
@@ -136,7 +136,7 @@ def writeCosimMacroIdc(dictDB,cur,submodel,dir,plugin_dir,mode='network'):
 
     submodels=getUsedSubmodels(cur,dictDB)
     submodels.remove(str(submodel))
-    f_ids=getFeatureIds(dictDB,cur,submodel,submodels)
+    f_ids=getFeatureDecIds(dictDB,cur,submodel,submodels)
 
     y=51
     i=0

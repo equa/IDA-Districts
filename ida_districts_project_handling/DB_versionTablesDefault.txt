@@ -324,7 +324,6 @@ CREATE TABLE "$versionName$".energy_plants
     assetgroup integer DEFAULT 0,
 	assettype integer DEFAULT 0,
     network integer[] DEFAULT ARRAY[1],
-    main_plant integer[] DEFAULT ARRAY[1],
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
 	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
 );

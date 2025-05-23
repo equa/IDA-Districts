@@ -116,6 +116,7 @@ class InvokeNetworkModel:
         5) insert pipes between nodes"""
     def __init__(self,dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
         print('**********invoke network*********')
+        print(submodels)
         if os.name == 'nt' and '\\\\?\\' not in dir:
             dir='\\\\?\\'+dir
         self.plugin_dir=dir
@@ -156,7 +157,6 @@ class InvokeNetworkModel:
 
                 print(getUsedSubmodels(self.cur, self.dictDB))
                 for submodel in getUsedSubmodels(self.cur, self.dictDB):
-                    self.buildingDirPath = """{}\\{}\\""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
                     print('//////************------//////*------')
                     for i in readDecoupledFeatureSensorSignals(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
@@ -171,11 +171,13 @@ class InvokeNetworkModel:
                 self.signals.progress.emit(3)
                 supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.dictDB)['submodel'])
                 self.signals.progress.emit(4)
+
                 for submodel in submodels: 
                     print(submodel)
                     self.pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
                     idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
                     dec_assettypes=CopyDecoupledAssettypeMacro(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data)
+                   
                     self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
                     resources.extend(dec_assettypes.resources)
                     print('*****************************************************************')
@@ -256,6 +258,7 @@ class InvokeNetworkModel:
                     self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
                     
                     # Define the path to the building idm file
+                    self.buildingDirPath = """{}\\{}\\""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     self.buildingIdmFilePath = """{}\\{}.idm""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     self.buildingIdcFilePath = """{}\\{}.idc""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     
@@ -269,7 +272,6 @@ class InvokeNetworkModel:
                     self.signals.progress.emit(int(2+55*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
                     self.signals.progress.emit(int(2+65*(submodels.index(submodel)+1)/len(submodels)*97))
-
                     
                     idm_conn,idc_conn=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks)
                     self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
@@ -460,8 +462,8 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                                                 vel,
                                                 mdot,
                                                 p)
-            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "{}\\\\graphics\\\\pipebifd_bundle.ids" :SYMMETRY {} :SLOT ("Pipebundlef_{}") :NAME "Pipebundlef_{}" :DATA MODEL) 
-""".format(coordinates['x_pipe'],coordinates['y_pipe'],self.plugin_dir.replace("\\\\?\\",'').replace("\\","\\\\"),coordinates['angle'],lid,lid)
+            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:pipebundlef.ids" :SYMMETRY {} :SLOT ("Pipebundlef_{}") :NAME "Pipebundlef_{}" :DATA MODEL) 
+""".format(coordinates['x_pipe'],coordinates['y_pipe'],coordinates['angle'],lid,lid)
         
         return idm,idc
     
@@ -480,8 +482,8 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         conns=self.cur.fetchall()
         if not conns:
             print('No nodes in network or wrong junction constructions!')
-            self.signals.error.emit("No junctions in network or wrong constructions!")
-            return idm,idc
+            #self.signals.error.emit("No junctions in network or wrong constructions!")
+            return idm_conn,idc_conn
             
         jid_old=0
         lid_old=0
@@ -798,7 +800,7 @@ output to current demand. It can also be operated in installations with differen
         conns=self.cur.fetchall()
         if not conns:
             print('No nodes in network or wrong junction constructions!')
-            self.signals.error.emit("No junctions in network or wrong constructions!")
+            #self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
             
         inStreamT=''
@@ -891,7 +893,7 @@ output to current demand. It can also be operated in installations with differen
 {}
  ((RECORD :N |nodebdl|)
   (:PAR :N |vol| :DIM ({}) :V #({})))) """.format(jid,junction['n_connections'],max_seq,connector,max_seq,' '.join(modellingSettings['node_vol'] for x in range(0,max_seq)))
-        idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:brinenode.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
+        idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:nodebundle.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
         return idm,idc
                 
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):
@@ -914,7 +916,7 @@ output to current demand. It can also be operated in installations with differen
         cid_old=0
         iref_old=""
         cid=-1
-        for customer in self.cur.fetchall():          
+        for customer in self.cur.fetchall():
             dhw_id=customer['dhw_id']
             cid=customer['cid']
             assettype_name=customer['assettype_name']
@@ -935,13 +937,16 @@ output to current demand. It can also be operated in installations with differen
                 print('#####++++++-------------------------')
                 print(cid_old)
                 print(feature_dec_irefs)
+                print(customer)
+                print(conn_bundl_type)
+                print(name_conn)
                 
                 idm+="""\n((MACRO-OBJECT :N "Customer_{}" :T ICE-MACRO :D "ICE macro"){}{}{})""".format(cid_old,iref_old if customer_old['model']=='same-model' else'',
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(str(i['sensor_id'])) 
                     for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                     for i in sensor_dec_data if i['target_type']==1 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "{}\\\\graphics\\\\customer_assettypes\\\\{}.ids" :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,self.plugin_dir.replace('\\\\?\\','').replace('\\','\\\\'),assettype_name_old,cid_old,cid_old)
+                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,cid_old,cid_old)
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             cid_old=cid
             iref_old=iref
@@ -956,7 +961,7 @@ output to current demand. It can also be operated in installations with differen
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                         for i in sensor_dec_data if i['target_type']==1 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "{}\\\\graphics\\\\customer_assettypes\\\\{}.ids" :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,self.plugin_dir.replace('\\\\?\\','').replace('\\','\\\\'),assettype_name,cid,cid)
+            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,cid,cid)
         
         return idm,idc
         

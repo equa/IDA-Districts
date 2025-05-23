@@ -44,7 +44,7 @@ def solvePipeSize(z,dp,epsilon,rho,Re,mdot):
 
     return F
     
-def setEnergyColLines(cur,version,network,energy_columns):
+def setEnergyColLines(cur,version,network,energy_columns,main_plant_id):
     """Update the number of customers and the peak power of each line, which are supplied by the main plant"""
     print(energy_columns)
     sql='\n'.join(["""DO $$
@@ -65,12 +65,12 @@ END $$;""".format(i,i) for i in energy_columns+['no_customer']])
         SELECT l.id AS lid,{} count(c.id) AS no_customer
             FROM pgr_dijkstra(
                 'SELECT id,source, target, length_m*costs_eur7m AS cost FROM temp.streets_help',
-                (SELECT sth_v.id FROM temp.streets_help_vertices_pgr sth_v, temp.energy_plants ep WHERE {} = ANY(ep.network) AND {} = ANY (ep.main_plant) AND ST_dWithIn(sth_v.the_geom,ep.geom,0.01)), 
+                (SELECT sth_v.id FROM temp.streets_help_vertices_pgr sth_v, temp.energy_plants ep WHERE {} = ANY(ep.network) AND ep.id={} AND ST_dWithIn(sth_v.the_geom,ep.geom,0.01)), 
                 (SELECT ARRAY_AGG(sth_v.id) FROM temp.streets_help_vertices_pgr sth_v, temp.customers c WHERE {} = ANY(c.network) AND ST_dWithIn(sth_v.the_geom,c.geom,0.01))) di,
                 temp.customers c, temp.streets_help_vertices_pgr sth_v,temp.streets_help sth, temp.lines l
             WHERE ST_dWithIn(sth_v.the_geom,c.geom,0.01) AND sth_v.id=di.end_vid AND edge>0 AND sth.id=di.edge AND sth.id=l.id
             GROUP BY lid) a
-    WHERE a.lid=l.id;""".format(''.join([',\n        {}=a.{}'.format(i,i) for i in energy_columns]),''.join(['sum(c.{}) AS {}, '.format(i,i) for i in energy_columns]),network,network,network)
+    WHERE a.lid=l.id;""".format(''.join([',\n        {}=a.{}'.format(i,i) for i in energy_columns]),''.join(['sum(c.{}) AS {}, '.format(i,i) for i in energy_columns]),network,main_plant_id,network)
     print(sql)
     cur.execute(sql)    
 
@@ -102,7 +102,7 @@ class WorkerPipeSizing(QRunnable):
         self.signals.progress.emit(1)
         energy_columns=[self.dlg.table_sequences.cellWidget(i, 5).currentText() for i in range(self.dlg.table_sequences.rowCount())]
         if self.dlg.rbtn_customers.isChecked():    
-            setEnergyColLines(self.cur,self.dictDB['versionName'],self.network,energy_columns)
+            setEnergyColLines(self.cur,self.dictDB['versionName'],self.network,energy_columns,self.dlg.combo_main_plants.currentText())
             self.signals.progress.emit(2)
             sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l.{}, '.format(i) for i in energy_columns]),self.network)
         else:

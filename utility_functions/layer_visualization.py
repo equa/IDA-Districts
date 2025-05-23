@@ -150,7 +150,7 @@ def setupVersionForm(cur,dictDB):
                             []]
         elif vlayerName=='energy_plants':
             attrNamesTabs= [['id','assetgroup','assettype','network'],
-                            ['main_plant'],
+                            [],
                             ['submodel'],[]]
         for tab, attrNamesTab in zip(['General', 'Physical data', 'Simulation data', 'Metadata'], attrNamesTabs):
             c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
@@ -185,8 +185,8 @@ def versionLayersAliasNames():
             attrNames=['assetgroup','assettype','submodel','load_w','dhw_id','internal_load_id']
             aliasNames=['Asset group','Asset type','Co-sim','Load, W','Domestic hot water ID','Internal load ID']
         elif vlayerName=='energy_plants':
-            attrNames=['assetgroup','assettype','submodel','main_plant']
-            aliasNames=['Asset group','Asset type','Co-sim','Is this the main plant']
+            attrNames=['assetgroup','assettype','submodel']
+            aliasNames=['Asset group','Asset type','Co-sim']
         elif vlayerName=='junctions':
             attrNames=['assetgroup','assettype','submodel','n_connections']
             aliasNames=['Asset group','Asset type','Co-sim','Number of connections']
@@ -293,10 +293,10 @@ def loadTopologyLayers(version,uri,dictDB):
 
         
 def getListTypeDict():
-    return {'energy_plants':['network','main_plant'],'customers':['network'],'lines':['submodel'],'devices':['network']} 
+    return {'energy_plants':['network'],'customers':['network'],'lines':['submodel'],'devices':['network']} 
     
 def getConstraintExpressionDict(networks_array):
-    return {'energy_plants': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0','main_plant': f'array_all({networks_array}, "main_plant") OR array_length( "main_plant" ) =0'},
+    return {'energy_plants': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
                                 'customers': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
                                 'devices': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
                                 'lines': {'network': f'array_contains({networks_array},"network")'}} 

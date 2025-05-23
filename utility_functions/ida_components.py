@@ -64,6 +64,14 @@ def getIDAListComponents(data):
             #print(data)
 
     #print(data)
+    
+    def replace_func(x):
+        if x.group(1):
+            return x.group(1)
+        elif x.group(2):
+            return x.group(2)
+        elif x.group(3):
+            return ':VALUE\',"""'+value_list.pop()+' """'
 
     for i,s in enumerate(sorted(list(string_list),key=len,reverse=True)):
         #print(s)
@@ -121,8 +129,9 @@ def getIDAListComponents(data):
     value_list.reverse()
     if value_list:
         #print(value_list)
-        data=re.sub(r"(:VALUE',\[':DICT)|(\:VALUE')",lambda x: x.group(1) if x.group(1) is not None else ':VALUE\',"""'+value_list.pop()+' """',data)
-        #data=re.sub(r":VALUE'",lambda x: x[0],data)
+        # Pattern to match `:VALUE` followed by a quoted string (Group 3)
+        pattern = r"(:VALUE','\")|(:VALUE',\[':DICT)|(:VALUE')"
+        data = re.sub(pattern, replace_func, data)
     #print(data)
     data=data.replace('$empty_str$','""')
 

@@ -95,7 +95,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
  (:PAR :N SELECTOR :V {}{})
  (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']),
                         ''.join(["""({} -1 (INSIGNALLINK {}) 0)""".format(j[0],j[0]) 
-                                if j[1]['submodel']==submodel and not j[1]['network_side'] or j[1]['cosim']==submodel and j[1]['network_side'] 
+                                if j[1]['submodel']==submodel and not j[1]['network_side'] or j[1]['cosim']==submodel and j[1]['network_side'] or not j[1]['cosim'] and not j[1]['network_side'] #todo update other sensors
                                 else """({} :SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(j[0],submodel,j[1]['submodel'],import_counter[j[1]['submodel'] if j[1]['cosim'] else submodel]+getCosimCounter(sensor_dec_data,j[1]['iref'],submodel,cur,dictDB))                                           
                             for j in enumerate([j for j in i['irefs_source'] 
                                 if [True for j in i['irefs_target'] if j['submodel']==submodel and not j['network_side'] or submodel==j['cosim'] and j['network_side']]
@@ -106,7 +106,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
             [True for j in i['irefs_source'] 
                 if [True for j in i['irefs_target'] if j['submodel']==submodel and not j['network_side'] or submodel==j['cosim'] and j['network_side']]
                 or j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side']]]))                    
-            
+    print('------+++-------')        
     #add Adder comp for function  Individual signals for each target (6) if measure in (1,2,3,4)
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))

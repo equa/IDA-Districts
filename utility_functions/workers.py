@@ -213,17 +213,18 @@ class APISignals(QObject):
 class WorkerOpenAPI(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,plugin_dir):
+    def __init__(self,file_path,plugin_dir,submodel='1'):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
         self.plugin_dir=plugin_dir
         self.signals=APISignals()
+        self.submodel=submodel
             
     @pyqtSlot()
     def run(self):
         #open file in IDA
         self.signals.progress.emit(1)
-        self.util=Util_api(self.plugin_dir)
+        self.util=Util_api(self.plugin_dir,submodel=self.submodel)
 
         print(self.util.pid)
         

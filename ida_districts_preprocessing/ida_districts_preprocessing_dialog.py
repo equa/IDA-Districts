@@ -2188,6 +2188,8 @@ class PipeSizingDlg(QMainWindow):
 
         layout_label.addWidget(QLabel("Network"))
         
+        layout_label.addWidget(QLabel("Main energy plant"))
+        
         
         #values
         layout_values = QVBoxLayout()
@@ -2212,8 +2214,12 @@ class PipeSizingDlg(QMainWindow):
         self.combo_network_models = QComboBox()     
         networks=getNetworks(cur,dictDB)
         self.combo_network_models.addItems(networks)      
-        layout_values.addWidget(self.combo_network_models)        
-    
+        layout_values.addWidget(self.combo_network_models)    
+
+        self.combo_main_plants = QComboBox()     
+        plants=getPlantIds(cur,dictDB)
+        self.combo_main_plants.addItems(plants)      
+        layout_values.addWidget(self.combo_main_plants)        
 
         layout_inputs = QHBoxLayout()
         layout_inputs.addLayout(layout_label)

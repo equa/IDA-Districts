@@ -383,7 +383,7 @@ class IDADistrictsModelingSimulation:
                 dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                 fname=dir+'{}_{}.idm'.format(mode,submodel)
                 print(fname)
-                self.worker_openNetwork = WorkerOpenAPI(fname,self.plugin_dir)
+                self.worker_openNetwork = WorkerOpenAPI(fname,self.plugin_dir,submodel=submodel)
                 self.threadpool_openNetwork = QThreadPool()
                 self.threadpool_openNetwork.start(self.worker_openNetwork) 
                 self.worker_openNetwork.signals.error.connect(show_error_message)
@@ -728,7 +728,6 @@ class IDADistrictsModelingSimulation:
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
                 self.dlg_featureDecoupling=FeatureDecouplingDlg(self.plugin_dir,self.cur,self.dictDB)
-                self.dlg_featureDecoupling.btn_ok.clicked.connect(lambda: closeDialog(self.dlg_featureDecoupling))
                 self.dlg_featureDecoupling.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureDecoupling))
                 self.dlg_featureDecoupling.show()    
             else:
@@ -766,7 +765,7 @@ class IDADistrictsModelingSimulation:
                     self.dlg_buildModel.combo_network_models.setItemChecked(i+1,False)
                 
                 self.dlg_buildModel.combo_submodels.addItem('Check all items')
-                submodels=getUsedSubmodels(self.cur,self.dictDB)
+                submodels=getUsedNetworkSubmodels(self.cur,self.dictDB)
                 self.dlg_buildModel.combo_submodels.addItems(submodels)
                 for i in range(len(submodels)):
                     self.dlg_buildModel.combo_submodels.setItemChecked(i+1,False)
@@ -865,6 +864,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
 (invoke-esbo-plant [@ plant])
 (add-substations-to-plant [@] {} {})
 (:UPDATE [@ plant]
+{}
   (:ADD (:CEO :SYMBOL '(:AT ((36 24)) :R (14 14) :ICON "lib:emeter.ids" :SLOT ("EmeterWater") :NAME "EmeterWater" :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) :N "EmeterWater" :T EMETER)
    (:PAR :N N_IN :V 0)
    (:PAR :N N_MONTH :V 13))
@@ -874,7 +874,9 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
   (:ADD (:CEO :SYMBOL '(:AT ((70 24)) :R (14 14) :ICON "lib:emeter.ids" :SLOT ("EmeterLocalBoil") :NAME "EmeterLocalBoil" :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) :N "EmeterLocalBoil" :T EMETER)
    (:PAR :N N_IN :V 0)
    (:PAR :N N_MONTH :V 13))
-  (:ADD MACRO-OBJECT SCHEMA '((FORM-DOCUMENT :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)) :SYMBOL '(:AT ((46 74)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT) :N "Co-simulation-macro" :T ICE-MACRO :D "ICE macro"))\n""".format(submodel,' '.join(b_ids),conn_data_alist,'T' if dlg.checkbox_cosim.isChecked() else 'nil')
+  (:ADD MACRO-OBJECT SCHEMA '((FORM-DOCUMENT :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)) :SYMBOL '(:AT ((46 74)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT) :N "Co-simulation-macro" :T ICE-MACRO :D "ICE macro"))\n""".format(submodel,' '.join(b_ids),conn_data_alist,'T' if dlg.checkbox_cosim.isChecked() else 'nil',
+  '\n'.join(["""  (:REMOVE "Emeterlocchil_{}")
+  (:REMOVE "Emeterlocboil_{}")""".format(counter,counter) for counter,b_id in enumerate(b_ids,1)]) )
                         
                         zone_win_dict={}
                         for counter,zone in enumerate(zones):
@@ -990,105 +992,129 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
 
     def finishedBuildBuildingModel(self,args):
         print('------finished build building model----------')
-        dlg=args['dlg']
-        submodel=args['submodel']
-        conn_data=args['conn_data']
-        co_sim=dlg.checkbox_cosim.isChecked()
-        reinvoke=dlg.checkbox_reinvokeFeatures.isChecked()
-        print(co_sim)
-        print(reinvoke)    
-        print(submodel)    
-        print(conn_data) 
-        source_dir=self.plugin_dir+'\\network_models\\{}\\{}\\invoked_customers\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-        target_dir=self.plugin_dir+'\\network_models\\{}\\{}\\building_{}\\plant\\'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel)
-        print(source_dir) 
-        sensor_data=getSensorData(self.cur,self.dictDB,filter='')
-        print(sensor_data)
+        try:
+            dlg=args['dlg']
+            submodel=args['submodel']
+            conn_data=args['conn_data']
+            co_sim=dlg.checkbox_cosim.isChecked()
+            reinvoke=dlg.checkbox_reinvokeFeatures.isChecked()
+            print(co_sim)
+            print(reinvoke)    
+            print(submodel)    
+            print(conn_data) 
+            source_dir=self.plugin_dir+'\\network_models\\{}\\{}\\invoked_customers\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+            target_dir=self.plugin_dir+'\\network_models\\{}\\{}\\building_{}\\plant\\'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel)
+            print(source_dir) 
+            sensor_data=getSensorData(self.cur,self.dictDB,filter='')
+            print(sensor_data)
 
-                    
-        for b_id in conn_data:
-            print(b_id)
-            #idm
-            source_f="{}\\Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
-            print(source_f)
-            if not os.path.exists(source_f) or reinvoke:
-                print('reinvoke')
-                invokeOneFeature(False,str(b_id),self.plugin_dir,self.cur,self.dictDB,'customer',False)
-        
-        if co_sim:
-            print('+++++++cosim++++++')
-            dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-            print(dir)
-            dec_assettypes=CopyDecoupledAssettypeMacro(str(submodel),dir,self.dictDB,self.cur,self.plugin_dir,sensor_data,mode='building')
-            print('---finished dec---')
-            print(dec_assettypes.resources)
-            if dec_assettypes.resources:
-                file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
-                file_data[2:2]=dec_assettypes.resources
-                writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
-                
-            #decoupling
-            feature_dec_irefs=[]
-            for submodel_ in getUsedSubmodels(self.cur, self.dictDB):
-                #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
-                print('//////************------//////*------')
-                for i in readDecoupledFeatureSensorSignals(submodel_,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
-                    print('++++++++--++')
-                    print(i)
-                    if i not in feature_dec_irefs:
-                        feature_dec_irefs.append(i)
-            print(feature_dec_irefs)
-
-            sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)   
-            #print(sensor_dec_data)
-
-            print(dir)
-            print(type(submodel))
-            data_dec_idm=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data,mode='building')
-            print(data_dec_idm)
-
-            writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir,mode='building')
-    
-        else:
+                        
             for b_id in conn_data:
                 print(b_id)
                 #idm
-                source_f_idm="{}Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
-                print(source_f_idm)
-                components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f_idm)))
-                print(getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB))
-                building_pmt2s=['"'+getPMT2muxName(self.cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB) if i['type'] not in [1,2]]
-                print(building_pmt2s)
-                data_idm=[]
-                for comp in components_idm:
-                    if getCompName(comp) in building_pmt2s:
-                        data=[]
-                        for i in comp:
-                            if getCompName(i)=='|M_var|':
-                                print('|M_var|')
-                                i[':B']=['-1','|term_b|','1']
-                                data.append(i)
-                            elif getCompName(i)=='|term_b|':
-                                instream_data=[]
-                                for j in i:
-                                    if getCompName(j)=='|inStream(T)|':
-                                        print('|inStream(T)|')
-                                        j[':B']=['-1','|term_b|','2']
-                                    instream_data.append(j)
-                                data.append(instream_data)
-                            else:
-                                data.append(i)
-                        data_idm.append(data)
-                    else:
-                        data_idm.append(comp)
-                writePropertyListIDMToFile(data_idm,target_dir,target_dir+'substation b{}.idm'.format(b_id))
+                source_f="{}\\Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
+                print(source_f)
+                if not os.path.exists(source_f) or reinvoke:
+                    print('reinvoke')
+                    invokeOneFeature(False,str(b_id),self.plugin_dir,self.cur,self.dictDB,'customer',False)
+            
+            dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
+            print(dir)
+                
+            if co_sim:
+                print('+++++++cosim++++++')
+                dec_assettypes=CopyDecoupledAssettypeMacro(str(submodel),dir,self.dictDB,self.cur,self.plugin_dir,sensor_data,mode='building')
+                print('---finished dec---')
+                print(dec_assettypes.resources)
+                if dec_assettypes.resources:
+                    file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
+                    file_data[2:2]=dec_assettypes.resources
+                    writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
+                    
+                #decoupling
+                feature_dec_irefs=[]
+                for submodel_ in getUsedSubmodels(self.cur, self.dictDB):
+                    #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
+                    print('//////************------//////*------')
+                    for i in readDecoupledFeatureSensorSignals(submodel_,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
+                        print('++++++++--++')
+                        print(i)
+                        if i not in feature_dec_irefs:
+                            feature_dec_irefs.append(i)
+                print(feature_dec_irefs)
+
+                sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)   
+                #print(sensor_dec_data)
+
+                print(dir)
+                print(type(submodel))
+                data_dec_idm=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data,mode='building')
+                print(data_dec_idm)
+
+                writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir,mode='building')
+        
+            else:
+                #resources
+                assettype_names=getAssettypeNamesFilteredByCustomerIds(self.cur,self.dictDB,conn_data) 
+                resources=[]        
+                for assettype in assettype_names:
+                    print('+++++resource: '+assettype)
+                    source_f_idm="{}\\{}\\customer_assettypes\\{}.idm".format(getDataCenterDir(self.plugin_dir),self.dictDB['projectName'],assettype)
+                    print(source_f_idm)
+                    file_data=readFileToList(source_f_idm)
+                    resource=getResourcesFromFileDataList(file_data)
+                    print(resource)
+                    if resource not in resources:
+                        resources+=resource
+                print(resources)
+                        
+                if resources:
+                    file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
+                    file_data[2:2]=resources
+                    writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
+                        
+                for b_id in conn_data:
+                    print(b_id)
+                    #idm
+                    source_f_idm="{}Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
+                    print(source_f_idm)
+                    
+                    components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f_idm)))
+                    print(getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB))
+                    building_pmt2s=['"'+getPMT2muxName(self.cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB) if i['type'] not in [1,2]]
+                    print(building_pmt2s)
+                    data_idm=[]
+                    for comp in components_idm:
+                        if getCompName(comp) in building_pmt2s:
+                            data=[]
+                            for i in comp:
+                                if getCompName(i)=='|M_var|':
+                                    print('|M_var|')
+                                    i[':B']=['-1','|term_b|','1']
+                                    data.append(i)
+                                elif getCompName(i)=='|term_b|':
+                                    instream_data=[]
+                                    for j in i:
+                                        if getCompName(j)=='|inStream(T)|':
+                                            print('|inStream(T)|')
+                                            j[':B']=['-1','|term_b|','2']
+                                        instream_data.append(j)
+                                    data.append(instream_data)
+                                else:
+                                    data.append(i)
+                            data_idm.append(data)
+                        else:
+                            data_idm.append(comp)
+                    writePropertyListIDMToFile(data_idm,target_dir,target_dir+'substation b{}.idm'.format(b_id))
 
 
-                source_f_idc="{}Customer_{}\\Customer_{}.idc".format(source_dir,b_id,b_id)
-                print(source_f_idc)
-                copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
-                if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
-                    copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
+                    source_f_idc="{}Customer_{}\\Customer_{}.idc".format(source_dir,b_id,b_id)
+                    print(source_f_idc)
+                    copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
+                    if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
+                        copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
+        except Exception as e:
+            print(e)
                 
         
     

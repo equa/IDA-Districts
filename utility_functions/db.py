@@ -170,7 +170,7 @@ ORDER BY feature,assetgroup,assettype;""".format(submodel,dictDB['versionName'],
     print(assettypes)
     return assettypes
     
-def getFeatureIds(dictDB,cur,submodel,cosims):
+def getFeatureDecIds(dictDB,cur,submodel,cosims):
     fids=[]
     for cosim in cosims:
         sql="""(SELECT 'customer' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
@@ -262,8 +262,45 @@ ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB[
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
     
+def getUsedNetworkSubmodels(cur,dictDB):
+    sql="""(
+    SELECT unnest(submodel) AS submodel FROM "{}".lines GROUP BY submodel
+    UNION
+    SELECT c.submodel
+        FROM "{}".customers c, customer_assettypes c_at
+        WHERE c_at.assettype=c.assettype and c_at.assetgroup=c.assetgroup AND c_at.conn_bundle_type NOT IN 
+            (SELECT b_t_conns.conn_bundle_type_id
+                FROM connections c, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+                WHERE b_t_conns.conn_type_id=conn_t_conns.connection_type_id AND conn_t_conns.connection_id=c.id AND c.type IN (3,4,5,6,7,8,9,10)
+                GROUP BY b_t_conns.conn_bundle_type_id)
+        GROUP BY c.submodel,conn_bundle_type
+    UNION
+    SELECT submodel FROM "{}".energy_plants GROUP BY submodel
+    UNION
+    SELECT submodel FROM "{}".devices GROUP BY submodel
+)
+ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+    cur.execute(sql)
+    submodels=[str(i['submodel']) for i in cur.fetchall()]
+    return submodels
+
+def getAssettypeNamesFilteredByCustomerIds(cur,dictDB,cids):
+    sql="""SELECT c_at.assetgroup::text ||'_'||c_at.assettype::text||'_'||c_at.assettype_name  AS assettype_name
+    FROM {}.customers c, customer_assettypes c_at
+    WHERE c.id IN ({}) AND c.assetgroup=c_at.assetgroup AND c.assettype=c_at.assettype
+    GROUP BY c_at.assetgroup::text ||'_'||c_at.assettype::text||'_'||c_at.assettype_name;""".format(dictDB['versionName'],','.join([str(i) for i in cids]))
+    cur.execute(sql)
+    assettype_names=[str(i['assettype_name']) for i in cur.fetchall()]
+    return assettype_names
+
+def getPlantIds(cur,dictDB):
+    sql="""SELECT id FROM {}.energy_plants;""".format(dictDB['versionName'])
+    cur.execute(sql)
+    ids=[str(i['id']) for i in cur.fetchall()]
+    return ids
+ 
 def getUsedBuildingSubmodels(cur,dictDB):
-    sql="""SELECT submodel FROM "{}".buildings GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'])
+    sql="""SELECT submodel FROM "{}".buildings WHERE submodel IS NOT NULL GROUP BY submodel ORDER BY submodel;""".format(dictDB['versionName'])
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels

@@ -794,9 +794,6 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             if default['column_name'] in ['nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure',
                                 'heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','cold_e_kwh','cold_p_kw']:
                 dlg.input[default['column_name']].setText(default['column_default'])
-            if default['column_name'] in ['main_plant']:
-                print(default['column_default'])
-                dlg.input[default['column_name']].setChecked(bool(default['column_default']))
    
     def show_DefaultsLinesDialog(self):
         """ show the efaultsLinesDialog"""
@@ -827,7 +824,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         """ show the defaultsDialog"""
         defaults=self.getDefaults("energy_plants")
         self.dlg_defaultsPlants=DefaultsDialog('energy_plant',"Defaults layer energy_plants",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
-                                                {'label': 'Is this the main plant','value': ['main_plant',2,'physical']},{'label': 'Heating supply, kWh','value': ['heat_e_kwh',1,'physical']},
+                                                {'label': 'Heating supply, kWh','value': ['heat_e_kwh',1,'physical']},
                                                 {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal supply temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
                                                 {'label': 'Cooling supply, kWh','value': ['cold_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cold_p_kw',1,'physical']},
                                                 {'label': 'Nominal supply temp. cooling, °C','value': ['tsup_c_deg',1,'physical']}],self.cur)

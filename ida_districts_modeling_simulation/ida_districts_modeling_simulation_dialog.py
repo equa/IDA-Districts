@@ -279,7 +279,7 @@ class SupervisoryCtrlDlg(QMainWindow):
         label_submodel =QLabel("Submodel")
         layout_submodel.addWidget(label_submodel)
         self.combo_submodel = QComboBox()
-        submodels=getUsedSubmodels(cur,dictDB)
+        submodels=getUsedNetworkSubmodels(cur,dictDB)
         self.combo_submodel.addItems(submodels)
         if getSupervisorySubmodel(cur,dictDB) in submodels:
             self.combo_submodel.setCurrentText(getSupervisorySubmodel(cur,dictDB))
@@ -925,13 +925,11 @@ class FeatureDecouplingDlg(QMainWindow):
                        
         #---------------ok/cancel buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
-        layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
-        layout_buttons.addWidget(self.btn_cancel)
         self.btn_save=QPushButton("Save/Update")
         self.btn_save.clicked.connect(self.saveListContent)
+        self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_save)
+        layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
@@ -950,7 +948,7 @@ class FeatureDecouplingDlg(QMainWindow):
         self.no_submodels.setText(str(len([i for i in getFeatureSubmodels(self.cur,self.dictDB,'customer' if self.rbtn_customers.isChecked() else 'energy_plant') if i not in getLineSubmodels(self.cur,self.dictDB)])))
 
     def addListItem(self):
-        item=QListWidgetItem()
+        item=QListWidgetItem('New entry')
         item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
         self.listWidget_featureModels.insertItem(0, item)    
         

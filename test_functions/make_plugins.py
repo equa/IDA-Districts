@@ -92,7 +92,7 @@ shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
 shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copytree(src_dir+'icons',trg_dir+'icons')
 os.mkdir(trg_dir+'templates')
-for template in ['heating_network.ida','empty_project.ida','db_default_values.ida']:
+for template in ['heating_network.ida','empty_project.ida','db_default_values.ida','cosim_building_network.ida']:
     shutil.copy(src_dir+'templates\\'+template, trg_dir+'templates\\'+template)
 #shutil.copytree(src_dir+'templates',trg_dir+'templates')
 shutil.copy(src_dir+'configIDADistricts.txt', trg_dir+'configIDADistricts.txt')

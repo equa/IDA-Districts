@@ -17,7 +17,7 @@ def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,plugin_dir,sensor_
     submodels.remove(str(submodel))
     print(submodels)
     
-    features=getFeatureIds(dictDB,cur,submodel,submodels)
+    features=getFeatureDecIds(dictDB,cur,submodel,submodels)
     print(features)
         
     feature_dec_irefs=[]
@@ -31,7 +31,9 @@ def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,plugin_dir,sensor_
         if not os.path.exists(source_f):
             invokeOneFeature(False,str(feature['id']),plugin_dir,cur,dictDB,feature['feature'],False)
         
+        print('.idm')
         components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f)))
+        print('.idc')
         components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString("{}\\{}_{}\\{}_{}.idc".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id'])))))
 
         conns_idc=[comp for comp in components_idc if comp[':C']=='CONNECTION-LINE']
@@ -121,7 +123,7 @@ class CopyDecoupledAssettypeMacro:
         submodels.remove(str(submodel))
         print(submodels)
         
-        features=getFeatureIds(dictDB,cur,submodel,submodels)
+        features=getFeatureDecIds(dictDB,cur,submodel,submodels)
         self.import_counter={}
         self.resources=[]
         self.data_ex_f=[]
@@ -184,7 +186,7 @@ class CopyDecoupledAssettypeMacro:
             dec_models_idc.extend(['Int_Ref_Sensor_Source_'+i.split('_')[0] for i in irefs])
             print(dec_models_idc)
             dec_models_idc.extend(['Int_Ref_Sensor_Target_'+i.split('_')[0] for i in irefs_target])
-            dec_models_idc=['"'+i+'"' if i != ':SELF' else i for i in dec_models]
+            dec_models_idc=['"'+i+'"' if i != ':SELF' else i for i in dec_models_idc]
             print(dec_models_idc)
             keep_irefs=[]
             hx=[j[':N'] for j in data_ex if j[':T']=='|hx|']
@@ -268,23 +270,36 @@ class CopyDecoupledAssettypeMacro:
                         data_idm.append({':C':'OUTPUT-FILE',':N': '"HX decoupling"',':T':'OUTPUT-FILE', ':COL':'T',':STM':'1'})
                         if feature['network_side']:
                             print('network side; |hx| comp')
-                            data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_ASide|'},
-                                             {':C':':VAR', ':N': '|mLiqB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
+                            print(comp)
+                            hx_ASide=[{':C':'Model', ':N': comp_name, ':T': '|hx_ASide|'},
+                                        {':C':':VAR', ':N': '|mLiqB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|mLiqB|',data_ex))],':L':'"HX decoupling"', ':AS':'"mLiqB"'},
-                                            {':C':':VAR', ':N': '|PhiHxLimit_var|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
+                                        {':C':':VAR', ':N': '|PhiHxLimit_var|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|PhiHxLimit_var|',data_ex))] if not PhiHxLimit_signal else ['-1','|PhiHxLimit|','0']},
-                                            {':C':':VAR', ':N': '|TbSet_var|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
+                                        {':C':':VAR', ':N': '|TbSet_var|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|TbSet_var|',data_ex))] if not TbSet_signal else ['-1','|TbSet|','0']},
-                                            {':C':':VAR', ':N': '|TsupB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
+                                        {':C':':VAR', ':N': '|TsupB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|TsupB|',data_ex))],':L':'"HX decoupling"', ':AS':'"TbIn"'},
-                                            {':C':':VAR',':N': '|PhiHx|',':L':'"HX decoupling"', ':AS':'"PhiHX"'},
-                                            {':C':':VAR',':N': '|TaOut|',':L':'"HX decoupling"', ':AS':'"TaOut"'},
-                                            {':C':':VAR',':N': '|TbOut|',':L':'"HX decoupling"', ':AS':'"TbOut"'},
-                                            {':C':':VAR',':N': '|TsupA|',':L':'"HX decoupling"', ':AS':'"TaIn"'},
-                                            {':C':':VAR',':N': '|TbSet_var|',':L':'"HX decoupling"', ':AS':'"TbSet"'},
-                                            {':C':':VAR',':N': '|mLiqA|',':L':'"HX decoupling"', ':AS':'"mLiqA"'}])
+                                        {':C':':VAR',':N': '|PhiHx|',':L':'"HX decoupling"', ':AS':'"PhiHX"'},
+                                        {':C':':VAR',':N': '|TaOut|',':L':'"HX decoupling"', ':AS':'"TaOut"'},
+                                        {':C':':VAR',':N': '|TbOut|',':L':'"HX decoupling"', ':AS':'"TbOut"'},
+                                        {':C':':VAR',':N': '|TsupA|',':L':'"HX decoupling"', ':AS':'"TaIn"'},
+                                        {':C':':VAR',':N': '|TbSet_var|',':L':'"HX decoupling"', ':AS':'"TbSet"'},
+                                        {':C':':VAR',':N': '|mLiqA|',':L':'"HX decoupling"', ':AS':'"mLiqA"'}]
+                            par_components = [i for i in comp if getCompClass(i) == ':PAR']
+                            print(par_components)
+                            if par_components:
+                                for idx, item in enumerate(par_components):
+                                    hx_ASide.insert(1 + idx, item)  # Insert each at the correct position
+                            data_idm.append(hx_ASide)
                         else:
                             print('substation side; |hx| comp')
+                            print(feature)
+                            print(feature['submodel'])
+                            print(self.import_counter)
+                            print(comp_name)
+                            print(data_ex)
+                            print(getCompImportPos(comp_name,'|TbOut|',data_ex))
                             data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_BSide|'},
                                              {':C':':VAR', ':N': '|PhiHxLimit_var|', ':B': '-1' if PhiHxLimit_signal else ['-1','|PhiHxLimit|','0']},
                                              {':C':':VAR', ':N': '|TbSet_var|', ':B': '-1' if TbSet_signal else ['-1','|TbSet|','0'],':L':'"HX decoupling"', ':AS':'"TbSet"'},
@@ -296,6 +311,7 @@ class CopyDecoupledAssettypeMacro:
                                             {':C':':VAR',':N': '|TsupA|',':L':'"HX decoupling"', ':AS':'"TaIn"'},
                                             {':C':':VAR',':N': '|TsupB|',':L':'"HX decoupling"', ':AS':'"TbIn"'},
                                             {':C':':VAR',':N': '|mLiqB|',':L':'"HX decoupling"', ':AS':'"mLiqB"'}])
+                            print('substation side; |hx| comp; finished')
                     else:
                         data_idm.append(comp)
                 if getCompClass(comp) in keep_class:

@@ -298,6 +298,7 @@ class UpdateSensors():
     FROM "{}".sensor_source s_s, public.type, public.measure m, public.signal_function f, "{}".sensor_target s_t
     WHERE s_s.type=type.id AND s_s.measure=m.id AND s_s.function=f.id AND s_t.sensor_id=s_s.sensor_id
     ORDER BY s_s.sensor_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+        print(sql)
         i=0
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():

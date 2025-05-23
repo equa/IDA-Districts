@@ -47,7 +47,7 @@ class NewProjectDlg(QMainWindow):
       
         #template 
         self.selectTemplate =QComboBox()
-        self.selectTemplate.addItems(['Empty project','DB default values','Heating network'])
+        self.selectTemplate.addItems(['Empty project','DB default values','Heating network','Co-sim buildings with heating network'])
         self.selectTemplate.setCurrentText('Heating network')
         self.selectTemplate.currentTextChanged.connect(self.update_checkbox_dbDefaultValues)
 

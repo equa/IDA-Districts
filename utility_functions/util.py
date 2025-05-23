@@ -7,10 +7,10 @@ import os
 from plugins.utility_functions.files import *
 
 class Util_api:
-    def __init__(self,plugin_dir):
+    def __init__(self,plugin_dir,submodel='1'):
         # Define your path to the IDA ICE bin folder here
         path_to_ice = loadIDADistrictsConfig(plugin_dir)['path_ice'].replace("\\","\\\\")+"bin\\\\"
-        command = path_to_ice + "ida-ice.exe \"" + path_to_ice + "ida.img\" -G 1"
+        command = path_to_ice + "ida-ice.exe \"" + path_to_ice + "ida.img\" -G 1 -C " + str(submodel)
         print(command)
         configIDADistricts=loadIDADistrictsConfig(plugin_dir)
         startObj = win32process.STARTUPINFO()

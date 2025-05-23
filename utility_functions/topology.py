@@ -12,7 +12,7 @@ def checkNetwork(cur,version,networks):
     
     mainPlant_counter={}
     for network in networks:
-        sql="""SELECT count(*) as count FROM "{}".energy_plants WHERE network && ARRAY[{}] AND main_plant && ARRAY[{}];""".format(version,network,network)
+        sql="""SELECT count(*) as count FROM "{}".energy_plants WHERE network && ARRAY[{}];""".format(version,network)
         cur.execute(sql)        
         mainPlant_counter[network]=cur.fetchone()['count']
     print(mainPlant_counter)
@@ -292,7 +292,10 @@ def getPMT2muxIdentFromConnValues(connValues,conn_seq):
 def checkLineDirectionTopology(cur,version,tolerance,iface,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
-    sql="""SELECT st_v.id::integer AS epid FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);""".format(tolerance,network,network)
+    sql="""SELECT st_v.id::integer AS epid 
+        FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
+        WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network)
+        ORDER BY ep.id LIMIT 1;""".format(tolerance,network)
     print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['epid'] 
@@ -368,7 +371,9 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
 def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
-    sql="""SELECT st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY (ep.main_plant) AND {} = ANY(ep.network);""".format(tolerance,network,network)
+    sql="""SELECT st_v.id::integer AS v_ep 
+    FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
+    WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network) ORDER BY ep.id LIMIT 1;""".format(tolerance,network)
     print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep'] 
