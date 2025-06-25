@@ -348,7 +348,7 @@ def pListToCompString(pList,level):
 
     
 def modelLanguage(model):
-    if model in ('TANKSTRAT','PUMPCIRC','CONSTANT','BOIL1CIRC','MULTIPLIER','ADDER','SCRIPT-OUTPUT'):
+    if model in ('TANKSTRAT','PUMPCIRC','CONSTANT','BOIL1CIRC','CHIL1CIRC','MULTIPLIER','ADDER','SCRIPT-OUTPUT','PUMPMCTRL'):
         return 'NMF'
     else:
         return 'MODELICA'

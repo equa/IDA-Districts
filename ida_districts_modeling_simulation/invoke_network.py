@@ -168,6 +168,7 @@ class InvokeNetworkModel:
                 
                 self.signals.progress.emit(2)
                 sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)      
+                print(sensor_dec_data)
                 self.signals.progress.emit(3)
                 supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.dictDB)['submodel'])
                 self.signals.progress.emit(4)
@@ -253,8 +254,8 @@ class InvokeNetworkModel:
                     idm+=''.join(["\n"+i for i in set(resources)])
                     
                     #sf-macro
-                    self.writeMacroSFIdm(dir+'\\'+'network_'+str(submodel))
-                    self.writeMacroSFIdc(dir+'\\'+'network_'+str(submodel))
+                    writeMacroSFIdm(self.dictDB,self.cur,dir+'\\'+'network_'+str(submodel))
+                    writeMacroSFIdc(self.dictDB,self.cur,dir+'\\'+'network_'+str(submodel))
                     self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
                     
                     # Define the path to the building idm file
@@ -901,7 +902,7 @@ output to current demand. It can also be operated in installations with differen
         print('****************insert customers******************')
         sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point, c.dhw_id,ca.conn_bundle_type, ca.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
 	FROM "{}".customers c, customer_assettypes ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
-	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.assettype=c.assettype AND ca.assetgroup=c.assetgroup AND c.assetgroup=ca.assetgroup AND ca.assettype=c.assettype AND 
+	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.assettype=c.assettype AND ca.assetgroup=c.assetgroup AND
         (c.submodel={} OR {} != c.submodel AND {} = ANY (l.submodel)) AND c.network && ARRAY[{}] AND
         conn_b_t.conn_bundle_type_id=ca.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id
@@ -1070,28 +1071,6 @@ output to current demand. It can also be operated in installations with differen
                         for i in sensor_dec_data if i['target_type']==2 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
             idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:boil1circ.ids" :SLOT ("energy_plant_{}") :NAME "energy_plant_{}" :DATA MACRO-OBJECT) """.format(x,y,epid,epid)                   
         return idm,idc
-        
-    def writeMacroSFIdm(self,dir):
-        sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(self.dictDB['versionName'])
-        self.cur.execute(sql)
-        sf_ids=self.cur.fetchall()     
-        print(sf_ids)
-
-        filedata=[""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
-        filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
-        writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm')        
-                
-    def writeMacroSFIdc(self,dir):
-        sql='SELECT id,sf FROM "{}".invoked_sf;'.format(self.dictDB['versionName'])
-        self.cur.execute(sql)
-        sf_ids=self.cur.fetchall()
-            
-        filedata=[""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
-(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
-        filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
-        writeToFileFromList(filedata,dir,dir+'\\sf-macro.idc')
 
 
         

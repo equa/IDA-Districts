@@ -43,7 +43,7 @@ from scipy.interpolate import interp1d
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_modeling_simulation_dialog import BuildBuildingModelDialog, LoadResultsDialog,CalibrateCustomers, OpenModelDialog,SupervisoryCtrlDlg, FeatureDecouplingDlg, CustomerModelParmDlg, ModellingSettings, IDADistrictsModelingSimulationDialog, RequestedOutputs, BuildNetworkModelDialog, CheckableComboBox, RunNetworkModelDialog
+from .ida_districts_modeling_simulation_dialog import BuildBuildingModelDialog, LoadResultsDialog,CalibrateCustomers, OpenModelDialog,SupervisoryCtrlDlg, FeatureDecouplingDlg, FeatureModelParmDlg, ModellingSettings, IDADistrictsModelingSimulationDialog, RequestedOutputs, BuildNetworkModelDialog, CheckableComboBox, RunNetworkModelDialog
 from .supervisory_control import Supervisory_control
 from .invoke import *
 from .outputs import *
@@ -218,20 +218,18 @@ class IDADistrictsModelingSimulation:
         writeNetworkSimData(self.plugin_dir,self.dictDB,networkSimData)
         return networkSimData
         
-    def showCustomerParm(self):
+    def showFeatureParm(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
-                self.dlg_customerParm=CustomerModelParmDlg()
-                self.dlg_customerParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_customerParm,self.cur,self.dictDB))
-                self.dlg_customerParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_customerParm.tableWidget_parameters))
-                self.dlg_customerParm.btn_ok.clicked.connect(lambda: setCustParm(self.dlg_customerParm,self.conn,self.dictDB,self.plugin_dir))
-                self.dlg_customerParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_customerParm))
-                loadCustomerParm(self.dlg_customerParm,self.cur,self.dictDB)
-                loadLayerFieldsToList(self.dlg_customerParm.listWidget_customerFields,'customers')
-                self.dlg_customerParm.show()
+                self.dlg_featureParm=FeatureModelParmDlg(self.cur,self.dictDB)
+                self.dlg_featureParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_featureParm,self.cur,self.dictDB))
+                self.dlg_featureParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_featureParm.tableWidget_parameters))
+                self.dlg_featureParm.btn_ok.clicked.connect(lambda: setFeatureParm(self.dlg_featureParm,self.conn,self.dictDB,self.plugin_dir))
+                self.dlg_featureParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureParm))
+                self.dlg_featureParm.show()
             else:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
@@ -1116,8 +1114,6 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
         except Exception as e:
             print(e)
                 
-        
-    
     def loadResults(self,dlg):
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
         
@@ -1189,7 +1185,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
             self.first_start = False
             self.dlg = IDADistrictsModelingSimulationDialog()
             self.dlg.btn_requestedOutputs.clicked.connect(self.showRequestedOutputs)
-            self.dlg.btn_custModelParm.clicked.connect(self.showCustomerParm)
+            self.dlg.btn_custModelParm.clicked.connect(self.showFeatureParm)
             self.dlg.btn_supervisoryContr.clicked.connect(self.showSupervisoryCtrl)
             self.dlg.btn_calibrateCustomers.clicked.connect(self.calibrateCustomers)
             self.dlg.btn_invokeFeatures.clicked.connect(self.showInvokeFeatures)

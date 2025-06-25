@@ -822,24 +822,37 @@ class CalibrateCustomers(QMainWindow):
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
         
-class CustomerModelParmDlg(QMainWindow):
-    def __init__(self):
+class FeatureModelParmDlg(QMainWindow):
+    def __init__(self,cur,dictDB):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Customer model parameter mapping") 
+        self.setWindowTitle("Feature model parameter mapping") 
         self.loadedMappingParms={}
+        self.cur=cur
+        self.dictDB=dictDB
+        
+        #radio buttons devices/plants
+        layout_rbtn = QHBoxLayout()
+        self.rbtn_customers = QRadioButton('Customers')
+        self.rbtn_customers.setChecked(True)
+        self.rbtn_plants = QRadioButton('Energy plants')
+        self.rbtn_customers.toggled.connect(self.onClickedRadio)
+        self.rbtn_plants.toggled.connect(self.onClickedRadio)
+        
+        layout_rbtn.addWidget(self.rbtn_customers)
+        layout_rbtn.addWidget(self.rbtn_plants)
         
         layout_list=QHBoxLayout()
         #list widget for layer attributes
-        layout_listWidget_customerFields = QVBoxLayout()
-        label_listWidget_customerFields=QLabel("Fields of customers:")
-        layout_listWidget_customerFields.addWidget(label_listWidget_customerFields)
-        self.listWidget_customerFields = QListWidget()
-        layout_listWidget_customerFields.addWidget(self.listWidget_customerFields)
-        self.listWidget_customerFields.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
+        layout_listWidget_featureFields = QVBoxLayout()
+        label_listWidget_featureFields=QLabel("Fields")
+        layout_listWidget_featureFields.addWidget(label_listWidget_featureFields)
+        self.listWidget_featureFields = QListWidget()
+        layout_listWidget_featureFields.addWidget(self.listWidget_featureFields)
+        self.listWidget_featureFields.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
         
         label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected mapping expression.\nYou can use also dictionaries in the form: {key: entry}[value/attribut]')
-        layout_list.addLayout(layout_listWidget_customerFields)
+        layout_list.addLayout(layout_listWidget_featureFields)
         layout_list.addWidget(label_list_helptext)
        
         #table for mapped attributes  
@@ -855,17 +868,21 @@ class CustomerModelParmDlg(QMainWindow):
         
         #---------------ok/cancel buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton("Save")
         layout_buttons.addWidget(self.btn_ok)
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_rbtn)
         layout_win.addLayout(layout_list)
         layout_win.addWidget(self.tableWidget_parameters)
         layout_win.addLayout(layout_buttons_conns)
         layout_win.addLayout(layout_buttons)
+        
+        self.loadParm()
+        self.loadFieldAttributes()
         
         widget=QWidget()
         widget.setLayout(layout_win)
@@ -874,9 +891,43 @@ class CustomerModelParmDlg(QMainWindow):
     def mapAttributesDoubleClick(self,s):
         table_index=self.tableWidget_parameters.currentRow()
         if table_index!=-1:
-            self.tableWidget_parameters.setItem(table_index,1,QTableWidgetItem(self.tableWidget_parameters.item(table_index,0).text()+'|'+s.text()+'|'))
+            self.tableWidget_parameters.setItem(table_index,1,QTableWidgetItem('|'+s.text()+'|'))
         else:
             iface.messageBar().pushMessage("Info", "No model parameter selected!", level=Qgis.Info)
+            
+    def onClickedRadio(self,s):
+        print(s)
+        self.loadedMappingParms={}
+        self.loadParm()
+        self.loadFieldAttributes()
+        
+    def loadFieldAttributes(self):
+        self.listWidget_featureFields.clear()
+        attrs=getTableAttr(self.cur,self.dictDB,'customer' if self.rbtn_customers.isChecked() else 'energy_plant')
+        self.listWidget_featureFields.addItems(attrs)
+
+    def loadParm(self):
+        self.tableWidget_parameters.setRowCount(0)
+
+        sql="""SELECT * FROM "{}".model_parms WHERE type={} ORDER BY id;""".format(self.dictDB['versionName'],1 if self.rbtn_customers.isChecked() else 2)
+        self.cur.execute(sql)
+        table=self.tableWidget_parameters
+        for i,parm in enumerate(self.cur.fetchall()):
+            self.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction']}
+            table.insertRow(i)
+            item = QTableWidgetItem(str(parm['id']))
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            table.setItem(i,0,item)
+            table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
+                        
+            comboBox = QComboBox()
+            comboBox.addItems(['<-->','<--','-->'])
+            comboBox.setCurrentText(parm['mapping_direction'])
+            table.setCellWidget(i, 2, comboBox)  
+            
+            table.setItem(i,3,QTableWidgetItem(parm['parm_name']))
+            table.setItem(i,4,QTableWidgetItem(parm['model_name']))
+            table.setItem(i,5,QTableWidgetItem(parm['macro_name'])) 
 
 class FeatureDecouplingDlg(QMainWindow):
     def __init__(self,plugin_dir,cur,dictDB):
@@ -1081,7 +1132,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         #model buttons
         layout_modeling_btn = QVBoxLayout()   
         
-        self.btn_custModelParm=QPushButton("Customer model parameter mapping")
+        self.btn_custModelParm=QPushButton("Feature model parameter mapping")
         layout_modeling_btn.addWidget(self.btn_custModelParm)
 
         self.btn_supervisoryContr=QPushButton("Supervisory control")
@@ -1200,7 +1251,6 @@ class InvokeFeaturesDlg(QMainWindow):
            
         layout_rbtn.addWidget(self.rbtn_customers)
         layout_rbtn.addWidget(self.rbtn_plants)
-        layout_rbtn.addWidget(self.rbtn_devices)
         
         #table
         self.tableWidget_customer = QTableWidget(0,2)   

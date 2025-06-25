@@ -71,7 +71,7 @@ replaceDict={}
 dhw_file="C:\\lkjdfg.prn"
 
 #get model parameter
-sql="""SELECT * FROM "{}".customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
+sql="""SELECT * FROM "{}".model_parms ORDER BY id;""".format(dictDB['versionName'])
 print(sql)
 cur.execute(sql)
 parms=cur.fetchall()

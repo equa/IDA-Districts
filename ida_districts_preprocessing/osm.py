@@ -42,7 +42,7 @@ class WorkerOSMBuildingsImport(QRunnable):
             if len(b.geom.split(","))>2:
                 #insert into buildings
                 try:
-                    sql='INSERT INTO "'+self.dictDB['versionName']+'".buildings(geom,b_id,z_id,z_bh_m,z_height_m,z_template,z_construction,room_unit,win_facade_ratio) VALUES ('+self.assetgroup+",ST_Multi(ST_Transform(ST_GeomFromText('"+b.geom+"',4326),"+self.srid+")),"+str(counter)+',1,0,'+','+b.height+",1,1,30);"
+                    sql='INSERT INTO "'+self.dictDB['versionName']+"""\".buildings(geom,b_id,z_id,submodel,z_bh_m,z_height_m,z_template,z_construction,room_unit,win_facade_ratio) VALUES (ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter)+',1,1,0,'+b.height+",NULL,1,1,30);"
                     print(sql)
                     self.cur.execute(sql)
                     
@@ -53,7 +53,11 @@ class WorkerOSMBuildingsImport(QRunnable):
                 except Exception as e:
                     self.signals.error.emit(str(e))
             self.signals.progress.emit(int(49*counter/len(buildings)))
-                    
+            
+        sql="UPDATE {}.buildings b SET substation_id = c.id FROM (SELECT id,geom FROM {}.customers) c WHERE ST_dWithIn(c.geom,b.geom,0.01);".format(self.dictDB['versionName'],self.dictDB['versionName'])
+        print(sql)
+        self.cur.execute(sql) 
+        
         refreshMap()
         zoomToLayer("customers")
         

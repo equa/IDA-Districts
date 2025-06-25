@@ -79,8 +79,8 @@ class UpdateSensors():
                 sql+="".join(["""INSERT INTO "{}".source_conns(source_id,connection_id,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_conns,value_conns) for key_conns,value_conns in self.sensorData[key_table]['source']['conns'].items()])                 
                 
                 #target
-                sql+="""INSERT INTO "{}".sensor_target(sensor_id,type,assetgroup,assettype,target,description) VALUES ({},{},{},{},{},'{}');\n""".format(
-                    self.dictDB['versionName'],key_table,self.sensorData[key_table]['target']['type'],key_table,key_table,self.sensorData[key_table]['target']['target'],self.sensorData[key_table]['target']['description'])
+                sql+="""INSERT INTO "{}".sensor_target(sensor_id,type,assetgroup,assettype,target,description,test_value) VALUES ({},{},{},{},{},'{}',{});\n""".format(
+                    self.dictDB['versionName'],key_table,self.sensorData[key_table]['target']['type'],key_table,key_table,self.sensorData[key_table]['target']['target'],self.sensorData[key_table]['target']['description'],self.sensorData[key_table]['source']['test_value'])
                 sql+="".join(["""INSERT INTO "{}".target_assetgroups(target_id,assetgroup,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_assetgroup,value_assetgroup) for key_assetgroup,value_assetgroup in self.sensorData[key_table]['target']['assetgroups'].items()])                 
                 dropdown_assettypes=self.dlg.tableWidget_target.cellWidget(row, 3)
                 type_name=self.dlg.tableWidget_target.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')

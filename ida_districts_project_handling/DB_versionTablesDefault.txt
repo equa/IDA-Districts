@@ -64,17 +64,18 @@ CREATE TABLE IF NOT EXISTS "$versionName$".supervisory_ctrl
     CONSTRAINT supervisory_ctrl_pkey PRIMARY KEY (id)
 );
 
--------------------table "$versionName$".customer_model_parms;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".customer_model_parms CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".customer_model_parms
+-------------------table "$versionName$".model_parms;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".model_parms CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".model_parms
 (
     id serial,
+    type integer,
     parm_name text,
     model_name text,
     mapping_expression text,
     macro_name text,
     mapping_direction text DEFAULT 'ToIDA',
-    CONSTRAINT customer_model_parms_pkey PRIMARY KEY (id)
+    CONSTRAINT model_parms_pkey PRIMARY KEY (id)
 );
 
 -------------------table "$versionName$".feature_decoupling;------------------------------------

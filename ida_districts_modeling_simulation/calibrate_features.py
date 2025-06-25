@@ -167,7 +167,7 @@ def saveCallibValues(dlg,dictDB,conn,plugin_dir):
 
                     layer_fields= [str(i.name()) for i in layer[0].fields()]
                     unique_field_names={}
-                    cur.execute("""SELECT * FROM "{}".customer_model_parms WHERE mapping_direction IN ('<--','<-->');""".format(dictDB['versionName']))
+                    cur.execute("""SELECT * FROM "{}".model_parms WHERE mapping_direction IN ('<--','<-->') AND type=1;""".format(dictDB['versionName']))
                     
                     for parm in cur.fetchall():
                         #print(parm)

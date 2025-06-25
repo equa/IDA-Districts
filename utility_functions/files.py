@@ -4,6 +4,28 @@ from plugins.utility_functions.utility import *
 from plugins.utility_functions.ida_components import *
 from qgis.core import Qgis, QgsMessageLog
 
+def writeMacroSFIdm(dictDB,cur,dir):
+    sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(dictDB['versionName'])
+    cur.execute(sql)
+    sf_ids=cur.fetchall()     
+    print(sf_ids)
+
+    filedata=[""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
+    filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
+    writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
+    print(dir)
+                
+def writeMacroSFIdc(dictDB,cur,dir):
+    sql='SELECT id,sf FROM "{}".invoked_sf;'.format(dictDB['versionName'])
+    cur.execute(sql)
+    sf_ids=cur.fetchall()
+        
+    filedata=[""";IDA 5.11 Data UTF-8
+(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
+    filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
+    writeToFileFromList(filedata,dir,dir+'\\sf-macro.idc')
 
 def getQGISPluginsDir(plugin_dir):
     """ get directory of QGIS plugins"""
@@ -649,9 +671,13 @@ def replaceKeywordsInPList(plist,replaceDict):
                 data.append(comp)
             else:
                 new_comp=[]     
-                parms=[]                
+                parms=[]
+                print(comp_name)
+                print(comp)
+                print(replaceDict[comp_name])
                 for i in comp:
                     i_name=getCompName(i).replace('|','')
+                    print(i_name)
                     if i_name in replaceDict[comp_name]:
                         if isinstance(replaceDict[comp_name][i_name], dict):
                             print("It's a dictionary!")
@@ -659,12 +685,15 @@ def replaceKeywordsInPList(plist,replaceDict):
                                 i[key]=str(value)
                         else:
                             i[':V']=str(replaceDict[comp_name][i_name])
-                        parms.append(getCompName(i))
+                        parms.append(i_name)
                         new_comp.append(i)
                     else:
                         new_comp.append(i)
+                print(parms)
                 for i in replaceDict[comp_name]:
+                    print(i)
                     if i not in parms:
+                        print('not in parms')
                         new_comp.append({':C':':PAR', ':N': pre_suffix+i+pre_suffix,':V': str(replaceDict[comp_name][i])})
                 data.append(new_comp)
         else:

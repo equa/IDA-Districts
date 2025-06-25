@@ -920,11 +920,11 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.show_DefaultsDevicesDialog() 
 
-    def showTableContent(self,dlg,table,dropdowns):
+    def showTableContent(self,dlg,table,dropdowns,columns=None):
         """show table content"""
         print('show table content')
         cur=self.conn.cursor()
-        sql='SELECT * FROM {} ORDER BY id;'.format(table)
+        sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns==None else columns[1:-1],table)
         cur.execute(sql) 
         data = cur.fetchall()
         
@@ -1505,7 +1505,7 @@ UPDATE {}.invoked_sensor_target_signals
         dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))
         dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
         dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,trace,[0]))
-        dlg.traceTableValues=self.showTableContent(dlg,table,dropdowns)
+        dlg.traceTableValues=self.showTableContent(dlg,table,dropdowns,columns=columns)
         print(dlg.traceTableValues)
         if trace:
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)

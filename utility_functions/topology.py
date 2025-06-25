@@ -10,12 +10,6 @@ def checkNetwork(cur,version,networks):
     cur.execute(sql)
     networkNullCount=cur.fetchone()['count']
     
-    mainPlant_counter={}
-    for network in networks:
-        sql="""SELECT count(*) as count FROM "{}".energy_plants WHERE network && ARRAY[{}];""".format(version,network)
-        cur.execute(sql)        
-        mainPlant_counter[network]=cur.fetchone()['count']
-    print(mainPlant_counter)
     if networkNullCount>0:
         print('Network attribute not set!')
 
@@ -34,11 +28,7 @@ def checkNetwork(cur,version,networks):
         else:
             print("Cancel!")
             return False
-    elif any(x != 1 for x in mainPlant_counter.values()):
-        iface.messageBar().pushMessage("Error", "Please set 1 energy plant as your main plant of each network!", level=Qgis.Critical)
-        return False
-    else:
-        return True
+    return True
             
 def getNetworkSequences(cur,dictDB,network):
     sql="""SELECT COALESCE(max(bp.sequence),0) AS number_of

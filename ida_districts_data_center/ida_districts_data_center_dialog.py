@@ -325,7 +325,6 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_defaults.addWidget(self.btn_defaults_lines)
         layout_defaults.addWidget(self.btn_defaults_customers)
         layout_defaults.addWidget(self.btn_defaults_plants)
-        layout_defaults.addWidget(self.btn_defaults_devices)
         
         #DB management
         #title
@@ -393,7 +392,6 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_manage_btn.addWidget(self.btn_manageEnergyPlantAssetgroups)
         
         self.btn_manageDevicesAssetgroups=QPushButton("Devices")
-        layout_manage_btn.addWidget(self.btn_manageDevicesAssetgroups)
         
         #set manageassettypes together
         layout_manage_assetgroups=QVBoxLayout()

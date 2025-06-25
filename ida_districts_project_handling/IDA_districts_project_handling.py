@@ -337,6 +337,7 @@ class WorkerImportProject(QRunnable):
                 return False
             sql = """CREATE database {};""".format(db_info['projectName'])
             self.cur.execute(sql)
+            self.dictDB['projectName']=db_info['projectName']
             self.conn=dbConnect(self.dictDB,True)
             self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
             sql="""CREATE SCHEMA IF NOT EXISTS temp;
@@ -354,13 +355,16 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             if self.project_name:
                 sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames])
                 print(sql)
-                self.cur.execute(sql)
+                if sql:
+                    self.cur.execute(sql)
                 self.signals.progress.emit(73)
+                
+                #create tables in new schema
+                #project tables
+                filedata=readFileToString(self.plugin_dir+"\\DB_projectTablesDefault.txt")
+                print(filedata)
+                self.cur.execute(filedata)
                 if self.versionNames:
-                    #create tables in new schema
-                    #project tables
-                    filedata=readFileToString(self.plugin_dir+"\\DB_projectTablesDefault.txt")
-                    self.cur.execute(filedata)
                     
                     #version tables
                     self.projectConfig=loadProjectConfig(self.plugin_dir,self.project_name)  
@@ -449,7 +453,7 @@ class WorkerExportProject(QRunnable):
             cmd.append("--exclude-table-data=*.customer_s*")
             cmd.append("--exclude-table-data=*.line_s*")
             cmd.append("--exclude-table-data=*.energy_plant_s*")            
-            cmd.append("--exclude-table-data=*.customer_m*")
+            cmd.append("--exclude-table-data=*.customer_m_*")
             cmd.append("--exclude-table-data=*.line_m*")
             cmd.append("--exclude-table-data=*.energy_plant_m*")
         print(cmd)
@@ -966,8 +970,8 @@ class IDA_Districts_ProjectHandling:
         """Project version add dialog --> connects to the TreeItem_Add function, which does the adding"""
         print('Add dialog started')
         if self.conn != '':
-            title='Add project version'
-            label_text='Project version name:'
+            title='Add child version'
+            label_text='Child version name:'
             self.dlg_addVersion = IDA_Districts_NameDialog(title,label_text,'','')
             self.dlg_addVersion.btn_ok.clicked.connect(lambda: self.TreeItem_Add(level,mdlIdx,self.dlg_addVersion))
             self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
@@ -1256,7 +1260,8 @@ class IDA_Districts_ProjectHandling:
                         newdata = newdata.replace("$plugins_path$", getQGISPluginsDir(self.plugin_dir))
                         
                         with open(self.plugin_dir+"\\DB_versionTables.txt",'w') as myfile:
-                            myfile.write(newdata)     
+                            myfile.write(newdata)   
+                        print(newdata)
                         self.cur.execute(newdata)
                         
                     #insert data in new schema

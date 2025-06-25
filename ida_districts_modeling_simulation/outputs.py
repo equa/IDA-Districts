@@ -205,7 +205,7 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
                         print('---add heatbalance output----')
                         #print(comp)
                         new_comp=[]
-                        outputs_to_set={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRad|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
+                        outputs_to_set={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRoomUnit|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                         for i in comp:
                             if getCompName(i) in outputs_to_set:
                                 i[':L']='"Heatbalance"'
@@ -220,7 +220,7 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
                         data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Heatbalance"', ':T': 'OUTPUT-FILE'}])
                     if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if not outputs[i]]:
                         print('---remove heatbalance_c output----')
-                        outputs_to_del={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRad|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
+                        outputs_to_del={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRoomUnit|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                         new_comp=[]
                         for i in comp:
                             if getCompName(i) in outputs_to_del:

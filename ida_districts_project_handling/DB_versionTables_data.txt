@@ -1,4 +1,4 @@
-INSERT INTO "child1".climate (id) VALUES (1);
-INSERT INTO "child1".supervisory_ctrl (id,submodel) VALUES (1,NULL);
+INSERT INTO "a".climate (id) VALUES (1);
+INSERT INTO "a".supervisory_ctrl (id,submodel) VALUES (1,NULL);
 
-INSERT INTO "child1".network (id,description) VALUES (1,'This is the main network.');
+INSERT INTO "a".network (id,description) VALUES (1,'This is the main network.');

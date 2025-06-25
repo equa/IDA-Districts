@@ -160,9 +160,14 @@ BEGIN
     
 	FOR recB IN 
 		EXECUTE format('SELECT * FROM get_version_tree(''%s'')',TG_TABLE_SCHEMA)
-	LOOP    
-        --update sequence
-        EXECUTE format('SELECT SETVAL(''%s.%s_id_seq'',%s)',recB.name,TG_TABLE_NAME,max_id);
+	LOOP 
+        BEGIN
+            --update sequence
+            EXECUTE format('SELECT SETVAL(''%s.%s_id_seq'',%s)',recB.name,TG_TABLE_NAME,max_id);
+        EXCEPTION
+            WHEN undefined_table OR undefined_object THEN
+                RAISE NOTICE 'Sequence %.%_id_seq does not exist.', recB.name, TG_TABLE_NAME;
+        END;      
     END LOOP; 
     -- Return the new row (for `AFTER INSERT` triggers)
     RETURN NEW;
@@ -274,6 +279,13 @@ DECLARE
     new_column_name TEXT;
     new_data_type TEXT;
     sql_query TEXT;
+    command_clean TEXT;
+    column_match TEXT[];
+    column_clause TEXT;
+    column_defs TEXT[];
+    matches TEXT[];
+    statements TEXT[];
+    stmt TEXT;
 BEGIN
     -- Check if the temporary table 'event_trigger_flag' exists
     -- If not, create it to track the function execution flag
@@ -294,100 +306,149 @@ BEGIN
 
     -- Capture the executed DDL command (the query)
     command_text := current_query();
-    --RAISE NOTICE 'command text: %',command_text;
-    
+    -- Normalize whitespace and remove BEGIN/COMMIT if present
+    command_text := regexp_replace(command_text, '\s+', ' ', 'g');
+    command_clean := trim(regexp_replace(command_text, 'BEGIN;|COMMIT;', '', 'gi'));
+
+    RAISE NOTICE 'command text: %',command_text;
+    RAISE NOTICE 'command clean: %',command_clean;
+
+
     -- Check if it's an ALTER TABLE command
-    IF command_text ILIKE 'ALTER TABLE%' THEN
+    IF command_clean ILIKE 'ALTER TABLE%' THEN
         -- If it's an ALTER TABLE ADD COLUMN, extract the details
-        IF command_text ILIKE '%ADD COLUMN%' THEN
-            -- Extract table name, column name, and data type using regexp_split_to_array
-            command_parts := regexp_split_to_array(REGEXP_REPLACE(command_text, '\sIF\sNOT\sEXISTS', '', 'gi'), '\s+');
-
+        IF command_clean ILIKE '%ADD COLUMN%' THEN
             -- Extract schema and table names
-            schema_name := (string_to_array(command_parts[3],'.'))[1];
-            table_name_ := (string_to_array(command_parts[3],'.'))[2];
-            column_name := TRIM(command_parts[6],'"');
-            new_data_type := command_parts[7];
-            
-            --RAISE NOTICE 'Schema: %, Table: %, Column added: %, Data type: %',
-            --   schema_name,  -- Schema name (before the table name)
-            --    table_name_,   -- Table name (after ALTER TABLE)
-            --    column_name,  -- Column name (after ADD COLUMN)
-            --    new_data_type;    -- Data type (after column name)
+            SELECT 
+                trim(both '"' FROM COALESCE(NULLIF((string_to_array(split_part(command_clean, ' ', 3), '.'))[1], ''), current_schema)),
+                trim(both '"' FROM (string_to_array(split_part(command_clean, ' ', 3), '.'))[2])
+            INTO schema_name, table_name_;
 
-            FOR version IN 
-                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
-            LOOP
-                -- Generate the ALTER TABLE command for the other schemas
-                sql_query := format('ALTER TABLE %I.%I ADD COLUMN IF NOT EXISTS %I %s', version.name, table_name_, column_name, new_data_type);
-                -- Log the generated query
-                --RAISE NOTICE 'Query: %', sql_query; 
-                -- Execute the generated ALTER TABLE command
-                EXECUTE sql_query;
+            -- Extract all ADD COLUMN clauses into an array
+            column_defs := regexp_split_to_array(
+                command_clean,
+                'ADD COLUMN\s+(?:IF NOT EXISTS\s+)?',  -- use this to split multiple column additions
+                'i'
+            );
+
+            -- Skip the first element (it contains the table name part)
+            FOR i IN 2 .. array_length(column_defs, 1) LOOP
+                column_clause := column_defs[i];
+
+                column_match := regexp_matches(
+                    column_clause,
+                    '("?[\w\d_]+"?)\s+((?:(?!DEFAULT|NOT|NULL|CHECK|CONSTRAINT|,|;).)+)',
+                    'i'
+                );
+
+                IF column_match IS NOT NULL THEN
+                    column_name := trim(both '"' FROM column_match[1]);
+                    new_data_type := trim(column_match[2]);
+
+                    RAISE NOTICE 'Schema: %, Table: %, Column: %, Data Type: %',
+                        schema_name, table_name_, column_name, new_data_type;
+
+                    FOR version IN 
+                        SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+                    LOOP
+                        -- Generate the ALTER TABLE command for the other schemas
+                        RAISE NOTICE 'version: %', version.name; 
+                        sql_query := format('ALTER TABLE %I.%I ADD COLUMN IF NOT EXISTS %I %s', version.name, table_name_, column_name, new_data_type);
+                        -- Log the generated query
+                        RAISE NOTICE 'Query: %', sql_query; 
+                        -- Execute the generated ALTER TABLE command
+                        EXECUTE sql_query;
+                    END LOOP;
+                END IF;
             END LOOP;
 
         -- If it's an ALTER TABLE DROP COLUMN, extract the details
-        ELSIF command_text ILIKE '%DROP COLUMN%' THEN
-            -- Extract table name and column name using regexp_split_to_array
-            command_parts := regexp_split_to_array(REGEXP_REPLACE(command_text, '\sIF\sEXISTS', '', 'gi'), '\s+');
+        ELSIF command_clean ILIKE '%DROP COLUMN%' THEN           
+             -- Match column definition from DROP COLUMN clause
+            matches := regexp_matches(
+                command_text,
+                'ALTER\s+TABLE\s+(?:"?(\w+)"?\.)?"?(\w+)"?\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?("?[\w\d_]+"?)',
+                'i'
+            );
 
-            -- Extract schema and table names
-            schema_name := (string_to_array(command_parts[3],'.'))[1];
-            table_name_ := (string_to_array(command_parts[3],'.'))[2];
-            column_name := TRIM(TRIM(command_parts[6],';'),'"');
-            
-            RAISE NOTICE 'Schema: %, Table: %, Column dropped: %',
-                schema_name,  -- Schema name (before the table name)
-                table_name_,   -- Table name (after ALTER TABLE)
-                column_name;  -- Column name (after DROP COLUMN)
+            IF matches IS NOT NULL THEN
+                schema_name := trim(both '"' FROM COALESCE(matches[1], current_schema));  -- fallback if no schema explicitly specified
+                table_name_ := trim(both '"' FROM matches[2]);
+                column_name := trim(both '"' FROM matches[3]);
+                new_data_type := trim(matches[4]);
 
-            FOR version IN 
-                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
-            LOOP
-                -- Generate the ALTER TABLE command for the other schemas
-                sql_query := format('ALTER TABLE %I.%I DROP COLUMN IF EXISTS %I', version.name, table_name_, column_name);
-                -- Log the generated query
-                --RAISE NOTICE 'Query: %', sql_query; 
-                -- Execute the generated ALTER TABLE command
-                EXECUTE sql_query;
-            END LOOP;
+                RAISE NOTICE 'Schema: %, Table: %, Column: %, Data Type: %',
+                    schema_name, table_name_, column_name, new_data_type;
+                    
+                FOR version IN 
+                    SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+                LOOP
+                    -- Generate the ALTER TABLE command for the other schemas
+                    sql_query := format('ALTER TABLE %I.%I DROP COLUMN IF EXISTS %I', version.name, table_name_, column_name);
+                    -- Log the generated query
+                    --RAISE NOTICE 'Query: %', sql_query; 
+                    -- Execute the generated ALTER TABLE command
+                    EXECUTE sql_query;
+                END LOOP;
+            ELSE
+                RAISE NOTICE 'No matches found. Command: %', command_text;
+            END IF;
 
         -- If it's an ALTER TABLE RENAME COLUMN, extract the details
-        ELSIF command_text ILIKE '%RENAME COLUMN%' THEN
-            -- Extract table name, old column name, and new column name
-            command_parts := regexp_split_to_array(command_text, '\s+');
+        ELSIF command_clean ILIKE '%RENAME COLUMN%' THEN
+            RAISE NOTICE 'rename';
+            -- Split into individual ALTER statements
+            statements := regexp_split_to_array(command_clean, '\s*;\s*');
 
-            -- Extract schema and table names
-            schema_name := (string_to_array(command_parts[3],'.'))[1];
-            table_name_ := (string_to_array(command_parts[3],'.'))[2];
-            column_name := TRIM(command_parts[6],'"');
-            new_column_name := TRIM(TRIM(command_parts[8],';'),'"');
+            -- Process each ALTER TABLE ... RENAME COLUMN statement
+            FOREACH stmt IN ARRAY statements LOOP
+                -- Skip empty statements
+                CONTINUE WHEN trim(stmt) = '';
+                RAISE NOTICE 'Statement: %', stmt;
+                -- Match: ALTER TABLE schema.table RENAME COLUMN old TO new
+                column_match := regexp_matches(
+                    stmt,
+                    'ALTER\s+TABLE\s+(?:"?([\w\d_]+)"?\.)?"?([\w\d_]+)"?\s+RENAME\s+COLUMN\s+"?([\w\d_]+)"?\s+TO\s+"?([\w\d_]+)"?',
+                    'i'
+                );
 
-            --RAISE NOTICE 'Schema: %, Table: %, Column renamed: % -> %',
-            --    schema_name,  -- Schema name (before the table name)
-            --    table_name_,  -- Table name (after ALTER TABLE)
-            --    column_name,  -- Old column name (after RENAME COLUMN)
-            --    new_column_name;  -- New column name
+                IF column_match IS NOT NULL THEN
+                    schema_name := trim(both '"' FROM COALESCE(column_match[1], current_schema));
+                    table_name_ := trim(both '"' FROM column_match[2]);
+                    column_name := trim(both '"' FROM column_match[3]);
+                    new_column_name := trim(both '"' FROM column_match[4]);
 
-            FOR version IN 
-                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
-            LOOP
-                -- Generate the ALTER TABLE command for the other schemas
-                sql_query := format('ALTER TABLE %I.%I RENAME COLUMN %I TO %I', version.name, table_name_, column_name, new_column_name);
-                -- Log the generated query
-                --RAISE NOTICE 'Query: %', sql_query; 
-                -- Execute the generated ALTER TABLE command
-                EXECUTE sql_query;
+                    RAISE NOTICE 'Schema: %, Table: %, Column renamed: % -> %',
+                        schema_name, table_name_, column_name, new_column_name;
+                    BEGIN 
+                        FOR version IN 
+                            SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+                        LOOP
+                            RAISE NOTICE 'Version: %', version; 
+                            -- Generate the ALTER TABLE command for the other schemas
+                            sql_query := format('ALTER TABLE %I.%I RENAME COLUMN %I TO %I', version.name, table_name_, column_name, new_column_name);
+                            -- Log the generated query
+                            RAISE NOTICE 'Query: %', sql_query; 
+                            -- Execute the generated ALTER TABLE command
+                            EXECUTE sql_query;
+                        END LOOP;
+                    EXCEPTION
+                        WHEN OTHERS THEN
+                            RAISE NOTICE 'Caught some other exception';
+                    END;
+                END IF;
             END LOOP;
 
+
+
         -- If it's an ALTER TABLE SET DATA TYPE, extract the details
-        ELSIF command_text ILIKE '%SET DATA TYPE%' THEN
+        ELSIF command_clean ILIKE '%SET DATA TYPE%' THEN
             -- Extract table name, column name, and new data type
             command_parts := regexp_split_to_array(command_text, '\s+');
 
             -- Extract schema and table names
-            schema_name := (string_to_array(command_parts[3],'.'))[1];
-            table_name_ := (string_to_array(command_parts[3],'.'))[2];
+            schema_name := TRIM((string_to_array(command_parts[3],'.'))[1],'"');
+            table_name_ := TRIM((string_to_array(command_parts[3],'.'))[2],'"');
             column_name := TRIM(command_parts[6],'"');
             new_data_type := TRIM(command_parts[8],';');
 

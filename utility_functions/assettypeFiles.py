@@ -869,6 +869,9 @@ class WriteAssettypeFiles:
         writeMacroClimateIdm(self.dictDB,self.cur,name,self.dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.dictDB),getClimateData(self.cur,self.dictDB,True))
         writeMacroClimateIdc(name,self.dir,loadModellingSettings(self.plugin_dir,self.dictDB))
         
+        writeMacroSFIdm(self.dictDB,self.cur,self.dir+'\\'+name)
+        writeMacroSFIdc(self.dictDB,self.cur,self.dir+'\\'+name)
+        
     def createMacroDir(self,dir,name):
         """ makes a new folder for the assettype macro if it does not exists"""
         createDir(dir,name)
@@ -1010,6 +1013,7 @@ class WriteAssettypeFiles:
  (:PAR :N X :V {}))  """.format(name_const,var_value)
         data+="""\n((MACRO-OBJECT :N "Climate-macro" :T ICE-MACRO :ETM 3857526820 :STM 3857526845))"""
         data+="""\n((MACRO-OBJECT :N "Sensor-macro" :T ICE-MACRO :ETM 3857526820 :STM 3857526845))"""
+        data+="""\n((MACRO-OBJECT :N "sf-macro" :T ICE-MACRO :ETM 3857526820 :STM 3857526845))"""
         data+="""\n(CONNECTIONS"""
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
@@ -1030,6 +1034,7 @@ class WriteAssettypeFiles:
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((352 348)) :R (203.5 126.5) :ICON "sys:eo.ids" :SLOT ("{}") :NAME "{}" :DATA MACRO-OBJECT)
 (EQUATION-FRAME :AT ((116 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Sensor-macro") :NAME "Sensor-macro" :DATA MACRO-OBJECT) 
+(EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT)
 (TEXT-OBJECT :VALUE "Results" :AT ((504 4) (565 18)) :STYLE LABEL) 
 (LIST-FIELD :AT ((504 20) (763 100)) :SLOT (:RESULTS) :TEXT-COLOR #S(RGB RED 0 GREEN 0 BLUE 0)) 
 (LABEL-TEXT :VALUE "Project:" :FONT (:SWISS :ARIAL 11 1) :VERTICAL :CENTER :WRAP-P NIL :AT ((12 8) (96 24))) 

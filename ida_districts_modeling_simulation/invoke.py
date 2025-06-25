@@ -72,38 +72,8 @@ class WorkerInvokeFeatures(QRunnable):
             self.signals.progress.emit(self.progress_value)
         writeInvokedOutputs(self.plugin_dir,self.dictDB,invokedOutputs)
         self.signals.progress.emit(100)  
-            
-def loadCustomerParm(dlg,cur,dictDB):
-    sql="""SELECT * FROM "{}".customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
-    cur.execute(sql)
-    table=dlg.tableWidget_parameters
-    for i,parm in enumerate(cur.fetchall()):
-        dlg.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction']}
-        table.insertRow(i)
-        item = QTableWidgetItem(str(parm['id']))
-        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-        table.setItem(i,0,item)
-        table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
-                    
-        comboBox = QComboBox()
-        comboBox.addItems(['<-->','<--','-->'])
-        comboBox.setCurrentText(parm['mapping_direction'])
-        table.setCellWidget(i, 2, comboBox)  
-        
-        table.setItem(i,3,QTableWidgetItem(parm['parm_name']))
-        table.setItem(i,4,QTableWidgetItem(parm['model_name']))
-        table.setItem(i,5,QTableWidgetItem(parm['macro_name']))
-        
-def loadLayerFieldsToList(list,layer_name):
-    layer=QgsProject.instance().mapLayersByName(layer_name)
-    print(layer)
-    if layer:
-        layer=layer[0]
-        attributes=layer.fields()
-        attributes=[str(i.name()) for i in attributes]
-        list.addItems(attributes)
-        
-def setCustParm(dlg,conn,dictDB,plugin_dir):
+         
+def setFeatureParm(dlg,conn,dictDB,plugin_dir):
     """" Save table to DB an close dialog"""
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
@@ -121,25 +91,23 @@ def setCustParm(dlg,conn,dictDB,plugin_dir):
         for key_loaded in dlg.loadedMappingParms:
             if key_loaded not in mappingParms: 
                 print('removed sensor')
-                sql+="""DELETE FROM "{}".customer_model_parms WHERE id={};""".format(dictDB['versionName'],key_loaded)
+                sql+="""DELETE FROM "{}".model_parms WHERE id={};""".format(dictDB['versionName'],key_loaded)
         
         #added
         for key_table in mappingParms:
             if key_table not in dlg.loadedMappingParms: 
                 print('added parm')
-                sql+="""INSERT INTO "{}".customer_model_parms (id,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},'{}','{}','{}','{}','{}');\n""".format(
-                    dictDB['versionName'],key_table,mappingParms[key_table]['mapping_expression'],mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'])               
+                sql+="""INSERT INTO "{}".model_parms (id,type,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},{},'{}','{}','{}','{}','{}');\n""".format(
+                    dictDB['versionName'],key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'])               
             else:   
                 #Check for updated columns
                 for col in ['mapping_expression','parm_name','model_name','macro_name','mapping_direction']:
                     if dlg.loadedMappingParms[key_table][col]!=mappingParms[key_table][col]:
-                        sql+="""UPDATE "{}".customer_model_parms SET {} = '{}' WHERE id = {} ;\n""".format(dictDB['versionName'],col,mappingParms[key_table][col],key_table)   
+                        sql+="""UPDATE "{}".model_parms SET {} = '{}' WHERE id = {} ;\n""".format(dictDB['versionName'],col,mappingParms[key_table][col],key_table)   
         
         if sql:
             print(sql)
             cur.execute(sql)
- 
-        dlg.close()
     
 def setupCustomerVersionForm(cur,dictDB,plugin_dir):  
     """ setup form for customer layer"""
@@ -179,7 +147,7 @@ def setupCustomerVersionForm(cur,dictDB,plugin_dir):
     vlayer.setEditFormConfig(fc)
 
 def addParmTableRow(dlg,cur,dictDB):
-    maxId=max([getMaxIdAcrossSchemas(dictDB,cur,'customer_model_parms')+1]+[int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())])
+    maxId=max([getMaxIdAcrossSchemas(dictDB,cur,'model_parms')+1]+[int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())])
     dlg.tableWidget_parameters.insertRow(0)
         
     item = QTableWidgetItem(str(maxId))
@@ -188,7 +156,7 @@ def addParmTableRow(dlg,cur,dictDB):
     dlg.tableWidget_parameters.setItem(0 , 1, QTableWidgetItem(''))
     comboBox = QComboBox()
     comboBox.addItems(['<-->','<--','-->'])
-    comboBox.setCurrentText('<-->')
+    comboBox.setCurrentText('-->')
     dlg.tableWidget_parameters.setCellWidget(0, 2, comboBox)  
     dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))
     dlg.tableWidget_parameters.setItem(0 , 4, QTableWidgetItem(''))        
@@ -287,54 +255,6 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
                     internal_loads_file=internal_loads_file.replace('/','\\').replace('\\','\\\\')
                     print(internal_loads_file)
                     
-                #get model parameter
-                sql="""SELECT * FROM "{}".customer_model_parms ORDER BY id;""".format(dictDB['versionName'])
-                print(sql)
-                cur.execute(sql)
-                parms=cur.fetchall()
-                print(parms)
-                sql="""SELECT * FROM "{}".customers WHERE id={};""".format(dictDB['versionName'],id)
-                print(sql)
-                cur.execute(sql)
-                fields=cur.fetchone()
-                print(fields)
-                
-                for parm in parms:
-                    mapping_expression=parm['mapping_expression']
-                    for field in fields:
-                        if '|'+field+'|'=='|dhw_id|' and mapping_expression=='|dhw_id|':
-                            if not dhw_file:
-                                if parallize:
-                                    signals.error.emit("No DHW file selected for {} {}!".format(type.capitalize(),id))
-                                else:
-                                    iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
-                                return False
-                            mapping_expression=dhw_file
-                        elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
-                            if not internal_loads_file:
-                                if parallize:
-                                    if signals:
-                                        signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
-                                else:
-                                    iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
-                                return False
-                            mapping_expression=internal_loads_file
-                        else:
-                            mapping_expression=mapping_expression.replace('|'+field+'|',str(fields[field]))
-                    try:
-                        mapping_expression=eval(mapping_expression)
-                    except:
-                        pass
-                    print('++++++++'+parm['model_name'])
-                    if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
-                        print(parm['model_name'])
-                        try:
-                            replaceDict[parm['macro_name']][parm['model_name']][parm['parm_name']]= mapping_expression
-                        except:
-                            try:
-                                replaceDict[parm['macro_name']].update({parm['model_name']:{parm['parm_name']: mapping_expression}})
-                            except:
-                                replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
             elif type=='energy_plant':
                 sql="""WITH sub AS(
     WITH sub AS(
@@ -389,6 +309,58 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         'LCASING':field_data['lcasting'],'LAMBDA':field_data['lambda'],'RHOSURFLAY':field_data['rhosurface'],'CPSURFLAY':field_data['cpsurface'],
                         'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
                         'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
+            print(replaceDict)
+            
+            #get model parameter
+            sql="""SELECT * FROM "{}".model_parms WHERE type = {} ORDER BY id;""".format(dictDB['versionName'],1 if type=='customer' else 2)
+            print(sql)
+            cur.execute(sql)
+            parms=cur.fetchall()
+            print(parms)
+            sql="""SELECT * FROM "{}".{}s WHERE id={};""".format(dictDB['versionName'],type,id)
+            print(sql)
+            cur.execute(sql)
+            fields=cur.fetchone()
+            print(fields)
+            
+            for parm in parms:
+                mapping_expression=parm['mapping_expression']
+                for field in fields:
+                    if '|'+field+'|'=='|dhw_id|' and mapping_expression=='|dhw_id|':
+                        if not dhw_file:
+                            if parallize:
+                                signals.error.emit("No DHW file selected for {} {}!".format(type.capitalize(),id))
+                            else:
+                                iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
+                            return False
+                        mapping_expression=dhw_file
+                    elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
+                        if not internal_loads_file:
+                            if parallize:
+                                if signals:
+                                    signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
+                            else:
+                                iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
+                            return False
+                        mapping_expression=internal_loads_file
+                    else:
+                        mapping_expression=mapping_expression.replace('|'+field+'|',str(fields[field]))
+                print(mapping_expression)
+                try:
+                    mapping_expression=eval(mapping_expression)
+                except:
+                    print('Failed eval!')
+                print('++++++++'+parm['model_name'])
+                if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
+                    print(parm['model_name'])
+                    try:
+                        replaceDict[parm['macro_name']][parm['model_name']][parm['parm_name']]= mapping_expression
+                    except:
+                        try:
+                            replaceDict[parm['macro_name']].update({parm['model_name']:{parm['parm_name']: mapping_expression}})
+                        except:
+                            replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
+            
             print(replaceDict)
             
             CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
