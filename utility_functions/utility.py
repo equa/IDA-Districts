@@ -219,14 +219,12 @@ def checkStringSize(str,limit):
     else:
         return False
         
-def getAssettypeNameById(type_id):
+def getTemplateNameById(type_id):
     typeName=""
     if type_id==1:
-        typeName="customer_assettypes"
+        typeName="customer_templates"
     elif type_id==2:
-        typeName="energy_plant_assettypes"
-    elif type_id==3:
-        typeName="device_assettypes"
+        typeName="energy_plant_templates"
     return typeName
 
 def getTypeNameById(type_id):
@@ -235,8 +233,6 @@ def getTypeNameById(type_id):
         typeName="customers"
     elif type_id==2:
         typeName="energy_plants"
-    elif type_id==3:
-        typeName="devices"
     return typeName
     
 def getTypeIdByName(type_name):
@@ -244,8 +240,6 @@ def getTypeIdByName(type_name):
         type_id='1'
     elif type_name=='energy_plant' or type_name=='Energy plant' or type_name=='Energy_plant':
         type_id='2'
-    elif type_name=='device' or type_name=='Device':
-        type_id='3'
     else:
         type_id='4'
     return type_id
@@ -269,8 +263,6 @@ def getMacroTypeName(type):
     elif type==2:
         type_name='Energy_plant'
     elif type==3:
-        type_name='Device'
-    elif type==4:
         type_name='Supervisory_control'
     return type_name
     

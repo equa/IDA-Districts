@@ -15,16 +15,16 @@ conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 print(cur)
 
-assettype_idm=plugin_dir+"ida_districts_data_center\\test21\\customer_assettypes\\1_1_Heating 1 Supply & 1 Return.idm"
-assettype_idc=plugin_dir+"ida_districts_data_center\\test21\\customer_assettypes\\1_1_Heating 1 Supply & 1 Return.idc"
+template_idm=plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idm"
+template_idc=plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idc"
 
-components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(assettype_idm)))
-components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(assettype_idc)))
+components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(template_idm)))
+components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(template_idc)))
 
 changedValues={}
 changedValues[1]={'p': {'old': '5000','new': False},'m':{'old': False,'new':'45'},'T':'60','ctrl':True}
 print(changedValues)
-connsValues=getConnsValuesByAssettype('customer',1,1,cur,dictDB)
+connsValues=getConnsValuesByTemplate('customer',1,1,cur,dictDB)
 #print(connsValues)
 
 def updatePMT2CompBoundaries(comp,pmt2_update_dict):
@@ -150,6 +150,6 @@ if [True for connValues in connsValues if connValues['conn_id'] in changedValues
         pass
         #print(i)
                 
-    writePropertyListIDMToFile(data_idm,plugin_dir+"ida_districts_data_center\\test21\\customer_assettypes\\",plugin_dir+"ida_districts_data_center\\test21\\customer_assettypes\\test.idm")
-    writePropertyListIDCToFile(data_idc,plugin_dir+"ida_districts_data_center\\test21\\customer_assettypes\\",plugin_dir+"ida_districts_data_center\\test21\\customer_assettypes\\test.idc")
+    writePropertyListIDMToFile(data_idm,plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\",plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\test.idm")
+    writePropertyListIDCToFile(data_idc,plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\",plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\test.idc")
     

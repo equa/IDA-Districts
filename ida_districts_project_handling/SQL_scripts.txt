@@ -489,7 +489,7 @@ CREATE OR REPLACE FUNCTION restrict_column_alterations()
 RETURNS event_trigger AS
 $$
 DECLARE
-    restricted_columns text[] := ARRAY['id', 'assetgroup', 'assettype','network','submodel']; -- List of restricted columns
+    restricted_columns text[] := ARRAY['id', 'type', 'template', 'network', 'submodel']; -- List of restricted columns
     col_name text;
     ddl_command text; -- To hold the DDL command text
     schema_name text;
@@ -499,44 +499,37 @@ BEGIN
     -- Get the current query being executed using current_query()
     ddl_command := current_query();
 
-    -- Capture the DDL commands that triggered the event (executed before the command)
-    --RAISE NOTICE 'Captured command: %', ddl_command;
-    
-    -- Extract the schema and table name from the current DDL command (assuming ALTER TABLE statement)
-    -- This pattern is for ALTER TABLE only; further handling is required for different commands
+    -- Only process ALTER TABLE statements
     IF ddl_command ILIKE 'ALTER TABLE%' THEN
-        -- Use regex to capture the schema and table name from the command
-         matches := regexp_matches(ddl_command, 'ALTER TABLE\s+(\S+)\.(\S+)', 'g');
-        
-        -- If a match is found, extract the schema and table names
+        -- Use regex to extract schema and table name
+        matches := regexp_matches(ddl_command, 'ALTER TABLE\s+(\S+)\.(\S+)', 'g');
+
         IF matches IS NOT NULL THEN
             schema_name := matches[1];
             table_name := matches[2];
         END IF;
-        
-        --RAISE NOTICE 'schema name: %',schema_name;
-        
-        -- If schema is 'temp', skip restrictions
+
+        -- Skip restrictions for schema 'temp'
         IF schema_name = 'temp' THEN
-            RETURN; -- Exit the function without applying restrictions
+            RETURN;
         END IF;
-        
-        -- Loop through each restricted column and check if it's part of the ALTER TABLE command
+
+        -- Loop through each restricted column
         FOREACH col_name IN ARRAY restricted_columns LOOP
-            -- Check for ALTER COLUMN operations first
-            IF ddl_command ILIKE '%ALTER COLUMN ' || col_name || '%' OR ddl_command ILIKE '%ALTER COLUMN "' || col_name || '"%' THEN
-                RAISE EXCEPTION 'Altering the column "%" is not allowed', col_name;
+            -- Normalize column reference (quoted or unquoted)
+            IF ddl_command ~* format('ALTER COLUMN\s+"?%s"?\s+(?!SET\s+DEFAULT)', col_name) THEN
+                RAISE EXCEPTION 'Only altering the default value of column "%" is allowed.', col_name;
             END IF;
 
-            -- Specifically check for renaming columns
-            IF ddl_command ILIKE '%RENAME COLUMN ' || col_name || ' TO%' OR ddl_command ILIKE '%RENAME COLUMN "' || col_name || '"%' THEN
-                -- If column rename is detected, raise an exception
-                RAISE EXCEPTION 'Renaming the column "%" is not allowed', col_name;
+            -- Check for RENAME COLUMN operations explicitly
+            IF ddl_command ~* format('RENAME COLUMN\s+"?%s"?\s+TO', col_name) THEN
+                RAISE EXCEPTION 'Renaming the column "%" is not allowed.', col_name;
             END IF;
         END LOOP;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 DROP EVENT TRIGGER IF EXISTS prevent_column_alter;
 

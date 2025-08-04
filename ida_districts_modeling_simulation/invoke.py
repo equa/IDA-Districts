@@ -57,7 +57,7 @@ class WorkerInvokeFeatures(QRunnable):
         
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
         invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
-        sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],self.type)
+        sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],self.type[:-1])
         self.cur.execute(sql)
         
         rows_count=len(self.rows)
@@ -122,7 +122,7 @@ def setupCustomerVersionForm(cur,dictDB,plugin_dir):
     fc.setLayout(QgsEditFormConfig.TabLayout)
     modelParm=getALiasNameCustParm(cur,dictDB)
     
-    attrNamesTabs= [['id','assetgroup','assettype','network'],
+    attrNamesTabs= [['id','template','network'],
                     ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
                     ['dhw_id', 'dhw_scale','internal_load_id','submodel',modelParm],
                     ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
@@ -163,7 +163,7 @@ def addParmTableRow(dlg,cur,dictDB):
     dlg.tableWidget_parameters.setItem(0 , 5, QTableWidgetItem(''))        
         
 def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False,signals=False):
-    """Invoke the selected feature. Copy the files from the assettype templates to ida_districts_modeling_simulation\invoked_"feature"s
+    """Invoke the selected feature. Copy the files from the templates to ida_districts_modeling_simulation\invoked_"feature"s
         If dlg is not given the id is the idx"""    
     print('idx='+str(idx))
     if idx !=-1:
@@ -177,19 +177,18 @@ def invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,type,invoked,parmRun=False,sa
         dir=plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\".format(dictDB['projectName'],dictDB['versionName'],type)
         print(dir)
             
-        sql="""SELECT c.assetgroup, c.assettype, at.assettype_name, at.conn_bundle_type 
-            FROM "{}".{}s c,{}_assettypes at 
-            WHERE c.assetgroup=at.assetgroup AND c.assettype=at.assettype AND c.id={};""".format(dictDB['versionName'],type,type,id)
+        sql="""SELECT f.template, t.template_name, t.conn_bundle_type 
+            FROM "{}".{}s f,{}_templates t 
+            WHERE f.template=t.template AND f.id={};""".format(dictDB['versionName'],type,type,id)
         print(sql)
         cur.execute(sql)
         type_old=""
-        assetgroup_old=""
-        assettype_old=""
+        template_old=""
         for feature in cur.fetchall():
             print(feature)
-            assettype_name=str(feature['assetgroup'])+'_'+str(feature['assettype'])+'_'+str(feature['assettype_name'])
+            template_name=str(feature['template'])+'_'+str(feature['template_name'])
     
-            dir_assettype=getDataCenterDir(plugin_dir).replace('/','\\')+"\\{}\\{}_assettypes".format(dictDB['projectName'],type)            
+            dir_template=getDataCenterDir(plugin_dir).replace('/','\\')+"\\{}\\{}_templates".format(dictDB['projectName'],type)            
             
             #create directory and files in modelling plugin folder
             dir=plugin_dir+'\\network_models'
@@ -299,7 +298,10 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
-                    replaceDict={':FEATURE': {'GHX_MANY': {'X': {':V' : x, ':S': x_source},'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
+                    replaceDict={':FEATURE': {'GHX_MANY': {
+                        #'X': {':V' : x, ':S': x_source},
+                        'X': x,
+                        'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
                         'ZHOLE':field_data['zhole'],'RHOLE':field_data['rhole'],
                         'RB':field_data['rb'],'RPIPEEARTH':field_data['rpipeearth'],'RPIPEGROUT':field_data['rpipegrout'],'RRINGEARTH':field_data['rringearth'],'RGROUTEARTH':field_data['rgroutearth'],'RGROUTGROUT':field_data['rgroutgrout'],
                         'MIR':field_data['mir'],'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
@@ -350,6 +352,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     mapping_expression=eval(mapping_expression)
                 except:
                     print('Failed eval!')
+                    signals.error.emit("Failed to evaluate mapping expression for feature id={}: {}".format(id,mapping_expression))
                 print('++++++++'+parm['model_name'])
                 if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
                     print(parm['model_name'])
@@ -363,7 +366,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             
             print(replaceDict)
             
-            CopyAssettypeFiles(source_dir=dir_assettype,source_name=assettype_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,assetgroup=str(feature['assetgroup']),assettype=str(feature['assettype']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
+            CopyTemplateFiles(source_dir=dir_template,source_name=template_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,template=str(feature['template']),id=id,cur=cur,dictDB=dictDB,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
             f_idc=dir+type.capitalize()+"_"+id+".idc"
             f_idm=dir+type.capitalize()+"_"+id+".idm"
@@ -375,8 +378,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             except:
                 pass
             type_old=type
-            assetgroup_old=feature['assetgroup']
-            assettype_old=feature['assettype']
+            template_old=feature['template']
     else:
         iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
 
@@ -393,7 +395,6 @@ class InvokeFeatures():
             print(self.dlg_invokeFeatures.rbtn_customers)  
             
             self.dlg_invokeFeatures.rbtn_customers.toggled.connect(self.updateFeatureLists)
-            self.dlg_invokeFeatures.rbtn_devices.toggled.connect(self.updateFeatureLists)
             self.dlg_invokeFeatures.rbtn_plants.toggled.connect(self.updateFeatureLists)   
             
             self.dlg_invokeFeatures.btn_invokeOne.clicked.connect(self.invokeSelectedFeatures)
@@ -414,13 +415,11 @@ class InvokeFeatures():
         self.startInvokeFeaturesWorker(rows)
         
     def updateFeatureLists(self,s):
-        """Update the list of customers, devices or plants based on the radio button """
-        print('Update customers/devices/plants list')
+        """Update the list of customers or plants based on the radio button """
+        print('Update customers/plants list')
         print(s)
         if self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_customers:
             self.type='customer'
-        elif self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_devices:
-            self.type='device'
         elif self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_plants:
             self.type='energy_plant'
         sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{}s;'.format(self.dictDB['versionName'],self.type)
@@ -557,20 +556,20 @@ class InvokeFeatures():
         self.worker_invokeFeature.signals.progress.connect(self.dlg_invokeFeatures.update_progress)      
 
                
-class CopyAssettypeFiles:
+class CopyTemplateFiles:
     """ Copy the files and rename it"""
-    def __init__(self,source_dir='',source_name='',target_dir='',target_name='',update_sensors=False,type='',assetgroup='',assettype='',id='',cur='',dictDB='',replaceDict='',parmRun='',update_sf=False):
-        print('++++++++++++++++++++++++++CopyAssettypeFiles++++++++++++++')
+    def __init__(self,source_dir='',source_name='',target_dir='',target_name='',update_sensors=False,type='',template='',id='',cur='',dictDB='',replaceDict='',parmRun='',update_sf=False):
+        print('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
         print(parmRun)
         self.dictDB=dictDB
         type_name=type
         if update_sensors:
             type=getTypeIdByName(type)
             sql="""SELECT s.sensor_id, s_ids.feature_id 
-        FROM "{}".sensor_source s, "{}".source_assetgroups s_ag, "{}".source_assettype s_at, "{}".source_ids s_ids
-        WHERE s.sensor_id=s_ag.source_id AND s.sensor_id=s_at.source_id AND s_ag.assetgroup={} AND s_at.assettype={} AND s.measure=5 AND s.type={} AND
-            s.sensor_id=s_ids.source_id AND s_at.active=true AND s_ag.active=true AND s_ids.active=false AND s_ids.feature_id={};""".format(
-                self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],assetgroup,assettype,type,str(id))
+        FROM "{}".sensor_source s, "{}".source_template s_t, "{}".source_ids s_ids
+        WHERE s.sensor_id=s_t.source_id AND s_t.template={} AND s.measure=5 AND s.type={} AND
+            s.sensor_id=s_ids.source_id AND s_t.active=true AND s_ids.active=false AND s_ids.feature_id={};""".format(
+                self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],template,type,str(id))
             print(sql)
             cur.execute(sql)
             remove_sensor_source_ids=cur.fetchall()

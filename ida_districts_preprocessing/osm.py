@@ -18,11 +18,10 @@ class WorkerOSMBuildingsImport(QRunnable):
         self.cur=""
         self.plugin_dir=kwargs['plugin_dir']
         self.conn = dbConnect(self.dictDB,True)
-        self.assetgroup="4"
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)        
 
-            configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+            configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
             self.srid=configProject['srid']
             print(self.srid)
                 
@@ -47,7 +46,7 @@ class WorkerOSMBuildingsImport(QRunnable):
                     self.cur.execute(sql)
                     
                     #insert customers
-                    sql='INSERT INTO "'+self.dictDB['versionName']+"""".customers(assetgroup,assettype,geom) VALUES (1,1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"
+                    sql='INSERT INTO "'+self.dictDB['versionName']+"""".customers(template,geom) VALUES (1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"
                     print(sql)
                     self.cur.execute(sql)  
                 except Exception as e:
@@ -116,7 +115,7 @@ class WorkerOSMStreetsImport(QRunnable):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)        
 
-            configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+            configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
             self.srid=configProject['srid']
             print(self.srid)
                 

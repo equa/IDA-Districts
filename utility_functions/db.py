@@ -140,49 +140,49 @@ def streetsCount(cur,dictDB):
 def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     sql="""SELECT f_dec.comp_name
     FROM "{}".{}s f, "{}".feature_decoupling f_dec
-    WHERE f.id={} AND f.assettype=f_dec.assettype AND f.assetgroup=f_dec.assetgroup AND f_dec.type='{}';""".format(dictDB['versionName'],feature['feature'],dictDB['versionName'],feature['id'],feature['feature'])
+    WHERE f.id={} AND f.template=f_dec.template AND f_dec.type='{}';""".format(dictDB['versionName'],feature['feature'],dictDB['versionName'],feature['id'],feature['feature'])
     print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
     
-def getDecoupledFeatureCompPerAssettype(dictDB,cur,assettype,assetgroup):
+def getDecoupledFeatureCompPerTemplate(dictDB,cur,template):
     sql="""SELECT f_dec.comp_name
     FROM "{}".feature_decoupling f_dec
-    WHERE {}=f_dec.assettype AND {}=f_dec.assetgroup AND f_dec.type='customer';""".format(dictDB['versionName'],assettype,assetgroup)
+    WHERE {}=f_dec.template AND f_dec.type='customer';""".format(dictDB['versionName'],template)
     print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
 
-def getUsedDecoupledFeatureAssettypes(usedFeatureAssettypes,cur,dictDB,submodel,cosims):
-    assettypes=[]
+def getUsedDecoupledFeatureTemplates(usedFeatureTemplates,cur,dictDB,submodel,cosims):
+    templates=[]
     for cosim in cosims:
-        sql="""(SELECT 'customer' AS feature,f.assettype, f.assetgroup, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
+        sql="""(SELECT 'customer' AS feature,f.template, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
     FROM "{}".customers f, "{}".lines l,"{}".submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
-    GROUP BY feature,f.assettype, f.assetgroup, network_side)
+    GROUP BY feature,f.template, network_side)
 UNION 
-(SELECT 'energy_plant' AS feature,f.assettype, f.assetgroup, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
+(SELECT 'energy_plant' AS feature,f.template, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
     FROM "{}".energy_plants f, "{}".lines l,"{}".submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
-    GROUP BY feature,f.assettype, f.assetgroup, network_side)
-ORDER BY feature,assetgroup,assettype;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
+    GROUP BY feature,f.template, network_side)
+ORDER BY feature,template;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
             submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim)
         print(sql)
         cur.execute(sql)
-        decoupled_assettypes=[{'feature': i['feature'], 'assetgroup': i['assetgroup'], 'assettype': i['assettype'], 'assettype_name':j['assettype_name'], 'network_side': i['network_side']} 
-            for i in cur.fetchall() for j in usedFeatureAssettypes if i['feature']==j['feature'] and i['assetgroup']==j['assetgroup'] and i['assettype']==j['assettype']]
-        assettypes.extend([at for at in decoupled_assettypes if at not in assettypes])
-    print(assettypes)
-    return assettypes
+        decoupled_templates=[{'feature': i['feature'], 'template': i['template'], 'template_name':j['template_name'], 'network_side': i['network_side']} 
+            for i in cur.fetchall() for j in usedFeatureTemplates if i['feature']==j['feature'] and i['template']==j['template']]
+        templates.extend([at for at in decoupled_templates if at not in templates])
+    print(templates)
+    return templates
     
 def getFeatureDecIds(dictDB,cur,submodel,cosims):
     fids=[]
     for cosim in cosims:
-        sql="""(SELECT 'customer' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
+        sql="""(SELECT 'customer' AS feature, f.template, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
     FROM "{}".customers f, "{}".customer_connections f_conns, "{}".lines l, "{}".submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.cid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 UNION 
-(SELECT 'energy_plant' AS feature, f.assettype, f.assetgroup, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
+(SELECT 'energy_plant' AS feature, f.template, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
     FROM "{}".energy_plants f, "{}".energy_plant_connections f_conns, "{}".lines l, "{}".submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.epid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 ORDER BY feature,id;""".format(submodel,dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],cosim,submodel,submodel,cosim,
@@ -212,10 +212,8 @@ def getUsedNetworks(cur,dictDB):
     SELECT unnest(network) AS network FROM "{}".customers GROUP BY network
     UNION
     SELECT unnest(network) AS network FROM "{}".energy_plants GROUP BY network
-    UNION
-    SELECT unnest(network) AS network FROM "{}".devices GROUP BY network
 )
-ORDER BY network;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+ORDER BY network;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
     networks=[str(i['network']) for i in cur.fetchall()]
     return networks
@@ -238,17 +236,17 @@ def getFeatureSubmodels(cur,dictDB,type):
     submodels=[i['submodel'] for i in cur.fetchall()]
     return submodels
 
-def getUsedFeatureAssettypes(cur,dictDB):
-    sql="""(SELECT 'customer' AS feature, f.assetgroup,f.assettype, f_at.assettype_name
-    FROM "{}".customers f,customer_assettypes f_at 
-    WHERE f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype
-    GROUP BY f.assetgroup,f.assettype,f_at.assettype_name)
+def getUsedFeatureTemplates(cur,dictDB):
+    sql="""(SELECT 'customer' AS feature, f.template, f_t.template_name
+    FROM "{}".customers f,customer_templates f_t 
+    WHERE f.template=f_t.template
+    GROUP BY f.template,f_t.template_name)
 UNION
-(SELECT 'energy_plant' AS feature, f.assetgroup,f.assettype,f_at.assettype_name
-    FROM "{}".energy_plants f, energy_plant_assettypes f_at
-     WHERE f.assetgroup=f_at.assetgroup AND f.assettype=f_at.assettype
-    GROUP BY f.assetgroup,f.assettype,f_at.assettype_name)
-ORDER BY feature, assetgroup,assettype;""".format(dictDB['versionName'],dictDB['versionName'])
+(SELECT 'energy_plant' AS feature,f.template,f_t.template_name
+    FROM "{}".energy_plants f, energy_plant_templates f_t
+     WHERE f.template=f_t.template
+    GROUP BY f.template,f_t.template_name)
+ORDER BY feature,template;""".format(dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
     return cur.fetchall()
     
@@ -259,10 +257,8 @@ def getUsedSubmodels(cur,dictDB):
     SELECT submodel FROM "{}".customers GROUP BY submodel
     UNION
     SELECT submodel FROM "{}".energy_plants GROUP BY submodel
-    UNION
-    SELECT submodel FROM "{}".devices GROUP BY submodel
 )
-ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
@@ -272,8 +268,8 @@ def getUsedNetworkSubmodels(cur,dictDB):
     SELECT unnest(submodel) AS submodel FROM "{}".lines GROUP BY submodel
     UNION
     SELECT c.submodel
-        FROM "{}".customers c, customer_assettypes c_at
-        WHERE c_at.assettype=c.assettype and c_at.assetgroup=c.assetgroup AND c_at.conn_bundle_type NOT IN 
+        FROM "{}".customers c, customer_templates c_t
+        WHERE c_t.template=c.template AND c_t.conn_bundle_type NOT IN 
             (SELECT b_t_conns.conn_bundle_type_id
                 FROM connections c, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
                 WHERE b_t_conns.conn_type_id=conn_t_conns.connection_type_id AND conn_t_conns.connection_id=c.id AND c.type IN (3,4,5,6,7,8,9,10)
@@ -281,22 +277,20 @@ def getUsedNetworkSubmodels(cur,dictDB):
         GROUP BY c.submodel,conn_bundle_type
     UNION
     SELECT submodel FROM "{}".energy_plants GROUP BY submodel
-    UNION
-    SELECT submodel FROM "{}".devices GROUP BY submodel
 )
-ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+ORDER BY submodel;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
 
-def getAssettypeNamesFilteredByCustomerIds(cur,dictDB,cids):
-    sql="""SELECT c_at.assetgroup::text ||'_'||c_at.assettype::text||'_'||c_at.assettype_name  AS assettype_name
-    FROM {}.customers c, customer_assettypes c_at
-    WHERE c.id IN ({}) AND c.assetgroup=c_at.assetgroup AND c.assettype=c_at.assettype
-    GROUP BY c_at.assetgroup::text ||'_'||c_at.assettype::text||'_'||c_at.assettype_name;""".format(dictDB['versionName'],','.join([str(i) for i in cids]))
+def getTemplateNamesFilteredByCustomerIds(cur,dictDB,cids):
+    sql="""SELECT c_t.template::text||'_'||c_t.template_name  AS template_name
+    FROM {}.customers c, customer_templates c_t
+    WHERE c.id IN ({}) AND c.template=c_t.template
+    GROUP BY c_t.template::text||'_'||c_t.template_name;""".format(dictDB['versionName'],','.join([str(i) for i in cids]))
     cur.execute(sql)
-    assettype_names=[str(i['assettype_name']) for i in cur.fetchall()]
-    return assettype_names
+    template_names=[str(i['template_name']) for i in cur.fetchall()]
+    return template_names
 
 def getPlantIds(cur,dictDB):
     sql="""SELECT id FROM {}.energy_plants;""".format(dictDB['versionName'])
@@ -638,15 +632,25 @@ def dbConnectPerName(dictDB,dbName,errorMsg):
             iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
     return conn
     
-def getAssettypeNames(cur,feature):
-    sql="""SELECT assetgroup::text || '_' || assettype::text || '_' || assettype_name AS assettyp_names FROM {}_assettypes ORDER BY assetgroup,assettype;""".format(feature)
+def getTemplateNames(cur,feature,seperator=':'):
+    sql="""SELECT template::text || '{}' || template_name AS template_names FROM {}_templates ORDER BY template;""".format(seperator,feature)
     cur.execute(sql)
-    return [i['assettyp_names'] for i in cur.fetchall()]
+    return [i['template_names'] for i in cur.fetchall()]
     
-def getAssettypeName(cur,assettype_name,assettype_id):
-    sql="""SELECT assetgroup::text || '_' || assettype::text || '_' || assettype_name AS assettyp_names FROM {} WHERE assettype={} ORDER BY assetgroup,assettype;""".format(assettype_name,assettype_id)
+def getLineTypeNames(cur):
+    sql="""SELECT type::text || ':' || type_name AS type_names FROM line_types ORDER BY type;"""
     cur.execute(sql)
-    return [i['assettyp_names'] for i in cur.fetchall()]
+    return [i['type_names'] for i in cur.fetchall()] 
+    
+def getPipeBundleNames(cur):
+    sql="""SELECT id::text || ':' ||description AS pipe_bundle_names FROM pipe_bundle_types ORDER BY id; """
+    cur.execute(sql)
+    return [i['pipe_bundle_names'] for i in cur.fetchall()]
+    
+def getTemplateName(cur,template_name,template_id):
+    sql="""SELECT template::text || '_' || template_name AS template_names FROM {} WHERE template={} ORDER BY template;""".format(template_name,template_id)
+    cur.execute(sql)
+    return [i['template_names'] for i in cur.fetchall()]
     
 def loadProjectNames(cur,dictDB):
     """load the project names into comboBox selectProject """
@@ -663,7 +667,7 @@ def loadProjectNames(cur,dictDB):
             cur.execute("""SELECT EXISTS (
                            SELECT * FROM information_schema.tables 
                            WHERE  table_schema = 'public'
-                           AND    table_name   = 'customer_assettypes'
+                           AND    table_name   = 'customer_templates'
                            );""")
             if "True" in str(cur.fetchone()):
                 project_names.append(db['datname'])
@@ -768,25 +772,22 @@ def getPipeBundleTypesDB(cur):
     ORDER BY pipe_bundle_type_id ASC; """
     cur.execute(sql)
     return { bundle['pipe_bundle_type_id']: bundle['pipe'] for bundle in cur.fetchall()}
-
-def getAssetgroupsInfo(feature,cur):
-    sql="""SELECT id,assetgroup,id::text||':'||assetgroup::text AS name FROM public.{}_assetgroups;""".format(feature)
-    cur.execute(sql)
-    return cur.fetchall()   
     
-def getAssettypesInfo(feature,assetgroup_ids,cur):
-    sql="""SELECT at.assettype, at.assettype_name, ag.id AS assetgroup,ag.assetgroup AS assetgroup_name, at.assettype::text||':'||at.assettype_name||'('||ag.assetgroup::text||')' AS name
-    FROM {}_assettypes at, {}_assetgroups ag
-    WHERE at.assetgroup=ag.id AND ag.id IN ({})
-    ORDER BY ag.assetgroup, at.assettype; """.format(feature,feature,','.join(assetgroup_ids))
+def getTemplatesInfo(feature,cur):
+    if feature in ['line','junction']:
+        sql="""SELECT id, type, id::text||':'||type AS name
+    FROM {}_types ORDER BY id; """.format(feature)
+    else:
+        sql="""SELECT template, template_name, template::text||':'||template_name AS name
+    FROM {}_templates ORDER BY template; """.format(feature)
     cur.execute(sql)
     return cur.fetchall()    
     
-def getAssetgroups(type,cur):
-    """ get all assetgroups of type """
-    sql='SELECT id FROM public.{}_assetgroups;'.format(type)
+def getTemplates(type,cur):
+    """ get all templates of type """
+    sql='SELECT template FROM public.{}_templates;'.format(type)
     cur.execute(sql)
-    return [str(i['id']) for i in cur.fetchall()]    
+    return [str(i['template']) for i in cur.fetchall()]    
         
 def getTableIds(cur,version,table,column):
     sql="""SELECT {} FROM "{}".{}""".format(column,version,table)

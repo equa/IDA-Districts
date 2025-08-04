@@ -65,8 +65,8 @@ class SensorSignalsDialog(QMainWindow):
         
         
         #table
-        self.tableWidget_source = QTableWidget(0,11)   
-        self.tableWidget_source.setHorizontalHeaderLabels(['Sensor ID','Type','Assetgroups','Assettypes','ID`s','Connection types','Connections','Measure','Apply function','Test value','Description'])     
+        self.tableWidget_source = QTableWidget(0,10)   
+        self.tableWidget_source.setHorizontalHeaderLabels(['Sensor ID','Type','Templates','ID`s','Connection types','Connections','Measure','Apply function','Test value','Description'])     
         
         #target
         label_target =QLabel("Target")
@@ -74,8 +74,8 @@ class SensorSignalsDialog(QMainWindow):
         
         
         #table
-        self.tableWidget_target = QTableWidget(0,7)   
-        self.tableWidget_target.setHorizontalHeaderLabels(['Sensor ID','Type','Assetgroups','Assettypes','ID`s','Target','Description'])     
+        self.tableWidget_target = QTableWidget(0,6)   
+        self.tableWidget_target.setHorizontalHeaderLabels(['Sensor ID','Type','Templates','ID`s','Target','Description'])     
         
         #buttons     
         layout_buttons = QHBoxLayout()
@@ -751,7 +751,7 @@ class CalibrateCustomers(QMainWindow):
         self.setWindowTitle("Customer model calibration") 
         self.cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)          
         
-        #radio buttons devices/plants
+        #radio buttons 
         layout_rbtn = QHBoxLayout()
         self.rbtn_annualConumtion = QRadioButton('Use annual consumption data')
         self.rbtn_annualConumtion.setChecked(True)
@@ -772,7 +772,7 @@ class CalibrateCustomers(QMainWindow):
         layout_templates.addWidget(self.btn_openTemplate)
         
         self.tableWidget_templates = QTableWidget(0,5)   
-        self.tableWidget_templates.setHorizontalHeaderLabels(["Id","Asset type name","Asset group","Parametric Runs","Used"]) 
+        self.tableWidget_templates.setHorizontalHeaderLabels(["Id","Template name","Asset group","Parametric Runs","Used"]) 
         layout_templates.addWidget(self.tableWidget_templates)
         
         #table select customers
@@ -783,7 +783,7 @@ class CalibrateCustomers(QMainWindow):
         label_selCust_title.setFont(font)
         layout_selectCustomers.addWidget(label_selCust_title)
         self.tableWidget_customer = QTableWidget(0,4)   
-        self.tableWidget_customer.setHorizontalHeaderLabels(["ID","Asset type name","Asset group","Parametric Runs"]) 
+        self.tableWidget_customer.setHorizontalHeaderLabels(["ID","Template name","Asset group","Parametric Runs"]) 
         layout_selectCustomers.addWidget(self.tableWidget_customer)
 
         #Results
@@ -831,7 +831,7 @@ class FeatureModelParmDlg(QMainWindow):
         self.cur=cur
         self.dictDB=dictDB
         
-        #radio buttons devices/plants
+        #radio buttons
         layout_rbtn = QHBoxLayout()
         self.rbtn_customers = QRadioButton('Customers')
         self.rbtn_customers.setChecked(True)
@@ -1009,27 +1009,25 @@ class FeatureDecouplingDlg(QMainWindow):
         self.feature_template.clear()
         
         if self.rbtn_customers.isChecked():
-            sql="""SELECT c_at.assettype,c_at.assettype_name,c_at.assetgroup,c_ag.assetgroup AS assetgroup_name, c_at.assettype_name||'('||c_ag.assetgroup||')' AS list_name
-    FROM customer_assettypes c_at, customer_assetgroups c_ag WHERE c_at.assetgroup=c_ag.id ORDER BY c_at.assettype;"""
+            sql="""SELECT template,template_name FROM customer_templates ORDER BY template;"""
         else:
-            sql="""SELECT ep_at.assettype,ep_at.assettype_name,ep_at.assetgroup,ep_ag.assetgroup AS assetgroup_name, ep_at.assettype_name||'('||ep_ag.assetgroup||')' AS list_name
-    FROM energy_plant_assettypes ep_at, energy_plant_assetgroups ep_ag WHERE ep_at.assetgroup=ep_ag.id ORDER BY ep_at.assettype;"""
+            sql="""SELECT template,template_name FROM energy_plant_templates ORDER BY template;"""
         print(sql)
         self.cur.execute(sql)
-        self.feature_template.addItems([i['list_name'] for i in self.cur.fetchall()])
+        self.feature_template.addItems([i['template_name'] for i in self.cur.fetchall()])
 
     def onClickedTemplate(self,s):
         print(s)
         self.listWidget_featureModels.clear()
         if self.rbtn_customers.isChecked():
             sql="""SELECT f_dec.comp_name
-    FROM customer_assettypes c_at, customer_assetgroups c_ag, "{}".feature_decoupling f_dec
-    WHERE c_at.assetgroup=c_ag.id AND c_at.assettype_name||'('||c_ag.assetgroup||')'='{}' AND f_dec.assetgroup=c_at.assetgroup AND f_dec.assettype=c_at.assettype;
+    FROM customer_templates c_t,  "{}".feature_decoupling f_dec
+    WHERE c_t.template_name='{}' AND f_dec.template=c_t.template AND type='customer';
 """.format(self.dictDB['versionName'],self.feature_template.itemText(s))
         else:
             sql="""SELECT f_dec.comp_name
-    FROM energy_plant_assettypes ep_at, customer_assetgroups ep_ag, "{}".feature_decoupling f_dec
-    WHERE ep_at.assetgroup=ep_ag.id AND ep_at.assettype_name||'('||ep_ag.assetgroup||')'='{}' AND f_dec.assetgroup=ep_at.assetgroup AND f_dec.assettype=ep_at.assettype;
+    FROM energy_plant_templates ep_t, "{}".feature_decoupling f_dec
+    WHERE ep_t.template_name='{}' AND f_dec.template=ep_t.template AND type='energy_plant';
 """.format(self.dictDB['versionName'],self.feature_template.itemText(s))
         print(sql)
         self.cur.execute(sql)
@@ -1041,21 +1039,15 @@ class FeatureDecouplingDlg(QMainWindow):
             type='customer'
         else:
             type='energy_plant'
-        assetgroup=self.feature_template.currentText().split('(')[1][:-1]
-        sql="""SELECT id FROM public.{}_assetgroups WHERE assetgroup='{}';""".format(type,assetgroup)
+
+        sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,template)
         print(sql)
         self.cur.execute(sql)
-        assetgroup_id=self.cur.fetchone()['id']
-        print(assetgroup_id)
-        assettype=self.feature_template.currentText().split('(')[0]
-        sql="""SELECT assettype FROM public.{}_assettypes WHERE assettype_name='{}';""".format(type,assettype)
-        print(sql)
-        self.cur.execute(sql)
-        assettype_id=self.cur.fetchone()['assettype']
-        print(assettype_id)
+        template_id=self.cur.fetchone()['template']
+        print(template_id)
         
-        sql="""DELETE FROM "{}".feature_decoupling WHERE assetgroup ={} AND assettype={};\n""".format(self.dictDB['versionName'],assetgroup_id,assettype_id)
-        sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (assetgroup,assettype,comp_name,type) VALUES ({},{},'{}','{}');""".format(self.dictDB['versionName'],assetgroup_id,assettype_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
+        sql="""DELETE FROM "{}".feature_decoupling WHERE template={};\n""".format(self.dictDB['versionName'],template_id)
+        sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (template,comp_name,type) VALUES ({},'{}','{}');""".format(self.dictDB['versionName'],template_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
 
         try:
             no_submodels=int(self.no_submodels.text())
@@ -1139,7 +1131,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         layout_modeling_btn.addWidget(self.btn_supervisoryContr)
         
         self.btn_calibrateCustomers=QPushButton("Calibrate customer models")
-        layout_modeling_btn.addWidget(self.btn_calibrateCustomers)
+        #layout_modeling_btn.addWidget(self.btn_calibrateCustomers)
         
         
         self.btn_invokeFeatures=QPushButton("Invoke feature models from templates")
@@ -1242,12 +1234,11 @@ class InvokeFeaturesDlg(QMainWindow):
         self.btn_invokeAll=QPushButton("Invoke all features")
         layout_invoke_btn.addWidget(self.btn_invokeAll)
         
-        #radio buttons devices/plants
+        #radio buttons
         layout_rbtn = QHBoxLayout()
         self.rbtn_customers = QRadioButton('Customers')
         self.rbtn_customers.setChecked(True)
         self.rbtn_plants = QRadioButton('Energy plants')
-        self.rbtn_devices = QRadioButton('Devices')  
            
         layout_rbtn.addWidget(self.rbtn_customers)
         layout_rbtn.addWidget(self.rbtn_plants)

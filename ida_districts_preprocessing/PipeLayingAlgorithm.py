@@ -33,6 +33,8 @@ class WorkerPipeLaying(QRunnable):
         self.args=args
         print(args)
         self.iface=kwargs['iface']
+        self.signals=WorkerPipeLayingSignals()
+
                 
         #heating
         #columns
@@ -52,12 +54,22 @@ class WorkerPipeLaying(QRunnable):
         self.heat_demand_min=kwargs['heat_demand_min']
         self.heating_load_min=kwargs['heating_load_min']
         print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        self.heating_lines_assettype=kwargs['heating_assettype_lines'].split(':')[0]
-        self.heating_lines_assetgroup=kwargs['heating_assetgroup_lines'].split(':')[0]
-        self.heating_pipe_bundle=kwargs['pipe_bundle_heating']
-        print(self.heating_lines_assettype)
-        self.heating_customer_assettype=kwargs['heating_assettype_customer']
-        self.heating_customer_assetgroup=kwargs['heating_assetgroup_customer']
+        self.heating_lines_type=kwargs['heating_type_lines'].split(':')
+        if self.heating_lines_type:
+            self.heating_lines_type=self.heating_lines_type[0]
+        else:
+            self.signals.error.emit("No line type selected or available!")
+        self.heating_pipe_bundle=kwargs['pipe_bundle_heating'].split(':')
+        if self.heating_pipe_bundle:
+            self.heating_pipe_bundle=self.heating_pipe_bundle[0]
+        else:
+            self.signals.error.emit("No pipe bundle selected or available!")
+        print(self.heating_lines_type)
+        self.heating_customer_template=kwargs['heating_template_customer'].split(':')
+        if self.heating_customer_template:
+            self.heating_customer_template=self.heating_customer_template[0]
+        else:
+            self.signals.error.emit("No customer template selected or available!")
         self.linearHeatDensity_min=kwargs['linearHeatDensity_min']
         self.check_heating_network_costs=kwargs['check_heating_network_costs']
         self.heat_loss=kwargs['heat_loss']
@@ -80,25 +92,47 @@ class WorkerPipeLaying(QRunnable):
         self.tsup_min=kwargs['tsup_min']
         self.cold_demand_min=kwargs['cold_demand_min']
         self.cooling_load_min=kwargs['cooling_load_min']
-        self.cooling_lines_assettype=kwargs['cooling_assettype_lines'].split(':')[0]
-        self.cooling_lines_assetgroup=kwargs['cooling_assetgroup_lines'].split(':')[0]
-        self.cooling_customer_assettype=kwargs['cooling_assettype_customer']
-        self.cooling_pipe_bundle=kwargs['pipe_bundle_cooling']
-        self.cooling_customer_assetgroup=kwargs['cooling_assetgroup_customer']
+        self.cooling_lines_type=kwargs['cooling_type_lines'].split(':')
+        if self.cooling_lines_type:
+            self.cooling_lines_type=self.cooling_lines_type[0]
+        else:
+            self.signals.error.emit("No line type selected or available!")
+        self.cooling_pipe_bundle=kwargs['pipe_bundle_cooling'].split(':')
+        if self.cooling_pipe_bundle:
+            self.cooling_pipe_bundle=self.cooling_pipe_bundle[0]
+        else:
+            self.signals.error.emit("No pipe bundle selected or available!")
+        print(self.cooling_lines_type)
+        self.cooling_customer_template=kwargs['cooling_template_customer'].split(':')
+        if self.cooling_customer_template:
+            self.cooling_customer_template=self.cooling_customer_template[0]
+        else:
+            self.signals.error.emit("No customer template selected or available!")
+        self.cooling_customer_template=kwargs['cooling_template_customer']
         self.linearColdDensity_min=kwargs['linearColdDensity_min']
         self.check_cooling_network_costs=kwargs['check_cooling_network_costs']
         self.cold_loss=kwargs['cold_loss']
         self.cold_costs=kwargs['cold_costs']
         self.amortization_period_cold=kwargs['amortization_period_cold']
         
-        self.hc_lines_assetgroup=kwargs['hc_assetgroup_lines'].split(':')[0]
-        self.hc_lines_assettype=kwargs['hc_assettype_lines'].split(':')[0]
-        self.hc_customer_assettype=kwargs['hc_assettype_customer']
-        self.hc_customer_assetgroup=kwargs['hc_assetgroup_customer']
-        self.hc_pipe_bundle=kwargs['pipe_bundle_hc']
+        self.hc_lines_type=kwargs['hc_type_lines'].split(':')
+        if self.hc_lines_type:
+            self.hc_lines_type=self.hc_lines_type[0]
+        else:
+            self.signals.error.emit("No line type selected or available!")
+        self.hc_pipe_bundle=kwargs['pipe_bundle_hc'].split(':')
+        if self.hc_pipe_bundle:
+            self.hc_pipe_bundle=self.hc_pipe_bundle[0]
+        else:
+            self.signals.error.emit("No pipe bundle selected or available!")
+        print(self.hc_lines_type)
+        self.hc_customer_template=kwargs['hc_template_customer'].split(':')
+        if self.hc_customer_template:
+            self.hc_customer_template=self.hc_customer_template[0]
+        else:
+            self.signals.error.emit("No customer template selected or available!")
         self.customer_connection_mode=kwargs['customer_connection_mode']
         self.keep_unconnected_customers=kwargs['keep_unconnected_customers']
-        self.signals=WorkerPipeLayingSignals()
         self.is_killed = False
         self.is_paused = False
         self.dictDB=kwargs['dictDB']
@@ -126,7 +160,7 @@ class WorkerPipeLaying(QRunnable):
                 if self.check_cooling_network:
                     connectionModes.append('cooling')
                 print(connectionModes)
-                self.srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
+                self.srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)['srid']
                 self.prepareDB_pipeLaying(self.dictDB['versionName'])
                 for mode in connectionModes:
                     self.prepareDB_pipeLaying_modeTables(self.dictDB['versionName'])
@@ -157,24 +191,24 @@ class WorkerPipeLaying(QRunnable):
     def kill(self):
         self.is_killed = True        
 
-    def updateTempCustomerConnType(self):
-        """ update assettypes of temp.customers"""
-        if not self.heating_customer_assetgroup=='keep type':
-            sql="""UPDATE temp.customers c SET assetgroup=a.assetgroup {} FROM (
-            SELECT {} AS assetgroup {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
-    ) a WHERE a.cid=c.id; """.format(",assettype=a.assettype" if not self.heating_customer_assettype=='keep type' else "",self.heating_customer_assetgroup.split(':')[0],","+self.heating_customer_assettype.split(':')[0]+" AS assettype" if not self.heating_customer_assettype=='keep type' else "")
+    def updateTempCustomerTemplate(self):
+        """ update templates of temp.customers"""
+        if not self.heating_customer_template=='keep type':
+            sql="""UPDATE temp.customers c SET template=a.template {} FROM (
+            SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
+    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.heating_customer_template=='keep type' else "",self.heating_customer_template.split(':')[0],","+self.heating_customer_template.split(':')[0]+" AS template" if not self.heating_customer_template=='keep type' else "")
             print(sql)
             self.cur.execute(sql)
-        if not self.cooling_customer_assetgroup=='keep type':
-            sql="""UPDATE temp.customers c SET assetgroup=a.assetgroup {} FROM (
-            SELECT {} AS assetgroup {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
-    ) a WHERE a.cid=c.id; """.format(",assettype=a.assettype" if not self.cooling_customer_assettype=='keep type' else "",self.cooling_customer_assetgroup.split(':')[0],","+self.cooling_customer_assettype.split(':')[0]+" AS assettype" if not self.cooling_customer_assettype=='keep type' else "")
+        if not self.cooling_customer_template=='keep type':
+            sql="""UPDATE temp.customers c SET template=a.template {} FROM (
+            SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
+    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.cooling_customer_template=='keep type' else "",self.cooling_customer_template.split(':')[0],","+self.cooling_customer_template.split(':')[0]+" AS template" if not self.cooling_customer_template=='keep type' else "")
             print(sql)
             self.cur.execute(sql)
-        if not self.hc_customer_assetgroup=='keep type':
-            sql="""UPDATE temp.customers c SET assetgroup=a.assetgroup {} FROM (
-            SELECT {} AS assetgroup {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
-    ) a WHERE a.cid=c.id; """.format(",assettype=a.assettype" if not self.hc_customer_assettype=='keep type' else "",self.hc_customer_assetgroup.split(':')[0],","+self.hc_customer_assettype.split(':')[0]+" AS assettype" if not self.hc_customer_assettype=='keep type' else "")
+        if not self.hc_customer_template=='keep type':
+            sql="""UPDATE temp.customers c SET template=a.template {} FROM (
+            SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
+    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.hc_customer_template=='keep type' else "",self.hc_customer_template.split(':')[0],","+self.hc_customer_template.split(':')[0]+" AS template" if not self.hc_customer_template=='keep type' else "")
             print(sql)
             self.cur.execute(sql)
     
@@ -202,7 +236,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         self.insertCustomerConnections()
         self.insertPlantConnections(version)
         self.updateJunctionConnections()
-        self.updateTempCustomerConnType()
+        self.updateTempCustomerTemplate()
         self.mergeLines()
         self.updateHeight(version)
         if self.redraw_submodels_polygons:
@@ -231,7 +265,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         if self.cur.fetchone()['exists']==True:
             print('Height layer exists')
             print('Update point layers')
-            for f in ['customers','energy_plants','devices']:
+            for f in ['customers','energy_plants']:
                 #Update customer height
                 sql= """UPDATE temp.{} f set geom=ST_MakePoint(ST_X(geom),ST_Y(geom),a.height) FROM (
     WITH sub AS(
@@ -297,7 +331,7 @@ UPDATE temp.lines l SET geom=sub.geom,
         sql="""UPDATE temp.junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,jid FROM temp.junction_connections GROUP BY jid) jc WHERE jc.jid=id;"""
         #print(sql) 
         self.cur.execute(sql)
-        sql="""UPDATE temp.junctions SET assetgroup=4 WHERE n_connections=3;"""
+        sql="""UPDATE temp.junctions SET type=4 WHERE n_connections=3;"""
         self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):
@@ -333,8 +367,8 @@ UPDATE temp.lines l SET geom=sub.geom,
                 lid2=junction_conn[1]['lid']
                 #print(str(lid1)+";"+str(lid2))
                 #snap line strings, because inaccurancies can occur in the topology
-                sql="""INSERT INTO temp.lines (id,assetgroup,assettype,geom,length,pipe_bundle_type_id,network)
-                        SELECT {},l1.assetgroup,l1.assettype,
+                sql="""INSERT INTO temp.lines (id,type,geom,length,pipe_bundle_type_id,network)
+                        SELECT {},l1.type,
                             ST_LineMerge(St_Union((st_dump(st_split(st_snap(l1.geom,l2.geom,st_distance(l1.geom,l2.geom)*1.001),l2.geom))).geom,l2.geom)) AS geom,
                             ST_Length(ST_LineMerge(St_Union((st_dump(st_split(st_snap(l1.geom,l2.geom,st_distance(l1.geom,l2.geom)*1.001),l2.geom))).geom,l2.geom))),
                             l1.pipe_bundle_type_id,l1.network
@@ -370,7 +404,7 @@ UPDATE temp.lines l SET geom=sub.geom,
         self.cur.execute(sql)
         
     def insertNodes(self,version):
-        sql="""INSERT INTO temp.junctions (geom,assetgroup,network)
+        sql="""INSERT INTO temp.junctions (geom,type,network)
                 SELECT ST_Force3D(v.the_geom),1,{}
                     FROM temp.lines l 
                     INNER JOIN temp.streets_help_vertices_pgr v ON St_DWithIn(v.the_geom,l.geom,{}) 
@@ -395,21 +429,19 @@ DROP TABLE IF EXISTS temp.lines;
 DROP TABLE IF EXISTS temp.lines_cooling;
 DROP TABLE IF EXISTS temp.lines_heating;
 DROP TABLE IF EXISTS temp.customers;
-DROP TABLE IF EXISTS temp.devices;
 DROP TABLE IF EXISTS temp.energy_plants;
 CREATE TABLE temp.customers (LIKE "{}".customers INCLUDING ALL);
-CREATE TABLE temp.devices (LIKE "{}".devices INCLUDING ALL);
 CREATE TABLE temp.energy_plants (LIKE "{}".energy_plants INCLUDING ALL);
 CREATE TABLE temp.junctions (LIKE"{}".junctions INCLUDING ALL);
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING ALL);
 CREATE TABLE temp.lines_heating (LIKE "{}".lines INCLUDING ALL);
-CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(version,version,version,version,version,version,version))
+CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(version,version,version,version,version,version))
         self.cur.execute("""TRUNCATE temp.customers, temp.lines_cooling, temp.lines_heating, temp.lines CASCADE;""")
         self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers; """.format(version))
         self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants; """.format(version))
     
     def prepareDB_pipeLaying_modeTables(self,version):
-        self.cur.execute("""TRUNCATE temp.streets_help, temp.junctions, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.device_connections CASCADE;""")
+        self.cur.execute("""TRUNCATE temp.streets_help, temp.junctions, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections CASCADE;""")
         self.cur.execute("""INSERT INTO temp.streets_help (geom) SELECT geom FROM "{}".streets; """.format(version))
         self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version))
         self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_01;""".format(version))
@@ -537,7 +569,6 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         #reate table network_help-> contains all shortest path customer connections to the energy plant network (shortet way connections of the plants), which doesn`t depend on heating demand;
         sql="DROP TABLE IF EXISTS temp.network_help;"
         self.cur.execute(sql)    
-        #print(sql)  
             
         sql="""CREATE TABLE temp.network_help
                 (
@@ -596,11 +627,9 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         sid_count=0
         isid_first=0
         if mode=='heating':
-            assettype= self.heating_lines_assettype
-            assetgroup= self.heating_lines_assetgroup
+            type= self.heating_lines_type
         if mode=='cooling':
-            assettype= self.cooling_lines_assettype
-            assetgroup= self.cooling_lines_assetgroup
+            type= self.cooling_lines_type
             
         for plant in plants:
             sid=plant['v_ep']
@@ -617,10 +646,10 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     					false
                     			       )
                     )
-                    INSERT INTO temp.lines_{} (id,assetgroup,assettype,geom,length)
-                    	SELECT st.id,{},{},ST_Force3D(st.geom),St_Length(st.geom)
-                    		FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,assetgroup,assettype,mode)
-                #print(sql) 
+                    INSERT INTO temp.lines_{} (id,type,geom,length)
+                    	SELECT st.id,{},ST_Force3D(st.geom),St_Length(st.geom)
+                    		FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode)
+                print(sql) 
                 self.cur.execute(sql)   
         
     def connectCustomersNetwork(self,version,mode,connectionModes):
@@ -642,8 +671,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 energyConstr="c."+self.linearHeatDensity_min_col
                 energyConstrGroupBy=", c."+self.linearHeatDensity_min_col
                 linearEnergyDensityMin=float(self.linearHeatDensity_min)
-            assettype= self.heating_lines_assettype
-            assetgroup= self.heating_lines_assetgroup
+            type= self.heating_lines_type
             pipe_bundle_type_id= self.heating_pipe_bundle
         if mode=='cooling': 
             if self.checkbox_linearColdDensity_min:
@@ -651,8 +679,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 energyConstr="c."+self.linearColdDensity_min_col
                 energyConstrGroupBy=", c."+self.linearColdDensity_min_col
                 linearEnergyDensityMin=float(self.linearColdDensity_min)        
-            assettype= self.cooling_lines_assettype
-            assetgroup= self.cooling_lines_assetgroup
+            type= self.cooling_lines_type
             pipe_bundle_type_id= self.cooling_pipe_bundle
             
         customerConnConstr=self.customerConnConstr(mode)
@@ -696,11 +723,11 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         GROUP BY c.id, nh.epid{}
         ORDER BY energydensity DESC
 )
-INSERT INTO temp.lines_{} (id,assetgroup,assettype,geom,length,pipe_bundle_type_id)
-    SELECT nh.lid,{},{},ST_Force3D(nh.geom),St_Length(nh.geom),{}
+INSERT INTO temp.lines_{} (id,type,geom,length,pipe_bundle_type_id)
+    SELECT nh.lid,{},ST_Force3D(nh.geom),St_Length(nh.geom),{}
         FROM sub, temp.network_help nh
         WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
-        GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,assetgroup,assettype,pipe_bundle_type_id,mode,linearEnergyConstr)
+        GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,type,pipe_bundle_type_id,mode,linearEnergyConstr)
                 print(sql) 
                 self.cur.execute(sql) 
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
@@ -806,7 +833,7 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
                     if float(energy)/float(length) >= linearEnergyDensityMin:
                         flag=True
                         print("    flag combined="+str(flag)+" ; cid="+str(cid))
-                        sql="INSERT INTO temp.lines_"+mode+" (id,assetgroup,assettype,geom,length,pipe_bundle_type_id) SELECT nh.lid,"+assetgroup+","+assettype+", ST_Force3D(nh.geom),St_Length(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;";
+                        sql="INSERT INTO temp.lines_"+mode+" (id,type,geom,length,pipe_bundle_type_id) SELECT nh.lid,"+type+", ST_Force3D(nh.geom),St_Length(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;";
                         #print(sql) 
                         self.cur.execute(sql) 
                         customer_count += 1
@@ -814,11 +841,11 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
                         self.signals.progress.emit(self.progress_value)
                         
     def transformNetworksIntoHC(self):
-        sql="""INSERT INTO temp.lines (geom, assetgroup, assettype,pipe_bundle_type_id,length,network)
-    SELECT lh.geom, {}, {} AS assettype,{},lh.length,{} FROM temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL
+        sql="""INSERT INTO temp.lines (geom, type,pipe_bundle_type_id,length,network)
+    SELECT lh.geom, {} ,{},lh.length,{} FROM temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL
     UNION ALL
-    SELECT lh.geom, {}, {} AS assettype,{},lh.length,{} FROM temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom 
+    SELECT lh.geom, {} ,{},lh.length,{} FROM temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom 
     UNION ALL
-    SELECT lc.geom, {}, {} AS assettype,{},lc.length,{} FROM temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL;""".format(self.heating_lines_assetgroup,self.heating_lines_assettype,self.heating_pipe_bundle,self.network,self.hc_lines_assetgroup,self.hc_lines_assettype,self.hc_pipe_bundle,self.network,self.cooling_lines_assetgroup,self.cooling_lines_assettype,self.cooling_pipe_bundle,self.network)
+    SELECT lc.geom, {} ,{},lc.length,{} FROM temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL;""".format(self.heating_lines_type,self.heating_pipe_bundle,self.network,self.hc_lines_type,self.hc_pipe_bundle,self.network,self.cooling_lines_type,self.cooling_pipe_bundle,self.network)
         #print(sql) 
         self.cur.execute(sql)    

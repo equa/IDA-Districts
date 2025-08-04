@@ -328,7 +328,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
         # make new memory layer
         temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
             'LineStringZ' if self.feature=='line' else 'PointZ',
-            loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid'],
+            loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)['srid'],
             'field=time:datetime&' if vars['time']['first_time_var'] else '',
             '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),self.layer_name, "memory")
         temp_layer.startEditing()

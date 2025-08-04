@@ -220,8 +220,8 @@ CREATE TABLE "{}".customer_s_ventilation
                         #load data
                         #get cid`s
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
-    FROM "{}".customers f, bundle_type_conns b_t_conns, customer_assettypes at
-    WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={}
+    FROM "{}".customers f, bundle_type_conns b_t_conns, customer_templates t
+    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
     ORDER BY f.id;""".format(self.dictDB['versionName'],submodel)
                         self.cur.execute(sql)
                         cids=self.cur.fetchall()
@@ -230,7 +230,7 @@ CREATE TABLE "{}".customer_s_ventilation
                         
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
                         print(b_t_connValues_dict)
-                        for id in cids:
+                        for counter,id in enumerate(cids,1):
                             print(id)
                             print(c_conn_outputs)
                             if c_conn_outputs or conn_t_power_names:
@@ -294,6 +294,7 @@ CREATE TABLE "{}".customer_s_ventilation
                                     #print(file_data)
                                     start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                     self.copy_string_iterator_c_heatbalance_sData(file_data,id['id'],start_datetime)
+                            self.signals.progress.emit(int(5+counter / len(cids) *28))
                         #update point geometry
                         print(tables)
                         if tables:
@@ -348,15 +349,15 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         #load data
                         #get epid`s
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
-    FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_assettypes at
-    WHERE b_t_conns.conn_bundle_type_id = at.conn_bundle_type AND f.assettype=at.assettype AND f.assetgroup=at.assetgroup AND submodel={};""".format(self.dictDB['versionName'],submodel)
+    FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_templates t
+    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={};""".format(self.dictDB['versionName'],submodel)
                         print(sql)
                         self.cur.execute(sql)
                         epids=self.cur.fetchall()
                         
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
                         print(b_t_connValues_dict)
-                        for id in epids:
+                        for counter,id in enumerate(epids,1):
                             print(id)
                             if ep_conn_outputs or conn_t_power_names:
                                 connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
@@ -389,6 +390,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                         #print(file_data)
                                         start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
+                            self.signals.progress.emit(int(33+counter / len(epids) *33))
                         #update point geometry
                         print(tables)
                         if tables:
@@ -419,10 +421,10 @@ CREATE TABLE "{}".line_s_{}${}
                         self.cur.execute(sql)
                         lids=self.cur.fetchall()
                         
-                        for output in line_outputs:
+                        for counter_of,output in enumerate(line_outputs,1):
                             print('+++++++++'+output+'++++++++++++')
                             #get connection sequence
-                            for id in lids:
+                            for counter_l,id in enumerate(lids,1):
                                 fname=dir_path+'Line_{}_{}.prn'.format(output,id['id'])
                                 print(fname)
                                 if os.path.exists(fname):
@@ -465,6 +467,7 @@ CREATE TABLE "{}".line_s_{}${}
                                     table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                                     print(table_names)
                                     self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
+                                self.signals.progress.emit(int(66+counter_l / len(lids)*33/len(line_outputs)+counter_of/len(line_outputs)*33))
                             
                             #update line geometry
                             if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']]:

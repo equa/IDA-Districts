@@ -74,7 +74,7 @@ def getBoundaryUpdateData(connsValues,changedValues):
                                             'update_T': changedValues[connValues['conn_id']]['T']}
     return [pmt2_update_dict,add_constants,del_constants,update_constants]
     
-def updateAssettypeBoundaryValues(dlg,plugin_dir,dictDB,cur):
+def updateTemplateBoundaryValues(dlg,plugin_dir,dictDB,cur):
     """ 1) Loop over changed boundary values
         2) Check which templates are affected
         3) Update pmt2 connection template project file"""
@@ -116,27 +116,27 @@ def updateAssettypeBoundaryValues(dlg,plugin_dir,dictDB,cur):
     for feature in ['customer','energy_plant']:
         print('-----------------------------------')
         print(feature)
-        at_dir=plugin_dir+'\\'+dictDB['projectName']+"\\{}_assettypes".format(feature)
-        for assettype_name in getAssettypeNames(cur,feature):
+        at_dir=plugin_dir+'\\'+dictDB['projectName']+"\\{}_templates".format(feature)
+        for template_name in getTemplateNames(cur,feature):
             print('******************************************')
-            print(assettype_name)
-            connsValues=getConnsValuesByAssettype(feature,assettype_name.split('_')[1],assettype_name.split('_')[0],cur,dictDB)
+            print(template_name)
+            connsValues=getConnsValuesByTemplate(feature,template_name.split('_')[1],template_name.split('_')[0],cur,dictDB)
             print('connsValues')
             print(connsValues)
             if [True for connValues in connsValues if connValues['conn_id'] in changedValues]:
-                print('update assettype_name: {}'.format(assettype_name))
+                print('update template_name: {}'.format(template_name))
                 pmt2_update_dict,add_constants,del_constants,update_constants=getBoundaryUpdateData(connsValues,changedValues)
                 print(pmt2_update_dict)
                 print(add_constants)
                 print(del_constants)
                 print(update_constants)
 
-                assettype_idm=at_dir+'\\{}.idm'.format(assettype_name)
-                assettype_idc=at_dir+'\\{}.idc'.format(assettype_name)
-                print(readFileToString(assettype_idm))
-                print(getIDAListComponents(readFileToString(assettype_idm)))
-                components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(assettype_idm)))
-                components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(assettype_idc)))
+                template_idm=at_dir+'\\{}.idm'.format(template_name)
+                template_idc=at_dir+'\\{}.idc'.format(template_name)
+                print(readFileToString(template_idm))
+                print(getIDAListComponents(readFileToString(template_idm)))
+                components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(template_idm)))
+                components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(template_idc)))
                 
                 #idm
                 data_idm=[]
@@ -217,7 +217,7 @@ def updateAssettypeBoundaryValues(dlg,plugin_dir,dictDB,cur):
                     pass
                     #print(i)
                             
-                writePropertyListIDMToFile(data_idm,at_dir,assettype_idm)
-                writePropertyListIDCToFile(data_idc,at_dir,assettype_idc)              
+                writePropertyListIDMToFile(data_idm,at_dir,template_idm)
+                writePropertyListIDCToFile(data_idc,at_dir,template_idc)              
             
     print('----update boundary values finished---')

@@ -91,7 +91,7 @@ def getDBConnectionData(plugin_dir,filename='dbSettings'):
     print(strToDict(dbSettings))
     return strToDict(dbSettings)
 
-def loadProjectConfig(plugin_dir,db_name):
+def loadProjectConfig(plugin_dir,db_name,signals=False):
     """ load project config data from configProject.txt in project handling"""
     config=""
     if db_name:
@@ -103,10 +103,14 @@ def loadProjectConfig(plugin_dir,db_name):
             with open(config_f, "r") as myfile:   
                 for line in myfile:        
                     config+=line
-        print(config)
+        else:
+            print('Failed to load project config!')
+            if signals:
+                signals.error.emit('Failed to load project config!')
         config=strToDict(config)
     else:
         print('No project name')
+    print(config)    
     return config
     
 def writeProjectConfig(plugin_dir,db_name,configProject):
@@ -448,17 +452,17 @@ def getSFList(pList,sf=[]):
     print(sf)                
     return sf
     
-def getUsedAssettypeSFDict(plugin_dir,cur,dictDB):
-    usedFeatureAssettypes=getUsedFeatureAssettypes(cur,dictDB)
-    print(usedFeatureAssettypes)
+def getUsedtemplatesFDict(plugin_dir,cur,dictDB):
+    usedFeaturetemplates=getUsedFeatureTemplates(cur,dictDB)
+    print(usedFeaturetemplates)
 
     sf={}
-    for assettype in usedFeatureAssettypes:
-        #print(assettype)
-        assettype_name="{}_{}_{}".format(assettype['assetgroup'],assettype['assettype'],assettype['assettype_name'])
-        #print(assettype_name)
-        dir=plugin_dir+"""ida_districts_data_center\\{}\\{}_assettypes""".format(dictDB['projectName'],assettype['feature'])
-        filedata=readFileToList(dir+'\\'+assettype_name+'\\'+assettype_name+'.idm')
+    for template in usedFeaturetemplates:
+        #print(template)
+        template_name="{}_{}".format(template['template'],template['template_name'])
+        #print(template_name)
+        dir=plugin_dir+"""ida_districts_data_center\\{}\\{}_templates""".format(dictDB['projectName'],template['feature'])
+        filedata=readFileToList(dir+'\\'+template_name+'\\'+template_name+'.idm')
         
         for line in filedata:
             #print(line)

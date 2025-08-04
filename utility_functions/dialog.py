@@ -5,7 +5,7 @@ from qgis.utils import iface
 from qgis.core import Qgis
 
 def deleteTableRow (dlg):
-    """ Delete selected assettype and refresh table"""
+    """ Delete selected template and refresh table"""
     print('delete row')
     row_index=dlg.tableWidget.currentRow()
     print (row_index)
@@ -22,7 +22,6 @@ class TableDialog(QMainWindow):
         
         self.trace_type=trace
         print('++++++trace: '+str(trace))
-        self.assetgroup=title.split(':')[-1].strip()
         self.type=type
         #table buttons     
         layout_buttons_table = QHBoxLayout()
@@ -103,7 +102,7 @@ class TableDialog(QMainWindow):
             print(item.text())
             self.traceTableValues[row][item.column()][1]=item.text()
         elif self.trace_type:
-            changedValue=self.assetgroup+'_'
+            changedValue=''
             if self.tableWidget.item(row,0):
                 changedValue+=self.tableWidget.item(row,0).text()+'_'
             if self.tableWidget.item(row,1):

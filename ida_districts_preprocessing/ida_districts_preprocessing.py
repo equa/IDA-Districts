@@ -36,7 +36,7 @@ from qgis.PyQt.QtWidgets import QMessageBox, QTableWidgetItem,QAction,QMainWindo
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ida_districts_preprocessing_dialog import ImportGeoDataDlg,PipeSizingDlg, PipeBundleEditor, ImportPointLayer, ImportNetworkTopologyFromLayer, IdaDistrictsPreProcessingDialog, PipeLayingDialog, NetworkTopologyDialog, MapDevicesPlantsDialog
+from .ida_districts_preprocessing_dialog import ImportGeoDataDlg,PipeSizingDlg, PipeBundleEditor, ImportPointLayer, ImportNetworkTopologyFromLayer, IdaDistrictsPreProcessingDialog, PipeLayingDialog, NetworkTopologyDialog, MapPlantsDialog
 from .osm import *
 from .elevation_data import *
 from .pipe_sizing import *
@@ -230,7 +230,7 @@ class IdaDistrictsPreProcessing:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
         
     def importPointLayer(self):
-        print('Import device, plant or customer from point layer')
+        print('Import plant or customer from point layer')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -283,8 +283,6 @@ class IdaDistrictsPreProcessing:
         else:
             if dlg.rbtn_plant.isChecked():
                 layer_name='energy_plants'
-            elif dlg.rbtn_device.isChecked():
-                layer_name='devices'
             else:
                 layer_name='customers'
         return layer_name
@@ -813,15 +811,15 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
         
     
-    def mapDevicesPlants(self):
-        """Map Devices and plants to lines"""
-        print ('Map Devices and plants to lines')
+    def mapPlants(self):
+        """Map plants to lines"""
+        print ('Map plants to lines')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
             if self.dictDB['versionName']:
-                self.window_mapDevicesPlants=MapDevicesPlantsDialog(self.dictDB,self.plugin_dir)
-                self.window_mapDevicesPlants.show()
+                self.window_mapPlants=MapPlantsDialog(self.dictDB,self.plugin_dir)
+                self.window_mapPlants.show()
             else:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
@@ -879,7 +877,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             #self.dlg.btn_decoupling.clicked.connect(self.networkDecoupling)
             self.dlg.btn_generateTopology.clicked.connect(self.generateNetworkTopology)
             self.dlg.btn_pipeSizing.clicked.connect(self.pipeSizing)
-            self.dlg.btn_mapDevicesPlants.clicked.connect(self.mapDevicesPlants)
+            self.dlg.btn_mapPlants.clicked.connect(self.mapPlants)
 
             # show the dialog
             self.dlg.show()

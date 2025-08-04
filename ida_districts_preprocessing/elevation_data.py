@@ -20,11 +20,10 @@ class WorkerImportElevationData(QRunnable):
         self.cur=""
         self.plugin_dir=kwargs['plugin_dir']
         self.conn = dbConnect(self.dictDB,True)
-        self.assetgroup="4"
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)        
 
-            self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+            self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
             self.srid=self.configProject['srid']
             print(self.srid)
                 

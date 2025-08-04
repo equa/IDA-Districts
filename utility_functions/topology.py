@@ -84,10 +84,6 @@ def setSubnetwork(cur,dictDB,redraw_submodels_polygons,srid):
         sql='UPDATE "{}".customers SET submodel = 1;'.format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
-        #devices
-        sql='UPDATE "{}".devices SET submodel = 1;'.format(dictDB['versionName'])
-        print(sql)
-        cur.execute(sql)
         #energy_plants
         sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(dictDB['versionName'])
         print(sql)
@@ -133,9 +129,9 @@ def getConnsValues(bundle,cur):
     return cur.fetchall()
     
 def getConnBundleByFeature(type_id,feature_id,cur,dictDB):
-    sql="""SELECT c_at.conn_bundle_type 
-    FROM "{}".{} f, {} c_at 
-    WHERE f.id={} AND c_at.assetgroup=f.assetgroup AND c_at.assettype=f.assettype;""".format(dictDB['versionName'],type_id+'s' if type(type_id)==str else getTypeNameById(type_id),getAssettypeNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getAssettypeNameById(type_id),feature_id)
+    sql="""SELECT c_t.conn_bundle_type 
+    FROM "{}".{} f, {} c_t 
+    WHERE f.id={} AND c_t.template=f.template;""".format(dictDB['versionName'],type_id+'s' if type(type_id)==str else getTypeNameById(type_id),getTemplateNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getTemplateNameById(type_id),feature_id)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
     
@@ -146,18 +142,18 @@ def getConnValuesByFeature(type_id,feature_id,conn_id,cur,dictDB):
     return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
 
 def getUsedConnBundleTypes(type_name,cur,dictDB):
-    sql="""Select at.conn_bundle_type
-    FROM "{}".{}s f, {}_assettypes at
-    WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype
-    GROUP BY at.conn_bundle_type
-    ORDER BY at.conn_bundle_type;""".format(dictDB['versionName'],type_name,type_name)
+    sql="""Select t.conn_bundle_type
+    FROM "{}".{}s f, {}_templates t
+    WHERE f.template=t.template
+    GROUP BY t.conn_bundle_type
+    ORDER BY t.conn_bundle_type;""".format(dictDB['versionName'],type_name,type_name)
     cur.execute(sql)
     return [i['conn_bundle_type'] for i in cur.fetchall()]
     
 def getUsedConnTypes(type_name,cur,dictDB):
     sql="""Select b_t_conns.conn_type_id
-    FROM "{}".{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
-    WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND b_t_conns.conn_bundle_type_id = at.conn_bundle_type
+    FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns 
+    WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type
     GROUP BY b_t_conns.conn_type_id
     ORDER BY b_t_conns.conn_type_id;""".format(dictDB['versionName'],type_name,type_name)
     cur.execute(sql)
@@ -166,24 +162,24 @@ def getUsedConnTypes(type_name,cur,dictDB):
 def getUsedConnTypeIdents(type_name,cur,dictDB):
     sql="""WITH sub AS(
     Select  b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text as ident
-        FROM "{}".{}s f, {}_assettypes at, bundle_type_conns b_t_conns 
-        WHERE f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND b_t_conns.conn_bundle_type_id = at.conn_bundle_type
+        FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns 
+        WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type
 )
 SELECT ident FROM sub GROUP BY ident;""".format(dictDB['versionName'],type_name,type_name)
     cur.execute(sql)
     return [i['ident'] for i in cur.fetchall()]
     
-def getConnBundleByAssettype(feature,assettype,assetgroup,cur,dictDB):
-    sql="""SELECT c_at.conn_bundle_type 
-    FROM {}_assettypes c_at 
-    WHERE c_at.assetgroup={} AND c_at.assettype={};""".format(feature,assetgroup,assettype)
+def getConnBundleByTemplate(feature,template,cur,dictDB):
+    sql="""SELECT conn_bundle_type 
+    FROM {}_templates 
+    WHERE template={};""".format(feature,template)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
 
 def getLineConnType(cur,dictDB,id):
-    sql="""SELECT at.conn_type
-    FROM "{}".lines l, line_assettypes at
-    WHERE l.assettype=at.assettype AND l.assetgroup=at.assetgroup AND l.id={};""".format(dictDB['versionName'],id)
+    sql="""SELECT t.conn_type
+    FROM "{}".lines l, line_types t
+    WHERE l.assettype=t.assettype AND l.id={};""".format(dictDB['versionName'],id)
     cur.execute(sql)
     return cur.fetchone()['conn_type']
 
@@ -205,38 +201,31 @@ def getConnBundleTypesByConnType(cur,dictDB,conn_type_id):
     cur.execute(sql)
     return cur.fetchall()
         
-def getAssetTypesByConnType(cur,dictDB,conn_type_id):
-    sql="""SELECT 'customer' AS type, at.assetgroup,at.assettype, at.assetgroup::text||'_'||at.assettype::text||'_'||at.assettype_name AS at_name, bt_conns.conn_bundle_type_id 
-    FROM bundle_type_conns bt_conns, customer_assettypes at 
-    WHERE conn_type_id={} AND at.conn_bundle_type=bt_conns.conn_bundle_type_id
+def getTemplatesByConnType(cur,dictDB,conn_type_id):
+    sql="""SELECT 'customer' AS type,t.template, '_'||t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
+    FROM bundle_type_conns bt_conns, customer_templates t 
+    WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id
 UNION
-SELECT 'energy_plant' AS type, at.assetgroup,at.assettype, at.assetgroup::text||'_'||at.assettype::text||'_'||at.assettype_name AS at_name, bt_conns.conn_bundle_type_id 
-    FROM bundle_type_conns bt_conns, energy_plant_assettypes at 
-    WHERE conn_type_id={} AND at.conn_bundle_type=bt_conns.conn_bundle_type_id
-UNION
-SELECT 'device' AS type, at.assetgroup,at.assettype, at.assetgroup::text||'_'||at.assettype::text||'_'||at.assettype_name AS at_name, bt_conns.conn_bundle_type_id 
-    FROM bundle_type_conns bt_conns, device_assettypes at 
-    WHERE conn_type_id={} AND at.conn_bundle_type=bt_conns.conn_bundle_type_id;""".format(conn_type_id,conn_type_id,conn_type_id)
+SELECT 'energy_plant' AS type,t.template, '_'||t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
+    FROM bundle_type_conns bt_conns, energy_plant_templates t 
+    WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id""".format(conn_type_id,conn_type_id)
     print(sql)
     cur.execute(sql)
     return cur.fetchall()
     
-def getAssetTypesByConnBundleType(cur,dictDB,conn_bundle_type_id):
-    sql="""--getAssetTypesByConnType
-SELECT 'customer' AS type, assetgroup,assettype, assetgroup::text||'_'||assettype::text||'_'||assettype_name AS at_name, conn_bundle_type AS conn_bundle_type_id
-    FROM customer_assettypes WHERE conn_bundle_type={}
+def getTemplatesByConnBundleType(cur,dictDB,conn_bundle_type_id):
+    sql="""--getTemplatesByConnType
+SELECT 'customer' AS type,template, '_'||template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
+    FROM customer_templates WHERE conn_bundle_type={}
 UNION
-SELECT 'energy_plant' AS type, assetgroup,assettype, assetgroup::text||'_'||assettype::text||'_'||assettype_name AS at_name, conn_bundle_type AS conn_bundle_type_id
-    FROM energy_plant_assettypes WHERE conn_bundle_type={}
-UNION
-SELECT 'device' AS type, assetgroup,assettype, assetgroup::text||'_'||assettype::text||'_'||assettype_name AS at_name, conn_bundle_type AS conn_bundle_type_id
-    FROM device_assettypes WHERE conn_bundle_type={};""".format(conn_bundle_type_id,conn_bundle_type_id,conn_bundle_type_id)
+SELECT 'energy_plant' AS type,template, '_'||template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
+    FROM energy_plant_templates WHERE conn_bundle_type={}""".format(conn_bundle_type_id,conn_bundle_type_id)
     print(sql)
     cur.execute(sql)
     return cur.fetchall()
     
-def getConnsValuesByAssettype(feature,assettyp,assetgroup,cur,dictDB):
-    return getConnsValues(getConnBundleByAssettype(feature,assettyp,assetgroup,cur,dictDB),cur)
+def getConnsValuesByTemplate(feature,template,cur,dictDB):
+    return getConnsValues(getConnBundleByTemplate(feature,template,cur,dictDB),cur)
     
 def getMeterName(cur,conn_bundle_type,conn_type):
     sql="""SELECT conn_bundle_type_id, sequence

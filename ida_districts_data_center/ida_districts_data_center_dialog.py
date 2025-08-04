@@ -11,7 +11,6 @@ class ConnectionsDialog(QMainWindow):
         super().__init__()
         self.setWindowTitle(title)   
         
-        self.assetgroup=title.split(':')[-1].strip()
         #table buttons     
         layout_buttons_table = QHBoxLayout()
         self.btn_add=QPushButton("Add")
@@ -230,8 +229,6 @@ class DefaultsDialog(QMainWindow):
             #values
             if input['value'][1]==0: 
                 self.input[input['value'][0]] = QComboBox()
-            if input['value'][0]=='assetgroup':
-                self.input['assetgroup'].currentTextChanged.connect(lambda signal: self.setAssettypes(signal,type_name))
             if input['value'][1]==1:
                 self.input[input['value'][0]] = QLineEdit()
             if input['value'][1]==2:
@@ -274,18 +271,6 @@ class DefaultsDialog(QMainWindow):
         widget=QWidget()
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
-        
-    def setAssettypes(self,s,type_name):
-        print('set assettype')
-        print(s)
-        value=self.input['assetgroup'].currentText().split(':')[0]
-        if value=='(no selection)': 
-            self.input['assettype'].clear()
-            self.input['assettype'].addItems(['(no selection)'])
-        else:
-            dropdownItems=getFilteredDropDownItems(self.cur,[type_name+'_assettypes','assettype','assettype_name','assetgroup',value])
-            self.input['assettype'].clear()
-            self.input['assettype'].addItems(['(no selection)']+dropdownItems)
 
 class IDADistrictsDataCenterDialog(QMainWindow):
     def __init__(self):     
@@ -318,7 +303,6 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         self.btn_defaults_lines=QPushButton("Lines")
         self.btn_defaults_customers=QPushButton("Customers")
         self.btn_defaults_plants=QPushButton("Energy Plants")
-        self.btn_defaults_devices=QPushButton("Devices")
         
         layout_defaults=QVBoxLayout()
         layout_defaults.addWidget(label_titel)
@@ -343,7 +327,7 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         self.btn_internal_loads=QPushButton("Internal load profiles")
         self.btn_building_construction_standards=QPushButton("Building construction standards")
         self.btn_building_zone_templates=QPushButton("Building zone templates")
-        self.btn_manageLinesAssetgroups=QPushButton("Lines")
+        self.btn_manageLinesTypes=QPushButton("Lines")
         
         layout_DB=QVBoxLayout()
         layout_DB.addWidget(label_titel)
@@ -351,7 +335,7 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_DB.addWidget(self.btn_pipe_constructions)
         layout_DB.addWidget(self.btn_pipes)
         layout_DB.addWidget(self.btn_pipe_bundle_types)
-        layout_DB.addWidget(self.btn_manageLinesAssetgroups)
+        layout_DB.addWidget(self.btn_manageLinesTypes)
         layout_DB.addWidget(self.btn_dhw_profiles)
         layout_DB.addWidget(self.btn_temp_profiles)
         layout_DB.addWidget(self.btn_internal_loads)
@@ -378,25 +362,23 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         
         #manage templates
         #title
-        label_titel =QLabel('Manage asset types')
+        label_titel =QLabel('Manage templates')
         font=label_titel.font()
         font.setPointSize(15)
         label_titel.setFont(font)
-        #manage assettype buttons
+        #manage template buttons
         layout_manage_btn=QVBoxLayout() 
         
-        self.btn_manageCustomerAssetgroups=QPushButton("Customers")
-        layout_manage_btn.addWidget(self.btn_manageCustomerAssetgroups)
+        self.btn_manageCustomerTemplates=QPushButton("Customers")
+        layout_manage_btn.addWidget(self.btn_manageCustomerTemplates)
         
-        self.btn_manageEnergyPlantAssetgroups=QPushButton("Energy plants")
-        layout_manage_btn.addWidget(self.btn_manageEnergyPlantAssetgroups)
-        
-        self.btn_manageDevicesAssetgroups=QPushButton("Devices")
-        
-        #set manageassettypes together
-        layout_manage_assetgroups=QVBoxLayout()
-        layout_manage_assetgroups.addWidget(label_titel)
-        layout_manage_assetgroups.addLayout(layout_manage_btn)
+        self.btn_manageEnergyPlantTemplates=QPushButton("Energy plants")
+        layout_manage_btn.addWidget(self.btn_manageEnergyPlantTemplates)
+                
+        #set managetemplates together
+        layout_manage_templates=QVBoxLayout()
+        layout_manage_templates.addWidget(label_titel)
+        layout_manage_templates.addLayout(layout_manage_btn)
         
         #manage network
         #title
@@ -432,7 +414,7 @@ class IDADistrictsDataCenterDialog(QMainWindow):
         layout_win.addLayout(layout_defaults)
         layout_win.addLayout(layout_DB)
         layout_win.addLayout(layout_connection_types)
-        layout_win.addLayout(layout_manage_assetgroups)
+        layout_win.addLayout(layout_manage_templates)
         layout_win.addLayout(layout_networks)
         layout_win.addLayout(layout_building_templates)
         layout_win.addStretch()

@@ -6,8 +6,8 @@ from qgis.utils import iface
 
 
 def checkIntersectingFeatures(cur,dictDB):
-    for f1 in ['customer','energy_plant','device','junction']:
-        for f2 in ['customer','energy_plant','device','junction']:
+    for f1 in ['customer','energy_plant','junction']:
+        for f2 in ['customer','energy_plant','junction']:
             sql="""SELECT a.id AS id1, b.id AS id2
     FROM "{}".{}s a
     JOIN "{}".{}s b ON ST_DWithin(a.geom, b.geom, 0.01)

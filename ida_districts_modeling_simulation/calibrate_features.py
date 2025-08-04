@@ -27,7 +27,7 @@ def openResult(dlg,plugin_dir,conn,cur):
             print(file)
             process = Process(target=WorkerOpenParRunAPI(file,plugin_dir,parmRun_name))
             
-            print('finished open assettype')
+            print('finished open template')
     else:
         iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
@@ -40,15 +40,13 @@ def openTemplate(dlg,plugin_dir,conn):
     if row_index!=-1:
         if conn:
             cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor) 
-            assettype=dlg.tableWidget_templates.item(row_index, 0).text()
-            sql="""SELECT id AS assetgroup_id FROM customer_assetgroups WHERE assetgroup='{}';""".format(dlg.tableWidget_templates.item(row_index, 2).text())
-            cur.execute(sql)
-            assetgroup=cur.fetchone()['assetgroup_id']
-            assettype_name=dlg.tableWidget_templates.item(row_index, 1).text()
+            template=dlg.tableWidget_templates.item(row_index, 0).text()
+
+            template_name=dlg.tableWidget_templates.item(row_index, 1).text()
             parmRun_name=dlg.tableWidget_templates.cellWidget(row_index, 3).currentText()
 
-            name=str(assetgroup)+'_'+assettype+'_'+assettype_name
-            dir=getDataCenterDir(plugin_dir).replace('/','\\')+"\\{}\\customer_assettypes\\".format(dictDB['projectName'])
+            name=template+'_'+template_name
+            dir=getDataCenterDir(plugin_dir).replace('/','\\')+"\\{}\\customer_templates\\".format(dictDB['projectName'])
             file=dir+"{}.idm".format(name)
             
             # Open the building with the IDA ICE Python API
@@ -57,7 +55,7 @@ def openTemplate(dlg,plugin_dir,conn):
             #process = Process(target=WorkerOpenParRunAPI(file,plugin_dir,parmRun_name))
             openModelCmd(loadIDADistrictsConfig(plugin_dir)['path_ice'],file)
             
-            print('finished open assettype')
+            print('finished open template')
     else:
         iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
 

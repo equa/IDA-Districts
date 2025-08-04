@@ -26,10 +26,7 @@ def loadPipes(dictDB,cur,dlg):
     for pipe in cur.fetchall():
         name = str(pipe['id'])+':'+pipe['name']
 
-        item = QListWidgetItem(name)
-        item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-        item.setCheckState(QtCore.Qt.Checked)
-        dlg.pipes_list.addItem(item)
+        dlg.pipes_list.append(name)
         dlg.pipes[name]= [pipe['id'],float(pipe['innerpipediameter'])]
 
 def solvePipeSize(z,dp,epsilon,rho,Re,mdot):
@@ -74,6 +71,11 @@ END $$;""".format(i,i) for i in energy_columns+['no_customer']])
     print(sql)
     cur.execute(sql)    
 
+def getPipeDiameter(cur,id):
+    sql="SELECT innerpipediameter FROM pipes WHERE id={};".format(id)
+    cur.execute(sql)
+    return float(cur.fetchone()['innerpipediameter'])
+
 class WorkerPipeSizing(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
@@ -93,99 +95,117 @@ class WorkerPipeSizing(QRunnable):
         self.cp=kwargs['cp']
         self.kin_viscosity=kwargs['kin_viscosity']
         self.ambient=kwargs['ambient']
-        self.pipes=kwargs['pipes']
         self.pipe_bundles=kwargs['pipe_bundles']
            
     @pyqtSlot()
     def run(self):
-        print('***Start Worker pipe sizing***')
-        self.signals.progress.emit(1)
-        energy_columns=[self.dlg.table_sequences.cellWidget(i, 5).currentText() for i in range(self.dlg.table_sequences.rowCount())]
-        if self.dlg.rbtn_customers.isChecked():    
-            setEnergyColLines(self.cur,self.dictDB['versionName'],self.network,energy_columns,self.dlg.combo_main_plants.currentText())
-            self.signals.progress.emit(2)
-            sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l.{}, '.format(i) for i in energy_columns]),self.network)
-        else:
-            sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format(
-                ''.join(['l.{}, '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network)
-
-        print(sql)
-        self.signals.progress.emit(3)
-        self.cur.execute(sql)
-        lines=self.cur.fetchall()
-        sql_lines=""
-        new_pipe_bundles=[]
-        self.signals.progress.emit(4)
-        pipe_boundary_dict={} #{seq: [[col_name,dT,T]]}
-        for i in range(self.dlg.table_sequences.rowCount()):
-            try:
-                pipe_boundary_dict[self.dlg.table_sequences.cellWidget(i,0).currentText()]=pipe_boundary_dict[self.dlg.table_sequences.cellWidget(i,0).currentText()]+[[self.dlg.table_sequences.cellWidget(i,5).currentText(),abs(float(self.dlg.table_sequences.item(i,1).text())-float(self.dlg.table_sequences.item(i,4).text())),float(self.dlg.table_sequences.item(i,1).text())]]
-            except:
-                pipe_boundary_dict[self.dlg.table_sequences.cellWidget(i,0).currentText()]=[[self.dlg.table_sequences.cellWidget(i,5).currentText(),abs(float(self.dlg.table_sequences.item(i,1).text())-float(self.dlg.table_sequences.item(i,4).text())),float(self.dlg.table_sequences.item(i,1).text())]]
-            try:
-                pipe_boundary_dict[self.dlg.table_sequences.cellWidget(i,3).currentText()]=pipe_boundary_dict[self.dlg.table_sequences.cellWidget(i,3).currentText()]+[[self.dlg.table_sequences.cellWidget(i,5).currentText(),abs(float(dlg.table_sequences.item(i,1).text())-float(self.dlg.table_sequences.item(i,4).text())),float(self.dlg.table_sequences.item(i,4).text())]]
-            except:
-                pipe_boundary_dict[self.dlg.table_sequences.cellWidget(i,3).currentText()]=[[self.dlg.table_sequences.cellWidget(i,5).currentText(),abs(float(self.dlg.table_sequences.item(i,1).text())-float(self.dlg.table_sequences.item(i,4).text())),float(self.dlg.table_sequences.item(i,4).text())]]
-        print(pipe_boundary_dict)
-        
-        self.signals.progress.emit(5)        
-        for counter,line in enumerate(lines,1):
-            print('line id: '+str(line['id']))
-            pipe_bundle=[]
-            Re=100000
-            if self.dlg.checkBoxSimultaneity.isChecked():
-                simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
+        try:
+            print('***Start Worker pipe sizing***')
+            self.signals.progress.emit(1)
+            energy_columns=[self.dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(self.dlg.table_circuits.rowCount())]
+            if self.dlg.rbtn_customers.isChecked():    
+                setEnergyColLines(self.cur,self.dictDB['versionName'],self.network,energy_columns,self.dlg.combo_main_plants.currentText())
+                self.signals.progress.emit(2)
+                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l.{}, '.format(i) for i in energy_columns]),self.network)
             else:
-                simulaneity=1
-            print(simulaneity)
-            zGuess = np.array([0.02,0.075,2])
-            Re_old=0
+                sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format(
+                    ''.join(['l.{}, '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network)
 
-            i=1
-            for pipe_boundary in pipe_boundary_dict:
-                print(pipe_boundary)
-                print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
-                mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
-
-                if not self.kin_viscosity:
-                    self.kin_viscosity=sum([1/((0.1*(273.15+i[2])**2-34.335*(273.15+i[2])+2472)*self.rho) for i in pipe_boundary_dict[pipe_boundary]])/len(pipe_boundary_dict[pipe_boundary])
-                    print(self.kin_viscosity)
-                while abs(Re-Re_old)>100:
-                    z = fsolve(lambda zGuess: solvePipeSize(zGuess,self.dp,self.epsilon,self.rho,Re,mdot_pipe),zGuess) #z[0]--> f; z[1]--> di; z[2]--> vel 
-                    Re_old=Re
-                    Re=z[2]*z[1]/self.kin_viscosity
-                    zGuess = np.array([z[0],z[1],z[2]])
-                    
-                print(z)
-                #take next bigger inner pipe diamater of DB (pipes)
-                pipe=[pipe for pipe in self.pipes if  pipe[1] > z[1]]
-                if pipe:
-                    pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
+            print(sql)
+            self.signals.progress.emit(3)
+            self.cur.execute(sql)
+            lines=self.cur.fetchall()
+            sql_lines=""
+            new_pipe_bundles=[]
+            self.signals.progress.emit(4)
+            pipe_boundary_dict={} #{seq: [[col_name,dT,T]]}
+            seq_pipes_dict={}
+            for i in range(self.dlg.table_circuits.rowCount()):
+                try:
+                    pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,0).currentText()]=pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,0).currentText()]+[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,1).text())]]
+                except:
+                    pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,0).currentText()]=[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,1).text())]]
+                try:
+                    pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]+[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
+                except:
+                    pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
+            pipe_boundary_dict=dict(sorted(pipe_boundary_dict.items()))
+            print(pipe_boundary_dict)
+            
+            for i in range(self.dlg.table_sequences.rowCount()):
+                #get checked pipes from list
+                dropDown=self.dlg.table_sequences.cellWidget(i,1)
+                pipes=[int(dropDown.itemText(i).split(':')[0].split('(')[0]) for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items' and dropDown.itemChecked(i)]
+                print(pipes)
+                seq_pipes_dict[int(self.dlg.table_sequences.item(i,0).text())]=[[id,getPipeDiameter(self.cur,id)] for id in pipes]
+            print(seq_pipes_dict)
+            seq_pipes_dict = {
+                k: sorted(v, key=lambda x: x[1])
+                for k, v in seq_pipes_dict.items()
+            }
+            print(seq_pipes_dict)
+            
+            self.signals.progress.emit(5)        
+            for counter,line in enumerate(lines,1):
+                print('line id: '+str(line['id']))
+                pipe_bundle=[]
+                Re=100000
+                if self.dlg.checkBoxSimultaneity.isChecked():
+                    simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
                 else:
-                    #iface.messageBar().pushMessage("Error", "No proper pipe available for inner diameter: "+str(z[1]), level=Qgis.Critical)
-                    return False
-                i+=1
-            print(pipe_bundle)  
+                    simulaneity=1
+                print(simulaneity)
+                zGuess = np.array([0.02,0.075,2])
+
+                i=1
+                for pipe_boundary in pipe_boundary_dict:
+                    print(pipe_boundary)
+                    print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
+                    mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
+                    print(mdot_pipe)
+
+                    if not self.kin_viscosity:
+                        self.kin_viscosity=sum([1/((0.1*(273.15+i[2])**2-34.335*(273.15+i[2])+2472)*self.rho) for i in pipe_boundary_dict[pipe_boundary]])/len(pipe_boundary_dict[pipe_boundary])
+                        print(self.kin_viscosity)
+                    Re_old=0
+                    while abs(Re-Re_old)>100:
+                        z = fsolve(lambda zGuess: solvePipeSize(zGuess,self.dp,self.epsilon,self.rho,Re,mdot_pipe),zGuess) #z[0]--> f; z[1]--> di; z[2]--> vel 
+                        Re_old=Re
+                        Re=z[2]*z[1]/self.kin_viscosity
+                        zGuess = np.array([z[0],z[1],z[2]])
+                        
+                    print(z)
+                    #take next bigger inner pipe diamater of DB (pipes)
+                    pipe=[pipe for pipe in seq_pipes_dict[int(pipe_boundary)] if  pipe[1] > z[1]]
+                    if pipe:
+                        pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
+                    else:
+                        #iface.messageBar().pushMessage("Error", "No proper pipe available for inner diameter: "+str(z[1]), level=Qgis.Critical)
+                        return False
+                    i+=1
+                print(pipe_bundle)  
+                
+                #check if pipe bundle type already exists in DB otherwise add to DB
+                bundle_type_id,new_pipe_bundles=addMissingPipeBundleType(self.cur,self.pipe_bundles,pipe_bundle,new_pipe_bundles)
+                
+                #assign selected pipe bundle type to line
+                sql_lines+="UPDATE temp.lines SET pipe_bundle_type_id = {} WHERE id={};\n".format(bundle_type_id, line['id'])
+                #if counter % 25 == 0:
+                self.signals.progress.emit(int(5+counter/len(lines)*85))
+                
+            self.signals.progress.emit(90)
+            print(sql_lines)
+            if sql_lines:
+                self.cur.execute(sql_lines)
             
-            #check if pipe bundle type already exists in DB otherwise add to DB
-            bundle_type_id,new_pipe_bundles=addMissingPipeBundleType(self.cur,self.pipe_bundles,pipe_bundle,new_pipe_bundles)
+            #show table temp.lines
+            self.signals.progress.emit(95)
+            showLinesTempTable('temp',self.dictDB,self.plugin_dir)
             
-            #assign selected pipe bundle type to line
-            sql_lines+="UPDATE temp.lines SET pipe_bundle_type_id = {} WHERE id={};\n".format(bundle_type_id, line['id'])
-            #if counter % 25 == 0:
-            self.signals.progress.emit(int(5+counter/len(lines)*85))
-            
-        self.signals.progress.emit(90)
-        print(sql_lines)
-        if sql_lines:
-            self.cur.execute(sql_lines)
-        
-        #show table temp.lines
-        self.signals.progress.emit(95)
-        showLinesTempTable('temp',self.dictDB,self.plugin_dir)
-        
-        self.dlg.new_pipe_bundles=new_pipe_bundles
-        self.signals.progress.emit(100)
+            self.dlg.new_pipe_bundles=new_pipe_bundles
+            self.signals.progress.emit(100)
+        except Exception as e:
+            self.signals.error.emit(str(e)) 
         
 def startPipeSizing(dictDB,dlg,plugin_dir):
     """Start pipe sizing"""
@@ -193,10 +213,6 @@ def startPipeSizing(dictDB,dlg,plugin_dir):
     conn=dbConnect(dictDB,True)
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-
-        #get checked pipes from list
-        pipes=[dlg.pipes[dlg.pipes_list.item(i).text()] for i in range(dlg.pipes_list.count()) if dlg.pipes_list.item(i).checkState() == Qt.Checked]
-        print(pipes)
         
         #get networks
         network=dlg.combo_network_models.currentText()                    
@@ -212,7 +228,7 @@ def startPipeSizing(dictDB,dlg,plugin_dir):
         cp=dlg.cp.text()
         ambient=dlg.ambient.text()
         
-        if checkListNumbers([dp,epsilon,rho,cp,ambient]) and (dbColumnIsNumeric(cur,dictDB['versionName'],'lines',dlg.combo_simultaneity.currentText()) if dlg.checkBoxSimultaneity.isChecked() and dlg.rbtn_lines.isChecked() else True) and all([isNumber(dlg.table_sequences.item(i,1).text()) and isNumber(dlg.table_sequences.item(i,4).text()) for i in range(dlg.table_sequences.rowCount())]):
+        if checkListNumbers([dp,epsilon,rho,cp,ambient]) and (dbColumnIsNumeric(cur,dictDB['versionName'],'lines',dlg.combo_simultaneity.currentText()) if dlg.checkBoxSimultaneity.isChecked() and dlg.rbtn_lines.isChecked() else True) and all([isNumber(dlg.table_circuits.item(i,1).text()) and isNumber(dlg.table_circuits.item(i,4).text()) for i in range(dlg.table_circuits.rowCount())]):
             dp=float(dp) #pipe
             epsilon=float(epsilon)
             rho=float(rho)
@@ -221,8 +237,8 @@ def startPipeSizing(dictDB,dlg,plugin_dir):
             iface.messageBar().pushMessage("Error", "Please check your inputs! Only values are valid.", level=Qgis.Critical)
             return False
             
-        for i in range(dlg.table_sequences.rowCount()): 
-            if dlg.table_sequences.cellWidget(i,0).currentText()==dlg.table_sequences.cellWidget(i,3).currentText():
+        for i in range(dlg.table_circuits.rowCount()): 
+            if dlg.table_circuits.cellWidget(i,0).currentText()==dlg.table_circuits.cellWidget(i,3).currentText():
                 iface.messageBar().pushMessage("Error", "Supply and return pipe could not be the same: sequence={}!".format(i+1), level=Qgis.Critical)
                 return False
             
@@ -249,9 +265,9 @@ INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(dictDB['v
         if dlg.rbtn_customers.isChecked():
             #create topology: add peak power columns (and) number of customers if consider simulaneity 
             dlg.execute([network])    
-            dlg.worker.signals.finished.connect(lambda: dlg.doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipes,pipe_bundles))
+            dlg.worker.signals.finished.connect(lambda: dlg.doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles))
         else:
-            dlg.doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipes,pipe_bundles)  
+            dlg.doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles)  
 
 def showLinesTempTable(version,dictDB,plugin_dir):
     removeTempLayers()
@@ -276,15 +292,15 @@ def showLinesTempTable(version,dictDB,plugin_dir):
     else:
         vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
     QgsProject.instance().addMapLayer(vlayer)  
-    print(vlayerName[:-1] + '_assetgroups')
-    target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assetgroups')
+    print(vlayerName[:-1] + '_types')
+    target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_types')
     if target_layer:
         target_layer=target_layer[0]
     else:
-        uri.setDataSource("public", 'line_assetgroups', "")
-        target_layer = QgsVectorLayer(uri.uri(False), 'line_assetgroups', dictDB['user'])
+        uri.setDataSource("public", 'line_types', "")
+        target_layer = QgsVectorLayer(uri.uri(False), 'line_types', dictDB['user'])
         QgsProject.instance().addMapLayer(target_layer)
-        setLayersHidden(['line_assetgroups']) 
+        setLayersHidden(['line_types']) 
     config = {'AllowMulti': False,
               'AllowNull': True,
               'FilterExpression': '',
@@ -293,14 +309,14 @@ def showLinesTempTable(version,dictDB,plugin_dir):
               'NofColumns': 1,
               'OrderByValue': False,
               'UseCompleter': False,
-              'Value': 'assetgroup'}
+              'Value': 'type'}
     widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
     fields=vlayer.fields()
-    field_idx = fields.indexOf('assetgroup')
+    field_idx = fields.indexOf('type')
     vlayer.setEditorWidgetSetup(field_idx, widget_setup)   
 
     categorized_renderer = QgsCategorizedSymbolRenderer()            
-    categorized_renderer.setClassAttribute('assetgroup') 
+    categorized_renderer.setClassAttribute('type') 
     for category,id in zip(categories,ids):      
         print(vlayerName)
         print(vlayer)
@@ -348,7 +364,7 @@ def savePipeSizingResults(dictDB,conn,dlg):
     
     #remove added load columns in temp.lines
     if dlg.rbtn_customers.isChecked():
-        energy_columns=[dlg.table_sequences.cellWidget(i, 5).currentText() for i in range(dlg.table_sequences.rowCount())]+['no_customer']
+        energy_columns=[dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(dlg.table_circuits.rowCount())]+['no_customer']
         table_columns=getTableAttr(cur,dictDB,'line')
         energy_columns = [col for col in energy_columns if col not in table_columns]
         print(energy_columns)

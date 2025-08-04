@@ -62,12 +62,12 @@ class Supervisory_control():
             #1)
             
             #get sensor data
-            sensor_data_source=getSensorData(self.cur,self.dictDB,source_types=[4])
-            sensor_data_target=getSensorData(self.cur,self.dictDB,target_types=[4])
+            sensor_data_source=getSensorData(self.cur,self.dictDB,source_types=[3])
+            sensor_data_target=getSensorData(self.cur,self.dictDB,target_types=[3])
 
             if update_sensors:
                 #Get all removed sensor sources (table $versionName$.invoked_sensor_source_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
-                remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[4])
+                remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[3])
                 print(remove_sensor_source_ids)
                 if remove_sensor_source_ids:
                     sql="""DELETE FROM "{}".invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
@@ -75,12 +75,12 @@ class Supervisory_control():
                     self.cur.execute(sql)
                     
                 #Get all new sensor sources (table $versionName$.invoked_sensor_source_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
-                add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.dictDB,source_types=[4])
+                add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.dictDB,source_types=[3])
                 print(add_sensor_source_idsValues)
                 writeInvokedSensorSourceSignals(self.cur,self.dictDB,add_sensor_source_idsValues)
                     
                 #Get all removed sensor targets (table $versionName$.invoked_sensor_target_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
-                remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[4])
+                remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[3])
                 
                 if remove_sensor_target_ids:
                     sql="""DELETE FROM "{}".invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
@@ -88,7 +88,7 @@ class Supervisory_control():
                     self.cur.execute(sql)
                     
                 #Get all new sensor targets (table $versionName$.invoked_sensor_targets_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
-                add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.dictDB,target_types=[4])
+                add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.dictDB,target_types=[3])
                 print(add_sensor_target_idsValues)
                 writeInvokedSensorTargetSignals(self.cur,self.dictDB,add_sensor_target_idsValues)
             else:
@@ -98,8 +98,8 @@ class Supervisory_control():
                     add_sensor_source_idsValues=[]
                     add_sensor_target_idsValues=[]
                 else:
-                    add_sensor_source_idsValues=getSensorData(self.cur,self.dictDB,source_types=[4])
-                    add_sensor_target_idsValues=getSensorData(self.cur,self.dictDB,target_types=[4])
+                    add_sensor_source_idsValues=getSensorData(self.cur,self.dictDB,source_types=[3])
+                    add_sensor_target_idsValues=getSensorData(self.cur,self.dictDB,target_types=[3])
                 
             print('++++++Supervisory sensor data+++++++++')
             print(add_sensor_source_idsValues)
@@ -130,13 +130,13 @@ class Supervisory_control():
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 
                 #todo get number of old sensor source signals --> for component placement in .idc
-                sql="""SELECT count(assettypes) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
+                sql="""SELECT count(templates) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
                 print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorSources=self.cur.fetchone()['count']
                 
                 #todo get number of old sensor target signals --> for component placement in .idc
-                sql="""SELECT count(assettypes) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
+                sql="""SELECT count(templates) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
                 print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorTargets=self.cur.fetchone()['count'] 

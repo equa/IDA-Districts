@@ -15,17 +15,17 @@ import os
 
 
 datacenter_dir=getDataCenterDir(plugin_dir)
-usedFeatureAssettypes=getUsedFeatureAssettypes(cur,dictDB)
+usedFeaturetemplates=getUsedFeatureTemplates(cur,dictDB)
 
 submodel=1
 submodels=getSubmodels(cur,dictDB)
 submodels.remove(str(submodel))
 print(submodels)
 
-usedDecoupledFeatureAssettypes=getUsedDecoupledFeatureAssettypes(usedFeatureAssettypes,cur,dictDB,submodel,submodels)
-print(usedDecoupledFeatureAssettypes)
+usedDecoupledFeaturetemplates=getUsedDecoupledFeatureTemplates(usedFeaturetemplates,cur,dictDB,submodel,submodels)
+print(usedDecoupledFeaturetemplates)
 
-#print(usedFeatureAssettypes)    
+#print(usedFeaturetemplates)    
 
                 
 
@@ -35,7 +35,7 @@ print(usedDecoupledFeatureAssettypes)
 file_data=""
 
     
-#print(readIDMFileToPropertyList('C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_data_center\\cosim_test1\\customer_assettypes\\1_1_Heating 1 Supply & 1 Return\\1_1_Heating 1 Supply & 1 Return.idm'))
+#print(readIDMFileToPropertyList('C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_data_center\\cosim_test1\\customer_templates\\1_1_Heating 1 Supply & 1 Return\\1_1_Heating 1 Supply & 1 Return.idm'))
 
         
     
@@ -43,14 +43,14 @@ dec_models=['tbout_setpoint','q_limit','HX_substation','PMT2mux_1_1_1_2_T30','PM
 
 
 assettype_dec_conns=[]
-for assettype in usedDecoupledFeatureAssettypes:
-    assettype_dir=datacenter_dir+'\\{}\\{}_assettypes\\{}_{}_{}\\'.format(dictDB['projectName'],assettype['feature'],assettype['assetgroup'],assettype['assettype'],assettype['assettype_name'])
-    assettype_idm=assettype_dir+'{}_{}_{}.idm'.format(assettype['assetgroup'],assettype['assettype'],assettype['assettype_name'])
-    assettype_idc=assettype_dir+'{}_{}_{}.idc'.format(assettype['assetgroup'],assettype['assettype'],assettype['assettype_name'])
-    #print(assettype_idm)
+for assettype in usedDecoupledFeaturetemplates:
+    assettype_dir=datacenter_dir+'\\{}\\{}_templates\\{}_{}_{}\\'.format(dictDB['projectName'],assettype['feature'],assettype['assetgroup'],assettype['assettype'],assettype['template_name'])
+    template_idm=assettype_dir+'{}_{}_{}.idm'.format(assettype['assetgroup'],assettype['assettype'],assettype['template_name'])
+    template_idc=assettype_dir+'{}_{}_{}.idc'.format(assettype['assetgroup'],assettype['assettype'],assettype['template_name'])
+    #print(template_idm)
 
-    data_idm=OneOrMore(nestedExpr()).parseString(readFileToString(assettype_idm))
-    data_idc=OneOrMore(nestedExpr()).parseString(readFileToString(assettype_idc))
+    data_idm=OneOrMore(nestedExpr()).parseString(readFileToString(template_idm))
+    data_idc=OneOrMore(nestedExpr()).parseString(readFileToString(template_idc))
     #print(data_idc)
     #print(data[5])
     #print(data[5].asList())

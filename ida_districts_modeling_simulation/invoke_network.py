@@ -5,7 +5,7 @@ from plugins.utility_functions.macros import *
 from plugins.utility_functions.topology import *
 from plugins.utility_functions.ida_components import *
 
-from plugins.utility_functions.assettypeFiles import *
+from plugins.utility_functions.templateFiles import *
 from .supervisory_control import Supervisory_control, CopySupervisoryControl
 from .invoke_sensors import *
 from .cosim import *
@@ -126,7 +126,7 @@ class InvokeNetworkModel:
         if self.conn:
             try:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-                self.projectConfig=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
+                self.projectConfig=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
                 self.configIDADistricts=loadIDADistrictsConfig(self.plugin_dir)
                 dir+='\\network_models'
                 createDir(dir,self.dictDB['projectName'])
@@ -177,14 +177,14 @@ class InvokeNetworkModel:
                     print(submodel)
                     self.pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
                     idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
-                    dec_assettypes=CopyDecoupledAssettypeMacro(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data)
+                    dec_templates=CopyDecoupledTemplateMacro(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data)
                    
                     self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
-                    resources.extend(dec_assettypes.resources)
+                    resources.extend(dec_templates.resources)
                     print('*****************************************************************')
-                    print(dec_assettypes.resources)
+                    print(dec_templates.resources)
                     
-                    import_counter=dec_assettypes.import_counter
+                    import_counter=dec_templates.import_counter
                     print('*-+')
                     print(import_counter)
                     
@@ -229,25 +229,24 @@ class InvokeNetworkModel:
                     #----------------supervisory ctrl------------------------
                     if submodel==supervisory_submodel:
                         idm+="""\n((MACRO-OBJECT :N "Supervisory_control" :T ICE-MACRO :ETM 3857526820 :STM 3857526845){}{}{})""".format(
-                            #iref sources if source type is supervisory ctrl (4) and function == Same signal for all targets (5))
+                            #iref sources if source type is supervisory ctrl (3) and function == Same signal for all targets (5))
                             ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j['iref']) 
-                                for i in sensor_dec_data if i['source_type']==4 and i['function']==5 for j in i['irefs_source']]),  
-                            #iref sources if source type is supervisory ctrl (4) and function == Individual signals for each target (6)
+                                for i in sensor_dec_data if i['source_type']==3 and i['function']==5 for j in i['irefs_source']]),  
+                            #iref sources if source type is supervisory ctrl (3) and function == Individual signals for each target (6)
                             ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(j['iref']) 
-                                for i in sensor_dec_data if i['source_type']==4 and i['function']==6 for j in i['irefs_target']]),  
-                            #iref targets connections from Sensor to feature if type Supervisory Ctrl (4) 
+                                for i in sensor_dec_data if i['source_type']==3 and i['function']==6 for j in i['irefs_target']]),  
+                            #iref targets connections from Sensor to feature if type Supervisory Ctrl (3) 
                             ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
-                                for i in sensor_dec_data if i['target_type']==4 for j in i['irefs_target']]))                
+                                for i in sensor_dec_data if i['target_type']==3 for j in i['irefs_target']]))                
 
-                    for type in ["customers","energy_plants","devices"]:
+                    for type in ["customers","energy_plants"]:
                         if reinvoke:
-                            sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],type)
+                            sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],type[:-1])
                             self.cur.execute(sql)
                         print(self.signals)
-                        copyAssettypeMacro=CopyAssettypeMacro(submodel,dir,type,self.dictDB,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals)
-                        if type!="devices":
-                            self.invokedOutputs[type]=copyAssettypeMacro.invokedFeatureOutputs
-                        resources.extend(copyAssettypeMacro.resources)
+                        copyTemplateMacro=CopyTemplateMacro(submodel,dir,type,self.dictDB,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals)
+                        self.invokedOutputs[type]=copyTemplateMacro.invokedFeatureOutputs
+                        resources.extend(copyTemplateMacro.resources)
                     self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
                     print('&&&&&&&&&&&&&&&&&&&&&&')
                     print(set(resources))
@@ -269,15 +268,11 @@ class InvokeNetworkModel:
                     self.signals.progress.emit(int(2+35*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
                     self.signals.progress.emit(int(2+45*(submodels.index(submodel)+1)/len(submodels)*97))
-                    idm,idc=self.insertDevices(submodel,idm,idc,networks)
-                    self.signals.progress.emit(int(2+55*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
                     self.signals.progress.emit(int(2+65*(submodels.index(submodel)+1)/len(submodels)*97))
                     
                     idm_conn,idc_conn=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks)
                     self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
-                    idm_conn,idc_conn=self.insertConnections(submodel,'devices',idm_conn,idc_conn,networks)
-                    self.signals.progress.emit(int(2+85*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm_conn,idc_conn=self.insertConnections(submodel,'energy_plants',idm_conn,idc_conn,networks)
                     self.signals.progress.emit(int(2+95*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm_conn,idc_conn=self.insertJunctionConnections(submodel,idm_conn,idc_conn,networks)
@@ -469,7 +464,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         return idm,idc
     
     def insertJunctionConnections(self,submodel,idm_conn,idc_conn,networks):
-        """Insert the junction connections between devices, plants or customers and pipes"""
+        """Insert the junction connections between plants or customers and pipes"""
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liqL' ELSE 'liqR' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
     FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
@@ -543,20 +538,17 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         return idm_conn,idc_conn
     
     def insertConnections(self,submodel,type,idm_conn,idc_conn,networks):
-        """Insert the connections between devices and the pipe"""
+        """Insert the connections between features and the pipe"""
         print("********insertConnections:"+type)
         if type=='customers':
             id_name='cid'
             seq_name='c_seq'
-        if type=='devices':
-            id_name='did'
-            seq_name='d_seq'
-        if type=='energy_plants':
+        elif type=='energy_plants':
             id_name='epid'
             seq_name='ep_seq'
         sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,d.id AS did, ST_AsText(d.geom) AS d_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN conn.p IS NULL THEN 'liqL' ELSE 'liqR' END AS dir
-    FROM "{}".{} d, "{}".{}_connections dc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_assettypes da, public.connections conn, public.connection_type_connections conn_t_conns
-    WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND dc.{}=conn_b_t.sequence AND da.assettype=d.assettype AND da.assetgroup=d.assetgroup AND l.id=dc.lid AND d.id=dc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
+    FROM "{}".{} d, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates da, public.connections conn, public.connection_type_connections conn_t_conns
+    WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND fc.{}=conn_b_t.sequence AND da.template=d.template AND l.id=fc.lid AND d.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
     ORDER BY d.id, conn_b_t.sequence, conn_type_seq;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
         print(sql)
         
@@ -900,9 +892,9 @@ output to current demand. It can also be operated in installations with differen
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):
         """ insert customers; take the macro template and copy it to the IDA project"""
         print('****************insert customers******************')
-        sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point, c.dhw_id,ca.conn_bundle_type, ca.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM "{}".customers c, customer_assettypes ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
-	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.assettype=c.assettype AND ca.assetgroup=c.assetgroup AND
+        sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point, c.dhw_id,ca.conn_bundle_type, ca.template_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
+	FROM "{}".customers c, customer_templates ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
+	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.template=c.template AND
         (c.submodel={} OR {} != c.submodel AND {} = ANY (l.submodel)) AND c.network && ARRAY[{}] AND
         conn_b_t.conn_bundle_type_id=ca.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id
@@ -913,15 +905,15 @@ output to current demand. It can also be operated in installations with differen
         i=0
         x_old=""
         y_old=""
-        assettype_name_old=""
+        template_name_old=""
         cid_old=0
         iref_old=""
         cid=-1
         for customer in self.cur.fetchall():
             dhw_id=customer['dhw_id']
             cid=customer['cid']
-            assettype_name=customer['assettype_name']
-            #print(assettype_name)
+            template_name=customer['template_name']
+            #print(template_name)
             points = customer['point'].split("(")[1].replace('(','').replace(')','').split(' ')
             y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
             x=round(150+50+(float(points[0])-float(self.pageSettings['xmin']))/float(self.pageSettings['lmin'])*150,0)
@@ -951,7 +943,7 @@ output to current demand. It can also be operated in installations with differen
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             cid_old=cid
             iref_old=iref
-            assettype_name_old=assettype_name
+            template_name_old=template_name
             x_old=x
             y_old=y
             customer_old=customer
@@ -966,60 +958,11 @@ output to current demand. It can also be operated in installations with differen
         
         return idm,idc
         
-    def insertDevices(self,submodel,idm,idc,networks):
-        """ insert customers; take the macro template and copy it to the IDA project"""
-        sql="""SELECT d.id AS did, ST_asText(d.geom) AS point, da.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM "{}".devices d, device_assettypes da, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn
-	WHERE da.assettype=d.assettype AND da.assetgroup=d.assetgroup AND d.assetgroup=da.assetgroup AND da.assettype=d.assettype AND d.submodel={} AND d.network && ARRAY[{}] AND
-	conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
-	conn_t_conns.connection_id=conn.id
-	ORDER BY d.id,conn_b_t.sequence;""".format(self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
-        print(sql)
-        self.cur.execute(sql)
-        iref=""
-        i=0
-        x_old=""
-        y_old=""
-        assettype_name_old=""
-        did_old=0
-        iref_old=""
-        for device in self.cur.fetchall():
-            did=device['did']
-            assettype_name=device['assettype_name']
-            #print(assettype_name)
-            points = device['point'].split("(")[1].replace('(','').replace(')','').split(' ')
-            y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
-            x=round(150+50+(float(points[0])-float(self.pageSettings['xmin']))/float(self.pageSettings['lmin'])*150,0)
-            
-            conn_bundl_type=device['conn_bundle_type_id']
-            conn_bundl_type_seq=device['conn_bundl_type_seq']
-            conn_type=device['connection_type_id']
-            conn_type_seq=device['conn_type_seq']
-            conn_temp=device['temp']
-            
-            name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
-            iref+="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
-            if did!=did_old and i!=0:
-                idm+="""\n((MACRO-OBJECT :N "Device_{}" :T ICE-MACRO :D "ICE macro"){})""".format(did_old,iref_old)
-                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Device_{}") :NAME "Device_{}" :DATA MACRO-OBJECT) """.format(x_old,y_old,did_old,did_old)
-                iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
-            did_old=did
-            iref_old=iref
-            assettype_name_old=assettype_name
-            x_old=x
-            y_old=y
-            i+=1
-        
-        if i>0:        
-            idm+="""\n((MACRO-OBJECT :N "Device_{}" :T ICE-MACRO :D "ICE macro"){})""".format(did,iref)
-            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Device_{}") :NAME "Device_{}" :DATA MACRO-OBJECT) """.format(x,y,did,did)
-        return idm,idc
-        
     def insertPlants(self,submodel,idm,idc,sensor_dec_data,networks):
         """ insert plants; take the macro template and copy it to the IDA project"""
-        sql="""SELECT ep.id AS epid, ST_asText(ep.geom) AS point, epa.assettype_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM "{}".energy_plants ep, energy_plant_assettypes epa, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".lines l, "{}".energy_plant_connections ep_conns
-	WHERE l.id=ep_conns.lid AND ep.id=ep_conns.epid AND epa.assettype=ep.assettype AND epa.assetgroup=ep.assetgroup AND ep.assetgroup=epa.assetgroup AND epa.assettype=ep.assettype AND 
+        sql="""SELECT ep.id AS epid, ST_asText(ep.geom) AS point, epa.template_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
+	FROM "{}".energy_plants ep, energy_plant_templates epa, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".lines l, "{}".energy_plant_connections ep_conns
+	WHERE l.id=ep_conns.lid AND ep.id=ep_conns.epid AND epa.template=ep.template AND 
         (ep.submodel={} OR {} != ep.submodel AND {} = ANY (l.submodel)) AND
         conn_b_t.conn_bundle_type_id=epa.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id AND ep.network && ARRAY[{}]
@@ -1031,7 +974,7 @@ output to current demand. It can also be operated in installations with differen
         i=0
         x_old=""
         y_old=""
-        assettype_name_old=""
+        template_name_old=""
         epid_old=0
         iref_old=""
         epid=-1
@@ -1040,7 +983,7 @@ output to current demand. It can also be operated in installations with differen
             points = plant['point'].split("(")[1].replace('(','').replace(')','').split(' ')
             y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
             x=round(150+50+(float(points[0])-float(self.pageSettings['xmin']))/float(self.pageSettings['lmin'])*150,0)
-            assettype_name=plant['assettype_name']
+            template_name=plant['template_name']
             conn_bundl_type=plant['conn_bundle_type_id']
             conn_bundl_type_seq=plant['conn_bundl_type_seq']
             conn_type=plant['connection_type_id']
@@ -1059,7 +1002,7 @@ output to current demand. It can also be operated in installations with differen
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             epid_old=epid
             iref_old=iref
-            assettype_name_old=assettype_name
+            template_name_old=template_name
             x_old=x
             y_old=y
             i+=1    

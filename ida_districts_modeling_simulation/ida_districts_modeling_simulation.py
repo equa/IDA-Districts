@@ -29,7 +29,7 @@ from plugins.utility_functions.ida_components import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.topology import *
-from plugins.utility_functions.assettypeFiles import *
+from plugins.utility_functions.templateFiles import *
 from .update_sensors import *
 from .cosim import *
 
@@ -599,7 +599,7 @@ class IDADistrictsModelingSimulation:
         for counter,i in enumerate(boreholes_data):
             print(counter)
             print(i)
-            boreholefieldsData[i['id']]={'ep_id': str(i['ep_id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
+            boreholefieldsData[i['id']]={'ep_id': str(i['id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
                 'rgroutgrout': str(i['rgroutgrout']),'rringearth': str(i['rringearth']),'cpgrd': str(i['cpgrd']),'lambgrd': str(i['lambgrd']),'rhogrd': str(i['rhogrd']),'cpgrout': str(i['cpgrout']),'lambgrout': str(i['lambgrout']),
                 'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
                 'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'mir': str(i['mir']),'rmax': str(i['rmax']),
@@ -611,7 +611,7 @@ class IDADistrictsModelingSimulation:
             dlg.tableWidget.setItem(counter,0,item)
             comboBox = QComboBox()
             comboBox.addItems([str(ids['id']) for ids in getTableIds(self.cur,self.dictDB['versionName'],'energy_plants','id')])
-            comboBox.setCurrentText(str(i['ep_id']))
+            comboBox.setCurrentText(str(i['id']))
             dlg.tableWidget.setCellWidget(counter, 1, comboBox) #plant id
             dlg.tableWidget.setItem(counter,2,QTableWidgetItem(str(i['zhole']))) #zhole
             dlg.tableWidget.setItem(counter,3,QTableWidgetItem(str(i['rhole']))) #rhole
@@ -706,8 +706,8 @@ class IDADistrictsModelingSimulation:
         closeDialog(dlg)
         
     def sensorSignals(self):
-        """Create sensor signals for comunication between plants, customers, devices and supervisory control"""
-        print ('Create sensor signals for comunication between plants, customers, devices and supervisory control')
+        """Create sensor signals for comunication between plants, customers and supervisory control"""
+        print ('Create sensor signals for comunication between plants, customers and supervisory control')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -843,10 +843,10 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         self.cur.execute(sql)
                         zones=self.cur.fetchall()
                         b_ids=set(str(zone["b_id"]) for zone in zones)
-                        sql="""SELECT b.b_id,at.conn_bundle_type 
-    FROM {}.buildings b,{}.customers c, customer_assettypes at
-    WHERE b.b_id IN ({}) AND c.id=b.substation_id AND c.assetgroup=at.assetgroup AND c.assettype=at.assettype
-    GROUP BY at.conn_bundle_type, b.b_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],','.join(b_ids))
+                        sql="""SELECT b.b_id,t.conn_bundle_type 
+    FROM {}.buildings b,{}.customers c, customer_templates t
+    WHERE b.b_id IN ({}) AND c.id=b.substation_id AND c.template=t.template
+    GROUP BY t.conn_bundle_type, b.b_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],','.join(b_ids))
                         self.cur.execute(sql)
                         conn_data={i['b_id']: getConnsValuesIdentTypeDict(self.cur,i['conn_bundle_type']) for i in self.cur.fetchall()}
                         print(conn_data)
@@ -872,7 +872,8 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
   (:ADD (:CEO :SYMBOL '(:AT ((70 24)) :R (14 14) :ICON "lib:emeter.ids" :SLOT ("EmeterLocalBoil") :NAME "EmeterLocalBoil" :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) :N "EmeterLocalBoil" :T EMETER)
    (:PAR :N N_IN :V 0)
    (:PAR :N N_MONTH :V 13))
-  (:ADD MACRO-OBJECT SCHEMA '((FORM-DOCUMENT :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)) :SYMBOL '(:AT ((46 74)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT) :N "Co-simulation-macro" :T ICE-MACRO :D "ICE macro"))\n""".format(submodel,' '.join(b_ids),conn_data_alist,'T' if dlg.checkbox_cosim.isChecked() else 'nil',
+  (:ADD MACRO-OBJECT SCHEMA '((FORM-DOCUMENT :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)) :SYMBOL '(:AT ((46 74)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT) :N "Co-simulation-macro" :T ICE-MACRO :D "ICE macro"))\n""".format(
+    submodel,' '.join(b_ids),conn_data_alist,'T' if dlg.checkbox_cosim.isChecked() else 'nil',
   '\n'.join(["""  (:REMOVE "Emeterlocchil_{}")
   (:REMOVE "Emeterlocboil_{}")""".format(counter,counter) for counter,b_id in enumerate(b_ids,1)]) )
                         
@@ -948,9 +949,11 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
 (set-values [hc_ SHAPE] 'ncorn ncorn 'CORNERS corn-array)\n""".format(zone['b_id'],zone['b_id'])
 
                         for zone in zone_win_dict:
-                            ida_script+="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 T :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
-
-                            
+                            ida_script+="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 nil :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
+                        
+                        ida_script+="""(:for (load  (:call :loads [@]))
+  (move-internal-gain-to-center load))\n"""
+                                
                         ida_script+="""(save-document [@]))"""
                         print(ida_script)
                         
@@ -1021,12 +1024,12 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                 
             if co_sim:
                 print('+++++++cosim++++++')
-                dec_assettypes=CopyDecoupledAssettypeMacro(str(submodel),dir,self.dictDB,self.cur,self.plugin_dir,sensor_data,mode='building')
+                dec_templates=CopyDecoupledTemplateMacro(str(submodel),dir,self.dictDB,self.cur,self.plugin_dir,sensor_data,mode='building')
                 print('---finished dec---')
-                print(dec_assettypes.resources)
-                if dec_assettypes.resources:
+                print(dec_templates.resources)
+                if dec_templates.resources:
                     file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
-                    file_data[2:2]=dec_assettypes.resources
+                    file_data[2:2]=dec_templates.resources
                     writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
                     
                 #decoupling
@@ -1053,11 +1056,11 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
         
             else:
                 #resources
-                assettype_names=getAssettypeNamesFilteredByCustomerIds(self.cur,self.dictDB,conn_data) 
+                template_names=getTemplateNamesFilteredByCustomerIds(self.cur,self.dictDB,conn_data) 
                 resources=[]        
-                for assettype in assettype_names:
-                    print('+++++resource: '+assettype)
-                    source_f_idm="{}\\{}\\customer_assettypes\\{}.idm".format(getDataCenterDir(self.plugin_dir),self.dictDB['projectName'],assettype)
+                for template in template_names:
+                    print('+++++resource: '+template)
+                    source_f_idm="{}\\{}\\customer_templates\\{}.idm".format(getDataCenterDir(self.plugin_dir),self.dictDB['projectName'],template)
                     print(source_f_idm)
                     file_data=readFileToList(source_f_idm)
                     resource=getResourcesFromFileDataList(file_data)

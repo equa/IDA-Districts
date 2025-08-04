@@ -219,8 +219,7 @@ INSERT INTO public.pipe_ambient (id,ambient) VALUES (3,'Duct');
 -------------------table public.type------------------------------------
 INSERT INTO public.type (id,name) VALUES (1,'Customer');
 INSERT INTO public.type (id,name) VALUES (2,'Energy plant');
-INSERT INTO public.type (id,name) VALUES (3,'Device');
-INSERT INTO public.type (id,name) VALUES (4,'Supervisory control');
+INSERT INTO public.type (id,name) VALUES (3,'Supervisory control');
 
 -------------------table public.target------------------------------------
 INSERT INTO public.target (id,target) VALUES (1,'Custom');
@@ -415,184 +414,36 @@ INSERT INTO public.materials VALUES (3,'PEHD',0.4,1900,950);
 INSERT INTO public.materials VALUES (4,'PEX',0.38,550,938);
 INSERT INTO public.materials VALUES (5,'Ground',1.18,1344,1387);
 
--------------------table public.customer_assetgroups------------------------------------
-INSERT INTO public.customer_assetgroups VALUES (0,'Unkown','The type of the customer is unkown.');
-INSERT INTO public.customer_assetgroups VALUES (1,'Consumer','The customer only purchases heat or cold.');
-INSERT INTO public.customer_assetgroups VALUES (2,'Prosumer','The customer purchases heat or cold from the network and can also feed produced heat and cold back into the network.');
+-------------------table public.customer_templates------------------------------------
+INSERT INTO public.customer_templates VALUES (1,1,'Heating 1 Supply & 1 Return',1,'This type of customer is heated by one supply and return line.');
+INSERT INTO public.customer_templates VALUES (2,2,'Cooling 1 Supply & 1 Return',2,'This type of customer is cooled by one supply and return line.');
+INSERT INTO public.customer_templates VALUES (3,3,'Heating and Cooling 2 Supply & 2 Return',4,'This type of customer is heated and cooled by two supply and return lines.');
+INSERT INTO public.customer_templates VALUES (4,4,'Heating and Cooling 1 Supply & 1 Return',1,'This type of customer is heated and cooled by one supply and return lines (no DHW).');
+INSERT INTO public.customer_templates VALUES (5,5,'Heating and Cooling 2 Supply & 1 Return',5,'This type of customer is heated and cooled by two supply and one return line.');
+INSERT INTO public.customer_templates VALUES (6,6,'Heating + HP 1 Supply & 1 Return',3,'This type of customer is heated by one supply and return line. The temperature level is raised by means of a heat pump.');
+INSERT INTO public.customer_templates VALUES (7,7,'Cooling + HP 1 Supply & 1 Return',2,'This type of customer is cooled by one supply and return line. The temperature level is lowered by means of a heat pump.');
+INSERT INTO public.customer_templates VALUES (8,8,'Heating and Cooling + HP 1 Supply & 1 Return',3,'This type of customer is heated and cooled by one supply and return line. The temperature level is raised and lowered by means of a heat pump');
 
--------------------table public.customer_assettypes------------------------------------
-INSERT INTO public.customer_assettypes VALUES (1,1,1,'Heating 1 Supply & 1 Return',1,'This type of customer is heated by one supply and return line.');
-INSERT INTO public.customer_assettypes VALUES (2,1,2,'Cooling 1 Supply & 1 Return',2,'This type of customer is cooled by one supply and return line.');
-INSERT INTO public.customer_assettypes VALUES (3,1,3,'Heating and Cooling 2 Supply & 2 Return',4,'This type of customer is heated and cooled by two supply and return lines.');
-INSERT INTO public.customer_assettypes VALUES (4,1,4,'Heating and Cooling 1 Supply & 1 Return',1,'This type of customer is heated and cooled by one supply and return lines (no DHW).');
-INSERT INTO public.customer_assettypes VALUES (5,1,5,'Heating and Cooling 2 Supply & 1 Return',5,'This type of customer is heated and cooled by two supply and one return line.');
-INSERT INTO public.customer_assettypes VALUES (6,1,6,'Heating + HP 1 Supply & 1 Return',3,'This type of customer is heated by one supply and return line. The temperature level is raised by means of a heat pump.');
---INSERT INTO public.customer_assettypes VALUES (7,1,7,'Cooling + HP 1 Supply & 1 Return',2,'This type of customer is cooled by one supply and return line. The temperature level is lowered by means of a heat pump.');
-INSERT INTO public.customer_assettypes VALUES (8,1,8,'Heating and Cooling + HP 1 Supply & 1 Return',3,'This type of customer is heated and cooled by one supply and return line. The temperature level is raised and lowered by means of a heat pump');
+-------------------table public.energy_plant_templates------------------------------------
+INSERT INTO public.energy_plant_templates VALUES (1,1,'Heating 1 Supply & 1 Return',7,'This type of energy plant supplies heat by one supply and return line.');
+INSERT INTO public.energy_plant_templates VALUES (2,2,'Low Temp Heating 1 Supply & 1 Return',8,'This type of energy plant supplies heat at low temperature level by one supply and one return line.');
+INSERT INTO public.energy_plant_templates VALUES (3,3,'Cooling 1 Supply & 1 Return',9,'This type of energy plant supplies cold by one supply and return line.');
+INSERT INTO public.energy_plant_templates VALUES (4,4,'Heating and Cooling 2 Supply & 2 Return',11,'This type of energy plant supplies heat and cold by two supply and return lines.');
+INSERT INTO public.energy_plant_templates VALUES (5,5,'Heating and Cooling 2 Supply & 1 Return',10,'This type of energy plant supplies heat and cold by two supply and one return line.');
 
--------------------table public.energy_plant_assetgroups------------------------------------
-INSERT INTO public.energy_plant_assetgroups VALUES (0,'Unkown','The type of the energy plant is unkown.');
-INSERT INTO public.energy_plant_assetgroups VALUES (1,'Generic Heating Boiler','This type of energy plant is a generic boiler for heating.');
-INSERT INTO public.energy_plant_assetgroups VALUES (2,'Chiller','This type of energy plant is a generic boiler for cooling.');
-INSERT INTO public.energy_plant_assetgroups VALUES (3,'Solar Thermal Plant','This type is a solar thermal plant.');
-INSERT INTO public.energy_plant_assetgroups VALUES (4,'Well Pad','This type of energy plant uses a borehole field as energy source.');
-INSERT INTO public.energy_plant_assetgroups VALUES (5,'Well Pad + HP','This type of energy plant uses a borehole field together with a heat pump as energy source.');
-INSERT INTO public.energy_plant_assetgroups VALUES (6,'CHP Plant','This type is a combined heat and power plant.');
-INSERT INTO public.energy_plant_assetgroups VALUES (7,'Waste heat utilization','This type uses wast heat from processes.');
-INSERT INTO public.energy_plant_assetgroups VALUES (8,'Generic Heating & Cooling plant','This type of energy plant is a generic plant for heating & cooling.');
+-------------------table public.line_types------------------------------------
+INSERT INTO public.line_types VALUES (0,'Unkown','Unkown');
+INSERT INTO public.line_types VALUES (1,'Service Pipe','The subtype feature layer Service Pipe describes the linear containers that transport the water or steam from the distribution pipe to the customer or customer pipe. Service Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
+INSERT INTO public.line_types VALUES (2,'Distribution Pipe','The subtype feature layer Distribution Pipe describes the linear containers that transport the water or steam from the transmission pipe to the service pipe. Distribution Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
+INSERT INTO public.line_types VALUES (3,'Transmission Pipe','The subtype feature layer Transmission pipe describes the linear containers that transport the water or steam from the production facility to the distribution pipe. Transmission pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
+INSERT INTO public.line_types VALUES (5,'Station Pipe','The subtype feature layer Station Pipe describes the linear containers that transport the water or steam within a station facility. Station Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
+INSERT INTO public.line_types VALUES (6,'Customer Pipe','The subtype feature layer Customer Pipe describes the linear containers that transport the water or steam within the customer building. Customer Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
 
--------------------table public.energy_plant_assettypes------------------------------------
-INSERT INTO public.energy_plant_assettypes VALUES (1,1,1,'Heating 1 Supply & 1 Return',7,'This type of energy plant supplies heat by one supply and return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (2,1,2,'Low Temp Heating 1 Supply & 1 Return',8,'This type of energy plant supplies heat at low temperature level by one supply and one return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (3,2,1,'Cooling 1 Supply & 1 Return',9,'This type of energy plant supplies cold by one supply and return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (4,3,1,'Heating 1 Supply & 1 Return',7,'This type of energy plant supplies heat by one supply and return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (5,3,2,'Low Temp Heating 1 Supply & 1 Return',8,'This type of energy plant supplies heat at low temperature level by one supply and one return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (6,4,1,'Low Temp Heating 1 Supply & 1 Return',8,'This type of energy plant supplies heat at low temperature level by one supply and one return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (7,5,1,'Heating 1 Supply & 1 Return',7,'This type of energy plant supplies heat by one supply and return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (8,6,1,'Heating 1 Supply & 1 Return',7,'This type of energy plant supplies heat by one supply and return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (9,6,2,'Low Temp Heating 1 Supply & 1 Return',8,'This type of energy plant supplies heat at low temperature level by one supply and one return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (10,7,1,'Heating 1 Supply & 1 Return',7,'This type of energy plant supplies heat by one supply and return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (11,7,2,'Low Temp Heating 1 Supply & 1 Return',8,'This type of energy plant supplies heat at low temperature level by one supply and one return line.');
-INSERT INTO public.energy_plant_assettypes VALUES (12,8,1,'Heating and Cooling 2 Supply & 2 Return',11,'This type of energy plant supplies heat and cold by two supply and return lines.');
-INSERT INTO public.energy_plant_assettypes VALUES (13,8,2,'Heating and Cooling 2 Supply & 1 Return',10,'This type of energy plant supplies heat and cold by two supply and one return line.');
 
--------------------table public.line_assetgroups------------------------------------
-INSERT INTO public.line_assetgroups VALUES (0,'Unkown','Unkown');
-INSERT INTO public.line_assetgroups VALUES (1,'Service Pipe','The subtype feature layer Service Pipe describes the linear containers that transport the water or steam from the distribution pipe to the customer or customer pipe. Service Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
-INSERT INTO public.line_assetgroups VALUES (2,'Distribution Pipe','The subtype feature layer Distribution Pipe describes the linear containers that transport the water or steam from the transmission pipe to the service pipe. Distribution Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
-INSERT INTO public.line_assetgroups VALUES (3,'Transmission Pipe','The subtype feature layer Transmission pipe describes the linear containers that transport the water or steam from the production facility to the distribution pipe. Transmission pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
-INSERT INTO public.line_assetgroups VALUES (5,'Station Pipe','The subtype feature layer Station Pipe describes the linear containers that transport the water or steam within a station facility. Station Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
-INSERT INTO public.line_assetgroups VALUES (6,'Customer Pipe','The subtype feature layer Customer Pipe describes the linear containers that transport the water or steam within the customer building. Customer Pipe is intended to be used for storing the representation of the physical pipe through all stages of its engineering life cycle (proposed, active, inactive, retired, removed, and abandoned).');
-
--------------------table public.line_assettypes------------------------------------
-INSERT INTO public.line_assettypes VALUES (0,0,0,'Unkown','Unkown');
-INSERT INTO public.line_assettypes VALUES (1,1,0,'Unkown','A service pipe whose function is not known.');
-INSERT INTO public.line_assettypes VALUES (2,1,1,'Heating Supply','A service pipe which is transmitting the water or steam upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (3,1,2,'Heating Return','A service pipe which is transmitting the water or steam downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (9,2,1,'Heating Supply','A distribution pipe which is transmitting the water or steam upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (10,2,2,'Heating Return','A distribution pipe which is transmitting the water or steam downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (15,3,0,'Unkown','A transmission pipe whose function is not known.');
-INSERT INTO public.line_assettypes VALUES (16,3,1,'Heating Supply','A transmission pipe which is transmitting the water or steam upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (17,3,2,'Heating Return','A transmission pipe which is transmitting the water or steam downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (22,5,0,'Unkown','A station pipe whose function is not known.');
-INSERT INTO public.line_assettypes VALUES (23,5,1,'Heating Supply','A station pipe which is transmitting the water or steam upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (24,5,2,'Heating Return','A station pipe which is transmitting the water or steam downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (29,6,0,'Unkown','A customer pipe whose function is not known.');
-INSERT INTO public.line_assettypes VALUES (30,6,1,'Heating Supply','A customer pipe which is transmitting the water or steam upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (31,6,2,'Heating Return','A customer pipe which is transmitting the water or steam downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (54,0,7,'Heating Supply & Heating Return','An unkown pipe which is transmitting the water or steam upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (55,1,7,'Heating Supply & Heating Return','A service pipe which is transmitting the water or steam upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (56,2,7,'Heating Supply & Heating Return','A distribution pipe which is transmitting the water or steam upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (57,3,7,'Heating Supply & Heating Return','A transmission pipe which is transmitting the water or steam upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (58,5,7,'Heating Supply & Heating Return','A station pipe which is transmitting the water or steam upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (59,6,7,'Heating Supply & Heating Return','A customer pipe which is transmitting the water or steam upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (60,0,8,'Heating and Cooling Supply & Heating and Cooling Return','An unkown pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (61,1,8,'Heating and Cooling Supply & Heating and Cooling Return','A service pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (62,2,8,'Heating and Cooling Supply & Heating and Cooling Return','A distribution pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (63,3,8,'Heating and Cooling Supply & Heating and Cooling Return','A transmission pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (64,5,8,'Heating and Cooling Supply & Heating and Cooling Return','A station pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (65,6,8,'Heating and Cooling Supply & Heating and Cooling Return','A customer pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (66,0,9,'Heating and Cooling Supply & Combined Return','An unkown pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and combined in a single line back to the plant.');
-INSERT INTO public.line_assettypes VALUES (67,1,9,'Heating and Cooling Supply & Combined Return','A service pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and combined in a single line back to the plant.');
-INSERT INTO public.line_assettypes VALUES (68,2,9,'Heating and Cooling Supply & Combined Return','A distribution pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and combined in a single line back to the plant.');
-INSERT INTO public.line_assettypes VALUES (69,3,9,'Heating and Cooling Supply & Combined Return','A transmission pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and combined in a single line back to the plant.');
-INSERT INTO public.line_assettypes VALUES (70,5,9,'Heating and Cooling Supply & Combined Return','A station pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and combined in a single line back to the plant.');
-INSERT INTO public.line_assettypes VALUES (71,6,9,'Heating and Cooling Supply & Combined Return','A customer pipe which is transmitting the hot and cold water upstream of the customer and downstream of the customer and combined in a single line back to the plant.');
-INSERT INTO public.line_assettypes VALUES (72,0,10,'Cooling Supply','An unkwon pipe which is transmitting the hot water upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (73,1,10,'Cooling Supply','A service pipe which is transmitting the hot water upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (74,2,10,'Cooling Supply','A distribution pipe which is transmitting the hot water upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (75,3,10,'Cooling Supply','A transmission pipe which is transmitting the hot water upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (76,5,10,'Cooling Supply','A station pipe which is transmitting the hot water upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (77,6,10,'Cooling Supply','A customer pipe which is transmitting the hot water upstream of the customer.');
-INSERT INTO public.line_assettypes VALUES (78,0,11,'Cooling Return','An unkown pipe which is transmitting the cold water downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (79,1,11,'Cooling Return','A service pipe which is transmitting the cold water downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (80,2,11,'Cooling Return','A distribution pipe which is transmitting the cold water downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (81,3,11,'Cooling Return','A transmission pipe which is transmitting the cold water downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (82,5,11,'Cooling Return','A station pipe which is transmitting the cold water downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (83,6,11,'Cooling Return','A customer pipe which is transmitting the cold water downstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (84,0,12,'Cooling Supply & Cooling Return','An unkown pipe which is transmitting the cold water upstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (85,1,12,'Cooling Supply & Cooling Return','A service pipe which is transmitting the cold water upstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (86,2,12,'Cooling Supply & Cooling Return','A distribution pipe which is transmitting the cold water upstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (87,3,12,'Cooling Supply & Cooling Return','A transmission pipe which is transmitting the cold water upstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (88,5,12,'Cooling Supply & Cooling Return','A station pipe which is transmitting the cold water upstream of the customer and back to the plant.');
-INSERT INTO public.line_assettypes VALUES (89,6,12,'Cooling Supply & Cooling Return','A customer pipe which is transmitting the cold water upstream of the customer and back to the plant.');
-
--------------------table public.device_assetgroups------------------------------------
-INSERT INTO public.device_assetgroups VALUES (0,'Unkown','Unkown');
-INSERT INTO public.device_assetgroups VALUES (1,'Pump','The subtype feature layer Pump describes those inline devices used to move fluid thru the pipe system.');
-INSERT INTO public.device_assetgroups VALUES (2,'Flow Valve','The subtype feature layer Flow Valve describes the component that restricts the flow of the commodity to a singe direction.');
-INSERT INTO public.device_assetgroups VALUES (3,'Controllable Valve','The subtype feature layer Controllable Valve describes the component that can permit or prevent the flow through the pipe system. These components are used within a utility network to perform valve isolation traces.');
-INSERT INTO public.device_assetgroups VALUES (4,'Pressure Valve','The subtype feature layer Pressure Valve describes the device in a pipe system that is able to adjust the flow of the fluid thru the pipe to alter the fluid pressure within the downstream pipe system.');
-INSERT INTO public.device_assetgroups VALUES (5,'Pressure Regulator','The subtype feature layer Pressure Regulator describes the device in a pipe system that is responsible for maintaining a defined outlet pressure in the pipe.');
-INSERT INTO public.device_assetgroups VALUES (6,'Meter','The subtype feature layer meter describes the device in a pipe system that is responsible for measuring the consumption of flow and energy.');
-INSERT INTO public.device_assetgroups VALUES (9,'Heat Exchanger','The subtype feature layer Heat Exchanger describes the device in a pipe system that is used to thermodynamically transfer energy.');
-INSERT INTO public.device_assetgroups VALUES (14,'Bypass','The subtype feature layer Bypass is the switching device which allows the flow of fluid to be diverted from the inflow pipe to a outflow pipe.');
-INSERT INTO public.device_assetgroups VALUES (18,'Tank','The subtype feature layer Tank is the device which stores heated or cooled water to provide additional capacity to the pipe system.');
-INSERT INTO public.device_assetgroups VALUES (53,'Heat Pump for Heating','The subtype feature layer Heat Pump is the device which raises the temperature level.');
-INSERT INTO public.device_assetgroups VALUES (54,'Heat Pump for Cooling','The subtype feature layer Heat Pump is the device which lowers the temperature level.');
-
--------------------table public.line_assettypes------------------------------------
-INSERT INTO public.device_assettypes VALUES (0,0,0,'Unkown',6,'Unkown');
-INSERT INTO public.device_assettypes VALUES (1,1,1,'Heating Supply & Heating Return',6,'A pump with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (2,1,2,'Cooling 1 Supply & 1 Return',12,'A pump with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (4,1,3,'Heating and Cooling 2 Supply & 2 Return',13,'A pump with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (5,1,4,'Heating and Cooling 1 Supply & 1 Return',15,'A pump with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (6,1,5,'Heating and Cooling 2 Supply & 1 Return',14,'A pump with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (7,2,1,'Heating Supply & Heating Return',6,'A flow valve with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (8,2,2,'Cooling 1 Supply & 1 Return',12,'A flow valve with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (9,2,3,'Heating and Cooling 2 Supply & 2 Return',13,'A flow valve with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (10,2,4,'Heating and Cooling 1 Supply & 1 Return',15,'A flow valve with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (11,2,5,'Heating and Cooling 2 Supply & 1 Return',14,'A flow valve with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (12,3,1,'Heating Supply & Heating Return',6,'A controllable valve with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (13,3,2,'Cooling 1 Supply & 1 Return',12,'A controllable valve with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (14,3,3,'Heating and Cooling 2 Supply & 2 Return',13,'A controllable valve with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (15,3,4,'Heating and Cooling 1 Supply & 1 Return',15,'A controllable valve with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (16,3,5,'Heating and Cooling 2 Supply & 1 Return',14,'A controllable valve with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (17,4,1,'Heating Supply & Heating Return',6,'A pressure valve with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (18,4,2,'Cooling 1 Supply & 1 Return',12,'A pressure valve with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (19,4,3,'Heating and Cooling 2 Supply & 2 Return',13,'A pressure valve with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (20,4,4,'Heating and Cooling 1 Supply & 1 Return',15,'A pressure valve with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (21,4,5,'Heating and Cooling 2 Supply & 1 Return',14,'A pressure valve with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (22,5,1,'Heating Supply & Heating Return',6,'A pressure regulator with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (23,5,2,'Cooling 1 Supply & 1 Return',12,'A pressure regulator with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (24,5,3,'Heating and Cooling 2 Supply & 2 Return',13,'A pressure regulator with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (25,5,4,'Heating and Cooling 1 Supply & 1 Return',15,'A pressure regulator with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (26,5,5,'Heating and Cooling 2 Supply & 1 Return',14,'A pressure regulator with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (27,6,1,'Heating Supply & Heating Return',6,'A meter with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (28,6,2,'Cooling 1 Supply & 1 Return',12,'A meter with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (29,6,3,'Heating and Cooling 2 Supply & 2 Return',13,'A meter with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (30,6,4,'Heating and Cooling 1 Supply & 1 Return',15,'A meter with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (31,6,5,'Heating and Cooling 2 Supply & 1 Return',14,'A meter with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (32,9,1,'Heating Supply & Heating Return',6,'A heat exchanger with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (33,9,2,'Cooling 1 Supply & 1 Return',12,'A heat exchanger with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (34,9,3,'Heating and Cooling 2 Supply & 2 Return',13,'A heat exchanger with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (35,9,4,'Heating and Cooling 1 Supply & 1 Return',15,'A heat exchanger with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (36,9,5,'Heating and Cooling 2 Supply & 1 Return',14,'A heat exchanger with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (37,14,1,'Heating Supply & Heating Return',6,'A bypass with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (38,14,2,'Cooling 1 Supply & 1 Return',12,'A bypass with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (39,14,3,'Heating and Cooling 2 Supply & 2 Return',13,'A bypass with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (40,14,4,'Heating and Cooling 1 Supply & 1 Return',15,'A bypass with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (41,14,5,'Heating and Cooling 2 Supply & 1 Return',14,'A bypass with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (42,18,1,'Heating Supply & Heating Return',6,'A tank with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (43,18,2,'Cooling 1 Supply & 1 Return',12,'A tank with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (44,18,3,'Heating and Cooling 2 Supply & 2 Return',13,'A tank with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (45,18,4,'Heating and Cooling 1 Supply & 1 Return',15,'A tank with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (46,18,5,'Heating and Cooling 2 Supply & 1 Return',14,'A tank with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (47,53,1,'Heating Supply & Heating Return',6,'A heat pump for heating with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (48,53,2,'Cooling 1 Supply & 1 Return',12,'A heat pump for heating with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (49,53,3,'Heating and Cooling 2 Supply & 2 Return',13,'A heat pump for heating with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (50,53,4,'Heating and Cooling 1 Supply & 1 Return',15,'A heat pump for heating with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (51,53,5,'Heating and Cooling 2 Supply & 1 Return',14,'A heat pump for heating with one hot and one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (52,54,1,'Heating Supply & Heating Return',6,'A heat pump for cooling with one hot supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (53,54,2,'Cooling 1 Supply & 1 Return',12,'A heat pump for cooling with one cold supply and one warm return line.');
-INSERT INTO public.device_assettypes VALUES (54,54,3,'Heating and Cooling 2 Supply & 2 Return',13,'A heat pump for cooling with one hot and one cold supply and two warm return lines.');
-INSERT INTO public.device_assettypes VALUES (55,54,4,'Heating and Cooling 1 Supply & 1 Return',15,'A heat pump for cooling with one low temperature supply and one warm return line for heating and cooling.');
-INSERT INTO public.device_assettypes VALUES (56,54,5,'Heating and Cooling 2 Supply & 1 Return',14,'A heat pump for cooling with one hot and one cold supply and one warm return line.');
-
--------------------table public.junction_assetgroups------------------------------------
-INSERT INTO public.junction_assetgroups VALUES (0,'Unkown','Unkown');
-INSERT INTO public.junction_assetgroups VALUES (1,'Cross','Also known as a 4-way tee. A cross allows four segments of pipe to connect.');
-INSERT INTO public.junction_assetgroups VALUES (2,'End Cap','An end cap is a coupling with only one socket for connecting to a pipe segment. It is used to close the otherwise open end of a pipe');
-INSERT INTO public.junction_assetgroups VALUES (3,'Reducer','A coupling where one socket opening has a smaller diameter than the other socket opening.');
-INSERT INTO public.junction_assetgroups VALUES (4,'Tee','A fitting for combining or dividing flow. It has three or four socket openings.');
-INSERT INTO public.junction_assetgroups VALUES (5,'Y-Connector','A type of tee which allows three pipe segments to be joined. Two of the pipe sockecs are at a 45 degree angle to each other.');
+-------------------table public.junction_types------------------------------------
+INSERT INTO public.junction_types VALUES (0,'Unkown','Unkown');
+INSERT INTO public.junction_types VALUES (1,'Cross','Also known as a 4-way tee. A cross allows four segments of pipe to connect.');
+INSERT INTO public.junction_types VALUES (2,'End Cap','An end cap is a coupling with only one socket for connecting to a pipe segment. It is used to close the otherwise open end of a pipe');
+INSERT INTO public.junction_types VALUES (3,'Reducer','A coupling where one socket opening has a smaller diameter than the other socket opening.');
+INSERT INTO public.junction_types VALUES (4,'Tee','A fitting for combining or dividing flow. It has three or four socket openings.');
+INSERT INTO public.junction_types VALUES (5,'Y-Connector','A type of tee which allows three pipe segments to be joined. Two of the pipe sockecs are at a 45 degree angle to each other.');

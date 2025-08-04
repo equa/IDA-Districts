@@ -3,7 +3,7 @@ from plugins.utility_functions.sensor_signals import *
 from plugins.utility_functions.topology import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.ida_components import *
-from plugins.utility_functions.assettypeFiles import *
+from plugins.utility_functions.templateFiles import *
 from plugins.ida_districts_modeling_simulation.cosim import *
 
 
@@ -83,7 +83,7 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                 print(ex[':EXPORT'])
     return data_ex
     
-class CopyDecoupledAssettypeMacro:
+class CopyDecoupledTemplateMacro:
     """ Copy invoked assettype macros to IDA network project (customers and plants):
         * remove everything without interfaces
         * import/export:
@@ -350,7 +350,7 @@ class CopyDecoupledAssettypeMacro:
                             createSubDir(path)
                             copyFile(os.path.join(root, file),path,path+'\\'+file)
                             
-dec_assettypes=CopyDecoupledAssettypeMacro(submodel,dir,dictDB,cur,plugin_dir,sensor_data,mode='network')
+dec_templates=CopyDecoupledTemplateMacro(submodel,dir,dictDB,cur,plugin_dir,sensor_data,mode='network')
 
 
     

@@ -109,8 +109,8 @@ def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,plugin_dir,sensor_
             print(feature_dec_irefs)
     return feature_dec_irefs
     
-class CopyDecoupledAssettypeMacro:
-    """ Copy invoked assettype macros to IDA network project (customers and plants):
+class CopyDecoupledTemplateMacro:
+    """ Copy invoked template macros to IDA network project (customers and plants):
         * remove everything without interfaces
         * import/export:
             -sensor signals
@@ -124,6 +124,7 @@ class CopyDecoupledAssettypeMacro:
         print(submodels)
         
         features=getFeatureDecIds(dictDB,cur,submodel,submodels)
+        print(features)
         self.import_counter={}
         self.resources=[]
         self.data_ex_f=[]
@@ -387,7 +388,7 @@ class ExchangeConntypeFiles:
         print('*********ExchangeConntypeFiles********')
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_assettypes".format(type)
+        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
         
         if not oldConnValues:
             oldConnValues=getConnsValues(b_conn_t_old,cur)
@@ -510,7 +511,7 @@ class ExchangeConntypeFiles:
                 counter_mdot+=1
         writeToFileFromList(filedata,dir,dir+'\\'+name+'.idc') 
 
-        #assettype macro
+        #template macro
         dir=dir+'\\'+name
         filedata=readFileToList(dir+'\\'+name+'.idm')
         filedata=self.delPMT2Comp(filedata,oldConnValues)
@@ -669,15 +670,17 @@ class ExchangeConntypeFiles:
             counter+=1
         return data
 
-class RenameAssettypeFiles:
-    """ Rename the assettypes"""
+class RenameTemplateFiles:
+    """ Rename the templates"""
     def __init__(self,plugin_dir,name,type,new_name,cur):
+        print('RenameTemplateFiles')
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_assettypes".format(type)
+        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
         filedata=""
         if not os.path.exists(dir+'\\'+name+'.idm') or not os.path.exists(dir+'\\'+name+'.idc'):
-            sql=f"""DELETE FROM {type}_assettypes WHERE assetgroup={name.split('_')[0]} AND assettype={name.split('_')[1]};"""
+            sql=f"""DELETE FROM {type}_templates WHERE template={name.split('_')[0]};"""
+            print(sql)
             cur.execute(sql)
             return False
                
@@ -703,8 +706,8 @@ class RenameAssettypeFiles:
                         copyFileReplaceStr(os.path.join(root, file),root,os.path.join(root, file),[name],[new_name],replaceDict=False)
         print('rename finished')
 
-class CopyAssettypeMacro:
-    """ Copy invoked assettype macros to IDA network project: customers,plants and devices"""
+class CopyTemplateMacro:
+    """ Copy invoked template macros to IDA network project: customers and plants"""
     def __init__(self,submodel,dir,type,dictDB,cur,plugin_dir,reinvoke,invokedOutputs,requestedOutputs,parallize=False,signals=False):
         print('copy {} macro'.format(type))
         print(f"---------------reinvoke: {reinvoke}----------------")
@@ -719,7 +722,7 @@ class CopyAssettypeMacro:
         sql="""SELECT f.id, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, l.submodel
     FROM "{}".{} f, "{}".lines l, "{}".{}_connections conn 
     WHERE f.submodel={} AND l.id=conn.lid AND f.id=conn.{}id AND f.submodel = ANY(l.submodel)
-    ORDER BY id;""".format(submodel,dictDB['versionName'],type,dictDB['versionName'],dictDB['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'd' if type_name=='device' else 'ep')
+    ORDER BY id;""".format(submodel,dictDB['versionName'],type,dictDB['versionName'],dictDB['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'ep')
         print(sql)
         cur.execute(sql)
         #collect resources from project files only once
@@ -757,7 +760,7 @@ class CopyAssettypeMacro:
                 self.resources+=resource
                 
             if feature['model']=='decoupled':
-                sql="""SELECT conn_bundle_type FROM "{}".{} f ,{}_assettypes f_at WHERE f.id={} AND f.assettype=f_at.assettype;""".format(dictDB['versionName'],type,type_name,str(feature['id']))
+                sql="""SELECT conn_bundle_type FROM "{}".{} f ,{}_templates f_t WHERE f.id={} AND f.template=f_t.template;""".format(dictDB['versionName'],type,type_name,str(feature['id']))
                 print(sql)
                 cur.execute(sql)
                 bundle=cur.fetchone()['conn_bundle_type']
@@ -845,15 +848,15 @@ class CopyAssettypeMacro:
         return data
         
             
-class WriteAssettypeFiles:
-    """ writes the .idm and .idc to the plugin folder and adds a macro to define and test assettypes """
+class WriteTemplateFiles:
+    """ writes the .idm and .idc to the plugin folder and adds a macro to define and test templates """
     def __init__(self,plugin_dir,name,type,cur,bundle):
-        print('write assettype {}'.format(type))
+        print('write template {}'.format(type))
         print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------')
         self.cur=cur
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        self.dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_assettypes".format(type)
+        self.dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
         print('bundle: {}'.format(bundle))
         connValues=getConnsValues(bundle,self.cur)
         print(connValues)
@@ -873,7 +876,7 @@ class WriteAssettypeFiles:
         writeMacroSFIdc(self.dictDB,self.cur,self.dir+'\\'+name)
         
     def createMacroDir(self,dir,name):
-        """ makes a new folder for the assettype macro if it does not exists"""
+        """ makes a new folder for the template macro if it does not exists"""
         createDir(dir,name)
     
     def writeMacroIdm(self,dir,name,connValues):

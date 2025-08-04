@@ -373,122 +373,53 @@ CREATE TABLE public.versionhandling
   CONSTRAINT versionhandling_pkey PRIMARY KEY (id)
 );
 
--------------------table public.customer_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.customer_assetgroups CASCADE;
-CREATE TABLE public.customer_assetgroups
+-------------------table public.customer_templates------------------------------------
+DROP TABLE IF EXISTS public.customer_templates CASCADE;
+CREATE TABLE public.customer_templates
 (
 	id serial,
-	assetgroup text,
-	description text,
-	CONSTRAINT customer_assetgroups_pkey PRIMARY KEY (id)
-);
-
--------------------table public.customer_assettypes------------------------------------
-DROP TABLE IF EXISTS public.customer_assettypes CASCADE;
-CREATE TABLE public.customer_assettypes
-(
-	id serial,
-    assetgroup integer,
-    assettype integer,
-	assettype_name text,
+    template integer,
+	template_name text,
     conn_bundle_type integer,
 	description text,
-	CONSTRAINT customer_assettypes_pkey PRIMARY KEY (id)
+	CONSTRAINT customer_template_pkey PRIMARY KEY (id)
 );
 
--------------------table public.energy_plant_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.energy_plant_assetgroups CASCADE;
-CREATE TABLE public.energy_plant_assetgroups
+-------------------table public.energy_plant_templates------------------------------------
+DROP TABLE IF EXISTS public.energy_plant_templates CASCADE;
+CREATE TABLE public.energy_plant_templates
 (
 	id serial,
-	assetgroup text,
-	description text,
-	CONSTRAINT energy_plant_assetgroups_pkey PRIMARY KEY (id)
-);
-
-
--------------------table public.energy_plant_assettypes------------------------------------
-DROP TABLE IF EXISTS public.energy_plant_assettypes CASCADE;
-CREATE TABLE public.energy_plant_assettypes
-(
-	id serial,
-    assetgroup integer,
-	assettype integer,
-	assettype_name text,
+	template integer,
+	template_name text,
 	conn_bundle_type integer DEFAULT 2,
 	description text,
-	CONSTRAINT energy_plant_assettypes_pkey PRIMARY KEY (id)
+	CONSTRAINT energy_plant_templates_pkey PRIMARY KEY (id)
 );
 
--------------------table public.line_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.line_assetgroups CASCADE;
-CREATE TABLE public.line_assetgroups
+-------------------table public.line_types------------------------------------
+DROP TABLE IF EXISTS public.line_types CASCADE;
+CREATE TABLE public.line_types
 (
 	id serial,
-	assetgroup text,
+	type text,
 	description text,
-	CONSTRAINT line_assetgroups_pkey PRIMARY KEY (id)
+	CONSTRAINT line_types_pkey PRIMARY KEY (id)
 );
 
--------------------table public.line_assettypes------------------------------------
-DROP TABLE IF EXISTS public.line_assettypes CASCADE;
-CREATE TABLE public.line_assettypes
+-------------------table public.junction_types------------------------------------
+DROP TABLE IF EXISTS public.junction_types CASCADE;
+CREATE TABLE public.junction_types
 (
 	id serial,
-	assetgroup integer,
-	assettype integer,
-	assettype_name text,
+	type text,
 	description text,
-	CONSTRAINT line_assettypes_pkey PRIMARY KEY (id)
-);
-
--------------------table public.device_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.device_assetgroups CASCADE;
-CREATE TABLE public.device_assetgroups
-(
-	id serial,
-	assetgroup text,
-	description text,
-	CONSTRAINT device_assetgroups_pkey PRIMARY KEY (id)
-);
-
--------------------table public.line_assettypes------------------------------------
-DROP TABLE IF EXISTS public.device_assettypes CASCADE;
-CREATE TABLE public.device_assettypes
-(
-	id serial,
-	assetgroup integer,
-	assettype integer,
-	assettype_name text,
-    conn_bundle_type integer,
-	description text,
-	CONSTRAINT device_assettypes_pkey PRIMARY KEY (id)
-);
-
--------------------table public.junction_assetgroups------------------------------------
-DROP TABLE IF EXISTS public.junction_assetgroups CASCADE;
-CREATE TABLE public.junction_assetgroups
-(
-	id serial,
-	assetgroup text,
-	description text,
-	CONSTRAINT junction_assetgroups_pkey PRIMARY KEY (id)
+	CONSTRAINT junction_types_pkey PRIMARY KEY (id)
 );
 
 
 --------------------------------------------------------------------------------
 ------------------temp tables-----------------------------------------
-
--- Table: temp.device_connections
--- DROP TABLE temp.device_connections;
-CREATE TABLE temp.device_connections
-(
-  id serial,
-  did integer,
-  d_seq integer,
-  lid integer,
-  CONSTRAINT device_connections_pkey PRIMARY KEY (id)
-);
 
 -- Table: temp.junction_connections
 -- DROP TABLE temp.junction_connections;
@@ -527,8 +458,7 @@ CREATE TABLE temp.energy_plant_connections
 CREATE TABLE temp.streets_help (
     id serial,
     geom public.geometry(LineString,25832),
-    assetgroup integer,
-    assettype integer,
+    type integer,
     pipe_bundle_type_id integer,
     length_m double precision,
     costs_eur7m numeric DEFAULT 100,

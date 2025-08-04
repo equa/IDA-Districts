@@ -171,7 +171,7 @@ def loadVersionLayers(dictDB,cur,plugin_dir):
    
     versionLayersAliasNames()
     setupVersionForm(cur,dictDB)
-    setupCustomerDataSheet()
+    #setupCustomerDataSheet()
       
     valueRelationPipeBundleType()    
     valueRelationDhwId()    
@@ -349,9 +349,6 @@ CREATE EXTENSION IF NOT EXISTS postgis_raster WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.cur.execute(sql)
             self.signals.progress.emit(71)
-            filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt")
-            self.cur.execute(filedata)
-            self.signals.progress.emit(72)
             if self.project_name:
                 sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames])
                 print(sql)
@@ -367,7 +364,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                 if self.versionNames:
                     
                     #version tables
-                    self.projectConfig=loadProjectConfig(self.plugin_dir,self.project_name)  
+                    self.projectConfig=loadProjectConfig(self.plugin_dir,self.project_name,signals=self.signals)  
                     filedata=readFileToString(self.plugin_dir+"\\DB_versionTablesDefault.txt")
                     filedata = filedata.replace("$srid$", self.projectConfig['srid'])
                     filedata = filedata.replace("$plugins_path$", getQGISPluginsDir(self.plugin_dir))
@@ -379,7 +376,11 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
                 loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir.replace('\\\\?\\',''),('db_tables' if self.project_name else name))
             print(cmd)
-            subprocess.call(cmd, shell=True)             
+            subprocess.call(cmd, shell=True)
+            self.signals.progress.emit(79)
+            filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt")
+            self.cur.execute(filedata)
+            self.signals.progress.emit(80)            
             if self.project_name and not self.no_db_results:
                 cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
                     loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir.replace('\\\\?\\',''),'db_results')
@@ -859,7 +860,6 @@ class IDA_Districts_ProjectHandling:
                 if not dlg.checkbox_invokedFeatures.isChecked():
                     filter_folders.append('invoked_customers')
                     filter_folders.append('invoked_energy_plants')
-                    filter_folders.append('invoked_devices')           
                 
                 self.worker_newProject = WorkerImportProject(versionNames=versionNames,projectNames=self.projectNames,project_name=self.dictDB['projectName'],filename=filename,dictDB=self.dictDB,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
                 self.worker_newProject.signals.progress.connect(self.dlg.update_progress)
@@ -1458,7 +1458,6 @@ class IDA_Districts_ProjectHandling:
             if not exportInvokedFeatures:
                 filter_folders.append('invoked_customers')
                 filter_folders.append('invoked_energy_plants')
-                filter_folders.append('invoked_devices')
             if not exportDBResults:
                 no_db_results=True
             else:

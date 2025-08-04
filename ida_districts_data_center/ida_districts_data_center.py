@@ -38,8 +38,8 @@ from .resources import *
 # Import the code for the dialog
 from .ida_districts_data_center_dialog import IDADistrictsDataCenterDialog, IDA_Districts_NameDialog, DefaultsDialog, ConnectionsDialog
 from .update_boundaries import *
-from plugins.utility_functions.assettypeFiles import ExchangeConntypeFiles, WriteAssettypeFiles, RenameAssettypeFiles
-from plugins.ida_districts_modeling_simulation.invoke import CopyAssettypeFiles
+from plugins.utility_functions.templateFiles import ExchangeConntypeFiles, WriteTemplateFiles, RenameTemplateFiles
+from plugins.ida_districts_modeling_simulation.invoke import CopyTemplateFiles
 
 from plugins.utility_functions.util import *
 import os.path
@@ -270,20 +270,20 @@ class IDADistrictsDataCenter:
         return ','.join(str(i) for i in values)
         
     def writeRenameExchangeConntype(self,dlg,traceValue,table_name):
-        wroteAssettype=False
+        wroteTemplate=False
         if dlg.traceTableValues[traceValue][1]:
             if dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1]:
                 print(dlg.traceTableValues[traceValue])
                 if not dlg.traceTableValues[traceValue][0]:
                     if dlg.traceTableValues[traceValue][3]:
-                        WriteAssettypeFiles(self.plugin_dir,dlg.traceTableValues[traceValue][1],table_name,self.cur,dlg.traceTableValues[traceValue][3])
+                        WriteTemplateFiles(self.plugin_dir,dlg.traceTableValues[traceValue][1],table_name,self.cur,dlg.traceTableValues[traceValue][3])
                     else:
-                        self.iface.messageBar().pushMessage("Error", "No assettype is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
+                        self.iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
                         return False
-                    wroteAssettype=True
+                    wroteTemplate=True
                 else:
-                    RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
-        if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteAssettype:
+                    RenameTemplateFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
+        if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteTemplate:
             if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
                 print('Changed conn bundle type')
                 print(dlg.traceTableValues[traceValue])
@@ -299,10 +299,9 @@ class IDADistrictsDataCenter:
         table_name="_".join(table.split('_')[0:-1])
         if trace in ['conn_type_trace','bt_conns_trace']:
             oldConnValues_dict={}
-            ats=getAssetTypesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getAssetTypesByConnBundleType(self.cur,self.dictDB,id)
+            ats=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
             for at in ats:
-                if at['type']!='device':
-                    oldConnValues_dict[at['at_name']]=getConnsValues(at['conn_bundle_type_id'],self.cur)
+                oldConnValues_dict[at['at_name']]=getConnsValues(at['conn_bundle_type_id'],self.cur)
         
         sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id)
         print(sql)
@@ -314,7 +313,7 @@ class IDADistrictsDataCenter:
             if not values:
                 self.iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
                 return False
-            sql+="""INSERT INTO public.{} (id,{},{}) VALUES({},{},{});\n""".format(table,filter[5:-1],','.join(i for i in columns),maxId+counter,id,values)
+            sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values)
             counter+=1
         print(sql)
         try:
@@ -330,17 +329,13 @@ class IDADistrictsDataCenter:
                 dlg.traceTableValues[traceValue][1] and not dlg.traceTableValues[traceValue][0] or 
                 dlg.traceTableValues[traceValue][3] and not dlg.traceTableValues[traceValue][2]]:
                 print('ExchangeConntypeFiles')
-                #get changed conn bundle types --> get changed assettypes
-                ats=getAssetTypesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getAssetTypesByConnBundleType(self.cur,self.dictDB,id)
+                #get changed conn bundle types --> get changed templates
+                ats=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
                 for at in ats:
-                    if at['type']!='device':
-                        print(at)
-                for at in ats:
-                    if at['type']!='device':
-                        print('*****************************************************************************')
-                        print(at['at_name'])
-                        print(oldConnValues_dict[at['at_name']])
-                        ExchangeConntypeFiles(self.plugin_dir,at['at_name'],at['type'],at['conn_bundle_type_id'],at['conn_bundle_type_id'],self.cur,oldConnValues=oldConnValues_dict[at['at_name']])
+                    print('*****************************************************************************')
+                    print(at['t_name'])
+                    print(oldConnValues_dict[at['t_name']])
+                    ExchangeConntypeFiles(self.plugin_dir,at['t_name'],at['type'],at['conn_bundle_type_id'],at['conn_bundle_type_id'],self.cur,oldConnValues=oldConnValues_dict[at['t_name']])
             
         elif trace:
             print(dlg.traceTableValues)
@@ -348,7 +343,7 @@ class IDADistrictsDataCenter:
                 self.writeRenameExchangeConntype(dlg,traceValue,table_name)
             
             #delete templates in directory if they are not in dlg.traceTableValues[traceValue][0]
-            dir=self.plugin_dir+'\\'+self.dictDB['projectName']+"\\{}_assettypes".format(table_name)
+            dir=self.plugin_dir+'\\'+self.dictDB['projectName']+"\\{}_templates".format(table_name)
             files = []
             for file in os.listdir(dir):
                 # check only .idm files
@@ -362,11 +357,11 @@ class IDADistrictsDataCenter:
                 else:
                     traceTableFiles.append(dlg.traceTableValues[traceValue][0])
             print(traceTableFiles)
-            sql="""SELECT assetgroup::text || '_' || assettype::text || '_' || assettype_name AS assettype_name FROM {}_assettypes WHERE assetgroup !={};""".format(table_name,id)
+            sql="""SELECT template::text || '_' || template_name AS template_name FROM {}_templates;""".format(table_name)
             self.cur.execute(sql)
-            list_assettype_names=[i['assettype_name'] for i in self.cur.fetchall()]
+            list_template_names=[i['template_name'] for i in self.cur.fetchall()]
             for file in files:
-                if file not in traceTableFiles and file not in list_assettype_names:
+                if file not in traceTableFiles and file not in list_template_names:
                     print(file)
                     if os.path.exists(dir+'\\'+file+'.idm'):
                         os.remove(dir+'\\'+file+'.idm')
@@ -377,67 +372,32 @@ class IDADistrictsDataCenter:
                     
         dlg.close()
     
-    def showAssettypes(self,type):
-        """show asset types"""
-        self.dlg_manageAssettype.tableWidget.setRowCount(0)
-        sql='SELECT assettype, assettype_name,conn_type,description FROM public.{}_assettypes GROUP BY assettype,assettype_name,conn_type,description ORDER BY assettype;'.format(type)
+    def showTemplates(self,type):
+        """show templates"""
+        self.dlg_manageTemplate.tableWidget.setRowCount(0)
+        sql='SELECT template, template_name,conn_type,description FROM public.{}_templates GROUP BY template,template_name,conn_type,description ORDER BY template;'.format(type)
         self.cur.execute(sql)
         data=self.cur.fetchall()
         print(data)
-        for assettype in data:
-            rowPosition = self.dlg_manageAssettype.tableWidget.rowCount()
-            self.dlg_manageAssettype.tableWidget.insertRow(rowPosition)
-            self.dlg_manageAssettype.tableWidget.setItem(rowPosition , 0, QTableWidgetItem(str(assettype['assettype'])))
+        for template in data:
+            rowPosition = self.dlg_manageTemplate.tableWidget.rowCount()
+            self.dlg_manageTemplate.tableWidget.insertRow(rowPosition)
+            self.dlg_manageTemplate.tableWidget.setItem(rowPosition , 0, QTableWidgetItem(str(template['template'])))
             
             comboBox = QComboBox()
-            comboBox.addItems(getAssetgroups(type,cur))
-            self.dlg_manageAssettype.tableWidget.setCellWidget(rowPosition, 1, comboBox)  
+            comboBox.addItems(getTemplates(type,cur))
+            self.dlg_manageTemplate.tableWidget.setCellWidget(rowPosition, 1, comboBox)  
             
-            self.dlg_manageAssettype.tableWidget.setItem(rowPosition , 2, QTableWidgetItem(assettype['assettype_name']))
+            self.dlg_manageTemplate.tableWidget.setItem(rowPosition , 2, QTableWidgetItem(template['template_name']))
                      
             comboBox = QComboBox()
             comboBox.addItems(self.getConnectionTypes())
-            comboBox.setCurrentText(str(assettype['conn_type']))
-            self.dlg_manageAssettype.tableWidget.setCellWidget(rowPosition, 3, comboBox)            
+            comboBox.setCurrentText(str(template['conn_type']))
+            self.dlg_manageTemplate.tableWidget.setCellWidget(rowPosition, 3, comboBox)            
             
-            self.dlg_manageAssettype.tableWidget.setItem(rowPosition , 4, QTableWidgetItem(assettype['description']))
-        
-    def deleteAssettype(self,type):
-        """ Delete selected assettype and refresh table"""
-        row_index=self.dlg_manageAssettype.tableWidget.currentRow()
-        print (row_index)
-        if row_index!=-1:
-            assettype=self.dlg_manageAssettype.tableWidget.item(row_index, 0).text()
-            sql='DELETE FROM public.'+type+'_assettypes WHERE assettype='+assettype+';'.format(type)
-            print(sql)
-            self.cur.execute(sql)
-            self.showAssettypes(type)
-        else:
-            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
-            
-    def checkAssettype(self,type,id):
-        sql='SELECT assettype FROM public.{}_assettypes WHERE assettype=\'{}\';'.format(type,id)
-        print(sql)
-        self.cur.execute(sql)
-        if self.cur.fetchone():
-            print('check assettype: already exists')
-            return False
-        else:
-            print('check assettype: Ok')
-            return True
-            
-    def checkIfIdExists(self,column,table,id):
-        sql='SELECT {} FROM public.{} WHERE {}=\'{}\';'.format(column,table,column,id)
-        print(sql)
-        self.cur.execute(sql)
-        if self.cur.fetchone():
-            print('check id: already exists')
-            return False
-        else:
-            print('check id: Ok')
-            return True
+            self.dlg_manageTemplate.tableWidget.setItem(rowPosition , 4, QTableWidgetItem(template['description']))
                         
-    #ToDo: merge getConnectionTypes & getAssetgroups to getIds
+    #ToDo: merge getConnectionTypes & getTemplates to getIds
     def getConnectionTypes(self):
         """ get all connection types """
         sql='SELECT id FROM public.connection_types;'
@@ -491,7 +451,7 @@ class IDADistrictsDataCenter:
         dlg.tableWidget.setCellWidget(rowPosition, 1, comboBox)   
 
     def deleteTableRow (self,dlg,trace):
-        """ Delete selected assettype and refresh table"""
+        """ Delete selected template and refresh table"""
         print('delete row')
         row_index=dlg.tableWidget.currentRow()
         print (row_index)
@@ -549,7 +509,7 @@ class IDADistrictsDataCenter:
         sql="""DELETE FROM building_constructions WHERE construction_standard_id={};\n""".format(id)
         for row in range(dlg.tableWidget.rowCount()):
             sql+="""INSERT INTO building_constructions (construction_standard_id,construction_type_id,construction_name,description) VALUES ({},{},'{}','{}');\n""".format(
-                id,dlg.tableWidget.item(row,0).text(),dlg.tableWidget.item(row,1).text(),dlg.tableWidget.item(row,2).text())
+                id,dlg.tableWidget.item(row,0).text(),dlg.tableWidget.item(row,2).text(),dlg.tableWidget.item(row,3).text())
         print(sql)
         try:
             self.cur.execute(sql)
@@ -568,7 +528,11 @@ class IDADistrictsDataCenter:
         print(sql)
         self.cur.execute(sql) 
         data = self.cur.fetchall()
-
+        if not data:
+            sql="""SELECT bct.id, bct.name FROM building_construction_types bct ORDER BY bct.id;"""
+            self.cur.execute(sql) 
+            data = self.cur.fetchall()
+            
         for rowCounter,row in enumerate(data):
             print(row)
             for colCounter,col in enumerate(row):
@@ -613,7 +577,7 @@ class IDADistrictsDataCenter:
             dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))   
             dlg.btn_ok.clicked.connect(lambda: self.saveContent(dlg,id,openFnArg[0],columns,filter,dropdowns,trace))
             if save_as:
-                dlg.btn_saveAs.clicked.connect(lambda: self.saveAsAssettype(dlg,openFnArg[0],id,dropdowns,trace))
+                dlg.btn_saveAs.clicked.connect(lambda: self.saveAsTemplate(dlg,openFnArg[0],dropdowns,trace))
             
             dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
             dlg.traceTableValues=self.showFilteredTableContent(dlg,openFnArg[0],columns,filter+id,orderby,dropdowns,trace,deactivated)
@@ -622,31 +586,60 @@ class IDADistrictsDataCenter:
                 dlg.tableWidget.itemChanged.connect(dlg.changeItem)
             dlg.show() 
         else:
-            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)                     
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)  
 
-    def openAssettype(self,type,dlg,assetgroup):
-        """ Open an assettype macro in IDA; copy the assettype template from the installation folder"""
-        print('Open Assettype')
+    def show_templateDialog(self,type):
+        print('Open current row dialog started: ')
+        columns=['template','template_name','conn_bundle_type','description']
+        headers=['Id', 'Template name','Connection bundle type', 'Description']
+        filter=''
+        orderby='ORDER BY template'
+        dropdowns=[[2,'public','conn_bundle_types','id','description']]
+        trace=True
+        save_as=True
+        deactivated=[0]
+        title=type+' templates'
+        table='{}_templates'.format(type)
+        
+        dlg = TableDialog(title,headers,True,False,save_as,trace,type=getTypeIdByName(type))           
+        dlg.btn_open.clicked.connect(lambda: self.openTemplate(type,dlg))
+
+        dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,trace,deactivated))
+        dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg))   
+        dlg.btn_ok.clicked.connect(lambda: self.saveContent(dlg,'',table,columns,filter,dropdowns,trace))
+        if save_as:
+            dlg.btn_saveAs.clicked.connect(lambda: self.saveAsTemplate(dlg,table,dropdowns,trace))
+        
+        dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
+        dlg.traceTableValues=self.showFilteredTableContent(dlg,table,columns,'',orderby,dropdowns,trace,deactivated)
+       
+        if trace:
+            dlg.tableWidget.itemChanged.connect(dlg.changeItem)
+        dlg.show() 
+
+    def openTemplate(self,type,dlg):
+        """ Open an template macro in IDA; copy the template from the installation folder"""
+        print('Open Template')
         row_index=dlg.tableWidget.currentRow()
         if row_index!=-1:
-            assettype=dlg.tableWidget.item(row_index, 0).text()
-            sql="SELECT assettype_name,conn_bundle_type FROM public.{}_assettypes WHERE assettype={} AND assetgroup ={};".format(type,assettype,assetgroup)
+            template=dlg.tableWidget.item(row_index, 0).text()
+            sql="SELECT template_name,conn_bundle_type FROM public.{}_templates WHERE template={};".format(type,template)
             print(sql)
             self.cur.execute(sql)
-            assettype_=self.cur.fetchone()
-            if assettype_:
-                assettype_name=assettype_['assettype_name']
-                conn_bundle_type=assettype_['conn_bundle_type']
+            template_=self.cur.fetchone()
+            if template_:
+                template_name=template_['template_name']
+                conn_bundle_type=template_['conn_bundle_type']
             else:
                 if dlg.tableWidget.item(row_index, 1) and dlg.tableWidget.item(row_index, 1).text():
-                    assettype_name=dlg.tableWidget.item(row_index, 1).text()
+                    template_name=dlg.tableWidget.item(row_index, 1).text()
                 else:
-                    self.iface.messageBar().pushMessage("Info", "Please enter an assettype name!", level=Qgis.Info)
+                    self.iface.messageBar().pushMessage("Info", "Please enter an template name!", level=Qgis.Info)
                     return False
                 conn_bundle_type=dlg.tableWidget.cellWidget(row_index, 2).currentText()
                 conn_bundle_type=conn_bundle_type.split(":")[0]
-            name=assetgroup+'_'+assettype+'_'+assettype_name
-            dir=self.plugin_dir.replace('/','\\')+"\\{}\\{}_assettypes\\".format(self.dictDB['projectName'],type)
+            name=template+'_'+template_name
+            dir=self.plugin_dir.replace('/','\\')+"\\{}\\{}_templates\\".format(self.dictDB['projectName'],type)
             file=dir+"{}.idm".format(name)
             print(file)
             print(dlg.traceTableValues)
@@ -654,19 +647,19 @@ class IDADistrictsDataCenter:
             if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
                 if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
                     print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
-                    RenameAssettypeFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
+                    RenameTemplateFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
                     dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
                     dlg.traceTableValues[row_index][1]=''
                     file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])
                     
-            wroteAssettype=False
+            wroteTemplate=False
             if not os.path.exists(file): 
-                WriteAssettypeFiles(self.plugin_dir,name,type,self.cur,conn_bundle_type)
+                WriteTemplateFiles(self.plugin_dir,name,type,self.cur,conn_bundle_type)
                 dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
                 dlg.traceTableValues[row_index][1]=''
-                wroteAssettype=True
+                wroteTemplate=True
             
-            if dlg.traceTableValues[row_index][3] and dlg.traceTableValues[row_index][2] and not wroteAssettype: # override connection bundle only if assettype exists before
+            if dlg.traceTableValues[row_index][3] and dlg.traceTableValues[row_index][2] and not wroteTemplate: # override connection bundle only if template exists before
                 if dlg.traceTableValues[row_index][2]!=dlg.traceTableValues[row_index][3]:
                     print('Changed conn bundle type')
                     print(dlg.traceTableValues[row_index])
@@ -676,7 +669,7 @@ class IDADistrictsDataCenter:
                     print(dlg.traceTableValues[row_index])                
 
             #write to DB
-            sql="DELETE FROM public.{}_assettypes WHERE assettype={} AND assetgroup ={};".format(type,assettype,assetgroup)
+            sql="DELETE FROM public.{}_templates WHERE template={};".format(type,template)
             print(sql)
             self.cur.execute(sql)
             if type=='customer':
@@ -688,19 +681,19 @@ class IDADistrictsDataCenter:
             else:
                 description=''
 
-            sql="""INSERT INTO public.{}_assettypes (id,assetgroup, assettype,assettype_name,conn_bundle_type,description) VALUES({},{},{},'{}',{},'{}');\n""".format(
-                type,getMaxId(self.cur,type+'_assettypes')+1,assetgroup,assettype,assettype_name,dlg.traceTableValues[row_index][2],description)
+            sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(
+                type,getMaxId(self.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][2],description)
             print(sql)
             self.cur.execute(sql)
             
             # Open the building with the IDA ICE Python API
             print('**********************************')
             print(file)
-            self.worker_openAssettype = WorkerOpenAPI(file,self.plugin_dir)
-            self.threadpool_openAssettype = QThreadPool()
-            self.threadpool_openAssettype.start(self.worker_openAssettype)
+            self.worker_openTemplate = WorkerOpenAPI(file,self.plugin_dir)
+            self.threadpool_openTemplate = QThreadPool()
+            self.threadpool_openTemplate.start(self.worker_openTemplate)
             
-            print('finished open assettype')
+            print('finished open template')
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
@@ -772,35 +765,37 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         defaults=self.cur.fetchall()
         return defaults
         
-    def showDefaults(self,dlg,defaults,assetgroup_name):
+    def showDefaults(self,dlg,defaults,template_name):
         """show the default values of a table in the GUI"""
         for default in defaults:
-            if default['column_name'] in ['assetgroup','pipe_bundle_type_id','subnetwork','assettype']:
-                if default['column_name'] =='assetgroup':
-                    dropdownItems=getDropDownItems(self.cur,[[0,'public','{}_assetgroups'.format(assetgroup_name),'id','assetgroup']])
-                if default['column_name'] =='pipe_bundle_type_id':
+            if default['column_name'] in ['template','pipe_bundle_type_id','network','type','internal_load_id','dhw_id']:
+                print(default)
+                if default['column_name'] =='template':
+                    dropdownItems=getDropDownItems(self.cur,[[0,'public','{}_templates'.format(template_name),'id','template_name']])
+                elif default['column_name'] =='type':
+                    dropdownItems=getDropDownItems(self.cur,[[0,'public','{}_types'.format(template_name),'id','type']])
+                elif default['column_name'] =='pipe_bundle_type_id':
                     dropdownItems=getDropDownItems(self.cur,[[0,'public','pipe_bundle_types','id','description']])
-                if default['column_name'] =='subnetwork':  
-                    dropdownItems=getDropDownItems(self.cur,[[0,self.dictDB['versionName'],'subnetwork','id','subnetwork']])
-                if default['column_name'] =='assettype':  
-                    if dlg.input['assetgroup'].currentText()=='(no selection)':
-                        dropdownItems=[['(no selection)']]
-                    else:
-                        dropdownItems=[getFilteredDropDownItems(self.cur,[assetgroup_name+'_assettypes','assettype','assettype_name','assetgroup',dlg.input['assetgroup'].currentText().split(':')[0]])]
-                        print(dropdownItems)
-                dlg.input[default['column_name']].clear()    
-                dlg.input[default['column_name']].addItems(['(no selection)']+dropdownItems[0])
-                dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0] if i[0]==default['column_default']))
-            if default['column_name'] in ['nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure',
-                                'heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','cold_e_kwh','cold_p_kw']:
+                elif default['column_name'] =='network':  
+                    dropdownItems=getDropDownItems(self.cur,[[0,self.dictDB['versionName'],'network','id','description']])
+                elif default['column_name'] =='internal_load_id':  
+                    dropdownItems=getDropDownItems(self.cur,[[0,'public','internal_loads_profiles','id','description']])
+                elif default['column_name'] =='dhw_id':  
+                    dropdownItems=getDropDownItems(self.cur,[[0,'public','dhw_timeseries','id','description']])
+                try:
+                    dlg.input[default['column_name']].clear()    
+                    dlg.input[default['column_name']].addItems(['(no selection)']+dropdownItems[0])
+                    dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0] if i[0]==default['column_default']))
+                except:
+                    pass
+            if default['column_name'] in ['submodel','load_w']:
                 dlg.input[default['column_name']].setText(default['column_default'])
    
     def show_DefaultsLinesDialog(self):
         """ show the efaultsLinesDialog"""
         defaults=self.getDefaults("lines")
-        self.dlg_defaultsLines=DefaultsDialog('line',"Defaults layer lines",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Pipe bundle type','value': ['pipe_bundle_type_id',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
-                                                {'label': 'Nominal operating temperature, °C','value': ['nominaltemperature',1,'physical']},{'label': 'Maximum operating temperature, °C','value': ['maximumtemperature',1,'physical']},
-                                                {'label': 'Nominal operating pressure, °C','value': ['nominaloppressure',1,'physical']},{'label': 'Maximum operating pressure, °C','value': ['maximumoppressure',1,'physical']}],self.cur)
+        print(defaults)
+        self.dlg_defaultsLines=DefaultsDialog('line',"Defaults layer lines",[{'label': 'Type','value': ['type',0,'general']},{'label': 'Pipe bundle type','value': ['pipe_bundle_type_id',0,'general']},{'label': 'Network','value': ['network',0,'general']}],self.cur)
         self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsLines,'lines'))
         self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsLines,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsLines,defaults,'line')
@@ -810,11 +805,9 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         """ show the efaultsLinesDialog"""
         defaults=self.getDefaults("customers")
         print(defaults)
-        self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer customers",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
-                                                {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Heating demand, kWh','value': ['heat_e_kwh',1,'physical']},
-                                                {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal setpoint temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
-                                                {'label': 'Cooling demand, kWh','value': ['cool_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cool_p_kw',1,'physical']},
-                                                {'label': 'Nominal setpoint temp. cooling, °C','value': ['tsup_c_deg',1,'physical']}],self.cur)
+        self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer customers",[{'label': 'Template','value': ['template',0,'general']},{'label': 'Submodel','value': ['submodel',1,'general']},
+                                                {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Internal load ID','value': ['internal_load_id',0,'physical']},
+                                                {'label': 'Load, W','value': ['load_w',1,'physical']}],self.cur)
         self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsCustomers,'customers'))
         self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsCustomers,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsCustomers,defaults,'customer')
@@ -823,31 +816,18 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def show_DefaultsPlantsDialog(self):
         """ show the defaultsDialog"""
         defaults=self.getDefaults("energy_plants")
-        self.dlg_defaultsPlants=DefaultsDialog('energy_plant',"Defaults layer energy_plants",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']},
-                                                {'label': 'Heating supply, kWh','value': ['heat_e_kwh',1,'physical']},
-                                                {'label': 'Nominal heating load, kW','value': ['heat_p_kw',1,'physical']},{'label': 'Nominal supply temp. heating, °C','value': ['tsup_h_deg',1,'physical']},
-                                                {'label': 'Cooling supply, kWh','value': ['cold_e_kwh',1,'physical']},{'label': 'Nominal cooling load, kW','value': ['cold_p_kw',1,'physical']},
-                                                {'label': 'Nominal supply temp. cooling, °C','value': ['tsup_c_deg',1,'physical']}],self.cur)
+        self.dlg_defaultsPlants=DefaultsDialog('energy_plant',"Defaults layer energy_plants",[{'label': 'Template','value': ['template',0,'general']},{'label': 'Submodel','value': ['submodel',1,'general']}],self.cur)
         self.dlg_defaultsPlants.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsPlants,'energy_plants'))
         self.dlg_defaultsPlants.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsPlants,'',['',[],[],'','',[]]))
         self.showDefaults(self.dlg_defaultsPlants,defaults,'energy_plant')
         self.dlg_defaultsPlants.show()
-        
-    def show_DefaultsDevicesDialog(self):
-        """ show the defaultsDialog"""
-        defaults=self.getDefaults("devices")
-        self.dlg_defaultsDevices=DefaultsDialog('device',"Defaults layer devices",[{'label': 'Asset group','value': ['assetgroup',0,'general']},{'label': 'Asset type','value': ['assettype',0,'general']},{'label': 'Subnetwork','value': ['subnetwork',0,'general']}],self.cur)
-        self.dlg_defaultsDevices.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsDevices,'devices'))
-        self.dlg_defaultsDevices.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsDevices,'',['',[],[],'','',[]]))
-        self.showDefaults(self.dlg_defaultsDevices,defaults,'device')
-        self.dlg_defaultsDevices.show()
     
     def writeDefaultsToDB(self,dlg,table):
         """Write default values to DB """
         for input in dlg.input:
             print(input)
             value=""
-            if input in ['assetgroup','assettype','pipe_bundle_type_id','subnetwork','dhw_id']:
+            if input in ['template','type','pipe_bundle_type_id','network','dhw_id','internal_load_id']:
                 value=dlg.input[input].currentText()
             else:
                 print(dlg.input[input].text())
@@ -857,7 +837,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             print(value)
             value=value.split(':')[0]
             print(value)
-            if value:
+            if value and value != '(no selection)':
                 if value=='(no selection)':
                     sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(self.dictDB['versionName'],table,input,value)
                     print(sql)
@@ -910,15 +890,6 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.show_DefaultsPlantsDialog() 
-            
-    def setDefaultsDevices(self):
-        """ set default values for layer devices"""
-        print('set defaults plants')
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        self.conn=dbConnect(self.dictDB,True)
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_DefaultsDevicesDialog() 
 
     def showTableContent(self,dlg,table,dropdowns,columns=None):
         """show table content"""
@@ -1006,7 +977,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             if trace in ['conn_type_trace','bt_conns_trace']:
                 table_trace[rowCount]= [str(row[0]),'',changedConnectionBundleType.split(':')[0],'']
             elif trace:
-                table_trace[rowCount]= [filter.split('=')[-1]+'_'+str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'']
+                table_trace[rowCount]= [str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'']
                 print(table_trace)
             rowCount+=1
         print(table_trace)
@@ -1037,7 +1008,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             2) updates the changed boundary values in the templates
             3) save the table content in table public.connections"""
         if self.checkConnsInputValues(dlg):
-            updateAssettypeBoundaryValues(dlg,self.plugin_dir,self.dictDB,self.cur)
+            updateTemplateBoundaryValues(dlg,self.plugin_dir,self.dictDB,self.cur)
             self.saveTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes,False,False)
             
     
@@ -1163,7 +1134,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Building constructions',table='building_construction_standard',headers=['Id','Construction standard name','Description'],columns='(id,construction_standard_name,description)', openFn=self.show_buildingConstructions) 
+            self.show_TableDialog(title='Building constructions',table='building_construction_standard',headers=['Id','Construction standard name','Description'],columns='(id,construction_standard_name,description)', openFn=self.show_buildingConstructions,openFnArg=['building_constructions',['construction_type_id','construction_name','description'],['construction_type_id','construction_name','description'],'WHERE construction_standard_id =','ORDER BY construction_type_id',[],False,'',False,False,[0]]) 
  
     def manageBuildingZoneTemplates(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1221,17 +1192,12 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.show_TableDialog(title='Internal Load profiles',table='internal_loads_profiles',headers=['Id','Description'],columns='(id,description)',importFn=self.importFnInternalLoad,openFn=self.show_TableCurrentRowDialog,openFnArg=['internal_load',['time_h','person_w7m2','electricity_w7m2'],['Time, h', 'Persons, W/m2','Electricity, W/m2'],'WHERE internal_load_id =','ORDER BY time_h','',False,'',False,False,[0]]) 
 
-    def manageAssetgroups(self,assetgroup):
+    def manageTemplates(self,type):
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            if assetgroup=='line':
-                self.show_TableDialog(title='{} asset groups'.format(assetgroup),table='{}_assetgroups'.format(assetgroup),headers=['Id','Name'],columns='(id,assetgroup)',openFn= self.show_TableCurrentRowDialog,openFnArg=['{}_assettypes'.format(assetgroup),['assettype','assettype_name','description'],['Id', 'Asset type name', 'Description'],'WHERE assetgroup =','ORDER BY assettype','',False,'',False,False,[0]]) 
-            elif assetgroup=='customer':
-                self.show_TableDialog(title='{} asset groups'.format(assetgroup),table='{}_assetgroups'.format(assetgroup),headers=['Id','Name'],columns='(id,assetgroup)',openFn= self.show_TableCurrentRowDialog,openFnArg=['{}_assettypes'.format(assetgroup),['assettype','assettype_name','conn_bundle_type','description'],['Id', 'Asset type name','Connection bundle type', 'Description'],'WHERE assetgroup =','ORDER BY assettype',[[2,'public','conn_bundle_types','id','description']],self.openAssettype,assetgroup,True,True,[0]]) 
-            else:
-                self.show_TableDialog(title='{} asset groups'.format(assetgroup),table='{}_assetgroups'.format(assetgroup),headers=['Id','Name'],columns='(id,assetgroup)',openFn= self.show_TableCurrentRowDialog,openFnArg=['{}_assettypes'.format(assetgroup),['assettype','assettype_name','conn_bundle_type','description'],['Id', 'Asset type name','Connection bundle type', 'Description'],'WHERE assetgroup =','ORDER BY assettype',[[2,'public','conn_bundle_types','id','description']],self.openAssettype,assetgroup,True,True,[0]]) 
+            self.show_templateDialog(type=type) 
 
     def manageNetworks(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1343,11 +1309,10 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     print(dlg.tableWidget.cellWidget(0,1).currentText())
                     dlg.traceTableValues[0]= ['',dlg.tableWidget.item(0,0).text(),'',dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0]]
                 elif trace:                   
-                    print(dlg.assetgroup)
                     print(dlg.tableWidget.item(0,1))
                     print(dlg.tableWidget.item(0,1).text())
-                    print(str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
-                    dlg.traceTableValues[0]=['',str(dlg.assetgroup)+'_'+dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
+                    print(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
+                    dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
                 print(dlg.traceTableValues)
                 print('--finished trace values of row 0--')
             except:
@@ -1404,8 +1369,8 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             print(sql)
             self.cur.execute(sql)
             
-    def saveAsAssettype(self,dlg,table_name,assetgroup,dropdowns,trace):
-        """Save as the assettype"""
+    def saveAsTemplate(self,dlg,table_name,dropdowns,trace):
+        """Save as the template"""
         row_idx=dlg.tableWidget.currentRow()
         
         if row_idx!=-1:
@@ -1413,18 +1378,18 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             if dlg.tableWidget.item(row_idx,3):
                 description=dlg.tableWidget.item(row_idx,3).text()
             sql=""
-            assettype_id=int(dlg.tableWidget.item(row_idx,0).text())
+            template_id=int(dlg.tableWidget.item(row_idx,0).text())
             maxId=getMaxTableId(dlg.tableWidget)
-            assettype_name=dlg.tableWidget.item(row_idx, 1).text()+' (copy)'
+            template_name=dlg.tableWidget.item(row_idx, 1).text()+' (copy)'
             conn_bundle_type_old=dlg.tableWidget.cellWidget(row_idx, 2).currentText()
-            file_name_old=assetgroup+'_'+str(assettype_id)+'_'+dlg.tableWidget.item(row_idx, 1).text()
-            file_name_new=assetgroup+'_'+str(maxId+1)+'_'+assettype_name
+            file_name_old=str(template_id)+'_'+dlg.tableWidget.item(row_idx, 1).text()
+            file_name_new=str(maxId+1)+'_'+template_name
             if not os.path.exists(self.plugin_dir+"\\{}\\{}\\{}.idm".format(self.dictDB['projectName'],table_name,file_name_new)): 
-                CopyAssettypeFiles(source_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),source_name=file_name_old,target_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),target_name=file_name_new)
+                CopyTemplateFiles(source_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),source_name=file_name_old,target_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),target_name=file_name_new)
             
             self.addTableRow(dlg,dropdowns,True,[])
             dlg.tableWidget.setItem(0,0,QTableWidgetItem(str(maxId+1)))
-            dlg.tableWidget.setItem(0,1,QTableWidgetItem(assettype_name))
+            dlg.tableWidget.setItem(0,1,QTableWidgetItem(template_name))
             dlg.tableWidget.cellWidget(0, 2).setCurrentText(conn_bundle_type_old)
             dlg.tableWidget.setItem(0,3,QTableWidgetItem(description))
             
@@ -1432,23 +1397,23 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             dlg.traceTableValues[0]=[file_name_new,'',conn_bundle_type_old.split(':')[0],'']
             print(dlg.traceTableValues)
             
-            #add sensor data to source and target assettypes and invoked signals
-            sql="""INSERT INTO {}.target_assettype(target_id,assetgroup,assettype,active) 
-    SELECT at.target_id,at.assetgroup,{},at.active FROM {}.target_assettype at, {}.sensor_target t 
-        WHERE at.assettype = {} AND at.target_id=t.sensor_id AND t.type = {};
-INSERT INTO {}.source_assettype(source_id,assetgroup,assettype,active) 
-    SELECT at.source_id,at.assetgroup,{},at.active FROM {}.source_assettype at, {}.sensor_source s 
-        WHERE at.assettype = {} AND at.source_id=s.sensor_id AND s.type = {};
+            #add sensor data to source and target templates and invoked signals
+            sql="""INSERT INTO {}.target_template(target_id,template,active) 
+    SELECT templ.target_id,{},templ.active FROM {}.target_template templ, {}.sensor_target t 
+        WHERE templ.template = {} AND templ.target_id=t.sensor_id AND t.type = {};
+INSERT INTO {}.source_template(source_id,template,active) 
+    SELECT templ.source_id,{},templ.active FROM {}.source_template templ, {}.sensor_source s 
+        WHERE templ.template = {} AND templ.source_id=s.sensor_id AND s.type = {};
 UPDATE {}.invoked_sensor_source_signals
-    SET assettypes = assettypes || {}
-    WHERE {} = ANY(assettypes)  AND type = {};
+    SET templates = templates || {}
+    WHERE {} = ANY(templates)  AND type = {};
 UPDATE {}.invoked_sensor_target_signals
-    SET assettypes = assettypes || {}
-    WHERE {} = ANY(assettypes) AND type = {};""".format(
-        self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],assettype_id,dlg.type,
-        self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],assettype_id,dlg.type,
-        self.dictDB['versionName'],str(maxId+1),assettype_id,dlg.type,
-        self.dictDB['versionName'],str(maxId+1),assettype_id,dlg.type)
+    SET templates = templates || {}
+    WHERE {} = ANY(templates) AND type = {};""".format(
+        self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],template_id,dlg.type,
+        self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],template_id,dlg.type,
+        self.dictDB['versionName'],str(maxId+1),template_id,dlg.type,
+        self.dictDB['versionName'],str(maxId+1),template_id,dlg.type)
             print(sql)
             self.cur.execute(sql)
 
@@ -1523,7 +1488,6 @@ UPDATE {}.invoked_sensor_target_signals
             self.dlg.btn_defaults_lines.clicked.connect(self.setDefaultsLines)
             self.dlg.btn_defaults_customers.clicked.connect(self.setDefaultsCustomers)
             self.dlg.btn_defaults_plants.clicked.connect(self.setDefaultsPlants)
-            self.dlg.btn_defaults_devices.clicked.connect(self.setDefaultsDevices)
             self.dlg.btn_connections.clicked.connect(lambda: self.manageConnections())
             self.dlg.btn_connection_types.clicked.connect(lambda: self.manageConnectionTypes())
             self.dlg.btn_conn_bundle_types.clicked.connect(lambda: self.manageConnBundleTypes())
@@ -1536,10 +1500,8 @@ UPDATE {}.invoked_sensor_target_signals
             self.dlg.btn_internal_loads.clicked.connect(lambda: self.manageInternalLoadProfiles())
             self.dlg.btn_building_construction_standards.clicked.connect(lambda: self.manageBuildingConstructions())
             self.dlg.btn_building_zone_templates.clicked.connect(lambda: self.manageBuildingZoneTemplates())
-            self.dlg.btn_manageLinesAssetgroups.clicked.connect(lambda: self.manageAssetgroups('line'))
-            self.dlg.btn_manageCustomerAssetgroups.clicked.connect(lambda: self.manageAssetgroups('customer'))
-            self.dlg.btn_manageEnergyPlantAssetgroups.clicked.connect(lambda: self.manageAssetgroups('energy_plant'))
-            self.dlg.btn_manageDevicesAssetgroups.clicked.connect(lambda: self.manageAssetgroups('device'))
+            self.dlg.btn_manageCustomerTemplates.clicked.connect(lambda: self.manageTemplates('customer'))
+            self.dlg.btn_manageEnergyPlantTemplates.clicked.connect(lambda: self.manageTemplates('energy_plant'))
             self.dlg.btn_manageNetworks.clicked.connect(self.manageNetworks)
             self.dlg.btn_manageBuildingTemplates.clicked.connect(self.manageBuildingTemplates)
             # show the dialog

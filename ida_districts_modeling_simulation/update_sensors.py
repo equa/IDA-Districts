@@ -9,8 +9,8 @@ class UpdateSensors():
         self.dictDB=kwargs['dictDB']
         self.cur=kwargs['cur']
         self.plugin_dir=kwargs['plugin_dir']
-        self.loadedSensorData={} #{'source' : {'type' : sensor_data['type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure'],'function' : sensor_data['function'],'test_value' : sensor_data['test_value'],'description' : sensor_data['description_source']}, 'target': {'type' : sensor_data['target_type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'target' : None,'description' : ''}}
-        self.sensorData={} #{'source' : {'type' : sensor_data['type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure'],'function' : sensor_data['function'],'test_value' : sensor_data['test_value'],'description' : sensor_data['description_source']}, 'target': {'type' : sensor_data['target_type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'target' : None,'description' : ''}}
+        self.loadedSensorData={} #{'source' : {'type' : sensor_data['type'],'templates' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure'],'function' : sensor_data['function'],'test_value' : sensor_data['test_value'],'description' : sensor_data['description_source']}, 'target': {'type' : sensor_data['target_type'],'templates' : [],'ids' : [],'target' : None,'description' : ''}}
+        self.sensorData={} #{'source' : {'type' : sensor_data['type'],'templates' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure'],'function' : sensor_data['function'],'test_value' : sensor_data['test_value'],'description' : sensor_data['description_source']}, 'target': {'type' : sensor_data['target_type'],'templates' : [],'ids' : [],'target' : None,'description' : ''}}
         
         self.dlg=SensorSignalsDialog(self.dictDB,self.plugin_dir)
         self.dlg.btn_ok.clicked.connect(self.btn_ok_sensonorSignals)
@@ -30,22 +30,20 @@ class UpdateSensors():
         #get sensorData
         for row in range(self.dlg.tableWidget_source.rowCount()):
             sensor_id=self.dlg.tableWidget_source.item(row,0).text()
-            self.sensorData[int(sensor_id)]={'source' : {'type' : None,'assetgroups' : [],'assettypes' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : None,'function' : None,'test_value' : None,'description' : None}, 
-                'target': {'type' : None,'assetgroups' : [],'assettypes' : [],'ids' : [],'target' : None,'description' : ''}}
+            self.sensorData[int(sensor_id)]={'source' : {'type' : None,'templates' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : None,'function' : None,'test_value' : None,'description' : None}, 
+                'target': {'type' : None,'templates' : [],'ids' : [],'target' : None,'description' : ''}}
             
             #source
             self.collectSensorSourceTableData(self.dlg.tableWidget_source,row,sensor_id)
-            self.sensorData[int(sensor_id)]['source']['assetgroups']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,2)
-            self.sensorData[int(sensor_id)]['source']['assettypes']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,3)
-            self.sensorData[int(sensor_id)]['source']['ids']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,4)
-            self.sensorData[int(sensor_id)]['source']['conn_types']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,5)
-            self.sensorData[int(sensor_id)]['source']['conns']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,6)   
+            self.sensorData[int(sensor_id)]['source']['templates']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,2)
+            self.sensorData[int(sensor_id)]['source']['ids']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,3)
+            self.sensorData[int(sensor_id)]['source']['conn_types']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,4)
+            self.sensorData[int(sensor_id)]['source']['conns']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_source,row,sensor_id,5)   
             
             #target
             self.collectSensorTargetTableData(self.dlg.tableWidget_target,row,sensor_id)
-            self.sensorData[int(sensor_id)]['target']['assetgroups']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,2)
-            self.sensorData[int(sensor_id)]['target']['assettypes']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,3)
-            self.sensorData[int(sensor_id)]['target']['ids']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,4)
+            self.sensorData[int(sensor_id)]['target']['templates']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,2)
+            self.sensorData[int(sensor_id)]['target']['ids']=self.collectCheckableDropdownTableData(self.dlg.tableWidget_target,row,sensor_id,3)
 
         sql=""
         #deleted
@@ -63,67 +61,43 @@ class UpdateSensors():
                 sql+="""INSERT INTO "{}".sensors (id) VALUES({});\n""".format(self.dictDB['versionName'],key_table)
 
                 #source
-                sql+="""INSERT INTO "{}".sensor_source(sensor_id,type,assetgroup,assettype,measure,function,conn_type,conns,ids,test_value,description) VALUES ({},{},{},{},{},{},{},{},{},{},'{}');\n""".format(
-                    self.dictDB['versionName'],key_table,self.sensorData[key_table]['source']['type'],key_table,key_table,self.sensorData[key_table]['source']['measure'],self.sensorData[key_table]['source']['function'],key_table,key_table,key_table,self.sensorData[key_table]['source']['test_value'],self.sensorData[key_table]['source']['description'])
-                sql+="".join(["""INSERT INTO "{}".source_assetgroups(source_id,assetgroup,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_assetgroup,value_assettgroup) for key_assetgroup,value_assettgroup in self.sensorData[key_table]['source']['assetgroups'].items()])                 
-                dropdown_assettypes=self.dlg.tableWidget_source.cellWidget(row, 3)
+                sql+="""INSERT INTO "{}".sensor_source(sensor_id,type,template,measure,function,conn_type,conns,ids,test_value,description) VALUES ({},{},{},{},{},{},{},{},{},'{}');\n""".format(
+                    self.dictDB['versionName'],key_table,self.sensorData[key_table]['source']['type'],key_table,self.sensorData[key_table]['source']['measure'],self.sensorData[key_table]['source']['function'],key_table,key_table,key_table,self.sensorData[key_table]['source']['test_value'],self.sensorData[key_table]['source']['description'])
+                dropdown_templates=self.dlg.tableWidget_source.cellWidget(row, 3)
                 type_name=self.dlg.tableWidget_source.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')
-                for i,(key_assettype,value_assettype) in enumerate(self.sensorData[key_table]['source']['assettypes'].items(),1):  
-                    assetgroup=dropdown_assettypes.itemText(i).split('(')[1][:-1]
-                    sql_="""SELECT id AS assetgroup FROM public.{}_assetgroups WHERE assetgroup='{}';""".format(type_name,assetgroup)
-                    self.cur.execute(sql_)
-                    assetgroup_id=self.cur.fetchone()['assetgroup']
-                    sql+="""INSERT INTO "{}".source_assettype(source_id,assetgroup,assettype,active) VALUES ({},{},{},{});\n""".format(self.dictDB['versionName'],key_table,assetgroup_id,key_assettype,value_assettype)                
+                for i,(key_template,value_template) in enumerate(self.sensorData[key_table]['source']['templates'].items(),1):  
+                    template=dropdown_templates.itemText(i)
+
+                    sql+="""INSERT INTO "{}".source_template(source_id,template,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_template,value_template)                
                 sql+="".join(["""INSERT INTO "{}".source_ids(source_id,feature_id,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_ids,value_ids) for key_ids,value_ids in self.sensorData[key_table]['source']['ids'].items()])                 
                 sql+="".join(["""INSERT INTO "{}".source_conn_type(source_id,conn_type,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_conn_types,value_conn_types) for key_conn_types,value_conn_types in self.sensorData[key_table]['source']['conn_types'].items()])                 
                 sql+="".join(["""INSERT INTO "{}".source_conns(source_id,connection_id,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_conns,value_conns) for key_conns,value_conns in self.sensorData[key_table]['source']['conns'].items()])                 
                 
                 #target
-                sql+="""INSERT INTO "{}".sensor_target(sensor_id,type,assetgroup,assettype,target,description,test_value) VALUES ({},{},{},{},{},'{}',{});\n""".format(
-                    self.dictDB['versionName'],key_table,self.sensorData[key_table]['target']['type'],key_table,key_table,self.sensorData[key_table]['target']['target'],self.sensorData[key_table]['target']['description'],self.sensorData[key_table]['source']['test_value'])
-                sql+="".join(["""INSERT INTO "{}".target_assetgroups(target_id,assetgroup,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_assetgroup,value_assetgroup) for key_assetgroup,value_assetgroup in self.sensorData[key_table]['target']['assetgroups'].items()])                 
-                dropdown_assettypes=self.dlg.tableWidget_target.cellWidget(row, 3)
+                sql+="""INSERT INTO "{}".sensor_target(sensor_id,type,template,target,description,test_value) VALUES ({},{},{},{},'{}',{});\n""".format(
+                    self.dictDB['versionName'],key_table,self.sensorData[key_table]['target']['type'],key_table,self.sensorData[key_table]['target']['target'],self.sensorData[key_table]['target']['description'],self.sensorData[key_table]['source']['test_value'])
+                dropdown_templates=self.dlg.tableWidget_target.cellWidget(row, 2)
                 type_name=self.dlg.tableWidget_target.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')
-                for i,(key_assettype,value_assettype) in enumerate(self.sensorData[key_table]['target']['assettypes'].items(),1):  
-                    assetgroup=dropdown_assettypes.itemText(i).split('(')[1][:-1]
-                    sql_="""SELECT id AS assetgroup FROM public.{}_assetgroups WHERE assetgroup='{}';""".format(type_name,assetgroup)
-                    self.cur.execute(sql_)
-                    assetgroup_id=self.cur.fetchone()['assetgroup']
-                    sql+="""INSERT INTO "{}".target_assettype(target_id,assetgroup,assettype,active) VALUES ({},{},{},{});\n""".format(self.dictDB['versionName'],key_table,assetgroup_id,key_assettype,value_assettype)                
+                for i,(key_template,value_template) in enumerate(self.sensorData[key_table]['target']['templates'].items(),1):  
+                    template=dropdown_templates.itemText(i)
+                    sql+="""INSERT INTO "{}".target_template(target_id,template,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_template,value_template)                
                 sql+="".join(["""INSERT INTO "{}".target_ids(target_id,feature_id,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],key_table,key_ids,value_ids) for key_ids,value_ids in self.sensorData[key_table]['target']['ids'].items()])                 
             else:   
-                for table in {'source','target'}:
-                    #added assetgroups of existing sensors
-                    for key,value in self.sensorData[key_table][table]['assetgroups'].items():
-                        if key not in self.loadedSensorData[key_table][table]['assetgroups']:
-                            sql+="""INSERT INTO "{}".{}_assetgroups({}_id,assetgroup,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],table,table,key_table,key,value)
-                        else:
-                            if value!=self.loadedSensorData[key_table][table]['assetgroups'][key]:
-                                sql+="""UPDATE "{}".{}_assetgroups SET active = {} WHERE {}_id = {} AND assetgroup = {};\n""".format(self.dictDB['versionName'],table,value, table,key_table,key)
-
-                    #deleted assetgroups of existing sensors
-                    for key in self.loadedSensorData[key_table][table]['assetgroups']:
-                        if key not in self.sensorData[key_table][table]['assetgroups']:
-                            sql+="""DELETE FROM "{}".{}_assetgroups WHERE {}_id = {} AND assetgroup = {};\n""".format(self.dictDB['versionName'],table,table,key_table,key)
-                            
-                    #added assettype of existing sensors
+                for table in {'source','target'}:                            
+                    #added template of existing sensors
                     dropDown=self.dlg.tableWidget_source.cellWidget(row, 3) if table=='source' else self.dlg.tableWidget_target.cellWidget(row, 3)
                     type=self.dlg.tableWidget_source.cellWidget(row, 1).currentText() if table=='source' else self.dlg.tableWidget_target.cellWidget(row, 1).currentText()
-                    for i,(key,value) in enumerate(self.sensorData[key_table][table]['assettypes'].items(),1):
-                        assetgroup=dropDown.itemText(i).split('(')[1][:-1]
-                        sql_="""SELECT id AS assetgroup FROM public.{}_assetgroups WHERE assetgroup='{}';""".format(type.split(':')[1].replace(' ','_'),assetgroup)
-                        self.cur.execute(sql_)
-                        assetgroup_id=self.cur.fetchone()['assetgroup']
-                        if key not in self.loadedSensorData[key_table][table]['assettypes']:
-                            sql+="""INSERT INTO "{}".{}_assettype({}_id,assetgroup,assettype,active) VALUES ({},{},{},{});\n""".format(self.dictDB['versionName'],table,table,key_table,assetgroup_id,key,value)
+                    for i,(key,value) in enumerate(self.sensorData[key_table][table]['templates'].items(),1):
+                        if key not in self.loadedSensorData[key_table][table]['templates']:
+                            sql+="""INSERT INTO "{}".{}_template({}_id,template,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],table,table,key_table,key,value)
                         else:
-                            if value!=self.loadedSensorData[key_table][table]['assettypes'][key]:
-                                sql+="""UPDATE "{}".{}_assettype SET active = {} WHERE {}_id = {} AND assetgroup = {} AND assettype = {};\n""".format(self.dictDB['versionName'],table,value,table,key_table,assetgroup_id,key)
+                            if value!=self.loadedSensorData[key_table][table]['templates'][key]:
+                                sql+="""UPDATE "{}".{}_template SET active = {} WHERE {}_id = {} AND template = {};\n""".format(self.dictDB['versionName'],table,value,table,key_table,key)
 
-                    #deleted assettype of existing sensors
-                    for key in self.loadedSensorData[key_table][table]['assettypes']:
-                        if key not in self.sensorData[key_table][table]['assettypes']:
-                            sql+="""DELETE FROM "{}".{}_assettype WHERE {}_id = {} AND assettype = {};\n""".format(self.dictDB['versionName'],table,table,key_table, key)
+                    #deleted template of existing sensors
+                    for key in self.loadedSensorData[key_table][table]['templates']:
+                        if key not in self.sensorData[key_table][table]['templates']:
+                            sql+="""DELETE FROM "{}".{}_template WHERE {}_id = {} AND template = {};\n""".format(self.dictDB['versionName'],table,table,key_table, key)
                             
                     #added ids of existing sensors
                     for key,value in self.sensorData[key_table][table]['ids'].items():
@@ -197,22 +171,22 @@ class UpdateSensors():
         self.cur.execute(sql)
         
     def collectSensorSourceTableData(self,table,row,sensor_id):
-        if table.cellWidget(row, 8).currentIndex()==-1:
+        if table.cellWidget(row, 7).currentIndex()==-1:
             function=1
         else:
-            function=table.cellWidget(row, 8).currentIndex()+1
+            function=table.cellWidget(row, 7).currentIndex()+1
         if table.cellWidget(row, 1).currentIndex()==3:
-            measure=table.cellWidget(row, 7).currentIndex()+5
+            measure=table.cellWidget(row, 6).currentIndex()+5
             function+=4
         else:
-            measure=table.cellWidget(row, 7).currentIndex()+1
-        if table.cellWidget(row, 8).currentText()=='Individual signals for each target':
+            measure=table.cellWidget(row, 6).currentIndex()+1
+        if table.cellWidget(row, 7).currentText()=='Individual signals for each target':
             function=6
         self.sensorData[int(sensor_id)]['source']['type']=int(table.cellWidget(row, 1).currentText().split(':')[0])
         self.sensorData[int(sensor_id)]['source']['measure']=measure
         self.sensorData[int(sensor_id)]['source']['function']=function
-        self.sensorData[int(sensor_id)]['source']['test_value']=float(table.item(row,9).text())
-        self.sensorData[int(sensor_id)]['source']['description']=table.item(row,10).text()
+        self.sensorData[int(sensor_id)]['source']['test_value']=float(table.item(row,8).text())
+        self.sensorData[int(sensor_id)]['source']['description']=table.item(row,9).text()
 
     def collectCheckableDropdownTableData(self,table,row,sensor_id,table_col):
         dropDown=table.cellWidget(row, table_col)
@@ -220,31 +194,26 @@ class UpdateSensors():
         
     def collectSensorTargetTableData(self,table,row,sensor_id):
         self.sensorData[int(sensor_id)]['target']['type']=int(table.cellWidget(row, 1).currentText().split(':')[0])
-        self.sensorData[int(sensor_id)]['target']['description']=table.item(row,6).text()
-        self.sensorData[int(sensor_id)]['target']['target']=table.cellWidget(row, 5).currentIndex()+1
-        
-    def collectSensorAssetgroupsTableData(self,table,row,sensor_id,sensor):
+        self.sensorData[int(sensor_id)]['target']['description']=table.item(row,5).text()
+        self.sensorData[int(sensor_id)]['target']['target']=table.cellWidget(row, 4).currentIndex()+1
+             
+    def collectSensortemplatesTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 2)
         if dropDown!=None:
-            self.sensorData[int(sensor_id)][sensor]['assetgroups']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemText(i).split(':')[0]} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']
-        
-    def collectSensorAssettypesTableData(self,table,row,sensor_id,sensor):
-        dropDown=table.cellWidget(row, 3)
-        if dropDown!=None:
-            self.sensorData[int(sensor_id)][sensor]['assettypes']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
+            self.sensorData[int(sensor_id)][sensor]['templates']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
                     
     def collectSensorIdsTableData(self,table,row,sensor_id,sensor):
-        dropDown=table.cellWidget(row, 4)
+        dropDown=table.cellWidget(row, 3)
         if dropDown!=None:
             self.sensorData[int(sensor_id)][sensor]['ids']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
                     
     def insertIntoSensorSourceConntypesTable(self,table,row,sensor_id):
-        dropDown=table.cellWidget(row, 5)
+        dropDown=table.cellWidget(row, 4)
         if dropDown!=None:
             self.sensorData[int(sensor_id)][sensor]['conn_types']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                  
                     
     def insertIntoSensorSourceConnsTable(self,table,row,sensor_id):
-        dropDown=table.cellWidget(row, 6)
+        dropDown=table.cellWidget(row, 5)
 
     def addSensor(self):
         """INSERT a sensor to the source and target table"""
@@ -259,14 +228,14 @@ class UpdateSensors():
         item = QTableWidgetItem(str(maxId))
         item.setFlags(item.flags() & ~Qt.ItemIsEditable)
         self.dlg.tableWidget_source.setItem(rowPosition,0,item)
-        for i in range(2,7):
+        for i in range(2,6):
             self.setCheckableDropDownItemsTable(self.dlg.tableWidget_source,[],rowPosition,i,[])
-        self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,6]]]),'1',7,rowPosition,self.measureChanged)
-        self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItemNames(self.cur,[[1,'public','signal_function','function']]),'1',8,rowPosition,False)
-        self.dlg.tableWidget_source.setItem(rowPosition,9,QTableWidgetItem('1.0'))
-        self.dlg.tableWidget_source.setItem(rowPosition,10,QTableWidgetItem(''))
+        self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,6]]]),'1',6,rowPosition,self.measureChanged)
+        self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItemNames(self.cur,[[1,'public','signal_function','function']]),'1',7,rowPosition,False)
+        self.dlg.tableWidget_source.setItem(rowPosition,8,QTableWidgetItem('1.0'))
+        self.dlg.tableWidget_source.setItem(rowPosition,9,QTableWidgetItem(''))
         self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),'1:Customer',1,rowPosition,self.sourceTypeChanged) #dropdown type
-        self.sourceTypeChanged(self.dlg.tableWidget_source,'',1,rowPosition)
+        self.sourceTypeChanged(self.dlg.tableWidget_source,0,1,rowPosition)
         self.dlg.tableWidget_source.selectRow(rowPosition)       
         
         #target table
@@ -274,12 +243,12 @@ class UpdateSensors():
         item = QTableWidgetItem(str(maxId))
         item.setFlags(item.flags() & ~Qt.ItemIsEditable)
         self.dlg.tableWidget_target.setItem(rowPosition,0,item)
-        for i in range(2,5):
+        for i in range(2,4):
             self.setCheckableDropDownItemsTable(self.dlg.tableWidget_target,[],rowPosition,i,[])
-        self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),'4:Supervisory control',1,rowPosition,self.targetTypeChanged) #dropdown type
-        self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),'1',5,rowPosition,False)
-        self.dlg.tableWidget_target.setItem(rowPosition,6,QTableWidgetItem(''))
-        self.targetTypeChanged(self.dlg.tableWidget_target,'',1,rowPosition)
+        self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),'3:Supervisory control',1,rowPosition,self.targetTypeChanged) #dropdown type
+        self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),'1',4,rowPosition,False)
+        self.dlg.tableWidget_target.setItem(rowPosition,5,QTableWidgetItem(''))
+        self.targetTypeChanged(self.dlg.tableWidget_target,0,1,rowPosition)
         self.dlg.tableWidget_target.selectRow(rowPosition)
 
     def delSensor(self):
@@ -294,7 +263,7 @@ class UpdateSensors():
         
     def loadSensorTableValues(self):
         """Load the sensor table values """
-        sql="""SELECT s_s.sensor_id, s_s.type AS source_type, type.name AS source_type_name, s_s.assetgroup AS source_assetgroup, s_s.assettype AS source, m.measure, m.id AS measure_id, f.function, f.id AS function_id, s_s.test_value, s_s.description AS description_source, s_t.type AS target_type
+        sql="""SELECT s_s.sensor_id, s_s.type AS source_type, type.name AS source_type_name, s_s.template AS source, m.measure, m.id AS measure_id, f.function, f.id AS function_id, s_s.test_value, s_s.description AS description_source, s_t.type AS target_type
     FROM "{}".sensor_source s_s, public.type, public.measure m, public.signal_function f, "{}".sensor_target s_t
     WHERE s_s.type=type.id AND s_s.measure=m.id AND s_s.function=f.id AND s_t.sensor_id=s_s.sensor_id
     ORDER BY s_s.sensor_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'])
@@ -302,62 +271,60 @@ class UpdateSensors():
         i=0
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():
-            self.loadedSensorData[sensor_data['sensor_id']]={'source' : {'type' : sensor_data['source_type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure_id'],'function' : sensor_data['function_id'],'test_value' : float(sensor_data['test_value']),'description' : sensor_data['description_source']}, 
-                'target': {'type' : sensor_data['target_type'],'assetgroups' : [],'assettypes' : [],'ids' : [],'target' : None,'description' : ''}}
+            self.loadedSensorData[sensor_data['sensor_id']]={'source' : {'type' : sensor_data['source_type'],'templates' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure_id'],'function' : sensor_data['function_id'],'test_value' : float(sensor_data['test_value']),'description' : sensor_data['description_source']}, 
+                'target': {'type' : sensor_data['target_type'],'templates' : [],'ids' : [],'target' : None,'description' : ''}}
             self.dlg.tableWidget_source.insertRow(i)
             item = QTableWidgetItem(str(sensor_data['sensor_id']))
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.dlg.tableWidget_source.setItem(i , 0, item)
             self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),str(sensor_data['source_type'])+':'+sensor_data['source_type_name'],1,i,self.sourceTypeChanged) #dropdown type
-            if sensor_data['source_type']==4:
-                self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[5]]]),sensor_data['measure'],7,i,self.measureChanged)
-                self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),sensor_data['function'],8,i,False)
-                for col in range(2,7):
+            if sensor_data['source_type']==3:
+                self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[5]]]),sensor_data['measure'],6,i,self.measureChanged)
+                self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),sensor_data['function'],7,i,False)
+                for col in range(2,6):
                     self.setCheckableDropDownItemsTable(self.dlg.tableWidget_source,[],i,col,[]) 
             else:
-                self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,5]]]),sensor_data['measure'],7,i,self.measureChanged)
-                self.setFilteredAssetgroupDropdownItems(self.dlg.tableWidget_source,sensor_data['source_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'source')
-                self.setFilteredAssettypeDropdownItems(self.dlg.tableWidget_source,sensor_data['source_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'source')
+                self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,5]]]),sensor_data['measure'],6,i,self.measureChanged)
+                self.setFilteredTemplateDropdownItems(self.dlg.tableWidget_source,sensor_data['source_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'source')
                 self.setFilteredIdsDropdownItems(self.dlg.tableWidget_source,sensor_data['source_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'source')
                 self.setFilteredConnTypesDropdownItems(sensor_data['source_type_name'].replace(' ','_'),sensor_data['sensor_id'],i)
                 self.setFilteredConnsDropdownItems(sensor_data['source_type_name'].replace(' ','_'),sensor_data['sensor_id'],i)
-                if sensor_data['source_type']==4 or sensor_data['target_type']==4: #source type==supervisory control or target type==supervisory control
-                    if sensor_data['source_type']==4: #source type==supervisory control
-                        self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),sensor_data['function'],8,i,False)
+                if sensor_data['source_type']==3 or sensor_data['target_type']==3: #source type==supervisory control or target type==supervisory control
+                    if sensor_data['source_type']==3: #source type==supervisory control
+                        self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),sensor_data['function'],7,i,False)
                     else:
-                        self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),sensor_data['function'],8,i,False)
+                        self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),sensor_data['function'],7,i,False)
                 else:
-                    self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),sensor_data['function'],8,i,False)
-            self.dlg.tableWidget_source.setItem(i,9,QTableWidgetItem(str(sensor_data['test_value'])))
-            self.dlg.tableWidget_source.setItem(i,10,QTableWidgetItem(sensor_data['description_source']))
+                    self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),sensor_data['function'],7,i,False)
+            self.dlg.tableWidget_source.setItem(i,8,QTableWidgetItem(str(sensor_data['test_value'])))
+            self.dlg.tableWidget_source.setItem(i,9,QTableWidgetItem(sensor_data['description_source']))
             i+=1            
         
         i=0  
-        sql="""SELECT s_t.sensor_id, s_t.type AS target_type, type.name AS target_type_name, s_t.assetgroup, s_t.assettype, t.target AS target_name, s_t.description AS description_target
+        sql="""SELECT s_t.sensor_id, s_t.type AS target_type, type.name AS target_type_name, s_t.template, t.target AS target_name, s_t.description AS description_target
     FROM "{}".sensor_target s_t, public.type, public.target t
     WHERE s_t.type=type.id AND t.id=s_t.target
     ORDER BY s_t.sensor_id;""".format(self.dictDB['versionName'])
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():
-            self.loadedSensorData[sensor_data['sensor_id']]['target']['description_target']=sensor_data['description_target']
+            self.loadedSensorData[sensor_data['sensor_id']]['target']['description']=sensor_data['description_target']
             self.loadedSensorData[sensor_data['sensor_id']]['target']['target']=sensor_data['target_name']
             self.dlg.tableWidget_target.insertRow(i)
             item = QTableWidgetItem(str(sensor_data['sensor_id']))
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.dlg.tableWidget_target.setItem(i , 0, item)
             self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),str(sensor_data['target_type'])+':'+sensor_data['target_type_name'],1,i,self.targetTypeChanged) #dropdown type
-            if sensor_data['target_type']==4:
-                for col in range(2,5):
+            if sensor_data['target_type']==3:
+                for col in range(2,4):
                     self.setCheckableDropDownItemsTable(self.dlg.tableWidget_target,[],i,col,[]) 
             else:
-                self.setFilteredAssetgroupDropdownItems(self.dlg.tableWidget_target,sensor_data['target_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'target')
-                self.setFilteredAssettypeDropdownItems(self.dlg.tableWidget_target,sensor_data['target_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'target')
+                self.setFilteredTemplateDropdownItems(self.dlg.tableWidget_target,sensor_data['target_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'target')
                 self.setFilteredIdsDropdownItems(self.dlg.tableWidget_target,sensor_data['target_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'target')
             if sensor_data['target_type']==1: #Customer
-                self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1,2]]]),sensor_data['target_name'],5,i,False)
+                self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1,2]]]),sensor_data['target_name'],4,i,False)
             else:
-                self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),sensor_data['target_name'],5,i,False)
-            self.dlg.tableWidget_target.setItem(i,6,QTableWidgetItem(sensor_data['description_target']))
+                self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),sensor_data['target_name'],4,i,False)
+            self.dlg.tableWidget_target.setItem(i,5,QTableWidgetItem(sensor_data['description_target']))
             i+=1
 
     def setTableDropDown(self,table,dropdownItems,currentValue,col,row,signal_function):
@@ -372,27 +339,27 @@ class UpdateSensors():
         table.setCellWidget(row, col, comboBox)   
     
     def measureChanged(self,table,selected_index,column,row): 
-        print('************&&&***************')
+        print('************measure changed***************')
         type=table.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')
         target_type=self.dlg.tableWidget_target.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')
-        if table.cellWidget(row,7).currentText() =='Custom':
+        if table.cellWidget(row,6).currentText() =='Custom':
             print('deactivate conn type')
+            self.setCheckableDropDownItemsTable(table,[],row,4,[]) 
             self.setCheckableDropDownItemsTable(table,[],row,5,[]) 
-            self.setCheckableDropDownItemsTable(table,[],row,6,[]) 
             if type =='Supervisory_control' or target_type=='Supervisory_control':
                 if target_type=='Supervisory_control':
-                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',8,row,False)
+                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',7,row,False)
                 else:
-                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'',8,row,False)
+                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'',7,row,False)
             else:
-                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',8,row,False)
+                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',7,row,False)
         else:
-            self.setDropDownConntypes(table,5,row,table.cellWidget(row,1).currentText().split(':')[1].replace(' ','_'))
-            self.setDropDownConns(table,6,row,table.cellWidget(row,1).currentText().split(':')[1].replace(' ','_'))
+            self.setDropDownConntypes(table,4,row,table.cellWidget(row,1).currentText().split(':')[1].replace(' ','_'))
+            self.setDropDownConns(table,5,row,table.cellWidget(row,1).currentText().split(':')[1].replace(' ','_'))
             if target_type=='Supervisory_control':
-                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',8,row,False)
+                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',7,row,False)
             else:
-                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',8,row,False)
+                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',7,row,False)
         
     def setFilteredConnTypesDropdownItems(self,type,id,row):
         sql="""SELECT c_type.id AS conn_type_id, c_type.description, s_ct.active
@@ -407,13 +374,13 @@ class UpdateSensors():
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['conn_type_id'])+':'+i['description'] for i in source_conn_types])
-        self.loadedSensorData[id]['source']['conn_types']={i['conn_type_id'] : i['active'] for i in source_conn_types}
+        #self.loadedSensorData[id]['source']['conn_types']={i['conn_type_id'] : i['active'] for i in source_conn_types}
 
         for i in range(len(source_conn_types)):
             comboBoxCheckable.setItemChecked(i+1,source_conn_types[i]['active'])
-        if self.dlg.tableWidget_source.cellWidget(row,7).currentText()!='Power':
-            comboBoxCheckable.activated.connect(lambda signal, column=6,row=row: self.setDropDownConns(self.dlg.tableWidget_source,column,row,type))
-        self.dlg.tableWidget_source.setCellWidget(row, 5, comboBoxCheckable) 
+        if self.dlg.tableWidget_source.cellWidget(row,6).currentText()!='Power':
+            comboBoxCheckable.activated.connect(lambda signal, column=5,row=row: self.setDropDownConns(self.dlg.tableWidget_source,column,row,type))
+        self.dlg.tableWidget_source.setCellWidget(row, 4, comboBoxCheckable) 
         
     def setFilteredConnsDropdownItems(self,type,id,row):
         sql="""SELECT conns.id AS conn_id, conns.description, s_conns.active
@@ -428,70 +395,52 @@ class UpdateSensors():
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['conn_id'])+':'+i['description'] for i in source_conns])
-        self.loadedSensorData[id]['source']['conns']={i['conn_id'] : i['active'] for i in source_conns}
+        #self.loadedSensorData[id]['source']['conns']={i['conn_id'] : i['active'] for i in source_conns}
         for i in range(len(source_conns)):
             comboBoxCheckable.setItemChecked(i+1,source_conns[i]['active'])
-        self.dlg.tableWidget_source.setCellWidget(row, 6, comboBoxCheckable) 
+        self.dlg.tableWidget_source.setCellWidget(row, 5, comboBoxCheckable) 
         
-        
-    def setFilteredAssetgroupDropdownItems(self,table,type,id,row,sensor):
-        sql="""SELECT s_ag.assetgroup AS assetgroup, ag.assetgroup AS assetgroup_name, s_ag.active 
-        FROM "{}".{}_assetgroups s_ag, public.{}_assetgroups ag 
-        WHERE s_ag.{}_id={} AND ag.id=s_ag.assetgroup
-        ORDER BY s_ag.assetgroup;""".format(self.dictDB['versionName'],sensor,type,sensor,id)
-        print(sql)
-        self.cur.execute(sql)
-        source_assetgroups=self.cur.fetchall()
-        print(source_assetgroups)
-        comboBoxCheckable = CheckableComboBox()
-        comboBoxCheckable.addItem('Check all items')
-        comboBoxCheckable.addItems([str(i['assetgroup'])+':'+i['assetgroup_name'] for i in source_assetgroups])
-        self.loadedSensorData[id][sensor]['assetgroups']={i['assetgroup'] : i['active'] for i in source_assetgroups}
-        for i in range(len(source_assetgroups)):
-            comboBoxCheckable.setItemChecked(i+1,source_assetgroups[i]['active'])
-        comboBoxCheckable.activated.connect(lambda signal, column=2,row=row: self.setDropDownAssettypes(table,column,row,type))
-        table.setCellWidget(row, 2, comboBoxCheckable) 
-        
-    def getAssetgroupsFromTable(self,dropDown):
-        assetgroups=[]
+    def getCheckedItemsFromTable(self,dropDown):
+        items=[]
         for i in range(dropDown.count()):
             if dropDown.itemText(i) != 'Check all items' and dropDown.itemChecked(i)==True:
-                assetgroups.append(dropDown.itemText(i).split(':')[0])
-        return assetgroups
+                items.append(dropDown.itemText(i).split(':')[0])
+        return items
         
-    def setDropDownAssettypes(self,table,col,row,type):
-        print('set assettypes')
+    def setDropDowntemplates(self,table,col,row,type):
+        print('set templates')
         dropDown=table.cellWidget(row, col)
         if dropDown!=None:
-            assetgroups=self.getAssetgroupsFromTable(dropDown)
-            if assetgroups:
-                dropdownItems=[i['name'] for i in getAssettypesInfo(type,assetgroups,self.cur)]
+            templates=self.getCheckedItemsFromTable(dropDown)
+            print(templates)
+            if templates:
+                dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
                 print(dropdownItems)
-                self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[self.setDropDownIds,4,type])
+                self.setCheckableDropDownItemsTable(table,dropdownItems,row,2,[self.setDropDownIds,3,type])
                 if not dropdownItems:
-                    for i in range(4,7):
+                    for i in range(3,6):
                         if table.cellWidget(row, i).__class__.__name__=='CheckableComboBox': 
                             self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
             else:
-                for i in range(3,7):
+                for i in range(2,6):
                     if table.cellWidget(row, i).__class__.__name__=='CheckableComboBox': 
                         self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
-    def setDropDownAssettypesTarget(self,table,col,row,type):
-        print('set assettypes target')
+    def setDropDowntemplatesTarget(self,table,col,row,type):
+        print('set templates target')
         dropDown=table.cellWidget(row, col)
         if dropDown!=None:
-            assetgroups=self.getAssetgroupsFromTable(dropDown)
-            if assetgroups:
-                dropdownItems=[i['name'] for i in getAssettypesInfo(type,assetgroups,self.cur)]
+            templates=self.getCheckedItemsFromTable(dropDown)
+            if templates:
+                dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
                 print(dropdownItems)
-                self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[self.setDropDownIds,4,type])
+                self.setCheckableDropDownItemsTable(table,dropdownItems,row,2,[self.setDropDownIds,3,type])
                 if not dropdownItems:
-                    for i in range(4,5):
+                    for i in range(3,4):
                         if table.cellWidget(row, i).__class__.__name__=='CheckableComboBox': 
                             self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
             else:
-                for i in range(3,5):
+                for i in range(2,4):
                     self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
                         
     def setDropDownIds(self,table,col,row,type):
@@ -499,60 +448,60 @@ class UpdateSensors():
         dropDown=table.cellWidget(row, col-1)
 
         if dropDown!=None:
-            assettypes=[]
+            templates=[]
             for i in range(dropDown.count()):
                 if dropDown.itemChecked(i):
-                    assettypes.append(dropDown.itemText(i))
-            if assettypes:
+                    templates.append(dropDown.itemText(i))
+            if templates:
                 sql="""WITH sub AS(
-    SELECT ag.id, at.assettype, at.assettype_name
-        FROM "{}".{}s f, public.{}_assettypes at, public.{}_assetgroups ag
-        WHERE at.assetgroup=f.assetgroup AND at.assettype=f.assettype AND ag.id=f.assetgroup
-            AND at.assettype || ':' || at.assettype_name || '(' || ag.assetgroup ||')' IN ({})
-        GROUP BY ag.id, at.assettype, at.assettype_name
+    SELECT t.template, t.template_name
+        FROM "{}".{}s f, public.{}_templates t
+        WHERE t.template=f.template
+            AND t.template || ':' || t.template_name IN ({})
+        GROUP BY t.template, t.template_name
 )    
-SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=sub.id AND f.assettype=sub.assettype ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,type,','.join(["'" + i + "'" for i in assettypes]),self.dictDB['versionName'],type)
+SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.template ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,','.join(["'" + i + "'" for i in templates]),self.dictDB['versionName'],type)
                 print(sql)
                 self.cur.execute(sql)
                 ids=self.cur.fetchall()
                 print(ids)
-                dropdownItems=[str(i['f_id'])+'('+i['assettype_name'] + ')' for i in ids]
+                dropdownItems=[str(i['f_id'])+'('+i['template_name'] + ')' for i in ids]
                 print(dropdownItems)
-                if table.cellWidget(row, 5).__class__.__name__=='CheckableComboBox': 
-                    self.setCheckableDropDownItemsTable(table,dropdownItems,row,4,[self.setDropDownConntypes,5,type])
+                if table.cellWidget(row, 4).__class__.__name__=='CheckableComboBox': 
+                    self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[self.setDropDownConntypes,5,type])
                 else:
-                    self.setCheckableDropDownItemsTable(table,dropdownItems,row,4,[])
+                    self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[])
             else:
-                for i in range(4,7):
+                for i in range(3,6):
                     if table.cellWidget(row, i).__class__.__name__=='CheckableComboBox': 
                         self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
     def setDropDownConntypes(self,table,col,row,type):
         print('set conn types')
-        dropDown=table.cellWidget(row, col-1)
+        dropDown=table.cellWidget(row, 3)
         #print(str(row) +';'+str(col))
         if dropDown!=None:
             print('+++++++++++++++++++++++')
             ids=[]
-            for i in range(dropDown.count()):
+            for i in range(1,dropDown.count()):
                 if dropDown.itemChecked(i):
                     ids.append(dropDown.itemText(i).split('(')[0])
             print(ids)
-            if ids and table.cellWidget(row, 7).currentText()!='Custom':
+            if ids and table.cellWidget(row, 6).currentText()!='Custom':
+                print('!=custom')
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
-    FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_assettypes at, public.connection_types conn_t
-    WHERE at.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.assetgroup=at.assetgroup AND f.assettype=at.assettype AND f.id IN ({}) AND conn_t.id=b_t_conns.conn_type_id
+    FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_templates t, public.connection_types conn_t
+    WHERE t.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.template=t.template AND f.id IN ({}) AND conn_t.id=b_t_conns.conn_type_id
     GROUP BY conn_t.id,conn_t.description;""".format(self.dictDB['versionName'],type,type,','.join(ids))
-                print(sql)
                 self.cur.execute(sql)
                 conntypes=self.cur.fetchall()
                 print(conntypes)
                 dropdownItems=[str(i['conn_type_id']) + ':' + str(i['description']) for i in conntypes]
                 print(dropdownItems)
-                self.setCheckableDropDownItemsTable(table,dropdownItems,row,5,[self.setDropDownConns,6,type])
+                self.setCheckableDropDownItemsTable(table,dropdownItems,row,4,[self.setDropDownConns,5,type])
 
             else:
-                for i in range(5,7):
+                for i in range(4,6):
                     self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
     def setDropDownConns(self,table,col,row,type):
@@ -579,38 +528,41 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
                 print(conns)
                 dropdownItems=[str(i['conn_id']) + ':' + str(i['description']) for i in conns]
                 print(dropdownItems)
-                if table.cellWidget(row,7).currentText() in ['Power','Custom']:
+                if table.cellWidget(row,6).currentText() in ['Power','Custom']:
                     print('deactivated dropdown conns')
-                    self.setCheckableDropDownItemsTable(table,[],row,6,[])
+                    self.setCheckableDropDownItemsTable(table,[],row,5,[])
                 else:
                     print('activated dropdown conns') 
-                    self.setCheckableDropDownItemsTable(table,dropdownItems,row,6,[])
+                    self.setCheckableDropDownItemsTable(table,dropdownItems,row,5,[])
             else:
-                for i in range(6,7):
+                for i in range(5,6):
                     self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
                     
-    def setFilteredAssettypeDropdownItems(self,table,type,id,row,sensor):
-        sql="""SELECT s_at.assetgroup, c_ag.assetgroup AS assetgroup_name,s_at.active, c_at.assettype, c_at.assettype_name
-    FROM "{}".{}_assettype s_at, public.{}_assettypes c_at, public.{}_assetgroups c_ag
-    WHERE s_at.{}_id={} AND c_at.assetgroup=s_at.assetgroup AND c_at.assettype=s_at.assettype AND c_ag.id=s_at.assetgroup
-    ORDER BY s_at.assetgroup, s_at.assettype;""".format(self.dictDB['versionName'],sensor,type,type,sensor,id)
+    def setFilteredTemplateDropdownItems(self,table,type,id,row,sensor,checkActive=True):
+        sql="""SELECT s_t.active, f_t.template, f_t.template_name
+    FROM "{}".{}_template s_t, public.{}_templates f_t
+    WHERE s_t.{}_id={} AND f_t.template=s_t.template
+    ORDER BY s_t.template;""".format(self.dictDB['versionName'],sensor,type,sensor,id)
         print(sql)
         self.cur.execute(sql)
-        assettypes=self.cur.fetchall()
-        print(assettypes)
+        templates=self.cur.fetchall()
+        print(templates)
+        print(sensor)
+        #print(self.loadedSensorData)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
-        comboBoxCheckable.addItems([str(i['assettype'])+':'+i['assettype_name']+'('+i['assetgroup_name']+')' for i in assettypes])
-        self.loadedSensorData[id][sensor]['assettypes']={i['assettype'] : i['active'] for i in assettypes}
-        for i in range(len(assettypes)):
-            comboBoxCheckable.setItemChecked(i+1,assettypes[i]['active'])
-        comboBoxCheckable.activated.connect(lambda signal, column=4,row=row: self.setDropDownIds(table,column,row,type))
-        table.setCellWidget(row, 3, comboBoxCheckable) 
+        comboBoxCheckable.addItems([str(i['template'])+':'+i['template_name'] for i in templates])
+        #self.loadedSensorData[id][sensor]['templates']={i['template'] : i['active'] for i in templates}
+        for i in range(len(templates)):
+            comboBoxCheckable.setItemChecked(i+1,templates[i]['active'] if checkActive else False)
+        comboBoxCheckable.activated.connect(lambda signal, column=3,row=row: self.setDropDownIds(table,column,row,type))
+        table.setCellWidget(row, 2, comboBoxCheckable) 
 
     def setFilteredIdsDropdownItems(self,table,type,id,row,sensor):
-        sql="""SELECT s_id.feature_id, s_id.active, at.assettype_name
-    FROM "{}".{}_ids s_id, "{}".{}s f, public.{}_assettypes at
-    WHERE s_id.{}_id={} AND f.id=s_id.feature_id AND f.assetgroup=at.assetgroup AND f.assettype=at.assettype
+        print('set Filtered Ids Dropdown Items')
+        sql="""SELECT s_id.feature_id, s_id.active, t.template_name
+    FROM "{}".{}_ids s_id, "{}".{}s f, public.{}_templates t
+    WHERE s_id.{}_id={} AND f.id=s_id.feature_id AND f.template=t.template
     ORDER BY s_id.feature_id;""".format(self.dictDB['versionName'],sensor,self.dictDB['versionName'],type,type,sensor,id)
         print(sql)
         self.cur.execute(sql)
@@ -618,15 +570,15 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
         print(ids)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
-        comboBoxCheckable.addItems([str(i['feature_id'])+'('+str(i['assettype_name'])+')' for i in ids])
-        self.loadedSensorData[id][sensor]['ids']={i['feature_id'] : i['active'] for i in ids}
+        comboBoxCheckable.addItems([str(i['feature_id'])+'('+str(i['template_name'])+')' for i in ids])
+        #self.loadedSensorData[id][sensor]['ids']={i['feature_id'] : i['active'] for i in ids}
         for i in range(len(ids)):
             comboBoxCheckable.setItemChecked(i+1,ids[i]['active'])
         print('+++++++++********++++++++~~~~~')
         print(type)
         if sensor=='source':
-            comboBoxCheckable.activated.connect(lambda signal, column=5,row=row: self.setDropDownConntypes(table,column,row,type))
-        table.setCellWidget(row, 4, comboBoxCheckable) 
+            comboBoxCheckable.activated.connect(lambda signal, column=4,row=row: self.setDropDownConntypes(table,column,row,type))
+        table.setCellWidget(row, 3, comboBoxCheckable) 
     
     def setCheckableDropDownItemsTable(self,table,dropdownItems,row,col,signal_args):
         print(dropdownItems)
@@ -637,7 +589,7 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
                 if table.cellWidget(row, col).__class__.__name__=='CheckableComboBox':
                     if oldDropdown.itemChecked(i)==True:
                         oldTrueItems.append(oldDropdown.itemText(i))
-        
+        print(oldTrueItems)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems(dropdownItems)
@@ -650,37 +602,41 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
                 print(col)
                 comboBoxCheckable.setItemChecked(i+1,False)
         if signal_args:
+            signal_args[0](table,signal_args[1],row,signal_args[2])
             comboBoxCheckable.activated.connect(lambda signal, column=signal_args[1],row=row: signal_args[0](table,column,row,signal_args[2]))
         table.setCellWidget(row, col, comboBoxCheckable) 
+        print('setCheckableDropDownItemsTable finished')
         
     def sourceTypeChanged(self,table,selected_index,column,row):
+        print('source type changed')
         type=table.cellWidget(row, column).currentText().split(':')[1].replace(' ','_')
         if self.dlg.tableWidget_target.cellWidget(row, column):
             target_type=self.dlg.tableWidget_target.cellWidget(row, column).currentText()
             if type==target_type.split(':')[1].replace(' ','_' )and type=='Supervisory_control':
                 print('+++source type==target type+++')
-                print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%4+1])[0])
-                self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%4+1])[0],1,row,self.targetTypeChanged)
+                print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0])
+                self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0],1,row,self.targetTypeChanged)
                 self.targetTypeChanged(self.dlg.tableWidget_target,'',1,row)
         else:
-            target_type='1:Supervisory_control'
-        print('+++++'+target_type+'++++')
+            target_type='3:Supervisory_control'
+        print('+++++target type:'+target_type+'++++')
         
         if type=='Supervisory_control':
             print('supervisory')
             self.setCheckableDropDownItemsTable(table,[],row,column+1,[])
-            for i in range(2,7):
+            for i in range(2,6):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
-            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[5]]]),'1',7,row,self.measureChanged)
-            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'1:Customer',8,row,False)
+            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[5]]]),'1',6,row,self.measureChanged)
+            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'1:Customer',7,row,False)
         else:
-            dropdownItems=[i['name'] for i in getAssetgroupsInfo(type,self.cur)]
+            dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
             print(dropdownItems)
-
-            self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDownAssettypes,2,type])
-            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,5]]]),'1',7,row,self.measureChanged)
-            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6] if target_type=='4:Supervisory control' else [1,2,3,4]]]),'Min',8,row,False)
-            for i in range(3,7):
+            print('row:'+str(row))
+            print('column:'+str(column))
+            self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDowntemplates,2,type])
+            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,5]]]),'1',6,row,self.measureChanged)
+            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6] if target_type=='3:Supervisory_control' else [1,2,3,4]]]),'Min',7,row,False)
+            for i in range(3,6):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
 
     def targetTypeChanged(self,table,selected_index,column,row):
@@ -690,8 +646,8 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
             source_type=self.dlg.tableWidget_source.cellWidget(row, column).currentText()
             if type==source_type.split(':')[1].replace(' ','_') and type=='Supervisory_control':
                 print('+++source type==target type+++')
-                print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%4+1])[0])
-                self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%4+1])[0],1,row,self.sourceTypeChanged)
+                print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0])
+                self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0],1,row,self.sourceTypeChanged)
                 self.sourceTypeChanged(self.dlg.tableWidget_source,'',1,row)
         else:
             source_type='1:Customer'
@@ -700,34 +656,29 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
         if type=='Supervisory_control':
             print('supervisory')
             self.setCheckableDropDownItemsTable(table,[],row,column+1,[])
-            for i in range(2,5):
+            for i in range(2,3):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
         else:
-            dropdownItems=[i['name'] for i in getAssetgroupsInfo(type,self.cur)]
+            dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
             print(dropdownItems)
-            self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDownAssettypesTarget,2,type])
-            for i in range(3,5):
+            self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDowntemplatesTarget,2,type])
+            for i in range(3,3):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
-        if type=='Customer':
-            print('target --> type --> Customer')
-            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1,2]]]),'Custom',5,row,False)
-        else:
-            self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),'Custom',5,row,False)
         self.measureChanged(self.dlg.tableWidget_source,selected_index,column,row)
 
     def btn_ok_sensonorSignals(self):
         self.writeSensorsToDB()
-        self.processingSensonorSignals()
+        self.processingSensorSignals()
         
-    def processingSensonorSignals(self):
+    def processingSensorSignals(self):
         """Check sensor updates with getSensorData()
-            * Loop over effected templates of Customers (1), Energy Plants (2), Devices (3) --> Update sensor targets and sources & sensor_infos
-            * Update Supervisory Control (4) if effected"""
-        #get sensor data of assettypes (type,assetgroup,assettype)
-        add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.dictDB,source_types=[1,2,3],filter=" AND s.measure=5")
-        add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.dictDB,target_types=[1,2,3],filter=" AND t.target=1")
-        remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[1,2,3],filter=" AND s.measure=5")
-        remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[1,2,3],filter=" AND t.target=1")
+            * Loop over effected templates of Customers (1), Energy Plants (2) --> Update sensor targets and sources & sensor_infos
+            * Update Supervisory Control (3) if effected"""
+        #get sensor data of templates
+        add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.dictDB,source_types=[1,2],filter=" AND s.measure=5")
+        add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.dictDB,target_types=[1,2],filter=" AND t.target=1")
+        remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[1,2],filter=" AND s.measure=5")
+        remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[1,2],filter=" AND t.target=1")
 
         print('-+sensor data+-')
         print(add_sensor_source_idsValues)
@@ -735,49 +686,49 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
         print(remove_sensor_source_ids)
         print(remove_sensor_target_ids)
 
-        assettypes={}
+        templates={}
         for sensor in add_sensor_source_idsValues:
             print(sensor)
-            print(getAssettypeNameById(sensor['type']))
-            at_name=getAssettypeName(self.cur,getAssettypeNameById(sensor['type']),sensor['assettype'])
+            print(getTemplateNameById(sensor['type']))
+            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
             print(at_name)
-            if sensor['type'] not in assettypes:
-                assettypes[sensor['type']]={}
+            if sensor['type'] not in templates:
+                templates[sensor['type']]={}
             if at_name:
-                if at_name[0] in assettypes[sensor['type']]:
-                    assettypes[sensor['type']][at_name[0]]['source_add'].append(sensor)
+                if at_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][at_name[0]]['source_add'].append(sensor)
                 else:
-                    assettypes[sensor['type']][at_name[0]]={'source_add': [sensor], 'target_add':[],'source_remove':[],'target_remove':[]}
+                    templates[sensor['type']][at_name[0]]={'source_add': [sensor], 'target_add':[],'source_remove':[],'target_remove':[]}
         for sensor in add_sensor_target_idsValues:
-            at_name=getAssettypeName(self.cur,getAssettypeNameById(sensor['type']),sensor['assettype'])
+            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
             print(at_name)
-            if sensor['type'] not in assettypes:
-                assettypes[sensor['type']]={}
+            if sensor['type'] not in templates:
+                templates[sensor['type']]={}
             if at_name:
-                if at_name[0] in assettypes[sensor['type']]:
-                    assettypes[sensor['type']][at_name[0]]['target_add'].append(sensor)
+                if at_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][at_name[0]]['target_add'].append(sensor)
                 else:
-                    assettypes[sensor['type']][at_name[0]]={'source_add': [], 'target_add':[sensor],'source_remove':[],'target_remove':[]}
+                    templates[sensor['type']][at_name[0]]={'source_add': [], 'target_add':[sensor],'source_remove':[],'target_remove':[]}
         for sensor in remove_sensor_source_ids:
-            at_name=getAssettypeName(self.cur,getAssettypeNameById(sensor['type']),sensor['assettype'])
+            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
             print(at_name)
-            if sensor['type'] not in assettypes:
-                assettypes[sensor['type']]={}
+            if sensor['type'] not in templates:
+                templates[sensor['type']]={}
             if at_name:
-                if at_name[0] in assettypes[sensor['type']]:
-                    assettypes[sensor['type']][at_name[0]]['source_remove'].append(sensor)
+                if at_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][at_name[0]]['source_remove'].append(sensor)
                 else:
-                    assettypes[sensor['type']][at_name[0]]={'source_add': [], 'target_add': [],'source_remove':[sensor],'target_remove':[]}
+                    templates[sensor['type']][at_name[0]]={'source_add': [], 'target_add': [],'source_remove':[sensor],'target_remove':[]}
         for sensor in remove_sensor_target_ids:
-            at_name=getAssettypeName(self.cur,getAssettypeNameById(sensor['type']),sensor['assettype'])
+            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
             print(at_name)
-            if sensor['type'] not in assettypes:
-                assettypes[sensor['type']]={}
+            if sensor['type'] not in templates:
+                templates[sensor['type']]={}
             if at_name:
-                if at_name[0] in assettypes[sensor['type']]:
-                    assettypes[sensor['type']][at_name[0]]['target_remove'].append(sensor)
+                if at_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][at_name[0]]['target_remove'].append(sensor)
                 else:
-                    assettypes[sensor['type']][at_name[0]]={'source_add': [], 'target_add': [],'source_remove': [],'target_remove': [sensor]}
+                    templates[sensor['type']][at_name[0]]={'source_add': [], 'target_add': [],'source_remove': [],'target_remove': [sensor]}
                 
         print('++++++++++++++---------+++++/////////')
         print('--------------add_sensor_source_idsValues------------')
@@ -789,12 +740,12 @@ SELECT f.id AS f_id,sub.assettype_name FROM "{}".{}s f, sub WHERE f.assetgroup=s
         print('------------remove_sensor_target_ids--------------')
         print(remove_sensor_target_ids)
         
-        for type in assettypes:
-            for at in assettypes[type]:
-                print('++++++++++++++----AssettypeSensorSignals-----+++++/////////')
+        for type in templates:
+            for at in templates[type]:
+                print('++++++++++++++----templatesensorSignals-----+++++/////////')
                 print(at)
-                print(assettypes[type][at])
-                AssettypeSensorSignals(self.cur,self.dictDB,getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName']+'\\'+getAssettypeNameById(type),at,type,assettypes[type][at]['source_add'],assettypes[type][at]['target_add'],assettypes[type][at]['source_remove'],assettypes[type][at]['target_remove'])
+                print(templates[type][at])
+                templatesensorSignals(self.cur,self.dictDB,getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName']+'\\'+getTemplateNameById(type),at,type,templates[type][at]['source_add'],templates[type][at]['target_add'],templates[type][at]['source_remove'],templates[type][at]['target_remove'])
                 
         #delete from invoked tables in DB
         if remove_sensor_source_ids:

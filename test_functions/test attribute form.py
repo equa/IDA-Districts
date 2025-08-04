@@ -1,25 +1,21 @@
 def setupVersionForm_light():  
     """ setup form for version layers"""
-    for vlayerName in ['lines','devices','junctions','customers','energy_plants']:
+    for vlayerName in ['lines','junctions','customers','energy_plants']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         fc = vlayer.editFormConfig()
         fc.clearTabs()
         fc.setLayout(QgsEditFormConfig.TabLayout)
-        if vlayerName=='devices':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            ['asl_m'],
-                            [],[]]
-        elif vlayerName=='junctions':
+        if vlayerName=='junctions':
             attrNamesTabs= [['assetgroup','submodel'],
                             ['asl_m','n_connections'],
                             [],[]]
         elif vlayerName=='lines':
-            attrNamesTabs= [['assetgroup','assettype','pipe_bundle_type_id','network','submodel'],
+            attrNamesTabs= [['assetgroup','pipe_bundle_type_id','network','submodel'],
                             ['length','nominaltemperature','maximumtemperature','nominaloppressure','maximumoppressure'],
                             [],[]]
         elif vlayerName=='customers':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
+            attrNamesTabs= [['template','submodel'],
                             ['dhw_id','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
                             ['sim_model',
                                 [1],
@@ -31,8 +27,8 @@ def setupVersionForm_light():
 #                           []]    
                             ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
         elif vlayerName=='energy_plants':
-            attrNamesTabs= [['assetgroup','assettype','submodel'],
-                            ['main_plant','heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
+            attrNamesTabs= [['template','submodel'],
+                            ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg','asl_m'],
                             [],[]]
         for tab,attrNamesTab in zip(['General','Physical data','Simulation data','Metadata'],attrNamesTabs):
             if attrNamesTab:

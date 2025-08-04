@@ -134,6 +134,7 @@ def getIDAListComponents(data):
         data = re.sub(pattern, replace_func, data)
     #print(data)
     data=data.replace('$empty_str$','""')
+    print(data)
 
     return eval(data)
     
@@ -143,14 +144,14 @@ def propertyListCompsIDM(comps):
 def propertyListCompsIDC(comps):
     return [propertyListIDC(comp) for comp in comps]
 
-def getImportVars(f_ids,assettype_data_ex,sensor_dec_data):
+def getImportVars(f_ids,template_data_ex,sensor_dec_data):
     importVars=[]
     importSignals=[]
     for f in f_ids:
         print(f)
-        for at_d_conn in assettype_data_ex:
-            if at_d_conn['feature']==f['feature'] and at_d_conn['assetgroup']==f['assetgroup'] and at_d_conn['assettype']==f['assettype']:
-                for data_ex in at_d_conn['data_ex']:
+        for t_d_conn in template_data_ex:
+            if t_d_conn['feature']==f['feature'] and t_d_conn['template']==f['template']:
+                for data_ex in t_d_conn['data_ex']:
                     for var in data_ex[':IMPORT']:
                         print(var)
                         print(var.replace('"','').split('_')[-1])
@@ -159,19 +160,19 @@ def getImportVars(f_ids,assettype_data_ex,sensor_dec_data):
                         elif [True for i in sensor_dec_data for j in i['irefs_target'] if str(i['sensor_id'])==var.replace('"','').split('_')[-1] and j['iref'].split('_')[1]==str(f['id'])]:
                             importSignals.append(var)
     print(importSignals)
-    print([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==4)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
-    return importVars+[j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==4)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]]
+    print([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
+    return importVars+[j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]]
 
-def getExportVars(f_ids,assettype_data_ex,sensor_dec_data,mode):
+def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
     exportVars=[]
     counter = alt_count(start=1)
-    print(assettype_data_ex)
+    print(template_data_ex)
     exportSignalDict={}
 
     for f in f_ids:
-        for at_d_conn in assettype_data_ex:
-            if at_d_conn['feature']==f['feature'] and at_d_conn['assetgroup']==f['assetgroup'] and at_d_conn['assettype']==f['assettype']:
-                for data_ex in at_d_conn['data_ex']:
+        for t_d_conn in template_data_ex:
+            if t_d_conn['feature']==f['feature'] and t_d_conn['template']==f['template']:
+                for data_ex in t_d_conn['data_ex']:
                     for var in data_ex[':EXPORT']:
                         sensor_id=var.replace('"','').split('_')[-1]
                         if not data_ex[':N']==':SELF':
@@ -180,8 +181,8 @@ def getExportVars(f_ids,assettype_data_ex,sensor_dec_data,mode):
                             #print(var)
                             sensor_id=int(sensor_id)
 
-                            #check if target type ==supervisory ctrl (4) and measure==5 and function ==individual signals for each target (6)
-                            iref=[j['iref'] if i['target_type']==4 and i['measure']==5 and i['function']==6  else sensor_id
+                            #check if target type ==supervisory ctrl (3) and measure==5 and function ==individual signals for each target (6)
+                            iref=[j['iref'] if i['target_type']==3 and i['measure']==5 and i['function']==6  else sensor_id
                                 for i in sensor_dec_data if i['sensor_id']==sensor_id
                                 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(f['id'])]
                             try:
@@ -369,10 +370,8 @@ def getFeatureIdsPerSubmodel(submodel,cur,dictDB):
     SELECT 1 AS feature, id FROM "{}".customers WHERE submodel={}
     UNION
     SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
-    UNION
-    SELECT 3 AS feature, id FROM "{}".devices WHERE submodel={}
 )
-ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,dictDB['versionName'],submodel)
+ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,submodel)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -433,7 +432,7 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                 print(ex[':EXPORT'])
     return data_ex
 
-def getDataExAssettype(conns_idc,dec_models,components_idm,network_side,sensor_dec_data,submodel,cur,dictDB):
+def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_dec_data,submodel,cur,dictDB):
     data_ex=[]
     PhiHxLimit_signal=False
     TbSet_signal=False
@@ -471,7 +470,7 @@ def getDataExAssettype(conns_idc,dec_models,components_idm,network_side,sensor_d
                     ':IMPORT': [],
                     ':EXPORT': [link],
                     ':CONN-IDC':conn_idc}]
-            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data if i['source_type']==4 and i['function']==5 and submodel==str(getSupervisorySubmodel(cur,dictDB)['submodel']) 
+            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data if i['source_type']==3 and i['function']==5 and submodel==str(getSupervisorySubmodel(cur,dictDB)['submodel']) 
                 and [True for j in i['irefs_target'] if j['cosim']==submodel and not j['network_side']]]:
                 print('supervisory target')
                 data_ex+=[{':N':model_name,':T': 'OUT',

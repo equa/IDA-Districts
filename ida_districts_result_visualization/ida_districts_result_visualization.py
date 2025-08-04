@@ -156,9 +156,9 @@ class IDADistrictsResultVisualization:
 
     def getCustomerId(self,lids):
         sql="""SELECT c.id, ST_Z(ST_EndPoint(l.geom)) AS height, c.submodel,b_t_conns.conn_type_id
-    FROM "{}".customers c, "{}".lines l, customer_assettypes c_at, bundle_type_conns b_t_conns, "{}".customer_connections c_conns
-    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_at.conn_bundle_type AND 
-        l.id IN ({}) AND c_at.assettype=c.assettype AND c.assetgroup=c_at.assetgroup AND c_conns.cid=c.id AND l.id=c_conns.lid
+    FROM "{}".customers c, "{}".lines l, customer_templates c_t, bundle_type_conns b_t_conns, "{}".customer_connections c_conns
+    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_t.conn_bundle_type AND 
+        l.id IN ({}) AND c_t.template=c.template AND c_conns.cid=c.id AND l.id=c_conns.lid
     GROUP BY c.id,l.geom, b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],','.join(str(i[0]) for i in lids))
         print(sql)
         self.cur.execute(sql)
@@ -169,9 +169,9 @@ class IDADistrictsResultVisualization:
         
     def getEnergyPlantId(self,lids):
         sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
-    WHERE  l.id IN ({}) AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND 
-        ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
+    FROM "{}".energy_plants ep, "{}".lines l, energy_plant_templates ep_t, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
+    WHERE  l.id IN ({}) AND ep_t.template=ep.template AND 
+        ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
     GROUP BY ep.id,l.id, height,l.geom,b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],','.join(str(i) for i in lids))
         print(sql)
         self.cur.execute(sql)
@@ -182,9 +182,9 @@ class IDADistrictsResultVisualization:
 
     def getMainEnergyPlantId(self,network):
         sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l,energy_plant_assettypes ep_at, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
-    WHERE {} = ANY (ep.network) AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND
-        ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
+    FROM "{}".energy_plants ep, "{}".lines l,energy_plant_templates ep_t, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
+    WHERE {} = ANY (ep.network) AND l.network={} AND ep_t.template=ep.template AND
+        ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
     GROUP BY ep.id,l.id, height,l.geom, b_t_conns.conn_type_id
     ORDER BY ep.id LIMIT 1;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],network,network)
         print(sql)
@@ -417,26 +417,26 @@ class IDADistrictsResultVisualization:
                 filedata_ep=readFileToList(file)
                 if dlg.rbtn_weakPoint.isChecked():
                     sql="""(SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
-    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
-    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_at.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
-        c_at.assettype=c.assettype AND c.assetgroup=c_at.assetgroup AND l.network={} AND {}=ANY(c.network)
+    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_templates c_t, bundle_type_conns b_t_conns
+    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_t.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
+        c_t.template=c.template AND l.network={} AND {}=ANY(c.network)
 UNION
 SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
-    WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
-        NOT ep.id={} AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup
+    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_templates ep_t, bundle_type_conns b_t_conns
+    WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
+        NOT ep.id={} AND l.network={} AND ep_t.template=ep.template
 )
 ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid,dlg.network.currentText())
                 elif dlg.rbtn_customer.isChecked():
                     sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
-    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_assettypes c_at, bundle_type_conns b_t_conns
-    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_at.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
-        c_at.assettype=c.assettype AND c.assetgroup=c_at.assetgroup AND l.network={} AND {}=ANY(c.network) AND c.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
+    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_templates c_t, bundle_type_conns b_t_conns
+    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_t.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
+        c_t.template=c.template AND l.network={} AND {}=ANY(c.network) AND c.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
                 elif dlg.rbtn_energy_plant.isChecked():
                     sql="""SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_assettypes ep_at, bundle_type_conns b_t_conns
-    WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_at.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
-        NOT ep.id={} AND l.network={} AND ep_at.assettype=ep.assettype AND ep.assetgroup=ep_at.assetgroup AND ep.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid,dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
+    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_templates ep_t, bundle_type_conns b_t_conns
+    WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
+        NOT ep.id={} AND l.network={} AND ep_t.template=ep.template AND ep.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid,dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
                 print(sql)
                 self.cur.execute(sql)
                 fids=[[str(f['id']), f['height'],f['feature'],f['submodel'],f['conn_type_id']] for f in self.cur.fetchall()]
@@ -717,8 +717,6 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             type='customer'
         elif dlg.rbtn_energy_plant.isChecked():
             type='energy_plant'
-        elif dlg.rbtn_devices.isChecked():
-            type='device'
         return type
     
     def getFeatureIds(self,dlg):
@@ -848,7 +846,6 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             self.dlg_plotLoads.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_plotLoads))
             self.dlg_plotLoads.rbtn_customer.toggled.connect(lambda: self.loadFeatureIds(self.dlg_plotLoads))
             self.dlg_plotLoads.rbtn_energy_plant.toggled.connect(lambda: self.loadFeatureIds(self.dlg_plotLoads))
-            self.dlg_plotLoads.rbtn_devices.toggled.connect(lambda: self.loadFeatureIds(self.dlg_plotLoads))
             
             self.dlg_plotLoads.combo_networks.addItem('Check all items')
             networks=getNetworks(self.cur,self.dictDB)
@@ -930,7 +927,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
 
                 dlg.tableVars.setItem(counter,0,chkBoxItem)
                 comboBox = QComboBox()
-                comboBox.addItems(['Customer','Energy plant','Device','Line'])
+                comboBox.addItems(['Customer','Energy plant','Line'])
                 dlg.tableVars.setCellWidget(counter, 1, comboBox)
                 dlg.tableVars.setItem(counter, 2, QTableWidgetItem(''))
                 dlg.tableVars.setItem(counter, 3, QTableWidgetItem(''))

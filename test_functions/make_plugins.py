@@ -2,12 +2,14 @@ from plugins.utility_functions.files import *
 from plugins.utility_functions.db import *
 from datetime import datetime
 import shutil
+import subprocess
+import os
 
 plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
 
 current_date = datetime.now().strftime('%Y-%m-%d-%H%M')
 target_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\'
-
+new_version ='5.18002' 
 # Check if the folder exists and delete it
 if os.path.exists(target_dir) and os.path.isdir(target_dir):
     shutil.rmtree(target_dir)
@@ -20,6 +22,25 @@ def copyMetaFiles(src_dir,trg_dir):
     os.mkdir(trg_dir+'__pycache__')
     for file_name in ['__init__.py','Makefile','metadata.txt','pb_tool.cfg','pylintrc','resources.py','resources.qrc']:
         shutil.copy(src_dir+file_name, trg_dir+file_name)
+
+def replace_text_in_file(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+        new_content = content.replace(";IDA 5.18002", ";IDA 5.11").replace(":VER 5.18002", ":VER 5.11")
+        if new_content != content:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(new_content)
+            #print(f"Updated: {file_path}")
+    except Exception as e:
+        print(f"Error processing {file_path}: {e}")
+
+def process_folder(folder_path):
+    for root, dirs, files in os.walk(folder_path):
+        for filename in files:
+            if filename.endswith('.idc') or filename.endswith('.idm'):
+                file_path = os.path.join(root, filename)
+                replace_text_in_file(file_path)
         
     
 #utility functions
@@ -93,7 +114,22 @@ shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copytree(src_dir+'icons',trg_dir+'icons')
 os.mkdir(trg_dir+'templates')
 for template in ['heating_network.ida','empty_project.ida','db_default_values.ida','co-sim_buildings_with_heating_network.ida']:
-    shutil.copy(src_dir+'templates\\'+template, trg_dir+'templates\\'+template)
+    filename=src_dir+'templates\\'+template
+    dir=src_dir+'templates\\'+template.split('.')[0]
+    if not os.path.exists(dir):
+        cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(loadIDADistrictsConfig(plugin_dir)['path_ice'],filename,dir)
+        print(cmd)
+        subprocess.call(cmd, shell=True)
+    process_folder(dir)
+    
+    cmd="""\"{}bin\\7za.exe" a -t7z -r "{}_temp.ida" "{}/*.*\"""".format(loadIDADistrictsConfig(plugin_dir)['path_ice'],dir,dir)
+    print(cmd)
+    subprocess.call(cmd, shell=True) 
+    
+    shutil.copy(src_dir+'templates\\'+template.split('.')[0]+'_temp.ida', trg_dir+'templates\\'+template)
+    shutil.rmtree( '\\\\?\\'+dir if os.name == 'nt' else dir) 
+    os.remove(src_dir+'templates\\'+template.split('.')[0]+'_temp.ida')
+
 #shutil.copytree(src_dir+'templates',trg_dir+'templates')
 shutil.copy(src_dir+'configIDADistricts.txt', trg_dir+'configIDADistricts.txt')
 shutil.copy(src_dir+'DB_projectTablesDefault.txt', trg_dir+'DB_projectTablesDefault.txt')
@@ -122,6 +158,7 @@ shutil.copy(src_dir+'ida_districts_result_visualization_dialog.py', trg_dir+'ida
 copyMetaFiles(src_dir,trg_dir)
 
 #------------models--------------
+"""
 target_model_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\models\\'
 print(target_model_dir)
 os.mkdir(target_model_dir)
@@ -241,6 +278,7 @@ shutil.copy(src_dir+'hx.eo', trg_dir+'hx.eo')
 shutil.copy(src_dir+'hx.dll', trg_dir+'hx.dll')
 os.mkdir(trg_dir+'x64')
 shutil.copy(src_dir+'x64\\hx.dll', trg_dir+'x64\\hx.dll')
+"""
 
 #documentation
 target_doc_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\documentation\\'

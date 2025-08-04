@@ -21,7 +21,7 @@ class ExchangeConntypeFiles:
         print('*********ExchangeConntypeFiles********')
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
-        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_assettypes".format(type)
+        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
         
         if not oldConnValues:
             oldConnValues=getConnsValues(b_conn_t_old,cur)
@@ -144,7 +144,7 @@ class ExchangeConntypeFiles:
                 counter_mdot+=1
         writeToFileFromList(filedata,dir,dir+'\\'+name+'_test.idc') 
 
-        #assettype macro
+        #template macro
         dir=dir+'\\'+name
         filedata=readFileToList(dir+'\\'+name+'.idm')
         filedata=self.delPMT2Comp(filedata,oldConnValues)
@@ -336,7 +336,7 @@ def delPMT2Comp(file_data,oldConnValues):
         
 print(getConnsValues(1,cur))
 
-ats=getAssetTypesByConnBundleType(cur,dictDB,1)
+ats=getTemplatesByConnBundleType(cur,dictDB,1)
         
 oldConnValues_dict={'1_4_Heating and Cooling 1 Supply & 1 Return': [{'conn_bundle_type_id': 1, 'conn_type_seq': 1, 'conn_type_id': 3, 'conn_seq': 1, 'temp': 18, 'p': 100000, 'mdot': None, 'type': 1, 'conn_id': 5}, {'conn_bundle_type_id': 1, 'conn_type_seq': 1, 'conn_type_id': 3, 'conn_seq': 2, 'temp': 10, 'p': 0, 'mdot': None, 'type': 2, 'conn_id': 6}]}
 

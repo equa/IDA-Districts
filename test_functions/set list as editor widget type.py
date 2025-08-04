@@ -47,7 +47,7 @@ def setFieldConstraints(constraints_dict):
             layer.setFieldConstraint(field_index, QgsFieldConstraints.ConstraintExpression)
             layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
 
-list_type_dict={'energy_plants':['network','main_plant'],'customers':['network'],'lines':['submodel'],'devices':['network']}
+list_type_dict={'energy_plants':['network','main_plant'],'customers':['network'],'lines':['submodel']}
 
 networks=getNetworks(cur,dictDB)
 print(networks)
@@ -56,7 +56,6 @@ print(networks_array)
 
 constraint_expression_dict = {'energy_plants': {'network': f'array_all({networks_array}, "network")','main_plant': f'array_all({networks_array}, "main_plant")'},
                             'customers': {'network': f'array_all({networks_array}, "network")'},
-                            'devices': {'network': f'array_all({networks_array}, "network")'},
                             'lines': {'network': f'array_contains({networks_array},"network")'}}
     
 setEditorWidgetListType(list_type_dict)

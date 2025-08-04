@@ -45,16 +45,13 @@ class ShowOnMapDialog(QMainWindow):
         self.rbtn_customers = QRadioButton('Customers')
         self.rbtn_customers.setChecked(True)
         self.rbtn_plants = QRadioButton('Energy plants')
-        self.rbtn_devices = QRadioButton('Devices')
         self.rbtn_lines = QRadioButton('Lines')
            
         layout_rbtn_feature.addWidget(self.rbtn_customers)
         layout_rbtn_feature.addWidget(self.rbtn_plants)  
-        layout_rbtn_feature.addWidget(self.rbtn_devices)  
         layout_rbtn_feature.addWidget(self.rbtn_lines)  
         self.group_feature.addButton(self.rbtn_customers)      
         self.group_feature.addButton(self.rbtn_plants)      
-        self.group_feature.addButton(self.rbtn_devices)      
         self.group_feature.addButton(self.rbtn_lines)  
         self.group_feature.buttonClicked.connect(self.featureGroupChanged)
         
@@ -598,14 +595,6 @@ class ShowOnMapDialog(QMainWindow):
             self.displayRotationLayout()
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
-        elif self.rbtn_devices.isChecked():
-            print('Devices')
-            self.feature='device'
-            vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
-            pars=getTableAttr(self.cur,self.dictDB,self.feature)
-            self.displayRotationLayout()
-            self.label_lineSegVis.setHidden(True)
-            self.lineSegVis.setHidden(True)
         elif self.rbtn_lines.isChecked():
             print('Lines')
             self.feature='line'
@@ -794,11 +783,9 @@ class PlotLoadProfilesDialog(QMainWindow):
         self.rbtn_customer = QRadioButton('Customers')
         self.rbtn_customer.setChecked(True)
         self.rbtn_energy_plant = QRadioButton('Energy plants')
-        self.rbtn_devices = QRadioButton('Devices')
            
         layout_rbtn_feature_type.addWidget(self.rbtn_customer)
         layout_rbtn_feature_type.addWidget(self.rbtn_energy_plant)
-        layout_rbtn_feature_type.addWidget(self.rbtn_devices)
         
         #Feature ID`s list
         self.listWidget_ids= QListWidget()

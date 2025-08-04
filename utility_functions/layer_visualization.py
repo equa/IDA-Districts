@@ -1,6 +1,6 @@
 from plugins.utility_functions.files import *
 from plugins.utility_functions.db import *
-from qgis.core import  QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
+from qgis.core import  QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 
 def zoomToLayer(layer_name):
     # Get the active QGIS map canvas
@@ -47,7 +47,7 @@ def setFieldConstraints(constraints_dict):
                 layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
             
 def getDHCLayerNames():
-    return ["lines","junctions","energy_plants","devices"]
+    return ["lines","junctions","energy_plants"]
     
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
@@ -56,7 +56,7 @@ def updateTableSrid(versions,cur,srid):
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
-        for table in ['devices','lines','junctions','customers','energy_plants','buildings','streets','submodels','boreholes']:
+        for table in ['lines','junctions','customers','energy_plants','buildings','streets','submodels','boreholes']:
             print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
@@ -125,31 +125,27 @@ def valueRelationInternalLoadId():
  
 def setupVersionForm(cur,dictDB):  
     """ setup form for version layers"""
-    for vlayerName in ['lines','devices','junctions','customers','energy_plants']:
+    for vlayerName in ['lines','junctions','customers','energy_plants']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
         fc = vlayer.editFormConfig()
         fc.clearTabs()
         fc.setLayout(QgsEditFormConfig.TabLayout)
-        if vlayerName=='devices':
-            attrNamesTabs= [['assetgroup','assettype'],
-                            [],
-                            ['submodel'],[]]
-        elif vlayerName=='junctions':
-            attrNamesTabs= [['assetgroup'],
+        if vlayerName=='junctions':
+            attrNamesTabs= [['type'],
                             ['n_connections','zeta'],
                             ['submodel'],[]]
         elif vlayerName=='lines':
-            attrNamesTabs= [['id','assetgroup','assettype','pipe_bundle_type_id','network'],
+            attrNamesTabs= [['id','type','pipe_bundle_type_id','network'],
                             ['length','zeta'],
                             ['submodel'],[]]
         elif vlayerName=='customers':
-            attrNamesTabs= [['id','assetgroup','assettype','network'],
+            attrNamesTabs= [['id','template','network'],
                             ['load_w'],
                             ['dhw_id','internal_load_id','submodel'],
                             []]
         elif vlayerName=='energy_plants':
-            attrNamesTabs= [['id','assetgroup','assettype','network'],
+            attrNamesTabs= [['id','template','network'],
                             [],
                             ['submodel'],[]]
         for tab, attrNamesTab in zip(['General', 'Physical data', 'Simulation data', 'Metadata'], attrNamesTabs):
@@ -172,24 +168,21 @@ def setupVersionForm(cur,dictDB):
             
 def versionLayersAliasNames():
     """ alias names for version layers"""
-    for vlayerName in ['lines','devices','customers','energy_plants','junctions']:
+    for vlayerName in ['lines','customers','energy_plants','junctions']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
         fields=vlayer.fields()
-        if vlayerName=='devices':
-            attrNames=['assetgroup','assettype','submodel']
-            aliasNames=['Asset group','Asset type','Network','Co-sim']
-        elif vlayerName=='lines':
-            attrNames=['assetgroup','assettype','pipe_bundle_type_id','network','submodel','length']
-            aliasNames=['Asset group','Asset type','Pipe bundle type','Network','Co-sim','Length, m']
+        if vlayerName=='lines':
+            attrNames=['type','pipe_bundle_type_id','network','submodel','length']
+            aliasNames=['Type','Pipe bundle type','Network','Co-sim','Length, m']
         elif vlayerName=='customers':
-            attrNames=['assetgroup','assettype','submodel','load_w','dhw_id','internal_load_id']
-            aliasNames=['Asset group','Asset type','Co-sim','Load, W','Domestic hot water ID','Internal load ID']
+            attrNames=['template','submodel','load_w','dhw_id','internal_load_id']
+            aliasNames=['Template','Co-sim','Load, W','Domestic hot water ID','Internal load ID']
         elif vlayerName=='energy_plants':
-            attrNames=['assetgroup','assettype','submodel']
-            aliasNames=['Asset group','Asset type','Co-sim']
+            attrNames=['template','submodel']
+            aliasNames=['Template','Co-sim']
         elif vlayerName=='junctions':
-            attrNames=['assetgroup','assettype','submodel','n_connections']
-            aliasNames=['Asset group','Asset type','Co-sim','Number of connections']
+            attrNames=['type','submodel','n_connections']
+            aliasNames=['Type','Co-sim','Number of connections']
         
         for attrName,alias in zip(attrNames,aliasNames):
             field_idx = fields.indexOf(attrName)
@@ -235,10 +228,10 @@ def loadBoreholesLayer(version,uri,dictDB,plugin_dir,cur):
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
-            'junction_assetgroups','junction_assettypes','junctions',
+        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_templates','energy_plant_templates',
+            'junction_types','junction_templates','junctions',
             'streets', 'buildings','network','cosim',
-            'devices','device_assettypes','device_assetgroups','lines','line_assettypes','line_assetgroups','boreholes','borehole_fields',
+            'lines','line_types','boreholes','borehole_fields',
             'pipematerial','lines_results_supply_temperature','customer_results_load',
             'room_units','zone_templates','building_construction_standard']:
             QgsProject.instance().removeMapLayer(layer)
@@ -254,7 +247,7 @@ def showTempTables(uri,dictDB,plugin_dir,iface,cur):
     print('show temp tables')
     removeTempLayers()
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-    for layer in ['lines','junctions','customers','energy_plants']: #todo devices
+    for layer in ['lines','junctions','customers','energy_plants']:
         if QgsProject.instance().mapLayersByName(layer):
             vlayer= QgsProject.instance().mapLayersByName(layer)[0]
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
@@ -281,9 +274,9 @@ def setLayersHidden(tableNames):
         
 def loadTopologyLayers(version,uri,dictDB):
     #load tables without geometry and hide them in layers panel
-    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_assettypes','customer_assetgroups','energy_plant_assettypes','energy_plant_assetgroups',
-        'junction_assetgroups',
-        'line_assetgroups','line_assettypes','device_assetgroups','device_assettypes','room_units','building_construction_standard','zone_templates']
+    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_templates','energy_plant_templates',
+        'junction_types',
+        'line_types','room_units','building_construction_standard','zone_templates']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
         layer = QgsVectorLayer(uri.uri(False), tableName, dictDB['user'])
@@ -293,70 +286,83 @@ def loadTopologyLayers(version,uri,dictDB):
 
         
 def getListTypeDict():
-    return {'energy_plants':['network'],'customers':['network'],'lines':['submodel'],'devices':['network']} 
+    return {'energy_plants':['network'],'customers':['network'],'lines':['submodel']} 
     
 def getConstraintExpressionDict(networks_array):
     return {'energy_plants': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
                                 'customers': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
-                                'devices': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
                                 'lines': {'network': f'array_contains({networks_array},"network")'}} 
     
 def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
     dir=getProjectHandlingDir(plugin_dir)
-    for vlayerName in ['energy_plants','customers','lines','devices','junctions']:  
-        categories=featureLayerAssetgroups(vlayerName,cur)
-        ids=featureLayerAssetgroupIds(vlayerName,cur)
-        if not (vlayerName in ['devices'] and version=='temp'):
-            uri.setDataSource(version, vlayerName, "geom")
-            if version =='temp':
-                vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])
-            else:
-                vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
-            QgsProject.instance().addMapLayer(vlayer)  
-            #print(vlayerName[:-1] + '_assetgroups')
-            target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assetgroups')[0]
-            config = {'AllowMulti': False,
-                      'AllowNull': True,
-                      'FilterExpression': '',
-                      'Key': 'id',
-                      'Layer': target_layer.id(),
-                      'NofColumns': 1,
-                      'OrderByValue': False,
-                      'UseCompleter': False,
-                      'Value': 'assetgroup'}
-            widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
-            fields=vlayer.fields()
-            field_idx = fields.indexOf('assetgroup')
-            vlayer.setEditorWidgetSetup(field_idx, widget_setup)   
-            if vlayerName!='junctions':     
-                target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assettypes')[0]             
-                config['Layer'] = target_layer.id()
-                config['Key'] = 'assettype'
-                config['Value'] = 'assettype_name'
-                config['FilterExpression']=""""assetgroup" = current_value('assetgroup')"""
-                widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
-                field_idx = fields.indexOf('assettype')
-                vlayer.setEditorWidgetSetup(field_idx, widget_setup)
+    print('load project layers')
+    for vlayerName in ['energy_plants','customers','lines','junctions']:  
+        print('------')
+        print(vlayerName)
+        categories=featureLayerGroups(vlayerName,cur)
+        print(categories)
+        ids=featureLayerGroupIds(vlayerName,cur)
+        print(ids)
 
-            categorized_renderer = QgsCategorizedSymbolRenderer()            
-            categorized_renderer.setClassAttribute('assetgroup') 
-            for category,id in zip(categories,ids):      
-                symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
-                if vlayerName in ['lines']:
-                    symbol.setWidth(0.75) 
+        uri.setDataSource(version, vlayerName, "geom")
+        if version =='temp':
+            vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])
+        else:
+            vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
+        QgsProject.instance().addMapLayer(vlayer)  
+        print(vlayerName[:-1])
+        target_layer_name=vlayerName[:-1] + ('_templates' if vlayerName in ['energy_plants','customers'] else '_types')
+        cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
+        print(target_layer_name)
+        print(cat_colmn_name)
+        config = {'AllowMulti': False,
+                  'AllowNull': True,
+                  'FilterExpression': '',
+                  'Key': '',
+                  'Layer': '',
+                  'NofColumns': 1,
+                  'OrderByValue': False,
+                  'UseCompleter': False,
+                  'Value': ''}
+        fields=vlayer.fields()
+
+        if vlayerName in ['customers','energy_plants']:     
+            config['Key'] = 'template'
+            config['Value'] = 'template_name'
+        else:
+            config['Key'] = 'id'
+            config['Value'] = 'type'
+        target_layer = QgsProject.instance().mapLayersByName(target_layer_name)[0]             
+        config['Layer'] = target_layer.id()
+        config['FilterExpression']=""
+        widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+        field_idx = fields.indexOf(cat_colmn_name)
+        vlayer.setEditorWidgetSetup(field_idx, widget_setup)
+
+        categorized_renderer = QgsCategorizedSymbolRenderer()            
+        categorized_renderer.setClassAttribute(cat_colmn_name) 
+        for category,id in zip(categories,ids):      
+            symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
+            if vlayerName in ['lines']:
+                symbol.setWidth(0.75) 
+            else:
+                symbol.setSize(2)
+                svgStyle = {}
+                dir_icon=dir+'/icons/{}/'.format(vlayerName)
+                svg_fname=dir_icon+ category+'.svg'
+                if os.path.exists(svg_fname):
+                    svgStyle['name'] = svg_fname
                 else:
-                    symbol.setSize(2)
-                    svgStyle = {}
-                    svgStyle['name'] = dir+'/icons/'+ category+'.svg'
-                    svgStyle['outline'] = '#000000'
-                    svgStyle['size'] = '8'
-                    symbolLayer = QgsSvgMarkerSymbolLayer.create(svgStyle)
-                    symbol = QgsSymbol.defaultSymbol(vlayer.geometryType()) 
-                    symbol.changeSymbolLayer(0, symbolLayer)
-                    
-                cat = QgsRendererCategory(id, symbol, category)
-                categorized_renderer.addCategory(cat)       
-            vlayer.setRenderer(categorized_renderer)
+                    svgStyle['name'] = dir_icon+vlayerName+'.svg'
+                svgStyle['outline'] = '#000000'
+                svgStyle['size'] = '8'
+                symbolLayer = QgsSvgMarkerSymbolLayer.create(svgStyle)
+                symbol = QgsSymbol.defaultSymbol(vlayer.geometryType()) 
+                symbol.changeSymbolLayer(0, symbolLayer)
+                
+            cat = QgsRendererCategory(id, symbol, category)
+            categorized_renderer.addCategory(cat)       
+        vlayer.setRenderer(categorized_renderer)
             
     #set field widget type as list
     setEditorWidgetListType(getListTypeDict())
@@ -368,26 +374,33 @@ def updateNetworkDependingFields(cur,dictDB):
     constraint_expression_dict = getConstraintExpressionDict(networks_array)
     setFieldConstraints(constraint_expression_dict)
     
-def featureLayerAssetgroups(vlayerName,cur):
+def featureLayerGroups(vlayerName,cur):
     try:
-        sql="""SELECT assetgroup FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
+        colmn='template_name' if vlayerName in ['customers','energy_plants'] else 'type'
+        table='template' if vlayerName in ['customers','energy_plants'] else 'type'
+        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table)
+        print(sql)
         cur.execute(sql)
-        return [i['assetgroup'] for i in cur.fetchall()]
+        return [i[colmn] for i in cur.fetchall()]
     except:
         return []
     
-def featureLayerAssetgroupIds(vlayerName,cur):
+def featureLayerGroupIds(vlayerName,cur):
     try:
-        sql="""SELECT id FROM {}_assetgroups ORDER BY id;""".format(vlayerName[:-1])
+        colmn='template' if vlayerName in ['customers','energy_plants'] else 'id'
+        table='template' if vlayerName in ['customers','energy_plants'] else 'type'
+        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table)
+        print(sql)
         cur.execute(sql)
-        return [i['id'] for i in cur.fetchall()]    
+        return [i[colmn] for i in cur.fetchall()]    
     except:
         return []
         
 def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
+    print('load feature layer')
     dir=getProjectHandlingDir(plugin_dir)
-    categories=featureLayerAssetgroups(vlayerName,cur)
-    ids=featureLayerAssetgroupIds(vlayerName,cur)
+    categories=featureLayerGroups(vlayerName,cur)
+    ids=featureLayerGroupIds(vlayerName,cur)
     
     uri = QgsDataSourceUri()
     uri.setConnection(dictDB['host'], dictDB['port'], dictDB['projectName'], None, None)
@@ -400,44 +413,50 @@ def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
     else:
         vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
     QgsProject.instance().addMapLayer(vlayer)  
-    print(vlayerName[:-1] + '_assetgroups')
-    target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assetgroups')[0] 
+    print(vlayerName[:-1] + '_types')
+    target_layer_name=vlayerName[:-1] + ('_templates' if vlayerName in ['energy_plants','customers'] else '_types')
+    cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
+    print(target_layer_name)
+    print(cat_colmn_name)
     config = {'AllowMulti': False,
               'AllowNull': True,
               'FilterExpression': '',
-              'Key': 'id',
-              'Layer': target_layer.id(),
+              'Key': '',
+              'Layer': '',
               'NofColumns': 1,
               'OrderByValue': False,
               'UseCompleter': False,
-              'Value': 'assetgroup'}
-    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+              'Value': ''}
     fields=vlayer.fields()
-    field_idx = fields.indexOf('assetgroup')
-    vlayer.setEditorWidgetSetup(field_idx, widget_setup)   
-    if vlayerName!='junctions':     
-        target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_assettypes')[0]             
-        config['Layer'] = target_layer.id()
-        config['Key'] = 'assettype'
-        config['Value'] = 'assettype_name'
-        config['FilterExpression']=""""assetgroup" = current_value('assetgroup')"""
-        widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
-        field_idx = fields.indexOf('assettype')
-        vlayer.setEditorWidgetSetup(field_idx, widget_setup)
+
+    if vlayerName in ['customers','energy_plants']:     
+        config['Key'] = 'template'
+        config['Value'] = 'template_name'
+    else:
+        config['Key'] = 'id'
+        config['Value'] = 'type'
+    target_layer = QgsProject.instance().mapLayersByName(target_layer_name)[0]             
+    config['Layer'] = target_layer.id()
+    config['FilterExpression']=""
+    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+    field_idx = fields.indexOf(cat_colmn_name)
+    vlayer.setEditorWidgetSetup(field_idx, widget_setup)
 
     categorized_renderer = QgsCategorizedSymbolRenderer()            
-    categorized_renderer.setClassAttribute('assetgroup') 
+    categorized_renderer.setClassAttribute(cat_colmn_name) 
     for category,id in zip(categories,ids):      
-        print(vlayerName)
-        print(vlayer)
         symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
-        print(symbol)
         if vlayerName in ['lines']:
             symbol.setWidth(0.75) 
         else:
             symbol.setSize(2)
             svgStyle = {}
-            svgStyle['name'] = dir+'/icons/'+ category+'.svg'
+            dir_icon=dir+'/icons/{}/'.format(vlayerName)
+            svg_fname=dir_icon+ category+'.svg'
+            if os.path.exists(svg_fname):
+                svgStyle['name'] = svg_fname
+            else:
+                svgStyle['name'] = dir_icon+vlayerName+'.svg'
             svgStyle['outline'] = '#000000'
             svgStyle['size'] = '8'
             symbolLayer = QgsSvgMarkerSymbolLayer.create(svgStyle)
@@ -445,5 +464,13 @@ def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
             symbol.changeSymbolLayer(0, symbolLayer)
             
         cat = QgsRendererCategory(id, symbol, category)
-        categorized_renderer.addCategory(cat)       
+        categorized_renderer.addCategory(cat)    
     vlayer.setRenderer(categorized_renderer)
+    if vlayerName in ['lines']:
+        valueRelationPipeBundleType()  
+    if vlayerName in ['customers']:
+        valueRelationDhwId()    
+        valueRelationInternalLoadId() 
+      
+    setupVersionForm(cur,dictDB)  
+        

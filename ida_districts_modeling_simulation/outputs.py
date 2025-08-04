@@ -118,23 +118,22 @@ def setRequestedOutputs(dlg,requestedOutputs,iface,plugin_dir,dictDB,cur):
     print(outputs_ep)
     
     if outputs_c or new_outputTimestep:
-        updateAssettypesOutputs('customer',outputs_c,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
+        updateTemplatesOutputs('customer',outputs_c,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
     if outputs_ep or new_outputTimestep:
-        updateAssettypesOutputs('energy_plant',outputs_ep,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
+        updateTemplatesOutputs('energy_plant',outputs_ep,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
     
     closeDialog(dlg)
     
-def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs):           
-    dir = getDataCenterDir(plugin_dir)+"\\"+dictDB['projectName']+"\\"+feature+"_assettypes\\"
+def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs):           
+    dir = getDataCenterDir(plugin_dir)+"\\"+dictDB['projectName']+"\\"+feature+"_templates\\"
     print(dir)
                
-    for at_name in getAssettypeNames(cur,feature):
-        print(at_name)
-        assetgroup=at_name.split('_')[0]
-        at=at_name.split('_')[1]
+    for t_name in getTemplateNames(cur,feature,seperator='_'):
+        print(t_name)
+        templ=t_name.split('_')[0]
         if new_outputTimestep:
             print('----update timestep for outputs----')
-            fname=dir+at_name+'.idm'
+            fname=dir+t_name+'.idm'
             print(fname)
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
             data_idm=[]
@@ -162,15 +161,15 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
                 else:
                     data_idm.append(comp) 
             print(data_idm)        
-            writePropertyListIDMToFile(data_idm,dir+at_name,fname)
+            writePropertyListIDMToFile(data_idm,dir+t_name,fname)
         print('----update outputs----')
 
         if outputs:
-            fname=dir+at_name+'\\'+at_name+'.idm'
+            fname=dir+t_name+'\\'+t_name+'.idm'
             print(fname)
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
             data_idm=[]
-            conn_bundle_type_id=getConnBundleByAssettype(feature,at,assetgroup,cur,dictDB)
+            conn_bundle_type_id=getConnBundleByTemplate(feature,templ,cur,dictDB)
             connValues=getConnsValues(conn_bundle_type_id,cur)
             print(connValues)
             conn_type_seq=set([x['conn_type_seq'] for x in connValues])
@@ -370,4 +369,4 @@ def updateAssettypesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin
             #print('*************************')
             #for i in data_idm:
             #    print(i)
-                writePropertyListIDMToFile(data_idm,dir+at_name,fname)
+                writePropertyListIDMToFile(data_idm,dir+t_name,fname)

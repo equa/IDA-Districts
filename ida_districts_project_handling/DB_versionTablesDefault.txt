@@ -83,8 +83,7 @@ DROP TABLE IF EXISTS "$versionName$".feature_decoupling CASCADE;
 CREATE TABLE IF NOT EXISTS "$versionName$".feature_decoupling
 (
     id serial,
-    assetgroup int,
-    assettype int,
+    template int,
     comp_name text,
     type text,
     CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
@@ -105,8 +104,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_source
     id serial,
     sensor_id int,
     type int,
-    assetgroup int,
-    assettype int,
+    template int,
     measure int,
     function int,
     conn_type int,
@@ -118,28 +116,16 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_source
     FOREIGN KEY (sensor_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
--------------------table "$versionName$".source_assetgroups;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".source_assetgroups CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".source_assetgroups
-(
-    id serial,
-    source_id int,
-    assetgroup int,
-    active boolean DEFAULT FALSE,
-    CONSTRAINT source_assetgroups_pkey PRIMARY KEY (id),
-    FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
-);
 
--------------------table "$versionName$".source_assettype;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".source_assettype CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".source_assettype
+-------------------table "$versionName$".source_template;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".source_template CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".source_template
 (
     id serial,
     source_id int,
-    assetgroup int,
-    assettype int,
+    template int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT source_assettype_pkey PRIMARY KEY (id),
+    CONSTRAINT source_template_pkey PRIMARY KEY (id),
     FOREIGN KEY (source_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
@@ -186,7 +172,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_source_signals
     id serial,
     type integer,
     sensor_id integer,
-    assettypes integer[],
+    templates integer[],
     multi_signal boolean,
     test_value numeric,
     description text,
@@ -201,8 +187,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_target
     id serial,
     sensor_id int,
     type int,
-    assetgroup int,
-    assettype int,
+    template int,
     ids int,
     target int,
     test_value numeric,
@@ -211,28 +196,15 @@ CREATE TABLE IF NOT EXISTS "$versionName$".sensor_target
     FOREIGN KEY (sensor_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
--------------------table "$versionName$".target_assetgroups;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".target_assetgroups CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".target_assetgroups
+-------------------table "$versionName$".target_template;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".target_template CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".target_template
 (
     id serial,
     target_id int,
-    assetgroup int,
+    template int,
     active boolean DEFAULT FALSE,
-    CONSTRAINT target_assetgroups_pkey PRIMARY KEY (id),
-    FOREIGN KEY (target_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
-);
-
--------------------table "$versionName$".target_assettype;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".target_assettype CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".target_assettype
-(
-    id serial,
-    target_id int,
-    assetgroup int,
-    assettype int,
-    active boolean DEFAULT FALSE,
-    CONSTRAINT target_assettype_pkey PRIMARY KEY (id),
+    CONSTRAINT target_template_pkey PRIMARY KEY (id),
     FOREIGN KEY (target_id) REFERENCES "$versionName$".sensors(id) ON DELETE CASCADE
 );
 
@@ -256,7 +228,7 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sensor_target_signals
     id serial,
     type integer,
     sensor_id integer,
-    assettypes integer[],
+    templates integer[],
     target integer,
     multi_signal boolean,
     test_value numeric,
@@ -304,8 +276,7 @@ CREATE TABLE "$versionName$".customers
 (
 	id serial,
 	geom geometry(PointZ,$srid$),
-    assetgroup integer DEFAULT 0,
-	assettype integer DEFAULT 0,
+	template integer DEFAULT 0,
     network integer[] DEFAULT ARRAY[1],
     load_w numeric DEFAULT 10000,
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
@@ -322,8 +293,7 @@ CREATE TABLE "$versionName$".energy_plants
 (
 	id serial,
 	geom geometry(PointZ,$srid$),
-    assetgroup integer DEFAULT 0,
-	assettype integer DEFAULT 0,
+	template integer DEFAULT 0,
     network integer[] DEFAULT ARRAY[1],
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
 	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
@@ -337,26 +307,12 @@ CREATE TABLE "$versionName$".lines
 	id serial,
 	geom geometry(LineStringZ,$srid$),
     network integer DEFAULT 1,
-	assetgroup integer,
-	assettype integer,
+	type integer,
     pipe_bundle_type_id integer DEFAULT 1,
 	length numeric,
     zeta numeric DEFAULT 0,
 	submodel integer[] DEFAULT ARRAY[1],
 	CONSTRAINT lines_pkey PRIMARY KEY (id)
-);
-
--------------------table "$versionName$".devices;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".devices CASCADE;
-CREATE TABLE "$versionName$".devices
-(
-	id serial,
-	geom geometry(PointZ,$srid$),
-	assetgroup integer,
-	assettype integer,
-	submodel integer, --reference to submodelname in subnet_line 
-    network integer[] DEFAULT ARRAY[1],
-	CONSTRAINT devices_pkey PRIMARY KEY (id)
 );
 
 -------------------table "$versionName$".junctions------------------------------------
@@ -365,7 +321,7 @@ CREATE TABLE "$versionName$".junctions
 (
 	id serial,
 	geom geometry(PointZ,$srid$),
-	assetgroup integer,
+	type integer,
     n_connections integer check(n_connections >= 1),
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
     network integer DEFAULT 1, --reference to submodelname in subnet_line 
@@ -390,17 +346,6 @@ CREATE TABLE "$versionName$".buildings
   room_unit integer,
   win_facade_ratio NUMERIC DEFAULT 30,
   CONSTRAINT buildings_pkey PRIMARY KEY (id)
-);
-
--- Table: "$versionName$".device_connections
--- DROP TABLE "$versionName$".device_connections;
-CREATE TABLE "$versionName$".device_connections
-(
-  id serial,
-  did integer,
-  d_seq integer,
-  lid integer,
-  CONSTRAINT device_connections_pkey PRIMARY KEY (id)
 );
 
 -- Table: "$versionName$".junction_connections

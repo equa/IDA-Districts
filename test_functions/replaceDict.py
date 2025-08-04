@@ -63,8 +63,8 @@ def replaceKeywordsInPList(plist,replaceDict):
         
     return data
     
-assettype_name="1_1_Heating 1 Supply & 1 Return"
-source_file=plugin_dir+"""ida_districts_data_center\\{}\\{}_assettypes""".format(dictDB['projectName'],'customer')+'\\'+assettype_name+'\\'+assettype_name+'.idm'
+template_name="1_1_Heating 1 Supply & 1 Return"
+source_file=plugin_dir+"""ida_districts_data_center\\{}\\{}_templates""".format(dictDB['projectName'],'customer')+'\\'+template_name+'\\'+template_name+'.idm'
 print(source_file)
 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_file)))
 replaceDict={}

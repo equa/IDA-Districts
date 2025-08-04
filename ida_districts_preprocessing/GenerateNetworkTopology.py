@@ -45,19 +45,36 @@ class WorkerGenerateNetworkTopology(QRunnable):
         self.showTempTables=kwargs['showTempTables']
         self.deleteUnconnectedLines=kwargs['deleteUnconnectedLines']
         self.connectCustomers=kwargs['connectCustomers']
-        self.connectCustomers_assettype_lines=kwargs['connectCustomers_assettype_lines']
-        self.connectCustomers_assettype_pipeBundle=kwargs['connectCustomers_assettype_pipeBundle']
+        self.connectCustomers_template_pipeBundle=kwargs['connectCustomers_template_pipeBundle'].split(':')
+        if self.connectCustomers_template_pipeBundle:
+            self.connectCustomers_template_pipeBundle=self.connectCustomers_template_pipeBundle[0]
+        else:
+            self.signals.error.emit('No customer template available or set!')
         self.connectPlants=kwargs['connectPlants']
-        self.connectPlants_assettype_lines=kwargs['connectPlants_assettype_lines']
-        self.connectPlants_assettype_pipeBundle=kwargs['connectPlants_assettype_pipeBundle']
+        self.connectPlants_template_pipeBundle=kwargs['connectPlants_template_pipeBundle'].split(':')
+        if self.connectPlants_template_pipeBundle:
+            self.connectPlants_template_pipeBundle=self.connectPlants_template_pipeBundle[0]
+        else:
+            self.signals.error.emit('No energy plant template available or set!')
         self.addCustomers=kwargs['addCustomers']
-        self.addCustomers_assettype_customers=kwargs['addCustomers_assettype_customers']
+        self.addCustomers_template_customers=kwargs['addCustomers_template_customers'].split(':')
+        if self.addCustomers_template_customers:
+            self.addCustomers_template_customers=self.addCustomers_template_customers[0]
+        else:
+            self.signals.error.emit('No customer template available or set!')
         self.deleteUnconnectedNetworkEnds=kwargs['deleteUnconnectedNetworkEnds']
-        self.keepAssettypes=kwargs['keepAssettypes']
-        self.overrideAssettypes=kwargs['overrideAssettypes']
-        self.overrideAssettypes_customers=kwargs['overrideAssettypes_customers']
-        self.overrideAssettypes_lines=kwargs['overrideAssettypes_lines']
-        self.overrideAssettypes_pipeBundle=kwargs['overrideAssettypes_pipeBundle']
+        self.keepTemplates=kwargs['keepTemplates']
+        self.overrideTemplates=kwargs['overrideTemplates']
+        self.overrideTemplates_customers=kwargs['overrideTemplates_customers'].split(':')
+        if self.overrideTemplates_customers:
+            self.overrideTemplates_customers=self.overrideTemplates_customers[0]
+        else:
+            self.signals.error.emit('No customer template available or set!')
+        self.overrideTemplates_pipeBundle=kwargs['overrideTemplates_pipeBundle'].split(':')
+        if self.overrideTemplates_pipeBundle:
+            self.overrideTemplates_pipeBundle=self.overrideTemplates_pipeBundle[0]
+        else:
+            self.signals.error.emit('No pipe bundle available or set!')
         self.tolerance=kwargs['tolerance']
         self.redraw_submodels_polygons=kwargs['redraw_submodels_polygons']
         self.networks=kwargs['networks']
@@ -75,15 +92,14 @@ class WorkerGenerateNetworkTopology(QRunnable):
         self.signals.progress.emit(self.progress_value)
 
         if self.networks and self.conn:
-            srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
+            srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)['srid']
             
             setSubnetwork(self.cur,self.dictDB,self.redraw_submodels_polygons,srid)
             self.prepareDB_pipeLaying_modeTables(self.dictDB['versionName'],srid)
             
-            #split lines per device, plant, junction and customer
-            self.splitLinesPerDevicesPlantsJunctionsCustomers(self.dictDB['versionName'],'devices')
-            self.splitLinesPerDevicesPlantsJunctionsCustomers(self.dictDB['versionName'],'energy_plants')
-            self.splitLinesPerDevicesPlantsJunctionsCustomers(self.dictDB['versionName'],'customers')
+            #split lines per plant, junction and customer
+            self.splitLinesPerPlantsJunctionsCustomers(self.dictDB['versionName'],'energy_plants')
+            self.splitLinesPerPlantsJunctionsCustomers(self.dictDB['versionName'],'customers')
         
             print(self.networks)
             progress_value=1
@@ -164,12 +180,12 @@ class WorkerGenerateNetworkTopology(QRunnable):
         
     def insertLinesFromTopology(self,version,network):
         """ INSERT Lines from topology"""
-        sql="INSERT INTO temp.lines (id,geom,assetgroup,assettype,pipe_bundle_type_id,network) SELECT id,ST_Force3D(geom),assetgroup,assettype,pipe_bundle_type_id,{} FROM temp.streets_help;".format(network)
+        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{} FROM temp.streets_help;".format(network)
         print(sql)
         self.cur.execute(sql)
     
     def deleteNetworkEnds(self,network):
-        """Delete lines from network ends (1 connection in vertices table) if there is no customers or plant or device"""
+        """Delete lines from network ends (1 connection in vertices table) if there is no customers or plant"""
         print('delete unconnected network ends')
         sql="""WITH sub AS( --get vertices id`s and count it
     WITH sub AS( 
@@ -206,12 +222,12 @@ SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv
 		SELECT target AS id,count(target) AS connections FROM temp.streets_help GROUP BY target 
 	)SELECT id,sum(connections) AS conn FROM sub GROUP BY id
 )
-INSERT INTO temp.customers(geom,assetgroup,assettype,network) 
-	SELECT ST_Force3D(shv.the_geom),1,{},array[{}] FROM sub,temp.streets_help_vertices_pgr shv 
+INSERT INTO temp.customers(geom,template,network) 
+	SELECT ST_Force3D(shv.the_geom),{},array[{}] FROM sub,temp.streets_help_vertices_pgr shv 
 		WHERE sub.conn=1 AND shv.id=sub.id AND sub.id NOT IN (
             SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,temp.energy_plants ep 
                 WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{})
-                GROUP BY shv.id);""".format(self.addCustomers_assettype_customers,network,self.tolerance,self.tolerance)
+                GROUP BY shv.id);""".format(self.addCustomers_template_customers,network,self.tolerance,self.tolerance)
         print(sql)
         self.cur.execute(sql)
     
@@ -227,13 +243,10 @@ INSERT INTO temp.customers(geom,assetgroup,assettype,network)
         progress_value+=2/n_networks
         self.signals.progress.emit(int(progress_value))
         self.insertCustomerConnections(network)
-        progress_value+=2/n_networks
+        progress_value+=4/n_networks
         self.signals.progress.emit(int(progress_value))
         self.insertPlantConnections(version,network)
-        progress_value+=3/n_networks
-        self.signals.progress.emit(int(progress_value))
-        self.insertDeviceConnections(version,network)
-        progress_value+=3/n_networks
+        progress_value+=4/n_networks
         self.signals.progress.emit(int(progress_value))
         self.updateJunctionConnections(network)
         progress_value+=4/n_networks
@@ -265,7 +278,7 @@ INSERT INTO temp.customers(geom,assetgroup,assettype,network)
         if self.cur.fetchone()['exists']==True:
             print('Height layer exists')
             print('Update point layers')
-            for f in ['customers','energy_plants','devices']:
+            for f in ['customers','energy_plants']:
                 #Update customer height
                 sql= """UPDATE temp.{} f set geom=ST_MakePoint(ST_X(geom),ST_Y(geom),a.height) FROM (
     WITH sub AS(
@@ -325,21 +338,15 @@ UPDATE temp.lines l SET geom=sub.geom,
         #print(sql) 
         self.cur.execute(sql)
         
-    def insertDeviceConnections(self,version, network):
-        "insert device connections  into table device_connections"
-        sql="""INSERT INTO temp.device_connections (did,d_seq,lid) SELECT d.id,{},l.id FROM temp.devices d,temp.lines l WHERE St_DWithIn(d.geom,l.geom,{}) AND l.network={};""".format(1,self.tolerance,network)
-        #print(sql) 
-        self.cur.execute(sql)
-        
     def updateJunctionConnections(self,network):
         "UPDATE node connections: n_connections & conn_type"
         print("UPDATE node connections: n_connections & conn_type")
         sql="""UPDATE temp.junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,jid FROM temp.junction_connections GROUP BY jid) jc WHERE jc.jid=id;"""
         #print(sql) 
         self.cur.execute(sql)
-        sql="""UPDATE temp.junctions SET assetgroup=4 WHERE n_connections=3;"""
+        sql="""UPDATE temp.junctions SET type=4 WHERE n_connections=3;"""
         self.cur.execute(sql)
-        sql="""UPDATE temp.junctions SET assetgroup=2 WHERE n_connections=1;"""
+        sql="""UPDATE temp.junctions SET type=2 WHERE n_connections=1;"""
         self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):
@@ -389,8 +396,8 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                 lid2=junction_conn[0]['lid2']
                 #print(str(lid1)+";"+str(lid2))
                 #snap line strings, because inaccurancies can occur in the topology
-                sql="""INSERT INTO temp.lines (assetgroup,assettype,geom,length,pipe_bundle_type_id,network)
-    SELECT l1.assetgroup ,l1.assettype,
+                sql="""INSERT INTO temp.lines (type,geom,length,pipe_bundle_type_id,network)
+    SELECT l1.type ,
         ST_LineMerge(St_Union(l1.geom,l2.geom)) AS geom,
         ST_Length(ST_LineMerge(St_Union(l1.geom,l2.geom))),
         l1.pipe_bundle_type_id,
@@ -409,9 +416,6 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                 sql="UPDATE temp.energy_plant_connections SET lid="+str(i)+", ep_seq=1 WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.device_connections SET lid="+str(i)+", d_seq=1 WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
-                #print(sql)
-                self.cur.execute(sql) 
                 sql="DELETE FROM temp.lines WHERE id IN ("+str(lid1)+","+str(lid2)+");"
                 #print(sql)
                 self.cur.execute(sql) 
@@ -425,7 +429,7 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                 flag=False
         
     def insertJunctions(self,version,network):
-        sql="""INSERT INTO temp.junctions (geom,assetgroup,network)
+        sql="""INSERT INTO temp.junctions (geom,type,network)
                 SELECT ST_Force3D(v.the_geom),1,{}
                     FROM temp.lines l 
                     INNER JOIN temp.streets_help_vertices_pgr v ON St_DWithIn(v.the_geom,l.geom,{}) 
@@ -433,10 +437,8 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.customers c ON St_DWithIn(v.the_geom,c.geom,{})  
                             UNION 
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
-                            UNION 
-                            SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.devices d ON St_DWithIn(v.the_geom,d.geom,{}) 
                             )
-                    GROUP BY v.id ORDER BY v.id;""".format(network,self.tolerance,self.tolerance,self.tolerance,self.tolerance)
+                    GROUP BY v.id ORDER BY v.id;""".format(network,self.tolerance,self.tolerance,self.tolerance)
         print(sql) 
         self.cur.execute(sql)         
     
@@ -446,8 +448,7 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
 (
     id serial,
     geom geometry(LineString,{}),
-    assetgroup integer,
-    assettype integer,
+    type integer,
     network integer,
     pipe_bundle_type_id integer,
     length_m double precision,
@@ -461,31 +462,26 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
 DROP TABLE IF EXISTS temp.lines;
 DROP TABLE IF EXISTS temp.customers;
 DROP TABLE IF EXISTS temp.energy_plants;
-DROP TABLE IF EXISTS temp.devices;
 CREATE TABLE temp.customers (LIKE "{}".customers INCLUDING constraints);
 CREATE SEQUENCE temp.customers_id_seq OWNED BY temp.customers.id;
 ALTER TABLE temp.customers ALTER COLUMN id SET DEFAULT nextval('temp.customers_id_seq');
 CREATE TABLE temp.energy_plants (LIKE "{}".energy_plants INCLUDING constraints);
 CREATE SEQUENCE temp.energy_plants_id_seq OWNED BY temp.energy_plants.id;
 ALTER TABLE temp.energy_plants ALTER COLUMN id SET DEFAULT nextval('temp.energy_plants_id_seq');
-CREATE TABLE temp.devices (LIKE "{}".devices INCLUDING constraints);
-CREATE SEQUENCE temp.devices_id_seq OWNED BY temp.devices.id;
-ALTER TABLE temp.devices ALTER COLUMN id SET DEFAULT nextval('temp.devices_id_seq');
 CREATE TABLE temp.junctions (LIKE"{}".junctions INCLUDING constraints);
 CREATE SEQUENCE temp.junctions_id_seq OWNED BY temp.junctions.id;
 ALTER TABLE temp.junctions ALTER COLUMN id SET DEFAULT nextval('temp.junctions_id_seq');
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING constraints);
 CREATE SEQUENCE temp.lines_id_seq OWNED BY temp.lines.id;
 ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');""".format(version,version,version,version,version,version))
-        self.cur.execute("""TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.device_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
+        self.cur.execute("""TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
 
-        if self.keepAssettypes:
+        if self.keepTemplates:
             self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,assetgroup,assettype,network,pipe_bundle_type_id) SELECT id,ST_Force2D(geom), assetgroup, assettype, network, pipe_bundle_type_id FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks])))
         else:
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,assetgroup,assettype,network, pipe_bundle_type_id) SELECT id,ST_Force2D(geom), {}, {},network , {} FROM "{}".lines WHERE ST_length(geom) > {} AND nh.network IN ({}); """.format(0,self.overrideAssettypes_lines,self.overrideAssettypes_pipeBundle,version,self.tolerance,','.join([i for i in self.networks])))
-            self.cur.execute("""INSERT INTO temp.customers (id,geom,assetgroup,assettype,network) SELECT id,geom,{},{},network FROM "{}".customers WHERE network && ARRAY[{}]; """.format(1,self.overrideAssettypes_customers,version,','.join([i for i in self.networks])))
-        self.cur.execute("""INSERT INTO temp.devices SELECT * FROM "{}".devices WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id) SELECT id,ST_Force2D(geom),type,network , {} FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.customers (id,geom,template,network) SELECT id,geom,{},network FROM "{}".customers WHERE network && ARRAY[{}]; """.format(self.overrideTemplates_customers,version,','.join([i for i in self.networks])))
         self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
         self.cur.execute("""SELECT setval('temp.customers_id_seq', (SELECT MAX(id) FROM temp.customers));""")
         self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version))
@@ -499,11 +495,11 @@ ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');
         WHERE l.network={} AND {}=ANY(ep.network)
         GROUP BY ep.id
 )
-INSERT INTO temp.streets_help(geom,assetgroup,assettype,pipe_bundle_type_id) 
-    SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)),{},{},{}
+INSERT INTO temp.streets_help(geom,pipe_bundle_type_id) 
+    SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)),{}
     FROM sub, "{}".lines l, temp.energy_plants ep
     WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist and sub.min_dist>0 AND l.network={} AND {}=ANY(ep.network);""".format(
-    version,network,network,0,self.connectPlants_assettype_lines,self.connectPlants_assettype_pipeBundle,version,network,network)
+    version,network,network,self.connectPlants_template_pipeBundle,version,network,network)
         sql="""With sub AS(
     SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist 
         FROM "{}".lines l, temp.energy_plants ep 
@@ -535,10 +531,10 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geo
         WHERE l.network={} AND {} =ANY(c.network)
         GROUP BY c.id
 )
-INSERT INTO temp.streets_help(geom,assetgroup,assettype,pipe_bundle_type_id) 
-    SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)),{},{},{}
+INSERT INTO temp.streets_help(geom,pipe_bundle_type_id) 
+    SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)),{}
     FROM sub, "{}".lines l, temp.customers c
-    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist AND sub.min_dist>0 AND l.network={} AND {} =ANY(c.network);""".format(version,network,network,0,self.connectCustomers_assettype_lines,self.connectCustomers_assettype_pipeBundle,version,network,network)
+    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist AND sub.min_dist>0 AND l.network={} AND {} =ANY(c.network);""".format(version,network,network,self.connectCustomers_template_pipeBundle,version,network,network)
         sql="""With sub AS(
     SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist 
         FROM "{}".lines l, temp.customers c 
@@ -561,7 +557,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
             return False
         return customer_lines
 
-    def splitLinesPerDevicesPlantsJunctionsCustomers(self,version,mode):
+    def splitLinesPerPlantsJunctionsCustomers(self,version,mode):
         """ST_split does not work (don`t know why) that`s why: Split the lines per feature: 1) get list of features; 2) loop over features """
         sql="""SELECT nh.id AS nh_id,f.id AS f_id
     FROM "{}".{} f,temp.network_help nh
@@ -576,13 +572,13 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
                 self.inserted_jids.append(d_id)
             sql="""WITH sub AS(
     WITH sub AS(
-        SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.assetgroup,nh.assettype, nh.network, nh.pipe_bundle_type_id
+        SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.type, nh.network, nh.pipe_bundle_type_id
             FROM "{}".{} d,temp.network_help nh
             WHERE d.id={} AND nh.id={}
     )
-    SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,assetgroup,assettype, network ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
+    SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,type, network ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
 )
-INSERT INTO temp.network_help(geom,assetgroup,assettype,network,pipe_bundle_type_id) SELECT sub.line,sub.assetgroup,sub.assettype,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id'])
+INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id'])
             print(sql)
             self.cur.execute(sql)
     
@@ -629,29 +625,29 @@ INSERT INTO temp.network_help(geom,assetgroup,assettype,network,pipe_bundle_type
         sql="TRUNCATE temp.streets_help;"
         #print(sql)
         self.cur.execute(sql)    
-        sql="INSERT INTO temp.streets_help (geom,assetgroup) SELECT geom,{} FROM streets_help_topo.edge_data;".format(0)
+        sql="INSERT INTO temp.streets_help (geom,type) SELECT geom,{} FROM streets_help_topo.edge_data;".format(0)
         #print(sql)  
         self.cur.execute(sql) 
         
         if self.connectCustomers and customer_lines: 
             sql="""UPDATE temp.streets_help a 
-    SET assettype={},pipe_bundle_type_id={}
+    SET pipe_bundle_type_id={}
     FROM (SELECT * FROM (VALUES {}) AS temp(geom)) b
-    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectCustomers_assettype_lines,self.connectCustomers_assettype_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in customer_lines]),self.tolerance)
+    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectCustomers_template_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in customer_lines]),self.tolerance)
             print(sql)
             self.cur.execute(sql) 
         
         if self.connectPlants and ep_lines: 
             sql="""UPDATE temp.streets_help a 
-    SET assettype={},pipe_bundle_type_id={}
+    SET pipe_bundle_type_id={}
     FROM (SELECT * FROM (VALUES {}) AS temp(geom)) b
-    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectPlants_assettype_lines,self.connectPlants_assettype_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in ep_lines]),self.tolerance)
+    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectPlants_template_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in ep_lines]),self.tolerance)
             print(sql)
             self.cur.execute(sql) 
             
         sql="""UPDATE temp.streets_help a 
-    SET assetgroup=b.assetgroup,assettype=b.assettype,pipe_bundle_type_id=b.pipe_bundle_type_id
-    FROM (SELECT id,geom,assetgroup,assettype,pipe_bundle_type_id FROM temp.network_help) b 
+    SET type=b.type,pipe_bundle_type_id=b.pipe_bundle_type_id
+    FROM (SELECT id,geom,type,pipe_bundle_type_id FROM temp.network_help) b 
     WHERE St_dWithIn(b.geom,ST_LineSubstring (a.geom,0.1,0.9),{});""".format(self.tolerance)
         print(sql)
         self.cur.execute(sql) 
@@ -721,15 +717,12 @@ UPDATE temp.streets_help a SET id = sub.new_id
         print(sql)
         self.cur.execute(sql)     
         
-        if self.keepAssettypes:
-            sql="""WITH sub AS(
-    SELECT sth.id AS id, nh.assetgroup, nh.assettype, nh.pipe_bundle_type_id 
+        sql="""WITH sub AS(
+    SELECT sth.id AS id, nh.type, nh.pipe_bundle_type_id 
         FROM temp.network_help nh, temp.streets_help sth, "{}".lines l
         WHERE ST_dWithIN(ST_LineSubString(sth.geom,0.45,0.55),nh.geom,{}) AND l.network={} AND ST_EQUALS(l.geom,nh.geom)
 )    
-UPDATE temp.streets_help sh SET assetgroup =sub.assetgroup, assettype=sub.assettype, pipe_bundle_type_id=sub.pipe_bundle_type_id FROM sub WHERE sub.id =sh.id;""".format(self.dictDB['versionName'],self.tolerance,network)
-        else:
-            sql="""UPDATE temp.streets_help sh SET assetgroup ={}, assettype={}, pipe_bundle_type_id={}""".format(0,self.overrideAssettypes_lines,self.overrideAssettypes_pipeBundle)
+UPDATE temp.streets_help sh SET type =sub.type, pipe_bundle_type_id=sub.pipe_bundle_type_id FROM sub WHERE sub.id =sh.id;""".format(self.dictDB['versionName'],self.tolerance,network)
         print(sql)
         self.cur.execute(sql) 
         

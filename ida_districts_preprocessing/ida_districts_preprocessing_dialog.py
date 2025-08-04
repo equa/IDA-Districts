@@ -116,7 +116,7 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         #buttons
         layout_topology_buttons = QVBoxLayout()
         
-        self.btn_importPointLayer=QPushButton("Import plant, device or customer from layer")
+        self.btn_importPointLayer=QPushButton("Import plant or customer from layer")
         layout_topology_buttons.addWidget(self.btn_importPointLayer)
         
         self.btn_importNetworkTopologyFromLayer=QPushButton("Import network topology from layer")
@@ -157,8 +157,8 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         #buttons
         layout_mapping_buttons = QVBoxLayout()
         
-        self.btn_mapDevicesPlants=QPushButton("Map connection types to lines")
-        layout_mapping_buttons.addWidget(self.btn_mapDevicesPlants)
+        self.btn_mapPlants=QPushButton("Map connection types to lines")
+        layout_mapping_buttons.addWidget(self.btn_mapPlants)
         
         #set sizing layout together
         layout_mapping = QVBoxLayout()
@@ -244,77 +244,49 @@ class PipeLayingDialog(QMainWindow):
         self.heating_load_min_col.addItems(columns)
         layout_constr_heating_col.addWidget(self.heating_load_min_col)    
 
-        #Cooling type seetings
+        #Heating type seetings
         self.group_box_heating_type_settings = QGroupBox("Type settings")
-        self.group_box_heating_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""")
-        
-        #labels left
-        layout_settings_heating_label_left = QVBoxLayout()
-        self.label_heating_assetgroup_customer =QLabel("Customer asset group")
-        layout_settings_heating_label_left.addWidget(self.label_heating_assetgroup_customer)
-        
-        self.label_heating_assetgroup_lines =QLabel("Lines asset group")
-        layout_settings_heating_label_left.addWidget(self.label_heating_assetgroup_lines)
-        
-        #values left
-        layout_settings_heating_input_left = QVBoxLayout()
-        self.heating_assetgroup_customer =QComboBox()
-        c_assetgroups=getAssetgroupsInfo('customer',self.cur)
-        self.heating_assetgroup_customer.addItems(['keep type']+[i['name'] for i in c_assetgroups])
-        self.heating_assetgroup_customer.setCurrentText('keep type')
-        self.heating_assetgroup_customer.setStyleSheet("padding-left: 30")
-        layout_settings_heating_input_left.addWidget(self.heating_assetgroup_customer)  
-        self.heating_assetgroup_customer.currentTextChanged.connect(self.heating_assetgroup_customers_state_changed)
-        
-        self.heating_assetgroup_lines =QComboBox()
-        line_assetgroups=getAssetgroupsInfo('line',self.cur)
-        self.heating_assetgroup_lines.addItems([i['name'] for i in line_assetgroups])
-        if line_assetgroups:
-            self.heating_assetgroup_lines.setCurrentText(line_assetgroups[0]['name'])
-        self.heating_assetgroup_lines.setStyleSheet("padding-left: 30")
-        layout_settings_heating_input_left.addWidget(self.heating_assetgroup_lines)   
-        self.heating_assetgroup_lines.currentTextChanged.connect(self.heating_assetgroup_lines_state_changed)
+        self.group_box_heating_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""") 
 
-        #labels right
+        #labels
         layout_settings_heating_label = QVBoxLayout()
-        self.label_heating_assettype_customer =QLabel("Customer asset type")
-        layout_settings_heating_label.addWidget(self.label_heating_assettype_customer)
+        self.label_heating_template_customer =QLabel("Customer template")
+        layout_settings_heating_label.addWidget(self.label_heating_template_customer)
         
-        self.label_heating_assettype_lines =QLabel("Lines asset type")
-        layout_settings_heating_label.addWidget(self.label_heating_assettype_lines)
-        
-        #values right
-        layout_settings_heating_input = QVBoxLayout()
-        self.heating_assettype_customer =QComboBox()
-        try:
-            assettypes=getAssettypesInfo('customer',self.heating_assetgroup_customer.currentText().split(':')[0],self.cur)
-        except:
-            assettypes=[]
-        self.heating_assettype_customer.addItems(['keep type']+[i['name'] for i in assettypes])
-        self.heating_assettype_customer.setCurrentText('keep type')
-        self.heating_assettype_customer.setStyleSheet("padding-left: 30")
-        layout_settings_heating_input.addWidget(self.heating_assettype_customer)  
-
-        self.heating_assettype_lines =QComboBox()
-        assettypes=getAssettypesInfo('line',self.heating_assetgroup_lines.currentText().split(':')[0],self.cur)
-        self.heating_assettype_lines.addItems([i['name'] for i in assettypes])
-        if assettypes:
-            self.heating_assettype_lines.setCurrentText(assettypes[0]['name'])
-        self.heating_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_settings_heating_input.addWidget(self.heating_assettype_lines)  
-
-        #pipe bundle type
-        layout_settings_heating_pipe_bundle=QHBoxLayout()
+        self.label_heating_type_lines =QLabel("Lines type")
+        layout_settings_heating_label.addWidget(self.label_heating_type_lines)
+                
         self.label_heating_pipe_bundle =QLabel("Pipe bundle")
-        layout_settings_heating_pipe_bundle.addWidget(self.label_heating_pipe_bundle)    
+        layout_settings_heating_label.addWidget(self.label_heating_pipe_bundle)    
+        
+        #values
+        layout_settings_heating_input = QVBoxLayout()
+        self.heating_template_customer =QComboBox()
+        try:
+            templates=getTemplatesInfo('customer',self.cur)
+        except:
+            templates=[]
+        self.heating_template_customer.addItems(['keep type']+[i['name'] for i in templates])
+        self.heating_template_customer.setCurrentText('keep type')
+        self.heating_template_customer.setStyleSheet("padding-left: 30")
+        layout_settings_heating_input.addWidget(self.heating_template_customer)  
+
+        self.heating_type_lines =QComboBox()
+        templates=getTemplatesInfo('line',self.cur)
+        self.heating_type_lines.addItems([i['name'] for i in templates])
+        if templates:
+            self.heating_type_lines.setCurrentText(templates[0]['name'])
+        self.heating_type_lines.setStyleSheet("padding-left: 30")
+        layout_settings_heating_input.addWidget(self.heating_type_lines)  
+
 
         self.heating_pipe_bundle =QComboBox()
-        pipe_bundles=getPipeBundleTypesDB(self.cur)
+        pipe_bundles=getPipeBundleNames(self.cur)
         self.heating_pipe_bundle.addItems([str(i) for i in pipe_bundles])
         if pipe_bundles:
             self.heating_pipe_bundle.setCurrentText(str(list(pipe_bundles)[0]))
         self.heating_pipe_bundle.setStyleSheet("padding-left: 30")
-        layout_settings_heating_pipe_bundle.addWidget(self.heating_pipe_bundle)           
+        layout_settings_heating_input.addWidget(self.heating_pipe_bundle)           
         
         
         #costs
@@ -404,74 +376,45 @@ class PipeLayingDialog(QMainWindow):
 
         self.group_box_cooling_type_settings = QGroupBox("Type settings")
         self.group_box_cooling_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""")
-        
-        #labels left
-        layout_settings_cooling_label_left = QVBoxLayout()
-        self.label_cooling_assetgroup_customer =QLabel("Customer asset group")
-        layout_settings_cooling_label_left.addWidget(self.label_cooling_assetgroup_customer)
-        
-        self.label_cooling_assetgroup_lines =QLabel("Lines asset group")
-        layout_settings_cooling_label_left.addWidget(self.label_cooling_assetgroup_lines)
-        
-        #values left
-        layout_settings_cooling_input_left = QVBoxLayout()
-        self.cooling_assetgroup_customer =QComboBox()
-        c_assetgroups=getAssetgroupsInfo('customer',self.cur)
-        self.cooling_assetgroup_customer.addItems(['keep type']+[i['name'] for i in c_assetgroups])
-        self.cooling_assetgroup_customer.setCurrentText('keep type')
-        self.cooling_assetgroup_customer.setStyleSheet("padding-left: 30")
-        layout_settings_cooling_input_left.addWidget(self.cooling_assetgroup_customer)  
-        self.cooling_assetgroup_customer.currentTextChanged.connect(self.cooling_assetgroup_customers_state_changed)
-        
-        self.cooling_assetgroup_lines =QComboBox()
-        line_assetgroups=getAssetgroupsInfo('line',self.cur)
-        self.cooling_assetgroup_lines.addItems([i['name'] for i in line_assetgroups])
-        if line_assetgroups:
-            self.cooling_assetgroup_lines.setCurrentText(line_assetgroups[0]['name'])
-        self.cooling_assetgroup_lines.setStyleSheet("padding-left: 30")
-        layout_settings_cooling_input_left.addWidget(self.cooling_assetgroup_lines)   
-        self.cooling_assetgroup_lines.currentTextChanged.connect(self.cooling_assetgroup_lines_state_changed)
 
-        #labels right
+        #labels
         layout_settings_cooling_label = QVBoxLayout()
-        self.label_cooling_assettype_customer =QLabel("Customer asset type")
-        layout_settings_cooling_label.addWidget(self.label_cooling_assettype_customer)
-        
-        self.label_cooling_assettype_lines =QLabel("Lines asset type")
-        layout_settings_cooling_label.addWidget(self.label_cooling_assettype_lines)
-        
-        #values right
-        layout_settings_cooling_input = QVBoxLayout()
-        self.cooling_assettype_customer =QComboBox()
-        try:
-            assettypes=getAssettypesInfo('customer',self.cooling_assetgroup_customer.currentText().split(':')[0],self.cur)
-        except:
-            assettypes=[]
-        self.cooling_assettype_customer.addItems(['keep type']+[i['name'] for i in assettypes])
-        self.cooling_assettype_customer.setCurrentText('keep type')
-        self.cooling_assettype_customer.setStyleSheet("padding-left: 30")
-        layout_settings_cooling_input.addWidget(self.cooling_assettype_customer)  
+        self.label_cooling_template_customer =QLabel("Customer template")
+        layout_settings_cooling_label.addWidget(self.label_cooling_template_customer)
 
-        self.cooling_assettype_lines =QComboBox()
-        assettypes=getAssettypesInfo('line',self.cooling_assetgroup_lines.currentText().split(':')[0],self.cur)
-        self.cooling_assettype_lines.addItems([i['name'] for i in assettypes])
-        if assettypes:
-            self.cooling_assettype_lines.setCurrentText(assettypes[0]['name'])
-        self.cooling_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_settings_cooling_input.addWidget(self.cooling_assettype_lines)  
-
-        #pipe bundle type
-        layout_settings_cooling_pipe_bundle=QHBoxLayout()
+        self.label_cooling_type_lines =QLabel("Line type")
+        layout_settings_cooling_label.addWidget(self.label_cooling_type_lines)
+        
         self.label_cooling_pipe_bundle =QLabel("Pipe bundle")
-        layout_settings_cooling_pipe_bundle.addWidget(self.label_cooling_pipe_bundle)    
+        layout_settings_cooling_label.addWidget(self.label_cooling_pipe_bundle)    
+        
+        #values
+        layout_settings_cooling_input = QVBoxLayout()
+        self.cooling_template_customer =QComboBox()
+        try:
+            templates=getTemplatesInfo('customer',self.cur)
+        except:
+            templates=[]
+        self.cooling_template_customer.addItems(['keep type']+[i['name'] for i in templates])
+        self.cooling_template_customer.setCurrentText('keep type')
+        self.cooling_template_customer.setStyleSheet("padding-left: 30")
+        layout_settings_cooling_input.addWidget(self.cooling_template_customer)  
+
+        self.cooling_type_lines =QComboBox()
+        templates=getTemplatesInfo('line',self.cur)
+        self.cooling_type_lines.addItems([i['name'] for i in templates])
+        if templates:
+            self.cooling_type_lines.setCurrentText(templates[0]['name'])
+        self.cooling_type_lines.setStyleSheet("padding-left: 30")
+        layout_settings_cooling_input.addWidget(self.cooling_type_lines)  
 
         self.cooling_pipe_bundle =QComboBox()
-        pipe_bundles=getPipeBundleTypesDB(self.cur)
+        pipe_bundles=getPipeBundleNames(self.cur)
         self.cooling_pipe_bundle.addItems([str(i) for i in pipe_bundles])
         if pipe_bundles:
             self.cooling_pipe_bundle.setCurrentText(str(list(pipe_bundles)[0]))
         self.cooling_pipe_bundle.setStyleSheet("padding-left: 30")
-        layout_settings_cooling_pipe_bundle.addWidget(self.cooling_pipe_bundle)           
+        layout_settings_cooling_input.addWidget(self.cooling_pipe_bundle)           
         
         
         #costs
@@ -541,74 +484,45 @@ class PipeLayingDialog(QMainWindow):
         #Heating/Cooling type settings
         self.group_box_hc_type_settings = QGroupBox("Type settings for heating and cooling")
         self.group_box_hc_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""")
-        
-        #labels left
-        layout_settings_hc_label_left = QVBoxLayout()
-        self.label_hc_assetgroup_customer =QLabel("Customer asset group")
-        layout_settings_hc_label_left.addWidget(self.label_hc_assetgroup_customer)
-        
-        self.label_hc_assetgroup_lines =QLabel("Lines asset group")
-        layout_settings_hc_label_left.addWidget(self.label_hc_assetgroup_lines)
-        
-        #values left
-        layout_settings_hc_input_left = QVBoxLayout()
-        self.hc_assetgroup_customer =QComboBox()
-        c_assetgroups=getAssetgroupsInfo('customer',self.cur)
-        self.hc_assetgroup_customer.addItems(['keep type']+[i['name'] for i in c_assetgroups])
-        self.hc_assetgroup_customer.setCurrentText('keep type')
-        self.hc_assetgroup_customer.setStyleSheet("padding-left: 30")
-        layout_settings_hc_input_left.addWidget(self.hc_assetgroup_customer)  
-        self.hc_assetgroup_customer.currentTextChanged.connect(self.hc_assetgroup_customers_state_changed)
-        
-        self.hc_assetgroup_lines =QComboBox()
-        line_assetgroups=getAssetgroupsInfo('line',self.cur)
-        self.hc_assetgroup_lines.addItems([i['name'] for i in line_assetgroups])
-        if line_assetgroups:
-            self.hc_assetgroup_lines.setCurrentText(line_assetgroups[0]['name'])
-        self.hc_assetgroup_lines.setStyleSheet("padding-left: 30")
-        layout_settings_hc_input_left.addWidget(self.hc_assetgroup_lines)   
-        self.hc_assetgroup_lines.currentTextChanged.connect(self.hc_assetgroup_lines_state_changed)
 
         #labels right
         layout_settings_hc_label = QVBoxLayout()
-        self.label_hc_assettype_customer =QLabel("Customer asset type")
-        layout_settings_hc_label.addWidget(self.label_hc_assettype_customer)
+        self.label_hc_template_customer =QLabel("Customer template")
+        layout_settings_hc_label.addWidget(self.label_hc_template_customer)
         
-        self.label_hc_assettype_lines =QLabel("Lines asset type")
-        layout_settings_hc_label.addWidget(self.label_hc_assettype_lines)
+        self.label_type_lines =QLabel("Lines template")
+        layout_settings_hc_label.addWidget(self.label_type_lines)
+        
+        self.label_hc_pipe_bundle =QLabel("Pipe bundle")
+        layout_settings_hc_label.addWidget(self.label_hc_pipe_bundle)    
         
         #values right
         layout_settings_hc_input = QVBoxLayout()
-        self.hc_assettype_customer =QComboBox()
+        self.hc_template_customer =QComboBox()
         try:
-            assettypes=getAssettypesInfo('customer',self.hc_assetgroup_customer.currentText().split(':')[0],self.cur)
+            templates=getTemplatesInfo('customer',self.cur)
         except:
-            assettypes=[]
-        self.hc_assettype_customer.addItems(['keep type']+[i['name'] for i in assettypes])
-        self.hc_assettype_customer.setCurrentText('keep type')
-        self.hc_assettype_customer.setStyleSheet("padding-left: 30")
-        layout_settings_hc_input.addWidget(self.hc_assettype_customer)  
+            templates=[]
+        self.hc_template_customer.addItems(['keep type']+[i['name'] for i in templates])
+        self.hc_template_customer.setCurrentText('keep type')
+        self.hc_template_customer.setStyleSheet("padding-left: 30")
+        layout_settings_hc_input.addWidget(self.hc_template_customer)  
 
-        self.hc_assettype_lines =QComboBox()
-        assettypes=getAssettypesInfo('line',self.hc_assetgroup_lines.currentText().split(':')[0],self.cur)
-        self.hc_assettype_lines.addItems([i['name'] for i in assettypes])
-        if assettypes:
-            self.hc_assettype_lines.setCurrentText(assettypes[0]['name'])
-        self.hc_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_settings_hc_input.addWidget(self.hc_assettype_lines)  
-
-        #pipe bundle type
-        layout_settings_hc_pipe_bundle=QHBoxLayout()
-        self.label_hc_pipe_bundle =QLabel("Pipe bundle")
-        layout_settings_hc_pipe_bundle.addWidget(self.label_hc_pipe_bundle)    
+        self.hc_type_lines =QComboBox()
+        templates=getTemplatesInfo('line',self.cur)
+        self.hc_type_lines.addItems([i['name'] for i in templates])
+        if templates:
+            self.hc_type_lines.setCurrentText(templates[0]['name'])
+        self.hc_type_lines.setStyleSheet("padding-left: 30")
+        layout_settings_hc_input.addWidget(self.hc_type_lines)  
 
         self.hc_pipe_bundle =QComboBox()
-        pipe_bundles=getPipeBundleTypesDB(self.cur)
+        pipe_bundles=getPipeBundleNames(self.cur)
         self.hc_pipe_bundle.addItems([str(i) for i in pipe_bundles])
         if pipe_bundles:
             self.hc_pipe_bundle.setCurrentText(str(list(pipe_bundles)[0]))
         self.hc_pipe_bundle.setStyleSheet("padding-left: 30")
-        layout_settings_hc_pipe_bundle.addWidget(self.hc_pipe_bundle)
+        layout_settings_hc_input.addWidget(self.hc_pipe_bundle)
         
         #action buttons
         layout_actionButtons = QHBoxLayout()
@@ -651,15 +565,10 @@ class PipeLayingDialog(QMainWindow):
         layout_heating.addWidget(self.group_box_heating_constr)
 
         #heating type settings
-        layout_settings_heating_4col = QHBoxLayout()
-        layout_settings_heating_4col.addLayout(layout_settings_heating_label_left)
-        layout_settings_heating_4col.addLayout(layout_settings_heating_input_left)   
-        layout_settings_heating_4col.addLayout(layout_settings_heating_label)
-        layout_settings_heating_4col.addLayout(layout_settings_heating_input)   
+        layout_settings_heating = QHBoxLayout()
+        layout_settings_heating.addLayout(layout_settings_heating_label)
+        layout_settings_heating.addLayout(layout_settings_heating_input)   
         
-        layout_settings_heating = QVBoxLayout()
-        layout_settings_heating.addLayout(layout_settings_heating_4col)
-        layout_settings_heating.addLayout(layout_settings_heating_pipe_bundle)
         
         self.group_box_heating_type_settings.setLayout(layout_settings_heating)
         self.group_box_heating_type_settings.hide()
@@ -689,15 +598,9 @@ class PipeLayingDialog(QMainWindow):
         layout_cooling.addWidget(self.group_box_cooling_constr)
 
         #cooling type settings
-        layout_settings_cooling_4col = QHBoxLayout()
-        layout_settings_cooling_4col.addLayout(layout_settings_cooling_label_left)
-        layout_settings_cooling_4col.addLayout(layout_settings_cooling_input_left)   
-        layout_settings_cooling_4col.addLayout(layout_settings_cooling_label)
-        layout_settings_cooling_4col.addLayout(layout_settings_cooling_input)   
-        
-        layout_settings_cooling = QVBoxLayout()
-        layout_settings_cooling.addLayout(layout_settings_cooling_4col)
-        layout_settings_cooling.addLayout(layout_settings_cooling_pipe_bundle)
+        layout_settings_cooling = QHBoxLayout() 
+        layout_settings_cooling.addLayout(layout_settings_cooling_label)
+        layout_settings_cooling.addLayout(layout_settings_cooling_input)   
         
         self.group_box_cooling_type_settings.setLayout(layout_settings_cooling)
         self.group_box_cooling_type_settings.hide()
@@ -714,15 +617,9 @@ class PipeLayingDialog(QMainWindow):
         layout_cooling.addWidget(self.group_box_cooling_costs)
              
         #hc type settings
-        layout_settings_hc_4col = QHBoxLayout()
-        layout_settings_hc_4col.addLayout(layout_settings_hc_label_left)
-        layout_settings_hc_4col.addLayout(layout_settings_hc_input_left)   
-        layout_settings_hc_4col.addLayout(layout_settings_hc_label)
-        layout_settings_hc_4col.addLayout(layout_settings_hc_input)   
-        
-        layout_settings_hc = QVBoxLayout()
-        layout_settings_hc.addLayout(layout_settings_hc_4col)
-        layout_settings_hc.addLayout(layout_settings_hc_pipe_bundle)
+        layout_settings_hc = QHBoxLayout()
+        layout_settings_hc.addLayout(layout_settings_hc_label)
+        layout_settings_hc.addLayout(layout_settings_hc_input)   
         
         self.group_box_hc_type_settings.setLayout(layout_settings_hc)
         self.group_box_hc_type_settings.hide()
@@ -751,59 +648,48 @@ class PipeLayingDialog(QMainWindow):
         self.threadpool = QThreadPool()
         print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
         
-    def heating_assetgroup_lines_state_changed(self,text):
-        assetgroup=text.split(':')[0]
-        assettypes=getAssettypesInfo('line',assetgroup,self.cur)
-        self.heating_assettype_lines.clear()
-        self.heating_assettype_lines.addItems([i['name'] for i in assettypes])
-        if assettypes:
-            self.heating_assettype_lines.setCurrentText(assettypes[0]['name'])
+    def heating_type_lines_state_changed(self,text):
+        type=text.split(':')[0]
+        templates=getTemplatesInfo('line',type,self.cur)
+        self.heating_type_lines.clear()
+        self.heating_type_lines.addItems([i['name'] for i in templates])
+        if templates:
+            self.heating_type_lines.setCurrentText(templates[0]['name'])
 
-    def heating_assetgroup_customers_state_changed(self,text):
+    def hc_type_lines_state_changed(self,text):
+        type=text.split(':')[0]
+        templates=getTemplatesInfo('line',type,self.cur)
+        self.hc_type_lines.clear()
+        self.hc_type_lines.addItems([i['name'] for i in templates])
+        if templates:
+            self.hc_type_lines.setCurrentText(templates[0]['name'])
+
+    def hc_template_customers_state_changed(self,text):
         try:
-            assetgroup=text.split(':')[0]
-            assettypes=getAssettypesInfo('customer',assetgroup,self.cur)
+            type=text.split(':')[0]
+            templates=getTemplatesInfo('customer',type,self.cur)
         except:
-            assettypes=[]
-        self.heating_assettype_customer.clear()
-        self.heating_assettype_customer.addItems(['keep type']+[i['name'] for i in assettypes])
-        self.heating_assettype_customer.setCurrentText('keep type')
+            templates=[]
+        self.hc_template_customer.clear()
+        self.hc_template_customer.addItems(['keep type']+[i['name'] for i in templates])
+        self.hc_template_customer.setCurrentText('keep type')
 
-    def hc_assetgroup_lines_state_changed(self,text):
-        assetgroup=text.split(':')[0]
-        assettypes=getAssettypesInfo('line',assetgroup,self.cur)
-        self.hc_assettype_lines.clear()
-        self.hc_assettype_lines.addItems([i['name'] for i in assettypes])
-        if assettypes:
-            self.hc_assettype_lines.setCurrentText(assettypes[0]['name'])
+    def cooling_type_lines_state_changed(self,text):
+        type=text.split(':')[0]
+        templates=getTemplatesInfo('line',type,self.cur)
+        self.cooling_type_lines.clear()
+        self.cooling_type_lines.addItems([i['name'] for i in templates])
+        if templates:
+            self.cooling_type_lines.setCurrentText(templates[0]['name'])
 
-    def hc_assetgroup_customers_state_changed(self,text):
+    def cooling_template_customers_state_changed(self,text):
         try:
-            assetgroup=text.split(':')[0]
-            assettypes=getAssettypesInfo('customer',assetgroup,self.cur)
+            templates=getTemplatesInfo('customer',self.cur)
         except:
-            assettypes=[]
-        self.hc_assettype_customer.clear()
-        self.hc_assettype_customer.addItems(['keep type']+[i['name'] for i in assettypes])
-        self.hc_assettype_customer.setCurrentText('keep type')
-
-    def cooling_assetgroup_lines_state_changed(self,text):
-        assetgroup=text.split(':')[0]
-        assettypes=getAssettypesInfo('line',assetgroup,self.cur)
-        self.cooling_assettype_lines.clear()
-        self.cooling_assettype_lines.addItems([i['name'] for i in assettypes])
-        if assettypes:
-            self.cooling_assettype_lines.setCurrentText(assettypes[0]['name'])
-
-    def cooling_assetgroup_customers_state_changed(self,text):
-        try:
-            assetgroup=text.split(':')[0]
-            assettypes=getAssettypesInfo('customer',assetgroup,self.cur)
-        except:
-            assettypes=[]
-        self.cooling_assettype_customer.clear()
-        self.cooling_assettype_customer.addItems(['keep type']+[i['name'] for i in assettypes])
-        self.cooling_assettype_customer.setCurrentText('keep type')
+            templates=[]
+        self.cooling_template_customer.clear()
+        self.cooling_template_customer.addItems(['keep type']+[i['name'] for i in templates])
+        self.cooling_template_customer.setCurrentText('keep type')
         
     def execute(self):  
         layerCheck=checkPipeLayingLayerData(self.dictDB,self.cur,self.combo_network.currentText())
@@ -820,14 +706,14 @@ class PipeLayingDialog(QMainWindow):
                 checkbox_tsup_max=self.checkbox_tsup_max.isChecked(),checkbox_linearHeatDensity_min=self.checkbox_linearHeatDensity_min.isChecked(),checkbox_heat_demand_min=self.checkbox_heat_demand_min.isChecked(),checkbox_heating_load_min=self.checkbox_heating_load_min.isChecked(),  
                 tolerance=self.tolerance.text(), network=self.combo_network.currentText(),iface=self.iface, check_heating_network=self.check_heating_network.isChecked(),tsup_max=self.tsup_max.text(),
                 heat_demand_min=self.heat_demand_min.text(),heating_load_min=self.heating_load_min.text(),pipe_bundle_heating=self.heating_pipe_bundle.currentText(),
-                heating_assettype_customer=self.heating_assettype_customer.currentText(),heating_assettype_lines=self.heating_assettype_lines.currentText().split(':')[0],
-                heating_assetgroup_customer=self.heating_assetgroup_customer.currentText(),heating_assetgroup_lines=self.heating_assetgroup_lines.currentText().split(':')[0],hc_assetgroup_lines=self.hc_assetgroup_lines.currentText().split(':')[0],
+                heating_template_customer=self.heating_template_customer.currentText(),heating_type_lines=self.heating_type_lines.currentText().split(':')[0],
+                hc_type_lines=self.hc_type_lines.currentText().split(':')[0],
                 linearHeatDensity_min=self.linearHeatDensity_min.text(),check_heating_network_costs=self.check_heating_network_costs.isChecked(),
                 heat_loss=self.heat_loss.text(),heat_costs=self.heat_costs.text(),amortization_period_heat=self.amortization_period_heat.text(),
                 check_cooling_network=self.check_cooling_network.isChecked(),tsup_min=self.tsup_min.text(),cold_demand_min=self.cold_demand_min.text(),pipe_bundle_cooling=self.cooling_pipe_bundle.currentText(),pipe_bundle_hc=self.hc_pipe_bundle.currentText(),
-                cooling_load_min=self.cooling_load_min.text(),cooling_assetgroup_customer=self.cooling_assetgroup_customer.currentText(),cooling_assettype_customer=self.cooling_assettype_customer.currentText(),cooling_assettype_lines=self.cooling_assettype_lines.currentText(),cooling_assetgroup_lines=self.cooling_assetgroup_lines.currentText(),
+                cooling_load_min=self.cooling_load_min.text(),cooling_template_customer=self.cooling_template_customer.currentText(),cooling_type_lines=self.cooling_type_lines.currentText(),
                 linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),
-                amortization_period_cold=self.amortization_period_cold.text(),hc_assetgroup_customer=self.hc_assetgroup_customer.currentText(),hc_assettype_customer=self.hc_assettype_customer.currentText(),hc_assettype_lines=self.hc_assettype_lines.currentText(),
+                amortization_period_cold=self.amortization_period_cold.text(),hc_template_customer=self.hc_template_customer.currentText(),
                 customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),dictDB=self.dictDB,plugin_dir=self.plugin_dir)
             worker.signals.progress.connect(self.update_progress)
             worker.signals.error.connect(self.show_error_message)       
@@ -911,7 +797,7 @@ class PipeLayingDialog(QMainWindow):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
-            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
             sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
             sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
             sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
@@ -957,62 +843,47 @@ class NetworkTopologyDialog(QMainWindow):
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.iface=iface
         self.setWindowTitle("Generate Topology")
-        customer_assettypes=['1','2','3','4','5','6','7','8']
-        cusomer_assettype='1'
-        lines_assettypes=['7','8','9','12']
-        line_assettype='7'
-        pipeBundleTypes=['1','2']
-        pipeBundleType='1'
+        #todo get values from data center
+        customer_templates=getTemplateNames(self.cur,'customer')
+        pipeBundleTypes=getPipeBundleNames(self.cur)
 
-        #assettypes
-        self.rbtn_keep_assettypes = QRadioButton('Keep asset types')
-        self.rbtn_keep_assettypes.setChecked(True)
-        self.rbtn_override_assettypes = QRadioButton('Override asset types')
+        #templates
+        self.rbtn_keep_templates = QRadioButton('Keep templates')
+        self.rbtn_keep_templates.setChecked(True)
+        self.rbtn_override_templates = QRadioButton('Override templates')
         
-        self.rbtn_keep_assettypes.toggled.connect(self.keep_assettype_state)
-        self.rbtn_override_assettypes.toggled.connect(self.override_assettype_state)        
+        self.rbtn_keep_templates.toggled.connect(self.keep_template_state)
+        self.rbtn_override_templates.toggled.connect(self.override_template_state)        
         
         #labels
-        layout_overrideAssettype_label = QVBoxLayout()
+        layout_overrideTemplate_label = QVBoxLayout()
         
-        self.label_overrideAssettype_customer =QLabel("Customer asset type")
-        self.label_overrideAssettype_customer.setHidden(True)
-        self.label_overrideAssettype_customer.setStyleSheet("padding-left: 30")
-        layout_overrideAssettype_label.addWidget(self.label_overrideAssettype_customer)
+        self.label_overrideTemplate_customer =QLabel("Customer template")
+        self.label_overrideTemplate_customer.setHidden(True)
+        self.label_overrideTemplate_customer.setStyleSheet("padding-left: 30")
+        layout_overrideTemplate_label.addWidget(self.label_overrideTemplate_customer)
         
-        self.label_overrideAssettype_lines =QLabel("Lines asset type")
-        self.label_overrideAssettype_lines.setHidden(True)
-        self.label_overrideAssettype_lines.setStyleSheet("padding-left: 30")
-        layout_overrideAssettype_label.addWidget(self.label_overrideAssettype_lines)
-        
-        self.label_overrideAssettype_pipeBundle =QLabel("Pipe bundle type")
-        self.label_overrideAssettype_pipeBundle.setHidden(True)
-        self.label_overrideAssettype_pipeBundle.setStyleSheet("padding-left: 30")
-        layout_overrideAssettype_label.addWidget(self.label_overrideAssettype_pipeBundle)
+        self.label_overrideTemplate_pipeBundle =QLabel("Pipe bundle type")
+        self.label_overrideTemplate_pipeBundle.setHidden(True)
+        self.label_overrideTemplate_pipeBundle.setStyleSheet("padding-left: 30")
+        layout_overrideTemplate_label.addWidget(self.label_overrideTemplate_pipeBundle)
         
         #values
-        layout_overrideAssettype_input = QVBoxLayout() 
+        layout_overrideTemplate_input = QVBoxLayout() 
 
-        self.overrideAssettype_customer =QComboBox()
-        self.overrideAssettype_customer.addItems(customer_assettypes)
-        self.overrideAssettype_customer.setCurrentText(cusomer_assettype)
-        self.overrideAssettype_customer.setHidden(True)
-        self.overrideAssettype_customer.setStyleSheet("padding-left: 30")
-        layout_overrideAssettype_input.addWidget(self.overrideAssettype_customer)  
-
-        self.overrideAssettype_lines =QComboBox()
-        self.overrideAssettype_lines.addItems(lines_assettypes)
-        self.overrideAssettype_lines.setCurrentText(line_assettype)
-        self.overrideAssettype_lines.setHidden(True)
-        self.overrideAssettype_lines.setStyleSheet("padding-left: 30")
-        layout_overrideAssettype_input.addWidget(self.overrideAssettype_lines) 
+        self.overrideTemplate_customer =QComboBox()
+        self.overrideTemplate_customer.addItems(customer_templates)
+        self.overrideTemplate_customer.setCurrentText(customer_templates[0])
+        self.overrideTemplate_customer.setHidden(True)
+        self.overrideTemplate_customer.setStyleSheet("padding-left: 30")
+        layout_overrideTemplate_input.addWidget(self.overrideTemplate_customer)  
         
-        self.overrideAssettype_pipeBundle =QComboBox()
-        self.overrideAssettype_pipeBundle.addItems(pipeBundleTypes)
-        self.overrideAssettype_pipeBundle.setCurrentText(pipeBundleType)
-        self.overrideAssettype_pipeBundle.setHidden(True)
-        self.overrideAssettype_pipeBundle.setStyleSheet("padding-left: 30")
-        layout_overrideAssettype_input.addWidget(self.overrideAssettype_pipeBundle) 
+        self.overrideTemplate_pipeBundle =QComboBox()
+        self.overrideTemplate_pipeBundle.addItems(pipeBundleTypes)
+        self.overrideTemplate_pipeBundle.setCurrentText(pipeBundleTypes[0])
+        self.overrideTemplate_pipeBundle.setHidden(True)
+        self.overrideTemplate_pipeBundle.setStyleSheet("padding-left: 30")
+        layout_overrideTemplate_input.addWidget(self.overrideTemplate_pipeBundle) 
 
         #additional options
         layout_additional_options = QVBoxLayout()
@@ -1023,88 +894,64 @@ class NetworkTopologyDialog(QMainWindow):
         self.check_add_customers_network_ends =QCheckBox("Add customers to unconnected network ends")
         self.check_add_customers_network_ends.stateChanged.connect(self.addCustomers_network_ends_state)
         #labels
-        layout_addCustomers_assettype_label = QVBoxLayout()
+        layout_addCustomers_template_label = QVBoxLayout()
         
-        self.label_addCustomers_assettype_customers =QLabel("Customer asset type")
-        self.label_addCustomers_assettype_customers.setHidden(True)
-        self.label_addCustomers_assettype_customers.setStyleSheet("padding-left: 30")
-        layout_addCustomers_assettype_label.addWidget(self.label_addCustomers_assettype_customers)
+        self.label_addCustomers_template_customers =QLabel("Customer template")
+        self.label_addCustomers_template_customers.setHidden(True)
+        self.label_addCustomers_template_customers.setStyleSheet("padding-left: 30")
+        layout_addCustomers_template_label.addWidget(self.label_addCustomers_template_customers)
         
         #values
-        layout_addCustomers_assettype_input = QVBoxLayout() 
+        layout_addCustomers_template_input = QVBoxLayout() 
 
-        self.addCustomers_assettype_customers =QComboBox()
-        self.addCustomers_assettype_customers.addItems(customer_assettypes)
-        self.addCustomers_assettype_customers.setCurrentText(cusomer_assettype)
-        self.addCustomers_assettype_customers.setHidden(True)
-        self.addCustomers_assettype_customers.setStyleSheet("padding-left: 30")
-        layout_addCustomers_assettype_input.addWidget(self.addCustomers_assettype_customers)  
+        self.addCustomers_template_customers =QComboBox()
+        self.addCustomers_template_customers.addItems(customer_templates)
+        self.addCustomers_template_customers.setCurrentText(customer_templates[0])
+        self.addCustomers_template_customers.setHidden(True)
+        self.addCustomers_template_customers.setStyleSheet("padding-left: 30")
+        layout_addCustomers_template_input.addWidget(self.addCustomers_template_customers)  
         
         #connect unconnected customers to network
         self.check_connectCustomers =QCheckBox("Connect unconnected customers to network")
         self.check_connectCustomers.stateChanged.connect(self.connectCustomers_state)
         #labels
-        layout_connectCustomers_assettype_label = QVBoxLayout()
-        
-        self.label_connectCustomers_assettype_lines =QLabel("Lines asset type")
-        self.label_connectCustomers_assettype_lines.setHidden(True)
-        self.label_connectCustomers_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_connectCustomers_assettype_label.addWidget(self.label_connectCustomers_assettype_lines)
-        
-        self.label_connectCustomers_assettype_pipeBundle =QLabel("Pipe bundle type")
-        self.label_connectCustomers_assettype_pipeBundle.setHidden(True)
-        self.label_connectCustomers_assettype_pipeBundle.setStyleSheet("padding-left: 30")
-        layout_connectCustomers_assettype_label.addWidget(self.label_connectCustomers_assettype_pipeBundle)
+        layout_connectCustomers_template_label = QVBoxLayout()
+                
+        self.label_connectCustomers_template_pipeBundle =QLabel("Pipe bundle type")
+        self.label_connectCustomers_template_pipeBundle.setHidden(True)
+        self.label_connectCustomers_template_pipeBundle.setStyleSheet("padding-left: 30")
+        layout_connectCustomers_template_label.addWidget(self.label_connectCustomers_template_pipeBundle)
         
         #values
-        layout_connectCustomers_assettype_input = QVBoxLayout()
+        layout_connectCustomers_template_input = QVBoxLayout()
 
-        self.connectCustomers_assettype_lines =QComboBox()
-        self.connectCustomers_assettype_lines.addItems(lines_assettypes)
-        self.connectCustomers_assettype_lines.setCurrentText(line_assettype)
-        self.connectCustomers_assettype_lines.setHidden(True)
-        self.connectCustomers_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_connectCustomers_assettype_input.addWidget(self.connectCustomers_assettype_lines)  
-
-        self.connectCustomers_assettype_pipeBundle =QComboBox()
-        self.connectCustomers_assettype_pipeBundle.addItems(pipeBundleTypes)
-        self.connectCustomers_assettype_pipeBundle.setCurrentText(pipeBundleType)
-        self.connectCustomers_assettype_pipeBundle.setHidden(True)
-        self.connectCustomers_assettype_pipeBundle.setStyleSheet("padding-left: 30")
-        layout_connectCustomers_assettype_input.addWidget(self.connectCustomers_assettype_pipeBundle)          
+        self.connectCustomers_template_pipeBundle =QComboBox()
+        self.connectCustomers_template_pipeBundle.addItems(pipeBundleTypes)
+        self.connectCustomers_template_pipeBundle.setCurrentText(pipeBundleTypes[0])
+        self.connectCustomers_template_pipeBundle.setHidden(True)
+        self.connectCustomers_template_pipeBundle.setStyleSheet("padding-left: 30")
+        layout_connectCustomers_template_input.addWidget(self.connectCustomers_template_pipeBundle)          
         
         #connect unconnected plants to network
         self.check_connectPlants =QCheckBox("Connect unconnected plants to network")
         self.check_connectPlants.stateChanged.connect(self.connectPlants_state)
         #labels
-        layout_connectPlants_assettype_label = QVBoxLayout()
-              
-        self.label_connectPlants_assettype_lines =QLabel("Lines asset type")
-        self.label_connectPlants_assettype_lines.setHidden(True)
-        self.label_connectPlants_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_connectPlants_assettype_label.addWidget(self.label_connectPlants_assettype_lines)
+        layout_connectPlants_template_label = QVBoxLayout()
         
-        self.label_connectPlants_assettype_pipeBundle =QLabel("Pipe bundle type")
-        self.label_connectPlants_assettype_pipeBundle.setHidden(True)
-        self.label_connectPlants_assettype_pipeBundle.setStyleSheet("padding-left: 30")
-        layout_connectPlants_assettype_label.addWidget(self.label_connectPlants_assettype_pipeBundle)
+        self.label_connectPlants_template_pipeBundle =QLabel("Pipe bundle type")
+        self.label_connectPlants_template_pipeBundle.setHidden(True)
+        self.label_connectPlants_template_pipeBundle.setStyleSheet("padding-left: 30")
+        layout_connectPlants_template_label.addWidget(self.label_connectPlants_template_pipeBundle)
         
         #values
-        layout_connectPlants_assettype_input = QVBoxLayout() 
+        layout_connectPlants_template_input = QVBoxLayout()  
 
-        self.connectPlants_assettype_lines =QComboBox()
-        self.connectPlants_assettype_lines.addItems(lines_assettypes)
-        self.connectPlants_assettype_lines.setCurrentText(line_assettype)
-        self.connectPlants_assettype_lines.setHidden(True)
-        self.connectPlants_assettype_lines.setStyleSheet("padding-left: 30")
-        layout_connectPlants_assettype_input.addWidget(self.connectPlants_assettype_lines)    
-
-        self.connectPlants_assettype_pipeBundle =QComboBox()
-        self.connectPlants_assettype_pipeBundle.addItems(pipeBundleTypes)
-        self.connectPlants_assettype_pipeBundle.setCurrentText(pipeBundleType)
-        self.connectPlants_assettype_pipeBundle.setHidden(True)
-        self.connectPlants_assettype_pipeBundle.setStyleSheet("padding-left: 30")
-        layout_connectPlants_assettype_input.addWidget(self.connectPlants_assettype_pipeBundle)          
+        self.connectPlants_template_pipeBundle =QComboBox()
+        self.connectPlants_template_pipeBundle.addItems(pipeBundleTypes)
+        self.connectPlants_template_pipeBundle.setCurrentText(pipeBundleTypes[0])
+        self.connectPlants_template_pipeBundle.setHidden(True)
+        self.connectPlants_template_pipeBundle.setStyleSheet("padding-left: 30")
+        layout_connectPlants_template_input.addWidget(self.connectPlants_template_pipeBundle)          
 
         #delete unconnected customers
         self.check_deleteUnconnectedCustomers =QCheckBox("Delete unconnected customers")
@@ -1113,7 +960,7 @@ class NetworkTopologyDialog(QMainWindow):
         self.check_deleteUnconnectedLines =QCheckBox("Delete unconnected lines")
         
         #redraw submodel polygon including all streets
-        self.redraw_submodels_polygons =QCheckBox("Redraw submodel polygon including all features and lines & set submodel to 1")
+        self.redraw_submodels_polygons =QCheckBox("Redraw submodel polygon including all features and lines and set submodel to 1")
         self.redraw_submodels_polygons.setChecked(True)
         
         #tolerance
@@ -1154,37 +1001,37 @@ class NetworkTopologyDialog(QMainWindow):
         self.progress=QProgressBar()
         
         #set layouts together
-        layout_overrideAssettype = QHBoxLayout()
-        layout_overrideAssettype.addLayout(layout_overrideAssettype_label)
-        layout_overrideAssettype.addLayout(layout_overrideAssettype_input)  
+        layout_overrideTemplate = QHBoxLayout()
+        layout_overrideTemplate.addLayout(layout_overrideTemplate_label)
+        layout_overrideTemplate.addLayout(layout_overrideTemplate_input)  
         
-        layout_addCustomers_assettype = QHBoxLayout()
-        layout_addCustomers_assettype.addLayout(layout_addCustomers_assettype_label)
-        layout_addCustomers_assettype.addLayout(layout_addCustomers_assettype_input) 
+        layout_addCustomers_template = QHBoxLayout()
+        layout_addCustomers_template.addLayout(layout_addCustomers_template_label)
+        layout_addCustomers_template.addLayout(layout_addCustomers_template_input) 
         
-        layout_connectCustomers_assettype = QHBoxLayout()
-        layout_connectCustomers_assettype.addLayout(layout_connectCustomers_assettype_label)
-        layout_connectCustomers_assettype.addLayout(layout_connectCustomers_assettype_input) 
+        layout_connectCustomers_template = QHBoxLayout()
+        layout_connectCustomers_template.addLayout(layout_connectCustomers_template_label)
+        layout_connectCustomers_template.addLayout(layout_connectCustomers_template_input) 
         
-        layout_connectPlants_assettype = QHBoxLayout()
-        layout_connectPlants_assettype.addLayout(layout_connectPlants_assettype_label)
-        layout_connectPlants_assettype.addLayout(layout_connectPlants_assettype_input) 
+        layout_connectPlants_template = QHBoxLayout()
+        layout_connectPlants_template.addLayout(layout_connectPlants_template_label)
+        layout_connectPlants_template.addLayout(layout_connectPlants_template_input) 
         
         layout_additional_options.addWidget(self.check_del_network_ends)
         layout_additional_options.addWidget(self.check_add_customers_network_ends)
-        layout_additional_options.addLayout(layout_addCustomers_assettype)
+        layout_additional_options.addLayout(layout_addCustomers_template)
         layout_additional_options.addWidget(self.check_connectPlants)
-        layout_additional_options.addLayout(layout_connectPlants_assettype)
+        layout_additional_options.addLayout(layout_connectPlants_template)
         layout_additional_options.addWidget(self.check_connectCustomers)
-        layout_additional_options.addLayout(layout_connectCustomers_assettype)
+        layout_additional_options.addLayout(layout_connectCustomers_template)
         layout_additional_options.addWidget(self.check_deleteUnconnectedCustomers)
         layout_additional_options.addWidget(self.check_deleteUnconnectedLines)
         layout_additional_options.addWidget(self.redraw_submodels_polygons)
         
         layout_win = QVBoxLayout()
-        layout_win.addWidget(self.rbtn_keep_assettypes)
-        layout_win.addWidget(self.rbtn_override_assettypes)
-        layout_win.addLayout(layout_overrideAssettype)
+        layout_win.addWidget(self.rbtn_keep_templates)
+        layout_win.addWidget(self.rbtn_override_templates)
+        layout_win.addLayout(layout_overrideTemplate)
         layout_win.addLayout(layout_additional_options)
         layout_win.addLayout(layout_tolerance)
         layout_win.addLayout(layout_networks)
@@ -1209,12 +1056,12 @@ class NetworkTopologyDialog(QMainWindow):
             networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != 'Check all items' and self.combo_network_models.itemChecked(i)]
             if checkNetwork(self.cur,self.dictDB['versionName'],networks):                 
                 worker = WorkerGenerateNetworkTopology(iface=self.iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
-                    connectCustomers=self.check_connectCustomers.isChecked(),connectCustomers_assettype_lines=self.connectCustomers_assettype_lines.currentText(),connectCustomers_assettype_pipeBundle=self.connectCustomers_assettype_pipeBundle.currentText(),
-                    addCustomers=self.check_add_customers_network_ends.isChecked(),addCustomers_assettype_customers=self.addCustomers_assettype_customers.currentText(),
-                    connectPlants=self.check_connectPlants.isChecked(),connectPlants_assettype_lines=self.connectPlants_assettype_lines.currentText(),connectPlants_assettype_pipeBundle=self.connectPlants_assettype_pipeBundle.currentText(),
+                    connectCustomers=self.check_connectCustomers.isChecked(),connectCustomers_template_pipeBundle=self.connectCustomers_template_pipeBundle.currentText(),
+                    addCustomers=self.check_add_customers_network_ends.isChecked(),addCustomers_template_customers=self.addCustomers_template_customers.currentText(),
+                    connectPlants=self.check_connectPlants.isChecked(),connectPlants_template_pipeBundle=self.connectPlants_template_pipeBundle.currentText(),
                     deleteUnconnectedNetworkEnds=self.check_del_network_ends.isChecked(),
-                    keepAssettypes=self.rbtn_keep_assettypes.isChecked(),
-                    overrideAssettypes=self.rbtn_override_assettypes.isChecked(),overrideAssettypes_customers=self.overrideAssettype_customer.currentText(), overrideAssettypes_lines=self.overrideAssettype_lines.currentText(),overrideAssettypes_pipeBundle=self.overrideAssettype_pipeBundle.currentText(),tolerance=self.tolerance.text(),
+                    keepTemplates=self.rbtn_keep_templates.isChecked(),
+                    overrideTemplates=self.rbtn_override_templates.isChecked(),overrideTemplates_customers=self.overrideTemplate_customer.currentText(),overrideTemplates_pipeBundle=self.overrideTemplate_pipeBundle.currentText(),tolerance=self.tolerance.text(),
                     showTempTables=True)
                 worker.signals.error.connect(self.show_error_message)
                 worker.signals.progress.connect(self.update_progress)
@@ -1228,82 +1075,66 @@ class NetworkTopologyDialog(QMainWindow):
         
         if Qt.Checked==s:
             print('checked')
-            self.label_addCustomers_assettype_customers.setHidden(False)
-            self.addCustomers_assettype_customers.setHidden(False)
+            self.label_addCustomers_template_customers.setHidden(False)
+            self.addCustomers_template_customers.setHidden(False)
         else:
             print('unchecked')
-            self.label_addCustomers_assettype_customers.setHidden(True)
-            self.addCustomers_assettype_customers.setHidden(True)
+            self.label_addCustomers_template_customers.setHidden(True)
+            self.addCustomers_template_customers.setHidden(True)
             
     def connectCustomers_state(self,s):
         print('connect customers to network state')
         
         if Qt.Checked==s:
             print('checked')
-            self.label_connectCustomers_assettype_lines.setHidden(False)
-            self.label_connectCustomers_assettype_pipeBundle.setHidden(False)
-            self.connectCustomers_assettype_lines.setHidden(False)
-            self.connectCustomers_assettype_pipeBundle.setHidden(False)
+            self.label_connectCustomers_template_pipeBundle.setHidden(False)
+            self.connectCustomers_template_pipeBundle.setHidden(False)
         else:
             print('unchecked')
-            self.label_connectCustomers_assettype_lines.setHidden(True)
-            self.label_connectCustomers_assettype_pipeBundle.setHidden(True)
-            self.connectCustomers_assettype_lines.setHidden(True)
-            self.connectCustomers_assettype_pipeBundle.setHidden(True)
+            self.label_connectCustomers_template_pipeBundle.setHidden(True)
+            self.connectCustomers_template_pipeBundle.setHidden(True)
             
     def connectPlants_state(self,s):
         print('connect plants to network state')
         
         if Qt.Checked==s:
             print('checked')
-            self.label_connectPlants_assettype_lines.setHidden(False)
-            self.label_connectPlants_assettype_pipeBundle.setHidden(False)
-            self.connectPlants_assettype_lines.setHidden(False)
-            self.connectPlants_assettype_pipeBundle.setHidden(False)
+            self.label_connectPlants_template_pipeBundle.setHidden(False)
+            self.connectPlants_template_pipeBundle.setHidden(False)
         else:
             print('unchecked')
-            self.label_connectPlants_assettype_lines.setHidden(True)
-            self.label_connectPlants_assettype_pipeBundle.setHidden(True)
-            self.connectPlants_assettype_lines.setHidden(True)
-            self.connectPlants_assettype_pipeBundle.setHidden(True)
+            self.label_connectPlants_template_pipeBundle.setHidden(True)
+            self.connectPlants_template_pipeBundle.setHidden(True)
             
-    def override_assettype_state(self,s):
-        print('override assettype state')
+    def override_template_state(self,s):
+        print('override template state')
         if True==s:
             print('checked')
-            self.label_overrideAssettype_customer.setHidden(False)
-            self.label_overrideAssettype_lines.setHidden(False)
-            self.label_overrideAssettype_pipeBundle.setHidden(False)
-            self.overrideAssettype_customer.setHidden(False)
-            self.overrideAssettype_lines.setHidden(False)
-            self.overrideAssettype_pipeBundle.setHidden(False)
+            self.label_overrideTemplate_customer.setHidden(False)
+            self.label_overrideTemplate_pipeBundle.setHidden(False)
+            self.overrideTemplate_customer.setHidden(False)
+            self.overrideTemplate_pipeBundle.setHidden(False)
         else:
             print('unchecked')
-            self.label_overrideAssettype_customer.setHidden(True)
-            self.label_overrideAssettype_lines.setHidden(True)
-            self.label_overrideAssettype_pipeBundle.setHidden(True)
-            self.overrideAssettype_customer.setHidden(True)
-            self.overrideAssettype_lines.setHidden(True)
-            self.overrideAssettype_pipeBundle.setHidden(True)
+            self.label_overrideTemplate_customer.setHidden(True)
+            self.label_overrideTemplate_pipeBundle.setHidden(True)
+            self.overrideTemplate_customer.setHidden(True)
+            self.overrideTemplate_pipeBundle.setHidden(True)
        
-    def keep_assettype_state(self,s):
-        print('keep assettype state')
+    def keep_template_state(self,s):
+        print('keep template state')
         if True==s:
             print('checked')
-            self.label_overrideAssettype_customer.setHidden(True)
-            self.label_overrideAssettype_lines.setHidden(True)
-            self.label_overrideAssettype_pipeBundle.setHidden(True)
-            self.overrideAssettype_customer.setHidden(True)
-            self.overrideAssettype_lines.setHidden(True)
-            self.overrideAssettype_pipeBundle.setHidden(True)
+            self.label_overrideTemplate_customer.setHidden(True)
+            self.label_overrideTemplate_pipeBundle.setHidden(True)
+            self.overrideTemplate_customer.setHidden(True)
+            self.overrideTemplate_pipeBundle.setHidden(True)
         else:
             print('unchecked')
-            self.label_overrideAssettype_customer.setHidden(False)
-            self.label_overrideAssettype_lines.setHidden(False)
-            self.label_overrideAssettype_pipeBundle.setHidden(False)
-            self.overrideAssettype_customer.setHidden(False)
-            self.overrideAssettype_lines.setHidden(False)
-            self.overrideAssettype_pipeBundle.setHidden(False)
+            self.label_overrideTemplate_customer.setHidden(False)
+            self.label_overrideTemplate_pipeBundle.setHidden(False)
+            self.overrideTemplate_customer.setHidden(False)
+            self.overrideTemplate_pipeBundle.setHidden(False)
 
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
@@ -1312,7 +1143,7 @@ class NetworkTopologyDialog(QMainWindow):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             print('save Results')
             dropDBTriggers(self.cur,self.dictDB) #child versions are not updated
-            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".device_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
+            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'])
             sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.dictDB['versionName'])
             sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.dictDB['versionName'])
             sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.dictDB['versionName'])
@@ -1346,60 +1177,57 @@ class NetworkTopologyDialog(QMainWindow):
         print ("you just closed the PipeLayingWindow!!!")
         self.rejectResults()
         
-class MapDevicesPlantsDialog(QMainWindow):
+class MapPlantsDialog(QMainWindow):
     def __init__(self,dictDB,plugin_dir):     
-        """Initialize GUI for mapping devices/plants connection types to lines id"""
+        """Initialize GUI for mapping plants connection types to lines id"""
         super().__init__()
         self.plugin_dir=plugin_dir
         self.dictDB=dictDB
         self.conn=dbConnect(self.dictDB,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        self.setWindowTitle("Map devices/energy plants/customers connection types to lines")
+        self.setWindowTitle("Map energy plants/customers connection types to lines")
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
 
-        #radio buttons devices/plants
+        #radio buttons
         layout_rbtn = QHBoxLayout()
-        self.rbtn_devices = QRadioButton('Devices')
         self.rbtn_plants = QRadioButton('Energy plants')
         self.rbtn_customers = QRadioButton('Customers')
         
-        self.rbtn_devices.toggled.connect(self.updateDevicesPlantsCustomersLists)
-        self.rbtn_plants.toggled.connect(self.updateDevicesPlantsCustomersLists)        
-        self.rbtn_customers.toggled.connect(self.updateDevicesPlantsCustomersLists)        
-        layout_rbtn.addWidget(self.rbtn_devices)
+        self.rbtn_plants.toggled.connect(self.updatePlantsCustomersLists)        
+        self.rbtn_customers.toggled.connect(self.updatePlantsCustomersLists)        
         layout_rbtn.addWidget(self.rbtn_plants)
         layout_rbtn.addWidget(self.rbtn_customers)
 
-        ##list widgets for devices/plants; --||-- connection types; line id`s
+        ##list widgets for plants; --||-- connection types; line id`s
         #list widgets input
-        #lists devices/plants
-        layout_devicesPlants = QVBoxLayout()
-        self.label_listWidget_devicesPlants=QLabel("Devices/Plants/Customers")
-        self.label_listWidget_devicesPlants.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_listWidget_devicesPlants.setFont(myBoldFont)
-        layout_devicesPlants.addWidget(self.label_listWidget_devicesPlants)
-        layout_listWidget_devicesPlants = QHBoxLayout()
-        #list widget for devices/plants
-        layout_listWidget_devicesPlants_ids = QVBoxLayout()
-        label_listWidget_devicesPlants_ids=QLabel("Id`s")
-        layout_listWidget_devicesPlants_ids.addWidget(label_listWidget_devicesPlants_ids)
-        self.listWidget_devicesPlants_ids = QListWidget()
-        self.listWidget_devicesPlants_ids.itemClicked.connect(self.clickedDevicesPlantsId)
-        layout_listWidget_devicesPlants_ids.addWidget(self.listWidget_devicesPlants_ids)
-        layout_listWidget_devicesPlants.addLayout(layout_listWidget_devicesPlants_ids)
+        #lists plants
+        layout_plants = QVBoxLayout()
+        self.label_listWidget_Plants=QLabel("Plants/Customers")
+        self.label_listWidget_Plants.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_listWidget_Plants.setFont(myBoldFont)
+        layout_plants.addWidget(self.label_listWidget_Plants)
+        layout_listWidget_plants = QHBoxLayout()
+        #list widget for plants
+        listWidget_plants_connTypes_ids = QVBoxLayout()
+        label_listWidget_Plants_ids=QLabel("Id`s")
+        listWidget_plants_connTypes_ids.addWidget(label_listWidget_Plants_ids)
+        self.listWidget_plants_ids = QListWidget()
+        self.listWidget_plants_ids.itemClicked.connect(self.clickedPlantsId)
+        listWidget_plants_connTypes_ids.addWidget(self.listWidget_plants_ids)
+        layout_listWidget_plants.addLayout(listWidget_plants_connTypes_ids)
         
-        #list widget for devices/plants
-        layout_listWidget_devicesPlants_connTypes = QVBoxLayout()
-        label_listWidget_devicesPlants_connTypes=QLabel("Connection types")
-        layout_listWidget_devicesPlants_connTypes.addWidget(label_listWidget_devicesPlants_connTypes)
-        self.listWidget_devicesPlants_connTypes = QListWidget()
-        layout_listWidget_devicesPlants_connTypes.addWidget(self.listWidget_devicesPlants_connTypes)
-        layout_listWidget_devicesPlants.addLayout(layout_listWidget_devicesPlants_connTypes)
+        #list widget for plants
+        listWidget_plants_connTypes_connTypes = QVBoxLayout()
+        label_listWidget_Plants_connTypes=QLabel("Connection types")
+        listWidget_plants_connTypes_connTypes.addWidget(label_listWidget_Plants_connTypes)
+        self.listWidget_plants_connTypes = QListWidget()
+        listWidget_plants_connTypes_connTypes.addWidget(self.listWidget_plants_connTypes)
+        layout_listWidget_plants.addLayout(listWidget_plants_connTypes_connTypes)
         
-        layout_devicesPlants.addLayout(layout_listWidget_devicesPlants)
+        layout_plants.addLayout(layout_listWidget_plants)
         
-        #list widget for devices/plants               
+        #list widget for plants               
         layout_listWidget_lines = QVBoxLayout()
         label_listWidget_lines=QLabel("Lines")
         label_listWidget_lines.setFont(myBoldFont)
@@ -1433,7 +1261,7 @@ class MapDevicesPlantsDialog(QMainWindow):
         #set layouts together
         #list Widgets input
         layout_lists_input = QHBoxLayout()
-        layout_lists_input.addLayout(layout_devicesPlants)
+        layout_lists_input.addLayout(layout_plants)
         layout_lists_input.addLayout(layout_listWidget_lines)
         
         layout_lists = QVBoxLayout()
@@ -1450,15 +1278,15 @@ class MapDevicesPlantsDialog(QMainWindow):
         widget.setLayout(layout_win)
         self.setCentralWidget(widget)
         
-    def clickedDevicesPlantsId(self, item):
+    def clickedPlantsId(self, item):
         print(item.text())
         table_name=self.getTypeTableName()
         print(table_name)
-        #add connection type items to listWidget_devicesPlants_connTypes
-        self.listWidget_devicesPlants_connTypes.clear()
+        #add connection type items to listWidget_plants_connTypes
+        self.listWidget_plants_connTypes.clear()
         sql="""SELECT conn_b_t.conn_type_id, conn_b_t.description 
-    FROM public.bundle_type_conns conn_b_t, "{}".{} b, public.{}_assettypes a
-    WHERE conn_b_t.conn_bundle_type_id =a.conn_bundle_type AND b.id={} AND a.assetgroup=b.assetgroup AND a.assettype=b.assettype 
+    FROM public.bundle_type_conns conn_b_t, "{}".{} b, public.{}_templates a
+    WHERE conn_b_t.conn_bundle_type_id =a.conn_bundle_type AND b.id={} AND a.template=b.template 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[:-1],item.text())
         print(sql)
         self.cur.execute(sql)
@@ -1466,7 +1294,7 @@ class MapDevicesPlantsDialog(QMainWindow):
         for conn_type in self.cur.fetchall():
             conn_ids.append(str(conn_type['conn_type_id'])+':'+conn_type['description'])
         if conn_ids:
-            self.listWidget_devicesPlants_connTypes.addItems(conn_ids)
+            self.listWidget_plants_connTypes.addItems(conn_ids)
           
         #add connection type items to listWidget_lines
         self.listWidget_lines.clear()
@@ -1485,19 +1313,14 @@ class MapDevicesPlantsDialog(QMainWindow):
         self.tableWidget.setRowCount(0)
         if table_name=='energy_plants':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', ep_conn.lid) AS connection
-        FROM "{}".energy_plant_connections ep_conn, "{}".energy_plants ep, public.energy_plant_assettypes epa, public.bundle_type_conns conn_b_t
-        WHERE ep.id={} AND ep.id=ep_conn.epid AND epa.assetgroup=ep.assetgroup AND epa.assettype=ep.assettype AND epa.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=ep_conn.ep_seq
+        FROM "{}".energy_plant_connections ep_conn, "{}".energy_plants ep, public.energy_plant_templates epa, public.bundle_type_conns conn_b_t
+        WHERE ep.id={} AND ep.id=ep_conn.epid AND epa.template=ep.template AND epa.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=ep_conn.ep_seq
         ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
             print(sql)
-        elif table_name=='devices':
-            sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', d_conn.lid) AS connection
-    FROM "{}".device_connections d_conn, "{}".devices d, public.device_assettypes da, public.bundle_type_conns conn_b_t
-    WHERE d.id={} AND d.id=d_conn.did AND da.assetgroup=d.assetgroup AND da.assettype=d.assettype  AND da.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=d_conn.d_seq 
-    ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
         elif table_name=='customers':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', c_conn.lid) AS connection
-    FROM "{}".customer_connections c_conn, "{}".customers c, public.customer_assettypes ca, public.bundle_type_conns conn_b_t
-    WHERE c.id={} AND c.id=c_conn.cid AND ca.assetgroup=c.assetgroup AND ca.assettype=c.assettype AND ca.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=c_conn.c_seq 
+    FROM "{}".customer_connections c_conn, "{}".customers c, public.customer_templates ca, public.bundle_type_conns conn_b_t
+    WHERE c.id={} AND c.id=c_conn.cid AND ca.template=c.template AND ca.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=c_conn.c_seq 
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
         self.cur.execute(sql)
         conns=self.cur.fetchall()
@@ -1518,39 +1341,33 @@ class MapDevicesPlantsDialog(QMainWindow):
         
     def getTypeTableName(self):
         """ return the table name: devide or plant from the sender"""
-        print(self.rbtn_devices.isChecked())
-        if self.rbtn_devices.isChecked()==True:
-            return 'devices'
-        elif self.rbtn_plants.isChecked()==True:
+        if self.rbtn_plants.isChecked()==True:
             return 'energy_plants'
         elif self.rbtn_customers.isChecked()==True:
             return 'customers'
                  
-    def updateDevicesPlantsCustomersLists(self,s):
-        """Update the list of devices, plants or customer based on the radio button """
-        print('Update devices/plants list')
+    def updatePlantsCustomersLists(self,s):
+        """Update the list of plants or customer based on the radio button """
+        print('Update feature list')
         print(self.sender())
-        if self.sender()==self.rbtn_devices:
-            table='devices'
-            text='Devices'
-        elif self.sender()==self.rbtn_plants:
+        if self.sender()==self.rbtn_plants:
             table='energy_plants'
             text='Energy plants'
         elif self.sender()==self.rbtn_customers:
             table='customers'
             text='Customers'
-        self.label_listWidget_devicesPlants.setText(text)
+        self.label_listWidget_Plants.setText(text)
         sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{};'.format(self.dictDB['versionName'],table)
         print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchone()['ids']
         print(ids)
-        self.listWidget_devicesPlants_ids.clear()
-        self.listWidget_devicesPlants_connTypes.clear()
+        self.listWidget_plants_ids.clear()
+        self.listWidget_plants_connTypes.clear()
         self.listWidget_lines.clear()
         self.tableWidget.setRowCount(0)
         if ids:
-            self.listWidget_devicesPlants_ids.addItems(ids)
+            self.listWidget_plants_ids.addItems(ids)
             
     def checkListSelection(self, id, conn_type, lid):
         """ Check if all list items are selected"""
@@ -1578,20 +1395,18 @@ class MapDevicesPlantsDialog(QMainWindow):
         """Connects the connection types with the lid`s """
         print('Connects the connection types with the lid`s')
         table_name=self.getTypeTableName()
-        id=self.listWidget_devicesPlants_ids.currentItem()
-        conn_type=self.listWidget_devicesPlants_connTypes.currentItem()
+        id=self.listWidget_plants_ids.currentItem()
+        conn_type=self.listWidget_plants_connTypes.currentItem()
         lid=self.listWidget_lines.currentItem()
         if self.checkListSelection(id,conn_type,lid):
             id,conn_type,lid=self.checkListSelection(id,conn_type,lid)
         else:
             return
-        seq=self.listWidget_devicesPlants_connTypes.currentRow()+1
+        seq=self.listWidget_plants_connTypes.currentRow()+1
         print(seq)
         if seq:
             if table_name=="energy_plants":
                 sql="""SELECT count(*) FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
-            elif table_name=="devices":
-                sql="""SELECT count(*) FROM "{}".device_connections WHERE lid={} AND did={} AND d_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
             elif table_name=="customers":
                 sql="""SELECT count(*) FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
             print(sql)
@@ -1603,8 +1418,6 @@ class MapDevicesPlantsDialog(QMainWindow):
                 if seq and id and lid:
                     if table_name=="energy_plants":
                         sql="""INSERT INTO "{}".energy_plant_connections (epid,ep_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
-                    elif table_name=="devices":
-                        sql="""INSERT INTO "{}".device_connections (did,d_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
                     elif table_name=="customers":
                         sql="""INSERT INTO "{}".customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.dictDB['versionName'],id,seq,lid)
                     
@@ -1615,8 +1428,8 @@ class MapDevicesPlantsDialog(QMainWindow):
     def getConnTypeSeq(self,table_name,id,conn_type):
         """get the sequence of the connection type in the connection bundle """
         sql="""SELECT conn_b_t.sequence
-    FROM public.bundle_type_conns conn_b_t, "{}".{} a, public.{}_assettypes b 
-    WHERE a.id={} AND b.assetgroup=a.assetgroup AND b.assettype=a.assettype AND b.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.conn_type_id={}
+    FROM public.bundle_type_conns conn_b_t, "{}".{} a, public.{}_templates b 
+    WHERE a.id={} AND b.template=a.template AND b.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.conn_type_id={}
     ORDER BY conn_b_t.sequence;""".format(self.dictDB['versionName'],table_name,table_name[:-1],id,conn_type)
         print(sql)
         self.cur.execute(sql)
@@ -1636,15 +1449,13 @@ class MapDevicesPlantsDialog(QMainWindow):
         else:
             iface.messageBar().pushMessage("Info", "No connection selected!", level=Qgis.Info)
             return False
-        id=self.listWidget_devicesPlants_ids.currentItem().text()
+        id=self.listWidget_plants_ids.currentItem().text()
         conn_type=conn.split(':')[0]
         lid=conn.split('-->  ')[1]
         
         seq=self.getConnTypeSeq(table_name,id,conn_type)
         if table_name=="energy_plants":
             sql="""DELETE FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
-        elif table_name=="devices":
-            sql="""DELETE FROM "{}".device_connections WHERE lid={} AND did={} AND d_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
         elif table_name=="customers":
             sql="""DELETE FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.dictDB['versionName'],lid,id,seq)
         print(sql)
@@ -1789,8 +1600,6 @@ def setDHCLayerListAttributes(dlg,type):
     else:
         if dlg.rbtn_plant.isChecked():
             layer_name='energy_plants'
-        elif dlg.rbtn_device.isChecked():
-            layer_name='devices'
         else:
             layer_name='customers'
     layer=QgsProject.instance().mapLayersByName(layer_name)
@@ -1855,7 +1664,7 @@ class ImportPointLayer(QMainWindow):
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.mappedAttributes={}
 
-        self.setWindowTitle("Import Plants, Devices or Customers From Layer")
+        self.setWindowTitle("Import Plants or Customers From Layer")
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
         
@@ -1879,11 +1688,6 @@ class ImportPointLayer(QMainWindow):
         layout_radio_type.addWidget(self.rbtn_plant)
         self.btngroup_type.addButton(self.rbtn_plant)
         self.rbtn_plant.toggled.connect(lambda: setDHCLayerListAttributes(self,'point'))
-
-        self.rbtn_device = QRadioButton('Device')
-        layout_radio_type.addWidget(self.rbtn_device)
-        self.btngroup_type.addButton(self.rbtn_device)
-        self.rbtn_device.toggled.connect(lambda: setDHCLayerListAttributes(self,'point'))
         
         self.rbtn_customer = QRadioButton('Customer')
         layout_radio_type.addWidget(self.rbtn_customer)
@@ -2158,8 +1962,10 @@ class PipeSizingDlg(QMainWindow):
         self.conn=dbConnect(self.dictDB,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.pipes={}
+        self.pipes_list=[]
         self.new_pipe_bundles=[]
         self.sequences=[]
+        self.used_sequences=[]
         
         
         self.setWindowTitle("Pipe sizing")
@@ -2188,7 +1994,8 @@ class PipeSizingDlg(QMainWindow):
 
         layout_label.addWidget(QLabel("Network"))
         
-        layout_label.addWidget(QLabel("Main energy plant"))
+        self.label_main_plant = QLabel("Main energy plant")
+        layout_label.addWidget(self.label_main_plant)
         
         
         #values
@@ -2226,11 +2033,11 @@ class PipeSizingDlg(QMainWindow):
         layout_inputs.addLayout(layout_values)
         
         #radio sizing option
-        self.rbtn_customers = QRadioButton('Sizing according to customer`s energy demand & shortest path from customer to main energy plant')
+        self.rbtn_customers = QRadioButton('Sizing according to customer`s energy demand and shortest path from customer to main energy plant')
         self.rbtn_customers.setChecked(True)
         self.rbtn_lines = QRadioButton('Line`s energy demand')
         
-        self.rbtn_customers.toggled.connect(self.updateCircuitsTable)
+        self.rbtn_customers.toggled.connect(self.updateSizingOption)
         
         layout_sizing_options = QHBoxLayout()
         layout_sizing_options.addWidget(self.rbtn_customers)
@@ -2264,17 +2071,20 @@ class PipeSizingDlg(QMainWindow):
         self.btn_del_circuit.clicked.connect(self.deleteRow)
         
         #table
-        #table for sequence mapping 
-        self.table_sequences = QTableWidget(0,6)   
-        self.table_sequences.setHorizontalHeaderLabels(['Supply','T supply, °C','','Return','T return, °C','Load column, W'])     
+        #table for circuits mapping 
+        self.table_circuits = QTableWidget(0,6)   
+        self.table_circuits.setHorizontalHeaderLabels(['Supply','T supply, °C','','Return','T return, °C','Load column, W'])     
         #self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
         
-        #list of considered pipes
-        label_pipes_list =QLabel("Check considered pipes")
-        font=label_pipes_list.font()
+        #label select pipes
+        self.label_sequences =QLabel("Select considerable pipes per sequence")
+        font=self.label_sequences.font()
         font.setPointSize(15)
-        label_pipes_list.setFont(font)
-        self.pipes_list=QListWidget()
+        self.label_sequences.setFont(font)
+        
+        #table in order to chack selectable pipes per sequence 
+        self.table_sequences = QTableWidget(0,2)   
+        self.table_sequences.setHorizontalHeaderLabels(['Sequence','Select considered pipes'])   
           
         #buttons       
         #save reject buttons
@@ -2282,7 +2092,6 @@ class PipeSizingDlg(QMainWindow):
         
         self.btn_start=QPushButton("Start")
         layout_buttons.addWidget(self.btn_start)
-        #self.btn_start.pressed.connect(lambda: self.execute([self.combo_network_models.currentText()]))
         
         self.btn_save=QPushButton("Save")
         layout_buttons.addWidget(self.btn_save)
@@ -2302,9 +2111,9 @@ class PipeSizingDlg(QMainWindow):
         layout_win.addWidget(self.combo_simultaneity)
         layout_win.addWidget(self.label_circuits)
         layout_win.addLayout(layout_buttons_circuits)
+        layout_win.addWidget(self.table_circuits)
+        layout_win.addWidget(self.label_sequences)
         layout_win.addWidget(self.table_sequences)
-        layout_win.addWidget(label_pipes_list)
-        layout_win.addWidget(self.pipes_list)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
@@ -2317,45 +2126,98 @@ class PipeSizingDlg(QMainWindow):
         print ("you just closed the PipeSizingWindow!!!")
         rejectPipeSizingResults(self.dictDB,self.conn,self)
         
-    def updateCircuitsTable(self): 
+    def updateSizingOption(self): 
         self.updateSimultaneity()
+        self.updateMainEnergyPlant()
             
-        for row in range(self.table_sequences.rowCount()):
+        for row in range(self.table_circuits.rowCount()):
             energy_demand_colmn = QComboBox(self)
             energy_demand_colmn.addItems(getTableAttr(self.cur,self.dictDB,'customer' if self.rbtn_customers.isChecked() else 'line'))    
-            self.table_sequences.setCellWidget(row, 5, energy_demand_colmn)
+            self.table_circuits.setCellWidget(row, 5, energy_demand_colmn)
             
     def updateSimultaneity(self): 
         if self.rbtn_lines.isChecked() and self.checkBoxSimultaneity.isChecked():
             self.combo_simultaneity.setHidden(False)
         else:
             self.combo_simultaneity.setHidden(True)
+
+    def updateMainEnergyPlant(self): 
+        if self.rbtn_lines.isChecked():
+            self.combo_main_plants.setHidden(True)
+            self.label_main_plant.setHidden(True)
+        else:
+            self.combo_main_plants.setHidden(False)
+            self.label_main_plant.setHidden(False)
             
     def addRow(self):
-        self.table_sequences.insertRow(0)
+        self.table_circuits.insertRow(0)
         self.sequences=getNetworkSequences(self.cur,self.dictDB,self.combo_network_models.currentText())
-        combo_box_seq_sup = QComboBox(self)
-        combo_box_seq_sup.addItems(self.sequences)
-        self.table_sequences.setCellWidget(0, 0, combo_box_seq_sup)
+        self.combo_box_seq_sup = QComboBox(self)
+        self.combo_box_seq_sup.addItems(self.sequences)
+        self.table_circuits.setCellWidget(0, 0, self.combo_box_seq_sup)
+        self.combo_box_seq_sup.currentIndexChanged.connect(self.on_combo_changed)
+        if self.sequences[0] not in self.getTableSequences():
+            self.addSequenceRow(self.sequences[0])
         
-        self.table_sequences.setItem(0, 1, QTableWidgetItem(""))
+        self.table_circuits.setItem(0, 1, QTableWidgetItem(""))
  
         item = QTableWidgetItem("-->")
         # Make the item non-editable by setting its flags
         item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-        self.table_sequences.setItem(0, 2, item)
+        self.table_circuits.setItem(0, 2, item)
         
-        combo_box_seq_ret = QComboBox(self)
-        combo_box_seq_ret.addItems(self.sequences)
-        self.table_sequences.setCellWidget(0, 3, (combo_box_seq_ret))
+        self.combo_box_seq_ret = QComboBox(self)
+        self.combo_box_seq_ret.addItems(self.sequences)
+        self.table_circuits.setCellWidget(0, 3, (self.combo_box_seq_ret))
+        self.combo_box_seq_ret.currentIndexChanged.connect(self.on_combo_changed)
         
-        self.table_sequences.setItem(0, 4, QTableWidgetItem(""))
+        self.table_circuits.setItem(0, 4, QTableWidgetItem(""))
 
         #energy demand
         energy_demand_colmn = QComboBox(self)
         energy_demand_colmn.addItems(getTableAttr(self.cur,self.dictDB,'customer' if self.rbtn_customers.isChecked() else 'line'))            
-        self.table_sequences.setCellWidget(0, 5, energy_demand_colmn)
+        self.table_circuits.setCellWidget(0, 5, energy_demand_colmn)
+
+    def on_combo_changed(self, index):
+        print(f"ComboBox index changed to: {index}")
+        sequence=self.table_circuits.cellWidget(self.table_circuits.currentRow(), self.table_circuits.currentColumn()).currentText()
+        print(sequence)
+        self.getUsedSequences()
+        print(self.used_sequences)
+        if sequence not in self.getTableSequences():
+            self.addSequenceRow(sequence)
+            
+        for row,table_seq in enumerate(self.getTableSequences()):
+            if table_seq not in self.used_sequences:
+                self.table_sequences.removeRow(row)
         
+    def getUsedSequences(self):
+        self.used_sequences=[]
+        for row in range(self.table_circuits.rowCount()):
+            for col in [0,3]:
+                sequence=self.table_circuits.cellWidget(row,col).currentText()
+                if sequence not in self.used_sequences:
+                    self.used_sequences.append(sequence)
+                    
+    def getTableSequences(self):
+        table_sequences=[]
+        for row in range(self.table_sequences.rowCount()):
+            sequence=self.table_sequences.item(row,0).text()
+            table_sequences.append(sequence)
+        return table_sequences
+        
+    def addSequenceRow(self,sequence):
+        print('--new sequence--')
+        new_row=self.table_sequences.rowCount()
+        self.table_sequences.insertRow(new_row)
+        self.table_sequences.setItem(new_row, 0, QTableWidgetItem(sequence))
+        pipes_combo = CheckableComboBox()
+        pipes_combo.addItem('Check all items')
+        pipes_combo.addItems(self.pipes_list)
+        for i in range(len(self.pipes_list)):
+            pipes_combo.setItemChecked(i+1,False) 
+        self.table_sequences.setCellWidget(new_row, 1, pipes_combo)   
+
         
     def deleteRow(self):
         selected_indexes = self.table_sequences.selectedIndexes()
@@ -2373,25 +2235,25 @@ class PipeSizingDlg(QMainWindow):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        self.iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         
     def execute(self,networks):  
         if self.conn:
             if checkNetwork(self.cur,self.dictDB['versionName'],networks):                 
                 self.worker = WorkerGenerateNetworkTopology(iface=iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=False, deleteUnconnectedCustomers=False, deleteUnconnectedLines=False,
-                    connectCustomers=False,connectCustomers_assettype_lines=0,connectCustomers_assettype_pipeBundle=0,
-                    addCustomers=False,addCustomers_assettype_customers=0,
-                    connectPlants=False,connectPlants_assettype_lines=0,connectPlants_assettype_pipeBundle=0,
+                    connectCustomers=False,connectCustomers_template_pipeBundle=0,
+                    addCustomers=False,addCustomers_template_customers=0,
+                    connectPlants=False,connectPlants_template_pipeBundle=0,
                     deleteUnconnectedNetworkEnds=False,
-                    keepAssettypes=True,
-                    overrideAssettypes=False,overrideAssettypes_customers=0, overrideAssettypes_lines=0,overrideAssettypes_pipeBundle=0,tolerance=0.001,
+                    keepTemplates=True,
+                    overrideTemplates=False,overrideTemplates_customers=0,overrideTemplates_pipeBundle=0,tolerance=0.001,
                     showTempTables=False)
                 self.worker.signals.error.connect(self.show_error_message)
                 self.worker.signals.progress.connect(self.update_progress)
                 self.threadpool.start(self.worker) 
 
-    def doSizing(self,cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipes,pipe_bundles):
-        worker_pipeSizing=WorkerPipeSizing(cur=cur,dictDB=dictDB,dlg=dlg,network=network,plugin_dir=plugin_dir,dp=dp,epsilon=epsilon,rho=rho,cp=cp,kin_viscosity=kin_viscosity,ambient=ambient,pipes=pipes,pipe_bundles=pipe_bundles)
+    def doSizing(self,cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles):
+        worker_pipeSizing=WorkerPipeSizing(cur=cur,dictDB=dictDB,dlg=dlg,network=network,plugin_dir=plugin_dir,dp=dp,epsilon=epsilon,rho=rho,cp=cp,kin_viscosity=kin_viscosity,ambient=ambient,pipe_bundles=pipe_bundles)
         worker_pipeSizing.signals.error.connect(dlg.show_error_message)
         worker_pipeSizing.signals.progress.connect(dlg.update_progress)
         self.threadpool.start(worker_pipeSizing) 

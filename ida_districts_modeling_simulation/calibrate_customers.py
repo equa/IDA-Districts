@@ -28,7 +28,7 @@ def getCustomerModelParameter(sim_model_id):
 def getParmRuns(template_name,dir,dictDB):
     """screen parm runs id the directory"""
     print('++++++++')
-    file=dir+"\\"+dictDB['projectName']+"\\customer_assettypes\\"+template_name+".idm"
+    file=dir+"\\"+dictDB['projectName']+"\\customer_templates\\"+template_name+".idm"
     print(file)
     data=readFileToList(file)
     parmRuns=[line.split(':N "')[1].split('" :T')[0] for line in data if ":T PARMRUN-INFO" in line]    
@@ -44,12 +44,11 @@ def loadCustomerCalibrationData(dlg,dictDB,conn,plugin_dir):
         
         #load data to table templates tableWidget_templates
         sql="""WITH sub AS(
-    SELECT array(SELECT assettype FROM "{}".customers GROUP BY assettype) used_ids
+    SELECT array(SELECT template FROM "{}".customers GROUP BY template) used_ids
 )
-SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, assettype_name, CASE WHEN assettype = ANY (sub.used_ids) THEN TRUE ELSE FALSE END AS used 
-    FROM customer_assettypes ca, sub,customer_assetgroups c_ag
-    WHERE c_ag.id=ca.assetgroup
-    ORDER BY assettype;""".format(dictDB['versionName'])
+SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (sub.used_ids) THEN TRUE ELSE FALSE END AS used 
+    FROM customer_templates 
+    ORDER BY template;""".format(dictDB['versionName'])
 
         print(sql)
         cur.execute(sql)
@@ -62,17 +61,14 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
             item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,0,item)
             
-            item=QTableWidgetItem(str(template['assettype_name']))
+            item=QTableWidgetItem(str(template['template_name']))
             item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,1,item)
             
-            item=QTableWidgetItem(str(template['assetgroup_name']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-            dlg.tableWidget_templates.setItem(i,2,item)
                         
             comboBox = QComboBox()
-            parm_items=getParmRuns(str(template['assetgroup'])+"_"+str(template['id'])+"_"+template['assettype_name'],getDataCenterDir(plugin_dir),dictDB)
-            parmRuns[str(template['assetgroup'])+"_"+str(template['id'])]=parm_items[:-1]
+            parm_items=getParmRuns(str(template['id'])+"_"+template['template_name'],getDataCenterDir(plugin_dir),dictDB)
+            parmRuns[str(template['id'])]=parm_items[:-1]
             comboBox.addItems(parm_items)
             dlg.tableWidget_templates.setCellWidget(i, 3, comboBox)
                 
@@ -83,9 +79,9 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
             i+=1    
 
         print(parmRuns)
-        sql="""SELECT c.id AS c_id, c_ag.id AS assetgroup_id, c_ag.assetgroup AS assetgroup_name, c_at.assettype, c_at.assettype_name
-    FROM "{}".customers c, customer_assettypes c_at, customer_assetgroups c_ag
-    WHERE c.assetgroup=c_at.assetgroup AND c.assettype=c_at.assettype AND c_ag.id=c_at.assetgroup
+        sql="""SELECT c.id AS c_id, c_t.template_name, c_t.template
+    FROM "{}".customers c, customer_templates c_t
+    WHERE c.template=c_t.template
     ORDER BY c.id;""".format(dictDB['versionName'])
         print(sql)
         cur.execute(sql)
@@ -97,17 +93,13 @@ SELECT assettype AS id, ca.assetgroup, c_ag.assetgroup AS assetgroup_name, asset
             item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,0,item)
             
-            item=QTableWidgetItem(str(customer['assettype_name']))
+            item=QTableWidgetItem(str(customer['template_name']))
             item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,1,item)
             
-            item=QTableWidgetItem(str(customer['assetgroup_name']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-            dlg.tableWidget_customer.setItem(i,2,item)
-            
             comboBox = QComboBox()
-            print(str(customer['assetgroup_id'])+"_"+str(customer['assettype']))
-            parm_items=parmRuns[str(customer['assetgroup_id'])+"_"+str(customer['assettype'])]
+            print(str(customer['template']))
+            parm_items=parmRuns[str(customer['template'])]
             comboBox.addItems(parm_items)
             dlg.tableWidget_customer.setCellWidget(i, 3, comboBox)
             i+=1
