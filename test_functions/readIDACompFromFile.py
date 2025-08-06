@@ -20,10 +20,10 @@ usedFeaturetemplates=getUsedFeatureTemplates(cur,dictDB)
 submodel=1
 submodels=getSubmodels(cur,dictDB)
 submodels.remove(str(submodel))
-print(submodels)
+#print(submodels)
 
 usedDecoupledFeaturetemplates=getUsedDecoupledFeatureTemplates(usedFeaturetemplates,cur,dictDB,submodel,submodels)
-print(usedDecoupledFeaturetemplates)
+#print(usedDecoupledFeaturetemplates)
 
 #print(usedFeaturetemplates)    
 
@@ -81,25 +81,25 @@ for assettype in usedDecoupledFeaturetemplates:
     #writePropertyListIDMToFile(components,'C:\\Users\\Peter\\Documents\\','C:\\Users\\Peter\\Documents\\test_ida_comp.idm')
     #writePropertyListIDCToFile(components,'C:\\Users\\Peter\\Documents\\','C:\\Users\\Peter\\Documents\\test_ida_comp.idc')
 
-print(assettype_dec_conns)
+#print(assettype_dec_conns)
 
         
 f_ids=getFeatureIds(dictDB,cur,submodel,submodels)
-print(f_ids)
+#print(f_ids)
 
 
     
 importVars=getImportVars(f_ids,assettype_dec_conns)
-print(importVars)
+#print(importVars)
 
 exportVars=getExportVars(f_ids,assettype_dec_conns)
-print(exportVars)
+#print(exportVars)
 
 for cosim in submodels:
     submodel_ids=[int(submodel),int(cosim)]
     submodel_ids.sort(reverse=True if int(submodel)>int(cosim) else False)
 
-    print("""((MODEL :N "{}<--{}" :T |Import|)
+    #print("""((MODEL :N "{}<--{}" :T |Import|)
  (:PAR :N |data_1dim| :V {})
  (:PAR :N |channel| :V "{}")
  (:PAR :N |extrapolationLimit| :V 7200)
@@ -111,7 +111,7 @@ for cosim in submodels:
         len(importVars),len(importVars),submodel,cosim))
 
     submodel_ids.sort(reverse=True if int(submodel)<int(cosim) else False)    
-    print("""((MODEL :N "{}-->{}" :T |Export|)
+    #print("""((MODEL :N "{}-->{}" :T |Export|)
  (:PAR :N |data_1dim| :V {})
  (:PAR :N |channel| :V "{}")
  (:VAR :N |data_var| :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){})

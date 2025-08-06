@@ -39,4 +39,4 @@ def propertyListIDM(seq):
     else:
         return dict       
    
-print(propertyListIDM(seq))
+#print(propertyListIDM(seq))

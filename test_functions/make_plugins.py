@@ -16,7 +16,7 @@ if os.path.exists(target_dir) and os.path.isdir(target_dir):
 
 #------------plugins--------------
 target_plugin_dir=target_dir+'plugins\\'
-print(target_plugin_dir)
+#print(target_plugin_dir)
 
 def copyMetaFiles(src_dir,trg_dir):
     os.mkdir(trg_dir+'__pycache__')
@@ -33,7 +33,7 @@ def replace_text_in_file(file_path):
                 file.write(new_content)
             #print(f"Updated: {file_path}")
     except Exception as e:
-        print(f"Error processing {file_path}: {e}")
+        #print(f"Error processing {file_path}: {e}")
 
 def process_folder(folder_path):
     for root, dirs, files in os.walk(folder_path):
@@ -104,7 +104,7 @@ shutil.copy(src_dir+'PipeLayingAlgorithm.py', trg_dir+'PipeLayingAlgorithm.py')
 copyMetaFiles(src_dir,trg_dir)
 
 #project handling
-print('project plugin')
+#print('project plugin')
 src_dir=plugin_dir+'ida_districts_project_handling\\'
 trg_dir=target_plugin_dir+'ida_districts_project_handling\\'
 os.mkdir(trg_dir)
@@ -118,12 +118,12 @@ for template in ['heating_network.ida','empty_project.ida','db_default_values.id
     dir=src_dir+'templates\\'+template.split('.')[0]
     if not os.path.exists(dir):
         cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(loadIDADistrictsConfig(plugin_dir)['path_ice'],filename,dir)
-        print(cmd)
+        #print(cmd)
         subprocess.call(cmd, shell=True)
     process_folder(dir)
     
     cmd="""\"{}bin\\7za.exe" a -t7z -r "{}_temp.ida" "{}/*.*\"""".format(loadIDADistrictsConfig(plugin_dir)['path_ice'],dir,dir)
-    print(cmd)
+    #print(cmd)
     subprocess.call(cmd, shell=True) 
     
     shutil.copy(src_dir+'templates\\'+template.split('.')[0]+'_temp.ida', trg_dir+'templates\\'+template)
@@ -145,7 +145,7 @@ shutil.copy(src_dir+'IDA_districts_project_handling_dialog.py', trg_dir+'IDA_dis
 copyMetaFiles(src_dir,trg_dir)
 
 #result visualization
-print('result visualization')
+#print('result visualization')
 src_dir=plugin_dir+'ida_districts_result_visualization\\'
 trg_dir=target_plugin_dir+'ida_districts_result_visualization\\'
 os.mkdir(trg_dir)
@@ -160,7 +160,7 @@ copyMetaFiles(src_dir,trg_dir)
 #------------models--------------
 """
 target_model_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\models\\'
-print(target_model_dir)
+#print(target_model_dir)
 os.mkdir(target_model_dir)
 
 #kusuda
@@ -282,16 +282,16 @@ shutil.copy(src_dir+'x64\\hx.dll', trg_dir+'x64\\hx.dll')
 
 #documentation
 target_doc_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\documentation\\'
-print(target_doc_dir)
+#print(target_doc_dir)
 os.mkdir(target_doc_dir)
 src_dir=r'G:\Projekt\Districts\Dokumentation'+'\\'
 shutil.copy(src_dir+'IDA Districts Getting Started Guide.docx', target_doc_dir+'IDA Districts Getting Started Guide.docx')
 
 #installation
 target_install_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\installation\\'
-print(target_install_dir)
+#print(target_install_dir)
 os.mkdir(target_install_dir)
 src_dir=r'C:\Users\Peter\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\test_functions'+'\\'
 shutil.copy(src_dir+'plugin_installer.py', target_install_dir+'plugin_installer.py')
 
-print('finished')
+#print('finished')

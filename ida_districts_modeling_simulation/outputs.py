@@ -11,7 +11,7 @@ from plugins.utility_functions.topology import *
 
 def setRequestedOutputs(dlg,requestedOutputs,iface,plugin_dir,dictDB,cur):
     """set requested outputs"""
-    print ("set requested outputs")
+    #print("set requested outputs")
     
     #-----------customers------------
     #-----------power----------
@@ -106,16 +106,16 @@ def setRequestedOutputs(dlg,requestedOutputs,iface,plugin_dir,dictDB,cur):
     new_outputTimestep=False
     for out in requestedOutputs:
         if requestedOutputs[out]!=dlg.requestedOutputs_old[out]:
-            print('missmatch')
+            #print('missmatch')
             if '_c' in out:
                 outputs_c[out]=requestedOutputs[out]
             if '_ep' in out:
                 outputs_ep[out]=requestedOutputs[out]
             if 'dt_outputs'==out:
                 new_outputTimestep=requestedOutputs[out]
-    print('----')
-    print(outputs_c)
-    print(outputs_ep)
+    #print('----')
+    #print(outputs_c)
+    #print(outputs_ep)
     
     if outputs_c or new_outputTimestep:
         updateTemplatesOutputs('customer',outputs_c,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs)
@@ -126,15 +126,15 @@ def setRequestedOutputs(dlg,requestedOutputs,iface,plugin_dir,dictDB,cur):
     
 def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_dir,requestedOutputs):           
     dir = getDataCenterDir(plugin_dir)+"\\"+dictDB['projectName']+"\\"+feature+"_templates\\"
-    print(dir)
+    #print(dir)
                
     for t_name in getTemplateNames(cur,feature,seperator='_'):
-        print(t_name)
+        #print(t_name)
         templ=t_name.split('_')[0]
         if new_outputTimestep:
-            print('----update timestep for outputs----')
+            #print('----update timestep for outputs----')
             fname=dir+t_name+'.idm'
-            print(fname)
+            #print(fname)
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
             data_idm=[]
             output_step=False
@@ -160,32 +160,32 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                     data_idm.append(new_comp)              
                 else:
                     data_idm.append(comp) 
-            print(data_idm)        
+            #print(data_idm)        
             writePropertyListIDMToFile(data_idm,dir+t_name,fname)
-        print('----update outputs----')
+        #print('----update outputs----')
 
         if outputs:
             fname=dir+t_name+'\\'+t_name+'.idm'
-            print(fname)
+            #print(fname)
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
             data_idm=[]
             conn_bundle_type_id=getConnBundleByTemplate(feature,templ,cur,dictDB)
             connValues=getConnsValues(conn_bundle_type_id,cur)
-            print(connValues)
+            #print(connValues)
             conn_type_seq=set([x['conn_type_seq'] for x in connValues])
-            print(conn_type_seq)
+            #print(conn_type_seq)
             flowmeters=['"'+str(conn_bundle_type_id)+'_'+str(seq)+'_Flowmeter2"' for seq in conn_type_seq]
-            print(flowmeters)   
+            #print(flowmeters)   
             pmtmuxs={'"PMT2mux_{}_{}_{}_{}"'.format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq']) : {'seq':seq,'conn_bundle_type_id':value['conn_bundle_type_id'],'conn_seq':value['conn_seq']} for seq in conn_type_seq for value in connValues if seq==value['conn_type_seq']}
-            print(pmtmuxs)            
+            #print(pmtmuxs)            
             for comp in components_idm:
-                print(getCompName(comp))
+                #print(getCompName(comp))
                 if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|','FLOWMETER2','PMT2\\m\\u\\x'] or getCompClass(comp) in 'OUTPUT-FILE':
                     if not isinstance(comp, list):
                         comp=[comp]
                     new_comp=[]
                     if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'troom_c' in [i for i in outputs if outputs[i]]:
-                        print('---add tair output----')
+                        #print('---add tair output----')
                         #print(comp)
                         new_comp=[]
                         outputs_to_set=['|TRoom|']
@@ -201,7 +201,7 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                         comp=new_comp
                         data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TRoom"', ':T': 'OUTPUT-FILE'}])
                     if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if outputs[i]]:
-                        print('---add heatbalance output----')
+                        #print('---add heatbalance output----')
                         #print(comp)
                         new_comp=[]
                         outputs_to_set={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRoomUnit|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
@@ -218,7 +218,7 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                         comp=new_comp
                         data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Heatbalance"', ':T': 'OUTPUT-FILE'}])
                     if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if not outputs[i]]:
-                        print('---remove heatbalance_c output----')
+                        #print('---remove heatbalance_c output----')
                         outputs_to_del={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRoomUnit|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                         new_comp=[]
                         for i in comp:
@@ -233,7 +233,7 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                                 new_comp.append(i)
                         comp=new_comp
                     if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_H_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'troom_c' in [i for i in outputs if not outputs[i]]:
-                        print('---remove tair output----')
+                        #print('---remove tair output----')
                         new_comp=[]
                         for i in comp:
                             if getCompName(i)=='|TRoom|':
@@ -246,32 +246,32 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                                 new_comp.append(i)
                         comp=new_comp
                     if getCompName(comp) in pmtmuxs:
-                        print('-------pmtmux-----')
+                        #print('-------pmtmux-----')
                         #print(comp)
                         new_comp=[]
                         outputs_to_set=[]
                         outputs_to_del=[]
                         if 'p_c' in [i for i in outputs if outputs[i]] or 'p_ep' in [i for i in outputs if outputs[i]]:
                             outputs_to_set.append('|P_var|')
-                        print(outputs_to_set)
+                        #print(outputs_to_set)
                         if 'p_c' in [i for i in outputs if not outputs[i]] or 'p_ep' in [i for i in outputs if not outputs[i]]:
                             outputs_to_del.append('|P_var|')
-                        print(outputs_to_del)
+                        #print(outputs_to_del)
                         if outputs_to_set and not getCompPerName(data_idm,'"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq'])):
                             data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq']), ':T': 'OUTPUT-FILE'}])
                         if outputs_to_set or outputs_to_del:
                             for i in comp:
                                 if getCompName(i)=='|P_var|' and '|P_var|' in outputs_to_set:
-                                    print('++++add p+++++')
+                                    #print('++++add p+++++')
                                     i[':L']='"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq'])
                                     i[':AS']='"p_{}"'.format(pmtmuxs[getCompName(comp)]['conn_seq'])
                                     new_comp.append(i)
                                     outputs_to_set.remove('|P_var|')
                                 else:
-                                    print('***rest***')
-                                    print(getCompName(comp))
+                                    #print('***rest***')
+                                    #print(getCompName(comp))
                                     if getCompName(i)=='|P_var|' and '|P_var|' in outputs_to_del:
-                                        print('del :L and :AS')
+                                        #print('del :L and :AS')
                                         new_comp.append({j:i[j] for j in i if j not in [':L',':AS']})
                                     else:
                                         new_comp.append(i)
@@ -280,7 +280,7 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                             comp=new_comp
                         
                     if getCompName(comp) in flowmeters:
-                        print('-------flow meter-----')
+                        #print('-------flow meter-----')
                         #print(comp)
                         new_comp=[]
                         n_sup=1
@@ -295,7 +295,7 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                         if 'mdot_c' in [i for i in outputs if outputs[i]] or 'mdot_ep' in [i for i in outputs if outputs[i]]:
                             outputs_to_set.append('FLOW_SUP')
                             outputs_to_set.append('FLOW_RET')
-                        print(outputs_to_set)
+                        #print(outputs_to_set)
                         if outputs_to_set and not getCompPerName(data_idm,'"Connection type sequence_{}"'.format(conn_type_seq)):
                             data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Connection type sequence_{}"'.format(conn_type_seq), ':T': 'OUTPUT-FILE'}])
                         outputs_to_del=[]
@@ -307,48 +307,46 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                         if 'mdot_c' in [i for i in outputs if not outputs[i]] or 'mdot_ep' in [i for i in outputs if not outputs[i]]:
                             outputs_to_del.append('FLOW_SUP')
                             outputs_to_del.append('FLOW_RET')
-                        print(outputs_to_del)
+                        #print(outputs_to_del)
                         if outputs_to_set or outputs_to_del:
                             sup_conn=[connValue['conn_seq'] for connValue in connValues if connValue['type']==1]
                             ret_conn=[connValue['conn_seq'] for connValue in connValues if connValue['type']==2]
-                            for i in comp:
-
-                                    
+                            for i in comp: 
                                 if getCompName(i)=='P' and 'P' in outputs_to_set:
-                                    print('++++add power+++++')
+                                    #print('++++add power+++++')
                                     i[':L']='"Connection type sequence_{}"'.format(conn_type_seq)
                                     i[':AS']='"power"'
                                     new_comp.append(i)
                                     outputs_to_set.remove('P')
                                 elif getCompName(i)=='FLOW_SUP' and 'FLOW_SUP' in outputs_to_set:
-                                    print('++++add flow sup+++++')
+                                    #print('++++add flow sup+++++')
                                     i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(sup_conn,1)]))
                                     i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1])+')' for i in enumerate(sup_conn,1)]))
                                     new_comp.append(i)
                                     outputs_to_set.remove('FLOW_SUP')
                                 elif getCompName(i)=='FLOW_RET' and 'FLOW_RET' in outputs_to_set:
-                                    print('++++add flow ret+++++')
+                                    #print('++++add flow ret+++++')
                                     i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(ret_conn,1)]))
                                     i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1])+')' for i in enumerate(ret_conn,1)]))
                                     new_comp.append(i)
                                     outputs_to_set.remove('FLOW_RET')
                                 elif getCompName(i)=='TSUP' and 'TSUP' in outputs_to_set:
-                                    print('++++add T sup+++++')
+                                    #print('++++add T sup+++++')
                                     i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(sup_conn,1)]))
                                     i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1])+')' for i in enumerate(sup_conn,1)]))
                                     new_comp.append(i)
                                     outputs_to_set.remove('TSUP')
                                 elif getCompName(i)=='TRET' and 'TRET' in outputs_to_set:
-                                    print('++++add T ret+++++')
+                                    #print('++++add T ret+++++')
                                     i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(ret_conn,1)]))
                                     i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1])+')' for i in enumerate(ret_conn,1)]))
                                     new_comp.append(i)
                                     outputs_to_set.remove('TRET')
                                 else:
-                                    print('***rest***')
-                                    print(getCompName(i))
+                                    #print('***rest***')
+                                    #print(getCompName(i))
                                     if getCompName(i) in outputs_to_del:
-                                        print('del :L and :AS')
+                                        #print('del :L and :AS')
                                         new_comp.append({j:i[j] for j in i if j not in [':L',':AS']})
                                     else:
                                         new_comp.append(i)
@@ -359,7 +357,8 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                         if (getCompName(comp)=='"TAir"' and 'troom_c' in [i for i in outputs if not outputs[i]] or
                             getCompName(comp)=='"Heatbalance"' and 'heatbalance_c' in [i for i in outputs if not outputs[i]] or
                             "Connection type sequence_" in getCompName(comp) and not [True for i in requestedOutputs if i in ['power_c','temp_c','p_c','mdot_c'] and requestedOutputs[i]]):
-                            print('++++not outputfile++++')
+                            #print('++++not outputfile++++')
+                            pass
                         else:
                             data_idm.append(comp)
                     else:
@@ -368,5 +367,5 @@ def updateTemplatesOutputs(feature,outputs,new_outputTimestep,dictDB,cur,plugin_
                     data_idm.append(comp)
             #print('*************************')
             #for i in data_idm:
-            #    print(i)
+            #    #print(i)
                 writePropertyListIDMToFile(data_idm,dir+t_name,fname)

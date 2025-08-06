@@ -49,10 +49,10 @@ def getIDAListComponents(data):
 
     
     re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data)
-    print(re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data))
+    #print(re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data))
     value_list=[]
     for value in re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data):
-        print(value)
+        #print(value)
         if ':DICT ' not in value:
             value_list.append(value)
             data=data.replace(' ('+value+')','')
@@ -103,14 +103,14 @@ def getIDAListComponents(data):
 
     #print(data)
     data=data.replace('\\','\\\\')
-    print(data)
+    #print(data)
     i=0
     
     value_list.reverse()
     if value_list:
-        print(value_list)
+        #print(value_list)
         data=re.sub(r"(:VALUE',\[':DICT)|(\:VALUE')",lambda x: x.group(1) if x.group(1) is not None else ':VALUE\',"""'+value_list.pop()+' """',data)
-    print(data)
+    #print(data)
     
     return eval(data)
     
@@ -130,12 +130,12 @@ file_idc=readFileToString("C:\\Users/Peter/AppData/Roaming/QGIS/QGIS3\\profiles\
 
 
 data=getIDAListComponents(file)
-print(data)
-print(propertyListCompsIDC(data))
+#print(data)
+#print(propertyListCompsIDC(data))
 
 #pData_idm=propertyListCompsIDM(getIDAListComponents(file_idm))
 #print(pData_idm)
 
 #print(getIDAListComponents(file_idc))
 pData_idc=propertyListCompsIDC(getIDAListComponents(file_idc))
-print(pData_idc)
+#print(pData_idc)

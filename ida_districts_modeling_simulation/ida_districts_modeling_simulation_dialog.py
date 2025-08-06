@@ -161,7 +161,7 @@ class RequestedOutputs(QMainWindow):
         
         #checkboxes 
         layout_network_checkbox = QVBoxLayout()      
-        print(requestedOutputs)
+        #print(requestedOutputs)
         self.checkBoxMdotNode=QCheckBox("Massflows in pipes")
         if requestedOutputs['mdot_lines']:
             self.checkBoxMdotNode.setChecked(True)
@@ -308,6 +308,7 @@ class BuildNetworkModelDialog(QMainWindow):
         """Constructor."""
         super().__init__()
         self.setWindowTitle("Build network model") 
+        self.process_running=False
         
         #networks
         layout_networks=QVBoxLayout()
@@ -357,6 +358,9 @@ class BuildNetworkModelDialog(QMainWindow):
                   
     def update_progress(self,progress):
         self.progress.setValue(progress)
+
+    def update_finished(self,message):
+        self.process_running=False
         
 class BuildBuildingModelDialog(QMainWindow):
     def __init__(self):
@@ -454,6 +458,7 @@ class LoadResultsDialog(QMainWindow):
         """Constructor."""
         super().__init__()
         self.setWindowTitle("Load simulation results") 
+        self.process_running=False
         
         #submodels
         layout_submodels=QVBoxLayout()
@@ -504,6 +509,9 @@ class LoadResultsDialog(QMainWindow):
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
+    def update_finished(self,message):
+        self.process_running=False
+
         
 class RunNetworkModelDialog(QMainWindow):
     def __init__(self,plugin_dir,dictDB):
@@ -511,7 +519,7 @@ class RunNetworkModelDialog(QMainWindow):
         super().__init__()
         self.setWindowTitle("Run network submodels") 
         self.networkSimData=loadNetworkSimData(plugin_dir,dictDB)
-        print(self.networkSimData)
+        #print(self.networkSimData)
         self.finished_sims=0
         
         #submodels
@@ -617,7 +625,7 @@ class RunNetworkModelDialog(QMainWindow):
                 
         self.dateedit_calcFrom = QtWidgets.QDateTimeEdit(calendarPopup=True)
         if self.networkSimData['calc_time_from']:
-            print(self.networkSimData['calc_time_from'])
+            #print(self.networkSimData['calc_time_from'])
             date_time=self.networkSimData['calc_time_from']
         else:
             date_time=str(QtCore.QDate.currentDate().year())+'-01-01 00:00:00'
@@ -630,7 +638,7 @@ class RunNetworkModelDialog(QMainWindow):
                 
         self.dateedit_calcTo = QtWidgets.QDateTimeEdit(calendarPopup=True)
         if self.networkSimData['calc_time_to']:
-            print(self.networkSimData['calc_time_to'])
+            #print(self.networkSimData['calc_time_to'])
             date_time=self.networkSimData['calc_time_to']
         else:
             date_time=str(QtCore.QDate.currentDate().year())+'-12-31 23:59:59'
@@ -692,7 +700,7 @@ class RunNetworkModelDialog(QMainWindow):
             self.rbtn_startup_type_dynamic.setChecked(True)
         
     def onClickedRadioCalcType(self,s):
-        print(s)
+        #print(s)
         
         if self.rbtn_calc_type_dynamic.isChecked():
             self.label_startup.setHidden(False)
@@ -718,7 +726,7 @@ class RunNetworkModelDialog(QMainWindow):
             self.numb_periods.setHidden(False)    
 
     def onClickedRadioStartupType(self,s):
-        print(s)
+        #print(s)
         if self.rbtn_startup_type_dynamic.isChecked():
             self.label_calcStartupFrom.setHidden(False)
             self.dateedit_startupFrom.setHidden(False)
@@ -732,10 +740,10 @@ class RunNetworkModelDialog(QMainWindow):
             self.numb_periods.setHidden(False)
             
     def updateStatusBar(self,message):
-        print(f"signal:{message}")
+        #print(f"signal:{message}")
         if message=="Simulation finished" and self.statusBar().currentMessage()!="Simulation failed":
             self.finished_sims+=1
-            print(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
+            #print(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
             if self.finished_sims==self.n_sims:
                 self.status_bar.showMessage(message) 
         else:
@@ -896,7 +904,7 @@ class FeatureModelParmDlg(QMainWindow):
             iface.messageBar().pushMessage("Info", "No model parameter selected!", level=Qgis.Info)
             
     def onClickedRadio(self,s):
-        print(s)
+        #print(s)
         self.loadedMappingParms={}
         self.loadParm()
         self.loadFieldAttributes()
@@ -1004,7 +1012,7 @@ class FeatureDecouplingDlg(QMainWindow):
         self.listWidget_featureModels.insertItem(0, item)    
         
     def onClickedRadio(self,s):
-        print(s)
+        #print(s)
         self.listWidget_featureModels.clear()
         self.feature_template.clear()
         
@@ -1012,12 +1020,12 @@ class FeatureDecouplingDlg(QMainWindow):
             sql="""SELECT template,template_name FROM customer_templates ORDER BY template;"""
         else:
             sql="""SELECT template,template_name FROM energy_plant_templates ORDER BY template;"""
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         self.feature_template.addItems([i['template_name'] for i in self.cur.fetchall()])
 
     def onClickedTemplate(self,s):
-        print(s)
+        #print(s)
         self.listWidget_featureModels.clear()
         if self.rbtn_customers.isChecked():
             sql="""SELECT f_dec.comp_name
@@ -1029,22 +1037,22 @@ class FeatureDecouplingDlg(QMainWindow):
     FROM energy_plant_templates ep_t, "{}".feature_decoupling f_dec
     WHERE ep_t.template_name='{}' AND f_dec.template=ep_t.template AND type='energy_plant';
 """.format(self.dictDB['versionName'],self.feature_template.itemText(s))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         self.listWidget_featureModels.addItems([i['comp_name'] for i in self.cur.fetchall()])
         
     def saveListContent(self):
-        print('Save list conetent')
+        #print('Save list conetent')
         if self.rbtn_customers.isChecked():
             type='customer'
         else:
             type='energy_plant'
 
         sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,template)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         template_id=self.cur.fetchone()['template']
-        print(template_id)
+        #print(template_id)
         
         sql="""DELETE FROM "{}".feature_decoupling WHERE template={};\n""".format(self.dictDB['versionName'],template_id)
         sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (template,comp_name,type) VALUES ({},'{}','{}');""".format(self.dictDB['versionName'],template_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
@@ -1073,7 +1081,7 @@ class FeatureDecouplingDlg(QMainWindow):
            pass
 
         
-        print(sql)
+        #print(sql)
         if sql:
             self.cur.execute(sql)
             
@@ -1593,12 +1601,12 @@ class ModellingSettings(QMainWindow):
         
     def getTimeseriesIds(self,table_name):
         sql="""SELECT id FROM {} ORDER BY id;""".format(table_name)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         return [str(i['id']) for i in self.cur.fetchall()]
               
     def showDuctModelParameter(self,s):
-        print(s)
+        #print(s)
         if s=='Timeseries':
             self.amb_duct_profile.setHidden(False)
             self.label_amb_duct_profile.setHidden(False)
@@ -1613,7 +1621,7 @@ class ModellingSettings(QMainWindow):
         self.adjustSize()
                 
     def showGroundModelParameter(self,s):
-        print(s)
+        #print(s)
         if s=='Kusuda':
             self.amb_kusuda_tsurfmean.setHidden(False)
             self.amb_kusuda_tsurfampl.setHidden(False)

@@ -16,7 +16,7 @@ def setupCustomerDataSheet():
     """Setup of the customer data sheet (RMB project) including button which generates a print layout and exports a pdf"""
     
     feature_layer=QgsProject.instance().mapLayersByName('customers')[0] 
-    print(feature_layer)
+    #print(feature_layer)
     layoutName = "Customer Data Sheet"
     action_text="""from PyQt5.QtGui import QFont,QColor
 from PyQt5.QtCore import *
@@ -66,14 +66,14 @@ polygon.append(QPointF(190, 25))
 
 """.format(layoutName,layoutName,projectConfig['srid'])
 
-    print(action_text)
+    #print(action_text)
     helpAction = QgsAction(Qgis.AttributeActionType.GenericPython, 'Create Custtomer Data Sheet', action_text, None, capture=False, shortTitle=layoutName, actionScopes={'Feature'})
     feature_layer.actions().addAction(helpAction)
 
     form_config = feature_layer.editFormConfig()
 
     rootContainer = form_config.invisibleRootContainer()
-    print(rootContainer)
+    #print(rootContainer)
     editorAction = QgsAttributeEditorAction(helpAction, rootContainer)
     rootContainer.addChildElement(editorAction)
 

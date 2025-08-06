@@ -4,17 +4,39 @@ from plugins.utility_functions.utility import *
 from plugins.utility_functions.ida_components import *
 from qgis.core import Qgis, QgsMessageLog
 
+def replace_in_file(file_path, old_string, new_string):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+
+        if old_string in content:
+            content = content.replace(old_string, new_string)
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(content)
+            #print(f"Updated: {file_path}")
+    except Exception as e:
+        pass
+
+def replace_in_folder(root_folder, old_string, new_string, file_extensions=None, exclude_filenames=None):
+    for dirpath, _, filenames in os.walk(root_folder):
+        for filename in filenames:
+            if exclude_filenames and filename in exclude_filenames:
+                continue
+            if file_extensions is None or filename.endswith(tuple(file_extensions)):
+                full_path = os.path.join(dirpath, filename)
+                replace_in_file(full_path, old_string, new_string)
+                
 def writeMacroSFIdm(dictDB,cur,dir):
     sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(dictDB['versionName'])
     cur.execute(sql)
     sf_ids=cur.fetchall()     
-    print(sf_ids)
+    #print(sf_ids)
 
     filedata=[""";IDA 5.11 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
     filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
-    print(dir)
+    #print(dir)
                 
 def writeMacroSFIdc(dictDB,cur,dir):
     sql='SELECT id,sf FROM "{}".invoked_sf;'.format(dictDB['versionName'])
@@ -80,7 +102,7 @@ def readFileToList(file):
     
 def getDBConnectionData(plugin_dir,filename='dbSettings'):
     """ load the DB connection data from file dbSettings.txt"""
-    print('get DB settings')
+    #print('get DB settings')
     dbSettings=""
     dir=getProjectHandlingDir(plugin_dir)
     file="{}\\{}.txt".format(dir,filename)
@@ -88,7 +110,7 @@ def getDBConnectionData(plugin_dir,filename='dbSettings'):
         with open(file, "r") as myfile:   
             for line in myfile:        
                 dbSettings+=line
-    print(strToDict(dbSettings))
+    #print(strToDict(dbSettings))
     return strToDict(dbSettings)
 
 def loadProjectConfig(plugin_dir,db_name,signals=False):
@@ -97,20 +119,21 @@ def loadProjectConfig(plugin_dir,db_name,signals=False):
     if db_name:
         dir=getProjectHandlingDir(plugin_dir)
         config_f="{}\\{}\\configProject.txt".format(dir,db_name)
-        print(config_f)
+        #print(config_f)
         if os.path.exists(config_f):
-            print(config_f)
+            #print(config_f)
             with open(config_f, "r") as myfile:   
                 for line in myfile:        
                     config+=line
         else:
-            print('Failed to load project config!')
+            #print('Failed to load project config!')
             if signals:
                 signals.error.emit('Failed to load project config!')
         config=strToDict(config)
     else:
-        print('No project name')
-    print(config)    
+        #print('No project name')
+        pass
+    #print(config)    
     return config
     
 def writeProjectConfig(plugin_dir,db_name,configProject):
@@ -159,7 +182,7 @@ def loadRequestedOutputs(plugin_dir,dictDB):
         dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\requestedOutputs.txt".format(dir)
         if os.path.exists(file):
-            print(file)
+            #print(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     requestedOutputs+=line
@@ -167,14 +190,15 @@ def loadRequestedOutputs(plugin_dir,dictDB):
             #load from template in data center plugin if file does not exists
             file_template=getDataCenterDir(plugin_dir)+"\\config\\requestedOutputs_template.txt"
             if os.path.exists(file_template):
-                print(file_template)
+                #print(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         requestedOutputs+=line
-        print(requestedOutputs)
+        #print(requestedOutputs)
         requestedOutputs=strToDict(requestedOutputs)
     else:
-        print('No project name')
+        #print('No project name')
+        pass
     return requestedOutputs
     
 def loadSimulatedOutputs(plugin_dir,dictDB):
@@ -184,16 +208,17 @@ def loadSimulatedOutputs(plugin_dir,dictDB):
         dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\simulatedOutputs.txt".format(dir)
         if os.path.exists(file):
-            print(file)
+            #print(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     simulatedOutputs+=line
         else:
             return False
-        print(simulatedOutputs)
+        #print(simulatedOutputs)
         simulatedOutputs=strToDict(simulatedOutputs)
     else:
-        print('No project name')
+        #print('No project name')
+        pass
     return simulatedOutputs
     
 def loadInvokedOutputs(plugin_dir,dictDB):
@@ -203,16 +228,17 @@ def loadInvokedOutputs(plugin_dir,dictDB):
         dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\invokedOutputs.txt".format(dir)
         if os.path.exists(file):
-            print(file)
+            #print(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     invokedOutputs+=line
         else:
             return {'customers': {}, 'lines': {}, 'energy_plants': {}}
         invokedOutputs=eval(invokedOutputs)
-        print(invokedOutputs)
+        #print(invokedOutputs)
     else:
-        print('No project name')
+        #print('No project name')
+        pass
     return invokedOutputs
     
 def writeModellingSettings(plugin_dir,dictDB,modellingSettings):
@@ -242,7 +268,7 @@ def loadModellingSettings(plugin_dir,dictDB):
         dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\modellingSettings.txt".format(dir)
         if os.path.exists(file):
-            print(file)
+            #print(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     modellingSettings+=line
@@ -250,14 +276,15 @@ def loadModellingSettings(plugin_dir,dictDB):
             #load from template in data center plugin if file does not exists
             file_template=getDataCenterDir(plugin_dir)+"\\config\\modellingSettings_template.txt"
             if os.path.exists(file_template):
-                print(file_template)
+                #print(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         modellingSettings+=line
-        print(modellingSettings)
+        #print(modellingSettings)
         modellingSettings=strToDict(modellingSettings)
     else:
-        print('No project name')
+        #print('No project name')
+        pass
     return modellingSettings
     
 def loadNetworkSimData(plugin_dir,dictDB):
@@ -267,7 +294,7 @@ def loadNetworkSimData(plugin_dir,dictDB):
         dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\networkSimData.txt".format(dir)
         if os.path.exists(file):
-            print(file)
+            #print(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     networkSimData+=line
@@ -275,14 +302,15 @@ def loadNetworkSimData(plugin_dir,dictDB):
             #load from template in data center plugin if file does not exists
             file_template=getDataCenterDir(plugin_dir)+"\\config\\networkSimData_template.txt"
             if os.path.exists(file_template):
-                print(file_template)
+                #print(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         networkSimData+=line
-        print(networkSimData)
+        #print(networkSimData)
         networkSimData=strToDict(networkSimData)
     else:
-        print('No project name')
+        #print('No project name')
+        pass
     return networkSimData
             
 def writeDBSettings(plugin_dir,dictDB,filename='dbSettings'):
@@ -322,7 +350,7 @@ def loadIDADistrictsConfig(plugin_dir):
             for line in myfile:        
                 config+=line
     config=strToDict(config)
-    print(config)
+    #print(config)
     return config
     
 def createDir(dir,name):
@@ -359,9 +387,9 @@ def removeFilesInDir(dir):
                 os.rmdir(os.path.join(root, name))
                 
 def writePropertyListIDMToFile(plist,dir,file):
-    print (dir)
+    #print(dir)
     if os.path.exists(dir):
-        print (file)
+        #print(file)
         if os.name == 'nt' and '\\\\?\\' not in dir:
             dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
@@ -371,9 +399,9 @@ def writePropertyListIDMToFile(plist,dir,file):
                 myfile.write(pListToCompString(comp,0)+'\n')
  
 def writePropertyListIDCToFile(plist,dir,file):
-    print (dir)
+    #print(dir)
     if os.path.exists(dir):
-        print (file)
+        #print(file)
         if os.name == 'nt' and '\\\\?\\' not in dir:
             dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
@@ -394,26 +422,26 @@ def readFileToString(file):
     
 def writeToFile(data,dir,file):
     """ write data to file in dir"""
-    print (dir)
+    #print(dir)
     if os.path.exists(dir):
-        print (file)
+        #print(file)
         with open(file,'w') as myfile:
             myfile.write(data) 
             
 def writeToFileFromList(data,dir,file):
     """ write data to file in dir"""
-    print (dir)
+    #print(dir)
     if os.path.exists(dir):
-        print (file)
+        #print(file)
         with open(file,'w') as myfile:
             for line in data:
                 myfile.write(line) 
             
 def appendToFile(data,dir,file):
     """ write data to file in dir"""
-    print (dir)
+    #print(dir)
     if os.path.exists(dir):
-        print (file)
+        #print(file)
         with open(file,'a') as myfile:
             myfile.write(data) 
             
@@ -445,16 +473,16 @@ def getSFList(pList,sf=[]):
     for comp in pList:
         #print(comp)
         if getCompClass(comp)=='SOURCE-FILE':
-            print('++++SF++++')
-            print(comp)
+            #print('++++SF++++')
+            #print(comp)
             if comp not in sf:
                 sf.append(comp)
-    print(sf)                
+    #print(sf)                
     return sf
     
 def getUsedtemplatesFDict(plugin_dir,cur,dictDB):
     usedFeaturetemplates=getUsedFeatureTemplates(cur,dictDB)
-    print(usedFeaturetemplates)
+    #print(usedFeaturetemplates)
 
     sf={}
     for template in usedFeaturetemplates:
@@ -476,27 +504,27 @@ def getUsedtemplatesFDict(plugin_dir,cur,dictDB):
                         sf[key]=[entry]
                     
     sf={i: set(sf[i])for i in sf}
-    print(sf)
+    #print(sf)
     return sf
     
 def replaceKeywordsInFiledata(file_data,replaceDict):
     data=[]
     counter=0
-    print('--------replace keywords-------------')
-    print(replaceDict)
+    #print('--------replace keywords-------------')
+    #print(replaceDict)
     while counter < len(file_data):
         replace=[key for key in replaceDict if ':N "'+key+'"' in file_data[counter]]
         if replace:
-            print('Replace model parm: '+replace[0])
+            #print('Replace model parm: '+replace[0])
             openCloseBracketsCounter=countOpenCloseBrackets(file_data[counter])
-            print('openCloseBracketsCounter='+str(openCloseBracketsCounter))
+            #print('openCloseBracketsCounter='+str(openCloseBracketsCounter))
             model_type=getModelType(file_data[counter])
-            print(model_type)
+            #print(model_type)
             model_language=modelLanguage(model_type)
             modelicaLabelling='|' if model_language=='MODELICA' else ''
-            print(model_language)
+            #print(model_language)
             if openCloseBracketsCounter>0:
-                print(file_data[counter])
+                #print(file_data[counter])
                 parms=[]
                 if ':T SOURCE-FILE' in file_data[counter] and ':SOURCE-FILE' in [par for parDict in replaceDict[replace[0]] for par in parDict]:
                     path=[i[j] for i in replaceDict[replace[0]] for j in i if j==':SOURCE-FILE'][0]
@@ -509,11 +537,11 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                     openCloseBracketsCounter+=countOpenCloseBrackets(file_data[counter])
                     if "(:PAR :N " in file_data[counter]:
                         par_name=getParName(file_data[counter],model_language)
-                        print(par_name)
+                        #print(par_name)
 
                         if par_name in [par for parDict in replaceDict[replace[0]] for par in parDict]:
-                            print('replace parm')
-                            print(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,[parDict[par] for parDict in replaceDict[replace[0]] for par in parDict if par==par_name][0]))
+                            #print('replace parm')
+                            #print(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,[parDict[par] for parDict in replaceDict[replace[0]] for par in parDict if par==par_name][0]))
                             data.append(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,[parDict[par] for parDict in replaceDict[replace[0]] for par in parDict if par==par_name][0]))
                             parms.append(par_name)
                             exchangeParmValue=True
@@ -524,7 +552,7 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                         data.append(file_data[counter])
                         exchangeParmValue=False
                     if openCloseBracketsCounter==0:
-                        print('counter = 0')
+                        #print('counter = 0')
                         if not exchangeParmValue:
                             data[-1]=data[-1].rstrip()[:-1]+"\n"
                         
@@ -535,11 +563,11 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                     if openCloseBracketsCounter!=0:
                         counter+=1
                     if counter>=len(file_data):
-                        print('break')
+                        #print('break')
                         break       
             else:
                 #only default parm values in model --> 1) add additional bracket to start, 2) add parm to model and 3) add closing bracket
-                print('only default parm values in model')
+                #print('only default parm values in model')
                 data.append('('+file_data[counter].rstrip()+'\n')
                 data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,par,modelicaLabelling,parDict[par]) 
                     for parDict in replaceDict[replace[0]] for par in parDict]
@@ -555,21 +583,21 @@ def getSFLinkRefs(sf):
     for i in sf:
         if getCompClass(i)==':INT':
             refs[i[':N']]=i[':V'][1:-1]
-            print(sf)
+            #print(sf)
     return refs
     
 def delSFAndConnsAddLinks(plist,sf,sf_ids):
     data=[]
     sf_names_dict={i[0][':N']: {'link_refs':getSFLinkRefs(i),'path':i[0][':SF']} for i in sf}
-    print(sf_names_dict)
+    #print(sf_names_dict)
     sf_names=[i[0][':N'] for i in sf]
-    print(sf_names)
+    #print(sf_names)
     
     link_dict={}
     
     for i in plist[-1][':CONNS']:
         if i[0][0] in sf_names or i[1][0] in sf_names:
-            print(i)
+            #print(i)
             if i[0][0] in sf_names:
                 model_name=i[1][0]
                 model_link=listToBracketsString(i[1][1]) if isinstance(i[1][1],list) else i[1][1]
@@ -586,52 +614,52 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                 link_dict[model_name][model_link]={'sf_name': sf_name, 'sf_link': sf_link,'path':path}
             except:
                 link_dict[model_name]={model_link:{'sf_name': sf_name, 'sf_link': sf_link,'path':path}}
-    print(link_dict)    
+    #print(link_dict)    
        
     for comp in plist:
         if getCompClass(comp)=='SOURCE-FILE':
-            print('ssssssssssssssffffffffffffffffffffffffffff')
+            pass
         else:
-            print(getCompName(comp))
+            #print(getCompName(comp))
             if getCompName(comp) in link_dict:
-                print('++++++++update++++++++++++')
+                #print('++++++++update++++++++++++')
                 try:
                     var_names=[j.split()[0][1:] for j in link_dict[getCompName(comp)] if len(j.split())>1]
                 except:
                     var_names=[]
-                print(var_names)
+                #print(var_names)
                 new_comp=[]
                 for i in comp:
-                    print(i)
+                    #print(i)
                     if getCompClass(i)==':VAR':
                         try:                        
                             if i[':B'].split()[1] in link_dict[getCompName(comp)]:
-                                print('***binding value****')
+                                #print('***binding value****')
                                 binding=i[':B'].split()[1]
-                                print(binding)
-                                print(link_dict[getCompName(comp)][binding]['sf_link'])
+                                #print(binding)
+                                #print(link_dict[getCompName(comp)][binding]['sf_link'])
                                 i[':B']="""(:SYSTEM "sf-macro" "SOURCE-FILE-{}" {})""".format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding]['path']][0],link_dict[getCompName(comp)][binding]['sf_link'])
-                                print(i)
+                                #print(i)
                             elif 'MS-SPARSE' in i[':B'] and [True for j in var_names if j in i[':B'].split(' VALUE ')[1][:-1]]:
-                                print('---binding matrix---')
-                                print(i)
+                                #print('---binding matrix---')
+                                #print(i)
                                 bindings=getIDAListComponents(i[':B'].split(' VALUE ')[1][:-1])
-                                print(bindings)
+                                #print(bindings)
                                 new_bindings=[]
                                 for binding in bindings:
-                                    print(binding)
+                                    #print(binding)
                                     if binding[2][0] in var_names:
-                                        print(binding[2][0])
+                                        #print(binding[2][0])
                                         binding_name='({} {})'.format(binding[2][0],binding[2][1])
-                                        print(binding_name)
+                                        #print(binding_name)
                                         try:
                                             new_bindings.append([binding[0],':SYSTEM','"sf-macro"', '"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding_name]['path']][0]),link_dict[getCompName(comp)][binding_name]['sf_link']])
                                         except:
                                             new_bindings.append(binding)
                                     else:
                                         new_bindings.append(binding)
-                                print(new_bindings)
-                                print(listToBracketsString(new_bindings))
+                                #print(new_bindings)
+                                #print(listToBracketsString(new_bindings))
                                 i[':B']="#S(MS-SPARSE {} VALUE {})".format(i[':B'].split('MS-SPARSE ')[1].split(' VALUE ')[0],listToBracketsString(new_bindings))
                                 
                             new_comp.append(i)
@@ -647,7 +675,7 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                     #print(i)
                     #print(i[1][0])
                     if i[0][0] in sf_names or i[1][0] in sf_names:
-                        print('++del conn++')
+                        #print('++del conn++')
                         pass
                     else:
                         new_conns.append(i)
@@ -659,32 +687,32 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
 
 def replaceKeywordsInPList(plist,replaceDict):
     data=[]
-    print('--------replace keywords-------------')
-    print(replaceDict)
+    #print('--------replace keywords-------------')
+    #print(replaceDict)
     for comp in plist:
         comp_name=getCompName(comp)[1:-1]
         if comp_name in replaceDict:
-            print('---replace---')
+            #print('---replace---')
             model_type=getCompTemplate(comp)
             model_language=modelLanguage(model_type)
             pre_suffix='|' if model_language=='MODELICA' else ''
             if getCompClass(comp)=='SOURCE-FILE':
-                print('--SF--')
+                #print('--SF--')
                 comp[0][':DOCUMENT-PATH']='"{}"'.format(replaceDict[comp_name][':SOURCE-FILE'])
                 comp[0][':SF']='"{}"'.format(replaceDict[comp_name][':SOURCE-FILE'])
                 data.append(comp)
             else:
                 new_comp=[]     
                 parms=[]
-                print(comp_name)
-                print(comp)
-                print(replaceDict[comp_name])
+                #print(comp_name)
+                #print(comp)
+                #print(replaceDict[comp_name])
                 for i in comp:
                     i_name=getCompName(i).replace('|','')
-                    print(i_name)
+                    #print(i_name)
                     if i_name in replaceDict[comp_name]:
                         if isinstance(replaceDict[comp_name][i_name], dict):
-                            print("It's a dictionary!")
+                            #print("It's a dictionary!")
                             for key,value in replaceDict[comp_name][i_name].items():
                                 i[key]=str(value)
                         else:
@@ -693,16 +721,16 @@ def replaceKeywordsInPList(plist,replaceDict):
                         new_comp.append(i)
                     else:
                         new_comp.append(i)
-                print(parms)
+                #print(parms)
                 for i in replaceDict[comp_name]:
-                    print(i)
+                    #print(i)
                     if i not in parms:
-                        print('not in parms')
+                        #print('not in parms')
                         new_comp.append({':C':':PAR', ':N': pre_suffix+i+pre_suffix,':V': str(replaceDict[comp_name][i])})
                 data.append(new_comp)
         else:
             data.append(comp)
-    print('---finish replace kewords----')    
+    #print('---finish replace kewords----')    
     return data
     
 def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False):
@@ -763,7 +791,7 @@ def copyNestedSupervisoryMacros(source_dir,target_dir):
         for root, dirs, files in os.walk(source_dir):
             for file in files:
                 if file.endswith('.idm') or file.endswith('.idc'):
-                    print('---------macro exists: '+file)
+                    #print('---------macro exists: '+file)
                     subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split('Supervisory_control\\Supervisory_control')[1]
                     path=target_dir+'\\'+'Supervisory_control'+subfolder
                     createSubDir(path)

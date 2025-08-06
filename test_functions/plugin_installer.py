@@ -4,10 +4,10 @@ import os
 from pathlib import Path
 
 installation_dir='\\'.join(str(Path(__file__).resolve()).split('\\')[:-2])+'\\plugins\\'
-print(installation_dir)
+#print(installation_dir)
 
 plugin_dir = QgsApplication.qgisSettingsDirPath().replace('/','\\') + "python\\plugins\\"
-print(plugin_dir)
+#print(plugin_dir)
 
 def rmtree_long_path(dir):
     if os.path.exists(dir) and os.path.isdir(dir):
@@ -98,18 +98,18 @@ def loadIDADistrictsConfig(plugin_dir):
             for line in myfile:        
                 config+=line
     config=strToDict(config)
-    print(config)
+    #print(config)
     return config
     
 def copyProjectFolders(dir,plugin_dir,name_list):
     project_folders = find_folders_not_in_list(dir, name_list)
-    print(project_folders)
+    #print(project_folders)
     for folder in project_folders:
         copy_tree_filter_extensions_and_folders(dir+folder,plugin_dir+'\\'+folder)
         
 #utility functions
 rmtree_long_path(plugin_dir+'utility_functions')
-print(installation_dir+'utility_functions')
+#print(installation_dir+'utility_functions')
 copy_tree_filter_extensions_and_folders(installation_dir+'utility_functions',plugin_dir+'utility_functions')
 
 #data center

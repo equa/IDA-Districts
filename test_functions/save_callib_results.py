@@ -10,7 +10,7 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5432', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
 
 def getBestParmRunsInputs (file_data):
     min_error=[0,0,1000000000000000000,10000000000000000]
@@ -35,7 +35,7 @@ for id in ids:
     file=plugin_dir+'\\ida_districts_modeling_simulation\\network_models\\{}\\{}\\invoked_customers\\Customer_{}\\parmrun_annualcallib.idm'.format(dictDB['projectName'],dictDB['versionName'],id)
     parmRun_file_data=readFileToList(file)
     bestParmRuns=getBestParmRunsInputs(parmRun_file_data)
-    print(bestParmRuns)
+    #print(bestParmRuns)
                 
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -47,11 +47,11 @@ for id in ids:
         outputs.append('\n  heat_p_kw ='+str(bestParmRuns[0][0]))
         outputs.append('\n  cool_p_kw ='+str(bestParmRuns[0][1]))
         sql+="""UPDATE "{}".customers SET {} WHERE id={};\n""".format(dictDB['versionName'],','.join([output for output in outputs]),id)
-        print(sql)
+        #print(sql)
         cur.execute(sql)     
 
         sql="""UPDATE "{}".customers SET "PhiRadH_nom" = "U"*100 WHERE id ={};""".format(dictDB['versionName'],id)
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
         
         #invoke customers with callib values

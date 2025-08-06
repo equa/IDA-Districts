@@ -9,14 +9,14 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 class CopySupervisoryControl:
     """ Copy supervisory control with resources and macros"""
     def __init__(self,dir,dictDB,cur,submodel):
-        print('copy supervisory control')
+        #print('copy supervisory control')
         
         target_dir=dir+"\\network_"+str(submodel)
         source_dir=dir+'\\supervisory_control'
 
         f_idc_target=target_dir+'\\Supervisory_control.idc'
         f_idm_target=target_dir+'\\Supervisory_control.idm'
-        print(f_idm_target)
+        #print(f_idm_target)
         
         #collect ressources
         source_f="{}\\Supervisory_control.idm".format(source_dir)     
@@ -42,7 +42,7 @@ class Supervisory_control():
                 --if not create a directory and an IDA file with a supervisory control macro 
                 --if yes add to IDA files
            3) Open IDA file"""
-        print('++++++++++++++Supervisory+++++++++++++++++++')
+        #print('++++++++++++++Supervisory+++++++++++++++++++')
         self.dictDB=getDBConnectionData(plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
@@ -68,15 +68,15 @@ class Supervisory_control():
             if update_sensors:
                 #Get all removed sensor sources (table $versionName$.invoked_sensor_source_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
                 remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[3])
-                print(remove_sensor_source_ids)
+                #print(remove_sensor_source_ids)
                 if remove_sensor_source_ids:
                     sql="""DELETE FROM "{}".invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                     
                 #Get all new sensor sources (table $versionName$.invoked_sensor_source_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
                 add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.dictDB,source_types=[3])
-                print(add_sensor_source_idsValues)
+                #print(add_sensor_source_idsValues)
                 writeInvokedSensorSourceSignals(self.cur,self.dictDB,add_sensor_source_idsValues)
                     
                 #Get all removed sensor targets (table $versionName$.invoked_sensor_target_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
@@ -84,12 +84,12 @@ class Supervisory_control():
                 
                 if remove_sensor_target_ids:
                     sql="""DELETE FROM "{}".invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                     
                 #Get all new sensor targets (table $versionName$.invoked_sensor_targets_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
                 add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.dictDB,target_types=[3])
-                print(add_sensor_target_idsValues)
+                #print(add_sensor_target_idsValues)
                 writeInvokedSensorTargetSignals(self.cur,self.dictDB,add_sensor_target_idsValues)
             else:
                 remove_sensor_source_ids=[]
@@ -101,13 +101,13 @@ class Supervisory_control():
                     add_sensor_source_idsValues=getSensorData(self.cur,self.dictDB,source_types=[3])
                     add_sensor_target_idsValues=getSensorData(self.cur,self.dictDB,target_types=[3])
                 
-            print('++++++Supervisory sensor data+++++++++')
-            print(add_sensor_source_idsValues)
-            print(add_sensor_target_idsValues)
-            print(sensor_data_source)
-            print(sensor_data_target)
-            print([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
-            print([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
+            #print('++++++Supervisory sensor data+++++++++')
+            #print(add_sensor_source_idsValues)
+            #print(add_sensor_target_idsValues)
+            #print(sensor_data_source)
+            #print(sensor_data_target)
+            #print([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
+            #print([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
             
             #2)
             #dir
@@ -131,13 +131,13 @@ class Supervisory_control():
                 
                 #todo get number of old sensor source signals --> for component placement in .idc
                 sql="""SELECT count(templates) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorSources=self.cur.fetchone()['count']
                 
                 #todo get number of old sensor target signals --> for component placement in .idc
                 sql="""SELECT count(templates) FROM "{}".invoked_sensor_source_signals WHERE type=4;""".format(self.dictDB['versionName'])
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorTargets=self.cur.fetchone()['count'] 
                 
@@ -264,7 +264,7 @@ class Supervisory_control():
 (LINE :AT ((21 108) (760 108))) """
                 writeToFile(file_data,dir,file)
                 
-            print(dir)
+            #print(dir)
             createDir(dir,'Supervisory_control')
             dir+='\\Supervisory_control'
             
@@ -291,9 +291,9 @@ class Supervisory_control():
             #supervisory idc macro file
             file=dir+"""\\Supervisory_control.idc"""
             file_data=[]
-            print('-----------------sensor-description-------------------')
+            #print('-----------------sensor-description-------------------')
             sensor_description=getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target)
-            print(sensor_description)
+            #print(sensor_description)
             if os.path.exists(file):
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)

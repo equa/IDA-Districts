@@ -9,11 +9,11 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
 
 def getSFDict(pList,sf={}):
     for comp in pList:
-        print(comp)
+        #print(comp)
         if getCompClass(comp)=='SOURCE-FILE':
             #print(line)
             key=comp[0][':SF']
@@ -29,15 +29,15 @@ def getSFDict(pList,sf={}):
 
 def replaceKeywordsInPList(plist,replaceDict):
     data=[]
-    print('--------replace keywords-------------')
-    print(replaceDict)
+    #print('--------replace keywords-------------')
+    #print(replaceDict)
     for comp in plist:
         comp_name=getCompName(comp)[1:-1]
-        print(comp_name)
+        #print(comp_name)
         if comp_name in replaceDict:
-            print('---replace---')
+            #print('---replace---')
             model_type=getCompTemplate(comp)
-            print(model_type)
+            #print(model_type)
             model_language=modelLanguage(model_type)
             pre_suffix='|' if model_language=='MODELICA' else ''
             if getCompClass(comp)=='SOURCE-FILE':
@@ -65,22 +65,22 @@ def replaceKeywordsInPList(plist,replaceDict):
     
 template_name="1_1_Heating 1 Supply & 1 Return"
 source_file=plugin_dir+"""ida_districts_data_center\\{}\\{}_templates""".format(dictDB['projectName'],'customer')+'\\'+template_name+'\\'+template_name+'.idm'
-print(source_file)
+#print(source_file)
 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_file)))
 replaceDict={}
 dhw_file="C:\\lkjdfg.prn"
 
 #get model parameter
 sql="""SELECT * FROM "{}".model_parms ORDER BY id;""".format(dictDB['versionName'])
-print(sql)
+#print(sql)
 cur.execute(sql)
 parms=cur.fetchall()
-print(parms)
+#print(parms)
 sql="""SELECT * FROM "{}".customers WHERE id={};""".format(dictDB['versionName'],1)
-print(sql)
+#print(sql)
 cur.execute(sql)
 fields=cur.fetchone()
-print(fields)
+#print(fields)
                 
 for parm in parms:
     mapping_expression=parm['mapping_expression']
@@ -95,9 +95,9 @@ for parm in parms:
         mapping_expression=eval(mapping_expression)
     except:
         pass
-    print('++++++++'+parm['model_name'])
+    #print('++++++++'+parm['model_name'])
     if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
-        print(parm['model_name'])
+        #print(parm['model_name'])
         try:
             replaceDict[parm['macro_name']][parm['model_name']][parm['parm_name']]= mapping_expression
         except:
@@ -105,14 +105,14 @@ for parm in parms:
                 replaceDict[parm['macro_name']].update({parm['model_name']:{parm['parm_name']: mapping_expression}})
             except:
                 replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
-print(replaceDict)
+#print(replaceDict)
 
 replaceDict={j : replaceDict[i][j] for i in replaceDict if i in [':FEATURE'] for j in replaceDict[i]}
-print(replaceDict)
+#print(replaceDict)
 
 components_idm=replaceKeywordsInPList(components_idm,replaceDict)
 sf=getSFDict(components_idm,sf={})
-print(sf)
+#print(sf)
 for comp in components_idm:
     #print(comp)
     pass

@@ -16,10 +16,10 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
          
 sensor_data=getSensorData(cur,dictDB)
-print(sensor_data)
+#print(sensor_data)
     
 submodel='1'
 #import_counter={'2':2,'3':2}
@@ -34,26 +34,26 @@ class CopyDecoupledTemplateMacro:
             -sensor signals
             -connections"""
     def __init__(self,submodel,dir,dictDB,cur,plugin_dir,sensor_data,mode='network'):
-        print('copy decoupled feature macro')
+        #print('copy decoupled feature macro')
         target_dir=dir+"\\{}_".format(mode)+str(submodel)+("\\plant" if mode=='building' else "")
-        print(target_dir)  
+        #print(target_dir)  
         submodels=getUsedSubmodels(cur,dictDB)
         submodels.remove(str(submodel))
-        print(submodels)
+        #print(submodels)
         
         features=getFeatureDecIds(dictDB,cur,submodel,submodels)
         self.import_counter={}
         self.resources=[]
         self.data_ex_f=[]
         for feature in features: 
-            print(feature)
+            #print(feature)
             try:
                 self.import_counter[str(feature['submodel'])]=self.import_counter[str(feature['submodel'])]
             except:
                 self.import_counter[str(feature['submodel'])]=0
             f_idc_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idc"
             f_idm_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idm"
-            print(f_idm_target)
+            #print(f_idm_target)
             source_dir=dir+'\\invoked_'+feature['feature']+'s'
 
             if not os.path.exists("{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']))):
@@ -67,23 +67,23 @@ class CopyDecoupledTemplateMacro:
 
             #idm
             source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
-            print('++++++++++++++++start read file components ++++++++++++++++++++++++ ')
+            #print('++++++++++++++++start read file components ++++++++++++++++++++++++ ')
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f)))
             components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString("{}\\{}_{}\\{}_{}.idc".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id'])))))
-            print('++++++++++++++++end read file components  ++++++++++++++++++++++++ ')
+            #print('++++++++++++++++end read file components  ++++++++++++++++++++++++ ')
 
             conns_idc=[comp for comp in components_idc if comp[':C']=='CONNECTION-LINE']
 
             keep_class=['DOCUMENT-HEADER','CONNECTIONS','\ufeff;IDA','SELF-FRAME','LIST-FIELD']
                 
             #idc
-            print(source_f)
+            #print(source_f)
             data_idc=[]
                   
             dec_models=getDecoupledFeatureCompPerFeature(feature,cur,dictDB)
-            print(dec_models)
+            #print(dec_models)
             pmtmux_names=[getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id']) for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] in [1,2]]
-            print(pmtmux_names)
+            #print(pmtmux_names)
             building_pmt2s=['"'+getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] not in [1,2]]
             building_irefs=['"'+i.split('PMT2mux_')[1] for i in building_pmt2s]
             dec_models.extend(pmtmux_names)
@@ -92,47 +92,47 @@ class CopyDecoupledTemplateMacro:
                 if emeter not in dec_models:
                     dec_models.append(emeter)
             dec_models.append(':SELF')
-            print(dec_models)
+            #print(dec_models)
             
             #idc
             data_ex=getDataExFeature(conns_idc,dec_models,components_idm,feature['network_side'],sensor_data,submodel,feature['id'],cur,dictDB)
-            print(data_ex)
+            #print(data_ex)
             irefs=getSensorIrefsFeatureSource(sensor_data,feature['submodel'],feature['id'],cur,dictDB,feature['feature'])
             irefs_target=getSensorIrefsFeatureTarget(sensor_data,feature['submodel'],feature['id'],cur,dictDB,feature['feature'])
             
             dec_models_idc=copy.copy(dec_models)
-            print(irefs)
+            #print(irefs)
             dec_models_idc.extend(['Int_Ref_Sensor_Source_'+i.split('_')[0] for i in irefs])
-            print(dec_models_idc)
+            #print(dec_models_idc)
             dec_models_idc.extend(['Int_Ref_Sensor_Target_'+i.split('_')[0] for i in irefs_target])
             dec_models_idc=['"'+i+'"' if i != ':SELF' else i for i in dec_models_idc]
-            print(dec_models_idc)
+            #print(dec_models_idc)
             
             keep_irefs=[]
             hx=[j[':N'] for j in data_ex if j[':T']=='|hx|']
             dec_models_idc_=[i for i in dec_models_idc if i not in hx]
-            print(dec_models_idc_)
+            #print(dec_models_idc_)
             PhiHxLimit_signal=False
             TbSet_signal=False
-            print(feature['network_side'])
-            print(building_irefs)
+            #print(feature['network_side'])
+            #print(building_irefs)
             
             for comp in components_idc:
                 #print(comp)
                 comp_class=getCompClass(comp)
                 if comp_class=='CONNECTION-LINE':
                     
-                    print((comp[':LAST-LINK'][2] in dec_models_idc or comp[':LAST-LINK'][2] in building_irefs             
+                    #print((comp[':LAST-LINK'][2] in dec_models_idc or comp[':LAST-LINK'][2] in building_irefs             
                             if comp[':LAST-LINK'][0]==':SELF' else
                                 (comp[':LAST-LINK'][0] in dec_models_idc 
                                 if feature['network_side'] else 
                                 comp[':LAST-LINK'][0] not in dec_models_idc_)))
-                    print((comp[':FIRST-LINK'][2] in dec_models_idc or comp[':FIRST-LINK'][2] in building_irefs              
+                    #print((comp[':FIRST-LINK'][2] in dec_models_idc or comp[':FIRST-LINK'][2] in building_irefs              
                             if comp[':FIRST-LINK'][0]==':SELF' else
                                 (comp[':FIRST-LINK'][0] in dec_models_idc 
                                 if feature['network_side'] else 
                                 comp[':FIRST-LINK'][0] not in dec_models_idc_)))
-                    print((True if feature['network_side'] else 
+                    #print((True if feature['network_side'] else 
                                 not (comp[':FIRST-LINK'][0] ==':SELF' and comp[':LAST-LINK'][0] in hx or
                                 comp[':LAST-LINK'][0] ==':SELF' and comp[':FIRST-LINK'][0] in hx )))
                     
@@ -159,7 +159,7 @@ class CopyDecoupledTemplateMacro:
                             (True if feature['network_side'] else 
                                 not (comp[':FIRST-LINK'][0] ==':SELF' and comp[':LAST-LINK'][0] in hx or
                                 comp[':LAST-LINK'][0] ==':SELF' and comp[':FIRST-LINK'][0] in hx ))):
-                        print('keep conn line')
+                        #print('keep conn line')
                         #print(comp)                       
                         data_idc.append(comp)
                         if comp[':FIRST-LINK'][0]==':SELF':
@@ -190,14 +190,14 @@ class CopyDecoupledTemplateMacro:
                         data=[]
                         for i in comp:
                             if getCompName(i)=='|M_var|':
-                                print('|M_var|')
+                                #print('|M_var|')
                                 i[':B']=['-1','|term_b|','1']
                                 data.append(i)
                             elif getCompName(i)=='|term_b|':
                                 instream_data=[]
                                 for j in i:
                                     if getCompName(j)=='|inStream(T)|':
-                                        print('|inStream(T)|')
+                                        #print('|inStream(T)|')
                                         j[':B']=['-1','|term_b|','2']
                                     instream_data.append(j)
                                 data.append(instream_data)
@@ -207,7 +207,7 @@ class CopyDecoupledTemplateMacro:
                     if getCompTemplate(comp)=='|hx|':
                         data_idm.append({':C':'OUTPUT-FILE',':N': '"HX decoupling"',':T':'OUTPUT-FILE', ':COL':'T',':STM':'1'})
                         if feature['network_side']:
-                            print('network side; |hx| comp')
+                            #print('network side; |hx| comp')
                             data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_ASide|'},
                                              {':C':':VAR', ':N': '|mLiqB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|mLiqB|',data_ex))],':L':'"HX decoupling"', ':AS':'"mLiqB"'},
@@ -224,7 +224,7 @@ class CopyDecoupledTemplateMacro:
                                             {':C':':VAR',':N': '|TbSet_var|',':L':'"HX decoupling"', ':AS':'"TbSet"'},
                                             {':C':':VAR',':N': '|mLiqA|',':L':'"HX decoupling"', ':AS':'"mLiqA"'}])
                         else:
-                            print('substation side; |hx| comp')
+                            #print('substation side; |hx| comp')
                             data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_BSide|'},
                                              {':C':':VAR', ':N': '|PhiHxLimit_var|', ':B': '-1' if PhiHxLimit_signal else ['-1','|PhiHxLimit|','0']},
                                              {':C':':VAR', ':N': '|TbSet_var|', ':B': '-1' if TbSet_signal else ['-1','|TbSet|','0'],':L':'"HX decoupling"', ':AS':'"TbSet"'},
@@ -299,15 +299,15 @@ class CopyDecoupledTemplateMacro:
                 for root, dirs, files in os.walk(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])):
                     for file in files:
                         if file.endswith('.idm') or file.endswith('.idc'):
-                            print('---------macro exists: '+file)
+                            #print('---------macro exists: '+file)
                             subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id']))[1]
                             path=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+subfolder
                             createSubDir(path)
                             copyFile(os.path.join(root, file),path,path+'\\'+file)
 
 dec_templates=CopyDecoupledTemplateMacro(submodel,dir,dictDB,cur,plugin_dir,sensor_data,mode='network')
-print('finished dec')
-# print(dec_templates.resources)
+#print('finished dec')
+# #print(dec_templates.resources)
 # if dec_templates.resources:
 #     file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
 #     file_data[2:2]=dec_templates.resources
@@ -317,22 +317,22 @@ print('finished dec')
 # feature_dec_irefs=[]
 # for submodel_ in getUsedSubmodels(cur, dictDB):
 #     #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
-#     print('//////************------//////*------')
+#     #print('//////************------//////*------')
 #     for i in readDecoupledFeatureSensorSignals(submodel_,dir,dictDB,cur,plugin_dir,sensor_data):
-#         print('++++++++--++')
-#         print(i)
+#         #print('++++++++--++')
+#         #print(i)
 #         if i not in feature_dec_irefs:
 #             feature_dec_irefs.append(i)
-# print(feature_dec_irefs)
+# #print(feature_dec_irefs)
 
 # sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,cur,dictDB)   
-# print(sensor_dec_data)
+# #print(sensor_dec_data)
 # sdf
 
-# print(dir)
-# print(type(submodel))
+# #print(dir)
+# #print(type(submodel))
 # data_dec_idm=writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec_data,mode='building')
-# print(data_dec_idm)
+# #print(data_dec_idm)
 
 # writeCosimMacroIdc(dictDB,cur,submodel,dir,plugin_dir,mode='building')
     

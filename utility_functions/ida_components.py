@@ -4,7 +4,7 @@ from plugins.utility_functions.db import *
 import re
 
 def getSimData(requestedOutputs,networkSimData):
-    print(networkSimData)
+    #print(networkSimData)
     calc_from_time=getNTPTimeFromString(networkSimData['calc_time_from'])
     calc_to_time=getNTPTimeFromString(networkSimData['calc_time_to'])
     startup_from_time=getNTPTimeFromString(networkSimData['startup_time_from'])
@@ -134,7 +134,7 @@ def getIDAListComponents(data):
         data = re.sub(pattern, replace_func, data)
     #print(data)
     data=data.replace('$empty_str$','""')
-    print(data)
+    #print(data)
 
     return eval(data)
     
@@ -148,25 +148,25 @@ def getImportVars(f_ids,template_data_ex,sensor_dec_data):
     importVars=[]
     importSignals=[]
     for f in f_ids:
-        print(f)
+        #print(f)
         for t_d_conn in template_data_ex:
             if t_d_conn['feature']==f['feature'] and t_d_conn['template']==f['template']:
                 for data_ex in t_d_conn['data_ex']:
                     for var in data_ex[':IMPORT']:
-                        print(var)
-                        print(var.replace('"','').split('_')[-1])
+                        #print(var)
+                        #print(var.replace('"','').split('_')[-1])
                         if not data_ex[':N']==':SELF':
                             importVars.append(var)
                         elif [True for i in sensor_dec_data for j in i['irefs_target'] if str(i['sensor_id'])==var.replace('"','').split('_')[-1] and j['iref'].split('_')[1]==str(f['id'])]:
                             importSignals.append(var)
-    print(importSignals)
-    print([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
+    #print(importSignals)
+    #print([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
     return importVars+[j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]]
 
 def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
     exportVars=[]
     counter = alt_count(start=1)
-    print(template_data_ex)
+    #print(template_data_ex)
     exportSignalDict={}
 
     for f in f_ids:
@@ -196,6 +196,7 @@ def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
         exportVars.extend(["""({} :SYSTEM "Sensor-macro" "Sensor_{}" INSIGNAL {})""".format(next(counter),iref,l) 
             for m in exportSignalDict[k]
             for l in range(1,m['counter']+1) for iref in m['iref']])
+    #print(exportVars)
     return exportVars
 
 def propertyListIDM(seq):
@@ -215,7 +216,7 @@ def propertyListIDM(seq):
                 dict_[':C']=seq[0]
                 i+=1
             if dict_[':C']=='CONNECTIONS':
-               # print('!!CONNECTIONS!!')
+               # #print('!!CONNECTIONS!!')
                 conns=[]
                 while i<len(seq):
                     conns.append(seq[i])
@@ -425,11 +426,11 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
             if PhiHxLimit_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|PhiHxLimit_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|PhiHxLimit_var|']
-                print(ex[':EXPORT'])
+                #print(ex[':EXPORT'])
             if TbSet_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|TbSet_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|TbSet_var|']
-                print(ex[':EXPORT'])
+                #print(ex[':EXPORT'])
     return data_ex
 
 def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_dec_data,submodel,cur,dictDB):
@@ -439,7 +440,7 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
     for conn_idc in conns_idc:
         #print(conn_idc)
         if conn_idc[':FIRST-LINK'][0] in dec_models and conn_idc[':LAST-LINK'][0] not in dec_models or conn_idc[':FIRST-LINK'][0] not in dec_models and conn_idc[':LAST-LINK'][0] in dec_models:           
-            print(conn_idc)
+            #print(conn_idc)
             if conn_idc[':FIRST-LINK'][0] in dec_models and conn_idc[':LAST-LINK'][0] not in dec_models:
                 model_name=conn_idc[':FIRST-LINK'][0]
                 link=conn_idc[':FIRST-LINK'][2]
@@ -451,11 +452,11 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
                 model_name_connected=conn_idc[':FIRST-LINK'][0]
                 link_connected=conn_idc[':FIRST-LINK'][2]
             #print(model_name)
-            print('***')
-            print(link)
-            print(model_name)
-            print(model_name_connected)
-            print(link_connected)
+            #print('***')
+            #print(link)
+            #print(model_name)
+            #print(model_name_connected)
+            #print(link_connected)
 
             if not [True for model in data_ex if model[':N']==model_name]:
                 comp=getCompPerName(components_idm,model_name)
@@ -472,13 +473,13 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
                     ':CONN-IDC':conn_idc}]
             if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data if i['source_type']==3 and i['function']==5 and submodel==str(getSupervisorySubmodel(cur,dictDB)['submodel']) 
                 and [True for j in i['irefs_target'] if j['cosim']==submodel and not j['network_side']]]:
-                print('supervisory target')
+                #print('supervisory target')
                 data_ex+=[{':N':model_name,':T': 'OUT',
                     ':IMPORT': [],
                     ':EXPORT': [link],
                     ':CONN-IDC':conn_idc}]
             if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data for j in i['irefs_target'] if (model_name_connected not in dec_models and str(submodel)==j['submodel'] and not network_side or model_name_connected in dec_models and str(submodel)!=j['submodel'] and network_side)]:
-                print('target')
+                #print('target')
                 data_ex+=[{':N':model_name,':T': 'IN',
                     ':IMPORT': [link],
                     ':EXPORT': [],
@@ -496,13 +497,13 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
             if PhiHxLimit_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|PhiHxLimit_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|PhiHxLimit_var|']
-                print(ex[':EXPORT'])
-                print(ex[':IMPORT'])
+                #print(ex[':EXPORT'])
+                #print(ex[':IMPORT'])
             if TbSet_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|TbSet_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|TbSet_var|']
-                print(ex[':EXPORT'])
-                print(ex[':IMPORT'])
+                #print(ex[':EXPORT'])
+                #print(ex[':IMPORT'])
                 
     return data_ex
     
@@ -520,7 +521,7 @@ def getCompImportPos(comp_name,var_name,data_ex):
         i+=1
     for imp in data_ex[i][':IMPORT']:
         if imp==var_name:
-    #        print(imp)
+    #        #print(imp)
             break
         var_counter+=1
     #print(var_counter)
@@ -596,7 +597,8 @@ def getParmRunsInputNames(file_data):
                 try:
                     input_names.append(file_data[i].split(':PAR :N "')[1].split('"')[0])
                 except:
-                    print('failed')
+                    #print('failed')
+                    pass
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -615,7 +617,8 @@ def getParmRunsOutputNames(file_data):
                 try:
                     output_names.append(file_data[i].split(':PAR :N "')[1].split('"')[0])
                 except:
-                    print('failed')
+                    #print('failed')
+                    pass
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -634,7 +637,8 @@ def getParmRunsInputNamesTargets(file_data):
                 try:
                     input_names_target[file_data[i].split(':PAR :N "')[1].split('"')[0]]=(file_data[i].split('TARGET (')[1].split(')')[0].split()[-2:])
                 except:
-                    print('failed')
+                    #print('failed')
+                    pass
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -653,7 +657,8 @@ def getParmRunsOutputNamesTargets(file_data):
                 try:
                     output_names_target[file_data[i].split(':PAR :N "')[1].split('"')[0]]=(file_data[i].split('TARGET (')[1].split(')')[0].split()[-2:])
                 except:
-                    print('failed')
+                    #print('failed')
+                    pass
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -671,16 +676,17 @@ def getBestParmRunsInputs (file_data):
             #print(inputs)
             i+=1
             try:
-                print(file_data[i].split('OUTPUT :V (')[1].strip())
-                print(file_data[i].split('OUTPUT :V (')[1].strip().strip(')'))
-                print(file_data[i].split('OUTPUT :V (')[1].strip().strip(')').split(' '))
+                #print(file_data[i].split('OUTPUT :V (')[1].strip())
+                #print(file_data[i].split('OUTPUT :V (')[1].strip().strip(')'))
+                #print(file_data[i].split('OUTPUT :V (')[1].strip().strip(')').split(' '))
                 error=[float(i) for i in file_data[i].split('OUTPUT :V (')[1].strip().strip(')').split(' ')]
-                print(error)
+                #print(error)
                 if error[0]<min_error[0]:
                     min_error=error
                     min_inputs=inputs
             except:
-                print('failed')
+                #print('failed')
+                pass
         i+=1
         
     return [min_error,min_inputs]

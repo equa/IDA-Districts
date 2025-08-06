@@ -24,11 +24,11 @@ def setEditorWidgetListType(list_type_dict):
     editor_setup = QgsEditorWidgetSetup("List", config)
 
     for layer_name in list_type_dict:
-        print(layer_name)
+        #print(layer_name)
         layer=QgsProject.instance().mapLayersByName(layer_name)[0]
         for col in list_type_dict[layer_name]:
             field_index = layer.fields().indexOf(col)
-            print(field_index)
+            #print(field_index)
 
             # Apply the widget setup to the field
             layer.setEditorWidgetSetup(field_index, editor_setup)
@@ -36,13 +36,13 @@ def setEditorWidgetListType(list_type_dict):
 def setFieldConstraints(constraints_dict):
     """{layer: {col_names : constraint}}"""
     for layer_name in constraints_dict:
-        print(layer_name)
+        #print(layer_name)
         layer=QgsProject.instance().mapLayersByName(layer_name)
         if layer:
             layer=layer[0]
             for col in constraints_dict[layer_name]:
                 field_index = layer.fields().indexOf(col)
-                print(field_index)
+                #print(field_index)
                 layer.setFieldConstraint(field_index, QgsFieldConstraints.ConstraintExpression)
                 layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
             
@@ -52,24 +52,24 @@ def getDHCLayerNames():
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
     sql="""SELECT UpdateGeometrySRID('%schema%', '%table%', 'geom', {});""".format(srid)
-    print('+--+')
+    #print('+--+')
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
         for table in ['lines','junctions','customers','energy_plants','buildings','streets','submodels','boreholes']:
-            print(sql_version.replace("%table%",table))
+            #print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
             except:
                 pass
             
-    print('++')
+    #print('++')
     sql_temp=sql.replace("%schema%","temp")        
     #temp tables 
-    print('++')
-    print(sql_temp)
+    #print('++')
+    #print(sql_temp)
     for table in ['lines','lines_cooling','lines_heating','junctions','customers','streets_help']:
-        print(sql_temp.replace("%table%",table))
+        #print(sql_temp.replace("%table%",table))
         try:
             cur.execute(sql_temp.replace("%table%",table))
         except:
@@ -244,7 +244,7 @@ def removeTempLayers():
 
 def showTempTables(uri,dictDB,plugin_dir,iface,cur):
     """Show temp tables (lines,customers,junctions,energy_plants)"""
-    print('show temp tables')
+    #print('show temp tables')
     removeTempLayers()
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
     for layer in ['lines','junctions','customers','energy_plants']:
@@ -253,12 +253,13 @@ def showTempTables(uri,dictDB,plugin_dir,iface,cur):
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
         else:
             #iface.messageBar().pushMessage("Warning", "No project tables loaded", level=Qgis.Warning)
-            print("No project tables loaded")
+            #print("No project tables loaded")
             return False
     try:
         loadProjectLayers('temp',uri,dictDB,plugin_dir,cur)  
     except:
-        print('Load project layers failed')
+        #print('Load project layers failed')
+        pass
 
 def setLayersHidden(tableNames):
     for tableName in tableNames:
@@ -295,14 +296,14 @@ def getConstraintExpressionDict(networks_array):
     
 def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
     dir=getProjectHandlingDir(plugin_dir)
-    print('load project layers')
+    #print('load project layers')
     for vlayerName in ['energy_plants','customers','lines','junctions']:  
-        print('------')
-        print(vlayerName)
+        #print('------')
+        #print(vlayerName)
         categories=featureLayerGroups(vlayerName,cur)
-        print(categories)
+        #print(categories)
         ids=featureLayerGroupIds(vlayerName,cur)
-        print(ids)
+        #print(ids)
 
         uri.setDataSource(version, vlayerName, "geom")
         if version =='temp':
@@ -310,11 +311,11 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
         else:
             vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
         QgsProject.instance().addMapLayer(vlayer)  
-        print(vlayerName[:-1])
+        #print(vlayerName[:-1])
         target_layer_name=vlayerName[:-1] + ('_templates' if vlayerName in ['energy_plants','customers'] else '_types')
         cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
-        print(target_layer_name)
-        print(cat_colmn_name)
+        #print(target_layer_name)
+        #print(cat_colmn_name)
         config = {'AllowMulti': False,
                   'AllowNull': True,
                   'FilterExpression': '',
@@ -379,7 +380,7 @@ def featureLayerGroups(vlayerName,cur):
         colmn='template_name' if vlayerName in ['customers','energy_plants'] else 'type'
         table='template' if vlayerName in ['customers','energy_plants'] else 'type'
         sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table)
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]
     except:
@@ -390,14 +391,14 @@ def featureLayerGroupIds(vlayerName,cur):
         colmn='template' if vlayerName in ['customers','energy_plants'] else 'id'
         table='template' if vlayerName in ['customers','energy_plants'] else 'type'
         sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table)
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]    
     except:
         return []
         
 def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
-    print('load feature layer')
+    #print('load feature layer')
     dir=getProjectHandlingDir(plugin_dir)
     categories=featureLayerGroups(vlayerName,cur)
     ids=featureLayerGroupIds(vlayerName,cur)
@@ -413,11 +414,8 @@ def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
     else:
         vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
     QgsProject.instance().addMapLayer(vlayer)  
-    print(vlayerName[:-1] + '_types')
     target_layer_name=vlayerName[:-1] + ('_templates' if vlayerName in ['energy_plants','customers'] else '_types')
     cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
-    print(target_layer_name)
-    print(cat_colmn_name)
     config = {'AllowMulti': False,
               'AllowNull': True,
               'FilterExpression': '',

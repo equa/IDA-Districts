@@ -105,11 +105,12 @@ class IDADistrictsModelingSimulation:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
         self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
-        print(self.requestedOutputs)
+        #print(self.requestedOutputs)
         
         shortcut = QShortcut(QKeySequence('Alt+Shift+M'), iface.mainWindow())
         shortcut.setContext(Qt.ApplicationShortcut)
         shortcut.activated.connect(self.openPlugin)
+        self.process_running=False
 
     def openPlugin(self):
         self.run()
@@ -190,7 +191,7 @@ class IDADistrictsModelingSimulation:
         
     def setNetworkSimData(self,dlg):
         """run network simulation"""
-        print ("run network simulation")
+        #print("run network simulation")
         networkSimData={}
         #-----------calc type------------
         if dlg.rbtn_calc_type_periodic.isChecked():
@@ -214,7 +215,7 @@ class IDADistrictsModelingSimulation:
             return False
         else:
             networkSimData['max_timestep']=dlg.max_timestep.text()
-        print(networkSimData)                
+        #print(networkSimData)                
         writeNetworkSimData(self.plugin_dir,self.dictDB,networkSimData)
         return networkSimData
         
@@ -237,7 +238,7 @@ class IDADistrictsModelingSimulation:
         
     def setModellingSettings(self,dlg):
         """set modelling settings"""
-        print ("set modelling settings")
+        #print("set modelling settings")
         
         #pipe settings
         #-------------fd pipe------------
@@ -294,7 +295,7 @@ class IDADistrictsModelingSimulation:
         
         file = self.plugin_dir+'\\network_models\\{}\\{}\\supervisory_control\\supervisory_control.idm'.format(self.dictDB['projectName'],self.dictDB['versionName'])
         file=file.replace('/','\\')
-        print(file)
+        #print(file)
         self.worker_openSupervisory = WorkerOpenAPI(file,self.plugin_dir)
         self.threadpool_openSupervisory = QThreadPool()
         self.threadpool_openSupervisory.start(self.worker_openSupervisory)
@@ -320,7 +321,7 @@ class IDADistrictsModelingSimulation:
 
     def showRunModel(self):
         """ Run IDA submodels; loop over submodels"""
-        print('Run IDA model')
+        #print('Run IDA model')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -343,7 +344,7 @@ class IDADistrictsModelingSimulation:
 
     def showOpenModel(self,mode='network'):
         """ Show IDA submodels; loop over submodels"""
-        print('Show IDA model')
+        #print('Show IDA model')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -354,7 +355,7 @@ class IDADistrictsModelingSimulation:
                 dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                 if os.path.exists(dir):
                     submodels=getNetworkFileSubmodels(dir) if mode=='network' else getBuildingFileSubmodels(dir) 
-                    print(submodels)
+                    #print(submodels)
                     self.dlg_openModel.combo_submodels.addItems(submodels)
                     for i in range(len(submodels)):
                         self.dlg_openModel.combo_submodels.setItemChecked(i+1,False)
@@ -369,7 +370,7 @@ class IDADistrictsModelingSimulation:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
  
     def openModel(self,dlg,mode='network'):
-        print('-***-')
+        #print('-***-')
         if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])==0:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
             return False
@@ -377,10 +378,10 @@ class IDADistrictsModelingSimulation:
         for i in range(dlg.combo_submodels.count()):
             if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i):        
                 submodel=dlg.combo_submodels.itemText(i)
-                print(submodel)
+                #print(submodel)
                 dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                 fname=dir+'{}_{}.idm'.format(mode,submodel)
-                print(fname)
+                #print(fname)
                 self.worker_openNetwork = WorkerOpenAPI(fname,self.plugin_dir,submodel=submodel)
                 self.threadpool_openNetwork = QThreadPool()
                 self.threadpool_openNetwork.start(self.worker_openNetwork) 
@@ -390,7 +391,7 @@ class IDADistrictsModelingSimulation:
     def runModel(self,dlg):
         networkSimData=self.setNetworkSimData(dlg)
         if networkSimData:
-            print('-***-')
+            #print('-***-')
             dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])
             if dlg.n_sims==0:
                 self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
@@ -405,19 +406,19 @@ class IDADistrictsModelingSimulation:
                 for i in range(dlg.combo_submodels.count()):
                     if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i):        
                         submodel=dlg.combo_submodels.itemText(i)
-                        print(submodel)
+                        #print(submodel)
                 
-                        print('----Update simulation data----')
+                        #print('----Update simulation data----')
                         dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
                         fname=dir+'network_{}.idm'.format(submodel)
-                        print(fname)
+                        #print(fname)
                         components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
                         
                         data_idm=[]
                         for comp in components_idm:
-                            print(comp)
+                            #print(comp)
                             if getCompClass(comp)=='SIMULATION_DATA':
-                                print('++++++++simulation data+++++++')
+                                #print('++++++++simulation data+++++++')
                                 data_idm.append(propertyListCompsIDM(getIDAListComponents(getSimData(self.requestedOutputs,networkSimData))))             
                             else:
                                 data_idm.append(comp) 
@@ -465,7 +466,7 @@ class IDADistrictsModelingSimulation:
 
     def addBuildingSubmodelTableRow(self,dlg):
         """Insert table row"""
-        print('-------insert row---------------')
+        #print('-------insert row---------------')
         dlg.tableWidget.insertRow(0)
 
         comboBox = QComboBox() #submodels
@@ -482,7 +483,7 @@ class IDADistrictsModelingSimulation:
         
     def addTableRow(self,dlg):
         """Insert table row"""
-        print('-------insert row---------------')
+        #print('-------insert row---------------')
         dropdowns=[[20,'public','liquids','id','liquid']]
 
         maxId=max([getMaxIdAcrossSchemas(self.dictDB,self.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
@@ -551,19 +552,19 @@ class IDADistrictsModelingSimulation:
                 'nzhole': table.item(row,30).text(),'nlayt': table.item(row,31).text(),'n1': table.item(row,32).text(),'n2': table.item(row,33).text(),
                 'n3': table.item(row,34).text(),'toutput': table.item(row,35).text(),'tmean': table.item(row,36).text(),'geotgrad': table.item(row,37).text()}
         
-        print(self.loadedBoreholefieldsData)
-        print(boreholefieldsData)
+        #print(self.loadedBoreholefieldsData)
+        #print(boreholefieldsData)
         
         #deleted
         for key_loaded in self.loadedBoreholefieldsData:
             if key_loaded not in boreholefieldsData: 
-                print('removed sensor')
+                #print('removed sensor')
                 sql+="""DELETE FROM "{}".borehole_fields WHERE id={};""".format(self.dictDB['versionName'],key_loaded)
         
         #added
         for key_table in boreholefieldsData:
             if key_table not in self.loadedBoreholefieldsData: 
-                print('added field data')
+                #print('added field data')
                 sql+="""INSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});\n""".format(
                     self.dictDB['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
                     boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
@@ -582,7 +583,7 @@ class IDADistrictsModelingSimulation:
                         sql+="""UPDATE "{}".borehole_fields SET {} = {} WHERE id = {} ;\n""".format(self.dictDB['versionName'],col,boreholefieldsData[key_table][col],key_table)   
         
         try:
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             closeDialog(dlg)
         except Exception as e:
@@ -597,8 +598,8 @@ class IDADistrictsModelingSimulation:
         boreholefieldsData={}
 
         for counter,i in enumerate(boreholes_data):
-            print(counter)
-            print(i)
+            #print(counter)
+            #print(i)
             boreholefieldsData[i['id']]={'ep_id': str(i['id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
                 'rgroutgrout': str(i['rgroutgrout']),'rringearth': str(i['rringearth']),'cpgrd': str(i['cpgrd']),'lambgrd': str(i['lambgrd']),'rhogrd': str(i['rhogrd']),'cpgrout': str(i['cpgrout']),'lambgrout': str(i['lambgrout']),
                 'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
@@ -707,7 +708,7 @@ class IDADistrictsModelingSimulation:
         
     def sensorSignals(self):
         """Create sensor signals for comunication between plants, customers and supervisory control"""
-        print ('Create sensor signals for comunication between plants, customers and supervisory control')
+        #print('Create sensor signals for comunication between plants, customers and supervisory control')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -747,7 +748,7 @@ class IDADistrictsModelingSimulation:
      
     def showBuildModel(self):
         """ Build IDA subnetwork models; loop over subnetworks"""
-        print('Build IDA model')
+        #print('Build IDA model')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -777,7 +778,7 @@ class IDADistrictsModelingSimulation:
 
     def showBuildBuildingModel(self):
         """ Build IDA building models; loop over subnetworks"""
-        print('Build IDA model')
+        #print('Build IDA model')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -801,15 +802,16 @@ class IDADistrictsModelingSimulation:
             if dlg.combo_network_models.itemText(i) != 'Check all items' and dlg.combo_network_models.itemChecked(i):        
                 networks.append(dlg.combo_network_models.itemText(i))
                     
-        print(networks)
+        #print(networks)
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
-        print(submodels)
+        #print(submodels)
         if networks and submodels:
             self.worker_invokeNetwork = WorkerBuildNetworkModel(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
             self.threadpool_invokeNetwork = QThreadPool()
             self.threadpool_invokeNetwork.start(self.worker_invokeNetwork) 
             self.worker_invokeNetwork.signals.error.connect(show_error_message)
             self.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
+            self.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)   
         else:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
 
@@ -818,14 +820,14 @@ class IDADistrictsModelingSimulation:
         submodel_templates={dlg.tableWidget.cellWidget(i,0).currentText(): dlg.tableWidget.cellWidget(i,1).currentText() for i in range(dlg.tableWidget.rowCount())}
 
         if submodel_templates:
-            print(submodel_templates)
+            #print(submodel_templates)
             self.dictDB=getDBConnectionData(self.plugin_dir)
             self.conn=dbConnect(self.dictDB,False)
             if self.conn:
                 if self.dictDB['versionName']:
                     self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
                     for submodel in submodel_templates:
-                        print(submodel)
+                        #print(submodel)
                         sql="""SELECT 
   (ST_XMax(ST_Extent(geom))-ST_XMin(ST_Extent(geom)))/2 + ST_XMin(ST_Extent(geom)) AS x_center, 
   (ST_YMax(ST_Extent(geom))-ST_YMin(ST_Extent(geom)))/2 + ST_YMin(ST_Extent(geom)) AS y_center
@@ -833,13 +835,13 @@ FROM {}.buildings
 WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         self.cur.execute(sql)
                         center=self.cur.fetchone()
-                        print(center)
+                        #print(center)
                         
                         sql="""SELECT b.id,b_id,z_id,ST_AsText(geom) AS geom,z_height_m,z_bh_m, win_facade_ratio, z_construction, zt.name AS z_template, u.name AS room_unit 
     FROM {}.buildings b, room_units u, zone_templates zt
     WHERE b.submodel={} AND u.id=b.room_unit AND zt.id=b.z_template
     ORDER BY b_id,z_id;""".format(self.dictDB['versionName'],submodel)
-                        print(sql)
+                        #print(sql)
                         self.cur.execute(sql)
                         zones=self.cur.fetchall()
                         b_ids=set(str(zone["b_id"]) for zone in zones)
@@ -849,13 +851,13 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
     GROUP BY t.conn_bundle_type, b.b_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],','.join(b_ids))
                         self.cur.execute(sql)
                         conn_data={i['b_id']: getConnsValuesIdentTypeDict(self.cur,i['conn_bundle_type']) for i in self.cur.fetchall()}
-                        print(conn_data)
+                        #print(conn_data)
                         conn_data_alist="""'({})""".format(' '.join(["""({} . ({}))""".format(i,' '.join(['(:N "'+j +
                                                                                                 '" :T ' + str(conn_data[i][j][':T'])+
                                                                                                 ' :V-VAR '+str(conn_data[i][j][':V-VAR'])+
                                                                                                 ' :VAR "'+str(conn_data[i][j][':VAR'])+
                                                                                                 '" :V-T '+str(conn_data[i][j][':V-T'])+')' for j in conn_data[i]])) for i in conn_data]))
-                        print(conn_data_alist)
+                        #print(conn_data_alist)
                         ida_script="""((set-slot [@] 'name "building_{}")
 (apply 'delete-components (:call :sections [@]))
 (insert-district-distr [@] '({}))
@@ -879,7 +881,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         
                         zone_win_dict={}
                         for counter,zone in enumerate(zones):
-                            print(zone)
+                            #print(zone)
                             wkt_string=zone['geom']
                             
                             # Regular expression to match coordinates in the format (x y)
@@ -955,14 +957,14 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
   (move-internal-gain-to-center load))\n"""
                                 
                         ida_script+="""(save-document [@]))"""
-                        print(ida_script)
+                        #print(ida_script)
                         
                         src_dir=getDataCenterDir(self.plugin_dir)+"\\{}\\building_templates\\".format(self.dictDB['projectName'])
-                        print(src_dir)
+                        #print(src_dir)
                         buildingModel_dir=self.plugin_dir+'\\network_models\\{}\\{}\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-                        print(buildingModel_dir)
+                        #print(buildingModel_dir)
                         file_path=buildingModel_dir+'building_{}.idm'.format(submodel)
-                        print(file_path)
+                        #print(file_path)
                         copyFile(src_dir+submodel_templates[submodel]+'.idm',buildingModel_dir,file_path)
                         copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
                     
@@ -976,12 +978,12 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
 
                         
                         """self.util=Util_api(self.plugin_dir)
-                        print(self.util.pid)
+                        #print(self.util.pid)
                         # IDA ICE connection test
                         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-                        print(connectionTest)
+                        #print(connectionTest)
                         self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
-                        print(self.building)
+                        #print(self.building)
                         changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
                 else:
@@ -992,41 +994,41 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
 
     def finishedBuildBuildingModel(self,args):
-        print('------finished build building model----------')
+        #print('------finished build building model----------')
         try:
             dlg=args['dlg']
             submodel=args['submodel']
             conn_data=args['conn_data']
             co_sim=dlg.checkbox_cosim.isChecked()
             reinvoke=dlg.checkbox_reinvokeFeatures.isChecked()
-            print(co_sim)
-            print(reinvoke)    
-            print(submodel)    
-            print(conn_data) 
+            #print(co_sim)
+            #print(reinvoke)    
+            #print(submodel)    
+            #print(conn_data) 
             source_dir=self.plugin_dir+'\\network_models\\{}\\{}\\invoked_customers\\'.format(self.dictDB['projectName'],self.dictDB['versionName'])
             target_dir=self.plugin_dir+'\\network_models\\{}\\{}\\building_{}\\plant\\'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel)
-            print(source_dir) 
+            #print(source_dir) 
             sensor_data=getSensorData(self.cur,self.dictDB,filter='')
-            print(sensor_data)
+            #print(sensor_data)
 
                         
             for b_id in conn_data:
-                print(b_id)
+                #print(b_id)
                 #idm
                 source_f="{}\\Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
-                print(source_f)
+                #print(source_f)
                 if not os.path.exists(source_f) or reinvoke:
-                    print('reinvoke')
+                    #print('reinvoke')
                     invokeOneFeature(False,str(b_id),self.plugin_dir,self.cur,self.dictDB,'customer',False)
             
             dir=self.plugin_dir+'\\network_models\\{}\\{}'.format(self.dictDB['projectName'],self.dictDB['versionName'])
-            print(dir)
+            #print(dir)
                 
             if co_sim:
-                print('+++++++cosim++++++')
+                #print('+++++++cosim++++++')
                 dec_templates=CopyDecoupledTemplateMacro(str(submodel),dir,self.dictDB,self.cur,self.plugin_dir,sensor_data,mode='building')
-                print('---finished dec---')
-                print(dec_templates.resources)
+                #print('---finished dec---')
+                #print(dec_templates.resources)
                 if dec_templates.resources:
                     file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
                     file_data[2:2]=dec_templates.resources
@@ -1036,21 +1038,21 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                 feature_dec_irefs=[]
                 for submodel_ in getUsedSubmodels(self.cur, self.dictDB):
                     #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
-                    print('//////************------//////*------')
+                    #print('//////************------//////*------')
                     for i in readDecoupledFeatureSensorSignals(submodel_,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
-                        print('++++++++--++')
-                        print(i)
+                        #print('++++++++--++')
+                        #print(i)
                         if i not in feature_dec_irefs:
                             feature_dec_irefs.append(i)
-                print(feature_dec_irefs)
+                #print(feature_dec_irefs)
 
                 sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)   
                 #print(sensor_dec_data)
 
-                print(dir)
-                print(type(submodel))
+                #print(dir)
+                #print(type(submodel))
                 data_dec_idm=writeCosimMacroIdm(self.dictDB,self.cur,submodel,dir,self.plugin_dir,sensor_data,sensor_dec_data,mode='building')
-                print(data_dec_idm)
+                #print(data_dec_idm)
 
                 writeCosimMacroIdc(self.dictDB,self.cur,submodel,dir,self.plugin_dir,mode='building')
         
@@ -1059,15 +1061,15 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                 template_names=getTemplateNamesFilteredByCustomerIds(self.cur,self.dictDB,conn_data) 
                 resources=[]        
                 for template in template_names:
-                    print('+++++resource: '+template)
+                    #print('+++++resource: '+template)
                     source_f_idm="{}\\{}\\customer_templates\\{}.idm".format(getDataCenterDir(self.plugin_dir),self.dictDB['projectName'],template)
-                    print(source_f_idm)
+                    #print(source_f_idm)
                     file_data=readFileToList(source_f_idm)
                     resource=getResourcesFromFileDataList(file_data)
-                    print(resource)
+                    #print(resource)
                     if resource not in resources:
                         resources+=resource
-                print(resources)
+                #print(resources)
                         
                 if resources:
                     file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
@@ -1075,29 +1077,29 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                     writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
                         
                 for b_id in conn_data:
-                    print(b_id)
+                    #print(b_id)
                     #idm
                     source_f_idm="{}Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
-                    print(source_f_idm)
+                    #print(source_f_idm)
                     
                     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f_idm)))
-                    print(getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB))
+                    #print(getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB))
                     building_pmt2s=['"'+getPMT2muxName(self.cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(1,str(b_id),self.cur,self.dictDB) if i['type'] not in [1,2]]
-                    print(building_pmt2s)
+                    #print(building_pmt2s)
                     data_idm=[]
                     for comp in components_idm:
                         if getCompName(comp) in building_pmt2s:
                             data=[]
                             for i in comp:
                                 if getCompName(i)=='|M_var|':
-                                    print('|M_var|')
+                                    #print('|M_var|')
                                     i[':B']=['-1','|term_b|','1']
                                     data.append(i)
                                 elif getCompName(i)=='|term_b|':
                                     instream_data=[]
                                     for j in i:
                                         if getCompName(j)=='|inStream(T)|':
-                                            print('|inStream(T)|')
+                                            #print('|inStream(T)|')
                                             j[':B']=['-1','|term_b|','2']
                                         instream_data.append(j)
                                     data.append(instream_data)
@@ -1110,12 +1112,13 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
 
 
                     source_f_idc="{}Customer_{}\\Customer_{}.idc".format(source_dir,b_id,b_id)
-                    print(source_f_idc)
+                    #print(source_f_idc)
                     copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
                     if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
                         copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
         except Exception as e:
-            print(e)
+            #print(e)
+            pass
                 
     def loadResults(self,dlg):
         submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
@@ -1136,6 +1139,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
             self.threadpool_loadResults.start(self.worker_loadResults) 
             self.worker_loadResults.signals.error.connect(show_error_message)
             self.worker_loadResults.signals.progress.connect(dlg.update_progress)   
+            self.worker_loadResults.signals.finished.connect(dlg.update_finished)   
         else:
             self.iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
         
@@ -1158,7 +1162,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
         
     def showLoadResults(self):
         """ show load results; loop over submodels"""
-        print('load results')
+        #print('load results')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -1181,7 +1185,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
         
     def run(self):
         """Run method that performs all the real work"""
-
+        
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
@@ -1209,5 +1213,6 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
         else:
             self.dlg.show()
             self.dlg.activateWindow()
-            print('activate')
+            #print('activate')
+
 

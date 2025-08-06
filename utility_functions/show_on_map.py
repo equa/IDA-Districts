@@ -18,8 +18,8 @@ class WorkerShowOnMap(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print('WorkerShowOnMap')
-        print(kwargs)
+        #print('WorkerShowOnMap')
+        #print(kwargs)
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
@@ -95,7 +95,7 @@ class WorkerShowOnMap(QRunnable):
                 if name:
                     vars['rotation']['name']=name
         else:
-            print('kwargs vars')
+            #print('kwargs vars')
             vars=self.vars
             
         self.signals.progress.emit(5)  
@@ -103,7 +103,7 @@ class WorkerShowOnMap(QRunnable):
         return vars
     
     def getShowOnMapData(self,vars):
-        print(vars)
+        #print(vars)
         #drop old line_seg_%_vis tables
         sql="""WITH tables_to_drop AS (
     SELECT table_name
@@ -129,20 +129,20 @@ SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
             time_rotation=False
             
         first_time_var='color' if time_color else ('size' if time_size else ('rotation' if time_rotation else False))
-        print('++first-time-var: '+str(first_time_var))
+        #print('++first-time-var: '+str(first_time_var))
         if first_time_var:
             dt=getAvergageByMode(vars[first_time_var]['var_function'],self.cur,self.dictDB,vars[first_time_var]['table_name']) #hours
         else:
             dt=False
-        print(dt)
+        #print(dt)
         first_par_var='color' if vars['color']['mode'] else ('size' if vars['size']['mode'] else ('rotation' if vars['rotation']['mode'] else False))
-        print(first_time_var)
-        print(first_par_var)
+        #print(first_time_var)
+        #print(first_par_var)
         first_group=first_time_var if first_time_var else first_par_var
         
         #if simulation results and line feature
         if self.simData and self.feature=='line':
-            print('update DB with visualization tables')
+            #print('update DB with visualization tables')
             #re-create table line_seg_vis, which holds the geometry of the visualized pipe segements
             #check if > calculated segments
                 
@@ -176,7 +176,7 @@ CREATE TABLE "{}".line_s_{}_vis
 );""".format(self.dictDB['versionName'],vars['color']['name'],self.dictDB['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name'])
                     
                     if vars['color']['name'].split('$')[0]=='p': #linear interpolation using pressure values at start and end of the line
-                        print('++++interpoation++++')
+                        #print('++++interpoation++++')
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,s.seg1_v+CASE WHEN seg_counter.count=1 THEN (s.seg2_v-s.seg1_v)/2 ELSE (s.seg2_v-s.seg1_v)/(seg_counter.count-1)*(seg.lid_seg-1) END AS value,seg.geom,seg.lid_seg
         FROM 
@@ -196,7 +196,7 @@ CREATE TABLE "{}".line_s_{}_vis
         WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
         ORDER BY fid,lid_seg,time;""".format(self.dictDB['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.dictDB['versionName'],vars['color']['name'],self.dictDB['versionName'],vars['time']['starttime'],vars['time']['endtime'])
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                     
                     vars['color']['table_name']=vars['color']['table_name']+'_vis'
@@ -220,13 +220,13 @@ CREATE TABLE "{}".line_s_{}_vis
         WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
         ORDER BY fid,lid_seg,time;""".format(self.dictDB['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.dictDB['versionName'],vars['size']['name'],self.dictDB['versionName'],vars['time']['starttime'],vars['time']['endtime'])
-                        print(sql)
+                        #print(sql)
                         self.cur.execute(sql)
                     
                     vars['size']['table_name']=vars['size']['table_name']+'_vis'
                     
         self.signals.progress.emit(10)
-        print('get-data')
+        #print('get-data')
         if first_time_var or first_par_var:
             sql="""SELECT {}.{} AS fid, ST_AsText({}.geom) AS geom {}, {}
     FROM {}{}{}
@@ -266,7 +266,7 @@ CREATE TABLE "{}".line_s_{}_vis
                     ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]),
                 """date_trunc('{}', {}.time),""".format(dt,first_time_var) if first_time_var and dt in ['hour','day','month'] else ('{}.time,'.format(first_time_var) if first_time_var else ''), #order by
                 first_group,'fid' if vars[first_group]['mode']=='var' else 'id')
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         data=self.cur.fetchall()
         self.signals.progress.emit(60)  
@@ -279,10 +279,10 @@ CREATE TABLE "{}".line_s_{}_vis
         ORDER BY time
 )
 SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;""".format(self.dictDB['versionName'],vars[first_time_var]['table_name'])
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             dt=self.cur.fetchone()['dt']
-            print(dt)
+            #print(dt)
 
         vars['data']=data
         vars['time']['dt']=dt
@@ -319,11 +319,11 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
         self.showOnMapMemoryLayer(vars)
 
     def showOnMapMemoryLayer(self,vars):   
-        print('showOnMapMemoryLayer')
+        #print('showOnMapMemoryLayer')
         column_names=[vars[var]['name'].split('$')[0] for var in vars if var not in ['time','data'] and vars[var]['mode']]
         column_types=[var for var in vars if var not in ['time','data'] and vars[var]['mode']]
-        print(column_names)
-        print(column_types)
+        #print(column_names)
+        #print(column_types)
         
         # make new memory layer
         temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
@@ -332,7 +332,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             'field=time:datetime&' if vars['time']['first_time_var'] else '',
             '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),self.layer_name, "memory")
         temp_layer.startEditing()
-        print('temp_layer generated')
+        #print('temp_layer generated')
 
         #make new features
         for i in vars['data']:
@@ -344,7 +344,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             for type,name in zip(column_types,column_names):
                 feat[type+'_'+name]=float(i[type])
             temp_layer.addFeature(feat)
-        print('features added')
+        #print('features added')
 
         temp_layer.commitChanges()            
             
@@ -384,8 +384,8 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             elif vars['time']['dt']=='month':
                 interval.setMonths(1)
             else:
-                print('+-+dt:')
-                print(float(vars['time']['dt']))
+                #print('+-+dt:')
+                #print(float(vars['time']['dt']))
                 interval.setHours(float(vars['time']['dt']))
             temporalNavigationObject.setFrameDuration(interval)
       
@@ -393,9 +393,9 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             
         self.signals.progress.emit(92)  
         if vars['color']['mode']:
-            print('-----color------')
+            #print('-----color------')
             target_field = 'color_'+vars['color']['name'].split('$')[0]
-            print(target_field)
+            #print(target_field)
 
             classification_method = QgsClassificationEqualInterval()
             classification_method.setLabelPrecision(1)
@@ -421,7 +421,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
 
         self.signals.progress.emit(94)  
         if vars['size']['mode'] or vars['rotation']['mode']:
-            print('+++++size/rotation mode')
+            #print('+++++size/rotation mode')
             symbol=QgsSymbol.defaultSymbol(temp_layer.geometryType())
             style={}
             
@@ -443,7 +443,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
                     min_value=getMinTableValue(self.cur,self.dictDB,vars['size']['table_name'],vars['size']['name'])
                     max_value=getMaxTableValue(self.cur,self.dictDB,vars['size']['table_name'],vars['size']['name'])
                 scale="""coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format('size_'+vars['size']['name'].split('$')[0],min_value,max_value,self.size_symbolMin,self.size_symbolMax)
-                print(scale)
+                #print(scale)
                 symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyStrokeWidth if self.feature=='line' else QgsSymbolLayer.PropertySize,QgsProperty.fromExpression(scale))
 
             if vars['rotation']['mode']:
@@ -454,14 +454,14 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
                     min_value=getMinTableValue(self.cur,self.dictDB,vars['rotation']['table_name'],vars['rotation']['name'])
                     max_value=getMaxTableValue(self.cur,self.dictDB,vars['rotation']['table_name'],vars['rotation']['name'])
                 rotation="""coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format('rotation_'+vars['rotation']['name'].split('$')[0],min_value,max_value,self.rotation_symbolMin,self.rotation_symbolMax)
-                print(rotation)
+                #print(rotation)
                 symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyAngle,QgsProperty.fromExpression(rotation))
                 if not self.dlg.checkbox_varSize.isChecked():
                     symbol.setSize(8)
             try:
-                print('update symbol start')
+                #print('update symbol start')
                 renderer.updateSymbols(symbol)
-                print('update symbol finished')
+                #print('update symbol finished')
             except:
                 renderer.setSymbol(symbol)
         self.signals.progress.emit(98)     
@@ -472,7 +472,7 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
         
     @pyqtSlot()
     def run(self):
-        print('Show data on map')
+        #print('Show data on map')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         try:

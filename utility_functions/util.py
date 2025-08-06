@@ -11,12 +11,12 @@ class Util_api:
         # Define your path to the IDA ICE bin folder here
         path_to_ice = loadIDADistrictsConfig(plugin_dir)['path_ice'].replace("\\","\\\\")+"bin\\\\"
         command = "\""+path_to_ice + "ida-ice.exe\" \"" + path_to_ice + "ida.img\" -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
-        print(command)
+        #print(command)
         configIDADistricts=loadIDADistrictsConfig(plugin_dir)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
         self.pid = str(ret[2])
-        print(self.pid)
+        #print(self.pid)
         time.sleep(float(configIDADistricts['ice_api_delay']))
         #Add path_to_ice to PATH variable, is removed when program finishes
         os.environ['PATH'] = path_to_ice + os.pathsep  + os.environ['PATH']
@@ -121,9 +121,9 @@ class Util_api:
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
         try:
             poll_result2 = json.loads(doc_str.value.decode("utf-8"))
-            print(poll_result2)
+            #print(poll_result2)
             if isinstance(poll_result2, list):
-              print(poll_result2[0]['value'])
+              #print(poll_result2[0]['value'])
               poll_result = poll_result2[0]['value']
             else:
               return ""

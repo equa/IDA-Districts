@@ -31,7 +31,7 @@ class WorkerPipeLaying(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.iface=kwargs['iface']
         self.signals=WorkerPipeLayingSignals()
 
@@ -53,7 +53,7 @@ class WorkerPipeLaying(QRunnable):
         self.tsup_max=kwargs['tsup_max']
         self.heat_demand_min=kwargs['heat_demand_min']
         self.heating_load_min=kwargs['heating_load_min']
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        #print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         self.heating_lines_type=kwargs['heating_type_lines'].split(':')
         if self.heating_lines_type:
             self.heating_lines_type=self.heating_lines_type[0]
@@ -64,7 +64,7 @@ class WorkerPipeLaying(QRunnable):
             self.heating_pipe_bundle=self.heating_pipe_bundle[0]
         else:
             self.signals.error.emit("No pipe bundle selected or available!")
-        print(self.heating_lines_type)
+        #print(self.heating_lines_type)
         self.heating_customer_template=kwargs['heating_template_customer'].split(':')
         if self.heating_customer_template:
             self.heating_customer_template=self.heating_customer_template[0]
@@ -102,7 +102,7 @@ class WorkerPipeLaying(QRunnable):
             self.cooling_pipe_bundle=self.cooling_pipe_bundle[0]
         else:
             self.signals.error.emit("No pipe bundle selected or available!")
-        print(self.cooling_lines_type)
+        #print(self.cooling_lines_type)
         self.cooling_customer_template=kwargs['cooling_template_customer'].split(':')
         if self.cooling_customer_template:
             self.cooling_customer_template=self.cooling_customer_template[0]
@@ -125,7 +125,7 @@ class WorkerPipeLaying(QRunnable):
             self.hc_pipe_bundle=self.hc_pipe_bundle[0]
         else:
             self.signals.error.emit("No pipe bundle selected or available!")
-        print(self.hc_lines_type)
+        #print(self.hc_lines_type)
         self.hc_customer_template=kwargs['hc_template_customer'].split(':')
         if self.hc_customer_template:
             self.hc_customer_template=self.hc_customer_template[0]
@@ -145,7 +145,7 @@ class WorkerPipeLaying(QRunnable):
         
     @pyqtSlot()
     def run(self):
-        print('start pipe laying')
+        #print('start pipe laying')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         os.environ['PGPASSWORD'] = self.dictDB['pwd']
@@ -159,7 +159,7 @@ class WorkerPipeLaying(QRunnable):
                     connectionModes.append('heating')
                 if self.check_cooling_network:
                     connectionModes.append('cooling')
-                print(connectionModes)
+                #print(connectionModes)
                 self.srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)['srid']
                 self.prepareDB_pipeLaying(self.dictDB['versionName'])
                 for mode in connectionModes:
@@ -186,7 +186,7 @@ class WorkerPipeLaying(QRunnable):
             self.is_paused = True
         else:
             self.is_paused = False
-        print(self.is_paused)
+        #print(self.is_paused)
         
     def kill(self):
         self.is_killed = True        
@@ -197,19 +197,19 @@ class WorkerPipeLaying(QRunnable):
             sql="""UPDATE temp.customers c SET template=a.template {} FROM (
             SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
     ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.heating_customer_template=='keep type' else "",self.heating_customer_template.split(':')[0],","+self.heating_customer_template.split(':')[0]+" AS template" if not self.heating_customer_template=='keep type' else "")
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
         if not self.cooling_customer_template=='keep type':
             sql="""UPDATE temp.customers c SET template=a.template {} FROM (
             SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
     ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.cooling_customer_template=='keep type' else "",self.cooling_customer_template.split(':')[0],","+self.cooling_customer_template.split(':')[0]+" AS template" if not self.cooling_customer_template=='keep type' else "")
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
         if not self.hc_customer_template=='keep type':
             sql="""UPDATE temp.customers c SET template=a.template {} FROM (
             SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
     ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.hc_customer_template=='keep type' else "",self.hc_customer_template.split(':')[0],","+self.hc_customer_template.split(':')[0]+" AS template" if not self.hc_customer_template=='keep type' else "")
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
     
     def finishNetworkTopology(self,version):
@@ -228,7 +228,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
             sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
             self.cur.execute(sql)    
             
-        print(sql)   
+        #print(sql)   
         self.insertNodes(version)
         if not self.keep_unconnected_customers:
             self.deleteUnconnectedCustomers(version)
@@ -244,10 +244,10 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         updateSubmodels(self.cur,self.dictDB)
         uri = QgsDataSourceUri()
         uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
-        print(uri)
+        #print(uri)
         checkLineDirectionPipeLaying(self.cur,version,self.tolerance,self.network)
         showTempTables(uri,self.dictDB,self.plugin_dir, self.iface,self.cur)
-        print('finished pipe laying')
+        #print('finished pipe laying')
         self.signals.progress.emit(100)
         
     #dublicated code
@@ -259,12 +259,12 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
     WHERE  table_schema = '{}'
     AND    table_name = 'terrain'
     ) AS exists;""".format(version)
-        print(sql) 
+        #print(sql) 
         
         self.cur.execute(sql)
         if self.cur.fetchone()['exists']==True:
-            print('Height layer exists')
-            print('Update point layers')
+            #print('Height layer exists')
+            #print('Update point layers')
             for f in ['customers','energy_plants']:
                 #Update customer height
                 sql= """UPDATE temp.{} f set geom=ST_MakePoint(ST_X(geom),ST_Y(geom),a.height) FROM (
@@ -281,7 +281,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
                 ORDER BY sub.id
     ) a
     WHERE f.id=a.id;""".format(f,version,f,version)
-                print(sql) 
+                #print(sql) 
                 self.cur.execute(sql)
             
             #Update network height
@@ -301,7 +301,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
 UPDATE temp.lines l SET geom=sub.geom,
     length=ST_3DLength(sub.geom)
     FROM sub WHERE sub.id=l.id;""".format(self.srid,version,version)
-            print(sql) 
+            #print(sql) 
             self.cur.execute(sql) 
         else:
             sql="UPDATE temp.lines set length=st_3dlength(geom);"
@@ -327,7 +327,7 @@ UPDATE temp.lines l SET geom=sub.geom,
         
     def updateJunctionConnections(self):
         "UPDATE node connections: n_connections & conn_type"
-        print("UPDATE node connections: n_connections & conn_type")
+        #print("UPDATE node connections: n_connections & conn_type")
         sql="""UPDATE temp.junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,jid FROM temp.junction_connections GROUP BY jid) jc WHERE jc.jid=id;"""
         #print(sql) 
         self.cur.execute(sql)
@@ -352,7 +352,7 @@ UPDATE temp.lines l SET geom=sub.geom,
        
     def mergeLines(self):
         "merge lines and delete nodes with 2 connections"
-        print("merge lines")
+        #print("merge lines")
         i=10000000
         flag=True
         while flag==True:
@@ -414,7 +414,7 @@ UPDATE temp.lines l SET geom=sub.geom,
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
                             )
                     GROUP BY v.id ORDER BY v.id;""".format(self.network,self.tolerance,self.tolerance,self.tolerance)
-        print(sql) 
+        #print(sql) 
         self.cur.execute(sql)        
         
     def getPlants(self,version):
@@ -550,7 +550,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 SELECT geom, costs_eur7m as costs FROM "{}".streets
             )
             UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance)
-        print(sql)  
+        #print(sql)  
         self.cur.execute(sql)   
         #drop table streets_help_vertices_pgr       
         sql="DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;"
@@ -559,7 +559,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         #create network topology
         sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
         self.cur.execute(sql)    
-        print(sql)   
+        #print(sql)   
             
         sql="UPDATE temp.streets_help SET length_m=st_length(geom);"
         self.cur.execute(sql)    
@@ -649,7 +649,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     INSERT INTO temp.lines_{} (id,type,geom,length)
                     	SELECT st.id,{},ST_Force3D(st.geom),St_Length(st.geom)
                     		FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode)
-                print(sql) 
+                #print(sql) 
                 self.cur.execute(sql)   
         
     def connectCustomersNetwork(self,version,mode,connectionModes):
@@ -659,7 +659,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         look first if the connection of a single customer is enough; 
         otherwise look for combined connections;
         look only in the tree with most propability (highest heat density)"""
-        print('Connect customers')
+        #print('Connect customers')
         
         linearEnergyConstr=""
         energyConstr=1
@@ -704,10 +704,10 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 while self.is_paused: #pause algorithm
                     time.sleep(0.1)
                     if self.is_killed: #abort algorithm, but finish network topology with existing pipes
-                        print('abort pipe laying')
+                        #print('abort pipe laying')
                         self.finishNetworkTopology(version,srid)
                 if self.is_killed: #abort algorithm, but finish network topology with existing pipes
-                    print('abort pipe laying')
+                    #print('abort pipe laying')
                     self.finishNetworkTopology(version,srid)
                     
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
@@ -728,7 +728,7 @@ INSERT INTO temp.lines_{} (id,type,geom,length,pipe_bundle_type_id)
         FROM sub, temp.network_help nh
         WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
         GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,type,pipe_bundle_type_id,mode,linearEnergyConstr)
-                print(sql) 
+                #print(sql) 
                 self.cur.execute(sql) 
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
                 #print(sql) 
@@ -736,12 +736,12 @@ INSERT INTO temp.lines_{} (id,type,geom,length,pipe_bundle_type_id)
                 count=self.cur.fetchone()['count_pipes']
                 if count==count_old:
                     flag=True
-                    print("""single connection not successful ; count={}""".format(count))
+                    #print("""single connection not successful ; count={}""".format(count))
                 else:
                     customer_count += 1
                     self.progress_value= int(customer_count / customer_sum / progress_mode * 100)
                     self.signals.progress.emit(self.progress_value)
-                    print("""single connection successful ; count={}""".format(count))
+                    #print("""single connection successful ; count={}""".format(count))
                 count_old=count
             flag=False
             
@@ -829,10 +829,10 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
                     #print(energy)
                     #print(length)
                     #print(float(energy)/float(length))
-                    print(f"cid:{cid} ;energy: {energy}; density: {str(float(energy)/float(length))}")
+                    #print(f"cid:{cid} ;energy: {energy}; density: {str(float(energy)/float(length))}")
                     if float(energy)/float(length) >= linearEnergyDensityMin:
                         flag=True
-                        print("    flag combined="+str(flag)+" ; cid="+str(cid))
+                        #print("    flag combined="+str(flag)+" ; cid="+str(cid))
                         sql="INSERT INTO temp.lines_"+mode+" (id,type,geom,length,pipe_bundle_type_id) SELECT nh.lid,"+type+", ST_Force3D(nh.geom),St_Length(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;";
                         #print(sql) 
                         self.cur.execute(sql) 

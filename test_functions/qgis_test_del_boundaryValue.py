@@ -13,7 +13,7 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
 
 template_idm=plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idm"
 template_idc=plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idc"
@@ -23,7 +23,7 @@ components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(templa
 
 changedValues={}
 changedValues[1]={'p': {'old': '5000','new': False},'m':{'old': False,'new':'45'},'T':'60','ctrl':True}
-print(changedValues)
+#print(changedValues)
 connsValues=getConnsValuesByTemplate('customer',1,1,cur,dictDB)
 #print(connsValues)
 
@@ -33,7 +33,7 @@ def updatePMT2CompBoundaries(comp,pmt2_update_dict):
     for i in comp:
         #print("class: {}; name: {}".format(getCompClass(i),getCompName(i)))
         if getCompClass(i)==':VAR' and getCompName(i) in pmt2_update_dict[getCompName(comp)]['disconnect']:
-            print('disconnect')
+            #print('disconnect')
             pass
         elif getCompClass(i)=='CONNECTOR' and pmt2_update_dict[getCompName(comp)]['update']:
             new_connector=[]
@@ -60,7 +60,7 @@ def getBoundaryUpdateData(connsValues,changedValues):
         if connValues['conn_id'] in changedValues:
             #print(connValues)
             PMT2muxName='"{}_{}_{}_{}"'.format(connValues['conn_bundle_type_id'],connValues['conn_type_seq'],connValues['conn_type_id'],connValues['conn_seq'])
-            print(PMT2muxName)
+            #print(PMT2muxName)
             if changedValues[connValues['conn_id']]['ctrl']=='unchanged':
                 disconnect=''
                 connect=''
@@ -85,9 +85,9 @@ def getBoundaryUpdateData(connsValues,changedValues):
 
 if [True for connValues in connsValues if connValues['conn_id'] in changedValues]:
     pmt2_update_dict,add_constants,del_constants=getBoundaryUpdateData(connsValues,changedValues)
-    print(pmt2_update_dict)
-    print(add_constants)
-    print(del_constants)
+    #print(pmt2_update_dict)
+    #print(add_constants)
+    #print(del_constants)
     #idm    
     data_idm=[]
     for comp in components_idm:
@@ -122,13 +122,13 @@ if [True for connValues in connsValues if connValues['conn_id'] in changedValues
         pass
         #print(i)
         
-    print('-----idc------')
+    #print('-----idc------')
     #idc
     data_idc=[]
     for comp in components_idc:
-        print(getCompClass(comp))
+        #print(getCompClass(comp))
         if getCompClass(comp)=='EQUATION-FRAME' and comp[':NAME'] in del_constants:
-            print('--delete comp--')
+            #print('--delete comp--')
             pass
         else:
             data_idc.append(comp)

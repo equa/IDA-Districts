@@ -13,12 +13,12 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5434', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
 test_file='test'
 class ExchangeConntypeFiles:
     """ Exchanges connection types: 1) Removes the old connection type; 2) add the new connection type !!!!To do!!!!"""
     def __init__(self,plugin_dir,name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=[]):
-        print('*********ExchangeConntypeFiles********')
+        #print('*********ExchangeConntypeFiles********')
         self.plugin_dir=plugin_dir
         self.dictDB=getDBConnectionData(self.plugin_dir)
         dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
@@ -26,7 +26,7 @@ class ExchangeConntypeFiles:
         if not oldConnValues:
             oldConnValues=getConnsValues(b_conn_t_old,cur)
         connValues=getConnsValues(b_conn_t,cur)
-        print(oldConnValues)
+        #print(oldConnValues)
         
         file_data=readFileToList(dir+'\\'+name+'.idm')
         file_data=self.delPMT2Comp(file_data,oldConnValues)      
@@ -46,7 +46,7 @@ class ExchangeConntypeFiles:
                 else:
                     data.append(''.join([""" (:IREF :N "{}_{}_{}_{}" :F 192)\n""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in connValues]))
             if """(CONNECTIONS""" in line:
-                print('***Connections***')
+                #print('***Connections***')
                 openCloseBracktesCounter=line.count('(')-line.count(')')
                 connections=True
                 del data[-1]
@@ -185,7 +185,7 @@ class ExchangeConntypeFiles:
             meter_name_old=meter['name']
             meter_name_old_old=meter_name_old
         meters.append(meter)   
-        print(meters)
+        #print(meters)
         for meter in meters:
             sup_m_conn=' '.join(['('+str(meter['sup_conn'].index(i)+1)+' :MACRO "'+i+'" |M_var|)' for i in meter['sup_conn']])
             sup_t_conn=sup_m_conn.replace('|M_var|','|T_var|')
@@ -252,11 +252,11 @@ class ExchangeConntypeFiles:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(x,meter['name'],meter['name']))    
             counter_emeter+=1                
         writeToFileFromList(filedata,dir,dir+'\\'+name+'_test.idc') 
-        print('exchange conn bundle type finished')
+        #print('exchange conn bundle type finished')
         
     def delConnection(self,file_data,oldConnValues):
         data=[]
-        print('del Connection')
+        #print('del Connection')
         for line in file_data:
             if [True for conn in 
                 ["""\"{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
@@ -265,8 +265,8 @@ class ExchangeConntypeFiles:
                 ["""\"PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+ 
                 ["""\"{}_{}_Flowmeter2\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
                 if conn in line]:
-                print('del connection')
-                print(line)
+                #print('del connection')
+                #print(line)
                 data[-1]=data[-1].replace('\n','')+''.join([')' for i in range(line.count(')')-line.count('('))])+'\n'
             else:
                 data.append(line)
@@ -276,7 +276,7 @@ class ExchangeConntypeFiles:
         data=[]
         del_index=[]
         counter=0
-        print('-------------del comp----------')
+        #print('-------------del comp----------')
         while counter < len(file_data):
             while [True for conn in 
                 ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
@@ -287,10 +287,10 @@ class ExchangeConntypeFiles:
                 if conn in file_data[counter]]:
                 data[-1]=data[-1].replace('\n','')+''.join([')' for i in range(file_data[counter].count(')')-file_data[counter].count('('))])+'\n'
                 openCloseBracktesCounter=file_data[counter].count('(')-file_data[counter].count(')')
-                print(openCloseBracktesCounter)
+                #print(openCloseBracktesCounter)
                 counter+=1
                 while openCloseBracktesCounter>0:
-                    print(file_data[counter])
+                    #print(file_data[counter])
                     openCloseBracktesCounter+=file_data[counter].count('(')-file_data[counter].count(')')
                     counter+=1
                     if counter>=len(file_data):
@@ -307,7 +307,7 @@ def delPMT2Comp(file_data,oldConnValues):
     data=[]
     del_index=[]
     counter=0
-    print('-------------del comp----------')
+    #print('-------------del comp----------')
     while counter < len(file_data):
         while [True for conn in 
             ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_M{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'],conn['mdot']) for conn in oldConnValues]+
@@ -318,10 +318,10 @@ def delPMT2Comp(file_data,oldConnValues):
             if conn in file_data[counter]]:
             data[-1]=data[-1].replace('\n','')+''.join([')' for i in range(file_data[counter].count(')')-file_data[counter].count('('))])+'\n'
             openCloseBracktesCounter=file_data[counter].count('(')-file_data[counter].count(')')
-            print(openCloseBracktesCounter)
+            #print(openCloseBracktesCounter)
             counter+=1
             while openCloseBracktesCounter>0:
-                print(file_data[counter])
+                #print(file_data[counter])
                 openCloseBracktesCounter+=file_data[counter].count('(')-file_data[counter].count(')')
                 counter+=1
                 if counter>=len(file_data):
@@ -334,7 +334,7 @@ def delPMT2Comp(file_data,oldConnValues):
         counter+=1
     return data
         
-print(getConnsValues(1,cur))
+#print(getConnsValues(1,cur))
 
 ats=getTemplatesByConnBundleType(cur,dictDB,1)
         

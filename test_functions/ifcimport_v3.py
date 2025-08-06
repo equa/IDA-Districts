@@ -58,7 +58,7 @@ for space in spaces:
         heights.append(round(height, 3))
 
     except Exception as e:
-        print(f"Skipping space {space.GlobalId} due to error: {e}")
+        #print(f"Skipping space {space.GlobalId} due to error: {e}")
 
 # Create GeoDataFrame with EPSG:25832
 gdf = gpd.GeoDataFrame({
@@ -71,4 +71,4 @@ gdf = gpd.GeoDataFrame({
 output_path = "C:\\Users\\Administrator\\Desktop\\Peter\\Hellerhöfe\\shp\\spaces_floor_polygons_v2.shp"
 gdf.to_file(output_path)
 
-print(f"Shapefile written to: {output_path}")
+#print(f"Shapefile written to: {output_path}")

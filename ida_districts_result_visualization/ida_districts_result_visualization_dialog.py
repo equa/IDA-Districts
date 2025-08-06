@@ -348,7 +348,7 @@ class ShowOnMapDialog(QMainWindow):
         
     def colorStateChanged(self,s):
         if Qt.Checked==s:
-            print('checked')
+            #print('checked')
             self.rbtn_colorVar.setHidden(False)
             self.color_var.setHidden(False)
             self.color_function.setHidden(False)
@@ -360,7 +360,7 @@ class ShowOnMapDialog(QMainWindow):
             self.color_classes.setHidden(False)
                 
         else:
-            print('unckecked')
+            #print('unckecked')
             self.rbtn_colorVar.setHidden(True)
             self.color_var.setHidden(True)
             self.color_function.setHidden(True)
@@ -373,7 +373,7 @@ class ShowOnMapDialog(QMainWindow):
         self.varSelectionGroupChanged(False)
 
     def varSelectionGroupChanged(self,radioButton):
-        print('radio var/par changed')
+        #print('radio var/par changed')
         if self.rbtn_colorVar.isChecked() and self.checkbox_varColor.isChecked() or self.rbtn_sizeVar.isChecked() and self.checkbox_varSize.isChecked() or self.rbtn_rotationVar.isChecked() and self.checkbox_varRotation.isChecked():
             if self.label_endtime.isHidden():
                 self.label_endtime.setHidden(False)
@@ -389,7 +389,7 @@ class ShowOnMapDialog(QMainWindow):
 
     def sizeStateChanged(self,s):
         if Qt.Checked==s:
-            print('checked')
+            #print('checked')
             self.rbtn_sizeVar.setHidden(False)
             self.size_var.setHidden(False)
             self.size_function.setHidden(False)
@@ -401,7 +401,7 @@ class ShowOnMapDialog(QMainWindow):
             self.size_symbolMin.setHidden(False)
 
         else:
-            print('unckecked')
+            #print('unckecked')
             self.rbtn_sizeVar.setHidden(True)
             self.size_var.setHidden(True)
             self.size_function.setHidden(True)
@@ -415,7 +415,7 @@ class ShowOnMapDialog(QMainWindow):
 
     def rotationStateChanged(self,s):
         if Qt.Checked==s:
-            print('checked')
+            #print('checked')
             self.rbtn_rotationVar.setHidden(False)
             self.rotation_var.setHidden(False)
             self.rotation_function.setHidden(False)
@@ -427,7 +427,7 @@ class ShowOnMapDialog(QMainWindow):
             self.rotation_symbolMin.setHidden(False)
 
         else:
-            print('unckecked')
+            #print('unckecked')
             self.rbtn_rotationVar.setHidden(True)
             self.rotation_var.setHidden(True)
             self.rotation_function.setHidden(True)
@@ -574,21 +574,21 @@ class ShowOnMapDialog(QMainWindow):
         self.rotation_var.clear()
         self.rotation_par.clear()
         if self.rbtn_mDatap.isChecked():
-            print('Measurement data')
+            #print('Measurement data')
             self.type='m'
         elif self.rbtn_simData.isChecked():
             self.type='s'
         if self.rbtn_customers.isChecked():
-            print('Customers')
+            #print('Customers')
             self.feature='customer'
             vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
             pars=getTableAttr(self.cur,self.dictDB,self.feature)
-            print(vars)
+            #print(vars)
             self.displayRotationLayout()
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
         elif self.rbtn_plants.isChecked():
-            print('Energy plants')
+            #print('Energy plants')
             self.feature='energy_plant'
             vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
             pars=getTableAttr(self.cur,self.dictDB,self.feature)
@@ -596,7 +596,7 @@ class ShowOnMapDialog(QMainWindow):
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
         elif self.rbtn_lines.isChecked():
-            print('Lines')
+            #print('Lines')
             self.feature='line'
             vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
             pars=getTableAttr(self.cur,self.dictDB,self.feature)

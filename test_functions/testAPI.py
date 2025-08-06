@@ -11,32 +11,32 @@ class WorkerRunAutoMooAPI():
         #open file in IDA
         self.util=Util_api(plugin_dir)
         self.file_path=file_path.replace('/','\\')
-        print(self.file_path)
-        print(self.util.pid)
+        #print(self.file_path)
+        #print(self.util.pid)
         # IDA ICE connection test
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
-            print('**************ParmRunSkopt*****************')
+            #print('**************ParmRunSkopt*****************')
             self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
 
                 
-            print('--script---')
+            #print('--script---')
             #execute AutoMOO
             script="""(PARMRUN-SKOPT [@ :SYSTEM "ParmRun_annualCallib"])"""
-            print(script)
+            #print(script)
             #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
       
-            print('save doc')
+            #print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
 
-            print('exit')
+            #print('exit')
             #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
             os.system("taskkill /f /im ida-ice.exe")
             #Disconnect
             #print('disconnect')
             #end = self.util.ida_lib.ida_disconnect()
-            print('finish')
+            #print('finish')
         except:
             pass
         

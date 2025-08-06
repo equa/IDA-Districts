@@ -8,14 +8,14 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 dir=plugin_dir+'ida_districts_data_center\\{}\\customer_templates\\1_2_Simple heating substation\\'.format(dictDB['projectName'])
 #fname=dir+'1_2_Simple heating substation.idm'
 # fname="""\\\\?\\C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation\\network_models\\test00001\\base1\\invoked_customers\\customer_1\\Customer_1.idm"""
-# print(fname)
+# #print(fname)
 # data=readFileToString(fname)
 # #print(data)
-# print(getIDAListComponents(data))
+# #print(getIDAListComponents(data))
 
-# print(getIDAListComponents(data))
+# #print(getIDAListComponents(data))
 # data_idm=propertyListCompsIDM(getIDAListComponents(data))
-# print(data_idm)
+# #print(data_idm)
 
         
 def getIDAListComponents(data):
@@ -26,18 +26,18 @@ def getIDAListComponents(data):
     # value_str=re.findall(r"\:VALUE\s+\(([A-Za-z0-9_\s+\-\$\\\<\>\=\:\"\/\'\;\,]+)\)", data)
     
     value_list=[]
-    print('-----++---')
+    #print('-----++---')
     for value in re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data):
-        print('++')
-        print(value)
-        print(re.search('[a-zA-Z]', value))
+        #print('++')
+        #print(value)
+        #print(re.search('[a-zA-Z]', value))
         if ':DICT ' not in value and re.search('[a-zA-Z]', value):
-            print('***')
-            print(value)
+            #print('***')
+            #print(value)
             value_list.append(value)
             data=data.replace(' ('+value+')','')
             #print(data)
-    print('--------------')
+    #print('--------------')
     #print(data)
     
     def replace_func(x):
@@ -98,13 +98,13 @@ def getIDAListComponents(data):
 
     #print(data)
     data=data.replace('\\','\\\\')
-    print(data)
+    #print(data)
     i=0
     
-    print('*-*-')
-    print(value_list)
+    #print('*-*-')
+    #print(value_list)
     value_list.reverse()
-    print(value_list)
+    #print(value_list)
 
     if value_list:
         #print(value_list)
@@ -122,16 +122,16 @@ def getIDAListComponents(data):
     return eval(data)
     
 fname="""\\\\?\\C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation\\network_models\\test00001\\base1\\invoked_customers\\customer_1\\Customer_1.idc"""
-print(fname)
+#print(fname)
 data=readFileToString(fname)
-print(data)
+#print(data)
 
-print(getIDAListComponents(data))
+#print(getIDAListComponents(data))
 klö
 data_idc=propertyListCompsIDC(getIDAListComponents(data))
-print(data_idc)
+#print(data_idc)
          
-print(fname)         
+#print(fname)         
 #writePropertyListIDMToFile(data_idm,dir,fname)
 
 

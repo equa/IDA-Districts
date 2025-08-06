@@ -25,7 +25,7 @@ class WorkerBuildNetworkModel(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
@@ -35,12 +35,14 @@ class WorkerBuildNetworkModel(QRunnable):
         self.conn = dbConnect(self.dictDB,True)
         self.networks=kwargs['networks']
         self.submodels=kwargs['submodels']
+        self.dlg.process_running=True
+
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
     @pyqtSlot()
     def run(self):
-        print('run worker invoke network')
+        #print('run worker invoke network')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         
@@ -59,7 +61,7 @@ class PageSettings:
     SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM "{}".energy_plants WHERE {} = submodel AND network <@ array[{}] 
 )
 SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS ymax FROM sub;""".format(versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]));
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         settings=cur.fetchone()
         self.xmin=settings['xmin']
@@ -77,7 +79,7 @@ SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS yma
     SELECT min(ST_Distance(ep.geom, c.geom)) AS lmin FROM "{}".energy_plants ep, "{}".customers c WHERE {} = ep.submodel AND {} = c.submodel
 )
 SELECT min(lmin) AS lmin FROM sub;""".format(versionName,submodel,','.join([str(i) for i in networks]),versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel);
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         self.lmin=cur.fetchone()
         if self.lmin['lmin']:
@@ -115,8 +117,8 @@ class InvokeNetworkModel:
         4) insert pipes between customers and nodes 
         5) insert pipes between nodes"""
     def __init__(self,dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
-        print('**********invoke network*********')
-        print(submodels)
+        #print('**********invoke network*********')
+        #print(submodels)
         if os.name == 'nt' and '\\\\?\\' not in dir:
             dir='\\\\?\\'+dir
         self.plugin_dir=dir
@@ -141,9 +143,9 @@ class InvokeNetworkModel:
                     
                 #simulated outputs
                 self.invokedOutputs=loadInvokedOutputs(self.plugin_dir,self.dictDB)
-                print(self.invokedOutputs)
+                #print(self.invokedOutputs)
                 self.invokedOutputs['lines'] = {'v_lines': True if requestedOutputs['v_lines'] else False, 'mdot_lines': True if requestedOutputs['mdot_lines'] else False, 'p_lines': True if requestedOutputs['p_lines'] else False, 'temp_lines': True if requestedOutputs['temp_lines'] else False}
-                print(self.invokedOutputs)
+                #print(self.invokedOutputs)
    
                 #setSubnetwork(self.cur,self.dictDB)
                 feature_dec_irefs=[]
@@ -153,40 +155,40 @@ class InvokeNetworkModel:
                 #clean up data which might be removed since adding the sensor
                 cleanupSensorSignals(self.cur,self.dictDB)
                 sensor_data=getSensorData(self.cur,self.dictDB,filter=filter)
-                print(sensor_data)
+                #print(sensor_data)
 
-                print(getUsedSubmodels(self.cur, self.dictDB))
+                #print(getUsedSubmodels(self.cur, self.dictDB))
                 for submodel in getUsedSubmodels(self.cur, self.dictDB):
                     #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
-                    print('//////************------//////*------')
+                    #print('//////************------//////*------')
                     for i in readDecoupledFeatureSensorSignals(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data):
-                        print('++++++++--++')
-                        print(i)
+                        #print('++++++++--++')
+                        #print(i)
                         if i not in feature_dec_irefs:
                             feature_dec_irefs.append(i)
-                print(feature_dec_irefs)
+                #print(feature_dec_irefs)
                 
                 self.signals.progress.emit(2)
                 sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.dictDB)      
-                print(sensor_dec_data)
+                #print(sensor_dec_data)
                 self.signals.progress.emit(3)
                 supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.dictDB)['submodel'])
                 self.signals.progress.emit(4)
 
                 for submodel in submodels: 
-                    print(submodel)
+                    #print(submodel)
                     self.pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
                     idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
                     dec_templates=CopyDecoupledTemplateMacro(submodel,dir,self.dictDB,self.cur,self.plugin_dir,sensor_data)
                    
                     self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
                     resources.extend(dec_templates.resources)
-                    print('*****************************************************************')
-                    print(dec_templates.resources)
+                    #print('*****************************************************************')
+                    #print(dec_templates.resources)
                     
                     import_counter=dec_templates.import_counter
-                    print('*-+')
-                    print(import_counter)
+                    #print('*-+')
+                    #print(import_counter)
                     
                     idc=self.writeNetworkTemplateIdc(submodel,dir,networks,supervisory_submodel)
                     
@@ -217,7 +219,7 @@ class InvokeNetworkModel:
                     #Sensors
                     #NetworkSensorSignals(self.cur,self.dictDB,dir+'\\network_'+str(submodel))
                     dir=dir+'\\network_'+str(submodel)
-                    print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
+                    #print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
                     sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir,import_counter)
                     sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.dictDB,dir,self.plugin_dir)
                     self.signals.progress.emit(int(2+12*(submodels.index(submodel)+1)/len(submodels)*97))
@@ -243,13 +245,13 @@ class InvokeNetworkModel:
                         if reinvoke:
                             sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.dictDB['versionName'],type[:-1])
                             self.cur.execute(sql)
-                        print(self.signals)
+                        #print(self.signals)
                         copyTemplateMacro=CopyTemplateMacro(submodel,dir,type,self.dictDB,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals)
                         self.invokedOutputs[type]=copyTemplateMacro.invokedFeatureOutputs
                         resources.extend(copyTemplateMacro.resources)
                     self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
-                    print('&&&&&&&&&&&&&&&&&&&&&&')
-                    print(set(resources))
+                    #print('&&&&&&&&&&&&&&&&&&&&&&')
+                    #print(set(resources))
                     idm+=''.join(["\n"+i for i in set(resources)])
                     
                     #sf-macro
@@ -284,6 +286,7 @@ class InvokeNetworkModel:
                     writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
                 writeInvokedOutputs(self.plugin_dir,self.dictDB,self.invokedOutputs)
                 self.signals.progress.emit(100)  
+                self.signals.finished.emit('fisished')
 
             except Exception as e:
                 self.signals.error.emit(str(e))
@@ -294,7 +297,7 @@ class InvokeNetworkModel:
         """Close IDA project"""
         script="""((close-document [@])
 (close-unused-documents))"""
-        print(script)
+        #print(script)
         changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
     
     def openFile(self):
@@ -314,7 +317,7 @@ class InvokeNetworkModel:
             if x!=0:
                 dir_plugins+='//'
             dir_plugins+=dir_plugin_split[x]
-        #print (dir_plugins)
+        #print(dir_plugins)
         os.popen('copy source.txt destination.txt')         
     
     #todo liqtype
@@ -340,7 +343,7 @@ SELECT * FROM sub
 UNION
 SELECT * FROM sub
 ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]),self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         i=1
         alpha_i=4000 #alpha_water=4000 W/m2K ; 1 m/s Strömung
@@ -362,7 +365,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     WHERE bp.pipe_bundle_type_id={} AND bp.pipe_id=p.id AND pl.pipe_construction_id=p.pipe_construction_id AND m.id=pl.materialid
     GROUP BY p.innerpipediameter,p.piperoughnessfactor, se_pipe,bp.ambient
     ORDER BY bp.sequence;""".format(bunde_type)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             pipe_info=self.cur.fetchall()
             dPipes=[i['innerpipediameter'] for i in pipe_info]
@@ -472,12 +475,12 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
     ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
 
         conns=self.cur.fetchall()
         if not conns:
-            print('No nodes in network or wrong junction constructions!')
+            #print('No nodes in network or wrong junction constructions!')
             #self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm_conn,idc_conn
             
@@ -488,17 +491,17 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
         seq_lids=[]
         for conn in conns:
             try:
-                print(conn)
+                #print(conn)
                 point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
                 point_j = self.getSymbolCoordinate(conn['j_point'].split("(")[1][:-1].split(' '))
                     
                 if conn['seq']!=seq_old:
-                    print('--new seq--')
+                    #print('--new seq--')
                     if seq_counter!=0:
-                        print(seq_lids)
-                        print([i for i in lids if i not in seq_lids])
-                        print([lids.index(i)+1 for i in lids if i not in seq_lids])
-                        print("".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids]))
+                        #print(seq_lids)
+                        #print([i for i in lids if i not in seq_lids])
+                        #print([lids.index(i)+1 for i in lids if i not in seq_lids])
+                        #print("".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids]))
                         idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids])
                     seq_lids=[conn['lid']]
                     seq_counter+=1
@@ -508,9 +511,9 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
 
                     
                 if conn['jid']!=jid_old:
-                    print('++new jid++')
+                    #print('++new jid++')
                     lids=conn['lids']
-                    print(lids)
+                    #print(lids)
                     conn_counter=1
                     seq_counter=1
                     max_seq=conn['max_seq']
@@ -528,7 +531,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
                 jid_old=conn['jid']
                 lid_old=conn['lid']
                 conn_old=conn
-                print("seq: {}; conn: {}".format(seq_counter,conn_counter))
+                #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
                 conn_counter+=1
             except Exception as e:
                 self.signals.error.emit("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles.")
@@ -539,7 +542,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     
     def insertConnections(self,submodel,type,idm_conn,idc_conn,networks):
         """Insert the connections between features and the pipe"""
-        print("********insertConnections:"+type)
+        #print("********insertConnections:"+type)
         if type=='customers':
             id_name='cid'
             seq_name='c_seq'
@@ -550,7 +553,7 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     FROM "{}".{} d, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates da, public.connections conn, public.connection_type_connections conn_t_conns
     WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND fc.{}=conn_b_t.sequence AND da.template=d.template AND l.id=fc.lid AND d.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
     ORDER BY d.id, conn_b_t.sequence, conn_type_seq;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
-        print(sql)
+        #print(sql)
         
         self.cur.execute(sql)
         seq_counter=1
@@ -605,18 +608,18 @@ ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],sel
     #duplicated code     
     def checkDBConnected(self):
         """ Check if connected to DB"""
-        print('check connection')
+        #print('check connection')
         if self.dictDB['pwd'] and self.dictDB['user'] and self.dictDB['host'] and self.dictDB['port'] and self.dictDB['projectName'] and self.dictDB['versionName']:
-            print('connected!')
+            #print('connected!')
             return True
         else:
-            print('not connected!')
+            #print('not connected!')
             return False
  
     def writeNetworkTemplateIdm(self,submodel,dir,requestedOutputs,networkSimData):    
         """ write idm file with """
-        print('write idm network model')
-        print(networkSimData)
+        #print('write idm network model')
+        #print(networkSimData)
         simulation_data=getSimData(requestedOutputs,networkSimData)
         data=""";IDA 5.11 Data UTF-8
 (DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 5.11))
@@ -756,9 +759,9 @@ output to current demand. It can also be operated in installations with differen
     
     def writeNetworkTemplateIdc(self,submodel,dir,networks,supervisory_submodel):    
         """ write idc file with """
-        print('write idc network model')
+        #print('write idc network model')
         pageSettings=PageSettings(self.cur,submodel,self.dictDB['versionName'],networks).getPageSettings()
-        print(pageSettings)
+        #print(pageSettings)
         data=""";IDA 5.11 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {})
 (EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
@@ -778,7 +781,7 @@ output to current demand. It can also be operated in installations with differen
         
     def insertJunctions(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Insert junctions"""
-        print('**************insert junctions*************************')
+        #print('**************insert junctions*************************')
         sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq
     FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
@@ -786,13 +789,13 @@ output to current demand. It can also be operated in installations with differen
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
     ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,','.join([str(i) for i in networks]))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         #print(requestedOutputs)
 
         conns=self.cur.fetchall()
         if not conns:
-            print('No nodes in network or wrong junction constructions!')
+            #print('No nodes in network or wrong junction constructions!')
             #self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
             
@@ -804,16 +807,16 @@ output to current demand. It can also be operated in installations with differen
         seq_counter=0
         for conn in conns:
             try:
-                print(conn)
-                print('instreamT: '+inStreamT)
-                print('m_dot: '+m_dot)
+                #print(conn)
+                #print('instreamT: '+inStreamT)
+                #print('m_dot: '+m_dot)
                     
                 if conn['seq']!=seq_old:
-                    print('--new seq--')
+                    #print('--new seq--')
                     if seq_counter!=0:
-                        print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
+                        #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
                         for i in range(conn_counter,len(lids)+1):
-                            print('--add connection: '+str(i))
+                            #print('--add connection: '+str(i))
                             inStreamT+=" ("+str(conn_counter)+" . 0.0)"
                             m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
                     seq_counter+=1
@@ -824,9 +827,9 @@ output to current demand. It can also be operated in installations with differen
                         inStreamT+='('+str(seq_counter)   
                     
                 if conn['jid']!=jid_old:
-                    print('++new jid++')
+                    #print('++new jid++')
                     lids=conn['lids']
-                    print(lids)
+                    #print(lids)
                     if jid_old!=0:
                         dim='('+str(seq_counter-1)+' '+str(len(lids))+')'
                         idm,idc=self.makeNodeComponent(conn_old,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
@@ -837,10 +840,10 @@ output to current demand. It can also be operated in installations with differen
                     m_dot=''
                   
                 if lids[conn_counter-1]!=conn['lid']:
-                    print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
-                    print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
+                    #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
+                    #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
                     for i in range(conn_counter,lids.index(conn['lid'])+1):
-                        print('++'+str(i))
+                        #print('++'+str(i))
                         inStreamT+=" ("+str(conn_counter)+" . 0.0)"
                         m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
                         conn_counter+=1
@@ -873,7 +876,7 @@ output to current demand. It can also be operated in installations with differen
      
     def makeNodeComponent(self,junction,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid):
         """Makes the node bundle componenent"""
-        print(junction)
+        #print(junction)
         points = junction['j_point'].split("(")[1].replace('(','').replace(')','').split(' ')
         y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
         x=round(150+50+(float(points[0])-float(self.pageSettings['xmin']))/float(self.pageSettings['lmin'])*150,0)
@@ -891,7 +894,7 @@ output to current demand. It can also be operated in installations with differen
                 
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):
         """ insert customers; take the macro template and copy it to the IDA project"""
-        print('****************insert customers******************')
+        #print('****************insert customers******************')
         sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point, c.dhw_id,ca.conn_bundle_type, ca.template_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
 	FROM "{}".customers c, customer_templates ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
 	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.template=c.template AND
@@ -899,7 +902,7 @@ output to current demand. It can also be operated in installations with differen
         conn_b_t.conn_bundle_type_id=ca.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id
 	ORDER BY c.id,conn_b_t.sequence;""".format(submodel, self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         iref=""
         i=0
@@ -927,12 +930,12 @@ output to current demand. It can also be operated in installations with differen
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
             iref+="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             if cid!=cid_old and i!=0:
-                print('#####++++++-------------------------')
-                print(cid_old)
-                print(feature_dec_irefs)
-                print(customer)
-                print(conn_bundl_type)
-                print(name_conn)
+                #print('#####++++++-------------------------')
+                #print(cid_old)
+                #print(feature_dec_irefs)
+                #print(customer)
+                #print(conn_bundl_type)
+                #print(name_conn)
                 
                 idm+="""\n((MACRO-OBJECT :N "Customer_{}" :T ICE-MACRO :D "ICE macro"){}{}{})""".format(cid_old,iref_old if customer_old['model']=='same-model' else'',
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(str(i['sensor_id'])) 
@@ -967,7 +970,7 @@ output to current demand. It can also be operated in installations with differen
         conn_b_t.conn_bundle_type_id=epa.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id AND ep.network && ARRAY[{}]
 	ORDER BY ep.id,conn_b_t.sequence;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         epid=""
         iref=""

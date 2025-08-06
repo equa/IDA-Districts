@@ -16,18 +16,18 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
 
 sql="""SELECT id from "{}".customers WHERE network=2 ORDER BY id;""".format(dictDB['versionName'])
 cur.execute(sql)
 ids=[id['id'] for id in cur.fetchall()]
-print(ids)
+#print(ids)
 
 fig, ax = plt.subplots(layout='constrained')
 power_sum=[]
 count=0
 for id in ids:
-    print(id)
+    #print(id)
     sql="""SELECT owner FROM "{}".customers WHERE id = {};""".format(dictDB['versionName'],id)
     cur.execute(sql)
     

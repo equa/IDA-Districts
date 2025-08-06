@@ -14,20 +14,20 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
 
     submodels=getUsedSubmodels(cur,dictDB)
     submodels.remove(str(submodel))
-    print(submodels)
+    #print(submodels)
     
     #get feature template connections from .idc
     usedFeatureTemplates=getUsedFeatureTemplates(cur,dictDB)
-    print(usedFeatureTemplates)
+    #print(usedFeatureTemplates)
     usedDecoupledFeatureTemplates=getUsedDecoupledFeatureTemplates(usedFeatureTemplates,cur,dictDB,submodel,submodels)
-    print(usedDecoupledFeatureTemplates)
+    #print(usedDecoupledFeatureTemplates)
     
     datacenter_dir=getDataCenterDir(plugin_dir)
 
     template_data_ex=[]
     resources=[]
     for template in usedDecoupledFeatureTemplates:
-        print(template)
+        #print(template)
         #collect resources
         resource_f=datacenter_dir+'\\{}\\{}_templates\\{}_{}.idm'.format(dictDB['projectName'],template['feature'],template['template'],template['template_name'])
         file_data=readFileToList(resource_f)
@@ -58,37 +58,37 @@ def writeCosimMacroIdm(dictDB,cur,submodel,dir,plugin_dir,sensor_data,sensor_dec
                 dec_models.append(emeter)
         dec_models.append(':SELF')
         dec_models=['"'+i+'"' if i != ':SELF' else i for i in dec_models]
-        print('++dec-models:++')
-        print(dec_models)
+        #print('++dec-models:++')
+        #print(dec_models)
         data_ex=getDataExTemplate(conns_idc,dec_models,components_idm,template['network_side'],sensor_dec_data,submodel,cur,dictDB)
-        print(data_ex)
+        #print(data_ex)
         
         #print(dec_conns)
         template_data_ex.append({'feature':template['feature'],'template':template['template'],'data_ex':data_ex})
         
-    print('+++++++++++++++++--finished---+++++++++++++++++++++')
-    print(template_data_ex)
+    #print('+++++++++++++++++--finished---+++++++++++++++++++++')
+    #print(template_data_ex)
 
 
     for cosim in submodels:
         f_ids=getFeatureDecIds(dictDB,cur,submodel,[cosim])
-        print(f_ids)
+        #print(f_ids)
         if [True for f_id in f_ids if str(submodel)==str(f_id['submodel']) and str(cosim)==str(f_id['cosim']) or str(submodel)==str(f_id['cosim']) and str(f_id['submodel'])==str(cosim)]:
-            print(template_data_ex)
-            print('-*-*')
+            #print(template_data_ex)
+            #print('-*-*')
             importVars=getImportVars(f_ids,template_data_ex,sensor_dec_data)
-            print('------importVars-----')
-            print(importVars)
+            #print('------importVars-----')
+            #print(importVars)
             exportVars=getExportVars(f_ids,template_data_ex,sensor_dec_data,mode)
-            print('------exportVars-----')
-            print(exportVars)
+            #print('------exportVars-----')
+            #print(exportVars)
             
             cosimNetworkSideImportSignals=getCosimImportSourceSignals(sensor_dec_data,submodel,cur,dictDB,cosim)
-            print('------cosimNetworkSideImportSignals-----')
-            print(cosimNetworkSideImportSignals)
+            #print('------cosimNetworkSideImportSignals-----')
+            #print(cosimNetworkSideImportSignals)
             cosimNetworkSideExportSignals=getCosimExportSignals(sensor_dec_data,submodel,len(exportVars),cosim,str(getSupervisorySubmodel(cur,dictDB)['submodel']))
-            print('------cosimNetworkSideExportSignals-----')
-            print(cosimNetworkSideExportSignals)
+            #print('------cosimNetworkSideExportSignals-----')
+            #print(cosimNetworkSideExportSignals)
                         
             #cosimExportTargetSignals=getCosimExportTargetSignals(sensor_dec_data,submodel,len(exportVars),cosim)
 

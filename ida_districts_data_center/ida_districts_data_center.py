@@ -225,7 +225,7 @@ class IDADistrictsDataCenter:
     def closeDialog(self,dlg,table,openFnArg):
         """ Closes dialog"""
         self.delIfNotInDBIds(table,openFnArg)
-        print('close dialog: {}'.format(dlg))
+        #print('close dialog: {}'.format(dlg))
         dlg.close()        
 
     def getValuesFromTableRow(self,dlg,dropdowns,row,columns,checkBoxes):
@@ -234,17 +234,17 @@ class IDADistrictsDataCenter:
         mdot=False
         #print(row)
         for col in range(dlg.tableWidget.columnCount()):
-            print(columns[col])
+            #print(columns[col])
             if col in list([i[0] for i in dropdowns]):
                 value=dlg.tableWidget.cellWidget(row, col).currentText()
             elif col in checkBoxes:
-                print ('check box')
+                #print('check box')
                 value=dlg.tableWidget.cellWidget(row, col).isChecked()
-                print(value)
+                #print(value)
             else:
                 if dlg.tableWidget.item(row,col):
                     value=dlg.tableWidget.item(row,col).text()
-                    print(value)
+                    #print(value)
                     if value and columns[col]=='p':
                         p=True
                     if value and columns[col]=='mdot':
@@ -273,7 +273,7 @@ class IDADistrictsDataCenter:
         wroteTemplate=False
         if dlg.traceTableValues[traceValue][1]:
             if dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1]:
-                print(dlg.traceTableValues[traceValue])
+                #print(dlg.traceTableValues[traceValue])
                 if not dlg.traceTableValues[traceValue][0]:
                     if dlg.traceTableValues[traceValue][3]:
                         WriteTemplateFiles(self.plugin_dir,dlg.traceTableValues[traceValue][1],table_name,self.cur,dlg.traceTableValues[traceValue][3])
@@ -285,8 +285,8 @@ class IDADistrictsDataCenter:
                     RenameTemplateFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],self.cur)
         if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteTemplate:
             if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
-                print('Changed conn bundle type')
-                print(dlg.traceTableValues[traceValue])
+                #print('Changed conn bundle type')
+                #print(dlg.traceTableValues[traceValue])
                 if dlg.traceTableValues[traceValue][1]:
                     name=dlg.traceTableValues[traceValue][1]
                 else:
@@ -295,7 +295,7 @@ class IDADistrictsDataCenter:
     
     def saveContent(self,dlg,id,table,columns,filter,dropdowns,trace):
         """" Save table to DB an close dialog"""
-        print('Save table content to DB an close dialog')
+        #print('Save table content to DB an close dialog')
         table_name="_".join(table.split('_')[0:-1])
         if trace in ['conn_type_trace','bt_conns_trace']:
             oldConnValues_dict={}
@@ -304,18 +304,18 @@ class IDADistrictsDataCenter:
                 oldConnValues_dict[at['at_name']]=getConnsValues(at['conn_bundle_type_id'],self.cur)
         
         sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id)
-        print(sql)
+        #print(sql)
         maxId=getMaxId(self.cur,table)
         counter=1
         for row in range(dlg.tableWidget.rowCount()):
             values=self.getValuesFromTableRow(dlg,dropdowns,row,columns,[])
-            print(values)
+            #print(values)
             if not values:
                 self.iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
                 return False
             sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values)
             counter+=1
-        print(sql)
+        #print(sql)
         try:
             self.cur.execute(sql)
         except Exception as e:
@@ -323,22 +323,22 @@ class IDADistrictsDataCenter:
             return False
         
         if trace in ['conn_type_trace','bt_conns_trace']:
-            print(dlg.traceTableValues)
+            #print(dlg.traceTableValues)
             if [True for traceValue in dlg.traceTableValues if 
                 dlg.traceTableValues[traceValue][1] and dlg.traceTableValues[traceValue][3] and (dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1] or dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]) or
                 dlg.traceTableValues[traceValue][1] and not dlg.traceTableValues[traceValue][0] or 
                 dlg.traceTableValues[traceValue][3] and not dlg.traceTableValues[traceValue][2]]:
-                print('ExchangeConntypeFiles')
+                #print('ExchangeConntypeFiles')
                 #get changed conn bundle types --> get changed templates
                 ats=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
                 for at in ats:
-                    print('*****************************************************************************')
-                    print(at['t_name'])
-                    print(oldConnValues_dict[at['t_name']])
+                    #print('*****************************************************************************')
+                    #print(at['t_name'])
+                    #print(oldConnValues_dict[at['t_name']])
                     ExchangeConntypeFiles(self.plugin_dir,at['t_name'],at['type'],at['conn_bundle_type_id'],at['conn_bundle_type_id'],self.cur,oldConnValues=oldConnValues_dict[at['t_name']])
             
         elif trace:
-            print(dlg.traceTableValues)
+            #print(dlg.traceTableValues)
             for traceValue in dlg.traceTableValues:
                 self.writeRenameExchangeConntype(dlg,traceValue,table_name)
             
@@ -349,20 +349,20 @@ class IDADistrictsDataCenter:
                 # check only .idm files
                 if file.split('.')[0] not in files:
                     files.append(file.split('.')[0])
-            print (files)
+            #print(files)
             traceTableFiles=[]
             for traceValue in dlg.traceTableValues: 
                 if dlg.traceTableValues[traceValue][1]:
                     traceTableFiles.append(dlg.traceTableValues[traceValue][1])
                 else:
                     traceTableFiles.append(dlg.traceTableValues[traceValue][0])
-            print(traceTableFiles)
+            #print(traceTableFiles)
             sql="""SELECT template::text || '_' || template_name AS template_name FROM {}_templates;""".format(table_name)
             self.cur.execute(sql)
             list_template_names=[i['template_name'] for i in self.cur.fetchall()]
             for file in files:
                 if file not in traceTableFiles and file not in list_template_names:
-                    print(file)
+                    #print(file)
                     if os.path.exists(dir+'\\'+file+'.idm'):
                         os.remove(dir+'\\'+file+'.idm')
                     if os.path.exists(dir+'\\'+file+'.idc'):
@@ -378,7 +378,7 @@ class IDADistrictsDataCenter:
         sql='SELECT template, template_name,conn_type,description FROM public.{}_templates GROUP BY template,template_name,conn_type,description ORDER BY template;'.format(type)
         self.cur.execute(sql)
         data=self.cur.fetchall()
-        print(data)
+        #print(data)
         for template in data:
             rowPosition = self.dlg_manageTemplate.tableWidget.rowCount()
             self.dlg_manageTemplate.tableWidget.insertRow(rowPosition)
@@ -410,12 +410,12 @@ class IDADistrictsDataCenter:
     def loadIds(self,column,table):
         """ load the connection ids from DB and show it in the dropdown in dlg_showAddConnType"""
         sql='SELECT {} AS conn_id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         ids=[]
         for id in self.cur.fetchall():
             ids.append(str(id['conn_id']))
-        print (ids)
+        #print(ids)
         self.dlg_showAddConnBundleType.inletConnectionType.clear()
         self.dlg_showAddConnBundleType.inletConnectionType.addItems(ids)
         self.dlg_showAddConnBundleType.outletConnectionType.clear()
@@ -431,7 +431,7 @@ class IDADistrictsDataCenter:
     def getDBIds(self,column,table):
         """ load the ids from DB table"""
         sql='SELECT {} AS id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         return list([id['id'] for id in self.cur.fetchall()])           
         
@@ -442,7 +442,7 @@ class IDADistrictsDataCenter:
     
     def addConnectionTypeRowToTable(self,dlg):
         """ Add new connection type to connection type table"""
-        print('Add new connectiontype row to connection  table')
+        #print('Add new connectiontype row to connection  table')
         rowPosition = dlg.tableWidget.rowCount()
         dlg.tableWidget.insertRow(rowPosition)
         dlg.tableWidget.setItem(rowPosition, 0, QTableWidgetItem(rowPosition))
@@ -452,9 +452,9 @@ class IDADistrictsDataCenter:
 
     def deleteTableRow (self,dlg,trace):
         """ Delete selected template and refresh table"""
-        print('delete row')
+        #print('delete row')
         row_index=dlg.tableWidget.currentRow()
-        print (row_index)
+        #print(row_index)
         if row_index!=-1:
             dlg.tableWidget.removeRow(row_index)
         else:
@@ -466,7 +466,7 @@ class IDADistrictsDataCenter:
                 if row>row_index:
                     dlg.traceTableValues[row-1]=dlg.traceTableValues[row]
             dlg.traceTableValues.pop(len(dlg.traceTableValues)-1,None)
-            print(dlg.traceTableValues)
+            #print(dlg.traceTableValues)
             
     def showConnections(self,dlg,id):
         """ Show Connections from a connection type"""
@@ -474,7 +474,7 @@ class IDADistrictsDataCenter:
         sql='SELECT sequence, type,temp,description,p FROM public.connections WHERE connection_id={};'.format(id)
         self.cur.execute(sql)
         data=self.cur.fetchall()
-        print(data)
+        #print(data)
         for conn in data:
             rowPosition = dlg.tableWidget.rowCount()
             dlg.tableWidget.insertRow(rowPosition)
@@ -505,12 +505,12 @@ class IDADistrictsDataCenter:
         return self.cur.fetchone()['count']        
     
     def saveBuildingConstructions(self,dlg,id):
-        print('Save table to DB an close dialog')
+        #print('Save table to DB an close dialog')
         sql="""DELETE FROM building_constructions WHERE construction_standard_id={};\n""".format(id)
         for row in range(dlg.tableWidget.rowCount()):
             sql+="""INSERT INTO building_constructions (construction_standard_id,construction_type_id,construction_name,description) VALUES ({},{},'{}','{}');\n""".format(
                 id,dlg.tableWidget.item(row,0).text(),dlg.tableWidget.item(row,2).text(),dlg.tableWidget.item(row,3).text())
-        print(sql)
+        #print(sql)
         try:
             self.cur.execute(sql)
         except Exception as e:
@@ -520,12 +520,12 @@ class IDADistrictsDataCenter:
         
     def showTableBuildingConstructions(self,dlg,id):
         """showTableBuildingConstructions"""
-        print('showTableBuildingConstructions')
+        #print('showTableBuildingConstructions')
         dlg.tableWidget.setRowCount(self.rowCountDB('building_construction_types',''))
         sql="""SELECT bct.id, bct.name, bc.construction_name, bc.description
     FROM building_constructions bc,building_construction_types bct 
     WHERE bc.construction_type_id=bct.id AND bc.construction_standard_id={} ORDER BY bct.id;""".format(id)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql) 
         data = self.cur.fetchall()
         if not data:
@@ -534,7 +534,7 @@ class IDADistrictsDataCenter:
             data = self.cur.fetchall()
             
         for rowCounter,row in enumerate(data):
-            print(row)
+            #print(row)
             for colCounter,col in enumerate(row):
                 item=QTableWidgetItem(str(row[col]))
                 if colCounter in [0,1]:
@@ -543,10 +543,10 @@ class IDADistrictsDataCenter:
                     
 
     def show_buildingConstructions(self,table,columns,dropdowns,dlg,selected_row_id,openFnArg,trace=False):
-        print('show Building constructions')
-        print(selected_row_id)
+        #print('show Building constructions')
+        #print(selected_row_id)
         constr_std_id=dlg.tableWidget.item(selected_row_id,0).text()
-        print(constr_std_id)
+        #print(constr_std_id)
         dlg = TableDialog('Building constructions',['Id','Construction type','Construction name','Description'],False,False,False,False,addBtn=False,deleteBtn=False)   
         dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))   
         dlg.btn_ok.clicked.connect(lambda: self.saveBuildingConstructions(dlg,constr_std_id))
@@ -555,7 +555,7 @@ class IDADistrictsDataCenter:
         
     def show_TableCurrentRowDialog(self,table,columns,dropdowns,dlg,id,openFnArg,trace=False):
         """ Show current row in table; openFnArg: 0) table; 1) columns in String; 2) headers in list; 3) filter in String; 4) dropdowns """
-        print('Open current row dialog started: ')
+        #print('Open current row dialog started: ')
         columns=openFnArg[1]
         headers=openFnArg[2]
         filter=openFnArg[3]
@@ -589,7 +589,7 @@ class IDADistrictsDataCenter:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)  
 
     def show_templateDialog(self,type):
-        print('Open current row dialog started: ')
+        #print('Open current row dialog started: ')
         columns=['template','template_name','conn_bundle_type','description']
         headers=['Id', 'Template name','Connection bundle type', 'Description']
         filter=''
@@ -619,12 +619,12 @@ class IDADistrictsDataCenter:
 
     def openTemplate(self,type,dlg):
         """ Open an template macro in IDA; copy the template from the installation folder"""
-        print('Open Template')
+        #print('Open Template')
         row_index=dlg.tableWidget.currentRow()
         if row_index!=-1:
             template=dlg.tableWidget.item(row_index, 0).text()
             sql="SELECT template_name,conn_bundle_type FROM public.{}_templates WHERE template={};".format(type,template)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             template_=self.cur.fetchone()
             if template_:
@@ -641,12 +641,12 @@ class IDADistrictsDataCenter:
             name=template+'_'+template_name
             dir=self.plugin_dir.replace('/','\\')+"\\{}\\{}_templates\\".format(self.dictDB['projectName'],type)
             file=dir+"{}.idm".format(name)
-            print(file)
-            print(dlg.traceTableValues)
+            #print(file)
+            #print(dlg.traceTableValues)
             
             if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
                 if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
-                    print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
+                    #print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
                     RenameTemplateFiles('\\\\?\\'+self.plugin_dir,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],self.cur)
                     dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
                     dlg.traceTableValues[row_index][1]=''
@@ -661,16 +661,16 @@ class IDADistrictsDataCenter:
             
             if dlg.traceTableValues[row_index][3] and dlg.traceTableValues[row_index][2] and not wroteTemplate: # override connection bundle only if template exists before
                 if dlg.traceTableValues[row_index][2]!=dlg.traceTableValues[row_index][3]:
-                    print('Changed conn bundle type')
-                    print(dlg.traceTableValues[row_index])
+                    #print('Changed conn bundle type')
+                    #print(dlg.traceTableValues[row_index])
                     ExchangeConntypeFiles(self.plugin_dir,name,type,dlg.traceTableValues[row_index][3],dlg.traceTableValues[row_index][2],self.cur)
                     dlg.traceTableValues[row_index][2]=dlg.traceTableValues[row_index][3]
                     dlg.traceTableValues[row_index][3]=''
-                    print(dlg.traceTableValues[row_index])                
+                    #print(dlg.traceTableValues[row_index])                
 
             #write to DB
             sql="DELETE FROM public.{}_templates WHERE template={};".format(type,template)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             if type=='customer':
                 description_index=4
@@ -683,48 +683,48 @@ class IDADistrictsDataCenter:
 
             sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(
                 type,getMaxId(self.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][2],description)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
             # Open the building with the IDA ICE Python API
-            print('**********************************')
-            print(file)
+            #print('**********************************')
+            #print(file)
             self.worker_openTemplate = WorkerOpenAPI(file,self.plugin_dir)
             self.threadpool_openTemplate = QThreadPool()
             self.threadpool_openTemplate.start(self.worker_openTemplate)
             
-            print('finished open template')
+            #print('finished open template')
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
     def openBuildingTemplate(self,table,columns,dropdowns,dlg,row_index,openFnArg,trace=False):
         """ Open an building template in IDA"""
-        print('Open Building template')
-        print(dlg)
-        print(dlg.tableWidget)
-        print(row_index)
+        #print('Open Building template')
+        #print(dlg)
+        #print(dlg.tableWidget)
+        #print(row_index)
         if row_index!=-1:
             self.saveTable(dlg,table,columns,dropdowns,openFnArg,[],False,False,trace)
             
             # Open the building with the IDA ICE Python API
-            print('**********************************')
+            #print('**********************************')
             file=self.plugin_dir+"\\{}\\building_templates\\{}.idm".format(self.dictDB['projectName'],dlg.tableWidget.item(row_index, 1).text())
-            print(file)
+            #print(file)
             self.worker_openBuildingTemplate = WorkerOpenAPI(file,self.plugin_dir)
             self.threadpool_openBuildingTemplate = QThreadPool()
             self.threadpool_openBuildingTemplate.start(self.worker_openBuildingTemplate)
             
-            print('finished building template')
+            #print('finished building template')
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
         
     def log_change(self, item):
-        print('item changed:'+str(item.text()))
+        #print('item changed:'+str(item.text()))
         self.changed_items.append(item)
                         
     def writeClimateDataToDB(self,dlg):
         """ write climate data into DB"""
-        print('Write climate data to DB')
+        #print('Write climate data to DB')
         name=dlg.input[0].text()
         latitude=dlg.input[1].text()
         longitude=dlg.input[2].text()
@@ -738,7 +738,7 @@ class IDADistrictsDataCenter:
         file_name = \'{}\',
         timezone = {},
         height = {};""".format(self.dictDB['versionName'],name,latitude,longitude,fileName,timezone,height)
-        print (sql)
+        #print(sql)
         self.cur.execute(sql)
         self.closeDialog(self.dlg_climate,'',['',[],[],'','',[]])
         
@@ -748,7 +748,7 @@ class IDADistrictsDataCenter:
         title='Add bundle connection type'
         climateData=getClimateData(self.cur,self.dictDB,True)
         inputs=[{'label':'Name:','text':climateData['name']},{'label':'Latitude:','text':str(climateData['latitude'])},{'label':'Longitude:','text':str(climateData['longitude'])},{'label':'Climate file path:','text':climateData['filename']},{'label':'Time zone:','text':str(climateData['timezone'])},{'label':'Elevation height:','text':str(climateData['height'])}]
-        print(inputs)
+        #print(inputs)
         self.dlg_climate=IDA_Districts_NameDialog(title,inputs,False,False)
         self.dlg_climate.btn_ok.clicked.connect(lambda: self.writeClimateDataToDB(self.dlg_climate))
         self.dlg_climate.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_climate,'',['',[],[],'','',[]]))
@@ -760,7 +760,7 @@ class IDADistrictsDataCenter:
 FROM information_schema.columns
 WHERE (table_schema, table_name) = ('{}', '{}')
 ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         defaults=self.cur.fetchall()
         return defaults
@@ -769,7 +769,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         """show the default values of a table in the GUI"""
         for default in defaults:
             if default['column_name'] in ['template','pipe_bundle_type_id','network','type','internal_load_id','dhw_id']:
-                print(default)
+                #print(default)
                 if default['column_name'] =='template':
                     dropdownItems=getDropDownItems(self.cur,[[0,'public','{}_templates'.format(template_name),'id','template_name']])
                 elif default['column_name'] =='type':
@@ -794,7 +794,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def show_DefaultsLinesDialog(self):
         """ show the efaultsLinesDialog"""
         defaults=self.getDefaults("lines")
-        print(defaults)
+        #print(defaults)
         self.dlg_defaultsLines=DefaultsDialog('line',"Defaults layer lines",[{'label': 'Type','value': ['type',0,'general']},{'label': 'Pipe bundle type','value': ['pipe_bundle_type_id',0,'general']},{'label': 'Network','value': ['network',0,'general']}],self.cur)
         self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsLines,'lines'))
         self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsLines,'',['',[],[],'','',[]]))
@@ -804,7 +804,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def show_DefaultsCustomersDialog(self):
         """ show the efaultsLinesDialog"""
         defaults=self.getDefaults("customers")
-        print(defaults)
+        #print(defaults)
         self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer customers",[{'label': 'Template','value': ['template',0,'general']},{'label': 'Submodel','value': ['submodel',1,'general']},
                                                 {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Internal load ID','value': ['internal_load_id',0,'physical']},
                                                 {'label': 'Load, W','value': ['load_w',1,'physical']}],self.cur)
@@ -825,31 +825,31 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
     def writeDefaultsToDB(self,dlg,table):
         """Write default values to DB """
         for input in dlg.input:
-            print(input)
+            #print(input)
             value=""
             if input in ['template','type','pipe_bundle_type_id','network','dhw_id','internal_load_id']:
                 value=dlg.input[input].currentText()
             else:
-                print(dlg.input[input].text())
-                print(dlg.input[input].text().isnumeric())
+                #print(dlg.input[input].text())
+                #print(dlg.input[input].text().isnumeric())
                 if dlg.input[input].text().isnumeric():
                     value=dlg.input[input].text()
-            print(value)
+            #print(value)
             value=value.split(':')[0]
-            print(value)
+            #print(value)
             if value and value != '(no selection)':
                 if value=='(no selection)':
                     sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(self.dictDB['versionName'],table,input,value)
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)    
                 else:
                     sql='ALTER TABLE "{}".{} ALTER COLUMN {} SET DEFAULT {};'.format(self.dictDB['versionName'],table,input,value)
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
         dlg.close()
         uri = QgsDataSourceUri()
         uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
-        print(uri)
+        #print(uri)
 
         removeLayer(table)
         
@@ -857,7 +857,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         
     def setClimate(self):
         """ set climate data to DB"""
-        print('set climate')
+        #print('set climate')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
@@ -866,7 +866,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             
     def setDefaultsLines(self):
         """ set default values for layer lines"""
-        print('set defaults lines')
+        #print('set defaults lines')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
@@ -875,7 +875,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         
     def setDefaultsCustomers(self):
         """ set default values for layer customers"""
-        print('set defaults customers')
+        #print('set defaults customers')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
@@ -884,7 +884,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             
     def setDefaultsPlants(self):
         """ set default values for layer plants"""
-        print('set defaults plants')
+        #print('set defaults plants')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
@@ -893,7 +893,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
 
     def showTableContent(self,dlg,table,dropdowns,columns=None):
         """show table content"""
-        print('show table content')
+        #print('show table content')
         cur=self.conn.cursor()
         sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns==None else columns[1:-1],table)
         cur.execute(sql) 
@@ -909,7 +909,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 traceTableValues[rowPosition]={}
             for col in range(len(row)):
                 if col in list([i[0] for i in dropdowns]):
-                    print('dropdown: '+str(col))
+                    #print('dropdown: '+str(col))
                     comboBox = QComboBox()
                     comboBox.addItems(dropdownItems[col])
                     currentText=str([i for i in dropdownItems[col] if str(row[col]) == i.split(':')[0]][0])
@@ -933,16 +933,16 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         
     def showFilteredTableContent(self,dlg,table,columns,filter,orderby,dropdowns,trace,deactivated):
         """show filtered table content"""
-        print('show filtered table content')
-        print(f'trace:{trace}')
+        #print('show filtered table content')
+        #print(f'trace:{trace}')
         cur=self.conn.cursor()
         dlg.tableWidget.setRowCount(self.rowCountDB(table,filter))
         sql='SELECT {} FROM public.{} {} {} ;'.format(','.join(i for i in columns),table,filter,orderby)
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
         data = cur.fetchall()
         dropdownItems=getDropDownItems(self.cur,dropdowns)
-        print(dropdownItems)
+        #print(dropdownItems)
         rowCount=0
         table_trace={}
         changedConnectionBundleType=''
@@ -978,9 +978,9 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 table_trace[rowCount]= [str(row[0]),'',changedConnectionBundleType.split(':')[0],'']
             elif trace:
                 table_trace[rowCount]= [str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'']
-                print(table_trace)
+                #print(table_trace)
             rowCount+=1
-        print(table_trace)
+        #print(table_trace)
         return table_trace
 
     def manageConnections(self):
@@ -990,7 +990,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             #self.show_TableDialog('Connections','connections',['Connection Id','Type','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'],'(id,type,temp,p,mdot,description)',[[1,'public','prefered_conn_dir','id','name']],False, False,['',[],[],'','',[],False,'',False,False]) 
         
-            print('Manage connections')
+            #print('Manage connections')
             dropdowns=[[1,'public','prefered_conn_dir','id','name']]
             checkBoxes=[2]
             columns='(id,type,p_ctrl,temp,p,mdot,description)'
@@ -1056,23 +1056,23 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         #add row to dlg.traceTableValues in order to trace the changed values     
         for row in reversed(sorted(dlg.traceTableValues)):
             dlg.traceTableValues[row+1]=dlg.traceTableValues[row]
-        print(dlg.traceTableValues)
+        #print(dlg.traceTableValues)
         dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,4).text(),'',dlg.tableWidget.item(0,5).text(),'',dlg.tableWidget.item(0,3).text(),'',False,dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0],''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
-        print(dlg.traceTableValues)
+        #print(dlg.traceTableValues)
             
     def showConnectionsContent(self,dlg,dropdowns): 
         """show connections table content"""
-        print('show connections table content')
+        #print('show connections table content')
         table='connections'
         cur=self.conn.cursor()
         dlg.tableWidget.setRowCount(self.rowCountDB(table,''))
         sql='SELECT id,type,p_ctrl,temp,p,mdot,description FROM public.connections ORDER BY id;'
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
         data = cur.fetchall()
         dropdowns=[[1,'public','prefered_conn_dir','id','name']]
         dropdownItems=getDropDownItems(self.cur,dropdowns)
-        print(dropdownItems)
+        #print(dropdownItems)
         rowCount=0
 
         for row in data:
@@ -1106,7 +1106,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             
             dlg.traceTableValues[rowCount]= ['' if row[4]==None else str(row[4]),'','' if row[5]==None else str(row[5]),'',str(row[3]),'',row[2],'',str(row[1]),''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
             rowCount+=1
-        print(dlg.traceTableValues)
+        #print(dlg.traceTableValues)
                     
     def manageConnectionTypes(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -1212,26 +1212,26 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             filter=openFnArg[3]
             if filter:
                 ids=self.getDBIds('id',table)
-                print(ids)
+                #print(ids)
                 if ids:
                     ids=','.join([str(i) for i in ids])
                     sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids)
                 else:
                     sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0]))
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
             
     def saveTable(self,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg,trace=False):
         """" Save table to DB an close dialog"""
-        print('Save table to DB an close dialog')
+        #print('Save table to DB an close dialog')
         sql="""TRUNCATE {} CASCADE;\n""".format(table)
         for row in range(dlg.tableWidget.rowCount()):
             values= self.getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','),checkBoxes)
             if not values:
-                print('return')
+                #print('return')
                 return False
             sql+="""INSERT INTO {} {} VALUES ({});\n""".format(table,columns,values)
-        print(sql)
+        #print(sql)
         try:
             self.cur.execute(sql)
         except Exception as e:
@@ -1239,15 +1239,15 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             return False
         self.delIfNotInDBIds(table,openFnArg)
         if ok_fn:
-            print('----ok-fn---')
+            #print('----ok-fn---')
             ok_fn(ok_fn_arg[0],ok_fn_arg[1])
             
         if trace =='building_template':
-            print(dlg.traceTableValues)
+            #print(dlg.traceTableValues)
             for row in dlg.traceTableValues:
                 if not dlg.traceTableValues[row][1][0] and dlg.traceTableValues[row][1][1]:
                     #add default building (located project handling)
-                    print('***added building type***')
+                    #print('***added building type***')
                     src_dir=loadIDADistrictsConfig(self.plugin_dir)['path_ice']+'lib\\ice\\building\\'
                     templates_dir=self.plugin_dir+'\\{}\\building_templates\\'.format(self.dictDB['projectName'])
                     copyFile(src_dir+'default.idm',templates_dir,templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][1]))
@@ -1256,7 +1256,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 elif dlg.traceTableValues[row][1][0] and dlg.traceTableValues[row][1][1]:
                     if dlg.traceTableValues[row][1][0]!= dlg.traceTableValues[row][1][1]:
                         #rename building template
-                        print('***updated building type name***')
+                        #print('***updated building type name***')
                         templates_dir=self.plugin_dir+'\\{}\\building_templates\\'.format(self.dictDB['projectName'])
                         if os.path.exists(templates_dir):
                             file_src=templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][0])
@@ -1273,7 +1273,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         """Insert table row"""
         rowPosition = 0
         traceTableValues=copy.deepcopy(dlg.traceTableValues)
-        print('-------insert row---------------')
+        #print('-------insert row---------------')
         dlg.tableWidget.insertRow(rowPosition)
         dropdownItems=getDropDownItems(self.cur,dropdowns)
         for col in range(dlg.tableWidget.columnCount()):
@@ -1294,43 +1294,43 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                 
         #add row to dlg.traceTableValues in order to trace the changed values     
         if trace:
-            print('----------trace-------'+str(trace))
+            #print('----------trace-------'+str(trace))
             for row in reversed(sorted(traceTableValues)):
-                print(row)
-                print(traceTableValues[row])
+                #print(row)
+                #print(traceTableValues[row])
                 dlg.traceTableValues[row+1]=traceTableValues[row]
             try:
-                print('--add trace values of row 0--')
+                #print('--add trace values of row 0--')
                 if trace=='building_template':
                     dlg.traceTableValues[0]={i: ['',str(getMaxTableId(dlg.tableWidget)) if i==0 else ''] for i in range(dlg.tableWidget.columnCount())}            
                 elif trace in ['conn_type_trace','bt_conns_trace']:
-                    print('conn_type_trace or bt_conns_trace')
-                    print(dlg.tableWidget.item(0,0).text())
-                    print(dlg.tableWidget.cellWidget(0,1).currentText())
+                    #print('conn_type_trace or bt_conns_trace')
+                    #print(dlg.tableWidget.item(0,0).text())
+                    #print(dlg.tableWidget.cellWidget(0,1).currentText())
                     dlg.traceTableValues[0]= ['',dlg.tableWidget.item(0,0).text(),'',dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0]]
                 elif trace:                   
-                    print(dlg.tableWidget.item(0,1))
-                    print(dlg.tableWidget.item(0,1).text())
-                    print(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
+                    #print(dlg.tableWidget.item(0,1))
+                    #print(dlg.tableWidget.item(0,1).text())
+                    #print(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
                     dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
-                print(dlg.traceTableValues)
-                print('--finished trace values of row 0--')
+                #print(dlg.traceTableValues)
+                #print('--finished trace values of row 0--')
             except:
                 pass
-            print(dlg.traceTableValues)
+            #print(dlg.traceTableValues)
                 
         
     def importFn(self,dlg,table,args,dropdowns):
-        print('Import Fn')
-        print(args)
+        #print('Import Fn')
+        #print(args)
         filename, _filter = QFileDialog.getOpenFileName(
             self.dlg, "Import file","", '*.prn;*.txt')
-        print(filename)
+        #print(filename)
         if filename:
             id=getMaxTableId(dlg.tableWidget)
-            print(id)
+            #print(id)
             self.addTableRow(dlg,dropdowns,False,[0])
-            print(dlg.tableWidget.currentRow())
+            #print(dlg.tableWidget.currentRow())
             dlg.tableWidget.setItem(0,0,QTableWidgetItem(str(id+1)))
             dlg.tableWidget.setItem(0,1,QTableWidgetItem(filename.split('/')[-1].split('.')[0]))
             
@@ -1341,20 +1341,20 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     if i!=0:
                         sql+="""\nINSERT INTO public.{}({}_id,{},{}) VALUES ({},{},{});""".format(args[0],args[0],args[1][0],args[1][1],id+1,line.split()[0],line.split()[1])
                     i+=1
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
     def importFnInternalLoad(self,dlg,table,args,dropdowns):
-        print('Import Fn internal loads')
-        print(args)
+        #print('Import Fn internal loads')
+        #print(args)
         filename, _filter = QFileDialog.getOpenFileName(
             self.dlg, "Import file","", '*.prn;*.txt')
-        print(filename)
+        #print(filename)
         if filename:
             id=getMaxTableId(dlg.tableWidget)
-            print(id)
+            #print(id)
             self.addTableRow(dlg,dropdowns,False,[0])
-            print(dlg.tableWidget.currentRow())
+            #print(dlg.tableWidget.currentRow())
             dlg.tableWidget.setItem(0,0,QTableWidgetItem(str(id+1)))
             dlg.tableWidget.setItem(0,1,QTableWidgetItem(filename.split('/')[-1].split('.')[0]))
             
@@ -1366,7 +1366,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                         line=line.split()
                         sql+="""\nINSERT INTO public.internal_load(internal_load_id,time_h,person_w7m2,electricity_w7m2) VALUES ({},{},{},{});""".format(id+1,line[0],line[1],line[2])
                     i+=1
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
     def saveAsTemplate(self,dlg,table_name,dropdowns,trace):
@@ -1395,7 +1395,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             
             #replace values of dlg.traceTableValues [0] in order to trace the changed values         
             dlg.traceTableValues[0]=[file_name_new,'',conn_bundle_type_old.split(':')[0],'']
-            print(dlg.traceTableValues)
+            #print(dlg.traceTableValues)
             
             #add sensor data to source and target templates and invoked signals
             sql="""INSERT INTO {}.target_template(target_id,template,active) 
@@ -1414,27 +1414,27 @@ UPDATE {}.invoked_sensor_target_signals
         self.dictDB['versionName'],str(maxId+1),self.dictDB['versionName'],self.dictDB['versionName'],template_id,dlg.type,
         self.dictDB['versionName'],str(maxId+1),template_id,dlg.type,
         self.dictDB['versionName'],str(maxId+1),template_id,dlg.type)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
 
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
 
     def copyTableRow(self,dlg,row_idx,dropdowns,openFn,openFnArg):
-        print('copyTableRow')
-        print(row_idx)
+        #print('copyTableRow')
+        #print(row_idx)
         if row_idx!=-1: 
             maxId=getMaxTableId(dlg.tableWidget)
             self.addTableRow(dlg,dropdowns,True,[])
-            print('row added')
+            #print('row added')
             for col in range(dlg.tableWidget.columnCount())[1:]:
                 if dlg.tableWidget.item(row_idx+1,col):
-                    print(dlg.tableWidget.item(row_idx+1,col).text())
+                    #print(dlg.tableWidget.item(row_idx+1,col).text())
                     dlg.tableWidget.setItem(0,col,QTableWidgetItem(dlg.tableWidget.item(row_idx+1,col).text()))
                 else:
                     dlg.tableWidget.cellWidget(0, col).setCurrentText(dlg.tableWidget.cellWidget(row_idx+1,col).currentText())
             if openFn:
-                print(openFnArg)
+                #print(openFnArg)
                 id=dlg.tableWidget.item(row_idx+1,0).text()
                 table=openFnArg[0]
                 columns=openFnArg[1]
@@ -1445,14 +1445,14 @@ UPDATE {}.invoked_sensor_target_signals
         SELECT max(id) AS max_id FROM public.{}
     )
     SELECT ROW_NUMBER() OVER (ORDER BY {}) + max_id AS row_number,{},{} FROM public.{},sub {} {} ;""".format(table,filter.split('WHERE ')[1].split('=')[0].strip(),','.join(i for i in columns),table,columns[0],str(maxId+1),','.join(i for i in columns),table,filter,orderby)
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
     
     def show_TableDialog(self,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]],trace=False):
         """Show types from table in DB"""
-        print('Manage connection types')
+        #print('Manage connection types')
         openBtn=False
         if openFn:
             openBtn=True
@@ -1471,7 +1471,7 @@ UPDATE {}.invoked_sensor_target_signals
         dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
         dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,trace,[0]))
         dlg.traceTableValues=self.showTableContent(dlg,table,dropdowns,columns=columns)
-        print(dlg.traceTableValues)
+        #print(dlg.traceTableValues)
         if trace:
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)
         dlg.show()
@@ -1506,10 +1506,10 @@ UPDATE {}.invoked_sensor_target_signals
             self.dlg.btn_manageBuildingTemplates.clicked.connect(self.manageBuildingTemplates)
             # show the dialog
             self.dlg.show()
-            print ('finish')
+            #print('finish')
         else:
             self.dlg.show()
             self.dlg.activateWindow()
-            print('activate')
+            #print('activate')
 
         

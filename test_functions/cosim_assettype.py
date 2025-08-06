@@ -37,9 +37,9 @@ cosim=2
 cur.execute(sql)
 conn_counter=0
 for feature in cur.fetchall():
-    print(feature)
-    # print([eval(iref)['mdot'] for i,iref in enumerate(feature['conns'],0)])
- #    print(["""((MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)
+    #print(feature)
+    # #print([eval(iref)['mdot'] for i,iref in enumerate(feature['conns'],0)])
+ #    #print(["""((MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)
  # (:VAR :N |P_var| :V 100000{})
  # (:VAR :N |M_var| :V -0.01655{})
  # (:VAR :N |T_var| :V 70.0)
@@ -56,7 +56,7 @@ for feature in cur.fetchall():
  # (:VAR :N INSIGNAL :DIM (1) :V #(0.02463) :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))""".format(eval(iref)['pmt2_name'].split('_')[3],
  #    """(1 :SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(submodel,cosim,conn_counter+i*2+1)) if eval(iref)['conn_dir']=='Return' else '') for i,iref in enumerate(feature['conns'],0)])
  #    conn_counter+=len([iref for iref in feature['conns']])*2
-    print("""(CONNECTIONS {})\n""".format("".join(["{}{}".format("""\n (("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)""".format(eval(iref)['pmt2_name'],eval(iref)['pmt2_name']),
+    #print("""(CONNECTIONS {})\n""".format("".join(["{}{}".format("""\n (("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)""".format(eval(iref)['pmt2_name'],eval(iref)['pmt2_name']),
                     """\n (("PMT2mux_{}" M) ("mdot_sign_{}" OUTSIGNALLINK) 0 0 NIL)""".format(eval(iref)['pmt2_name'],eval(iref)['pmt2_name'].split('_')[3]) if eval(iref)['conn_dir']=='Return' else '') 
                         for iref in feature['conns']])))
     

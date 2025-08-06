@@ -23,7 +23,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APIPlotinvokedFeatureSignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
@@ -38,7 +38,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        print('Generate network topology')
+        #print('Generate network topology')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
        
@@ -46,16 +46,16 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
         for idx in self.rows:
             id=self.dlg.tableWidget_customer.item(idx,0).text()
             connValues=getConnsValues(getConnBundleByFeature(self.type,id,self.cur,self.dictDB),self.cur)
-            print(connValues)
+            #print(connValues)
             conn_type_seq=set([x['conn_type_seq'] for x in connValues])
-            print(conn_type_seq)
+            #print(conn_type_seq)
             for seq in conn_type_seq:
                 file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
-                print(file_path)
+                #print(file_path)
                 if os.path.exists(file_path):
                     legend=self.type.capitalize()+':'+id
 
-                    print(file_path)
+                    #print(file_path)
                     filedata=readFileToList(file_path)
 
                     #print(filedata)
@@ -75,7 +75,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                                     energy.append([float(data[0]),energy[-1][1]+(float(data[0])-energy[-1][0])*float(data[power_col])/1000]) #kWh
                             i+=1    
                     except Exception as e:
-                        print(f'error: {e}')
+                        #print(f'error: {e}')
                         self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
                     
                     power=np.array(power)  
@@ -124,30 +124,30 @@ class WorkerSimulateFilesAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         file_path=""
         try:
             for counter,file_path in enumerate(self.file_pathes,1):
                 if os.path.exists(file_path):
-                    print(file_path)
+                    #print(file_path)
                     #open file
-                    print('+++++++++opening+++++++++++')
+                    #print('+++++++++opening+++++++++++')
                     building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
-                    print('+++++++++opened+++++++++++')
+                    #print('+++++++++opened+++++++++++')
                     #run sim
                     script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
-                    print(script)
+                    #print(script)
                     self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
                     #print('save doc')
                     #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('utf-8'), 1)   
-                    print('+++++++++saved++++++++++++++++')
+                    #print('+++++++++saved++++++++++++++++')
                     self.progress_value=int(counter/len(self.file_pathes)*98)+1
-                    print(self.progress_value)
+                    #print(self.progress_value)
                     self.signals.progress.emit(self.progress_value)
                     if self.result:
                         self.signals.status.emit('Simulation finished')
@@ -156,7 +156,7 @@ class WorkerSimulateFilesAPI(QRunnable):
                 else:
                     self.signals.error.emit("Sim model does not exist!")
             self.signals.progress.emit(100)
-            print('simulation-finished')
+            #print('simulation-finished')
         except:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
@@ -175,32 +175,32 @@ class WorkerSimulateAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         self.building={}
         try:
             if os.path.exists(self.file_path):
-                print(self.file_path)
+                #print(self.file_path)
                 #open file
-                print('+++++++++opening+++++++++++')
+                #print('+++++++++opening+++++++++++')
                 self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-                print('+++++++++opened+++++++++++')
+                #print('+++++++++opened+++++++++++')
                 #run sim
                 script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(self.file_path.replace('\\','\\\\'))
-                print(script)
+                #print(script)
                 self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))
-                print(self.result)
+                #print(self.result)
                 if self.result:
                     self.signals.status.emit('Simulation finished')
                 else:
                     self.signals.status.emit('Simulation failed')
             else:
                 self.signals.error.emit("Sim model does not exist!")
-            print('++++simulation-finished++++')
+            #print('++++simulation-finished++++')
         except:
             self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
             
@@ -226,10 +226,10 @@ class WorkerOpenAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir,submodel=self.submodel)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
             result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             self.signals.progress.emit(100)
@@ -256,31 +256,31 @@ class WorkerOpenRunScriptAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
             self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            print('+++++++++')
-            print(self.building)
+            #print('+++++++++')
+            #print(self.building)
             self.signals.progress.emit(50)
             result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
-            print(result)
+            #print(result)
             
             if self.exit_ida:
                 try:
-                    print ('exit-ida')
+                    #print('exit-ida')
                     self.script="(exit-ida)"
-                    print(self.script.encode('utf-8'))
+                    #print(self.script.encode('utf-8'))
                     self.signals.progress.emit(90)
-                    print(self.finished_fn)
+                    #print(self.finished_fn)
                     if callable(self.finished_fn):
                         self.finished_fn(self.finished_fn_args)
                     self.signals.progress.emit(100)
                     self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
                 except Exception as e:
-                    print(e)
+                    #print(e)
                     self.signals.progress.emit(0)
                     self.signals.error.emit("Failed to exit ida!")  
             else:    
@@ -299,10 +299,10 @@ class WorkerOpenParRunAPI():
         #open file in IDA
         self.util=Util_api(plugin_dir)
         self.file_path=file_path.replace('/','\\')
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
             building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             if parmRun=='New Parametric Run':
@@ -316,9 +316,9 @@ class WorkerOpenParRunAPI():
                 script="""((:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
 (open-as parm_name 'form))""".format(parmRun)
             
-            print(script)
+            #print(script)
             script_result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
-            print(script_result)
+            #print(script_result)
         except:
             pass
             
@@ -328,20 +328,20 @@ class WorkerRunAutoMooAPI():
         #open file in IDA
         self.util=Util_api(plugin_dir)
         self.file_path=file_path.replace('/','\\')
-        print(self.file_path)
-        print(self.util.pid)
+        #print(self.file_path)
+        #print(self.util.pid)
         # IDA ICE connection test
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
-            print('**************ParmRunSkopt*****************')
+            #print('**************ParmRunSkopt*****************')
             self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            print(self.building)
+            #print(self.building)
 
-            print('save doc')
+            #print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
             
-            print('--script---')
+            #print('--script---')
             #execute AutoMOO
             script="""((:set parmrun_ [@ "{}"])
 (:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
@@ -350,19 +350,19 @@ class WorkerRunAutoMooAPI():
 (parmrun-common-check parmrun_ t)
 (PARMRUN-SKOPT parmrun_)
 )""".format(parmRun,parmRun)
-            print(script)
+            #print(script)
             self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
       
-            print('save doc')
+            #print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
 
-            print('exit')
+            #print('exit')
             #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
             os.system("taskkill /f /im ida-ice.exe")
             #Disconnect
             #print('disconnect')
             #end = self.util.ida_lib.ida_disconnect()
-            print('finish')
+            #print('finish')
         except:
             pass
         

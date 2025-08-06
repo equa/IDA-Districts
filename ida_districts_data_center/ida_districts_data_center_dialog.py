@@ -47,26 +47,26 @@ class ConnectionsDialog(QMainWindow):
         self.resize(900, 500)  # Width of 900 pixels, height of 500 pixels        
     
     def changedDropdownItem(self, s):
-        print('changed drop down item')
+        #print('changed drop down item')
         combo = self.sender()  # Get the combo box that sent the signal
         selected_option = combo.currentText().split(':')[0]
-        print(selected_option)
+        #print(selected_option)
 
         index = self.tableWidget.indexAt(combo.pos())
         row = index.row()
-        print(row)
+        #print(row)
         self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],self.traceTableValues[row][7],self.traceTableValues[row][8],selected_option]
-        print(self.traceTableValues[row])
+        #print(self.traceTableValues[row])
     
     def changedCheckboxState(self,s):
-        print('+++changed state++')
+        #print('+++changed state++')
         checkbox = self.sender()
         index = self.tableWidget.indexAt(checkbox.pos())
         row = index.row()
         col = index.column()
-        print(row)
-        print(col)
-        print(s)
+        #print(row)
+        #print(col)
+        #print(s)
         if s==2: #checked
             item=QTableWidgetItem('')
             self.tableWidget.setItem(row,5,item)
@@ -88,11 +88,11 @@ class ConnectionsDialog(QMainWindow):
             except:
                 pass
         
-        print(self.traceTableValues)
+        #print(self.traceTableValues)
         
     def changedItem(self, item):
         row = item.row()
-        print('changed')
+        #print('changed')
         try:
             if self.traceTableValues[row][0]!=self.tableWidget.item(row,4).text(): #p
                 self.traceTableValues[row][1]=self.tableWidget.item(row,4).text()
@@ -102,7 +102,7 @@ class ConnectionsDialog(QMainWindow):
                 self.traceTableValues[row][5]=self.tableWidget.item(row,3).text()
         except:
             pass
-        print(self.traceTableValues)
+        #print(self.traceTableValues)
 
 class IDA_Districts_NameDialog(QMainWindow):
     def __init__(self,title,inputs,newConnBundleType,newConnType):

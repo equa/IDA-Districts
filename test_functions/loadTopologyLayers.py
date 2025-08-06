@@ -46,7 +46,7 @@ def removeLayers():
             
 uri = QgsDataSourceUri()
 uri.setConnection(dictDB['host'], dictDB['port'], dictDB['projectName'], dictDB['user'], dictDB['pwd'])
-print(uri)
+#print(uri)
 removeLayers()
 loadTopologyLayers('a',uri,dictDB)
 

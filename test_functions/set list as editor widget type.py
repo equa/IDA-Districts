@@ -9,10 +9,10 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5434', 'user' : 'postgres
 
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-print(cur)
+#print(cur)
 
 layer=iface.layerTreeView().selectedLayers()[0]
-print(layer)
+#print(layer)
 
 
 def getNetworks(cur,dictDB):
@@ -27,11 +27,11 @@ def setEditorWidgetListType(list_type_dict):
     editor_setup = QgsEditorWidgetSetup("List", config)
 
     for layer_name in list_type_dict:
-        print(layer_name)
+        #print(layer_name)
         layer=QgsProject.instance().mapLayersByName(layer_name)[0]
         for col in list_type_dict[layer_name]:
             field_index = layer.fields().indexOf(col)
-            print(field_index)
+            #print(field_index)
 
             # Apply the widget setup to the field
             layer.setEditorWidgetSetup(field_index, editor_setup)
@@ -39,20 +39,20 @@ def setEditorWidgetListType(list_type_dict):
 def setFieldConstraints(constraints_dict):
     """{layer: {col_names : constraint}}"""
     for layer_name in constraints_dict:
-        print(layer_name)
+        #print(layer_name)
         layer=QgsProject.instance().mapLayersByName(layer_name)[0]
         for col in constraints_dict[layer_name]:
             field_index = layer.fields().indexOf(col)
-            print(field_index)
+            #print(field_index)
             layer.setFieldConstraint(field_index, QgsFieldConstraints.ConstraintExpression)
             layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
 
 list_type_dict={'energy_plants':['network','main_plant'],'customers':['network'],'lines':['submodel']}
 
 networks=getNetworks(cur,dictDB)
-print(networks)
+#print(networks)
 networks_array='array({})'.format(','.join([i for i in networks]))
-print(networks_array)
+#print(networks_array)
 
 constraint_expression_dict = {'energy_plants': {'network': f'array_all({networks_array}, "network")','main_plant': f'array_all({networks_array}, "main_plant")'},
                             'customers': {'network': f'array_all({networks_array}, "network")'},

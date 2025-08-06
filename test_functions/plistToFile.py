@@ -72,9 +72,9 @@ def pListToCompString(pList,level):
 
 
            
-print(pListToCompString(comp,0))
+#print(pListToCompString(comp,0))
 
 #print(len(dict))
 #for i in dict:
-#    print(i)
-#    print(dict[i])
+#    #print(i)
+#    #print(dict[i])
