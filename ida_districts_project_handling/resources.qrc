@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/IDA_districts_project_handling/icons" >
-        <file>icon-project-handling.png</file>
-    </qresource>
-</RCC>

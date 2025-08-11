@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/ida_districts_modeling_simulation" >
-        <file>icon-mo-sim.png</file>
-    </qresource>
-</RCC>

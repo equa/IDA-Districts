@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/ida_districts_data_center" >
-        <file>icon-data-center.png</file>
-    </qresource>
-</RCC>
