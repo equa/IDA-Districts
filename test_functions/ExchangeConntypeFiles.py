@@ -344,4 +344,4 @@ name='1_4_Heating and Cooling 1 Supply & 1 Return'
 type='customer'
 b_conn_t=1
 b_conn_t_old=1
-ExchangeConntypeFiles(plugin_dir+'ida_districts_data_center',name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=oldConnValues_dict['1_4_Heating and Cooling 1 Supply & 1 Return'])
+ExchangeConntypeFiles(plugin_dir+'ida_data',name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=oldConnValues_dict['1_4_Heating and Cooling 1 Supply & 1 Return'])

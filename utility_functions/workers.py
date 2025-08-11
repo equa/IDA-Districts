@@ -5,6 +5,8 @@ import os
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.utils import iface
+import subprocess
+
     
 def show_error_message(message):
     # Show the error message in a messageBar
@@ -50,7 +52,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
             conn_type_seq=set([x['conn_type_seq'] for x in connValues])
             #print(conn_type_seq)
             for seq in conn_type_seq:
-                file_path=self.plugin_dir+"\\network_models\\{}\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
+                file_path=self.plugin_dir+"\\models\\{}\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
                 #print(file_path)
                 if os.path.exists(file_path):
                     legend=self.type.capitalize()+':'+id
@@ -203,6 +205,8 @@ class WorkerSimulateAPI(QRunnable):
             #print('++++simulation-finished++++')
         except:
             self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
+        self.signals.finished.emit("finished")
+
             
 class APISignals(QObject):
     progress=pyqtSignal(int)
@@ -233,6 +237,38 @@ class WorkerOpenAPI(QRunnable):
         try:
             result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             self.signals.progress.emit(100)
+        except:
+            self.signals.progress.emit(0)
+            self.signals.error.emit("Failed to open the feature!")  
+            
+class WorkerOpenModelCmd(QRunnable):
+    """Worker thread
+    Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
+    def __init__(self,file_path,plugin_dir,submodel='1'):
+        super().__init__()
+        self.file_path=file_path.replace('/','\\')
+        self.plugin_dir=plugin_dir
+        self.signals=APISignals()
+        self.submodel=submodel
+        self.ida_config=loadIDADistrictsConfig(self.plugin_dir)
+            
+    @pyqtSlot()
+    def run(self):
+        #open file in IDA
+        self.signals.progress.emit(1)
+
+        try:
+            cmd='"{}bin\\ice.exe" -C ida_{} -G1 -O "{}"'.format(self.ida_config['path_ice'],self.submodel,self.file_path)
+            #print(cmd)
+            result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            #print("STDOUT:\n", result.stdout)
+            #print("STDERR:\n", result.stderr)
+            #print("Return code:", result.returncode)
+
+            if result.returncode==0:
+                self.signals.progress.emit(100)
+            else:
+                self.signals.progress.emit(0)
         except:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature!")  

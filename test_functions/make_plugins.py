@@ -47,8 +47,8 @@ def process_folder(folder_path):
 shutil.copytree(plugin_dir+'utility_functions',target_plugin_dir+'utility_functions')
 
 #data center
-src_dir=plugin_dir+'ida_districts_data_center\\'
-trg_dir=target_plugin_dir+'ida_districts_data_center\\'
+src_dir=plugin_dir+'ida_data\\'
+trg_dir=target_plugin_dir+'ida_data\\'
 os.mkdir(trg_dir)
 shutil.copytree(src_dir+'config',trg_dir+'config')
 shutil.copytree(src_dir+'help',trg_dir+'help')
@@ -56,16 +56,16 @@ shutil.copytree(src_dir+'Samples',trg_dir+'Samples')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
 shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copy(src_dir+'icon-data-center.png', trg_dir+'icon-data-center.png')
-shutil.copy(src_dir+'ida_districts_data_center.py', trg_dir+'ida_districts_data_center.py')
-shutil.copy(src_dir+'ida_districts_data_center_dialog.py', trg_dir+'ida_districts_data_center_dialog.py')
+shutil.copy(src_dir+'ida_data.py', trg_dir+'ida_data.py')
+shutil.copy(src_dir+'ida_data_dialog.py', trg_dir+'ida_data_dialog.py')
 shutil.copy(src_dir+'update_boundaries.py', trg_dir+'update_boundaries.py')
 copyMetaFiles(src_dir,trg_dir)
 
 #modelling
-src_dir=plugin_dir+'\ida_districts_modeling_simulation\\'
-trg_dir=target_plugin_dir+'\ida_districts_modeling_simulation\\'
+src_dir=plugin_dir+'\ida_mosim\\'
+trg_dir=target_plugin_dir+'\ida_mosim\\'
 os.mkdir(trg_dir)
-os.mkdir(trg_dir+'network_models')
+os.mkdir(trg_dir+'models')
 shutil.copytree(src_dir+'help',trg_dir+'help')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
 shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
@@ -74,8 +74,8 @@ shutil.copy(src_dir+'icon-mo-sim.png', trg_dir+'icon-mo-sim.png')
 shutil.copy(src_dir+'calibrate_customers.py', trg_dir+'calibrate_customers.py')
 shutil.copy(src_dir+'calibrate_features.py', trg_dir+'calibrate_features.py')
 shutil.copy(src_dir+'cosim.py', trg_dir+'cosim.py')
-shutil.copy(src_dir+'ida_districts_modeling_simulation.py', trg_dir+'ida_districts_modeling_simulation.py')
-shutil.copy(src_dir+'ida_districts_modeling_simulation_dialog.py', trg_dir+'ida_districts_modeling_simulation_dialog.py')
+shutil.copy(src_dir+'ida_mosim.py', trg_dir+'ida_mosim.py')
+shutil.copy(src_dir+'ida_mosim_dialog.py', trg_dir+'ida_mosim_dialog.py')
 shutil.copy(src_dir+'invoke.py', trg_dir+'invoke.py')
 shutil.copy(src_dir+'invoke_network.py', trg_dir+'invoke_network.py')
 shutil.copy(src_dir+'outputs.py', trg_dir+'outputs.py')
@@ -87,8 +87,8 @@ copyMetaFiles(src_dir,trg_dir)
 
 
 #preprocessing
-src_dir=plugin_dir+'ida_districts_preprocessing\\'
-trg_dir=target_plugin_dir+'ida_districts_preprocessing\\'
+src_dir=plugin_dir+'ida_pp\\'
+trg_dir=target_plugin_dir+'ida_pp\\'
 os.mkdir(trg_dir)
 shutil.copytree(src_dir+'help',trg_dir+'help')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
@@ -96,8 +96,8 @@ shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copy(src_dir+'icon-pre-processing.png', trg_dir+'icon-pre-processing.png')
 shutil.copy(src_dir+'elevation_data.py', trg_dir+'elevation_data.py')
 shutil.copy(src_dir+'GenerateNetworkTopology.py', trg_dir+'GenerateNetworkTopology.py')
-shutil.copy(src_dir+'ida_districts_preprocessing.py', trg_dir+'ida_districts_preprocessing.py')
-shutil.copy(src_dir+'ida_districts_preprocessing_dialog.py', trg_dir+'ida_districts_preprocessing_dialog.py')
+shutil.copy(src_dir+'ida_pp.py', trg_dir+'ida_pp.py')
+shutil.copy(src_dir+'ida_pp_dialog.py', trg_dir+'ida_pp_dialog.py')
 shutil.copy(src_dir+'osm.py', trg_dir+'osm.py')
 shutil.copy(src_dir+'pipe_sizing.py', trg_dir+'pipe_sizing.py')
 shutil.copy(src_dir+'PipeLayingAlgorithm.py', trg_dir+'PipeLayingAlgorithm.py')
@@ -105,8 +105,8 @@ copyMetaFiles(src_dir,trg_dir)
 
 #project handling
 #print('project plugin')
-src_dir=plugin_dir+'ida_districts_project_handling\\'
-trg_dir=target_plugin_dir+'ida_districts_project_handling\\'
+src_dir=plugin_dir+'ida_ph\\'
+trg_dir=target_plugin_dir+'ida_ph\\'
 os.mkdir(trg_dir)
 shutil.copytree(src_dir+'help',trg_dir+'help')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
@@ -140,21 +140,21 @@ shutil.copy(src_dir+'SQL_scripts.txt', trg_dir+'SQL_scripts.txt')
 shutil.copy(src_dir+'dbSettings.txt', trg_dir+'dbSettings.txt')
 shutil.copy(src_dir+'dbSettings_lastLoad.txt', trg_dir+'dbSettings_lastLoad.txt')
 shutil.copy(src_dir+'Dialogs.py', trg_dir+'Dialogs.py')
-shutil.copy(src_dir+'IDA_districts_project_handling.py', trg_dir+'IDA_districts_project_handling.py')
-shutil.copy(src_dir+'IDA_districts_project_handling_dialog.py', trg_dir+'IDA_districts_project_handling_dialog.py')
+shutil.copy(src_dir+'ida_ph.py', trg_dir+'ida_ph.py')
+shutil.copy(src_dir+'ida_ph_dialog.py', trg_dir+'ida_ph_dialog.py')
 copyMetaFiles(src_dir,trg_dir)
 
 #result visualization
 #print('result visualization')
-src_dir=plugin_dir+'ida_districts_result_visualization\\'
-trg_dir=target_plugin_dir+'ida_districts_result_visualization\\'
+src_dir=plugin_dir+'ida_rv\\'
+trg_dir=target_plugin_dir+'ida_rv\\'
 os.mkdir(trg_dir)
 shutil.copytree(src_dir+'help',trg_dir+'help')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
 shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copy(src_dir+'icon-result-visualization.png', trg_dir+'icon-result-visualization.png')
-shutil.copy(src_dir+'ida_districts_result_visualization.py', trg_dir+'ida_districts_result_visualization.py')
-shutil.copy(src_dir+'ida_districts_result_visualization_dialog.py', trg_dir+'ida_districts_result_visualization_dialog.py')
+shutil.copy(src_dir+'ida_rv.py', trg_dir+'ida_rv.py')
+shutil.copy(src_dir+'ida_rv_dialog.py', trg_dir+'ida_rv_dialog.py')
 copyMetaFiles(src_dir,trg_dir)
 
 #------------models--------------

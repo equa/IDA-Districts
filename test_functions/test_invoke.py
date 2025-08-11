@@ -1,4 +1,4 @@
-file_data=['hi',"""((SOURCE-FILE :DOCUMENT-PATH "$plugins_path$\\ida_districts_data_center\\Samples\\DHW\\dhw_150_l7day.prn" :SF "$plugins_path$\\ida_districts_data_center\\Samples\\DHW\\dhw_150_l7day.prn" :N "SOURCE-FILE_DHW" :T SOURCE-FILE :COL T)""",
+file_data=['hi',"""((SOURCE-FILE :DOCUMENT-PATH "$plugins_path$\\ida_data\\Samples\\DHW\\dhw_150_l7day.prn" :SF "$plugins_path$\\ida_data\\Samples\\DHW\\dhw_150_l7day.prn" :N "SOURCE-FILE_DHW" :T SOURCE-FILE :COL T)""",
     """((MODEL :N "load model" :T |lM_H_G_L|)""",
     """ (:VAR :N |PhiSolar| :L "Heat Balance")""",
     """(:VAR :N |PhiSolar| :L "Heat Balance"))""",

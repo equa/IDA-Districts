@@ -4,7 +4,7 @@ from plugins.utility_functions.topology import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.ida_components import *
 from plugins.utility_functions.templateFiles import *
-from plugins.ida_districts_modeling_simulation.cosim import *
+from plugins.ida_mosim.cosim import *
 
 
 import psycopg2.extras
@@ -24,7 +24,7 @@ sensor_data=getSensorData(cur,dictDB)
 submodel='1'
 #import_counter={'2':2,'3':2}
 #exportVarsCounter=2
-dir=plugin_dir+"ida_districts_modeling_simulation\\network_models\\{}\\{}".format(dictDB['projectName'],dictDB['versionName'])
+dir=plugin_dir+"ida_mosim\\models\\{}\\{}".format(dictDB['projectName'],dictDB['versionName'])
 
 
 class CopyDecoupledTemplateMacro:

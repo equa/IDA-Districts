@@ -35,7 +35,7 @@ usedDecoupledFeaturetemplates=getUsedDecoupledFeatureTemplates(usedFeaturetempla
 file_data=""
 
     
-#print(readIDMFileToPropertyList('C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_data_center\\cosim_test1\\customer_templates\\1_1_Heating 1 Supply & 1 Return\\1_1_Heating 1 Supply & 1 Return.idm'))
+#print(readIDMFileToPropertyList('C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_data\\cosim_test1\\customer_templates\\1_1_Heating 1 Supply & 1 Return\\1_1_Heating 1 Supply & 1 Return.idm'))
 
         
     

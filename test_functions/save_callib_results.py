@@ -1,7 +1,7 @@
 from plugins.utility_functions.files import *
 from plugins.utility_functions.sensor_signals import *
 from plugins.utility_functions.topology import *
-from plugins.ida_districts_modeling_simulation.invoke import *
+from plugins.ida_mosim.invoke import *
 import psycopg2.extras
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -32,7 +32,7 @@ def getBestParmRunsInputs (file_data):
 #ids=[93]
 ids=[94,95,96,97,98,104,107,108,109,110,113,115,116,117,121,122,123,125,127,128,129,130,131,132,133,135,136,137,138,140,141,142,143]
 for id in ids:
-    file=plugin_dir+'\\ida_districts_modeling_simulation\\network_models\\{}\\{}\\invoked_customers\\Customer_{}\\parmrun_annualcallib.idm'.format(dictDB['projectName'],dictDB['versionName'],id)
+    file=plugin_dir+'\\ida_mosim\\models\\{}\\{}\\invoked_customers\\Customer_{}\\parmrun_annualcallib.idm'.format(dictDB['projectName'],dictDB['versionName'],id)
     parmRun_file_data=readFileToList(file)
     bestParmRuns=getBestParmRunsInputs(parmRun_file_data)
     #print(bestParmRuns)
@@ -55,6 +55,6 @@ for id in ids:
         cur.execute(sql) 
         
         #invoke customers with callib values
-        invokeOneFeature('',str(id),plugin_dir+'\\ida_districts_modeling_simulation',cur,dictDB,'customer',iface,False,parmRun=True,saveParmRunResults=True) 
+        invokeOneFeature('',str(id),plugin_dir+'\\ida_mosim',cur,dictDB,'customer',iface,False,parmRun=True,saveParmRunResults=True) 
 
 

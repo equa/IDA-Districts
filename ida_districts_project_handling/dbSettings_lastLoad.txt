@@ -1,1 +1,0 @@
-{'pwd': 'p3t3r', 'host': 'localhost', 'port': '5433', 'user': 'postgres', 'projectName': 'hellerhoefe', 'versionName': 'base', 'storeCredentials': True}

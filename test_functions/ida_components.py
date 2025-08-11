@@ -5,9 +5,9 @@ from plugins.utility_functions.files import *
 plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
 dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres', 'projectName' : 'test00001', 'versionName' : 'base1'}
 
-dir=plugin_dir+'ida_districts_data_center\\{}\\customer_templates\\1_2_Simple heating substation\\'.format(dictDB['projectName'])
+dir=plugin_dir+'ida_data\\{}\\customer_templates\\1_2_Simple heating substation\\'.format(dictDB['projectName'])
 #fname=dir+'1_2_Simple heating substation.idm'
-# fname="""\\\\?\\C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation\\network_models\\test00001\\base1\\invoked_customers\\customer_1\\Customer_1.idm"""
+# fname="""\\\\?\\C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_mosim\\models\\test00001\\base1\\invoked_customers\\customer_1\\Customer_1.idm"""
 # #print(fname)
 # data=readFileToString(fname)
 # #print(data)
@@ -121,7 +121,7 @@ def getIDAListComponents(data):
 
     return eval(data)
     
-fname="""\\\\?\\C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation\\network_models\\test00001\\base1\\invoked_customers\\customer_1\\Customer_1.idc"""
+fname="""\\\\?\\C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_mosim\\models\\test00001\\base1\\invoked_customers\\customer_1\\Customer_1.idc"""
 #print(fname)
 data=readFileToString(fname)
 #print(data)

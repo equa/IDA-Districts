@@ -17,7 +17,7 @@ sensor_data=getSensorData(cur,dictDB)
 submodel='2'
 import_counter={'2':2,'3':2}
 exportVarsCounter=2
-source_dir=plugin_dir+"ida_districts_modeling_simulation\\network_models\\cosim_test1\\b\\invoked_customers"
+source_dir=plugin_dir+"ida_mosim\\models\\cosim_test1\\b\\invoked_customers"
 
 feature_dec_irefs=[{'feature': 'customer', 'id': 9, 'submodel': 2, 'cosim': '1', 'network_side': False, 'irefs_source': ['"Int_Ref_Sensor_Source_6"', '"Int_Ref_Sensor_Source_5"', '"Int_Ref_Sensor_Source_1"'], 'irefs_target': ['"Int_Ref_Sensor_Target_4"', '"Int_Ref_Sensor_Target_3"', '"Int_Ref_Sensor_Target_2"']}, 
     {'feature': 'customer', 'id': 15, 'submodel': 2, 'cosim': '1', 'network_side': False, 'irefs_source': ['"Int_Ref_Sensor_Source_1"'], 'irefs_target': ['"Int_Ref_Sensor_Target_4"', '"Int_Ref_Sensor_Target_3"', '"Int_Ref_Sensor_Target_2"']}, 

@@ -29,7 +29,7 @@ def writeMacroClimateIdm(dictDB,cur,name,dir,plugin_dir,modellingSettings,climat
  (:PAR :N |Depth| :V {}))""".format(modellingSettings['kusuda_tsurfmean'],modellingSettings['kusuda_tsurfampl'],modellingSettings['kusuda_theta'],modellingSettings['kusuda_rho'],modellingSettings['kusuda_cp'],modellingSettings['kusuda_lambda'],modellingSettings['kusuda_depth'])
         groundConnection=""" (("TGround" (INSIGNALLINK 1)) ("Kusuda" TEMPLINK) 0 0 NIL)"""
     elif modellingSettings['ground_model']=='Timeseries':
-        dir=plugin_dir+'\\network_models'+'\\'+dictDB['projectName']+'\\'+dictDB['versionName']
+        dir=plugin_dir+'\\models'+'\\'+dictDB['projectName']+'\\'+dictDB['versionName']
         id=modellingSettings['ground_timeseries']
         file_name=writeTempTimeseries(dir,id,'TGround',cur)
         groundModel="""((SOURCE-FILE :DOCUMENT-PATH "{}" :SF "{}" :N "Src-TGround" :T SOURCE-FILE :COL T)
@@ -42,7 +42,7 @@ def writeMacroClimateIdm(dictDB,cur,name,dir,plugin_dir,modellingSettings,climat
         groundConnection=""" (("TGround" (INSIGNALLINK 1)) ("TGround-Const" LINK) 0 0 NIL)"""
     
     if modellingSettings['duct_model']=='Timeseries':
-        dir=plugin_dir+'\\network_models'+'\\'+dictDB['projectName']+'\\'+dictDB['versionName']
+        dir=plugin_dir+'\\models'+'\\'+dictDB['projectName']+'\\'+dictDB['versionName']
         id=modellingSettings['duct_timeseries']
         file_name=writeTempTimeseries(dir,id,'TDuct',cur)
         ductModel="""((SOURCE-FILE :DOCUMENT-PATH "{}" :SF "{}" :N "Src-TDuct" :T SOURCE-FILE :COL T)

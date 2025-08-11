@@ -13,7 +13,7 @@ import os
 import re
 
 plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
-source_dir=plugin_dir+"ida_districts_modeling_simulation\\network_models\\cosim_test1\\b\\invoked_customers"
+source_dir=plugin_dir+"ida_mosim\\models\\cosim_test1\\b\\invoked_customers"
 
 submodel=1
 submodels=getUsedSubmodels(cur,dictDB)
@@ -125,8 +125,8 @@ file="""(FRAME-BOX :VALUE (ENGLISH "Zone hot water" GERMAN "Heizkreis zu Zonen" 
 (FRAME-BOX :VALUE (:DICT (GENERAL DOMESTIC-WATER)) :HORIZONTAL :RIGHT :AT ((886 107) (1102 219)) :STYLE SECTION) 
 (TEXT-OBJECT :VALUE (ENGLISH "<meta name=\"sensor-description\"><b>Sensor descriptions:</b><br><b>Int_Ref_Sensor_Source_1</b> --> Source description=''; Target description=''; Sensor ID='1'; Source function='Individual signals for each target'; Source measure='Custom'; Target type='Supervisory control'; Target='Feature: 11, Connection type: X, Connection: X;Feature: 9, Connection type: X, Connection: X'<br>") :AT ((8 380) (694 430)) :STYLE NOTE :MARKUP HTML) """
 #file=readFileToString(source_dir+'\\Customer_9.idc')
-file_idm=readFileToString("C:\\Users/Peter/AppData/Roaming/QGIS/QGIS3\\profiles\\default/python/plugins\\ida_districts_modeling_simulation\\network_models\\cosim_test1\\b\\invoked_customers\\customer_9\\Customer_9.idm")
-file_idc=readFileToString("C:\\Users/Peter/AppData/Roaming/QGIS/QGIS3\\profiles\\default/python/plugins\\ida_districts_modeling_simulation\\network_models\\cosim_test1\\b\\invoked_customers\\customer_9\\Customer_9.idc")
+file_idm=readFileToString("C:\\Users/Peter/AppData/Roaming/QGIS/QGIS3\\profiles\\default/python/plugins\\ida_mosim\\models\\cosim_test1\\b\\invoked_customers\\customer_9\\Customer_9.idm")
+file_idc=readFileToString("C:\\Users/Peter/AppData/Roaming/QGIS/QGIS3\\profiles\\default/python/plugins\\ida_mosim\\models\\cosim_test1\\b\\invoked_customers\\customer_9\\Customer_9.idc")
 
 
 data=getIDAListComponents(file)

@@ -8,7 +8,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from scipy.interpolate import interp1d
 import datetime
 
-plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation"""
+plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_mosim"""
 dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres', 'projectName' : 'test18', 'versionName' : 'a'}
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
@@ -72,7 +72,7 @@ def copy_string_iterator_customer_sData(connection, sdata,fid,col_dict,start_dat
 col_var_dict={}
 connValues=getConnsValues(1,cur)
 #print(connValues)
-dir_path=plugin_dir+'\\network_models\\{}\\{}\\network_{}\\'.format(dictDB['projectName'],dictDB['versionName'],1)
+dir_path=plugin_dir+'\\models\\{}\\{}\\network_{}\\'.format(dictDB['projectName'],dictDB['versionName'],1)
 id={'id': 1,'conn_bundle_type_id':1}
 seq=1
 fname=dir_path+'customer_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)

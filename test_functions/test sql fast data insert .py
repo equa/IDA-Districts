@@ -7,7 +7,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
 dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres', 'projectName' : 'test15', 'versionName' : 'a'}
-source_dir=plugin_dir+"ida_districts_modeling_simulation\\network_models\\test15\\a\\invoked_customers"
+source_dir=plugin_dir+"ida_mosim\\models\\test15\\a\\invoked_customers"
 
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)

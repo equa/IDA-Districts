@@ -23,6 +23,8 @@ class WorkerShowOnMap(QRunnable):
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
+        if self.dlg:
+            self.dlg.process_running=True
         self.vars=kwargs['vars']
         self.feature= kwargs['feature']
         self.layer_name= kwargs['layer_name']
@@ -481,3 +483,4 @@ ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p
             self.signals.error.emit(str(e))  
             self.signals.progress.emit(0) 
         self.signals.progress.emit(100)  
+        self.signals.finished.emit('finished')  

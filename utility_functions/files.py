@@ -58,19 +58,19 @@ def getQGISPluginsDir(plugin_dir):
 def getProjectHandlingDir(plugin_dir):
     """ get directory of project handling plugin"""
     dir=getQGISPluginsDir(plugin_dir)
-    dir+='\\ida_districts_project_handling'
+    dir+='\\ida_ph'
     return dir
     
 def getDataCenterDir(plugin_dir):
     """ get directory of data center plugin"""
     dir=getQGISPluginsDir(plugin_dir)
-    dir+='\\ida_districts_data_center'
+    dir+='\\ida_data'
     return dir
     
 def getModellingDir(plugin_dir):
     """ get directory of modelling and simulation plugin"""
     dir=getQGISPluginsDir(plugin_dir)
-    dir+='\\ida_districts_modeling_simulation'
+    dir+='\\ida_mosim'
     return dir
 
 def readAndReplaceFileToList(file,replaceDict):
@@ -146,8 +146,8 @@ def writeProjectConfig(plugin_dir,db_name,configProject):
             myfile.write(str(configProject))
             
 def writeRequestedOutputs(plugin_dir,dictDB,requestedOutputs):
-    """Writes the requested outputs to file in the modelling & simulation plugin -->  network_models  --> projet name --> version name"""
-    dir=plugin_dir+"\\network_models\\"
+    """Writes the requested outputs to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""
+    dir=plugin_dir+"\\models\\"
     createDir(dir,dictDB['projectName'])
     dir+=dictDB['projectName']+"\\"
     createDir(dir,dictDB['versionName'])
@@ -156,8 +156,8 @@ def writeRequestedOutputs(plugin_dir,dictDB,requestedOutputs):
         myfile.write(str(requestedOutputs))
         
 def writeSimulatedOutputs(plugin_dir,dictDB,simulatedOutputs):
-    """Writes the simulated outputs to file in the modelling & simulation plugin -->  network_models  --> projet name --> version name"""
-    dir=plugin_dir+"\\network_models\\"
+    """Writes the simulated outputs to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""
+    dir=plugin_dir+"\\models\\"
     createDir(dir,dictDB['projectName'])
     dir+=dictDB['projectName']+"\\"
     createDir(dir,dictDB['versionName'])
@@ -166,8 +166,8 @@ def writeSimulatedOutputs(plugin_dir,dictDB,simulatedOutputs):
         myfile.write(str(simulatedOutputs))
         
 def writeInvokedOutputs(plugin_dir,dictDB,invokedOutputs):
-    """Writes the invoked outputs to file in the modelling & simulation plugin -->  network_models  --> projet name --> version name"""
-    dir=plugin_dir+"\\network_models\\"
+    """Writes the invoked outputs to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""
+    dir=plugin_dir+"\\models\\"
     createDir(dir,dictDB['projectName'])
     dir+=dictDB['projectName']+"\\"
     createDir(dir,dictDB['versionName'])
@@ -176,10 +176,10 @@ def writeInvokedOutputs(plugin_dir,dictDB,invokedOutputs):
         myfile.write(str(invokedOutputs))
             
 def loadRequestedOutputs(plugin_dir,dictDB):
-    """ load requested outputs from requestedOutputs.txt in modelling & simulation plugin -->  network_models  --> projet name --> version name"""
+    """ load requested outputs from requestedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     requestedOutputs=""
     if dictDB['projectName']:
-        dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\requestedOutputs.txt".format(dir)
         if os.path.exists(file):
             #print(file)
@@ -202,10 +202,10 @@ def loadRequestedOutputs(plugin_dir,dictDB):
     return requestedOutputs
     
 def loadSimulatedOutputs(plugin_dir,dictDB):
-    """ load simulated outputs from simulatedOutputs.txt in modelling & simulation plugin -->  network_models  --> projet name --> version name"""
+    """ load simulated outputs from simulatedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     simulatedOutputs=""
     if dictDB['projectName']:
-        dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\simulatedOutputs.txt".format(dir)
         if os.path.exists(file):
             #print(file)
@@ -222,10 +222,10 @@ def loadSimulatedOutputs(plugin_dir,dictDB):
     return simulatedOutputs
     
 def loadInvokedOutputs(plugin_dir,dictDB):
-    """ load invoked outputs from invokedOutputs.txt in modelling & simulation plugin -->  network_models  --> projet name --> version name"""
+    """ load invoked outputs from invokedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     invokedOutputs=""
     if dictDB['projectName']:
-        dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\invokedOutputs.txt".format(dir)
         if os.path.exists(file):
             #print(file)
@@ -242,8 +242,8 @@ def loadInvokedOutputs(plugin_dir,dictDB):
     return invokedOutputs
     
 def writeModellingSettings(plugin_dir,dictDB,modellingSettings):
-    """Writes the modelling settings to file in the modelling & simulation plugin -->  network_models  --> projet name --> version name"""   
-    dir=plugin_dir+"\\network_models\\"
+    """Writes the modelling settings to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""   
+    dir=plugin_dir+"\\models\\"
     createDir(dir,dictDB['projectName'])
     dir+=dictDB['projectName']+"\\"
     createDir(dir,dictDB['versionName'])
@@ -252,8 +252,8 @@ def writeModellingSettings(plugin_dir,dictDB,modellingSettings):
         myfile.write(str(modellingSettings))
         
 def writeNetworkSimData(plugin_dir,dictDB,modellingSettings):
-    """Writes the network simulation settings to file in the modelling & simulation plugin -->  network_models  --> projet name --> version name"""   
-    dir=plugin_dir+"\\network_models\\"
+    """Writes the network simulation settings to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""   
+    dir=plugin_dir+"\\models\\"
     createDir(dir,dictDB['projectName'])
     dir+=dictDB['projectName']+"\\"
     createDir(dir,dictDB['versionName'])
@@ -262,10 +262,10 @@ def writeNetworkSimData(plugin_dir,dictDB,modellingSettings):
         myfile.write(str(modellingSettings))
             
 def loadModellingSettings(plugin_dir,dictDB):
-    """ load modelling settings from modellingSettings.txt in modelling & simulation plugin -->  network_models  --> projet name --> version name"""
+    """ load modelling settings from modellingSettings.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     modellingSettings=""
     if dictDB['projectName']:
-        dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\modellingSettings.txt".format(dir)
         if os.path.exists(file):
             #print(file)
@@ -288,10 +288,10 @@ def loadModellingSettings(plugin_dir,dictDB):
     return modellingSettings
     
 def loadNetworkSimData(plugin_dir,dictDB):
-    """ load modelling settings from modellingSettings.txt in modelling & simulation plugin -->  network_models  --> projet name --> version name"""
+    """ load modelling settings from modellingSettings.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     networkSimData=""
     if dictDB['projectName']:
-        dir=plugin_dir+"\\network_models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
         file="{}\\networkSimData.txt".format(dir)
         if os.path.exists(file):
             #print(file)
@@ -489,7 +489,7 @@ def getUsedtemplatesFDict(plugin_dir,cur,dictDB):
         #print(template)
         template_name="{}_{}".format(template['template'],template['template_name'])
         #print(template_name)
-        dir=plugin_dir+"""ida_districts_data_center\\{}\\{}_templates""".format(dictDB['projectName'],template['feature'])
+        dir=plugin_dir+"""ida_data\\{}\\{}_templates""".format(dictDB['projectName'],template['feature'])
         filedata=readFileToList(dir+'\\'+template_name+'\\'+template_name+'.idm')
         
         for line in filedata:

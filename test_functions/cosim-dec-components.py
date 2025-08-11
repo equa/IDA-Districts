@@ -13,7 +13,7 @@ import math
 import os
 
 plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
-source_dir=plugin_dir+"ida_districts_modeling_simulation\\network_models\\cosim_test1\\b\\invoked_customers"
+source_dir=plugin_dir+"ida_mosim\\models\\cosim_test1\\b\\invoked_customers"
  
 def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     sql="""SELECT f_dec.comp_name

@@ -64,7 +64,7 @@ def replaceKeywordsInPList(plist,replaceDict):
     return data
     
 template_name="1_1_Heating 1 Supply & 1 Return"
-source_file=plugin_dir+"""ida_districts_data_center\\{}\\{}_templates""".format(dictDB['projectName'],'customer')+'\\'+template_name+'\\'+template_name+'.idm'
+source_file=plugin_dir+"""ida_data\\{}\\{}_templates""".format(dictDB['projectName'],'customer')+'\\'+template_name+'\\'+template_name+'.idm'
 #print(source_file)
 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_file)))
 replaceDict={}
@@ -85,12 +85,12 @@ fields=cur.fetchone()
 for parm in parms:
     mapping_expression=parm['mapping_expression']
     for field in fields:
-        if '|'+field+'|'=='|dhw_id|' and mapping_expression=='|dhw_id|':
+        if '"'+field+'"'=='"dhw_id"' and mapping_expression=='"dhw_id"':
             mapping_expression=dhw_file
-        elif '|'+field+'|'=='|internal_load_id|' and mapping_expression=='|internal_load_id|':
+        elif '"'+field+'"'=='"internal_load_id"' and mapping_expression=='"internal_load_id"':
             mapping_expression=internal_loads_file
         else:
-            mapping_expression=mapping_expression.replace('|'+field+'|',str(fields[field]))
+            mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
     try:
         mapping_expression=eval(mapping_expression)
     except:

@@ -1,6 +1,6 @@
 #from plugins.utility_functions.workerOpenAPI import *
 from multiprocessing import Process
-plugin_dir='C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_districts_modeling_simulation'
+plugin_dir='C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\ida_mosim'
 
 from plugins.utility_functions.util import *
 import os
@@ -44,5 +44,5 @@ class WorkerRunAutoMooAPI():
             
 
 
-process = Process(target=WorkerRunAutoMooAPI(plugin_dir+'\\network_models\\test1007\\a\\invoked_customers\\Customer_1.idm',plugin_dir))
+process = Process(target=WorkerRunAutoMooAPI(plugin_dir+'\\models\\test1007\\a\\invoked_customers\\Customer_1.idm',plugin_dir))
 

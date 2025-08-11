@@ -15,8 +15,8 @@ conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 #print(cur)
 
-template_idm=plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idm"
-template_idc=plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idc"
+template_idm=plugin_dir+"ida_data\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idm"
+template_idc=plugin_dir+"ida_data\\test21\\customer_templates\\1_1_Heating 1 Supply & 1 Return.idc"
 
 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(template_idm)))
 components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(template_idc)))
@@ -150,6 +150,6 @@ if [True for connValues in connsValues if connValues['conn_id'] in changedValues
         pass
         #print(i)
                 
-    writePropertyListIDMToFile(data_idm,plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\",plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\test.idm")
-    writePropertyListIDCToFile(data_idc,plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\",plugin_dir+"ida_districts_data_center\\test21\\customer_templates\\test.idc")
+    writePropertyListIDMToFile(data_idm,plugin_dir+"ida_data\\test21\\customer_templates\\",plugin_dir+"ida_data\\test21\\customer_templates\\test.idm")
+    writePropertyListIDCToFile(data_idc,plugin_dir+"ida_data\\test21\\customer_templates\\",plugin_dir+"ida_data\\test21\\customer_templates\\test.idc")
     

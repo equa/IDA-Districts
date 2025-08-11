@@ -7,7 +7,7 @@ import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os
 
-from plugins.ida_districts_modeling_simulation.invoke import *
+from plugins.ida_mosim.invoke import *
 from plugins.utility_functions.topology import *
 
 def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,plugin_dir,sensor_data):

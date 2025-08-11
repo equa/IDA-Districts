@@ -7,7 +7,7 @@ from matplotlib.ticker import AutoMinorLocator
 
 
 from plugins.utility_functions.files import *
-from plugins.ida_districts_modeling_simulation.invoke import *
+from plugins.ida_mosim.invoke import *
 import psycopg2.extras
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -32,8 +32,8 @@ for id in ids:
     cur.execute(sql)
     
     legend=cur.fetchone()['owner']
-#    file=plugin_dir+'\\ida_districts_modeling_simulation\\network_models\\{}\\{}\\invoked_customers\\Customer_{}\\Customer_{}\\Hx.prn'.format(dictDB['projectName'],dictDB['versionName'],id,id)
-    file=plugin_dir+'\\ida_districts_modeling_simulation\\network_models\\{}\\{}\\network_1\\Customer_{}\\Hx.prn'.format(dictDB['projectName'],dictDB['versionName'],id)
+#    file=plugin_dir+'\\ida_mosim\\models\\{}\\{}\\invoked_customers\\Customer_{}\\Customer_{}\\Hx.prn'.format(dictDB['projectName'],dictDB['versionName'],id,id)
+    file=plugin_dir+'\\ida_mosim\\models\\{}\\{}\\network_1\\Customer_{}\\Hx.prn'.format(dictDB['projectName'],dictDB['versionName'],id)
 
     #print(file)
     filedata=readFileToList(file)
