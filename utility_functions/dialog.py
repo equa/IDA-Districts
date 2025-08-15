@@ -142,6 +142,9 @@ class CheckableComboBox(QComboBox):
         else:
             item.setCheckState(Qt.Unchecked)
             
+    def setAllItemsChecked(self,checked=False):
+        [self.setItemChecked(i,checked=checked) for i in range(self.count()) if not self.itemText(i)=='Check all items']
+        
     def getItemsDict(self,exclude=['Check all items']):
         items = {i : self.itemText(i) for i in range(self.count()) if self.itemText(i) not in exclude}
         return items

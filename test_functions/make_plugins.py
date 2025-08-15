@@ -20,7 +20,7 @@ target_plugin_dir=target_dir+'plugins\\'
 
 def copyMetaFiles(src_dir,trg_dir):
     os.mkdir(trg_dir+'__pycache__')
-    for file_name in ['__init__.py','Makefile','metadata.txt','pb_tool.cfg','pylintrc','resources.py','resources.qrc']:
+    for file_name in ['__init__.py','Makefile','metadata.txt','pb_tool.cfg','pylintrc']:
         shutil.copy(src_dir+file_name, trg_dir+file_name)
 
 def replace_text_in_file(file_path):
@@ -33,6 +33,7 @@ def replace_text_in_file(file_path):
                 file.write(new_content)
             #print(f"Updated: {file_path}")
     except Exception as e:
+        pass
         #print(f"Error processing {file_path}: {e}")
 
 def process_folder(folder_path):

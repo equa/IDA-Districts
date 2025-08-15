@@ -1976,6 +1976,7 @@ class PipeSizingDlg(QMainWindow):
         self.dictDB=dictDB
         self.conn=dbConnect(self.dictDB,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        self.process_running=False
         self.pipes={}
         self.pipes_list=[]
         self.new_pipe_bundles=[]
@@ -2196,9 +2197,7 @@ class PipeSizingDlg(QMainWindow):
     def on_combo_changed(self, index):
         #print(f"ComboBox index changed to: {index}")
         sequence=self.table_circuits.cellWidget(self.table_circuits.currentRow(), self.table_circuits.currentColumn()).currentText()
-        #print(sequence)
         self.getUsedSequences()
-        #print(self.used_sequences)
         if sequence not in self.getTableSequences():
             self.addSequenceRow(sequence)
             
@@ -2247,6 +2246,9 @@ class PipeSizingDlg(QMainWindow):
             
     def update_progress(self,progress):
         self.progress.setValue(progress)
+
+    def update_finished(self,message):
+        self.process_running=False
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
@@ -2256,19 +2258,21 @@ class PipeSizingDlg(QMainWindow):
         if self.conn:
             if checkNetwork(self.cur,self.dictDB['versionName'],networks):                 
                 self.worker = WorkerGenerateNetworkTopology(iface=iface,dictDB=self.dictDB,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=False, deleteUnconnectedCustomers=False, deleteUnconnectedLines=False,
-                    connectCustomers=False,connectCustomers_template_pipeBundle=0,
-                    addCustomers=False,addCustomers_template_customers=0,
-                    connectPlants=False,connectPlants_template_pipeBundle=0,
+                    connectCustomers=False,connectCustomers_template_pipeBundle='0',
+                    addCustomers=False,addCustomers_template_customers='0',
+                    connectPlants=False,connectPlants_template_pipeBundle='0',
                     deleteUnconnectedNetworkEnds=False,
                     keepTemplates=True,
-                    overrideTemplates=False,overrideTemplates_customers=0,overrideTemplates_pipeBundle=0,tolerance=0.001,
+                    overrideTemplates=False,overrideTemplates_customers='0',overrideTemplates_pipeBundle='0',tolerance=0.001,
                     showTempTables=False)
                 self.worker.signals.error.connect(self.show_error_message)
                 self.worker.signals.progress.connect(self.update_progress)
                 self.threadpool.start(self.worker) 
 
     def doSizing(self,cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles):
+        #print('++do-sizing++')
         worker_pipeSizing=WorkerPipeSizing(cur=cur,dictDB=dictDB,dlg=dlg,network=network,plugin_dir=plugin_dir,dp=dp,epsilon=epsilon,rho=rho,cp=cp,kin_viscosity=kin_viscosity,ambient=ambient,pipe_bundles=pipe_bundles)
         worker_pipeSizing.signals.error.connect(dlg.show_error_message)
         worker_pipeSizing.signals.progress.connect(dlg.update_progress)
+        worker_pipeSizing.signals.finished.connect(self.update_finished)
         self.threadpool.start(worker_pipeSizing) 

@@ -292,8 +292,8 @@ def getTemplateNamesFilteredByCustomerIds(cur,dictDB,cids):
     template_names=[str(i['template_name']) for i in cur.fetchall()]
     return template_names
 
-def getPlantIds(cur,dictDB):
-    sql="""SELECT id FROM {}.energy_plants;""".format(dictDB['versionName'])
+def getPlantIds(cur,dictDB,network=None):
+    sql="""SELECT id FROM {}.energy_plants{};""".format(dictDB['versionName'],'' if network==None else ' WHERE {} = ANY (network)'.format(network))
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids

@@ -205,13 +205,15 @@ class WorkerPipeSizing(QRunnable):
             self.dlg.new_pipe_bundles=new_pipe_bundles
             self.signals.progress.emit(100)
         except Exception as e:
-            self.signals.error.emit(str(e)) 
+            self.signals.error.emit(str(e))
+        self.signals.finished.emit('finished')
         
 def startPipeSizing(dictDB,dlg,plugin_dir):
     """Start pipe sizing"""
     #print('Start pipe sizing')
     conn=dbConnect(dictDB,True)
     if conn:
+        dlg.process_running=True
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         
         #get networks
@@ -264,7 +266,7 @@ INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(dictDB['v
         
         if dlg.rbtn_customers.isChecked():
             #create topology: add peak power columns (and) number of customers if consider simulaneity 
-            dlg.execute([network])    
+            dlg.execute([network])   
             dlg.worker.signals.finished.connect(lambda: dlg.doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles))
         else:
             dlg.doSizing(cur,dictDB,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles)  

@@ -101,6 +101,21 @@ def getBundleValues(bundle,cur):
     cur.execute(sql)
     return cur.fetchall()
 
+def getConnTypesByFeature(cur,dictDB,feature,id):
+    sql="""SELECT b_t_conns.conn_type_id 
+    FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
+    WHERE f_t.id=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+    ORDER BY b_t_conns.sequence;""".format(dictDB['versionName'],feature,feature)
+    print(sql)
+    cur.execute(sql)
+    return [str(i['conn_type_id']) for i in cur.fetchall()]
+    
+def getConnIdsByConnType(cur,conn_type):
+    sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
+    print(sql)
+    cur.execute(sql)
+    return [str(i['connection_id']) for i in cur.fetchall()]
+    
 def getConnTypeConnValues(cur,ids):
     sql="""SELECT conn_t_conns.connection_type_id, conn_t_conns.connection_id , conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
 	FROM connections conns, connection_type_connections conn_t_conns

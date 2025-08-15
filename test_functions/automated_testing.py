@@ -57,8 +57,6 @@ def addMainPlant():
 class Autotest:
     def __init__(self):
         self.plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default\\python\\plugins\\"""
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        #print(self.dictDB)
         self.conn=''
         self.cur=''
         self.progress=0
@@ -120,13 +118,15 @@ class Autotest:
             # self.ph.createNewProject(self.ph.dlg_createNewProject)
             # self.process_wait(self.ph,max_sec=30)
             # print('++create project finished++')
-            
-            try:
-                self.conn=dbConnect(self.ph.dictDB,True)
-            except:
-                self.conn=dbConnect(self.dictDB,True)
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            print(self.cur)
+
+            # self.dictDB=getDBConnectionData(self.plugin_dir)
+            # print(self.dictDB)            
+            # try:
+            #     self.conn=dbConnect(self.ph.dictDB,True)
+            # except:
+            #     self.conn=dbConnect(self.dictDB,True)
+            # self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            # print(self.cur)
             
             # if project in ['DB default values','Empty project']:
             #     print('--Start create version: base1--')
@@ -134,8 +134,8 @@ class Autotest:
             #     self.ph.dlg_addBase.input.setText('base1')
             #     self.ph.addBaseVersion(self.ph.dlg_addBase)
             #     print('++Create version finished++')
-
-            #test preprocessing
+        
+            # #test preprocessing
             # self.pp=IdaDistrictsPreProcessing(iface)
             # self.pp.first_start=True
             # self.pp.run()
@@ -173,14 +173,14 @@ class Autotest:
             #     #place main energy plant
             #     addMainPlant()
             
-                # print('--start pipe laying algorithm--')
-                # self.pp.pipeLayingAlgorithm()
-                # self.pp.dlg_pipeLayingAlgorithm.check_heating_network.setCheckState(Qt.Checked)
-                # self.pp.dlg_pipeLayingAlgorithm.execute()
-                # self.process_wait(self.pp.dlg_pipeLayingAlgorithm,max_sec=10)
-                # self.pp.dlg_pipeLayingAlgorithm.saveResults()
-                # closeDialog(self.pp.dlg_pipeLayingAlgorithm)
-                # print('++pipe laying algorithm finished++')
+            #     print('--start pipe laying algorithm--')
+            #     self.pp.pipeLayingAlgorithm()
+            #     self.pp.dlg_pipeLayingAlgorithm.check_heating_network.setCheckState(Qt.Checked)
+            #     self.pp.dlg_pipeLayingAlgorithm.execute()
+            #     self.process_wait(self.pp.dlg_pipeLayingAlgorithm,max_sec=10)
+            #     self.pp.dlg_pipeLayingAlgorithm.saveResults()
+            #     closeDialog(self.pp.dlg_pipeLayingAlgorithm)
+            #     print('++pipe laying algorithm finished++')
                 
             
             # if project in ['Heating network','Co-sim buildings with heating network']:
@@ -201,11 +201,31 @@ class Autotest:
             #     closeDialog(self.pp.window_topology)
             #     print('++generate network topology finished++')
             
+            # #pipe sizing
+            # print('--start pipe sizing--')
+            # self.pp.pipeSizing()
+            # self.pp.dlg_pipeSizing.addRow()
+            # self.pp.dlg_pipeSizing.table_circuits.item(0,1).setText('70')
+            # self.pp.dlg_pipeSizing.table_circuits.item(0,4).setText('40')
+            # self.pp.dlg_pipeSizing.table_circuits.selectRow(0)
+            # self.pp.dlg_pipeSizing.table_circuits.selectColumn(3)
+            # self.pp.dlg_pipeSizing.table_circuits.cellWidget(0,3).setCurrentText('2')
+            # self.pp.dlg_pipeSizing.table_circuits.cellWidget(0,5).setCurrentText('load_w')
+            # for row in range(self.pp.dlg_pipeSizing.table_sequences.rowCount()):
+            #     self.pp.dlg_pipeSizing.table_sequences.cellWidget(row,1).setAllItemsChecked(checked=True)
+            # startPipeSizing(self.dictDB,self.pp.dlg_pipeSizing,self.plugin_dir)
+            # self.process_wait(self.pp.dlg_pipeSizing,max_sec=10)
+            # #savePipeSizingResults(self.dictDB,self.conn,self.pp.dlg_pipeSizing)
+            # closeDialog(self.pp.dlg_pipeSizing)
+            # print('--pipe sizing finished--')
             
-            #test modelling and simulation          
-            self.mosim= IDADistrictsModelingSimulation(iface)
-            self.mosim.first_start=True
-            self.mosim.run()
+            
+            
+            
+            # #test modelling and simulation          
+            # self.mosim= IDADistrictsModelingSimulation(iface)
+            # self.mosim.first_start=True
+            # self.mosim.run()
             
             # if project in ['DB default values','Empty project']:
             #     #set requested outputs
@@ -231,26 +251,26 @@ class Autotest:
             #     closeDialog(self.mosim.dlg_outputs)
             #     print('++set requested outputs finished++')
             
-            if project in ['Heating network','Co-sim buildings with heating network']:
-                # #feature parameter mapping
-                # print('--start feature parameter mapping--')
-                # self.mosim.showFeatureParm()
-                # self.mosim.dlg_featureParm.tableWidget_parameters.setRowCount(0)
-                # setFeatureParm(self.mosim.dlg_featureParm,self.conn,self.dictDB,self.plugin_dir)
-                # addParmTableRow(self.mosim.dlg_featureParm,self.cur,self.dictDB)
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,1).setText('"load_w"')
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,3).setText('FloorArea')
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,4).setText('Lm_H_G_L_Mctrl')
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,5).setText(':FEATURE')
+            # if project in ['Heating network','Co-sim buildings with heating network']:
+            #     #feature parameter mapping
+            #     print('--start feature parameter mapping--')
+            #     self.mosim.showFeatureParm()
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.setRowCount(0)
+            #     setFeatureParm(self.mosim.dlg_featureParm,self.conn,self.dictDB,self.plugin_dir)
+            #     addParmTableRow(self.mosim.dlg_featureParm,self.cur,self.dictDB)
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,1).setText('"load_w"')
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,3).setText('FloorArea')
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,4).setText('Lm_H_G_L_Mctrl')
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,5).setText(':FEATURE')
                 
-                # addParmTableRow(self.mosim.dlg_featureParm,self.cur,self.dictDB)
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,1).setText('"gfa"')
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,3).setText('X')
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,4).setText('Load limit')
-                # self.mosim.dlg_featureParm.tableWidget_parameters.item(0,5).setText(':FEATURE')
-                # setFeatureParm(self.mosim.dlg_featureParm,self.conn,self.dictDB,self.plugin_dir)
-                # closeDialog(self.mosim.dlg_featureParm)
-                # print('++feature parameter mapping finished++')
+            #     addParmTableRow(self.mosim.dlg_featureParm,self.cur,self.dictDB)
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,1).setText('"gfa"')
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,3).setText('X')
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,4).setText('Load limit')
+            #     self.mosim.dlg_featureParm.tableWidget_parameters.item(0,5).setText(':FEATURE')
+            #     setFeatureParm(self.mosim.dlg_featureParm,self.conn,self.dictDB,self.plugin_dir)
+            #     closeDialog(self.mosim.dlg_featureParm)
+            #     print('++feature parameter mapping finished++')
                 
             
             # print('--start build network model--')
@@ -274,7 +294,7 @@ class Autotest:
             # self.mosim.showRunModel()
             # self.mosim.dlg_runModel.combo_submodels.setItemChecked(1,checked=True)
             # self.mosim.runModel(self.mosim.dlg_runModel)
-            # self.process_wait(self.mosim.dlg_runModel,max_sec=60)
+            # self.process_wait(self.mosim.dlg_runModel,max_sec=70)
             # print('--simulation finished--')
 
             # print('--start load results--')
@@ -286,10 +306,10 @@ class Autotest:
             # print('++load results finished++')
             
             
-            # #test result visualization          
-            # self.rv= IDADistrictsResultVisualization(iface)
-            # self.rv.first_start=True
-            # self.rv.run()
+            #test result visualization          
+            self.rv= IDADistrictsResultVisualization(iface)
+            self.rv.first_start=True
+            self.rv.run()
             
             # print('--start show data on map--')
             # self.rv.btn_showDataOnMap()
@@ -302,21 +322,32 @@ class Autotest:
             # self.rv.dlg_showOnMap.rbtn_sizePar.setChecked(True)
             # self.rv.dlg_showOnMap.size_par.setCurrentText('gfa')
             # self.rv.dlg_showOnMap.layer_name.setText('customer_results_load_values')
+            # self.wait(1000)
             # self.rv.showOnMap(self.rv.dlg_showOnMap)
             # self.process_wait(self.rv.dlg_showOnMap,max_sec=10)
-            # self.wait(1000)
+            # closeDialog(self.rv.dlg_showOnMap)
             
             # #lines supply temperature
+            # self.rv.btn_showDataOnMap()
             # self.rv.dlg_showOnMap.rbtn_lines.setChecked(True)
             # self.rv.dlg_showOnMap.checkbox_varColor.setChecked(True)
             # self.rv.dlg_showOnMap.featureGroupChanged(self.rv.dlg_showOnMap.rbtn_lines)
             # self.rv.dlg_showOnMap.color_var.setCurrentText('temp$1')
-            # self.rv.dlg_showOnMap.checkbox_varSize.setChecked(False)
+            # self.rv.dlg_showOnMap.color_function.setCurrentText('Values')
             # self.rv.dlg_showOnMap.layer_name.setText('lines_results_supply_temperature_values')
+            # self.wait(2000)
             # self.rv.showOnMap(self.rv.dlg_showOnMap)
             # self.process_wait(self.rv.dlg_showOnMap,max_sec=10)
             # #closeDialog(self.rv.dlg_showOnMap)
             # print('++show data on map finished++')
+            
+            print('--start path report--')
+            self.rv.showPathReports()
+            self.rv.dlg_pathReports.rbtn_pathPressure.setChecked(True)
+            self.rv.dlg_pathReports.rbtn_weakPoint.setChecked(True)
+            self.rv.dlg_pathReports.ret_sequence.setCurrentIndex(1)
+            self.rv.generatePathReport(self.rv.dlg_pathReports)
+            print('++path report finished++')
             
             # #test delete project
             # print('--delete project started--')

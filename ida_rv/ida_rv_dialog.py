@@ -4,6 +4,7 @@ from qgis.PyQt.QtWidgets import QListWidget,QCheckBox,QSpinBox,QComboBox,QHeader
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.files import *
+from plugins.utility_functions.topology import *
        
 
 class ShowOnMapDialog(QMainWindow):
@@ -618,11 +619,13 @@ class ShowOnMapDialog(QMainWindow):
         self.rotation_par.addItems(pars)
         
 class IDADistrictsPathReportsDialog(QMainWindow):
-    def __init__(self):     
+    def __init__(self,cur,dictDB):     
         """Initialize GUI for path reports"""
         super().__init__()
         self.setWindowTitle("Path reports")   
         widget=QWidget()
+        self.cur=cur
+        self.dictDB=dictDB
 
         #set quantity 
         #title
@@ -701,15 +704,43 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         self.listWidget_ids= QListWidget()
         self.listWidget_ids.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         
-        layout_network = QHBoxLayout()
+        layout_network_settings=QHBoxLayout()
+        #labels
+        layout_network_settings_labels=QVBoxLayout()
         label_network =QLabel('Network')
-        layout_network.addWidget(label_network)
-        self.network = QComboBox()
-        layout_network.addWidget(self.network)
+        layout_network_settings_labels.addWidget(label_network)
+        label_main_plant =QLabel('Main plant')
+        layout_network_settings_labels.addWidget(label_main_plant)
+        label_conntype =QLabel('Connection type')
+        layout_network_settings_labels.addWidget(label_conntype)
+        label_sup_sequences =QLabel('Supply sequence')
+        layout_network_settings_labels.addWidget(label_sup_sequences)
+        label_ret_sequences =QLabel('Return sequence')
+        layout_network_settings_labels.addWidget(label_ret_sequences)
         
+        #input
+        layout_network_settings_values=QVBoxLayout()
+        self.network = QComboBox()
+        self.network.currentTextChanged.connect(self.network_changed)
+        layout_network_settings_values.addWidget(self.network)
+        self.main_plant = QComboBox()
+        self.main_plant.currentTextChanged.connect(self.main_plant_changed)
+        layout_network_settings_values.addWidget(self.main_plant)
+        self.conn_type = QComboBox()
+        self.conn_type.currentTextChanged.connect(self.conn_type_changed)
+        layout_network_settings_values.addWidget(self.conn_type)
+        self.sup_sequence =QComboBox()
+        layout_network_settings_values.addWidget(self.sup_sequence)
+        self.ret_sequence =QComboBox()
+        layout_network_settings_values.addWidget(self.ret_sequence)
+        
+        layout_network_settings.addLayout(layout_network_settings_labels)
+        layout_network_settings.addLayout(layout_network_settings_values)
+        
+        #buttons
         layout_btn_list = QHBoxLayout()
         self.btn_addID=QPushButton("Add ID")
-        self.btn_addSelectedIDs=QPushButton("Add selected ID`s")
+        self.btn_addSelectedIDs=QPushButton("Add selected ID`s from map")
         self.btn_deleteIDs=QPushButton("Delete ID`s")
         layout_btn_list.addWidget(self.btn_addID)
         layout_btn_list.addWidget(self.btn_addSelectedIDs)
@@ -719,7 +750,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_path.addWidget(label_titel)
         layout_path.addLayout(layout_rbtn_path)  
         layout_path.addWidget(self.listWidget_ids)
-        layout_path.addLayout(layout_network)
+        layout_path.addLayout(layout_network_settings)
         layout_path.addLayout(layout_btn_list)
 
         
@@ -742,6 +773,25 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+        
+    def network_changed(self,s):
+        print(s)
+        epids=getPlantIds(self.cur,self.dictDB,network=s)
+        print(epids)
+        self.main_plant.addItems(epids)
+
+    def main_plant_changed(self,s):
+        print(s)
+        conn_types=getConnTypesByFeature(self.cur,self.dictDB,'energy_plant',s)
+        print(conn_types)
+        self.conn_type.addItems(conn_types)
+        
+    def conn_type_changed(self,s):
+        print(s)
+        sequences=getConnIdsByConnType(self.cur,s)
+        print(sequences)
+        self.sup_sequence.addItems(sequences)
+        self.ret_sequence.addItems(sequences)
         
 class IDADistrictsResultVisualizationDialog(QMainWindow):
     def __init__(self):     
