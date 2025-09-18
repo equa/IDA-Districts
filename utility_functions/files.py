@@ -526,8 +526,9 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
             if openCloseBracketsCounter>0:
                 #print(file_data[counter])
                 parms=[]
-                if ':T SOURCE-FILE' in file_data[counter] and ':SOURCE-FILE' in [par for parDict in replaceDict[replace[0]] for par in parDict]:
-                    path=[i[j] for i in replaceDict[replace[0]] for j in i if j==':SOURCE-FILE'][0]
+                if ':T SOURCE-FILE' in file_data[counter] and ':SOURCE-FILE' in [parDict for parDict in replaceDict[replace[0]]]:
+                    #print(':SF')
+                    path=[replaceDict[replace[0]][i] for i in replaceDict[replace[0]] if i==':SOURCE-FILE'][0]
                     data.append("""((SOURCE-FILE :DOCUMENT-PATH "{}" :SF "{}" :N "{}" :T SOURCE-FILE :COL T){}\n""".format(path,path,replace[0],')' if openCloseBracketsCounter==0 else ''))
                     parms.append(':SOURCE-FILE')
                 else:
@@ -539,10 +540,9 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                         par_name=getParName(file_data[counter],model_language)
                         #print(par_name)
 
-                        if par_name in [par for parDict in replaceDict[replace[0]] for par in parDict]:
+                        if par_name in [parDict for parDict in replaceDict[replace[0]]]:
                             #print('replace parm')
-                            #print(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,[parDict[par] for parDict in replaceDict[replace[0]] for par in parDict if par==par_name][0]))
-                            data.append(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,[parDict[par] for parDict in replaceDict[replace[0]] for par in parDict if par==par_name][0]))
+                            data.append(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,replaceDict[replace[0]][par_name]))
                             parms.append(par_name)
                             exchangeParmValue=True
                         else:
@@ -555,9 +555,8 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                         #print('counter = 0')
                         if not exchangeParmValue:
                             data[-1]=data[-1].rstrip()[:-1]+"\n"
-                        
-                        data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,par,modelicaLabelling,parDict[par]) 
-                            for parDict in replaceDict[replace[0]] for par in parDict if par not in parms]
+                        data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,par,modelicaLabelling,replaceDict[replace[0]][parDict]) 
+                            for parDict in replaceDict[replace[0]] if parDict not in parms]
                         data[-1]=data[-1].rstrip()+')\n'                    
 
                     if openCloseBracketsCounter!=0:
@@ -569,8 +568,8 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                 #only default parm values in model --> 1) add additional bracket to start, 2) add parm to model and 3) add closing bracket
                 #print('only default parm values in model')
                 data.append('('+file_data[counter].rstrip()+'\n')
-                data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,par,modelicaLabelling,parDict[par]) 
-                    for parDict in replaceDict[replace[0]] for par in parDict]
+                data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,parDict,modelicaLabelling,replaceDict[replace[0]][parDict]) 
+                    for parDict in replaceDict[replace[0]]]
                 data[-1]=data[-1].rstrip()+')\n'  
         else:
             data.append(file_data[counter])

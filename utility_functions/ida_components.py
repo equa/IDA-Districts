@@ -110,7 +110,6 @@ def getIDAListComponents(data):
     data=re.sub(r"\)\s+\d", parse_closingBracketsConnectedToDigit, data)
 
     data=re.sub(r"\)\s+", ")", data)
-    #print(file)
 
     data=re.sub(r"\s+\(", '(', data)
     #print(data)

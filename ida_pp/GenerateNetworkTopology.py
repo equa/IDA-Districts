@@ -179,7 +179,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
         
     def insertLinesFromTopology(self,version,network):
         """ INSERT Lines from topology"""
-        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{} FROM temp.streets_help;".format(network)
+        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network,zeta) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{},zeta FROM temp.streets_help;".format(network)
         #print(sql)
         self.cur.execute(sql)
     
@@ -347,6 +347,8 @@ UPDATE temp.lines l SET geom=sub.geom,
         self.cur.execute(sql)
         sql="""UPDATE temp.junctions SET type=2 WHERE n_connections=1;"""
         self.cur.execute(sql)
+        sql="""UPDATE temp.junctions a SET zeta=b.zeta FROM (SELECT zeta,geom FROM {}.junctions) b WHERE ST_dWithin(a.geom,b.geom,{});""".format(self.dictDB['versionName'],self.tolerance)
+        self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):
         counter=0
@@ -395,12 +397,13 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                 lid2=junction_conn[0]['lid2']
                 #print(str(lid1)+";"+str(lid2))
                 #snap line strings, because inaccurancies can occur in the topology
-                sql="""INSERT INTO temp.lines (type,geom,length,pipe_bundle_type_id,network)
+                sql="""INSERT INTO temp.lines (type,geom,length,pipe_bundle_type_id,network,zeta)
     SELECT l1.type ,
         ST_LineMerge(St_Union(l1.geom,l2.geom)) AS geom,
         ST_Length(ST_LineMerge(St_Union(l1.geom,l2.geom))),
         l1.pipe_bundle_type_id,
-        {}
+        {},
+        COALESCE(l1.zeta,0) + COALESCE(l2.zeta,0)
     FROM temp.lines l1, temp.lines l2
     WHERE l1.id={} and l2.id={}
     ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom) DESC LIMIT 1;""".format(network,lid1,lid2)                                              
@@ -450,6 +453,7 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
     type integer,
     network integer,
     pipe_bundle_type_id integer,
+    zeta numeric,
     length_m double precision,
     costs_eur7m numeric DEFAULT 100,
     source integer,
@@ -477,9 +481,9 @@ ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');
 
         if self.keepTemplates:
             self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks])))
         else:
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id) SELECT id,ST_Force2D(geom),type,network , {} FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type,network , {}, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks])))
             self.cur.execute("""INSERT INTO temp.customers (id,geom,template,network,load_w,gfa) SELECT id,geom,{},network,load_w,gfa FROM "{}".customers WHERE network && ARRAY[{}]; """.format(self.overrideTemplates_customers,version,','.join([i for i in self.networks])))
         self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
         self.cur.execute("""SELECT setval('temp.customers_id_seq', (SELECT MAX(id) FROM temp.customers));""")
@@ -645,8 +649,8 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
             self.cur.execute(sql) 
             
         sql="""UPDATE temp.streets_help a 
-    SET type=b.type,pipe_bundle_type_id=b.pipe_bundle_type_id
-    FROM (SELECT id,geom,type,pipe_bundle_type_id FROM temp.network_help) b 
+    SET type=b.type,pipe_bundle_type_id=b.pipe_bundle_type_id,zeta=b.zeta
+    FROM (SELECT id,geom,type,pipe_bundle_type_id,zeta FROM temp.network_help) b 
     WHERE St_dWithIn(b.geom,ST_LineSubstring (a.geom,0.1,0.9),{});""".format(self.tolerance)
         #print(sql)
         self.cur.execute(sql) 

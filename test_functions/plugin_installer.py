@@ -162,3 +162,5 @@ rmtree_long_path(plugin_dir+'pro_temp')
 dir=plugin_dir+'ida_rv\\'
 rmtree_long_path(dir)
 copy_tree_filter_extensions_and_folders(installation_dir+'ida_rv',dir)
+
+#print('installation finished')

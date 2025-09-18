@@ -679,7 +679,6 @@ class CopyTemplateFiles:
                 for file in files:
                     if (file.endswith('.idm') or file.endswith('.idc')) and file.lower() not in ['sensor-macro.idm',source_name.lower()+'.idm',source_name.lower()+'.idc','sf-macro.idm','sf-macro.idc']:
                         #subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(source_name+'\\'+source_name)[1]
-                        #print(path)
                         #print(os.path.splitext(os.path.basename(file))[0])
                         path_target=dir_macro+os.path.join(root, file).split(source_dir+'\\'+source_name)[1].split(file)[0]
                         copyFileReplaceStr(os.path.join(root, file),path_target,path_target+file,[source_name],[target_name],{j : replaceDict[i][j] for i in replaceDict if file.lower().split('.')[0]==i.lower() for j in replaceDict[i]})

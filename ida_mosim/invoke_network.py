@@ -91,7 +91,7 @@ SELECT min(lmin) AS lmin FROM sub;""".format(versionName,submodel,','.join([str(
             
         self.pageHeight=self.getPageHeight()
         self.pageWidth=self.getPageWidth()
-        #print({'xmin':xmin,'ymin':ymin,'xmax':xmax,'ymax':xmax,'pageHeight':pageHeight,'pageWidth':pageWidth})
+        #print({'xmin': self.xmin,'ymin': self.ymin,'xmax': self.xmax,'ymax': self.xmax,'pageHeight': self.pageHeight,'pageWidth': self.pageWidth})
             
     def getPageSettings(self):
         return {'xmin':self.xmin,'ymin':self.ymin,'xmax':self.xmax,'ymax':self.xmax,'pageHeight':self.pageHeight,'pageWidth':self.pageWidth,'lmin':self.lmin}
@@ -323,26 +323,64 @@ class InvokeNetworkModel:
     #todo liqtype
     def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Inserts the lines in the submodel"""
-        sql="""WITH sub AS(
-    SELECT l.id, l.length,ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff, l.zeta +zeta.zeta_j AS zeta, l.pipe_bundle_type_id, c.counter, 
-        ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
-    FROM "{}".lines l,
-    (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
-    (SELECT l.id, sum(j.zeta/2) AS zeta_j FROM "{}".lines l,"{}".junctions j, "{}".junction_connections jc WHERE l.id=jc.lid AND jc.jid=j.id GROUP BY l.id) zeta
-    WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND zeta.id=l.id AND l.network IN ({})
+        sql="""WITH sub AS (
+    SELECT l.id, l.length,
+           ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff,
+           COALESCE(l.zeta,0) + COALESCE(zeta.zeta_j,0) AS zeta,
+           l.pipe_bundle_type_id, 
+           c.counter, 
+           ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,
+           ST_AsText(ST_StartPoint(l.geom)) AS point_start,
+           ST_AsText(ST_EndPoint(l.geom)) AS point_end
+    FROM "{}".lines l
+    JOIN (SELECT count(*) AS counter, pipe_bundle_type_id
+          FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
+      ON c.pipe_bundle_type_id = l.pipe_bundle_type_id
+    JOIN (SELECT l.id, sum(j.zeta/2) AS zeta_j
+          FROM "{}".lines l
+          JOIN "{}".junction_connections jc ON jc.lid = l.id
+          JOIN "{}".junctions j ON j.id = jc.jid
+          GROUP BY l.id) zeta
+      ON zeta.id = l.id
+    WHERE {} = ANY (l.submodel) AND l.network IN ({})
+),
+all_lines AS (
+    SELECT l.id, l.length,
+           ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff,
+           l.pipe_bundle_type_id, 
+           c.counter, 
+           ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,
+           ST_AsText(ST_StartPoint(l.geom)) AS point_start,
+           ST_AsText(ST_EndPoint(l.geom)) AS point_end,
+           l.zeta
+    FROM "{}".lines l
+    JOIN (SELECT count(*) AS counter, pipe_bundle_type_id
+          FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
+      ON c.pipe_bundle_type_id = l.pipe_bundle_type_id
+    WHERE {} = ANY (l.submodel) AND l.network IN ({})
+),
+merged AS (
+    -- compare without zeta
+    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end
+    FROM all_lines
+    EXCEPT
+    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end
+    FROM sub
+    
+    UNION
+    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end
+    FROM sub
 )
---get line id`s without connection to junctions
-SELECT l.id, l.length,ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff, l.zeta AS zeta, l.pipe_bundle_type_id, c.counter, 
-        ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,ST_AsText(ST_StartPoint(l.geom)) AS point_start,ST_AsText(ST_EndPoint(l.geom)) AS point_end
-    FROM "{}".lines l,
-    (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
-    WHERE {} = ANY (l.submodel) AND c.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network IN ({})
-EXCEPT  
-SELECT * FROM sub
---merge with line id`s, which are connected to junctions
-UNION
-SELECT * FROM sub
-ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]),self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]))
+-- finally, re-attach the correct zeta:
+SELECT m.id, m.length, m.height_diff,
+       COALESCE(s.zeta, a.zeta, 0) AS zeta,
+       m.pipe_bundle_type_id, m.counter,
+       m.point_pipe, m.point_start, m.point_end
+FROM merged m
+LEFT JOIN sub s ON s.id = m.id
+LEFT JOIN all_lines a ON a.id = m.id
+ORDER BY m.id;
+""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]),self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]))
         #print(sql)
         self.cur.execute(sql)
         i=1

@@ -460,6 +460,7 @@ CREATE TABLE temp.streets_help (
     geom public.geometry(LineString,25832),
     type integer,
     pipe_bundle_type_id integer,
+    zeta numeric,
     length_m double precision,
     costs_eur7m numeric DEFAULT 100,
     source integer,

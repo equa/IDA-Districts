@@ -345,9 +345,27 @@ class Autotest:
             self.rv.showPathReports()
             self.rv.dlg_pathReports.rbtn_pathPressure.setChecked(True)
             self.rv.dlg_pathReports.rbtn_weakPoint.setChecked(True)
-            self.rv.dlg_pathReports.ret_sequence.setCurrentIndex(1)
+            self.rv.dlg_pathReports.rbtn_Date.setChecked(True)
+            self.rv.dlg_pathReports.date_input.setText('2025-01-21 14:15:00')
+            self.rv.dlg_pathReports.dp_recalc.setChecked(True)
+            self.rv.dlg_pathReports.dp_min_recalc.setText('0.8')
+            
+            self.rv.dlg_pathReports.sup_sequence.setCurrentIndex(0)
+            self.rv.dlg_pathReports.ret_sequence.setCurrentIndex(2)
             self.rv.generatePathReport(self.rv.dlg_pathReports)
-            print('++path report finished++')
+            print('++path report 1 finished++')
+                        
+            # self.rv.showPathReports()
+            # self.rv.dlg_pathReports.rbtn_pathPressure.setChecked(True)
+            # self.rv.dlg_pathReports.rbtn_weakPoint.setChecked(True)
+            # self.rv.dlg_pathReports.rbtn_Date.setChecked(True)
+            # self.rv.dlg_pathReports.date_input.setText('2025-08-15 21:00:00')
+            # self.rv.dlg_pathReports.dp_recalc.setChecked(True)
+            # self.rv.dlg_pathReports.dp_min_recalc.setText('0.8')
+            
+            # self.rv.dlg_pathReports.sup_sequence.setCurrentIndex(1)
+            # self.rv.dlg_pathReports.ret_sequence.setCurrentIndex(3)
+            # self.rv.generatePathReport(self.rv.dlg_pathReports)
             
             # #test delete project
             # print('--delete project started--')

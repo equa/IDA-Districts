@@ -662,7 +662,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_rbtn_date = QHBoxLayout()
         self.rbtn_maxValue = QRadioButton('Max value')
         self.rbtn_maxValue.setChecked(True)
-        self.rbtn_Date = QRadioButton('Date, h')
+        self.rbtn_Date = QRadioButton('Date (yyyy-MM-dd HH:mm:ss)')
            
         layout_rbtn_date.addWidget(self.rbtn_maxValue)
         layout_rbtn_date.addWidget(self.rbtn_Date) 
@@ -717,6 +717,12 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_network_settings_labels.addWidget(label_sup_sequences)
         label_ret_sequences =QLabel('Return sequence')
         layout_network_settings_labels.addWidget(label_ret_sequences)
+        label_conntype =QLabel('Customer connection bundle type')
+        layout_network_settings_labels.addWidget(label_conntype)
+        label_conntype =QLabel('Customer connection type')
+        layout_network_settings_labels.addWidget(label_conntype)
+        self.dp_recalc =QCheckBox('Recalculate supply pressure value with dp min, bar')
+        layout_network_settings_labels.addWidget(self.dp_recalc)
         
         #input
         layout_network_settings_values=QVBoxLayout()
@@ -733,6 +739,13 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_network_settings_values.addWidget(self.sup_sequence)
         self.ret_sequence =QComboBox()
         layout_network_settings_values.addWidget(self.ret_sequence)
+        self.c_conn_bundle_type = QComboBox()
+        layout_network_settings_values.addWidget(self.c_conn_bundle_type)
+        self.c_conn_bundle_type.currentTextChanged.connect(self.c_conn_bundle_type_changed)
+        self.c_conn_type = QComboBox()
+        layout_network_settings_values.addWidget(self.c_conn_type)
+        self.dp_min_recalc = QLineEdit()
+        layout_network_settings_values.addWidget(self.dp_min_recalc)
         
         layout_network_settings.addLayout(layout_network_settings_labels)
         layout_network_settings.addLayout(layout_network_settings_values)
@@ -774,22 +787,32 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
         
+        c_conn_types = getConnBundlesByType(self.cur,self.dictDB,'customer')
+        self.c_conn_bundle_type.addItems(c_conn_types)
+
+    def c_conn_bundle_type_changed(self,s):
+        #print('c_conn_bundle_type cahnged')
+        #print(s)
+        conn_types=getConnTypesByConnBundleType(self.cur,self.dictDB,s)
+        #print(conn_types)
+        self.c_conn_type.addItems(conn_types)    
+        
     def network_changed(self,s):
-        print(s)
+        #print(s)
         epids=getPlantIds(self.cur,self.dictDB,network=s)
-        print(epids)
+        #print(epids)
         self.main_plant.addItems(epids)
 
     def main_plant_changed(self,s):
-        print(s)
+        #print(s)
         conn_types=getConnTypesByFeature(self.cur,self.dictDB,'energy_plant',s)
-        print(conn_types)
+        #print(conn_types)
         self.conn_type.addItems(conn_types)
         
     def conn_type_changed(self,s):
-        print(s)
-        sequences=getConnIdsByConnType(self.cur,s)
-        print(sequences)
+        #print(s)
+        sequences=getConnSequencesByConnType(self.cur,s)
+        #print(sequences)
         self.sup_sequence.addItems(sequences)
         self.ret_sequence.addItems(sequences)
         

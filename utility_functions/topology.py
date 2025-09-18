@@ -104,17 +104,23 @@ def getBundleValues(bundle,cur):
 def getConnTypesByFeature(cur,dictDB,feature,id):
     sql="""SELECT b_t_conns.conn_type_id 
     FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
-    WHERE f_t.id=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
-    ORDER BY b_t_conns.sequence;""".format(dictDB['versionName'],feature,feature)
-    print(sql)
+    WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
+    ORDER BY b_t_conns.sequence;""".format(dictDB['versionName'],feature,feature,id)
+    #print(sql)
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
     
 def getConnIdsByConnType(cur,conn_type):
     sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return [str(i['connection_id']) for i in cur.fetchall()]
+    
+def getConnSequencesByConnType(cur,conn_type):
+    sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
+    #print(sql)
+    cur.execute(sql)
+    return [str(i['sequence']) for i in cur.fetchall()]
     
 def getConnTypeConnValues(cur,ids):
     sql="""SELECT conn_t_conns.connection_type_id, conn_t_conns.connection_id , conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
@@ -143,15 +149,35 @@ def getConnsValues(bundle,cur):
     cur.execute(sql)
     return cur.fetchall()
     
-def getConnBundleByFeature(type_id,feature_id,cur,dictDB):
+def getConnBundleByFeature(feature_type,feature_id,cur,dictDB):
     sql="""SELECT c_t.conn_bundle_type 
     FROM "{}".{} f, {} c_t 
-    WHERE f.id={} AND c_t.template=f.template;""".format(dictDB['versionName'],type_id+'s' if type(type_id)==str else getTypeNameById(type_id),getTemplateNameById(int(getTypeIdByName(type_id))) if type(type_id)==str else getTemplateNameById(type_id),feature_id)
+    WHERE f.id={} AND c_t.template=f.template;""".format(dictDB['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
+
+def getConnBundlesByType(cur,dictDB,type):
+    sql="""SELECT f_t.conn_bundle_type
+    FROM {}.{}s f, {}_templates f_t
+    WHERE f.template=f_t.template
+    GROUP BY f_t.conn_bundle_type;""".format(dictDB['versionName'],type,type)
+    #print(sql)
+    cur.execute(sql)
+    return [str(i['conn_bundle_type']) for i in cur.fetchall()]
+    
+def getConnTypesByConnBundleType(cur,dictDB,c_b_type):
+    sql="""SELECT conn_type_id FROM bundle_type_conns WHERE conn_bundle_type_id={} ORDER BY sequence;""".format(c_b_type)
+    cur.execute(sql)
+    return [str(i['conn_type_id']) for i in cur.fetchall()]
     
 def getBundleValuesByFeature(type_id,feature_id,cur,dictDB):
     return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
+    
+def getConnTypeSeqFromBundle(cur,dictDB,c_b_type,conn_type):
+    sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type)
+    #print(sql)
+    cur.execute(sql)
+    return cur.fetchone()['sequence']
     
 def getConnValuesByFeature(type_id,feature_id,conn_id,cur,dictDB):
     return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
@@ -277,9 +303,9 @@ def getConnsValuesIdentTypeDict(cur,conn_bundle_type):
     return {"{}_{}_{}_{}".format(str(connValue['conn_bundle_type_id']),str(connValue['conn_type_seq']),str(connValue['conn_type_id']),str(connValue['conn_seq'])) : {':T' : connValue['type'], ':V-VAR' : connValue['mdot'] if connValue['p_ctrl'] else connValue['p'], ':VAR' : 'M' if connValue['p_ctrl'] else 'P', ':V-T': connValue['temp']} 
         for connValue in getConnsValues(conn_bundle_type,cur)}
     
-def getPMT2muxIdentFromConnValues(connValues,conn_seq):
+def getPMT2muxIdentFromConnValues(connValues,conn_seq,conn_t_seq=1):
     try:
-        return ["{}_{}_{}_{}".format(connValue['conn_bundle_type_id'],connValue['conn_type_seq'],connValue['conn_type_id'],connValue['conn_seq']) for connValue in connValues if conn_seq==connValue['conn_seq']][0]
+        return ["{}_{}_{}_{}".format(connValue['conn_bundle_type_id'],connValue['conn_type_seq'],connValue['conn_type_id'],connValue['conn_seq']) for connValue in connValues if conn_seq==connValue['conn_seq'] and connValue['conn_type_seq']==conn_t_seq][0]
     except:
         return ''
         

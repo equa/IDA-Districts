@@ -26,6 +26,7 @@ import datetime
 import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
 from PyQt5.QtCore import Qt
+from decimal import Decimal
 
 class IDADistrictsResultVisualization:
     """QGIS Plugin Implementation."""
@@ -228,19 +229,18 @@ class IDADistrictsResultVisualization:
         #print(jids)
         return jids
     
-    def getJunctionVariables(self,jids,filedata_j):
+    def getJunctionVariables(self,jids):
         variables={}
         counter=2
         jid_old=''
         connections={}
-        print('ho')
-        print(jids)
-        print(filedata_j[0])
+        #print('ho')
+        #print(jids)
         for filedata in filedata_j:
             for var in filedata[0].strip().split()[3:]:
-                print(var)
+                #print(var)
                 jid=var.split('_')[1]
-                print('jid:'+str(jid)+'; jid_old: '+str(jid_old))
+                #print('jid:'+str(jid)+'; jid_old: '+str(jid_old))
                 if jid!=jid_old and counter!=3:
                     #print(connections)
                     if jid_old in [jid[0] for jid in jids]:
@@ -301,22 +301,23 @@ class IDADistrictsResultVisualization:
                 col_counter+=1
         return data_j
         
-    def showplot(self,data_j,jids,epid,cid,path,data_ep,data_c,variables,quantity,title):
-        #print(data_ep[0])
-        #print(data_c[0])
-        #print(variables)
-        for jid in jids:
-            #print(jid)
-            #print(jid[0])
-            #print(variables[jid[0]]['1'])
-            pass
-        quantity_data_sup=[data_ep[0]]+[data_j[variables[jid[0]]['1'][1]] for jid in jids]+[data_c[0]]
-        quantity_data_ret=[data_ep[1]]+[data_j[variables[jid[0]]['2'][1]] for jid in jids]+[data_c[1]]
-        height=[epid[1]]+[jid[1] for jid in jids]+[cid[1]]
+    def showplot(self,epid,weak_point,path,line_data,quantity,title,lids,dlg):
+        #print('show plot')
+        if dlg.dp_recalc.isChecked():
+            #print(dlg.dp_min_recalc.text())
+            ddp=weak_point['sup_c'] - weak_point['ret_c']-Decimal(dlg.dp_min_recalc.text())*100000
+        else:
+            ddp=0
+        #print(ddp)
+
+        quantity_data_sup=[weak_point['sup_ep']-ddp]+[lid['p1']-ddp for lid in line_data]+[weak_point['sup_c']-ddp]
+        quantity_data_ret=[weak_point['ret_ep']]+[lid['p2'] for lid in line_data]+[weak_point['ret_c']]
+        height=[weak_point['height_ep']]+[lid['height_j'] for lid in line_data]+[weak_point['height_c']]
 
         #print(height)
         #print(quantity_data_sup)
         #print(quantity_data_ret)
+        
         fig, (ax1, ax2) = plt.subplots(2, 1)
         fig.suptitle(title)
         ax1.plot(path, quantity_data_sup, linewidth=4.0)
@@ -339,9 +340,9 @@ class IDADistrictsResultVisualization:
         ax2.set_ylabel('Höhenprofil, m')
         ax2.grid(True)
         
-        SMALL_SIZE = 24
-        MEDIUM_SIZE = 30
-        BIGGER_SIZE = 40
+        SMALL_SIZE = 20
+        MEDIUM_SIZE = 25
+        BIGGER_SIZE = 30
 
         plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
         plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
@@ -349,7 +350,7 @@ class IDADistrictsResultVisualization:
         plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
         plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
         plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+        plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
         plt.rc('figure', figsize=(30.0, 20.0))  # fontsize of the figure title
         #manager = plt.get_current_fig_manager()
         #manager.window.showMaximized()
@@ -371,11 +372,6 @@ class IDADistrictsResultVisualization:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
                             
             submodels=getNetworkSubmodels(self.cur,self.dictDB,[dlg.network.currentText()])
-            filedata_j=[]
-            for submodel in submodels:
-                file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel,'p_lines' if quantity=='pressure' else 'Temp_nodes')
-                #print(file)
-                filedata_j.append(readFileToList(file))
             
             if dlg.rbtn_lineIds.isChecked():   
                 lids=[dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]
@@ -403,9 +399,7 @@ class IDADistrictsResultVisualization:
                 #junction ids               
                 jids=self.getJids(lids)               
                 
-                #print(filedata_j)
-
-                variables=self.getJunctionVariables(jids,filedata_j)
+                variables=self.getJunctionVariables(jids)
                 
                 data_j=self.getDataJunction(filedata_j,i_max)
                     
@@ -417,84 +411,65 @@ class IDADistrictsResultVisualization:
                 title='Time= '+str(data_j[0])+'h ; Customer ID='+cid[0]+'; Energy plant ID='+epid[0]+'; Line Ids='+','.join([str(lid[0]) for lid in lids])
                 self.showplot(data_j,jids,epid,cid,path,data_ep,data_c,variables,quantity,title)
 
-            elif dlg.rbtn_weakPoint.isChecked() or dlg.rbtn_customer.isChecked() or dlg.rbtn_energy_plant.isChecked():
-                #ep id
-                print('epid')
-                epid,lid_start,submodel,conn_type=self.getMainEnergyPlantData(dlg.network.currentText(),dlg.main_plant.currentText())
-                print(epid)
-                print(lid_start)
-                file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\energy_plant_{}\\Connection type sequence_{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel,epid[0],dlg.conn_type.currentIndex()+1)
-                print(file)
-                filedata_ep=readFileToList(file)
-
-                if dlg.rbtn_weakPoint.isChecked():
-                    sql="""(SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
-    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_templates c_t, bundle_type_conns b_t_conns
-    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_t.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
-        c_t.template=c.template AND l.network={} AND {}=ANY(c.network)
-UNION
-SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_templates ep_t, bundle_type_conns b_t_conns
-    WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
-        NOT ep.id={} AND l.network={} AND ep_t.template=ep.template
-)
-ORDER BY id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid[0],dlg.network.currentText())
-                elif dlg.rbtn_customer.isChecked():
-                    sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height,'customer' AS feature,c.submodel, b_t_conns.conn_type_id
-    FROM "{}".customers c, "{}".lines l, "{}".customer_connections c_conns, customer_templates c_t, bundle_type_conns b_t_conns
-    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_t.conn_bundle_type AND c_conns.cid=c.id AND l.id=c_conns.lid AND 
-        c_t.template=c.template AND l.network={} AND {}=ANY(c.network) AND c.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
-                elif dlg.rbtn_energy_plant.isChecked():
-                    sql="""SELECT ep.id,ST_Z(ST_EndPoint(l.geom)) AS height,'energy_plant' AS feature,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns, energy_plant_templates ep_t, bundle_type_conns b_t_conns
-    WHERE ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND {}=ANY(ep.network) AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND 
-        NOT ep.id={} AND l.network={} AND ep_t.template=ep.template AND ep.id IN ({});""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),epid[0],dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
-                print(sql)
-                self.cur.execute(sql)
-                fids=[[str(f['id']), f['height'],f['feature'],f['submodel'],f['conn_type_id']] for f in self.cur.fetchall()]
-                print(fids)  
-                
+            elif dlg.rbtn_weakPoint.isChecked() or dlg.rbtn_customer.isChecked() or dlg.rbtn_energy_plant.isChecked():              
                 #set up topology
                 sql="""TRUNCATE temp.streets_help;
 INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines;
 SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.dictDB['versionName'])
                 self.cur.execute(sql)
                 
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],epid[0])
+                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],dlg.main_plant.currentText())
                 #print(sql)
                 self.cur.execute(sql)
                 v_epid=self.cur.fetchone()['vid']
                 #print(v_epid)
+                ep_c_b_type=getConnBundleByFeature('energy_plant',dlg.main_plant.currentText(),self.cur,self.dictDB)
+                ep_connValues=getConnsValues(ep_c_b_type,self.cur)
+                #print(ep_connValues)
+                ep_c_type_seq=getConnTypeSeqFromBundle(self.cur,self.dictDB,ep_c_b_type,dlg.conn_type.currentText())
+                #print(ep_c_type_seq)
+                p_ep_sup_ident=getPMT2muxIdentFromConnValues(ep_connValues,int(dlg.sup_sequence.currentText()),conn_t_seq=ep_c_type_seq)
+                p_ep_ret_ident=getPMT2muxIdentFromConnValues(ep_connValues,int(dlg.ret_sequence.currentText()),conn_t_seq=ep_c_type_seq)
+                #print(p_ep_sup_ident)
+                #print(p_ep_ret_ident)
+                c_connValues=getConnsValues(dlg.c_conn_bundle_type.currentText(),self.cur)
+                p_c_sup_ident=getPMT2muxIdentFromConnValues(c_connValues,int(dlg.sup_sequence.currentText()))
+                p_c_ret_ident=getPMT2muxIdentFromConnValues(c_connValues,int(dlg.ret_sequence.currentText()))
+                #print(p_c_sup_ident)
+                #print(p_c_ret_ident)
                 
-                weak_point_id=0
-                weak_point_value=0
-                conn_type_seq=dlg.conn_type.currentIndex()+1
-                for fid in fids:
-                    #print('*---------------------*')
-                    
-                    file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\{}_{}\\Connection type sequence_{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],fid[3],fid[2].capitalize(),fid[0],conn_type_seq)
-                    #print(file)
-                    filedata_c=readFileToList(file)
-                    if dlg.rbtn_maxValue.isChecked():
-                        row,value=self.getMaxRow(filedata_ep,filedata_c,epid,fid,quantity,dlg)
-                    elif dlg.rbtn_Date.isChecked():
-                        date=dlg.date_input.text()
-                        row,value=self.getDateRow(filedata_ep,filedata_c,epid,fid,quantity,date,dlg)
-                    if value>weak_point_value:
-                        weak_point_id=fid
-                        weak_point_value=value
-                        filedata_c_weakpoint=filedata_c
-
-                print(weak_point_value)    
-                print(weak_point_id)    
-
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".{}s f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.dictDB['versionName'],weak_point_id[2],weak_point_id[0])
-                print(sql)
+                if dlg.rbtn_maxValue.isChecked():
+                    sql="""WITH sub AS(
+    SELECT p_c.fid,max(p_ep."$p"-p_c."$p") as dp FROM {}.customer_s_p${} p_c, {}.energy_plant_s_p${} p_ep 
+        WHERE p_c.time=p_ep.time AND p_ep.fid=1
+        GROUP BY p_c.fid
+        ORDER BY dp DESC
+        LIMIT 1
+)
+SELECT sub.fid, sub.dp, p_c1.time, p_c1."$p" as sup_c, p_c2."$p" as ret_c, ST_Z(p_c1.geom) AS height_c, p_ep1."$p" as sup_ep, p_ep2."$p" as ret_ep, ST_Z(p_ep1.geom) AS height_ep 
+    FROM sub, {}.customer_s_p${} p_c1, {}.customer_s_p${} p_c2, {}.energy_plant_s_p${} p_ep1, {}.energy_plant_s_p${} p_ep2
+    WHERE p_c1.time=p_ep1.time AND p_ep2.time=p_ep1.time AND p_c2.time=p_ep1.time AND p_ep1.fid=1 AND p_ep1.fid=p_ep2.fid AND p_ep1."$p"-p_c1."$p" = sub.dp AND sub.fid=p_c1.fid AND sub.fid=p_c2.fid;""".format(
+        self.dictDB['versionName'],p_c_sup_ident,self.dictDB['versionName'],p_ep_sup_ident,self.dictDB['versionName'],p_c_sup_ident,self.dictDB['versionName'],p_c_ret_ident,self.dictDB['versionName'],p_ep_sup_ident,self.dictDB['versionName'],p_ep_ret_ident)
+                else:
+                    sql="""SELECT p_c1.fid, p_ep1."$p" - p_c1."$p" AS dp, p_c1.time, p_c1."$p" as sup_c, p_c2."$p" as ret_c, ST_Z(p_c1.geom) AS height_c, p_ep1."$p" as sup_ep, p_ep2."$p" as ret_ep, ST_Z(p_ep1.geom) AS height_ep 
+    FROM {}.customer_s_p${} p_c1, {}.customer_s_p${} p_c2, {}.energy_plant_s_p${} p_ep1, {}.energy_plant_s_p${} p_ep2
+    WHERE p_c1.time='{}' AND p_c1.time=p_ep1.time AND p_ep2.time=p_ep1.time AND p_c2.time=p_ep1.time AND p_ep1.fid=1 AND p_ep1.fid=p_ep2.fid AND p_c1.fid = p_c2.fid
+    ORDER BY dp DESC
+    LIMIT 1;""".format(self.dictDB['versionName'],p_c_sup_ident,self.dictDB['versionName'],p_c_ret_ident,self.dictDB['versionName'],p_ep_sup_ident,self.dictDB['versionName'],p_ep_ret_ident,dlg.date_input.text())
+    
+                #print(sql)
+                self.cur.execute(sql)
+                weak_point=self.cur.fetchone()
+                #print(weak_point)   
+                           
+                #get line with shortest path
+                
+                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".customers f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.dictDB['versionName'],weak_point['fid'])
+                #print(sql)
                 self.cur.execute(sql)
                 v_id=self.cur.fetchone()['vid']
-                print(v_id)
+                #print(v_id)
                 
-                #get line with shortest path
                 sql="""WITH sub As(
     SELECT seq, node, edge, cost
             FROM pgr_dijkstra(
@@ -507,42 +482,40 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
 SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_id,self.dictDB['versionName'])
                 self.cur.execute(sql)
                 lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
-                print(lids)
+                #print(lids)
+                            
 
-                #junction ids               
-                jids=self.getJids(lids)
-                print(jids)
-                
-                variables=self.getJunctionVariables(jids,filedata_j)
-                print('hi')
-                ep_col_sup,ep_col_ret=self.getColIdx(filedata_ep,dlg)
-                data_ep=[float(filedata_ep[row].strip().split()[ep_col_sup]),float(filedata_ep[row].strip().split()[ep_col_ret])]
-                c_col_sup,c_col_ret=self.getColIdx(filedata_c,dlg)
-                data_c=[float(filedata_c_weakpoint[row].strip().split()[c_col_sup]),float(filedata_c_weakpoint[row].strip().split()[c_col_ret])]
-                data_j=self.getDataJunction(filedata_j,row)
-                dp=data_ep[0]-data_ep[1]
-                dt=data_c[0]-data_c[1]
-                
+                sql="""SELECT p1.fid,p1."$p" AS p1, p2."$p" AS p2, ABS(p1."$p" - p2."$p") AS dp, ST_Z(ST_EndPoint(p1.geom)) AS height_j
+    FROM {}.line_s_p${} p1, {}.line_s_p${} p2
+    WHERE p1.fid=p2.fid and p1.time=p2.time and p1.segment=2 and p2.segment=2 AND p1.time = '{}' AND p1.fid IN ({});""".format(self.dictDB['versionName'], dlg.sup_sequence.currentText(),self.dictDB['versionName'],dlg.ret_sequence.currentText(), weak_point['time'],','.join([str(i[0]) for i in lids[:-1]]))
+                #print(sql)
+                self.cur.execute(sql)
+                line_data=self.cur.fetchall()
+                #print(line_data)
+                line_data_map= {row['fid']: row for row in line_data}
+                #print(line_data_map)
+                line_data = [line_data_map[fid] for fid, _ in lids if fid in line_data_map]
+                #print(line_data)
                 path=[0]
                 path_sum=0
                 for lid in lids:
                     path_sum+=lid[1]
                     path.append(path_sum)
-                print(path)
-                #print(data_ep)
-                #print(data_c)
-                #print(data_j)
+                #print(path)
+
                 if dlg.rbtn_pathTemp.isChecked():
+                    
                     title='Simulationszeit='+str(round(data_j[0],3))+' h ; Kunden ID='+weak_point_id[0]+ ' ; Temperaturdifferenz Übergabestation: ' +str(round(dt,2))+' °C'
                     #title='Weakpoint; Time='+str(data_j[0])+'h ; '+weak_point_id[2].capitalize().replace('_',' ')+' ID='+weak_point_id[0]+'; Main energy plant ID='+epid[0]+'; Line Ids='+','.join([str(lid[0]) for lid in lids])
                 elif dlg.rbtn_pathPressure.isChecked(): 
-                    title='Netzschlechtpunkt; Simulationszeit='+str(round(data_j[0],3))+' h ; Kunden ID='+weak_point_id[0]+ ' ; Druckdifferenz: ' +str(dp)+' Pa'
+                    dp=weak_point['dp']*2
+                    title='Netzschlechtpunkt; Simulationszeit='+str(weak_point['time'])+'; Kunden ID='+str(weak_point['fid'])+ ' ; Druckverlust: ' +str(dp)+' Pa'
                     #title='Simulationszeit='+str(data_j[0])+' h ; Kunden ID='+weak_point_id[0]+ ' ; Druckdifferenz: ' +str(dp)+' Pa'
 
 
 
 
-                self.showplot(data_j,jids,epid,weak_point_id,path,data_ep,data_c,variables,quantity,title)
+                self.showplot(dlg.main_plant.currentText(),weak_point,path,line_data,quantity,title,lids,dlg)
 
                 #select lids in lines
                 lines_layer=QgsProject.instance().mapLayersByName('lines')   
@@ -662,7 +635,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                     for lid in lids:
                         path_sum+=lid[1]
                         path.append(path_sum)
-                    print(path)
+                    #print(path)
                     #print(data_ep)
                     #print(data_c)
                     #print(data_j)

@@ -414,7 +414,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                         self.cur.execute(newdata)
             self.signals.progress.emit(75)
 
-            cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
+            cmd="""\"{}bin\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\\{}.sql\"""".format(
                 loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir.replace('\\\\?\\',''),('db_tables' if self.project_name else name))
             #print(cmd)
             subprocess.call(cmd, shell=True)
@@ -423,7 +423,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.cur.execute(filedata)
             self.signals.progress.emit(80)            
             if self.project_name and not self.no_db_results:
-                cmd="""\"{}bin\\psql" --dbname=postgresql://{}:{}@{}:{}/{} -f "{}\\{}.sql\"""".format(
+                cmd="""\"{}bin\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\\{}.sql\"""".format(
                     loadIDADistrictsConfig(self.plugin_dir)['path_postgresql'],self.dictDB['user'],self.dictDB['pwd'],self.dictDB['host'],self.dictDB['port'],db_info['projectName'],dir.replace('\\\\?\\',''),'db_results')
                 #print(cmd)
                 subprocess.call(cmd, shell=True) 
