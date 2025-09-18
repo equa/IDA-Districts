@@ -765,7 +765,9 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         
     def showDefaults(self,dlg,defaults,template_name):
         """show the default values of a table in the GUI"""
+        #print(defaults)
         for default in defaults:
+            #print(default)
             if default['column_name'] in ['template','pipe_bundle_type_id','network','type','internal_load_id','dhw_id']:
                 #print(default)
                 if default['column_name'] =='template':
@@ -786,7 +788,8 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0] if i[0]==default['column_default']))
                 except:
                     pass
-            if default['column_name'] in ['submodel','load_w']:
+            if default['column_name'] in ['submodel','load_w'] and template_name != 'line':
+                #print(dlg.input)
                 dlg.input[default['column_name']].setText(default['column_default'])
    
     def show_DefaultsLinesDialog(self):
