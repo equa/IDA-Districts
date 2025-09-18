@@ -300,6 +300,7 @@ CREATE TABLE "{}".customer_s_ventilation
                         #update point geometry
                         #print(tables)
                         if tables:
+                            self.createResultLayerIndex(tables,'customer')
                             self.updateResultLayerGeometry(tables,'customer')
                             
                     self.signals.progress.emit(33)
@@ -396,6 +397,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         #update point geometry
                         #print(tables)
                         if tables:
+                            self.createResultLayerIndex(tables,'energy_plant')
                             self.updateResultLayerGeometry(tables,'energy_plant')
                             
                     self.signals.progress.emit(66)
@@ -469,13 +471,16 @@ CREATE TABLE "{}".line_s_{}${}
                                     table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                                     #print(table_names)
                                     self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
-                                self.signals.progress.emit(int(66+counter_l / len(lids)*33/len(line_outputs)+counter_of/len(line_outputs)*33))
+                                self.signals.progress.emit(int(66+counter_l / len(lids)*32/len(line_outputs)+counter_of/len(line_outputs)*32))
                             
+                            self.createResultLayerIndex(table_names,'line')
+
                             #update line geometry
                             if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']]:
                                 self.updateResultLayerLineSegGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']])
                             if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']]:
                                 self.updateResultLayerGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']],'line')
+
                         self.signals.progress.emit(99)
                 except Exception as e:
                     self.signals.error.emit(str(e))
@@ -523,6 +528,16 @@ CREATE TABLE "{}".line_s_{}${}
             sql="""UPDATE "{}".{} r set geom = f.geom 
     FROM (SELECT id, geom FROM "{}".{}s) f
     WHERE f.id=r.fid;""".format(self.dictDB['versionName'],table_name,self.dictDB['versionName'],type)
+            #print(sql)
+            self.cur.execute(sql)
+            
+    def createResultLayerIndex(self,tables,type):
+        for counter,table_name in enumerate(tables,1):
+            #print('-------------**---**-'+table_name.split('_')[1].split('$')[0])
+            if type=='line' and table_name.split('$')[0].split('_')[-1] in ['temp','p']:
+                sql="""CREATE INDEX "idx_{}_fid_time_segment" ON {}."{}" (fid, time, segment);""".format(table_name,self.dictDB['versionName'],table_name)
+            else:
+                sql="""CREATE INDEX "idx_{}_fid_time" ON {}."{}" (fid, time);""".format(table_name,self.dictDB['versionName'],table_name)
             #print(sql)
             self.cur.execute(sql)
             
