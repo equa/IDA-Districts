@@ -32,7 +32,7 @@ class WorkerSetRequestedOutputs(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        #print('run worker invoke network')
+        #print('run worker set requested outputs')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         self.setOutputs()

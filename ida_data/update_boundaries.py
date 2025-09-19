@@ -7,10 +7,10 @@ def updatePMT2CompBoundaries(comp,pmt2_update_dict):
     #print(comp)
     for i in comp:
         #print("class: {}; name: {}".format(getCompClass(i),getCompName(i)))
-        if getCompClass(i)==':VAR' and getCompName(i) in pmt2_update_dict[getCompName(comp)]['disconnect']:
+        if getCompClass(i)==':VAR' and getCompName(i) in pmt2_update_dict[getCompName(comp)]['disconnect'] or getCompName(comp) in ['|M_var|','|P_var|']:
             #print('disconnect')
             pass
-        elif getCompClass(i)=='CONNECTOR' and pmt2_update_dict[getCompName(comp)]['update_T']:
+        elif getCompClass(i)=='CONNECTOR' and getCompName(i)=='|term_a|' and pmt2_update_dict[getCompName(comp)]['update_T'] :
             new_connector=[]
             for j in i:
                 if getCompName(j)=='|inStream(T)|':
@@ -120,19 +120,21 @@ def updateTemplateBoundaryValues(dlg,plugin_dir,dictDB,cur):
         for template_name in getTemplateNames(cur,feature):
             #print('******************************************')
             #print(template_name)
-            connsValues=getConnsValuesByTemplate(feature,template_name.split('_')[1],template_name.split('_')[0],cur,dictDB)
+            connsValues=getConnsValuesByTemplate(feature,template_name.split(':')[0],cur,dictDB)
             #print('connsValues')
             #print(connsValues)
             if [True for connValues in connsValues if connValues['conn_id'] in changedValues]:
                 #print('update template_name: {}'.format(template_name))
                 pmt2_update_dict,add_constants,del_constants,update_constants=getBoundaryUpdateData(connsValues,changedValues)
+                #print('--')
                 #print(pmt2_update_dict)
                 #print(add_constants)
                 #print(del_constants)
                 #print(update_constants)
-
-                template_idm=at_dir+'\\{}.idm'.format(template_name)
-                template_idc=at_dir+'\\{}.idc'.format(template_name)
+                template_file_name=template_name.split(':')[0]+'_'+''.join(template_name.split(':')[1:])
+                template_idm=at_dir+'\\{}.idm'.format(template_file_name)
+                #print(template_idm)
+                template_idc=at_dir+'\\{}.idc'.format(template_file_name)
                 #print(readFileToString(template_idm))
                 #print(getIDAListComponents(readFileToString(template_idm)))
                 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(template_idm)))

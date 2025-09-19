@@ -243,11 +243,11 @@ def getConnBundleTypesByConnType(cur,dictDB,conn_type_id):
     return cur.fetchall()
         
 def getTemplatesByConnType(cur,dictDB,conn_type_id):
-    sql="""SELECT 'customer' AS type,t.template, '_'||t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
+    sql="""SELECT 'customer' AS type,t.template, t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
     FROM bundle_type_conns bt_conns, customer_templates t 
     WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id
 UNION
-SELECT 'energy_plant' AS type,t.template, '_'||t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
+SELECT 'energy_plant' AS type,t.template, t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
     FROM bundle_type_conns bt_conns, energy_plant_templates t 
     WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id""".format(conn_type_id,conn_type_id)
     #print(sql)
@@ -256,10 +256,10 @@ SELECT 'energy_plant' AS type,t.template, '_'||t.template::text||'_'||t.template
     
 def getTemplatesByConnBundleType(cur,dictDB,conn_bundle_type_id):
     sql="""--getTemplatesByConnType
-SELECT 'customer' AS type,template, '_'||template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
+SELECT 'customer' AS type,template, template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
     FROM customer_templates WHERE conn_bundle_type={}
 UNION
-SELECT 'energy_plant' AS type,template, '_'||template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
+SELECT 'energy_plant' AS type,template, template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
     FROM energy_plant_templates WHERE conn_bundle_type={}""".format(conn_bundle_type_id,conn_bundle_type_id)
     #print(sql)
     cur.execute(sql)

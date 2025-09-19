@@ -160,6 +160,7 @@ class UpdateSensors():
                 self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),sensor_data['target_name'],4,i,False)
             self.dlg.tableWidget_target.setItem(i,5,QTableWidgetItem(sensor_data['description_target']))
             i+=1
+        #print(self.loadedSensorData)
 
     def setTableDropDown(self,table,dropdownItems,currentValue,col,row,signal_function):
         #print(dropdownItems)
@@ -386,7 +387,7 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['template'])+':'+i['template_name'] for i in templates])
-        #self.loadedSensorData[id][sensor]['templates']={i['template'] : i['active'] for i in templates}
+        self.loadedSensorData[id][sensor]['templates']={i['template'] : i['active'] for i in templates}
         for i in range(len(templates)):
             comboBoxCheckable.setItemChecked(i+1,templates[i]['active'] if checkActive else False)
         comboBoxCheckable.activated.connect(lambda signal, column=3,row=row: self.setDropDownIds(table,column,row,type))
@@ -405,7 +406,7 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['feature_id'])+'('+str(i['template_name'])+')' for i in ids])
-        #self.loadedSensorData[id][sensor]['ids']={i['feature_id'] : i['active'] for i in ids}
+        self.loadedSensorData[id][sensor]['ids']={i['feature_id'] : i['active'] for i in ids}
         for i in range(len(ids)):
             comboBoxCheckable.setItemChecked(i+1,ids[i]['active'])
         #print('+++++++++********++++++++~~~~~')
@@ -531,7 +532,7 @@ class WorkerSensors(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        #print('run worker invoke network')
+        #print('run worker update sensors')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         self.writeSensorsToDB()
@@ -560,45 +561,45 @@ class WorkerSensors(QRunnable):
         for sensor in add_sensor_source_idsValues:
             #print(sensor)
             #print(getTemplateNameById(sensor['type']))
-            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(at_name)
+            template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
+            #print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
-            if at_name:
-                if at_name[0] in templates[sensor['type']]:
-                    templates[sensor['type']][at_name[0]]['source_add'].append(sensor)
+            if template_name:
+                if template_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][template_name[0]]['source_add'].append(sensor)
                 else:
-                    templates[sensor['type']][at_name[0]]={'source_add': [sensor], 'target_add':[],'source_remove':[],'target_remove':[]}
+                    templates[sensor['type']][template_name[0]]={'source_add': [sensor], 'target_add':[],'source_remove':[],'target_remove':[]}
         for sensor in add_sensor_target_idsValues:
-            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(at_name)
+            template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
+            #print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
-            if at_name:
-                if at_name[0] in templates[sensor['type']]:
-                    templates[sensor['type']][at_name[0]]['target_add'].append(sensor)
+            if template_name:
+                if template_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][template_name[0]]['target_add'].append(sensor)
                 else:
-                    templates[sensor['type']][at_name[0]]={'source_add': [], 'target_add':[sensor],'source_remove':[],'target_remove':[]}
+                    templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add':[sensor],'source_remove':[],'target_remove':[]}
         for sensor in remove_sensor_source_ids:
-            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(at_name)
+            template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
+            #print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
-            if at_name:
-                if at_name[0] in templates[sensor['type']]:
-                    templates[sensor['type']][at_name[0]]['source_remove'].append(sensor)
+            if template_name:
+                if template_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][template_name[0]]['source_remove'].append(sensor)
                 else:
-                    templates[sensor['type']][at_name[0]]={'source_add': [], 'target_add': [],'source_remove':[sensor],'target_remove':[]}
+                    templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add': [],'source_remove':[sensor],'target_remove':[]}
         for sensor in remove_sensor_target_ids:
-            at_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(at_name)
+            template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
+            #print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
-            if at_name:
-                if at_name[0] in templates[sensor['type']]:
-                    templates[sensor['type']][at_name[0]]['target_remove'].append(sensor)
+            if template_name:
+                if template_name[0] in templates[sensor['type']]:
+                    templates[sensor['type']][template_name[0]]['target_remove'].append(sensor)
                 else:
-                    templates[sensor['type']][at_name[0]]={'source_add': [], 'target_add': [],'source_remove': [],'target_remove': [sensor]}
+                    templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add': [],'source_remove': [],'target_remove': [sensor]}
                 
         #print('++++++++++++++---------+++++/////////')
         #print('--------------add_sensor_source_idsValues------------')
@@ -728,6 +729,8 @@ class WorkerSensors(QRunnable):
                         if key not in self.loadedSensorData[key_table][table]['templates']:
                             sql+="""INSERT INTO "{}".{}_template({}_id,template,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],table,table,key_table,key,value)
                         else:
+                            #print(key)
+                            #print(self.loadedSensorData[key_table][table]['templates'])
                             if value!=self.loadedSensorData[key_table][table]['templates'][key]:
                                 sql+="""UPDATE "{}".{}_template SET active = {} WHERE {}_id = {} AND template = {};\n""".format(self.dictDB['versionName'],table,value,table,key_table,key)
 

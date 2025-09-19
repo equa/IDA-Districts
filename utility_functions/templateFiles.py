@@ -393,12 +393,17 @@ class ExchangeConntypeFiles:
         if not oldConnValues:
             oldConnValues=getConnsValues(b_conn_t_old,cur)
         connValues=getConnsValues(b_conn_t,cur)
+        #print('--connValues---')
+        #print(connValues)
+        #print('--oldConnValues---')
         #print(oldConnValues)
         
         file_data=readFileToList(dir+'\\'+name+'.idm')
+        #print(dir+'\\'+name+'.idm')
+        #print(file_data)
         file_data=self.delPMT2Comp(file_data,oldConnValues)
         file_data=self.delConnection(file_data,oldConnValues)
-
+        #print(file_data)
         data=[]
         connections=False
         for line in file_data:
@@ -644,6 +649,7 @@ class ExchangeConntypeFiles:
         del_index=[]
         counter=0
         #print('-------------del comp----------')
+        #print(oldConnValues)
         while counter < len(file_data):
             while [True for conn in 
                 ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_M\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
@@ -652,6 +658,8 @@ class ExchangeConntypeFiles:
                 ["""(MODEL :N "PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(:EO :N "{}_{}_Flowmeter2" :T FLOWMETER2)""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
                 if conn in file_data[counter]]:
+                #print(data)
+                #print(counter)
                 data[-1]=data[-1].replace('\n','')+''.join([')' for i in range(file_data[counter].count(')')-file_data[counter].count('('))])+'\n'
                 openCloseBracktesCounter=file_data[counter].count('(')-file_data[counter].count(')')
                 #print(openCloseBracktesCounter)

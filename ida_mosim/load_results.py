@@ -30,7 +30,7 @@ class WorkerLoadResults(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        #print('run worker invoke network')
+        #print('run worker load results')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         self.loadResults()

@@ -297,9 +297,9 @@ class IDADistrictsDataCenter:
         table_name="_".join(table.split('_')[0:-1])
         if trace in ['conn_type_trace','bt_conns_trace']:
             oldConnValues_dict={}
-            ats=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
-            for at in ats:
-                oldConnValues_dict[at['at_name']]=getConnsValues(at['conn_bundle_type_id'],self.cur)
+            templates=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
+            for template in templates:
+                oldConnValues_dict[template['t_name']]=getConnsValues(template['conn_bundle_type_id'],self.cur)
         
         sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id)
         #print(sql)
@@ -328,12 +328,12 @@ class IDADistrictsDataCenter:
                 dlg.traceTableValues[traceValue][3] and not dlg.traceTableValues[traceValue][2]]:
                 #print('ExchangeConntypeFiles')
                 #get changed conn bundle types --> get changed templates
-                ats=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
-                for at in ats:
+                templates=getTemplatesByConnType(self.cur,self.dictDB,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(self.cur,self.dictDB,id)
+                for template in templates:
                     #print('*****************************************************************************')
-                    #print(at['t_name'])
-                    #print(oldConnValues_dict[at['t_name']])
-                    ExchangeConntypeFiles(self.plugin_dir,at['t_name'],at['type'],at['conn_bundle_type_id'],at['conn_bundle_type_id'],self.cur,oldConnValues=oldConnValues_dict[at['t_name']])
+                    #print(template['t_name'])
+                    #print(oldConnValues_dict[template['t_name']])
+                    ExchangeConntypeFiles(self.plugin_dir,template['t_name'],template['type'],template['conn_bundle_type_id'],template['conn_bundle_type_id'],self.cur,oldConnValues=oldConnValues_dict[template['t_name']])
             
         elif trace:
             #print(dlg.traceTableValues)
