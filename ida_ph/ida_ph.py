@@ -352,10 +352,18 @@ class WorkerImportProject(QRunnable):
                     #print('rename to: '+dir+'\\ida_data\\'+self.project_name)
                     os.rename(dir+'\\ida_data\\'+name, dir+'\\ida_data\\'+self.project_name)
                 copy_tree_filter_extensions_and_folders(dir+'\\ida_data\\'+(self.project_name if self.project_name else name),getDataCenterDir(self.plugin_dir)+'\\'+(self.project_name if self.project_name else name),signals=self.signals,exclude_extensions=self.filter_extensions)
+
+                replace_in_folder(
+                    root_folder=getDataCenterDir(self.plugin_dir)+'\\'+self.project_name,
+                    old_string='$plugins_path$',
+                    new_string=self.plugin_dir.replace('\\','\\\\'),
+                    file_extensions=['.idm'],
+                    exclude_filenames=[]
+                )
                 self.signals.progress.emit(30)
             except Exception as e:
                 #print(f'error: {e}')
-                self.signals.error.emit("Data center copying failed!")
+                self.signals.error.emit("Data center copying failed: "+ str(e))
                 return False
             try:
                 if os.path.exists(dir+'\\ida_mosim'):
@@ -1386,11 +1394,15 @@ class IDA_Districts_ProjectHandling:
         configIDADistricts['path_ice']=dlg.input[0].text()
         configIDADistricts['ice_api_delay']=dlg.input[1].text()
         configIDADistricts['path_postgresql']=dlg.input[2].text()
+        configIDADistricts['debug']=dlg.checkbox_debug.isChecked()
         configIDADistricts['autosave']=dlg.checkbox_autosave.isChecked()
         configIDADistricts['invoked_features']=dlg.exportInvokedFeatures.isChecked()
         configIDADistricts['prn']=dlg.exportPrn.isChecked()
         configIDADistricts['db_results']=dlg.exportDBResults.isChecked()
         configIDADistricts['autosave_dt']=dlg.interval.text()
+        
+        if dlg.checkbox_debug.isChecked() != dlg.debug_old:
+            switchDebugMode(True if dlg.checkbox_debug.isChecked() else False,getQGISPluginsDir(self.plugin_dir))
 
         #print(configIDADistricts)
         if writeIDADistrictsConfig(self.plugin_dir,configIDADistricts):
@@ -1424,6 +1436,8 @@ class IDA_Districts_ProjectHandling:
         dlg.input[0].setText(configIDADistricts['path_ice'])
         dlg.input[1].setText(configIDADistricts['ice_api_delay'])
         dlg.input[2].setText(configIDADistricts['path_postgresql'])
+        dlg.checkbox_debug.setCheckState(Qt.Checked if configIDADistricts['debug'] else Qt.Unchecked)
+        dlg.debug_old=configIDADistricts['debug']
         dlg.checkbox_autosave.setCheckState(Qt.Checked if configIDADistricts['autosave'] else Qt.Unchecked)
         dlg.exportInvokedFeatures.setCheckState(Qt.Checked if configIDADistricts['invoked_features'] else Qt.Unchecked)
         dlg.exportPrn.setCheckState(Qt.Checked if configIDADistricts['prn'] else Qt.Unchecked)

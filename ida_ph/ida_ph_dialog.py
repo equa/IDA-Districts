@@ -128,6 +128,10 @@ class IDADistrictsPreferencesDlg(QMainWindow):
         layout_settings.addLayout(layout_label)
         layout_settings.addLayout(layout_input)
 
+        #debug mode
+        self.checkbox_debug =QCheckBox('Python Console debug mode')
+        self.debug_old=None
+        
         #Autosave
         self.checkbox_autosave =QCheckBox('Autosave')
         self.checkbox_autosave.stateChanged.connect(self.update_checkbox_autosave)
@@ -168,6 +172,7 @@ class IDADistrictsPreferencesDlg(QMainWindow):
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_settings)
+        layout_win.addWidget(self.checkbox_debug)
         layout_win.addWidget(self.checkbox_autosave)
         layout_win.addWidget(self.group_box_autsave)
         layout_win.addLayout(layout_buttons)

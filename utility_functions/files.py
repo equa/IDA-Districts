@@ -113,6 +113,26 @@ def getDBConnectionData(plugin_dir,filename='dbSettings'):
     #print(strToDict(dbSettings))
     return strToDict(dbSettings)
 
+def switchDebugMode(debug,plugin_dir):
+    if debug:
+        #debug mode
+        replace_in_folder(
+            root_folder=plugin_dir,
+            old_string='#print(',
+            new_string='#print(',
+            file_extensions=['.py'],
+            exclude_filenames=['automated_testing.py','switchPluginMode.py']
+        )
+    else:
+        #mode without prints
+        replace_in_folder(
+            root_folder=plugin_dir,
+            old_string='#print(',
+            new_string='#print(',
+            file_extensions=['.py'],
+            exclude_filenames=['automated_testing.py','switchPluginMode.py']
+        )
+        
 def loadProjectConfig(plugin_dir,db_name,signals=False):
     """ load project config data from configProject.txt in project handling"""
     config=""

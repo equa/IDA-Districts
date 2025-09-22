@@ -100,6 +100,19 @@ def loadIDADistrictsConfig(plugin_dir):
     config=strToDict(config)
     #print(config)
     return config
+
+def getDBConnectionData(plugin_dir,filename='dbSettings'):
+    """ load the DB connection data from file dbSettings.txt"""
+    #print('get DB settings')
+    dbSettings=""
+    dir=getProjectHandlingDir(plugin_dir)
+    file="{}\\{}.txt".format(dir,filename)
+    if os.path.exists(file):
+        with open(file, "r") as myfile:   
+            for line in myfile:        
+                dbSettings+=line
+    #print(strToDict(dbSettings))
+    return strToDict(dbSettings)
     
 def copyProjectFolders(dir,plugin_dir,name_list):
     project_folders = find_folders_not_in_list(dir, name_list)
@@ -140,9 +153,9 @@ dir=plugin_dir+'ida_ph\\'
 name_list = ['config', 'help', 'Samples','scripts','i18n','__pycache__','templates','icons']
 copyProjectFolders(dir,plugin_dir+'pro_temp',name_list)
 if os.path.isdir(dir):
-    if len(loadIDADistrictsConfig(plugin_dir))==7:
+    if len(getDBConnectionData(plugin_dir))==7:
         shutil.copy2(dir+'dbSettings.txt',plugin_dir+'dbSettings.txt')
-    if len(loadIDADistrictsConfig(plugin_dir))==8:
+    if len(loadIDADistrictsConfig(plugin_dir))==9:
         shutil.copy2(dir+'configIDADistricts.txt',plugin_dir+'configIDADistricts.txt')
 rmtree_long_path(dir)
 copy_tree_filter_extensions_and_folders(installation_dir+'ida_ph',dir)
