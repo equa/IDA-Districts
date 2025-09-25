@@ -10,6 +10,7 @@ from plugins.utility_functions.db import *
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.show_on_map import *
 from qgis.PyQt import sip
+from .path_report import WorkerPathReport
 
 import os.path
 import psycopg2
@@ -149,66 +150,6 @@ class IDADistrictsResultVisualization:
                 self.tr(u'&IDADistricts Result Visualization'),
                 action)
             self.iface.removeToolBarIcon(action)
-
-    def getCustomerId(self,lids):
-        sql="""SELECT c.id, ST_Z(ST_EndPoint(l.geom)) AS height, c.submodel,b_t_conns.conn_type_id
-    FROM "{}".customers c, "{}".lines l, customer_templates c_t, bundle_type_conns b_t_conns, "{}".customer_connections c_conns
-    WHERE c_conns.c_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=c_t.conn_bundle_type AND 
-        l.id IN ({}) AND c_t.template=c.template AND c_conns.cid=c.id AND l.id=c_conns.lid
-    GROUP BY c.id,l.geom, b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],','.join(str(i[0]) for i in lids))
-        #print(sql)
-        self.cur.execute(sql)
-        data=self.cur.fetchone()
-        cid=[[str(data['id']),data['height']],data['submodel'],data['conn_type_id']]
-        #print(cid)
-        return cid
-        
-    def getEnergyPlantId(self,lids):
-        sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l, energy_plant_templates ep_t, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
-    WHERE  l.id IN ({}) AND ep_t.template=ep.template AND 
-        ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid
-    GROUP BY ep.id,l.id, height,l.geom,b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],','.join(str(i) for i in lids))
-        #print(sql)
-        self.cur.execute(sql)
-        data=self.cur.fetchone()
-        epid=[str(data['epid']),data['height']]
-        lid=[str(data['lid']),data['length']]
-        return [epid,lid,data['submodel'],data['conn_type_id']]
-
-    def getMainEnergyPlantData(self,network,epid):
-        sql="""SELECT ep.id AS epid, l.id AS lid, ST_length(l.geom) AS length, ST_Z(ST_StartPoint(l.geom)) AS height,ep.submodel, b_t_conns.conn_type_id
-    FROM "{}".energy_plants ep, "{}".lines l,energy_plant_templates ep_t, bundle_type_conns b_t_conns, "{}".energy_plant_connections ep_conns
-    WHERE {} = ANY (ep.network) AND l.network={} AND ep_t.template=ep.template AND
-        ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND ep.id={}
-    GROUP BY ep.id,l.id, height,l.geom, b_t_conns.conn_type_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],network,network,epid)
-        #print(sql)
-        self.cur.execute(sql)
-        data=self.cur.fetchone()
-        epid=[str(data['epid']),data['height']]
-        lid=[str(data['lid']),data['length']]
-        return [epid,lid,data['submodel'],data['conn_type_id']]
-        
-    def orderLids(self,lids,lid_start):
-        """returns [[str(id),length]]"""
-        #print('order lids')
-        path=[0]
-        lids_new=[lid_start]
-        #print(lid_start[1])
-        path.append(lid_start[1])
-        length_sum=lid_start[1]
-        for i in range(len(lids)-1):
-            sql="""SELECT l2.id,ST_3DLength(l2.geom) AS length
-    FROM "{}".lines l1, "{}".lines l2
-    WHERE l1.id!=l2.id AND l1.id={} AND l2.id IN ({}) AND ST_dWithIn(ST_EndPoint(l1.geom),l2.geom,0.0001) """.format(self.dictDB['versionName'],self.dictDB['versionName'],lids_new[-1][0],",".join([str(lid) for lid in lids]))
-            #print(sql)
-            self.cur.execute(sql)
-            data=self.cur.fetchone()
-            lids_new.append([str(data['id']),data['length']])
-            length_sum+=data['length']
-            path.append(length_sum)
-        #print(lids_new)
-        return lids_new,path
         
     def getJids(self,lids):
         """[[str(id),height]]"""
@@ -300,357 +241,6 @@ class IDADistrictsResultVisualization:
                     data_j.append(float(data))
                 col_counter+=1
         return data_j
-        
-    def showplot(self,epid,weak_point,path,line_data,quantity,title,lids,dlg):
-        #print('show plot')
-        if dlg.dp_recalc.isChecked():
-            #print(dlg.dp_min_recalc.text())
-            ddp=weak_point['sup_c'] - weak_point['ret_c']-Decimal(dlg.dp_min_recalc.text())*100000
-        else:
-            ddp=0
-        #print(ddp)
-
-        quantity_data_sup=[weak_point['sup_ep']-ddp]+[lid['p1']-ddp for lid in line_data]+[weak_point['sup_c']-ddp]
-        quantity_data_ret=[weak_point['ret_ep']]+[lid['p2'] for lid in line_data]+[weak_point['ret_c']]
-        height=[weak_point['height_ep']]+[lid['height_j'] for lid in line_data]+[weak_point['height_c']]
-
-        #print(height)
-        #print(quantity_data_sup)
-        #print(quantity_data_ret)
-        
-        fig, (ax1, ax2) = plt.subplots(2, 1)
-        fig.suptitle(title)
-        ax1.plot(path, quantity_data_sup, linewidth=4.0)
-        ax1.plot(path, quantity_data_ret, linewidth=4.0)
-        ax1.grid(True)
-        
-        #ax1.set_xlabel('Length, m')
-        ax1.set_xlabel('Trasse, m')
-        if quantity=='pressure':
-            #ax1.set_ylabel('Pressure, Pa')
-            ax1.set_ylabel('Druck, Pa')
-        else:
-            #ax1.set_ylabel('Temperature, °C')
-            ax1.set_ylabel('Temperatur, °C')
-            
-        ax2.plot(path, height,linewidth=3.0)    
-        #ax2.set_xlabel('Length, m')
-        ax2.set_xlabel('Trasse, m')
-        #ax2.set_ylabel('Height level, m')
-        ax2.set_ylabel('Höhenprofil, m')
-        ax2.grid(True)
-        
-        SMALL_SIZE = 20
-        MEDIUM_SIZE = 25
-        BIGGER_SIZE = 30
-
-        plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-        plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-        plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
-        plt.rc('figure', figsize=(30.0, 20.0))  # fontsize of the figure title
-        #manager = plt.get_current_fig_manager()
-        #manager.window.showMaximized()
-        plt.show()
-        #fig.savefig('C:\\Users\\Peter\\RMB Group AG\\EXT 140000 FW Zollikon - Dokumente\\General\\02 Equa\\Simulation\\Ergebnisse\\Sportplatz\\Temperaturschaubilder\\Temperaturschaubild Fohrbach Kunde {}.png'.format(str(cid[0])))
-    
-    def generatePathReport(self,dlg):
-        """Just fo supply and return line. Todo update to all connection types"""
-        #print('generate path diagram')
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        self.conn=dbConnect(self.dictDB,False)
-        if dlg.rbtn_pathTemp.isChecked():
-            quantity='temperature'
-        elif dlg.rbtn_pathPressure.isChecked():
-            quantity='pressure'            
-        col_sup=''
-        col_ret=''
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-                            
-            submodels=getNetworkSubmodels(self.cur,self.dictDB,[dlg.network.currentText()])
-            
-            if dlg.rbtn_lineIds.isChecked():   
-                lids=[dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]
-                #print(lids)
-                
-                #ep id
-                epid,lid_start,submodel,conn_type=self.getEnergyPlantId(lids)
-                file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\energy_plant_{}\\{}_{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel,epid[0],quantity,conn_type)
-                #print(file)
-                filedata_ep=readFileToList(file)
-                
-                lids,path=self.orderLids(lids,lid_start)
-                #customer id
-                cid,submodel,conn_type=self.getCustomerId(lids)
-                
-                file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\Customer_{}\\{}_{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],submodel,cid[0],quantity,conn_type)
-                #print(file)
-                filedata_c=readFileToList(file)
-                      
-                i_max,max_value=self.getMaxRow(filedata_ep,filedata_c,epid,cid,quantity)
-                        
-                data_ep=[float(filedata_ep[i_max].strip().split()[col_sup]),float(filedata_ep[i_max].strip().split()[col_ret])]
-                data_c=[float(filedata_c[i_max].strip().split()[col_sup]),float(filedata_c[i_max].strip().split()[col_ret])]
-
-                #junction ids               
-                jids=self.getJids(lids)               
-                
-                variables=self.getJunctionVariables(jids)
-                
-                data_j=self.getDataJunction(filedata_j,i_max)
-                    
-                #print(path)
-                #print(data_ep)
-                #print(data_c)
-                #print(data_j)
-                
-                title='Time= '+str(data_j[0])+'h ; Customer ID='+cid[0]+'; Energy plant ID='+epid[0]+'; Line Ids='+','.join([str(lid[0]) for lid in lids])
-                self.showplot(data_j,jids,epid,cid,path,data_ep,data_c,variables,quantity,title)
-
-            elif dlg.rbtn_weakPoint.isChecked() or dlg.rbtn_customer.isChecked() or dlg.rbtn_energy_plant.isChecked():              
-                #set up topology
-                sql="""TRUNCATE temp.streets_help;
-INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines;
-SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.dictDB['versionName'])
-                self.cur.execute(sql)
-                
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],dlg.main_plant.currentText())
-                #print(sql)
-                self.cur.execute(sql)
-                v_epid=self.cur.fetchone()['vid']
-                #print(v_epid)
-                ep_c_b_type=getConnBundleByFeature('energy_plant',dlg.main_plant.currentText(),self.cur,self.dictDB)
-                ep_connValues=getConnsValues(ep_c_b_type,self.cur)
-                #print(ep_connValues)
-                ep_c_type_seq=getConnTypeSeqFromBundle(self.cur,self.dictDB,ep_c_b_type,dlg.conn_type.currentText())
-                #print(ep_c_type_seq)
-                p_ep_sup_ident=getPMT2muxIdentFromConnValues(ep_connValues,int(dlg.sup_sequence.currentText()),conn_t_seq=ep_c_type_seq)
-                p_ep_ret_ident=getPMT2muxIdentFromConnValues(ep_connValues,int(dlg.ret_sequence.currentText()),conn_t_seq=ep_c_type_seq)
-                #print(p_ep_sup_ident)
-                #print(p_ep_ret_ident)
-                c_connValues=getConnsValues(dlg.c_conn_bundle_type.currentText(),self.cur)
-                p_c_sup_ident=getPMT2muxIdentFromConnValues(c_connValues,int(dlg.sup_sequence.currentText()))
-                p_c_ret_ident=getPMT2muxIdentFromConnValues(c_connValues,int(dlg.ret_sequence.currentText()))
-                #print(p_c_sup_ident)
-                #print(p_c_ret_ident)
-                
-                if dlg.rbtn_maxValue.isChecked():
-                    sql="""WITH sub AS(
-    SELECT p_c.fid,max(p_ep."$p"-p_c."$p") as dp FROM {}.customer_s_p${} p_c, {}.energy_plant_s_p${} p_ep 
-        WHERE p_c.time=p_ep.time AND p_ep.fid=1
-        GROUP BY p_c.fid
-        ORDER BY dp DESC
-        LIMIT 1
-)
-SELECT sub.fid, sub.dp, p_c1.time, p_c1."$p" as sup_c, p_c2."$p" as ret_c, ST_Z(p_c1.geom) AS height_c, p_ep1."$p" as sup_ep, p_ep2."$p" as ret_ep, ST_Z(p_ep1.geom) AS height_ep 
-    FROM sub, {}.customer_s_p${} p_c1, {}.customer_s_p${} p_c2, {}.energy_plant_s_p${} p_ep1, {}.energy_plant_s_p${} p_ep2
-    WHERE p_c1.time=p_ep1.time AND p_ep2.time=p_ep1.time AND p_c2.time=p_ep1.time AND p_ep1.fid=1 AND p_ep1.fid=p_ep2.fid AND p_ep1."$p"-p_c1."$p" = sub.dp AND sub.fid=p_c1.fid AND sub.fid=p_c2.fid;""".format(
-        self.dictDB['versionName'],p_c_sup_ident,self.dictDB['versionName'],p_ep_sup_ident,self.dictDB['versionName'],p_c_sup_ident,self.dictDB['versionName'],p_c_ret_ident,self.dictDB['versionName'],p_ep_sup_ident,self.dictDB['versionName'],p_ep_ret_ident)
-                else:
-                    sql="""SELECT p_c1.fid, p_ep1."$p" - p_c1."$p" AS dp, p_c1.time, p_c1."$p" as sup_c, p_c2."$p" as ret_c, ST_Z(p_c1.geom) AS height_c, p_ep1."$p" as sup_ep, p_ep2."$p" as ret_ep, ST_Z(p_ep1.geom) AS height_ep 
-    FROM {}.customer_s_p${} p_c1, {}.customer_s_p${} p_c2, {}.energy_plant_s_p${} p_ep1, {}.energy_plant_s_p${} p_ep2
-    WHERE p_c1.time='{}' AND p_c1.time=p_ep1.time AND p_ep2.time=p_ep1.time AND p_c2.time=p_ep1.time AND p_ep1.fid=1 AND p_ep1.fid=p_ep2.fid AND p_c1.fid = p_c2.fid
-    ORDER BY dp DESC
-    LIMIT 1;""".format(self.dictDB['versionName'],p_c_sup_ident,self.dictDB['versionName'],p_c_ret_ident,self.dictDB['versionName'],p_ep_sup_ident,self.dictDB['versionName'],p_ep_ret_ident,dlg.date_input.text())
-    
-                #print(sql)
-                self.cur.execute(sql)
-                weak_point=self.cur.fetchone()
-                #print(weak_point)   
-                           
-                #get line with shortest path
-                
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".customers f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.dictDB['versionName'],weak_point['fid'])
-                #print(sql)
-                self.cur.execute(sql)
-                v_id=self.cur.fetchone()['vid']
-                #print(v_id)
-                
-                sql="""WITH sub As(
-    SELECT seq, node, edge, cost
-            FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
-                {}, 
-                {},
-                false
-            )
-)
-SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_id,self.dictDB['versionName'])
-                self.cur.execute(sql)
-                lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
-                #print(lids)
-                            
-
-                sql="""SELECT p1.fid,p1."$p" AS p1, p2."$p" AS p2, ABS(p1."$p" - p2."$p") AS dp, ST_Z(ST_EndPoint(p1.geom)) AS height_j
-    FROM {}.line_s_p${} p1, {}.line_s_p${} p2
-    WHERE p1.fid=p2.fid and p1.time=p2.time and p1.segment=2 and p2.segment=2 AND p1.time = '{}' AND p1.fid IN ({});""".format(self.dictDB['versionName'], dlg.sup_sequence.currentText(),self.dictDB['versionName'],dlg.ret_sequence.currentText(), weak_point['time'],','.join([str(i[0]) for i in lids[:-1]]))
-                #print(sql)
-                self.cur.execute(sql)
-                line_data=self.cur.fetchall()
-                #print(line_data)
-                line_data_map= {row['fid']: row for row in line_data}
-                #print(line_data_map)
-                line_data = [line_data_map[fid] for fid, _ in lids if fid in line_data_map]
-                #print(line_data)
-                path=[0]
-                path_sum=0
-                for lid in lids:
-                    path_sum+=lid[1]
-                    path.append(path_sum)
-                #print(path)
-
-                if dlg.rbtn_pathTemp.isChecked():
-                    
-                    title='Simulationszeit='+str(round(data_j[0],3))+' h ; Kunden ID='+weak_point_id[0]+ ' ; Temperaturdifferenz Übergabestation: ' +str(round(dt,2))+' °C'
-                    #title='Weakpoint; Time='+str(data_j[0])+'h ; '+weak_point_id[2].capitalize().replace('_',' ')+' ID='+weak_point_id[0]+'; Main energy plant ID='+epid[0]+'; Line Ids='+','.join([str(lid[0]) for lid in lids])
-                elif dlg.rbtn_pathPressure.isChecked(): 
-                    dp=weak_point['dp']*2
-                    title='Netzschlechtpunkt; Simulationszeit='+str(weak_point['time'])+'; Kunden ID='+str(weak_point['fid'])+ ' ; Druckverlust: ' +str(dp)+' Pa'
-                    #title='Simulationszeit='+str(data_j[0])+' h ; Kunden ID='+weak_point_id[0]+ ' ; Druckdifferenz: ' +str(dp)+' Pa'
-
-
-
-
-                self.showplot(dlg.main_plant.currentText(),weak_point,path,line_data,quantity,title,lids,dlg)
-
-                #select lids in lines
-                lines_layer=QgsProject.instance().mapLayersByName('lines')   
-                if lines_layer:             
-                    lines_layer[0].selectByExpression("id in {}".format(tuple([lid[0] for lid in lids])))
-
-    def savePlots(self,dlg):
-        """Just fo supply and return line. Todo update to all connection types"""
-        #print('generate path diagram')
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        self.conn=dbConnect(self.dictDB,False)
-        if dlg.rbtn_pathTemp.isChecked():
-            quantity='temperature'
-        elif dlg.rbtn_pathPressure.isChecked():
-            quantity='pressure'            
-        col_sup=3
-        col_ret=2
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            
-            file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],dlg.network.currentText(),'p_lines' if quantity=='pressure' else 'Temp_nodes')
-            #print(file)
-            filedata_j=readFileToList(file)
- 
-            if dlg.rbtn_customer.isChecked():
-                #ep id
-                epid,lid_start,submodel,conn_type=self.getMainEnergyPlantData(dlg.network.currentText(),dlg.main_plant.currentText())
-                file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\energy_plant_{}\\{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],dlg.network.currentText(),epid[0],quantity)
-                #print(file)
-                filedata_ep=readFileToList(file)
-                if dlg.rbtn_weakPoint.isChecked():
-                    sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height
-    FROM "{}".customers c, "{}".lines l
-    WHERE c.network=array[{}] AND St_dWithin(c.geom,l.geom,0.000001)
-    ORDER BY c.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText())
-                elif dlg.rbtn_customer.isChecked():
-                    sql="""SELECT c.id,ST_Z(ST_EndPoint(l.geom)) AS height
-    FROM "{}".customers c, "{}".lines l
-    WHERE c.network=array[{}] AND St_dWithin(c.geom,l.geom,0.000001) AND c.id IN ({})
-    ORDER BY c.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],dlg.network.currentText(),','.join([dlg.listWidget_ids.item(i).text() for i in range(dlg.listWidget_ids.count())]))
-                #print(sql)
-                self.cur.execute(sql)
-                cids=[[str(cid['id']), cid['height']] for cid in self.cur.fetchall()]
-                #print(cids)  
-                
-                #set up topology
-                sql="""TRUNCATE temp.streets_help;
-INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines;
-SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.dictDB['versionName'])
-                self.cur.execute(sql)
-                
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.dictDB['versionName'],epid[0])
-                #print(sql)
-                self.cur.execute(sql)
-                v_epid=self.cur.fetchone()['vid']
-                #print(v_epid)
-                
-                weak_point_id=0
-                weak_point_value=0
-                for cid in cids:
-                    #print('*---------------------*')
-                    #print(cid)
-                    
-                    file=getQGISPluginsDir(self.plugin_dir)+'\\ida_mosim\\models\\{}\\{}\\network_{}\\Customer_{}\\{}.prn'.format(self.dictDB['projectName'],self.dictDB['versionName'],dlg.network.currentText(),cid[0],quantity)
-                    #print(file)
-                    filedata_c=readFileToList(file)
-                    if dlg.rbtn_maxValue.isChecked():
-                        row,value=self.getMaxRow(filedata_ep,filedata_c,epid,cid,quantity,dlg)
-                    elif dlg.rbtn_Date.isChecked():
-                        date=dlg.date_input.text()
-                        row,value=self.getDateRow(filedata_ep,filedata_c,epid,cid,quantity,date,dlg)
-                    
-                    weak_point_id=cid
-                    weak_point_value=value
-                    filedata_c_weakpoint=filedata_c
-                    #print(row)
-                    #print(value)
- 
-                
-                    sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".customers c WHERE ST_dWithin(c.geom,st_v.the_geom,0.0001) AND c.id={};""".format(self.dictDB['versionName'],weak_point_id[0])
-                    #print(sql)
-                    self.cur.execute(sql)
-                    v_cid=self.cur.fetchone()['vid']
-                        
-                    #get line with shortest path
-                    sql="""WITH sub As(
-    SELECT seq, node, edge, cost
-            FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
-                {}, 
-                {},
-                false
-            )
-    )
-    SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_cid,self.dictDB['versionName'])
-                    self.cur.execute(sql)
-                    lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
-                    #print(lids)
-                    
-                    #junction ids               
-                    jids=self.getJids(lids)
-                    #print(jids)
-                    
-                    variables=self.getJunctionVariables(jids,filedata_j)
-                    #print(variables)   
-                            
-                    ep_col_sup,ep_col_ret=self.getColIdx(filedata_ep,dlg)
-                    data_ep=[float(filedata_ep[row].strip().split()[ep_col_sup]),float(filedata_ep[row].strip().split()[ep_col_ret])]
-                    c_col_sup,c_col_ret=self.getColIdx(filedata_c,dlg)
-                    data_c=[float(filedata_c_weakpoint[row].strip().split()[c_col_sup]),float(filedata_c_weakpoint[row].strip().split()[c_col_ret])]
-                    data_j=self.getDataJunction(filedata_j,row)
-                    dp=data_ep[0]-data_ep[1]
-                    dt=data_c[0]-data_c[1]
-                    
-                    path=[0]
-                    path_sum=0
-                    for lid in lids:
-                        path_sum+=lid[1]
-                        path.append(path_sum)
-                    #print(path)
-                    #print(data_ep)
-                    #print(data_c)
-                    #print(data_j)
-                    #title='Weakpoint; Time='+str(data_j[0])+'h ; Customer ID='+weak_point_id[0]+'; Energy plant ID='+epid[0]+'; Line Ids='+','.join([str(lid[0]) for lid in lids])
-                    #title='Netzschlechtpunkt; Simulationszeit='+str(data_j[0])+' h ; Kunden ID='+weak_point_id[0]+ ' ; Druckdifferenz: ' +str(dp)+' Pa'
-                    #title='Simulationszeit='+str(data_j[0])+' h ; Kunden ID='+weak_point_id[0]+ ' ; Druckdifferenz: ' +str(dp)+' Pa'
-                    title='Simulationszeit='+str(data_j[0])+' h ; Kunden ID='+weak_point_id[0]+ ' ; Temperaturdifferenz Übergabestation: ' +str(round(dt,2))+' °C'
-
-
-                    self.showplot(data_j,jids,epid,weak_point_id,path,data_ep,data_c,variables,quantity,title)
-
-                    #select lids in lines
-                    lines_layer=QgsProject.instance().mapLayersByName('lines')   
-                    if lines_layer:             
-                        lines_layer[0].selectByExpression("id in {}".format(tuple([lid[0] for lid in lids])))
 
             
     def addSelectedIDs(self,dlg):
@@ -682,7 +272,6 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
         for item in listItems:
             dlg.listWidget_ids.takeItem(dlg.listWidget_ids.row(item))
             
-        
                     
     def showPathReports(self):
         self.dictDB=getDBConnectionData(self.plugin_dir)
@@ -690,8 +279,7 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.dlg_pathReports=IDADistrictsPathReportsDialog(self.cur,self.dictDB)
-            self.dlg_pathReports.btn_ok.clicked.connect(lambda: self.generatePathReport(self.dlg_pathReports))
-            self.dlg_pathReports.btn_savePlots.clicked.connect(lambda: self.savePlots(self.dlg_pathReports))
+            self.dlg_pathReports.btn_ok.clicked.connect(lambda: self.runPathReports(self.dlg_pathReports))
             self.dlg_pathReports.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_pathReports))
             self.dlg_pathReports.btn_addSelectedIDs.clicked.connect(lambda: self.addSelectedIDs(self.dlg_pathReports))
             self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: self.deleteIDs(self.dlg_pathReports))
@@ -700,6 +288,15 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.dictDB['versionName']))
             self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
             self.dlg_pathReports.show()
+            
+    def runPathReports(self,dlg):
+        self.worker_pathReport = WorkerPathReport(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg)
+                
+        self.threadpool_pathReport = QThreadPool()
+        self.worker_pathReport.signals.error.connect(show_error_message)
+        self.worker_pathReport.signals.progress.connect(dlg.update_progress)  
+        self.worker_pathReport.signals.finished.connect(dlg.update_finished)  
+        self.threadpool_pathReport.start(self.worker_pathReport) 
     
     def getType(self,dlg):
         if dlg.rbtn_customer.isChecked():

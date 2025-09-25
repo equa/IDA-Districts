@@ -1,10 +1,16 @@
 import os
 from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.PyQt.QtWidgets import QListWidget,QCheckBox,QSpinBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget,QRadioButton,QButtonGroup
+from qgis.utils import iface
+
+import matplotlib.pyplot as plt
+
+
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.files import *
 from plugins.utility_functions.topology import *
+from decimal import Decimal
        
 
 class ShowOnMapDialog(QMainWindow):
@@ -626,6 +632,11 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         widget=QWidget()
         self.cur=cur
         self.dictDB=dictDB
+        self.title=None
+        self.lids=None
+        self.weak_point=None
+        self.path=None
+        self.line_data=None
 
         #set quantity 
         #title
@@ -637,11 +648,11 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_rbtn_quantity = QHBoxLayout()
         group_quantity=QButtonGroup(widget)
         self.rbtn_pathTemp = QRadioButton('Temperature')
-        self.rbtn_pathTemp.setChecked(True)
         self.rbtn_pathPressure = QRadioButton('Pressure')
+        self.rbtn_pathPressure.setChecked(True)
            
-        layout_rbtn_quantity.addWidget(self.rbtn_pathTemp)
         layout_rbtn_quantity.addWidget(self.rbtn_pathPressure)  
+        layout_rbtn_quantity.addWidget(self.rbtn_pathTemp)
         group_quantity.addButton(self.rbtn_pathTemp)      
         group_quantity.addButton(self.rbtn_pathPressure)      
         
@@ -685,21 +696,23 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         label_titel.setFont(font)
         #radio buttons Line ID/Weak point
         layout_rbtn_path = QHBoxLayout()
+        self.rbtn_weakPoint = QRadioButton('Weak point (customers)')
+        self.rbtn_weakPoint.setChecked(True)
         self.rbtn_lineIds = QRadioButton('Line ID`s')
-        self.rbtn_lineIds.setChecked(True)
-        self.rbtn_weakPoint = QRadioButton('Weak point')
         self.rbtn_customer = QRadioButton('Customer ID`s')
         self.rbtn_energy_plant = QRadioButton('Energy plant ID`s')
            
-        layout_rbtn_path.addWidget(self.rbtn_lineIds)
         layout_rbtn_path.addWidget(self.rbtn_weakPoint) 
+        layout_rbtn_path.addWidget(self.rbtn_lineIds)
         layout_rbtn_path.addWidget(self.rbtn_customer) 
         layout_rbtn_path.addWidget(self.rbtn_energy_plant) 
-        group_path=QButtonGroup(widget)
-        group_path.addButton(self.rbtn_lineIds)      
-        group_path.addButton(self.rbtn_weakPoint)  
-        group_path.addButton(self.rbtn_customer)  
-        group_path.addButton(self.rbtn_energy_plant)  
+        self.group_path=QButtonGroup(widget)
+        self.group_path.addButton(self.rbtn_weakPoint,1)  
+        self.group_path.addButton(self.rbtn_lineIds,2)      
+        self.group_path.addButton(self.rbtn_customer,3)  
+        self.group_path.addButton(self.rbtn_energy_plant,4)  
+        self.group_path.buttonClicked[int].connect(self.on_group_path_clicked)
+        
         
         self.listWidget_ids= QListWidget()
         self.listWidget_ids.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -709,7 +722,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_network_settings_labels=QVBoxLayout()
         label_network =QLabel('Network')
         layout_network_settings_labels.addWidget(label_network)
-        label_main_plant =QLabel('Main plant')
+        label_main_plant =QLabel('Plant')
         layout_network_settings_labels.addWidget(label_main_plant)
         label_conntype =QLabel('Connection type')
         layout_network_settings_labels.addWidget(label_conntype)
@@ -717,9 +730,9 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_network_settings_labels.addWidget(label_sup_sequences)
         label_ret_sequences =QLabel('Return sequence')
         layout_network_settings_labels.addWidget(label_ret_sequences)
-        label_conntype =QLabel('Customer connection bundle type')
+        label_conntype =QLabel('Feature connection bundle type')
         layout_network_settings_labels.addWidget(label_conntype)
-        label_conntype =QLabel('Customer connection type')
+        label_conntype =QLabel('Feature connection type')
         layout_network_settings_labels.addWidget(label_conntype)
         self.dp_recalc =QCheckBox('Recalculate supply pressure value with dp min, bar')
         layout_network_settings_labels.addWidget(self.dp_recalc)
@@ -739,11 +752,11 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_network_settings_values.addWidget(self.sup_sequence)
         self.ret_sequence =QComboBox()
         layout_network_settings_values.addWidget(self.ret_sequence)
-        self.c_conn_bundle_type = QComboBox()
-        layout_network_settings_values.addWidget(self.c_conn_bundle_type)
-        self.c_conn_bundle_type.currentTextChanged.connect(self.c_conn_bundle_type_changed)
-        self.c_conn_type = QComboBox()
-        layout_network_settings_values.addWidget(self.c_conn_type)
+        self.f_conn_bundle_type = QComboBox()
+        layout_network_settings_values.addWidget(self.f_conn_bundle_type)
+        self.f_conn_bundle_type.currentTextChanged.connect(self.f_conn_bundle_type_changed)
+        self.f_conn_type = QComboBox()
+        layout_network_settings_values.addWidget(self.f_conn_type)
         self.dp_min_recalc = QLineEdit()
         layout_network_settings_values.addWidget(self.dp_min_recalc)
         
@@ -770,11 +783,12 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         #buttons     
         layout_btn=QHBoxLayout()
         self.btn_ok=QPushButton("Ok")
-        self.btn_savePlots=QPushButton("Save all plots")
         self.btn_cancel=QPushButton("Cancel")
         layout_btn.addWidget(self.btn_ok)
-        layout_btn.addWidget(self.btn_savePlots)
         layout_btn.addWidget(self.btn_cancel)
+        
+        #progress bar
+        self.progress=QProgressBar()
         
         #---------------set layouts together-------------------
         layout = QVBoxLayout()
@@ -782,39 +796,137 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout.addLayout(layout_date)      
         layout.addLayout(layout_path)      
         layout.addLayout(layout_btn)
+        layout.addWidget(self.progress)
         layout.addStretch()
         
         widget.setLayout(layout)
         self.setCentralWidget(widget)
         
-        c_conn_types = getConnBundlesByType(self.cur,self.dictDB,'customer')
-        self.c_conn_bundle_type.addItems(c_conn_types)
+        f_conn_types = getConnBundlesByType(self.cur,self.dictDB,'customer')
+        self.f_conn_bundle_type.addItems(f_conn_types)
 
-    def c_conn_bundle_type_changed(self,s):
-        #print('c_conn_bundle_type cahnged')
-        #print(s)
-        conn_types=getConnTypesByConnBundleType(self.cur,self.dictDB,s)
-        #print(conn_types)
-        self.c_conn_type.addItems(conn_types)    
+    def add_combo_items(self, combo, new_items):
+        #print('add combo:'+str(new_items))
+
+        # Add missing items
+        for item in new_items:
+            if combo.findText(item) == -1:
+                combo.addItem(item)
+ 
+    def on_group_path_clicked(self,id):
+        #print('on_group_path_clicked: '+str(id))
+
+        self.f_conn_bundle_type.clear()
+        f_conn_types = getConnBundlesByType(self.cur,self.dictDB,'customer' if id in (1,2,3) else 'energy_plant')
+        self.add_combo_items(self.f_conn_bundle_type,f_conn_types)
+        if id==2:
+            f_conn_types = getConnBundlesByType(self.cur,self.dictDB,'energy_plant')
+            self.add_combo_items(self.f_conn_bundle_type,f_conn_types)
+    
+    def f_conn_bundle_type_changed(self,s):
+        #print('f_conn_bundle_type changed: '+str(s))
+        if self.f_conn_bundle_type.currentText():
+            self.f_conn_type.clear() 
+            self.f_conn_type.addItems(getConnTypesByConnBundleType(self.cur,self.dictDB,self.f_conn_bundle_type.currentText()))    
         
     def network_changed(self,s):
         #print(s)
         epids=getPlantIds(self.cur,self.dictDB,network=s)
         #print(epids)
+        self.main_plant.clear()
         self.main_plant.addItems(epids)
 
     def main_plant_changed(self,s):
         #print(s)
         conn_types=getConnTypesByFeature(self.cur,self.dictDB,'energy_plant',s)
         #print(conn_types)
+        self.conn_type.clear()
         self.conn_type.addItems(conn_types)
         
     def conn_type_changed(self,s):
         #print(s)
         sequences=getConnSequencesByConnType(self.cur,s)
         #print(sequences)
+        self.sup_sequence.clear()
         self.sup_sequence.addItems(sequences)
+        self.ret_sequence.clear()
         self.ret_sequence.addItems(sequences)
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+        
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        
+    def update_finished(self,message):
+        if str(message)=='finished':
+            self.showplot()
+            #select lids in lines
+            lines_layer=QgsProject.instance().mapLayersByName('lines')   
+            if lines_layer:             
+                lines_layer[0].selectByExpression("id in {}".format(tuple([lid[0] for lid in self.lids])))
+            
+        self.process_running=False
+        
+    def showplot(self):
+        #print('show plot')
+        if self.dp_recalc.isChecked() and self.rbtn_pathPressure.isChecked():
+            #print(self.dp_min_recalc.text())
+            ddp=self.weak_point['sup_f'] - self.weak_point['ret_f']-Decimal(self.dp_min_recalc.text())*100000
+        else:
+            ddp=0
+        #print(ddp)
+
+        #print(self.weak_point)
+        #print(self.line_data)
+        quantity_data_sup=[self.weak_point['sup_ep']-ddp]+[lid['var1']-ddp for lid in self.line_data]+[self.weak_point['sup_f']-ddp]
+        quantity_data_ret=[self.weak_point['ret_ep']]+[lid['var2'] for lid in self.line_data]+[self.weak_point['ret_f']]
+        height=[self.weak_point['height_ep']]+[lid['height_j'] for lid in self.line_data]+[self.weak_point['height_f']]
+
+        #print(height)
+        #print(quantity_data_sup)
+        #print(quantity_data_ret)
+        #print(self.path)
+        
+        SMALL_SIZE = 15
+        MEDIUM_SIZE = 20
+        BIGGER_SIZE = 25
+
+        plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+        plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
+        plt.rc('figure', figsize=(30.0, 20.0))  # fontsize of the figure title
+        
+        fig, (ax1, ax2) = plt.subplots(2, 1)
+        fig.suptitle(self.title)
+        ax1.plot(self.path, quantity_data_sup, linewidth=4.0)
+        ax1.plot(self.path, quantity_data_ret, linewidth=4.0)
+        ax1.grid(True)
+        
+        #ax1.set_xlabel('Length, m')
+        ax1.set_xlabel('Trasse, m')
+        if self.rbtn_pathPressure.isChecked():
+            #ax1.set_ylabel('Pressure, Pa')
+            ax1.set_ylabel('Druck, Pa')
+        else:
+            #ax1.set_ylabel('Temperature, °C')
+            ax1.set_ylabel('Temperatur, °C')
+            
+        ax2.plot(self.path, height,linewidth=3.0)    
+        #ax2.set_xlabel('Length, m')
+        ax2.set_xlabel('Trasse, m')
+        #ax2.set_ylabel('Height level, m')
+        ax2.set_ylabel('Höhenprofil, m')
+        ax2.grid(True)
+        
+        manager = plt.get_current_fig_manager()
+        manager.window.showMaximized()
+        plt.show() 
         
 class IDADistrictsResultVisualizationDialog(QMainWindow):
     def __init__(self):     

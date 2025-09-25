@@ -23,6 +23,7 @@
 """
 
 from plugins.utility_functions.db import *
+from plugins.utility_functions.switch_debug_mode import *
 from plugins.utility_functions.layer_visualization import *
 from plugins.utility_functions.utility import *
 from plugins.utility_functions.files import *
