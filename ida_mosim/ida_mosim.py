@@ -246,6 +246,7 @@ class IDADistrictsModelingSimulation:
         
         #ambient settings
         #ground settings
+        self.modellingSettings['ground_lambda']=dlg.ground_lambda.text() 
         #-------------ground model------------
         self.modellingSettings['ground_model']=dlg.amb_ground_model.currentText() 
 

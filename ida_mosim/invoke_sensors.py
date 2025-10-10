@@ -106,7 +106,8 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
             [True for j in i['irefs_source'] 
                 if [True for j in i['irefs_target'] if j['submodel']==submodel and not j['network_side'] or submodel==j['cosim'] and j['network_side']]
                 or j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side']]]))                    
-    #print('------+++-------')        
+    #print('------+++-------')       
+                
     #add Adder comp for function  Individual signals for each target (6) if measure in (1,2,3,4)
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
@@ -377,7 +378,11 @@ def sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn
     #source connections from type supervisory ctrl to sensor if target type ==Customer, Plant (1,2) and function== Individual signals for each target (6) and target [5]==custom (1)
     idm_conn+=''.join(["""\n (("Supervisory_control" "Int_Ref_Sensor_Source_{}") ("Sensor-macro" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(j['iref'],j['iref'])
         for i in sensor_dec_data if i['target']==1 and i['function']==6 and i['source_type']==3 for j in i['irefs_target'] if
-        supervisory_submodel==submodel and supervisory_submodel!=j['submodel'] and not j['network_side']])
+        supervisory_submodel==submodel and supervisory_submodel==j['submodel'] or supervisory_submodel==submodel and submodel==j['cosim'] and j['network_side']])
+    #source connections from type supervisory ctrl to sensor if target type ==Customer, Plant (1,2) and function== Same signal for each target (5) ==custom (1)
+    idm_conn+=''.join(["""\n (("Supervisory_control" "Int_Ref_Sensor_Source_{}") ("Sensor-macro" "Int_Ref_Sensor_Source_{}") 0 0 NIL)""".format(j['iref'],j['iref'])
+        for i in sensor_dec_data if i['target']==1 and i['function']==5 and i['source_type']==3 for j in i['irefs_source'] if
+        supervisory_submodel==submodel and supervisory_submodel==j['submodel'] or supervisory_submodel==submodel and submodel==j['cosim'] and j['network_side']])
     #target connections from type supervisory ctrl to sensor if target type ==Customer, Plant (1,2) and function== Individual signals for each target (6) and target [5]==custom (1)
     idm_conn+=''.join(["""\n (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("{}{}" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(j['iref'],getMacroTypeName(i['target_type']),'_'+j['iref'].split('_')[1] if i['target_type']!=3 else '',j['iref'].split('_')[0])
         for i in sensor_dec_data if i['target']==1 and i['function']==6 and i['source_type']==3 for j in i['irefs_target'] if

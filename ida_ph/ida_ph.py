@@ -355,9 +355,9 @@ class WorkerImportProject(QRunnable):
                 copy_tree_filter_extensions_and_folders(dir+'\\ida_data\\'+(self.project_name if self.project_name else name),getDataCenterDir(self.plugin_dir)+'\\'+(self.project_name if self.project_name else name),signals=self.signals,exclude_extensions=self.filter_extensions)
 
                 replace_in_folder(
-                    root_folder=getDataCenterDir(self.plugin_dir)+'\\'+self.project_name,
+                    root_folder=getDataCenterDir(self.plugin_dir)+'\\'+(self.project_name if self.project_name else name),
                     old_string='$plugins_path$',
-                    new_string=self.plugin_dir.replace('\\','\\\\'),
+                    new_string=getQGISPluginsDir(self.plugin_dir).replace('\\','\\\\'),
                     file_extensions=['.idm'],
                     exclude_filenames=[]
                 )
@@ -533,9 +533,9 @@ class WorkerExportProject(QRunnable):
             #print(f'error: {e}')
             self.signals.error.emit("Project handling files export failed!") 
         self.signals.progress.emit(55)  
-        if os.path.exists(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName']):
+        if os.path.exists(getModellingDir(self.plugin_dir)+'\\'+'models'+'\\'+self.dictDB['projectName']):
             try:
-                copy_tree_filter_extensions_and_folders(getModellingDir(self.plugin_dir)+'\\'+'network_models'+'\\'+self.dictDB['projectName'], dir+'\\ida_mosim'+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+                copy_tree_filter_extensions_and_folders(getModellingDir(self.plugin_dir)+'\\'+'models'+'\\'+self.dictDB['projectName'], dir+'\\ida_mosim'+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
             except Exception as e:
                 #print(f'error: {e}')
                 self.signals.error.emit("Modelling files export failed!") 

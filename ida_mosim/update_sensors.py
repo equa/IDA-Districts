@@ -646,6 +646,8 @@ class WorkerSensors(QRunnable):
             measure=table.cellWidget(row, 6).currentIndex()+1
         if table.cellWidget(row, 7).currentText()=='Individual signals for each target':
             function=6
+        if table.cellWidget(row, 7).currentText()=='Same signal for all targets':
+            function=5
         self.sensorData[int(sensor_id)]['source']['type']=int(table.cellWidget(row, 1).currentText().split(':')[0])
         self.sensorData[int(sensor_id)]['source']['measure']=measure
         self.sensorData[int(sensor_id)]['source']['function']=function

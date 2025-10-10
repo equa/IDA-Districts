@@ -98,12 +98,22 @@ def loadIDADistrictsConfig(plugin_dir):
             for line in myfile:        
                 config+=line
     config=strToDict(config)
-    #print(config)
     return config
 
+def getQGISPluginsDir(plugin_dir):
+    """ get directory of QGIS plugins"""
+    dir=plugin_dir.replace("/","\\")
+    dir="\\".join(i for i in dir.split("\\")[0:-1])
+    return dir
+    
+def getProjectHandlingDir(plugin_dir):
+    """ get directory of project handling plugin"""
+    dir=getQGISPluginsDir(plugin_dir)
+    dir+='\\ida_ph'
+    return dir
+    
 def getDBConnectionData(plugin_dir,filename='dbSettings'):
     """ load the DB connection data from file dbSettings.txt"""
-    #print('get DB settings')
     dbSettings=""
     dir=getProjectHandlingDir(plugin_dir)
     file="{}\\{}.txt".format(dir,filename)
@@ -111,7 +121,6 @@ def getDBConnectionData(plugin_dir,filename='dbSettings'):
         with open(file, "r") as myfile:   
             for line in myfile:        
                 dbSettings+=line
-    #print(strToDict(dbSettings))
     return strToDict(dbSettings)
     
 def copyProjectFolders(dir,plugin_dir,name_list):
@@ -121,11 +130,12 @@ def copyProjectFolders(dir,plugin_dir,name_list):
         copy_tree_filter_extensions_and_folders(dir+folder,plugin_dir+'\\'+folder)
         
 #utility functions
+#print('------'+installation_dir+'utility_functions------')
 rmtree_long_path(plugin_dir+'utility_functions')
-#print(installation_dir+'utility_functions')
 copy_tree_filter_extensions_and_folders(installation_dir+'utility_functions',plugin_dir+'utility_functions')
 
 #data center
+#print('------'+installation_dir+'ida_data------')
 dir=plugin_dir+'ida_data\\'
 name_list = ['config', 'help', 'Samples','scripts','i18n','__pycache__']
 copyProjectFolders(dir,plugin_dir+'dc_temp',name_list)
@@ -135,6 +145,7 @@ copy_tree_filter_extensions_and_folders(plugin_dir+'dc_temp',dir)
 rmtree_long_path(plugin_dir+'dc_temp')
 
 #modelling
+#print('------'+installation_dir+'ida_mosim------')
 dir=plugin_dir+'ida_mosim\\'
 copyProjectFolders(dir+'models',plugin_dir+'mosim_temp',[])
 rmtree_long_path(dir)
@@ -144,18 +155,20 @@ copy_tree_filter_extensions_and_folders(plugin_dir+'mosim_temp',dir)
 rmtree_long_path(plugin_dir+'mosim_temp')
 
 #preprocessing
+#print('------'+installation_dir+'ida_pp------')
 dir=plugin_dir+'ida_pp\\'
 rmtree_long_path(dir)
 copy_tree_filter_extensions_and_folders(installation_dir+'ida_pp',dir)
 
 #project handling
+#print('------'+installation_dir+'ida_ph------')
 dir=plugin_dir+'ida_ph\\'
 name_list = ['config', 'help', 'Samples','scripts','i18n','__pycache__','templates','icons']
 copyProjectFolders(dir,plugin_dir+'pro_temp',name_list)
 if os.path.isdir(dir):
-    if len(getDBConnectionData(plugin_dir))==7:
+    if len(getDBConnectionData(dir))==7:
         shutil.copy2(dir+'dbSettings.txt',plugin_dir+'dbSettings.txt')
-    if len(loadIDADistrictsConfig(plugin_dir))==9:
+    if len(loadIDADistrictsConfig(dir))==9:
         shutil.copy2(dir+'configIDADistricts.txt',plugin_dir+'configIDADistricts.txt')
 rmtree_long_path(dir)
 copy_tree_filter_extensions_and_folders(installation_dir+'ida_ph',dir)
@@ -172,6 +185,7 @@ if os.path.exists(plugin_dir+'configIDADistricts.txt'):
 rmtree_long_path(plugin_dir+'pro_temp')
 
 #result visualization
+#print('------'+installation_dir+'ida_rv------')
 dir=plugin_dir+'ida_rv\\'
 rmtree_long_path(dir)
 copy_tree_filter_extensions_and_folders(installation_dir+'ida_rv',dir)

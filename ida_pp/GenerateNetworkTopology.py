@@ -229,11 +229,6 @@ INSERT INTO temp.customers(geom,template,network)
                 GROUP BY shv.id);""".format(self.addCustomers_template_customers,network,self.tolerance,self.tolerance)
         #print(sql)
         self.cur.execute(sql)
-    
-    def updateLength(self):
-        """Update the length of temp.lines"""
-        sql="UPDATE temp.lines set length= ST_Length(geom);"
-        self.cur.execute(sql)
         
     def finishNetworkTopology(self,version,network,progress_value,n_networks,srid):
         progress_value+=1/n_networks
@@ -253,7 +248,6 @@ INSERT INTO temp.customers(geom,template,network)
         self.mergeLines(version,network)
         progress_value+=5/n_networks
         self.signals.progress.emit(int(progress_value))
-        self.updateLength()
         self.updateHeight(version,srid)
         updateSubmodels(self.cur,self.dictDB)
         return progress_value
@@ -316,6 +310,13 @@ UPDATE temp.lines l SET geom=sub.geom,
             #print(sql) 
             self.cur.execute(sql) 
         else:
+            #Keep network height of previous topology
+            sql="""Update temp.lines temp 
+    SET geom=l.geom
+    FROM (SELECT geom FROM {}.lines) l
+    WHERE ST_Equals(ST_Force2D(l.geom),ST_Force2D(temp.geom));""".format(version)
+            #print(sql) 
+            self.cur.execute(sql)
             sql="UPDATE temp.lines set length=st_3dlength(geom);"
             self.cur.execute(sql)
             
@@ -564,7 +565,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
         """ST_split does not work (don`t know why) that`s why: Split the lines per feature: 1) get list of features; 2) loop over features """
         sql="""SELECT nh.id AS nh_id,f.id AS f_id
     FROM "{}".{} f,temp.network_help nh
-    WHERE ST_dWithIn(f.geom, nh.geom,{}) AND NOT ST_Equals(St_StartPoint(nh.geom), f.geom) AND NOT ST_Equals(St_EndPoint(nh.geom), f.geom) AND nh.network = ANY (f.network);""".format(version,mode,self.tolerance)
+    WHERE ST_dWithIn(f.geom, nh.geom,{}) AND NOT ST_dWithIn(St_StartPoint(nh.geom), f.geom,{}) AND NOT ST_dWithIn(St_EndPoint(nh.geom), f.geom,{}) AND nh.network = ANY (f.network);""".format(version,mode,self.tolerance,self.tolerance,self.tolerance)
         #print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()

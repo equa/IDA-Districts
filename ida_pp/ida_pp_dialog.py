@@ -829,7 +829,7 @@ class PipeLayingDialog(QMainWindow):
             refreshMap()
         
     def rejectResults(self):
-        """Writes results (lines, customers, junctions) from temp schema to version schema"""
+        """keep old topology"""
         #print('Reject Results')
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
@@ -1179,11 +1179,11 @@ class NetworkTopologyDialog(QMainWindow):
             refreshMap()
         
     def rejectResults(self):
-        """Writes results (lines, customers, junctions) from temp schema to version schema"""
+        """keep old topolgy"""
         #print('Reject Results')
         removeLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-        for layer in ['lines','junctions','customers']:
+        for layer in ['lines','junctions','customers','energy_plants']:
             if QgsProject.instance().mapLayersByName(layer):
                 vlayer= QgsProject.instance().mapLayersByName(layer)[0]
                 layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)

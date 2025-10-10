@@ -367,33 +367,10 @@ class IDADistrictsDataCenter:
                         os.remove(dir+'\\'+file+'.idc')
                     if os.path.exists(dir+'\\'+file):
                         shutil.rmtree(dir+'\\'+file)
-                    
+            uri = QgsDataSourceUri()
+            uri.setConnection(self.dictDB['host'], self.dictDB['port'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['pwd'])
+            loadProjectLayers(self.dictDB['versionName'],uri,self.dictDB,self.plugin_dir,self.cur)
         dlg.close()
-    
-    def showTemplates(self,type):
-        """show templates"""
-        self.dlg_manageTemplate.tableWidget.setRowCount(0)
-        sql='SELECT template, template_name,conn_type,description FROM public.{}_templates GROUP BY template,template_name,conn_type,description ORDER BY template;'.format(type)
-        self.cur.execute(sql)
-        data=self.cur.fetchall()
-        #print(data)
-        for template in data:
-            rowPosition = self.dlg_manageTemplate.tableWidget.rowCount()
-            self.dlg_manageTemplate.tableWidget.insertRow(rowPosition)
-            self.dlg_manageTemplate.tableWidget.setItem(rowPosition , 0, QTableWidgetItem(str(template['template'])))
-            
-            comboBox = QComboBox()
-            comboBox.addItems(getTemplates(type,cur))
-            self.dlg_manageTemplate.tableWidget.setCellWidget(rowPosition, 1, comboBox)  
-            
-            self.dlg_manageTemplate.tableWidget.setItem(rowPosition , 2, QTableWidgetItem(template['template_name']))
-                     
-            comboBox = QComboBox()
-            comboBox.addItems(self.getConnectionTypes())
-            comboBox.setCurrentText(str(template['conn_type']))
-            self.dlg_manageTemplate.tableWidget.setCellWidget(rowPosition, 3, comboBox)            
-            
-            self.dlg_manageTemplate.tableWidget.setItem(rowPosition , 4, QTableWidgetItem(template['description']))
                         
     #ToDo: merge getConnectionTypes & getTemplates to getIds
     def getConnectionTypes(self):
@@ -680,7 +657,7 @@ class IDADistrictsDataCenter:
                 description=''
 
             sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(
-                type,getMaxId(self.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][2],description)
+                type,getMaxId(self.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description)
             #print(sql)
             self.cur.execute(sql)
             
@@ -892,7 +869,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.show_DefaultsPlantsDialog() 
 
-    def showTableContent(self,dlg,table,dropdowns,columns=None):
+    def showTableContent(self,dlg,table,dropdowns,columns=None,deactivated=[0]):
         """show table content"""
         #print('show table content')
         cur=self.conn.cursor()
@@ -924,7 +901,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
                     else:
                         value=str(row[col])
                     item=QTableWidgetItem(value)
-                    if col == 0:
+                    if col in deactivated:
                         item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                     dlg.tableWidget.setItem(rowPosition , col, item)
                     if dlg.trace_type:
@@ -1205,7 +1182,7 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         self.conn=dbConnect(self.dictDB,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            self.show_TableDialog(title='Networks',table='"{}".network'.format(self.dictDB['versionName']),headers=['Id','Description'],columns='(id,description)',ok_fn=updateNetworkDependingFields,ok_fn_arg=[self.cur,self.dictDB]) 
+            self.show_TableDialog(title='Networks',table='"{}".network'.format(self.dictDB['versionName']),headers=['Id','Description'],columns='(id,description)',ok_fn=updateNetworkDependingFields,ok_fn_arg=[self.cur,self.dictDB],deactivated=[]) 
 
     def delIfNotInDBIds(self,table,openFnArg):
         """delete entries in subtable, if filter and not listed in DB table """
@@ -1451,7 +1428,7 @@ UPDATE {}.invoked_sensor_target_signals
         else:
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
     
-    def show_TableDialog(self,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]],trace=False):
+    def show_TableDialog(self,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]],trace=False,deactivated=[0]):
         """Show types from table in DB"""
         #print('Manage connection types')
         openBtn=False
@@ -1471,7 +1448,7 @@ UPDATE {}.invoked_sensor_target_signals
         dlg.btn_cancel.clicked.connect(lambda: self.closeDialog(dlg,table,openFnArg))
         dlg.btn_delete.clicked.connect(lambda: self.deleteTableRow(dlg,trace))
         dlg.btn_add.clicked.connect(lambda: self.addTableRow(dlg,dropdowns,trace,[0]))
-        dlg.traceTableValues=self.showTableContent(dlg,table,dropdowns,columns=columns)
+        dlg.traceTableValues=self.showTableContent(dlg,table,dropdowns,columns=columns,deactivated=deactivated)
         #print(dlg.traceTableValues)
         if trace:
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)

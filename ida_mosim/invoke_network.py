@@ -227,7 +227,7 @@ class InvokeNetworkModel:
                     dir=self.plugin_dir+"""\\models\\{}\\{}""".format(self.dictDB['projectName'],self.dictDB['versionName'])
                     idm_conn=sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn)
                     idm=sensorProjectIdmMacro(submodel,supervisory_submodel,sensor_dec_data,idm)
-                     
+                   
                     #----------------supervisory ctrl------------------------
                     if submodel==supervisory_submodel:
                         idm+="""\n((MACRO-OBJECT :N "Supervisory_control" :T ICE-MACRO :ETM 3857526820 :STM 3857526845){}{}{})""".format(
@@ -239,7 +239,7 @@ class InvokeNetworkModel:
                                 for i in sensor_dec_data if i['source_type']==3 and i['function']==6 for j in i['irefs_target']]),  
                             #iref targets connections from Sensor to feature if type Supervisory Ctrl (3) 
                             ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
-                                for i in sensor_dec_data if i['target_type']==3 for j in i['irefs_target']]))                
+                                for i in sensor_dec_data if i['target_type']==3 for j in i['irefs_target']]))
 
                     for type in ["customers","energy_plants"]:
                         if reinvoke:
@@ -320,7 +320,6 @@ class InvokeNetworkModel:
         #print(dir_plugins)
         os.popen('copy source.txt destination.txt')         
     
-    #todo liqtype
     def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Inserts the lines in the submodel"""
         sql="""WITH sub AS (
@@ -382,9 +381,10 @@ LEFT JOIN all_lines a ON a.id = m.id
 ORDER BY m.id;
 """.format(self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'],self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]),self.dictDB['versionName'], submodel,','.join([str(i) for i in networks]))
         #print(sql)
+
         self.cur.execute(sql)
         i=1
-        alpha_i=4000 #alpha_water=4000 W/m2K ; 1 m/s Strömung
+        alpha_i=4000
         for pipe_bundle in self.cur.fetchall():
             #print(pipe_bundle)
             lid=pipe_bundle['id']
@@ -398,10 +398,10 @@ ORDER BY m.id;
             zeta=pipe_bundle['zeta']
             #print(coordinates)
             
-            sql="""SELECT p.innerpipediameter,p.piperoughnessfactor, bp.sequence AS se_pipe, bp.ambient, ARRAY_AGG(pl.sequence::text||':'|| round(pl.thickness,4)::text||':'||m.thermal_conductivity_w7mkelvin::text||':'||m.specific_heat_j7kgkelvin::text||':'||m.density_kg7m3 ORDER BY pl.sequence) AS layers
+            sql="""SELECT p.innerpipediameter,p.piperoughnessfactor, bp.sequence AS se_pipe, bp.ambient, bp.x, bp.y AS depth, ARRAY_AGG(pl.sequence::text||':'|| round(pl.thickness,4)::text||':'||m.thermal_conductivity_w7mkelvin::text||':'||m.specific_heat_j7kgkelvin::text||':'||m.density_kg7m3 ORDER BY pl.sequence) AS layers
     FROM public.bundle_pipes bp, public.pipes p, public.pipe_layers pl, public.materials m
     WHERE bp.pipe_bundle_type_id={} AND bp.pipe_id=p.id AND pl.pipe_construction_id=p.pipe_construction_id AND m.id=pl.materialid
-    GROUP BY p.innerpipediameter,p.piperoughnessfactor, se_pipe,bp.ambient
+    GROUP BY p.innerpipediameter,p.piperoughnessfactor, se_pipe,bp.ambient, bp.x, bp.y
     ORDER BY bp.sequence;""".format(bunde_type)
             #print(sql)
             self.cur.execute(sql)
@@ -409,19 +409,17 @@ ORDER BY m.id;
             dPipes=[i['innerpipediameter'] for i in pipe_info]
             roughness=' '.join(str(i['piperoughnessfactor']) for i in pipe_info)
             layers=pipe_info[0]['layers']
-            thickness=layers[0].split(':')[1]
-            lambda_=layers[0].split(':')[2]
-            cp=layers[0].split(':')[3]
-            rho=layers[0].split(':')[4]                   
+            pipe=[{'thickness': pipe['layers'][0].split(':')[1], 'lambda': pipe['layers'][0].split(':')[2], 'cp': pipe['layers'][0].split(':')[3], 'rho': pipe['layers'][0].split(':')[4]} for pipe in pipe_info]
+            insulation=[{'thickness': pipe['layers'][1].split(':')[1], 'lambda': pipe['layers'][1].split(':')[2], 'cp': pipe['layers'][1].split(':')[3], 'rho': pipe['layers'][1].split(':')[4]} for pipe in pipe_info]
+            x_coord=[i['x'] for i in pipe_info]
+            depth=[i['depth'] for i in pipe_info]
+                
             
             if pipe_info[0]['ambient']==1: #air
-                alpha_o=20 #air
                 tamb_conn=' (:VAR :N |TAmb| :B (1 "Climate-macro" "climate_processor" TAIR2))'
             elif pipe_info[0]['ambient']==2: #ground
-                alpha_o=100000 #duct
                 tamb_conn=' (:VAR :N |TAmb| :B (1 "Climate-macro" "TGround" OUTSIGNAL))'
             elif pipe_info[0]['ambient']==3: #duct
-                alpha_o=5 #duct
                 tamb_conn=' (:VAR :N |TAmb| :B (1 "Climate-macro" "TDuct" OUTSIGNAL))'
             if requestedOutputs['temp_lines']:
                 idm+="""\n(output-file :sf "self:\\Line_temp_{}.prn" :n "Line_temp_{}" :t output-file)""".format(lid,lid)
@@ -446,60 +444,56 @@ ORDER BY m.id;
   (:VAR :N P :L "Line_p_{}" :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))""".format(lid,''.join(["""({} . "L_{}")""".format(i+1,i+1) for i in range(npipes)]),lid,''.join(["""({} . "R_{}")""".format(i+1,i+1) for i in range(npipes)]))
             else:
                 p=""
-                
-                
-            Rij=[]
-            for row in range(0,npipes):
-                R_pipe=0
-                di=float(dPipes[row])
-                di_layer=di
-                for layer in layers:
-                    layer_info=layer.split(':')
-                    R_pipe+=di/(2*float(layer_info[2]))*math.log((di_layer+2*float(layer_info[1]))/di_layer)
-                    di_layer+=2*float(layer_info[1])
-                R=1/alpha_i+R_pipe+di/(di_layer*alpha_o)
-                row_list=[]
-                for col in range(0,npipes):
-                    if row==col:
-                        row_list.append(str(R))
-                    else:
-                        row_list.append('10000')
-                Rij.append('('+' '.join(row_list)+')')
                                   
-            idm+="""\n((MODEL :N "Pipebundlef_{}" :T |pipebundlef|)
+            idm+="""\n((MODEL :N "Pipebundle_{}" :T |FDpipebundle|)
  (:PAR :N |npipes| :V {})
  (:PAR :N |lcell| :V {})
  (:PAR :N |l| :V {})
+ (:PAR :N |depth| :V #({}))
+ (:PAR :N |x_coordinates| :V #({}))
+ (:PAR :N |ambientType| :V |{}|)
+ (:PAR :N |lambdaSoil| :V |{}|)
 {}
  (:PAR :N |nK| :V {})
- (:PAR :N |Rij| :V #2A({}))
  ((RECORD :N |pipen|)
   (:PAR :N |k| :V #2A({}))
   (:PAR :N |h| :V #({}))
   (:PAR :N |dPipe| :V #({}))
-  (:PAR :N |aWall| :V #({}))
-  (:PAR :N |cp_pipe| :V #({}))
+  (:PAR :N |aPipe| :V #({}))
+  (:PAR :N |cpPipe| :V #({}))
   (:PAR :N |rhoPipe| :V #({}))
-  (:PAR :N |lambdawall| :V #({}))
+  (:PAR :N |lambdaPipe| :V #({}))
+  (:PAR :N |aIns| :V #({}))
+  (:PAR :N |cpIns| :V #({}))
+  (:PAR :N |rhoIns| :V #({}))
+  (:PAR :N |lambdaIns| :V #({}))
   (:PAR :N |epsilon| :V #({})){}{}{}){})""".format(lid,
                                                 npipes,
                                                 modellingSettings['fd_meterPerNode'],
-                                                length,tamb_conn, 
+                                                length,
+                                                ' '.join([str(i) for i in depth]),
+                                                ' '.join([str(i) for i in x_coord]),
+                                                'Air' if pipe_info[0]['ambient']==1 else ('Ground' if pipe_info[0]['ambient']==2 else 'Duct'),
+                                                modellingSettings['ground_lambda'],
+                                                tamb_conn, 
                                                 1 if zeta else 0,
-                                                ' '.join(Rij),
                                                 ' '.join(['('+str(zeta)+')' for i in dPipes if zeta]),
                                                 ' '.join([str(pipe_bundle['height_diff']) for i in dPipes]),
                                                 ' '.join([str(i) for i in dPipes]),
-                                                ' '.join([str(thickness) for i in dPipes]),
-                                                ' '.join([str(cp) for i in dPipes]),
-                                                ' '.join([str(rho) for i in dPipes]),
-                                                ' '.join([str(lambda_) for i in dPipes]),
+                                                ' '.join([i['thickness'] for i in pipe]),
+                                                ' '.join([i['cp'] for i in pipe]),
+                                                ' '.join([i['rho'] for i in pipe]),
+                                                ' '.join([i['lambda'] for i in pipe]),
+                                                ' '.join([i['thickness'] for i in insulation]),
+                                                ' '.join([i['cp'] for i in insulation]),
+                                                ' '.join([i['rho'] for i in insulation]),
+                                                ' '.join([i['lambda'] for i in insulation]),
                                                 roughness,
                                                 temp,
                                                 vel,
                                                 mdot,
                                                 p)
-            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:pipebundlef.ids" :SYMMETRY {} :SLOT ("Pipebundlef_{}") :NAME "Pipebundlef_{}" :DATA MODEL) 
+            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:FDpipebundle.ids" :SYMMETRY {} :SLOT ("Pipebundle_{}") :NAME "Pipebundle_{}" :DATA MODEL) 
 """.format(coordinates['x_pipe'],coordinates['y_pipe'],coordinates['angle'],lid,lid)
         
         return idm,idc
@@ -561,8 +555,8 @@ ORDER BY m.id;
                 
                 pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
                 
-                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
-                idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
 
 
                 seq_old=conn['seq']
@@ -587,10 +581,10 @@ ORDER BY m.id;
         elif type=='energy_plants':
             id_name='epid'
             seq_name='ep_seq'
-        sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,d.id AS did, ST_AsText(d.geom) AS d_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN conn.p IS NULL THEN 'liqL' ELSE 'liqR' END AS dir
-    FROM "{}".{} d, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates da, public.connections conn, public.connection_type_connections conn_t_conns
-    WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=da.conn_bundle_type AND fc.{}=conn_b_t.sequence AND da.template=d.template AND l.id=fc.lid AND d.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
-    ORDER BY d.id, conn_b_t.sequence, conn_type_seq;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
+        sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,f.id AS fid, ST_AsText(f.geom) AS f_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN ST_dWithIn(st_startpoint(l.geom),f.geom,0.01) THEN 'liqL' ELSE 'liqR' END AS dir
+    FROM "{}".{} f, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates f_t, public.connections conn, public.connection_type_connections conn_t_conns
+    WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=f_t.conn_bundle_type AND fc.{}=conn_b_t.sequence AND f_t.template=f.template AND l.id=fc.lid AND f.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
+    ORDER BY f.id, conn_b_t.sequence, conn_type_seq;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
         #print(sql)
         
         self.cur.execute(sql)
@@ -599,11 +593,11 @@ ORDER BY m.id;
         for conn in self.cur.fetchall():
             #print(conn)
             lid=conn['lid']
-            did=conn['did']
+            did=conn['fid']
             if lid!=lid_old:
                 seq_counter=1
             point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
-            point_d = self.getSymbolCoordinate(conn['d_point'].split("(")[1][:-1].split(' '))
+            point_d = self.getSymbolCoordinate(conn['f_point'].split("(")[1][:-1].split(' '))
             conn_bundl_type=conn['conn_bundle_type_id']
             conn_bundl_type_seq=conn['conn_bundl_type_seq']
             conn_type=conn['connection_type_id']
@@ -613,8 +607,8 @@ ORDER BY m.id;
             
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
 
-            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundlef_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
-            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundlef_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
+            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
+            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
 
             seq_counter+=1
             lid_old=lid

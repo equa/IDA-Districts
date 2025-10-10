@@ -156,6 +156,8 @@ shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copy(src_dir+'icon-result-visualization.png', trg_dir+'icon-result-visualization.png')
 shutil.copy(src_dir+'ida_rv.py', trg_dir+'ida_rv.py')
 shutil.copy(src_dir+'ida_rv_dialog.py', trg_dir+'ida_rv_dialog.py')
+shutil.copy(src_dir+'path_report.py', trg_dir+'path_report.py')
+
 copyMetaFiles(src_dir,trg_dir)
 
 #------------models--------------

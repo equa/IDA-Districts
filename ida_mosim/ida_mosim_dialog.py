@@ -1425,7 +1425,7 @@ class ModellingSettings(QMainWindow):
         label_ambient_title.setFont(font)
         
         #titel
-        label_ground_title =QLabel("Ground temperatur")
+        label_ground_title =QLabel("Ground")
         font=label_ground_title.font()
         font.setPointSize(12)
         label_ground_title.setFont(font)
@@ -1433,7 +1433,10 @@ class ModellingSettings(QMainWindow):
         #labels
         layout_ground_label = QVBoxLayout()
         
-        label_ground_model =QLabel("Ground model:")
+        label_ground_conductivity =QLabel("Thermal conductivity of the soil/trench, W/(m*K):")
+        layout_ground_label.addWidget(label_ground_conductivity)
+
+        label_ground_model =QLabel("Ground surface layer temperature model:")
         layout_ground_label.addWidget(label_ground_model)
         
         
@@ -1446,16 +1449,16 @@ class ModellingSettings(QMainWindow):
         self.label_amb_kusuda_theta =QLabel("Phase shift of monthly minimum temperatur, days:")
         layout_ground_label.addWidget(self.label_amb_kusuda_theta)
         
-        self.label_amb_kusuda_rho =QLabel("Ground density, kg/m3:")
+        self.label_amb_kusuda_rho =QLabel("Surface layer density, kg/m3:")
         layout_ground_label.addWidget(self.label_amb_kusuda_rho)
         
-        self.label_amb_kusuda_cp =QLabel("Specific heat capacity of the ground, J/(kg*K):")
+        self.label_amb_kusuda_cp =QLabel("Specific heat capacity of the surface layer, J/(kg*K):")
         layout_ground_label.addWidget(self.label_amb_kusuda_cp)
         
-        self.label_amb_kusuda_lambda =QLabel("Thermal conductivity of the ground, W/(k*K):")
+        self.label_amb_kusuda_lambda =QLabel("Thermal conductivity of the surface layer, W/(m*K):")
         layout_ground_label.addWidget(self.label_amb_kusuda_lambda)
         
-        self.label_amb_kusuda_depth =QLabel("Depth below the surface, m:")
+        self.label_amb_kusuda_depth =QLabel("Surface layer depth, m:")
         layout_ground_label.addWidget(self.label_amb_kusuda_depth)
         
         
@@ -1468,6 +1471,9 @@ class ModellingSettings(QMainWindow):
         
         #values
         layout_ground_value = QVBoxLayout()
+        
+        self.ground_lambda = QLineEdit(modellingSettings['ground_lambda'])
+        layout_ground_value.addWidget(self.ground_lambda) 
         
         self.amb_ground_model = QComboBox()
         self.amb_ground_model.addItems(['Kusuda','Timeseries','Constant'])
