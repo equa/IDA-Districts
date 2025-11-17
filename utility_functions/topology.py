@@ -11,7 +11,7 @@ def checkNetwork(cur,version,networks):
     networkNullCount=cur.fetchone()['count']
     
     if networkNullCount>0:
-        #print('Network attribute not set!')
+        print('Network attribute not set!')
 
         dlg_question = QMessageBox()
         dlg_question.setWindowTitle('Network attribute value missing!')
@@ -22,11 +22,11 @@ def checkNetwork(cur,version,networks):
 
         if button == QMessageBox.Yes:
             sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version)
-            #print(sql)
+            print(sql)
             cur.execute(sql)
             return True
         else:
-            #print("Cancel!")
+            print("Cancel!")
             return False
     return True
             
@@ -34,7 +34,7 @@ def getNetworkSequences(cur,dictDB,network):
     sql="""SELECT COALESCE(max(bp.sequence),0) AS number_of
     FROM "{}".lines f, bundle_pipes bp
     WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(dictDB['versionName'],network)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [str(i) for i in range(1,cur.fetchone()['number_of']+1)]
     
@@ -46,7 +46,7 @@ WITH sub AS(
 )
 INSERT INTO "{}".submodels (id,geom) 
     SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(dictDB['versionName'],table,dictDB['versionName'],srid)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     
 def updateSubmodels(cur,dictDB):
@@ -61,36 +61,36 @@ UPDATE temp.lines l SET submodel = a.sm_id
     WHERE a.lid=l.id;
 UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
 UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
-    #print(sql)
+    print(sql)
     cur.execute(sql)
         
 def setSubnetwork(cur,dictDB,redraw_submodels_polygons,srid):
     """set the submodel to 1 if not set otherwise"""
-    #print('Set submodel if no submodels')
+    print('Set submodel if no submodels')
     if redraw_submodels_polygons:
         
         #draw rectangle around all customers
         sql='TRUNCATE "{}".submodels CASCADE;'.format(dictDB['versionName'])
-        #print(sql)
+        print(sql)
         cur.execute(sql)
             
         redrawSubnetworkIncludingLines('"{}".lines'.format(dictDB['versionName']),cur,dictDB,srid)
         
         #junctions
         sql='UPDATE "{}".junctions SET submodel = 1;'.format(dictDB['versionName'])
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         #customers
         sql='UPDATE "{}".customers SET submodel = 1;'.format(dictDB['versionName'])
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         #energy_plants
         sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(dictDB['versionName'])
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         #lines
         sql='UPDATE "{}".lines SET submodel = array[1];'.format(dictDB['versionName'])
-        #print(sql)
+        print(sql)
         cur.execute(sql)  
 
 def getBundleValues(bundle,cur):
@@ -106,19 +106,19 @@ def getConnTypesByFeature(cur,dictDB,feature,id):
     FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
     WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
     ORDER BY b_t_conns.sequence;""".format(dictDB['versionName'],feature,feature,id)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
     
 def getConnIdsByConnType(cur,conn_type):
     sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [str(i['connection_id']) for i in cur.fetchall()]
     
 def getConnSequencesByConnType(cur,conn_type):
     sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [str(i['sequence']) for i in cur.fetchall()]
     
@@ -161,7 +161,7 @@ def getConnBundlesByType(cur,dictDB,type):
     FROM {}.{}s f, {}_templates f_t
     WHERE f.template=f_t.template
     GROUP BY f_t.conn_bundle_type;""".format(dictDB['versionName'],type,type)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [str(i['conn_bundle_type']) for i in cur.fetchall()]
     
@@ -175,7 +175,7 @@ def getBundleValuesByFeature(type_id,feature_id,cur,dictDB):
     
 def getConnTypeSeqFromBundle(cur,dictDB,c_b_type,conn_type):
     sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return cur.fetchone()['sequence']
     
@@ -232,13 +232,13 @@ SELECT sequence
     FROM bundle_pipes bp,sub 
     WHERE bp.pipe_bundle_type_id=sub.pipe_bundle_type_id
     GROUP BY sequence ORDER BY sequence;"""
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [i['sequence'] for i in cur.fetchall()]
 
 def getConnBundleTypesByConnType(cur,dictDB,conn_type_id):
     sql="""SELECT conn_bundle_type_id FROM bundle_type_conns WHERE conn_type_id={};""".format(conn_type_id)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return cur.fetchall()
         
@@ -250,7 +250,7 @@ UNION
 SELECT 'energy_plant' AS type,t.template, t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
     FROM bundle_type_conns bt_conns, energy_plant_templates t 
     WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id""".format(conn_type_id,conn_type_id)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -261,7 +261,7 @@ SELECT 'customer' AS type,template, template::text||'_'||template_name AS t_name
 UNION
 SELECT 'energy_plant' AS type,template, template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
     FROM energy_plant_templates WHERE conn_bundle_type={}""".format(conn_bundle_type_id,conn_bundle_type_id)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -311,29 +311,29 @@ def getPMT2muxIdentFromConnValues(connValues,conn_seq,conn_t_seq=1):
         
 def checkLineDirectionTopology(cur,version,tolerance,iface,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
-    #print('Check line direction')
+    print('Check line direction')
     sql="""SELECT st_v.id::integer AS epid 
         FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
         WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network)
         ORDER BY ep.id LIMIT 1;""".format(tolerance,network)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['epid'] 
-    #print(epid)
+    print(epid)
     sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point,ST_EndPoint(geom) AS l_end_point FROM temp.streets_help;"""
-    #print(sql) 
+    print(sql) 
     cur.execute(sql) 
     lines=cur.fetchall()
     for line in lines:
-        #print('--------------------------')
+        print('--------------------------')
         lid=line['lid']
-        #print(lid)
+        print(lid)
         start_point=line['l_start_point']
         end_point=line['l_end_point']
         
         #end_node
         sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         jid_end_topo=cur.fetchone()['vid']     
         if jid_end_topo!=epid:               
@@ -347,16 +347,16 @@ SELECT seq, node, edge, cost
             )
 )
 SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
-            #print(sql)
+            print(sql)
             cur.execute(sql) 
             length_node_end=cur.fetchone()['costs']
         else:
             length_node_end=0
-        #print(length_node_end)
+        print(length_node_end)
         
         #start_node
         sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         jid_start_topo=cur.fetchone()['vid'] 
         if jid_start_topo!=epid:       
@@ -370,48 +370,48 @@ SELECT seq, node, edge, cost
             )
 )
 SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
-            #print(sql)
+            print(sql)
             cur.execute(sql) 
             length_node_start=cur.fetchone()['costs']
         else:
             length_node_start=0
-        #print(length_node_start)
+        print(length_node_start)
         
         try:
             if length_node_end<length_node_start:
-                #print('change line direction')
+                print('change line direction')
                 sql='UPDATE temp.streets_help SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
-                #print(sql)
+                print(sql)
                 cur.execute(sql)
         except:
             #iface.messageBar().pushMessage("Error", "Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.", level=Qgis.Critical)   
-            #print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
+            print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
             pass
 
 #todo pipe laying of network 
 def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
-    #print('Check line direction')
+    print('Check line direction')
     sql="""SELECT st_v.id::integer AS v_ep 
     FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
     WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network) ORDER BY ep.id LIMIT 1;""".format(tolerance,network)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep'] 
     sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point, ST_EndPoint(geom) AS l_end_point FROM temp.lines;"""
-    #print(sql) 
+    print(sql) 
     cur.execute(sql) 
     lines=cur.fetchall()
     for counter,line in enumerate(lines,1):
-        #print(counter)
-        #print(line)
+        print(counter)
+        print(line)
         lid=line['lid']
         start_point=line['l_start_point']
         end_point=line['l_end_point']
         
         #end_node
         sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         jid_end_topo=cur.fetchone()['vid']       
         if jid_end_topo!=epid:               
@@ -425,19 +425,19 @@ SELECT seq, node, edge, cost
             )
 )
 SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
-            #print(sql)
+            print(sql)
             cur.execute(sql) 
             length_node_end=cur.fetchone()['costs']
         else:
             length_node_end=0
-        #print(length_node_end)
+        print(length_node_end)
         
         #start_node
         sql="SELECT st_v.id::integer AS v_start FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         jid_start_topo=cur.fetchone()['v_start'] 
-        #print(jid_start_topo)
+        print(jid_start_topo)
         if jid_start_topo!=epid:       
             sql="""WITH sub As(
 SELECT seq, node, edge, cost
@@ -449,15 +449,15 @@ SELECT seq, node, edge, cost
             )
 )
 SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo)
-            #print(sql)
+            print(sql)
             cur.execute(sql) 
             length_node_start=cur.fetchone()['sum_costs']
         else:
             length_node_start=0
-        #print(length_node_start)
+        print(length_node_start)
         
         if length_node_end<length_node_start:
-            #print('change line direction')
+            print('change line direction')
             sql='UPDATE temp.lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
-            #print(sql)
+            print(sql)
             cur.execute(sql)

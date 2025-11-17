@@ -2,9 +2,9 @@
 temp_layer = QgsProject.instance().mapLayersByName('lines')[0]
 
 num_classes = 4
-#print(num_classes)
+print(num_classes)
 ramp_name = 'Reds'
-#print(ramp_name)
+print(ramp_name)
 classification_method = QgsClassificationEqualInterval()
 
 # change format settings as necessary
@@ -12,7 +12,7 @@ format = QgsRendererRangeLabelFormat()
 format.setFormat("%1 - %2")
 format.setPrecision(2)
 format.setTrimTrailingZeroes(True)
-#print(format)
+print(format)
 default_style = QgsStyle().defaultStyle()
 color_ramp = default_style.colorRamp(ramp_name)
 
@@ -29,7 +29,7 @@ renderer.updateSymbols(symbol)
 
 # Create a scale expression
 scale = """coalesce(scale_exp("id", 1, 5, 1, 10, 0.57), 0)"""
-#print(scale)
+print(scale)
 
 # Set the data-defined property for size on the base symbol layer
 symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyStrokeWidth, QgsProperty.fromExpression(scale))

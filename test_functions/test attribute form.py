@@ -35,14 +35,14 @@ def setupVersionForm_light():
                 c = QgsAttributeEditorContainer(tab, fc.invisibleRootContainer())
                 c.setIsGroupBox(False) # a tab
                 for attrName in attrNamesTab:
-                    #print(attrName)
+                    print(attrName)
                     if type(attrName) is list:
                         c1 = QgsAttributeEditorContainer("Modelparameter", fc.invisibleRootContainer())
                         c1.setIsGroupBox(True)
                         c1.setVisibilityExpression(QgsOptionalExpression(QgsExpression("sim_model={}".format(attrName[0]))))
-                        #print(len(attrName))
+                        print(len(attrName))
                         for i in range(1,len(attrName)):
-                            #print(i)
+                            print(i)
                             field_idx = fields.indexOf(attrName[i])
                             c1.addChildElement(QgsAttributeEditorField(attrName[i], field_idx, c1))
                         c.addChildElement(c1)

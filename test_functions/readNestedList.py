@@ -19,7 +19,7 @@ submodel=1
 submodels=getUsedSubmodels(cur,dictDB)
 submodels.remove(str(submodel))
 features=getFeatureIds(dictDB,cur,submodel,submodels)
-#print(features)
+print(features)
 import_counter=0
 
 def parse_bracketsBetweenAlphanumericCharAndOpenBracket(match_obj):
@@ -49,50 +49,50 @@ def getIDAListComponents(data):
 
     
     re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data)
-    #print(re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data))
+    print(re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data))
     value_list=[]
     for value in re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data):
-        #print(value)
+        print(value)
         if ':DICT ' not in value:
             value_list.append(value)
             data=data.replace(' ('+value+')','')
-            #print(data)
+            print(data)
 
-    #print(data)
+    print(data)
 
-    #print(whitespace_strings)
+    print(whitespace_strings)
 
     data=data.replace('\n',',')
-    #print(data)
+    print(data)
     #data=re.sub(r"\w\s+\(", parse_bracketsBetweenAlphanumericCharAndOpenBracket, data)
     data=re.sub(r'(\w\s+\()|(\"\s+\()|(\|\s+\()', parse_bracketsBetweenAlphanumericCharAndOpenBracket, data)
-    #print(data)
+    print(data)
 
     data=re.sub(r"\w,\s+\(", parse_AlphanumericCharSeparatedOpeningBrackets, data)
-    #print(data)
+    print(data)
     
     data=re.sub(r"(\)\s+\w)|(\)\s+\")|(\)\s+\|)", parse_ClosingBracketsConnectedToAlphanumericChar, data)
-    #print(data)
+    print(data)
 
     data=re.sub(r"\#\(", parse_hashtag, data)
-    #print(data)
+    print(data)
     
     data=re.sub(r"\#2A\(", parse_hashtag2dimArray, data)
-    #print(data)
+    print(data)
 
     data=re.sub(r"\#S\(", parse_hashtagS, data)
-    #print(data)
+    print(data)
 
     data=re.sub(r"\)\s+\:", "),':", data)
-    #print(data)
+    print(data)
 
     data=re.sub(r"\)\s+\d", parse_closingBracketsConnectedToDigit, data)
 
     data=re.sub(r"\)\s+", ")", data)
-    #print(file)
+    print(file)
 
     data=re.sub(r"\s+\(", '(', data)
-    #print(data)
+    print(data)
 
     data=data.replace("(((","[[[\'").replace("((","[[\'").replace("(","[\'").replace(")))))","\']]]]]").replace("))))","\']]]]").replace(")))","\']]]").replace("))","\']]").replace(")","\']").replace(" ","\',\'")
     data=data.replace("|inStream['","|inStream(").replace("']|",")|").replace('][','],[')
@@ -101,16 +101,16 @@ def getIDAListComponents(data):
         if re.findall(r'\s+',s):
             data=data.replace(re.sub(r'\s+',"','",s),s)
 
-    #print(data)
+    print(data)
     data=data.replace('\\','\\\\')
-    #print(data)
+    print(data)
     i=0
     
     value_list.reverse()
     if value_list:
-        #print(value_list)
+        print(value_list)
         data=re.sub(r"(:VALUE',\[':DICT)|(\:VALUE')",lambda x: x.group(1) if x.group(1) is not None else ':VALUE\',"""'+value_list.pop()+' """',data)
-    #print(data)
+    print(data)
     
     return eval(data)
     
@@ -130,12 +130,12 @@ file_idc=readFileToString("C:\\Users/Peter/AppData/Roaming/QGIS/QGIS3\\profiles\
 
 
 data=getIDAListComponents(file)
-#print(data)
-#print(propertyListCompsIDC(data))
+print(data)
+print(propertyListCompsIDC(data))
 
 #pData_idm=propertyListCompsIDM(getIDAListComponents(file_idm))
-#print(pData_idm)
+print(pData_idm)
 
-#print(getIDAListComponents(file_idc))
+print(getIDAListComponents(file_idc))
 pData_idc=propertyListCompsIDC(getIDAListComponents(file_idc))
-#print(pData_idc)
+print(pData_idc)

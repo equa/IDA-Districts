@@ -85,17 +85,17 @@ for case_name, z_vals in cases.items():
     R_wall_arr = np.log(r_outer_arr / r_inner_arr) / (2 * pi * k_pipe)
     R_ins_arr = np.log(r_ins_arr / r_outer_arr) / (2 * pi * k_ins)
     R_series_internal_arr = R_conv_in_arr + R_wall_arr + R_ins_arr
-    #print(R_series_internal_arr)
-    #print(np.diag(R_series_internal_arr))
+    print(R_series_internal_arr)
+    print(np.diag(R_series_internal_arr))
 
     # G-Matrix Halbraum
     G_half = compute_G_halfspace_positions(x_positions, z_vals, r_ins_arr, k_soil)
     deltaT_vec = np.ones(len(z_vals)) * (T_fluid - T_surface)
     A = G_half + np.diag(R_series_internal_arr)
-    #print(A)
-    #print(deltaT_vec)
+    print(A)
+    print(deltaT_vec)
     q = np.linalg.solve(A, deltaT_vec)
-    #print(q)
+    print(q)
     ödflgk
 
     T_surface_pipe = T_fluid - q * R_series_internal_arr
@@ -122,6 +122,6 @@ for case_name, z_vals in cases.items():
             "T_surface_pipe [°C]": T_surface_pipe[i],
             "T_pipewall_after_conv [°C]": T_pipewall_after_conv[i]
         })
-    ##print(rows)
+    #print(rows)
 
 

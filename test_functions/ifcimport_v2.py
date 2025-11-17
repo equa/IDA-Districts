@@ -98,7 +98,7 @@ for space in spaces:
         floor_data[floor_elev]["usages"].append(usage)
 
     except Exception as e:
-        #print(f"⚠️ Skipping space {space.GlobalId}: {e}")
+        print(f"⚠️ Skipping space {space.GlobalId}: {e}")
         continue
 
 floor_elevations = sorted(floor_data.keys())
@@ -136,10 +136,10 @@ for window in ifc.by_type("IfcWindow"):
         window_areas_by_floor.setdefault(floor_level, 0)
         window_areas_by_floor[floor_level] += win_area
 
-        #print(f"🪟 Window {window.GlobalId} (#{window.id()}), area={win_area:.3f}, assigned floor={floor_level}")
+        print(f"🪟 Window {window.GlobalId} (#{window.id()}), area={win_area:.3f}, assigned floor={floor_level}")
 
     except Exception as e:
-        #print(f"⚠️ Skipping window {getattr(window, 'GlobalId', 'UNKNOWN')} (#{window.id()}): {e}")
+        print(f"⚠️ Skipping window {getattr(window, 'GlobalId', 'UNKNOWN')} (#{window.id()}): {e}")
         continue
 
 # Process openings
@@ -175,10 +175,10 @@ for opening in ifc.by_type("IfcOpeningElement"):
         opening_areas_by_floor.setdefault(floor_level, 0)
         opening_areas_by_floor[floor_level] += open_area
 
-        #print(f"🕳️ Opening {opening.GlobalId} (#{opening.id()}), area={open_area:.3f}, assigned floor={floor_level}")
+        print(f"🕳️ Opening {opening.GlobalId} (#{opening.id()}), area={open_area:.3f}, assigned floor={floor_level}")
 
     except Exception as e:
-        #print(f"⚠️ Skipping opening {getattr(opening, 'GlobalId', 'UNKNOWN')} (#{opening.id()}): {e}")
+        print(f"⚠️ Skipping opening {getattr(opening, 'GlobalId', 'UNKNOWN')} (#{opening.id()}): {e}")
         continue
 
 # Prepare output
@@ -224,4 +224,4 @@ for floor_elev, val in floor_data.items():
 gdf = gpd.GeoDataFrame(records, geometry=geometries, crs="EPSG:25832")
 gdf.to_file(file_shp)
 
-#print("✅ Export complete:", file_shp)
+print("✅ Export complete:", file_shp)

@@ -105,7 +105,7 @@ for space in spaces:
         floor_data[floor_elev]["usages"].append(usage)
 
     except Exception as e:
-        #print(f"⚠️ Skipping space {space.GlobalId}: {e}")
+        print(f"⚠️ Skipping space {space.GlobalId}: {e}")
         continue
 
 # Prepare floor elevations sorted ascending
@@ -116,7 +116,7 @@ window_areas_by_floor = {}
 seen_window_positions = set()
 
 for window in ifc.by_type("IfcWindow"):
-    #print(window)
+    print(window)
     try:
         shape = ifcopenshell.geom.create_shape(settings, window)
         verts = shape.geometry.verts
@@ -136,7 +136,7 @@ for window in ifc.by_type("IfcWindow"):
 
         # Get window area from quantities
         win_area = get_window_area(window)
-        #print(win_area)
+        print(win_area)
         if win_area <= 0:
             continue
 
@@ -154,10 +154,10 @@ for window in ifc.by_type("IfcWindow"):
         window_areas_by_floor.setdefault(floor_level, 0)
         window_areas_by_floor[floor_level] += win_area
 
-        #print(f"🪟 Window {window.GlobalId} (#{window.id()}), area={win_area:.3f}, assigned floor={floor_level}")
+        print(f"🪟 Window {window.GlobalId} (#{window.id()}), area={win_area:.3f}, assigned floor={floor_level}")
 
     except Exception as e:
-        #print(f"⚠️ Skipping window {getattr(window, 'GlobalId', 'UNKNOWN')} (#{window.id()}): {e}")
+        print(f"⚠️ Skipping window {getattr(window, 'GlobalId', 'UNKNOWN')} (#{window.id()}): {e}")
         continue
 
 # Prepare GeoDataFrame records
@@ -199,4 +199,4 @@ for floor_elev, val in floor_data.items():
 gdf = gpd.GeoDataFrame(records, geometry=geometries, crs="EPSG:25832")
 gdf.to_file(file_shp)
 
-#print("✅ Export complete: 'FZS-SPA-ARC-03-XXX-GE-23-GK-Bauherr Abgabe LPH3plus_abstractBIM.shp'")
+print("✅ Export complete: 'FZS-SPA-ARC-03-XXX-GE-23-GK-Bauherr Abgabe LPH3plus_abstractBIM.shp'")

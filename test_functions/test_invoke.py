@@ -13,10 +13,10 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
         replace=[key for key in replaceDict if key in file_data[counter]]
         if replace:
             if replace[0]=="SOURCE-FILE_DHW":
-                #print('DWH')
+                print('DWH')
                 data.append("""((SOURCE-FILE :DOCUMENT-PATH "{}" :SF "{}" :N "SOURCE-FILE_DHW" :T SOURCE-FILE :COL T)""".format(replaceDict[replace[0]],replaceDict[replace[0]]))
             if replace[0]=="((MODEL :N \"load model\"":
-                #print('load model')
+                print('load model')
                 openCloseBracktesCounter=file_data[counter].count('(')-file_data[counter].count(')')
                 if openCloseBracktesCounter>0:
                     data.append(file_data[counter])
@@ -25,10 +25,10 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                     while openCloseBracktesCounter>0:
                         openCloseBracktesCounter+=file_data[counter].count('(')-file_data[counter].count(')')
                         if "(:PAR :N " in file_data[counter]:
-                            #print('par')
+                            print('par')
                             par_name=file_data[counter].split(':N "')[1].split('" :V')[0]
-                            #print(par_name)
-                            #print(replaceDict["""((MODEL :N "load model\""""])
+                            print(par_name)
+                            print(replaceDict["""((MODEL :N "load model\""""])
                             replace_value=[replaceDict["""((MODEL :N "load model\""""][i] for i in replaceDict["""((MODEL :N "load model\""""] if i == par_name]
                             if replace_value:
                                 replace_value=str(replace_value[0])
@@ -37,10 +37,10 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                                 data.append(file_data[counter])
                             parms.append(par_name)
                         if " (:VAR :N " in file_data[counter]:
-                            #print('var')
-                            #print(file_data[counter])
-                            #print(parms)
-                            #print(["(:PAR :N {} :V {})".format(i,replaceDict["""((MODEL :N "load model\""""][i]) for i in replaceDict["""((MODEL :N "load model\""""] if i not in parms])
+                            print('var')
+                            print(file_data[counter])
+                            print(parms)
+                            print(["(:PAR :N {} :V {})".format(i,replaceDict["""((MODEL :N "load model\""""][i]) for i in replaceDict["""((MODEL :N "load model\""""] if i not in parms])
                             data+=["(:PAR :N {} :V {})".format(i,replaceDict["""((MODEL :N "load model\""""][i]) for i in replaceDict["""((MODEL :N "load model\""""] if i not in parms]
                             data.append(file_data[counter])
                             break
@@ -50,7 +50,7 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                             break 
                 else:
                     data.append(file_data[counter].strip()[:-1])
-                    #print('fd')
+                    print('fd')
                     data+=["(:PAR :N {} :V {})".format(i,replaceDict["""((MODEL :N "load model\""""][i]) for i in replaceDict["""((MODEL :N "load model\""""]]
                     data[-1]=data[-1]+")"
                     
@@ -60,4 +60,4 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
         counter+=1
     return data
     
-#print(replaceKeywordsInFiledata(file_data,replaceDict))
+print(replaceKeywordsInFiledata(file_data,replaceDict))

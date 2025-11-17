@@ -12,7 +12,7 @@ source_dir=plugin_dir+"ida_mosim\\models\\test15\\a\\invoked_customers"
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-#print(cur)
+print(cur)
 
 
 def getMinTimeTableValue(mode,cur,dictDB,table,colmn,starttime,endtime):
@@ -73,7 +73,7 @@ def getMaxSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
 )
 SELECT max(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime)
     cur.execute(sql)
-    #print(sql)
+    print(sql)
     return cur.fetchone()['value']
     
 def getMinSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
@@ -81,7 +81,7 @@ def getMinSumTimeValue(cur,dictDB,table,colmn,starttime,endtime):
     SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid,segment
 )
 SELECT min(value) AS value FROM sub;""".format(colmn,dictDB['versionName'],table,starttime,endtime)
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -103,10 +103,10 @@ vars={'color': {'mode': 'var', 'name': 't$1', 'var_function': 'Max', 'table_name
     {'fid': 5, 'geom': 'LINESTRING Z (-790704.2850900037 23166.861478213796 0,-790648.3469542556 23226.840772057723 0)', 'color': 69.5343850799117567, 'size': 3405.2351795546802057233805180000}, 
     {'fid': 5, 'geom': 'LINESTRING Z (-790745.1792399928 23104.177583574485 0,-790750.6038063454 23117.196542820897 0,-790704.2850900037 23166.861478213796 0)', 'color': 69.6722052885377267, 'size': 3412.6814498476039684286210190}]}
 
-#print(vars)
-#print([var for var in vars if var not in ['time','data']and vars[var]['mode']])
+print(vars)
+print([var for var in vars if var not in ['time','data']and vars[var]['mode']])
 value=getMinTimeTableValue(vars['size']['var_function'],cur,dictDB,vars['size']['table_name'],vars['size']['name'].split('$')[0],vars['time']['starttime'],vars['time']['endtime'])
-#print(value)
+print(value)
 
 value=getMaxTimeTableValue(vars['size']['var_function'],cur,dictDB,vars['size']['table_name'],vars['size']['name'].split('$')[0],vars['time']['starttime'],vars['time']['endtime'])
-#print(value)
+print(value)

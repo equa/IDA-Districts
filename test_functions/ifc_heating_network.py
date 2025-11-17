@@ -120,8 +120,8 @@ for seg in ifc.by_type("IfcFlowSegment"):
         record.update(extract_psets(seg))
         pipe_records.append(record)
     except Exception:
-        #print("⚠ Fehler bei Segment", seg.id(), getattr(seg, "Name", None))
-        #print(traceback.format_exc())
+        print("⚠ Fehler bei Segment", seg.id(), getattr(seg, "Name", None))
+        print(traceback.format_exc())
 
 # -------------------------------------------------------------------
 # Nodes (Fittings, Controller, MovingDevices etc.)
@@ -147,7 +147,7 @@ for kind in ("IfcFlowFitting", "IfcFlowController", "IfcFlowMovingDevice"):
             record.update(extract_psets(ent))
             node_records.append(record)
         except Exception:
-            #print("⚠ Fehler bei", kind, ent.id(), getattr(ent, "Name", None))
+            print("⚠ Fehler bei", kind, ent.id(), getattr(ent, "Name", None))
 
 def make_unique_columns(columns):
     """
@@ -173,16 +173,16 @@ if pipe_records:
     gdf_pipes = gpd.GeoDataFrame(pipe_records, geometry="geometry", crs=None)
     gdf_pipes.columns = make_unique_columns(gdf_pipes.columns)
     gdf_pipes.to_file(out_gpkg, layer="pipes", driver="GPKG")
-    #print("✅ Pipes exportiert:", len(gdf_pipes))
+    print("✅ Pipes exportiert:", len(gdf_pipes))
 else:
-    #print("Keine Pipes exportiert.")
+    print("Keine Pipes exportiert.")
 
 if node_records:
     gdf_nodes = gpd.GeoDataFrame(node_records, geometry="geometry", crs=None)
     gdf_nodes.columns = make_unique_columns(gdf_nodes.columns)
     gdf_nodes.to_file(out_gpkg, layer="nodes", driver="GPKG")
-    #print("✅ Nodes exportiert:", len(gdf_nodes))
+    print("✅ Nodes exportiert:", len(gdf_nodes))
 else:
-    #print("Keine Nodes exportiert.")
+    print("Keine Nodes exportiert.")
 
-#print("Fertig. Ergebnis:", out_gpkg)
+print("Fertig. Ergebnis:", out_gpkg)

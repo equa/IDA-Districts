@@ -7,6 +7,9 @@ import numpy as np
 import shutil
 import time
 import os
+import ast
+import json
+import re
 
 def rmtree_long_path(dir):
     if os.path.exists(dir) and os.path.isdir(dir):
@@ -146,24 +149,75 @@ def isFloat(str):
         float(str)
         return True
     except:
-        return False
-        
-def strToDict(str):
-    str=str.replace('"','').replace("'",'')
-    dict={}
+        return False 
+
+def strToDict(s: str) -> dict:
+    """
+    Converts a string representation of a dictionary into an actual Python dict.
+    Handles quotes, booleans, numbers, and nested structures gracefully.
+    Example: "{'srid': '25832'}" -> {'srid': '25832'}
+    """
+    if not isinstance(s, str) or not s.strip():
+        return {}
+
+    s = s.strip()
+
+    # CRITICAL FIX: Replace single backslashes with double backslashes
+    # to prevent "invalid escape sequence" errors in ast.literal_eval and json.loads.
+    # This ensures backslashes are treated as literal characters (e.g., in file paths).
+    s_safe = s.replace('\\', '\\\\')
+
+    # First try: use ast.literal_eval (safe eval for Python literals)
     try:
-        for i in str[1:-1].split(","):
-            entry=i.split(": ")[1].strip()
-            if entry == "True" or entry == "False":
-                if entry == "True":
-                    dict[i.split(": ")[0].strip()]=True
-                else:
-                    dict[i.split(": ")[0].strip()]=False
-            else:
-                dict[i.split(": ")[0].strip()]=entry
-    except:
+        result = ast.literal_eval(s_safe) # Use the safe string
+        if isinstance(result, dict):
+            return result
+        else:
+            return {}
+    except Exception:
         pass
-    return dict
+
+    # Second try: clean up and parse manually if input is malformed
+    try:
+        s_clean = s_safe.replace("'", '"')  # convert single to double quotes for JSON
+        result = json.loads(s_clean)
+        if isinstance(result, dict):
+            return result
+    except Exception:
+        pass
+
+    # Fallback: manual parsing for simple key:value pairs (uses original s, should be fine for simple pairs)
+    try:
+        s_inner = s.strip("{} ")
+        items = [i.strip() for i in s_inner.split(",") if ":" in i]
+        d = {}
+        for item in items:
+            key, val = [x.strip() for x in item.split(":", 1)]
+            key = key.strip("'\"")
+            val = val.strip("'\"")
+
+            # Convert common data types
+            if val.lower() == "true":
+                val = True
+            elif val.lower() == "false":
+                val = False
+            elif val.lower() == "none" or val == "":
+                val = None
+            else:
+                try:
+                    # Try to convert to number if possible
+                    if "." in val:
+                        val = float(val)
+                    else:
+                        val = int(val)
+                except ValueError:
+                    pass
+
+            d[key] = val
+        return d
+    except Exception:
+        return {}
+
 
     
 def checkString(my_string):

@@ -14,15 +14,15 @@ sql="""SELECT
 FROM {}.buildings;""".format(dictDB['versionName'])
 cur.execute(sql)
 center=cur.fetchone()
-#print(center)
+print(center)
 
 sql="""SELECT id,b_id,z_id,ST_AsText(geom) AS geom,z_vexp_m,z_bh_m FROM {}.buildings;""".format(dictDB['versionName'])
-#print(sql)
+print(sql)
 cur.execute(sql)
 
 ida_script=''
 for zone in cur.fetchall():
-    #print(zone)
+    print(zone)
     wkt_string=zone['geom']
     
     # Regular expression to match coordinates in the format (x y)
@@ -30,7 +30,7 @@ for zone in cur.fetchall():
 
     # Find all the coordinates
     coordinates = re.findall(pattern, wkt_string)
-    #print(coordinates)
+    print(coordinates)
 
     corners = []
     for coordinate in coordinates:
@@ -40,10 +40,10 @@ for zone in cur.fetchall():
 
     # Format the corners with brackets but no commas between coordinates
     corners_str = f"({') ('.join([f'{x} {y}' for x, y in corners[:-1]])})"
-    #print(corners_str)
+    print(corners_str)
     
     ida_script+="""(make-building-from-qgis [@] "Zone_{}_{}" {} {} {} #2A({}))\n""".format(
         zone['b_id'],zone['z_id'],zone['z_bh_m'],zone['z_vexp_m'],str(len(corners)-1),corners_str)
 
-#print(ida_script)
+print(ida_script)
 

@@ -460,7 +460,7 @@ class IDA_Districts_ProjectHandlingDialog(QMainWindow):
         self.progress.setValue(progress)
 
     def closeEvent(self, *args, **kwargs):
-        #print("you just closed the IDA Project window!!!")
+        print("you just closed the IDA Project window!!!")
         self.signals.close.emit(True)
         
 class CloseSignals(QObject):

@@ -10,7 +10,7 @@ class WorkerImportElevationData(QRunnable):
     """Import elevation data"""
     def __init__(self,*args,**kwargs):
         super().__init__()
-        #print("Import buildings from OSM")
+        print("Import buildings from OSM")
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.clearOldTerrain=kwargs['clearOldTerrain']
@@ -25,11 +25,11 @@ class WorkerImportElevationData(QRunnable):
 
             self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
             self.srid=self.configProject['srid']
-            #print(self.srid)
+            print(self.srid)
                 
     @pyqtSlot()
     def run(self):
-        #print('Import building data')
+        print('Import building data')
         self.signals.progress.emit(1)
         try:
             self.cur.execute("""SELECT EXISTS (
@@ -41,7 +41,7 @@ class WorkerImportElevationData(QRunnable):
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.dictDB['versionName']))
                 self.signals.progress.emit(5)
                 cmd = ' "{}bin\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.filePath.replace('\\','/'), self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
-                #print(cmd)
+                print(cmd)
                 os.environ['PGPASSWORD'] = self.dictDB['pwd']
                 subprocess.call(cmd, shell=True)
                 self.signals.progress.emit(100)
@@ -50,7 +50,7 @@ class WorkerImportElevationData(QRunnable):
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2;'.format(self.dictDB['versionName'])) 
                 self.signals.progress.emit(5)
                 cmd = ' "{}bin\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain1 | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.configIDADistricts['path_postgresql'],self.filePath.replace('\\','/'), self.dictDB['versionName'],self.configIDADistricts['path_postgresql'], self.dictDB['host'], self.dictDB['projectName'], self.dictDB['user'], self.dictDB['port'])
-                #print(cmd)
+                print(cmd)
                 os.environ['PGPASSWORD'] = self.dictDB['pwd']
                 subprocess.call(cmd, shell=True)
                 self.signals.progress.emit(50)

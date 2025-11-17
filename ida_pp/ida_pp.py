@@ -216,7 +216,7 @@ class IdaDistrictsPreProcessing:
             self.iface.removeToolBarIcon(action)
             
     def pipeLayingAlgorithm(self):
-        #print('pipe laying algorithm')
+        print('pipe laying algorithm')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -229,7 +229,7 @@ class IdaDistrictsPreProcessing:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
         
     def importPointLayer(self):
-        #print('Import plant or customer from point layer')
+        print('Import plant or customer from point layer')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -246,7 +246,7 @@ class IdaDistrictsPreProcessing:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
             
     def importNetworkTopologyFromLayer(self):
-        #print('Import Network topology from layer')
+        print('Import Network topology from layer')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -314,7 +314,7 @@ class IdaDistrictsPreProcessing:
         return attributes
     
     def generatePipebundleTyps(self,dlg,layer):
-        #print(dlg.mappedAttributes)
+        print(dlg.mappedAttributes)
         sql=""
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         pipes_dict={} #{str([innder diameter, roughness, {sequence: [material, thickness]}]): pipe_id}
@@ -336,11 +336,11 @@ SELECT  p.id::text, p.innerpipediameter::text, p.piperoughnessfactor::text, sub.
     FROM sub, pipes p
     WHERE sub.pipe_construction_id=p.pipe_construction_id
     ORDER BY p.id, sub.sequence DESC;"""
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             constr_layers=self.cur.fetchall()
             for constr_layer in constr_layers:
-                #print(constr_layer)
+                print(constr_layer)
                 constr={constr_layer['sequence']:[constr_layer['constr'],constr_layer['thickness']]}|constr #add to begining of dict
                 if constr_layer['sequence']==1:
                     pipes.append([constr_layer['innerpipediameter'],constr_layer['piperoughnessfactor'],constr])
@@ -352,30 +352,30 @@ SELECT  p.id::text, p.innerpipediameter::text, p.piperoughnessfactor::text, sub.
     FROM pipe_layers pl, materials m 
     WHERE m.id=pl.materialid
     ORDER BY pl.pipe_construction_id, pl.sequence DESC;"""
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             constr_layers=self.cur.fetchall()
 
             constr={}
             for constr_layer in constr_layers:
-                #print(constr_layer)
+                print(constr_layer)
                 constr={constr_layer['sequence']:[constr_layer['name'],constr_layer['thickness']]}|constr #add to begining of dict
                 if constr_layer['sequence']==1:
                     pipe_constrs.append(constr)
                     pipe_constrs_dict[str(constr)]= str(constr_layer['pipe_construction_id']) 
                     constr={}
-            #print(pipe_constrs)
-            #print(pipe_constrs_dict)
+            print(pipe_constrs)
+            print(pipe_constrs_dict)
             
             #get all pipe bundle types from DB
             sql="""SELECT sequence, pipe_id::text, x, y, ambient::text, pipe_bundle_type_id::text FROM bundle_pipes ORDER BY pipe_bundle_type_id, sequence DESC;"""
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             exclude=False
             pipe_counter=0
             coord_list=[]
             for bundle_pipe in self.cur.fetchall():
-                #print(bundle_pipe)
+                print(bundle_pipe)
                 coord_list.append([bundle_pipe['x'],bundle_pipe['y']])
                 if pipe_counter!=0 and (y_old!=bundle_pipe['y'] or pipe_id_old!=bundle_pipe['pipe_id'] or ambient_old!=bundle_pipe['ambient']):
                     exclude=True
@@ -418,10 +418,10 @@ TRUNCATE pipe_layers CASCADE;\n"""
         
         #Add field to layer if checkbox is checked
         if dlg.addPipeBundleTypeField.isChecked():
-            #print('add field to layer')
+            print('add field to layer')
             field_name=dlg.newFieldName.text()
             if field_name:
-                #print(field_name)
+                print(field_name)
                 layer.startEditing()
                 if field_name not in self.getLayerAttributesName(layer=layer):
                     layer.dataProvider().addAttributes( [ QgsField(field_name, QVariant.Int)])
@@ -442,7 +442,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
         
         for feature in layer.getFeatures():
             mappedAttributesValues=copy.deepcopy(dlg.mappedAttributes) #make a copy in order to lose reference
-            #print(feature)
+            print(feature)
             attributes=self.getLayerAttributesDict(feature,layer=layer)
             for mappedAttribute in dlg.mappedAttributes:
                 if dlg.mappedAttributes[mappedAttribute]:              
@@ -475,13 +475,13 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 
             constr={}
             for seq in range(0,dlg.tableWidget_pipe.rowCount()):
-                #print(seq)
+                print(seq)
                 constr[int(dlg.tableWidget_pipe.item(seq,0).text())]=[mappedAttributesValues['layer_constr'][str(seq+1)][0],mappedAttributesValues['layer_constr'][str(seq+1)][1]]
             feature_pipe=[mappedAttributesValues[dlg.pipe_bundle_type_attributes[0]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[6]],constr]
                 
             if constr not in pipe_constrs:
-                #print('**********Add pipe construction*********')
-                #print(constr)
+                print('**********Add pipe construction*********')
+                print(constr)
                 constr_max_id+=1
                 #add to pipe layers
                 for seq in constr:
@@ -500,7 +500,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                     constr_max_id,str(constr).replace("'",''))
                  
             if feature_pipe not in pipes:
-                #print('**********Add pipe*********')
+                print('**********Add pipe*********')
                 pipes_max_id+=1
                 pipes.append(feature_pipe)
                 pipes_dict[str(feature_pipe)]=str(pipes_max_id)
@@ -510,14 +510,14 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 
 
             
-            #print(pipes_dict)
+            print(pipes_dict)
             feature_bundle=[pipes_dict[str(feature_pipe)],mappedAttributesValues[dlg.pipe_bundle_type_attributes[4]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[2]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[3]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[5]]]
             
-            #print(feature_bundle)
-            #print(pipe_bundles)
+            print(feature_bundle)
+            print(pipe_bundles)
                
             if feature_bundle not in pipe_bundles:
-                #print('*****--*****Add bundle*****---****')
+                print('*****--*****Add bundle*****---****')
                 pipe_bundles.append(feature_bundle)
                 pipe_bundles_max_id+=1
                 pipe_bundles_dict[str(feature_bundle)]=str(pipe_bundles_max_id)
@@ -532,15 +532,15 @@ TRUNCATE pipe_layers CASCADE;\n"""
                     sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format(
                         bundle_pipes_max_id,pipe_bundles_max_id,seq,str(feature_bundle[0]),x,feature_bundle[3],feature_bundle[4])
             if dlg.addPipeBundleTypeField.isChecked():
-                #print(pipe_bundles_dict)
-                #print(feature.id())
-                #print(pipe_bundles_dict[str(feature_bundle)])
-                #print(bundle_idx)
+                print(pipe_bundles_dict)
+                print(feature.id())
+                print(pipe_bundles_dict[str(feature_bundle)])
+                print(bundle_idx)
                 layer.changeAttributeValue(feature.id(), bundle_idx, pipe_bundles_dict[str(feature_bundle)])
         if self.dlg_importNetworkTopologyFromLayer:
             self.dlg_importNetworkTopologyFromLayer.listWidget_layerAttributes.addItem(field_name)
         
-        #print(sql)
+        print(sql)
         self.cur.execute(sql)    
         layer.commitChanges()
             
@@ -588,11 +588,11 @@ TRUNCATE pipe_layers CASCADE;\n"""
     
     def importLayerToDb(self,type,dlg):
         """Import the mapped layer into lines"""
-        #print(type)
+        print(type)
         layer_name=self.getDHCLayerNameByType(type,dlg)
-        #print(dlg.mappedAttributes)
+        print(dlg.mappedAttributes)
         layer=QgsProject.instance().mapLayersByName(dlg.selectLayer.currentText())
-        #print(layer)
+        print(layer)
         
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -601,14 +601,14 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 if layer:
                     layer=layer[0]
                     layer_srid=layer.crs().authid().split(':')[1]
-                    #print(layer_srid)
+                    print(layer_srid)
                     self.configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])
-                    #print(self.configProject)
-                    #print(self.configProject['srid'])
+                    print(self.configProject)
+                    print(self.configProject['srid'])
                     generateId=False
                     #attribute names
                     attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
-                    #print(attributes)
+                    print(attributes)
                     
                     if dlg.rbtn_truncate.isChecked():
                         ids=[]
@@ -629,13 +629,13 @@ TRUNCATE pipe_layers CASCADE;\n"""
                         button = dlg_question.exec()
 
                         if button == QMessageBox.Yes:
-                            #print("Use serial id")
+                            print("Use serial id")
                             if dlg.rbtn_truncate.isChecked():
                                 generateId=1
                             else:
                                 generateId=getMaxIdSchema(self.cur,layer_name,self.dictDB['versionName'])+1
                         else:
-                            #print("Cancel!")
+                            print("Cancel!")
                             return False
                             
                     sql=""
@@ -643,7 +643,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                     attributes={}
                     for feature in layer.getFeatures():
                         mappedAttributesValues=dlg.mappedAttributes.copy() #make a copy in order to lose reference
-                        #print(mappedAttributesValues)
+                        print(mappedAttributesValues)
                         attributes=self.getLayerAttributesDict(feature,layer=layer)
                         for mappedAttribute in dlg.mappedAttributes:
                             if dlg.mappedAttributes[mappedAttribute]:
@@ -651,11 +651,11 @@ TRUNCATE pipe_layers CASCADE;\n"""
                                     if attribute in dlg.mappedAttributes[mappedAttribute]:
                                         mappedAttributesValues[mappedAttribute]=mappedAttributesValues[mappedAttribute].replace('"'+attribute+'"',str(attributes[attribute]))
                         values=[]
-                        #print(attributes)
+                        print(attributes)
                         attributes=[attribute for attribute in mappedAttributesValues if mappedAttributesValues[attribute]]
-                        #print(mappedAttributesValues)
+                        print(mappedAttributesValues)
                         for attribute in attributes:
-                            #print(attribute)
+                            print(attribute)
                             try:
                                 values.append(str(eval(mappedAttributesValues[attribute])))
                             except:
@@ -676,7 +676,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                                 ids.append(values[attributes.index('id')])
                             sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(self.dictDB['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
                         i+=1
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
                     closeDialog(dlg)
 
@@ -694,10 +694,10 @@ TRUNCATE pipe_layers CASCADE;\n"""
         layer=QgsProject.instance().mapLayersByName(signal)
         if layer:
             layer=layer[0]
-            #print(layer)
+            print(layer)
             attributes=layer.fields()
             attributes=[str(i.name()) for i in attributes]
-            #print(attributes)
+            print(attributes)
             list.addItems(attributes)
     
     def importStreetsFromOSM(self,dlg):
@@ -739,7 +739,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)           
 
     def fileDialog(self,dlg,dir,extensions):
-        #print(dir)
+        print(dir)
         filename, _filter = QFileDialog.getOpenFileName(
             dlg, "Import data",dir, extensions)
         if filename:
@@ -747,32 +747,32 @@ TRUNCATE pipe_layers CASCADE;\n"""
         
     def networkDecoupling(self):
         """ Decoupling of the network into subnetworks: set attribute subnetwork in the tables junctions, lines, customers, energy_plants"""
-        #print('network decoupling')
+        print('network decoupling')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
             if self.dictDB['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
                 sql="""SELECT id FROM "{}".subnetwork;""".format(self.dictDB['versionName'])
-                #print(sql)
+                print(sql)
                 self.cur.execute(sql)
                 for subnetwork in self.cur.fetchall():
-                    #print(subnetwork[0])
+                    print(subnetwork[0])
                     #junctions
                     sql="""UPDATE"{}".junctions SET subnetwork = {} WHERE id IN (SELECT j.id FROM "{}".subnetwork sn,"{}".junctions j WHERE ST_dWithin(j.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
                     #customers
                     sql="""UPDATE "{}".customers SET subnetwork = {} WHERE id IN (SELECT c.id FROM "{}".subnetwork sn, "{}".customers c WHERE ST_dWithin(c.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
                     #energy_plants
                     sql="""UPDATE "{}".energy_plants SET subnetwork = {} WHERE id IN (SELECT ep.id FROM "{}".subnetwork sn, "{}".energy_plants ep WHERE ST_dWithin(ep.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
                     #lines
                     sql="""UPDATE "{}".lines SET subnetwork = {} WHERE id IN (SELECT l.id FROM "{}".subnetwork sn, "{}".lines l WHERE ST_dWithin(l.geom,sn.geom,0.001) AND sn.id={});""".format(self.dictDB['versionName'],subnetwork[0],self.dictDB['versionName'],self.dictDB['versionName'],subnetwork[0])
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
             else:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
@@ -781,7 +781,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             
     def generateNetworkTopology(self):
         """ Generate network topology"""
-        #print('Generate network topology')
+        print('Generate network topology')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -795,7 +795,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
         
     def pipeSizing(self):
         """Pipe sizing"""
-        #print('Pipe sizing')
+        print('Pipe sizing')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn: 
@@ -816,7 +816,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
     
     def mapPlants(self):
         """Map plants to lines"""
-        #print('Map plants to lines')
+        print('Map plants to lines')
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -829,7 +829,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)            
         
     def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
-        #print(default_path)
+        print(default_path)
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.conn=dbConnect(self.dictDB,False)
         if self.conn:
@@ -889,4 +889,4 @@ TRUNCATE pipe_layers CASCADE;\n"""
         else:
             self.dlg.show()
             self.dlg.activateWindow()
-            #print('activate')
+            print('activate')

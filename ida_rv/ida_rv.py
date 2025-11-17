@@ -66,7 +66,7 @@ class IDADistrictsResultVisualization:
         self.dictDB=getDBConnectionData(self.plugin_dir)
         self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.dictDB)
         self.modellingSettings=loadModellingSettings(self.plugin_dir,self.dictDB)
-        #print(self.requestedOutputs)
+        print(self.requestedOutputs)
         self.cur=''
         self.conn=''
 
@@ -153,21 +153,21 @@ class IDADistrictsResultVisualization:
         
     def getJids(self,lids):
         """[[str(id),height]]"""
-        #print('get jids')
+        print('get jids')
         jids=[]
         for lid in lids[:-1]:
             sql="""SELECT j.id,ST_Z(ST_EndPoint(l.geom)) AS height
     FROM "{}".lines l,"{}".junctions j
     WHERE l.id={} AND ST_dWithIn(ST_EndPoint(l.geom),j.geom,0.0001);""".format(self.dictDB['versionName'],self.dictDB['versionName'],lid[0])
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             data=self.cur.fetchone()
-            #print(data)
+            print(data)
             if data:
                 jids.append([str(data['id']),data['height']])
             else:
                 jids.append(['0','0'])
-        #print(jids)
+        print(jids)
         return jids
     
     def getJunctionVariables(self,jids):
@@ -175,27 +175,27 @@ class IDADistrictsResultVisualization:
         counter=2
         jid_old=''
         connections={}
-        #print('ho')
-        #print(jids)
+        print('ho')
+        print(jids)
         for filedata in filedata_j:
             for var in filedata[0].strip().split()[3:]:
-                #print(var)
+                print(var)
                 jid=var.split('_')[1]
-                #print('jid:'+str(jid)+'; jid_old: '+str(jid_old))
+                print('jid:'+str(jid)+'; jid_old: '+str(jid_old))
                 if jid!=jid_old and counter!=3:
-                    #print(connections)
+                    print(connections)
                     if jid_old in [jid[0] for jid in jids]:
-                        #print(connections)
+                        print(connections)
                         variables[jid_old]=connections
                     connections={}
                 connections[var.split('_')[2]]=[counter,counter-1]
-                #print(connections)
+                print(connections)
                 counter+=1
                 jid_old=jid
             if connections and jid_old in [jid[0] for jid in jids]:
-                #print('++')
+                print('++')
                 variables[jid_old]=connections
-        #print(variables)
+        print(variables)
         return variables
 
     def getColIdx(self,data,dlg):
@@ -245,22 +245,22 @@ class IDADistrictsResultVisualization:
             
     def addSelectedIDs(self,dlg):
         """Adds all selected lines to list dlg.listWidget_ids"""
-        #print('add selected lines')
+        print('add selected lines')
         layer = self.iface.activeLayer()
         if layer:
-            #print(layer.name())
+            print(layer.name())
             if layer.name()=='lines' and dlg.rbtn_lineIds.isChecked() or layer.name()=='customers' and dlg.rbtn_customer.isChecked():
                 features = layer.selectedFeatures()
-                #print(features)
+                print(features)
                 for f in features:
-                    #print(f['id'])
+                    print(f['id'])
                     item = QListWidgetItem(str(f['id']))
                     item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
                     dlg.listWidget_ids.addItem(item)
 
     def addID(self,dlg):
         """Add id to list dlg.listWidget_ids"""
-        #print('add id')
+        print('add id')
         item = QListWidgetItem('')
         item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
         dlg.listWidget_ids.addItem(item)
@@ -318,14 +318,14 @@ class IDADistrictsResultVisualization:
     def loadFeatureIds(self,dlg):
         dlg.listWidget_ids.clear()
         ids=self.getFeatureIds(dlg)
-        #print(ids)
+        print(ids)
         dlg.listWidget_ids.addItems(ids)
     
     #dublicated code see invoke.py
     def plotLoadProfiles(self,dlg):
         """Show feature load in network simulation"""  
         idxs=[index.row() for index in dlg.listWidget_ids.selectedIndexes()]
-        #print(idxs)
+        print(idxs)
         count=0
         if idxs:
             fig, ax = plt.subplots(layout='constrained')
@@ -333,16 +333,16 @@ class IDADistrictsResultVisualization:
             
             for idx in idxs:
                 id=dlg.listWidget_ids.item(idx).text()
-                #print(id)
+                print(id)
                 file_path=getModellingDir(self.plugin_dir)+"\\models\\{}\\{}\\network_{}\\{}_{}\\Hx.prn".format(self.dictDB['projectName'],self.dictDB['versionName'],dlg.combo_networks.currentText(),self.getType(dlg).capitalize(),id)  
-                #print(file_path)
+                print(file_path)
                 if os.path.exists(file_path):
                     legend='Customer_'+id
 
-                    #print(file_path)
+                    print(file_path)
                     filedata=readFileToList(file_path)
 
-                    #print(filedata)
+                    print(filedata)
                     i=0
                     time=[]
                     power=[]
@@ -356,10 +356,10 @@ class IDADistrictsResultVisualization:
                     
                     power=np.array(power)  
                     energy=np.array(energy)    
-                    #print(power)
+                    print(power)
 
                     time=np.arange(0,8760,0.1)
-                    #print(time)
+                    print(time)
 
                     #linear interpolation
                     valuesPowerInt = np.interp(time, power[:,0], power[:,1])
@@ -488,17 +488,17 @@ class IDADistrictsResultVisualization:
     def getSourceVars(self,source):
         if os.path.isfile(source):
             vars=readFileToList(source)[0].split()
-            #print(vars)
+            print(vars)
         elif os.path.exists(source):
-            #print(os.listdir(source))
+            print(os.listdir(source))
             vars=readFileToList(source+'/'+os.listdir(source)[0])[0].split()
-            #print(vars)
+            print(vars)
         return vars[1:]
         
     def dataSourceDialog(self,dlg):
         source = self.getOpenFilesAndDirs(
             dlg, "Import file/directory","", '*.prn')
-        #print(source)
+        print(source)
         if source:
             dlg.lineEditSourceName.setText(source[0])
             dlg.tableVars.setRowCount(0)
@@ -520,8 +520,8 @@ class IDADistrictsResultVisualization:
                 dlg.tableVars.setItem(counter, 4, QTableWidgetItem(''))
     
     def importMeasurementData(self,dlg):
-        #print([i for i in range(dlg.tableVars.rowCount())])
-        #print([i for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == Qt.Checked])
+        print([i for i in range(dlg.tableVars.rowCount())])
+        print([i for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == Qt.Checked])
         var_dict=[{'var':dlg.tableVars.item(i,0).text(),
                     'colmn':i+2,
                     'feature':dlg.tableVars.cellWidget(i,1).currentText().replace(' ','_').lower(),
@@ -529,7 +529,7 @@ class IDADistrictsResultVisualization:
                     'min': float(dlg.tableVars.item(i,3).text()) if dlg.tableVars.item(i,3).text().isnumeric() else False,
                     'max': float(dlg.tableVars.item(i,4).text()) if dlg.tableVars.item(i,4).text().isnumeric() else False} 
                     for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == Qt.Checked]
-        #print(var_dict)
+        print(var_dict)
         
         srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
         source=dlg.lineEditSourceName.text()
@@ -540,15 +540,15 @@ class IDADistrictsResultVisualization:
         
         for counter,file in enumerate(files):
             filedata=readFileToList(file)
-            #print(filedata)
+            print(filedata)
                 
             for var in var_dict:
-                #print(var)
+                print(var)
                 id=file.split('/')[-1].split('.')[0]
-                #print(id)
+                print(id)
                 table_name=var['feature']+'_m_'+var['alias']
-                #print(table_name)
-                #print(checkTableNameExists(self.cur,self.dictDB,table_name))
+                print(table_name)
+                print(checkTableNameExists(self.cur,self.dictDB,table_name))
                 if not checkTableNameExists(self.cur,self.dictDB,table_name):
                     sql="""CREATE TABLE IF NOT EXISTS "{}".{}
 (
@@ -558,7 +558,7 @@ class IDADistrictsResultVisualization:
     geom geometry({},{}),
     {} numeric,
     CONSTRAINT {}_pkey PRIMARY KEY (id));""".format(self.dictDB['versionName'],table_name,'LineStringZ' if var['feature']=='Line' else 'PointZ', srid,var['alias'],table_name)
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
                 elif dlg.delete_existing_data.checkState() == Qt.Checked and counter==0:
                     sql="""TRUNCATE "{}".{};""".format(self.dictDB['versionName'],table_name)
@@ -568,7 +568,7 @@ class IDADistrictsResultVisualization:
                     self.cur.execute(sql)
                     
             vars_data={var['colmn']:[] for var in var_dict}
-            #print(vars_data)
+            print(vars_data)
             for i,line in enumerate(filedata):
                 if i>0:
                     data=line.strip().split()
@@ -581,7 +581,7 @@ class IDADistrictsResultVisualization:
                         
 
             vars_data_np={i:np.array(vars_data[i]) for i in vars_data} 
-            #print(vars_data_np)
+            print(vars_data_np)
             start_time_m=vars_data_np[[i for i in vars_data_np][0]][0][0]
             end_time_m=vars_data_np[[i for i in vars_data_np][0]][-1][0]
 
@@ -589,15 +589,15 @@ class IDADistrictsResultVisualization:
             if dlg.checkbox_timestep.checkState() == Qt.Checked:
                 #linear interpolation
                 time=[]
-                #print(dlg.interpolation_dt.text())
+                print(dlg.interpolation_dt.text())
                 if is_number(dlg.interpolation_dt.text()):
                     dt=float(dlg.interpolation_dt.text())
 
                     if vars_data_np:
                         start_time=start_time_m-start_time_m%dt
-                        #print(start_time)
+                        print(start_time)
                         end_time=end_time_m-end_time_m%dt+dt
-                        #print(end_time)
+                        print(end_time)
                     else:
                         self.iface.messageBar().pushMessage("Info", "Please select a variable!", level=Qgis.Info)
                         return
@@ -614,7 +614,7 @@ class IDADistrictsResultVisualization:
                 else:
                     time=vars_data_np[var_data][:,0]
                     var_data=vars_data_np[var_data][:,1]
-                #print(var_data)
+                print(var_data)
                 sql='SELECT geom FROM "{}".{}s WHERE id={};'.format(self.dictDB['versionName'],var['feature'],id)
                 self.cur.execute(sql)
                 fid_geom=self.cur.fetchone()
@@ -670,9 +670,8 @@ class IDADistrictsResultVisualization:
         if int(dlg.lineSegVis.text())==0:
             iface.messageBar().pushMessage("Info", f"The line segment length for visualization should be greater than 0.", level=Qgis.Info)
             return False
-        self.worker_showOnMap = WorkerShowOnMap(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,vars=None,feature=dlg.feature,layer_name=dlg.layer_name.text(),colorramp=dlg.colorramp.currentText(),
-            color_classes=int(dlg.color_classes.text()),size_symbolMin=dlg.size_symbolMin.text(),size_symbolMax=dlg.size_symbolMax.text(),lineSegVis=int(dlg.lineSegVis.text()),
-            rotation_symbolMin=dlg.rotation_symbolMin.text(),rotation_symbolMax=dlg.rotation_symbolMax.text(),simData=dlg.rbtn_simData.isChecked(),enable=True)
+        self.worker_showOnMap = WorkerShowOnMap(dictDB=self.dictDB,plugin_dir=self.plugin_dir,dlg=dlg,vars=None,feature=dlg.feature,layer_name=dlg.layer_name.text(),
+            lineSegVis=int(dlg.lineSegVis.text()),simData=dlg.rbtn_simData.isChecked(),enable=True)
                 
         self.threadpool_showOnMap = QThreadPool()
         self.worker_showOnMap.signals.error.connect(show_error_message)
@@ -697,5 +696,5 @@ class IDADistrictsResultVisualization:
         else:
             self.dlg.show()
             self.dlg.activateWindow()
-            #print('activate')
+            print('activate')
 

@@ -68,14 +68,14 @@ building_layer=QgsProject.instance().mapLayersByName('Kunden')
 if building_layer:
     building_layer=building_layer[0]
     
-#print([% $x %])
-#print(QgsGeometry.fromWkt( 'POINT( [% $x %] [% $y %])' ))
+print([% $x %])
+print(QgsGeometry.fromWkt( 'POINT( [% $x %] [% $y %])' ))
 feats = []
 for building_feature in building_layer.getFeatures():
     if QgsGeometry.fromWkt( 'POINT( [% $x %] [% $y %])' ).within(building_feature.geometry()):
         feats.append(building_feature)
 
-#print(feats)
+print(feats)
 layer_buildings_mem = QgsVectorLayer("Polygon?crs=epsg:"+str(srid), "Kunde", "memory")
 layer_buildings_data = layer_buildings_mem.dataProvider()
 attr = building_layer.dataProvider().fields().toList()
@@ -118,12 +118,12 @@ parent.removeChildNode(myalayer)
 layer_osm = project.mapLayersByName('OpenStreetMap')
 if layer_osm:
     layer_osm=layer_osm[0]
-    #print('osm')
+    print('osm')
 
 layer_network = project.mapLayersByName('Netz')
 if layer_network:
     layer_network=layer_network[0]
-    #print('layer_network')
+    print('layer_network')
 
 #No symbol for customer layer    
 null_renderer = QgsNullSymbolRenderer()
@@ -640,10 +640,10 @@ frame.attemptMove(QgsLayoutPoint(150, 252, QgsUnitTypes.LayoutMillimeters))   #a
 table.addFrame(frame)
 
 export_path=project_path.replace('/',"\\")+"\\Kundenblätter\\"
-#print(export_path)
+print(export_path)
 if os.path.exists(export_path.replace('\\\\','\\')):
     export_path+="Kundenblatt_[%"Eigentümer"%]_[%"Nr."%].pdf"
-    #print(export_path)
+    print(export_path)
     layoutmanager = project.layoutManager()
     layout_item = layoutmanager.layoutByName("{}")
     export = QgsLayoutExporter(layout_item)
@@ -667,7 +667,7 @@ project.removeMapLayer(layer_buildings_mem)
     form_config = feature_layer.editFormConfig()
 
     rootContainer = form_config.invisibleRootContainer()
-    #print(rootContainer)
+    print(rootContainer)
     editorAction = QgsAttributeEditorAction(helpAction, rootContainer)
     rootContainer.addChildElement(editorAction)
 

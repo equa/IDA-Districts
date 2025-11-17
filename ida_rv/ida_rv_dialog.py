@@ -1,16 +1,20 @@
 import os
 from qgis.PyQt import uic, QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import QListWidget,QCheckBox,QSpinBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget,QRadioButton,QButtonGroup
+from qgis.PyQt.QtWidgets import QDockWidget,QListWidget,QCheckBox,QSpinBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget,QRadioButton,QButtonGroup
 from qgis.utils import iface
 
 import matplotlib.pyplot as plt
 
+from qgis.core import QgsWkbTypes,QgsProperty,QgsSymbolLayer,QgsLineSymbol,QgsSymbol,QgsGraduatedSymbolRenderer,QgsStyle,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsClassificationQuantile,QgsTextFormat,QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsPalLayerSettings
 
+from qgis.gui import QgsMapCanvas,QgsTemporalControllerWidget
 from plugins.utility_functions.dialog import *
 from plugins.utility_functions.db import *
 from plugins.utility_functions.files import *
 from plugins.utility_functions.topology import *
 from decimal import Decimal
+from qgis.PyQt import sip
+from qgis.PyQt.QtGui import QFont, QColor
        
 
 class ShowOnMapDialog(QMainWindow):
@@ -28,6 +32,7 @@ class ShowOnMapDialog(QMainWindow):
         self.function_items=['Max','Min','Values','Hourly average','Daily average','Monthly average','Average','Sum','Last value','First value']
         self.time_values=['Values','Hourly average','Daily average','Monthly average']
         self.colorramps=['Magma','Blues','Cividis','Greens','Greys','Mako','RdGy','Reds','Rocket','Spectral','Turbo','Viridis']
+        self.colormodes=['Equal Count','Equal Interval']
         self.process_running=False
         
         self.setWindowTitle("Show data on map")   
@@ -128,8 +133,16 @@ class ShowOnMapDialog(QMainWindow):
         self.label_color_classes =QLabel('Classes')
         self.label_color_classes.setStyleSheet("padding-left: 30")
         self.label_color_classes.setHidden(True)
+        self.label_color_mode =QLabel('Mode')
+        self.label_color_mode.setStyleSheet("padding-left: 30")
+        self.label_color_mode.setHidden(True)
+        self.label_color_label =QLabel('Label')
+        self.label_color_label.setStyleSheet("padding-left: 30")
+        self.label_color_label.setHidden(True)
         layout_label_additional_colorSettings.addWidget(self.label_colorramp)
         layout_label_additional_colorSettings.addWidget(self.label_color_classes)
+        layout_label_additional_colorSettings.addWidget(self.label_color_mode)
+        layout_label_additional_colorSettings.addWidget(self.label_color_label)
 
         layout_values_additional_colorSettings=QVBoxLayout()
         self.colorramp =QComboBox()
@@ -139,8 +152,15 @@ class ShowOnMapDialog(QMainWindow):
         self.color_classes.setHidden(True)
         self.color_classes.setValue(10)
         self.color_classes.setMinimum(1) 
+        self.colormode =QComboBox()
+        self.colormode.setHidden(True)
+        self.colormode.addItems(self.colormodes)        
+        self.colorlabel =QCheckBox()
+        self.colorlabel.setHidden(True)
         layout_values_additional_colorSettings.addWidget(self.colorramp)
         layout_values_additional_colorSettings.addWidget(self.color_classes)
+        layout_values_additional_colorSettings.addWidget(self.colormode)
+        layout_values_additional_colorSettings.addWidget(self.colorlabel)
         
         layout_additional_colorSettings.addLayout(layout_label_additional_colorSettings)
         layout_additional_colorSettings.addLayout(layout_values_additional_colorSettings)
@@ -354,12 +374,344 @@ class ShowOnMapDialog(QMainWindow):
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
-    def update_finished(self,message):
-        self.process_running=False
+    def update_finished(self, message, worker):
+        """
+        Called in main thread when worker finished.
+        Signature: (message: str, worker: WorkerShowOnMap)
+        """
+        print("=== update_finished START ===", message)
+
+        # convenience
+        layer = worker.temp_layer
+
+        # 0) make sure layer exists
+        if layer is None:
+            print("No layer returned from worker.")
+            self.process_running = False
+            return
+
+        # 1) Ensure no edit session is open
+        if layer.isEditable():
+            try:
+                layer.commitChanges()
+                print("Committed pending edits.")
+            except Exception as e:
+                print("Commit error:", e)
+                layer.rollBack()
+
+        if self.colorlabel.isChecked():
+            # Construct the expression for one decimal place formatting
+            label_expression = f"format_number(\"{'color_' + worker.vars['color']['name'].split('$')[0]}\", 1)"
+
+            # --- Label Settings ---
+            palyr = QgsPalLayerSettings()
+            palyr.enabled = True
+            palyr.fieldName = label_expression 
+            
+            # Ensure QGIS knows this is an expression, not just a field name
+            palyr.isExpression = True 
+            
+            # Configure placement using modern enums
+            if layer.geometryType() == QgsWkbTypes.PointGeometry:
+                palyr.placement = Qgis.LabelPlacement.OverPoint
+            elif layer.geometryType() == QgsWkbTypes.LineGeometry:
+                palyr.placement = Qgis.LabelPlacement.Line
+            else: # Polygon
+                palyr.placement = Qgis.LabelPlacement.AroundPoint
+                # For polygons, sometimes 'centroid' placement is more reliable
+                # palyr.placement = Qgis.LabelPlacement.PointOnSurface 
+
+            # Customize text formatting (using points or millimeters is more reliable than map units)
+            palyr.textColor = QColor(0, 0, 0)
+            palyr.fontSizeInMapUnits = False # Use millimeters (False) or points (True and adjust unit)
+            palyr.fontSize = 10 # 10 mm/points size
+            palyr.fontFamily = "Arial"
+            
+            # Optional: Enable showing all labels, even colliding ones, for debugging
+            palyr.limitLabelMapUnits = False
+            palyr.scaleMax = 0
+            palyr.scaleMin = 0
+            palyr.displayAllLabels = True # Force display for troubleshooting
+
+
+            # --- Apply Settings ---
+            layer_settings = QgsVectorLayerSimpleLabeling(palyr)
+            layer.setLabeling(layer_settings)
+            layer.setLabelsEnabled(True)
+            
+            # --- Refresh Map Canvas ---
+            # Trigger a repaint to force QGIS to re-render the labels immediately
+            layer.triggerRepaint() 
+            iface.mapCanvas().refresh()
+            print(f"Labels enabled for layer '{layer.name()}' using expression: {label_expression}")
+
+
+        # ===== BUILD RENDERER (in main thread!) =====
+        print("Building renderer in main thread...")
+        renderer = None
+
+        if worker.vars['color']['mode']:
+            # target field name used for graduated renderer
+            target_field = 'color_' + worker.vars['color']['name'].split('$')[0]
+            print("Renderer target field:", target_field)
+            
+            
+
+            if worker.vars['color']['name'].split('$')[0] == 'mdot':
+                # --- mdot: rule-based renderer with arrows (positive / negative)
+                attr = "color_mdot"
+                arrow_size = 3
+                num_classes = int(self.color_classes.text())
+                classification_mode = self.colormode.currentText()
+                color_ramp_name = self.colorramp.currentText()
+
+                style_mgr = QgsStyle().defaultStyle()
+                ramp = style_mgr.colorRamp(color_ramp_name)
+                if ramp is None:
+                    raise ValueError(f"Color ramp '{color_ramp_name}' not found in QGIS Style Manager")
+
+                # compute vals (absolute) and bounds
+                vals = [abs(f[attr]) for f in layer.getFeatures() if f[attr] is not None]
+                if not vals:
+                    # fallback: set single-class renderer
+                    print("No values for attr", attr, " -> single symbol")
+                    renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
+                else:
+                    vmin, vmax = min(vals), max(vals)
+                    if vmin == vmax:
+                        # degenerate case -> single class
+                        bounds = [vmin, vmax]
+                        num_classes = 1
+                    else:
+                        if classification_mode == 'Equal Count':
+                            percentiles = np.linspace(0, 100, num_classes + 1)
+                            bounds = np.percentile(vals, percentiles).tolist()
+                        else:
+                            step = (vmax - vmin) / num_classes
+                            bounds = [vmin + i * step for i in range(num_classes + 1)]
+
+                    root_rule = QgsRuleBasedRenderer.Rule(None)
+
+                    for i_cls in range(num_classes):
+                        lower = bounds[i_cls]
+                        upper = bounds[i_cls + 1]
+                        frac = i_cls / (num_classes - 1) if num_classes > 1 else 0.0
+                        color = ramp.color(frac)
+
+                        # Positive flows
+                        expr_pos = f'("{attr}" >= {lower} AND "{attr}" < {upper} AND "{attr}" > 0)'
+                        line_sym_pos = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
+
+                        marker_line_pos = QgsMarkerLineSymbolLayer()
+                        # try to use newer API if available
+                        if hasattr(marker_line_pos, "setPlacementType"):
+                            marker_line_pos.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
+                        else:
+                            marker_line_pos.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
+                        # rotate according to line direction
+                        marker_line_pos.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
+
+                        arrow_layer_pos = QgsSimpleMarkerSymbolLayer(
+                            shape=QgsSimpleMarkerSymbolLayer.Triangle,
+                            color=color,
+                            size=arrow_size
+                        )
+                        arrow_layer_pos.setAngle(90)  # rightward
+                        arrow_marker_pos = QgsMarkerSymbol()
+                        arrow_marker_pos.changeSymbolLayer(0, arrow_layer_pos)
+                        marker_line_pos.setSubSymbol(arrow_marker_pos)
+                        line_sym_pos.appendSymbolLayer(marker_line_pos)
+
+                        rule_pos = QgsRuleBasedRenderer.Rule(line_sym_pos)
+                        rule_pos.setFilterExpression(expr_pos)
+                        rule_pos.setLabel(f"{lower:.2f} – {upper:.2f}")
+                        root_rule.appendChild(rule_pos)
+
+                        # Negative flows
+                        expr_neg = f'("{attr}" >= -{upper} AND "{attr}" < -{lower} AND "{attr}" < 0)'
+                        line_sym_neg = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
+
+                        marker_line_neg = QgsMarkerLineSymbolLayer()
+                        if hasattr(marker_line_neg, "setPlacementType"):
+                            marker_line_neg.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
+                        else:
+                            marker_line_neg.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
+                        marker_line_neg.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
+
+                        arrow_layer_neg = QgsSimpleMarkerSymbolLayer(
+                            shape=QgsSimpleMarkerSymbolLayer.Triangle,
+                            color=color,
+                            size=arrow_size
+                        )
+                        arrow_layer_neg.setAngle(270)  # leftward
+                        arrow_marker_neg = QgsMarkerSymbol()
+                        arrow_marker_neg.changeSymbolLayer(0, arrow_layer_neg)
+                        marker_line_neg.setSubSymbol(arrow_marker_neg)
+                        line_sym_neg.appendSymbolLayer(marker_line_neg)
+
+                        rule_neg = QgsRuleBasedRenderer.Rule(line_sym_neg)
+                        rule_neg.setFilterExpression(expr_neg)
+                        rule_neg.setLabel("")  # hidden
+                        root_rule.appendChild(rule_neg)
+
+                    renderer = QgsRuleBasedRenderer(root_rule)
+
+            else:
+                # --- Graduated renderer branch ---
+                if self.colormode.currentText() == 'Equal Count':
+                    classification_method = QgsClassificationQuantile()
+                else:
+                    classification_method = QgsClassificationEqualInterval()
+                classification_method.setLabelPrecision(1)
+                classification_method.setLabelTrimTrailingZeroes(True)
+
+                default_style = QgsStyle().defaultStyle()
+                color_ramp = default_style.colorRamp(self.colorramp.currentText())
+
+                renderer = QgsGraduatedSymbolRenderer()
+                renderer.setClassAttribute(target_field)
+                renderer.setClassificationMethod(classification_method)
+                renderer.updateClasses(layer, int(self.color_classes.text()))
+                renderer.updateColorRamp(color_ramp)
+                symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+                if self.feature == 'line':
+                    symbol.setWidth(2)
+                else:
+                    symbol.setSize(4)
+                renderer.updateSymbols(symbol)
+
+        else:
+            # no color mode -> single symbol
+            renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
+
+        # ===== SIZE / ROTATION data-defined properties (apply to marker symbol) =====
+        # Note: we need to modify a symbol for the renderer. For rule-based renderer, modify
+        # top-level symbol in case of single-symbol rules; for graduated renderer we update symbols.
+        try:
+            if worker.vars['size']['mode'] or worker.vars['rotation']['mode']:
+                print("Applying size/rotation DDPs...")
+                # create a base symbol to apply changes to
+                base_symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+                style = {}
+                if self.checkbox_varRotation.isChecked():
+                    style['name'] = 'arrow'
+                else:
+                    style['name'] = 'point'
+                style['color'] = 'black'
+                symbolLayer = QgsFilledMarkerSymbolLayer.create(style)
+                base_symbol.changeSymbolLayer(0, symbolLayer)
+
+                # size scale
+                if worker.vars['size']['mode']:
+                    if worker.vars['size']['mode'] == 'var':
+                        min_value = getMinTimeTableValue(worker.vars['size']['var_function'], worker.cur, self.dictDB, worker.vars['size']['table_name'], worker.vars['size']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
+                        max_value = getMaxTimeTableValue(worker.vars['size']['var_function'], worker.cur, self.dictDB, worker.vars['size']['table_name'], worker.vars['size']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
+                    else:
+                        min_value = getMinTableValue(worker.cur, self.dictDB, worker.vars['size']['table_name'], worker.vars['size']['name'])
+                        max_value = getMaxTableValue(worker.cur, self.dictDB, worker.vars['size']['table_name'], worker.vars['size']['name'])
+
+                    scale_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
+                        'size_' + worker.vars['size']['name'].split('$')[0],
+                        min_value, max_value,
+                        float(self.size_symbolMin.text()), float(self.size_symbolMax.text())
+                    )
+                    # property for size or stroke width
+                    prop = QgsSymbolLayer.PropertyStrokeWidth if self.feature == 'line' else QgsSymbolLayer.PropertySize
+                    base_symbol.symbolLayer(0).setDataDefinedProperty(prop, QgsProperty.fromExpression(scale_expr))
+
+                # rotation
+                if worker.vars['rotation']['mode']:
+                    if worker.vars['rotation']['mode'] == 'var':
+                        min_value = getMinTimeTableValue(worker.vars['rotation']['var_function'], worker.cur, self.dictDB, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
+                        max_value = getMaxTimeTableValue(worker.vars['rotation']['var_function'], worker.cur, self.dictDB, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
+                    else:
+                        min_value = getMinTableValue(worker.cur, self.dictDB, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'])
+                        max_value = getMaxTableValue(worker.cur, self.dictDB, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'])
+
+                    rotation_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
+                        'rotation_' + worker.vars['rotation']['name'].split('$')[0],
+                        min_value, max_value,
+                        float(self.rotation_symbolMin.text()), float(self.rotation_symbolMax.text())
+                    )
+                    base_symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromExpression(rotation_expr))
+
+                # apply the base symbol to renderer
+                try:
+                    renderer.updateSymbols(base_symbol)
+                except Exception:
+                    renderer.setSymbol(base_symbol)
+
+        except Exception as e:
+            print("Error applying size/rotation:", e)
+
+        # ===== APPLY RENDERER (after labeling) =====
+        try:
+            print("Applying renderer to layer...")
+            layer.setRenderer(renderer)
+        except Exception as e:
+            print("Error setting renderer:", e)
+
+        # ===== ADD TO PROJECT =====
+        print("Adding layer to project...")
+        QgsProject.instance().addMapLayer(layer)
+
+        # ===== FINAL REFRESH =====
+        layer.triggerRepaint()
+        try:
+            iface.layerTreeView().refreshLayerSymbology(layer.id())
+        except Exception:
+            pass
+        iface.mapCanvas().refresh()
+
+        # ===== TEMPORAL CONTROLLER (if applicable) =====
+        if worker.first_time_var:
+            print("Configuring temporal controller...")
+            # set temporal properties on the layer
+            temp_prop = layer.temporalProperties()
+            temp_prop.setIsActive(True)
+            temp_prop.setStartField('time')
+            temp_prop.setEndField('time')
+            temp_prop.setLimitMode(Qgis.VectorTemporalLimitMode.IncludeBeginIncludeEnd)
+            temp_prop.setMode(Qgis.VectorTemporalMode(2))
+
+            temporalController = iface.mapCanvas().temporalController()
+            temporalNavigationObject = sip.cast(temporalController, QgsTemporalNavigationObject)
+
+            temporalNavigationObject.setNavigationMode(Qgis.TemporalNavigationMode.Animated)
+            temporalNavigationObject.setFramesPerSecond(2)
+            temporalNavigationObject.setTemporalExtents(
+                QgsDateTimeRange(
+                    getDatetimeFromString(worker.vars['time']['starttime']),
+                    getDatetimeFromString(worker.vars['time']['endtime'])
+                )
+            )
+            temporalNavigationObject.setLooping(True)
+            temporalNavigationObject.setAnimationState(Qgis.AnimationState.Forward)
+
+            interval = QgsInterval()
+            dt = worker.vars['time']['dt']
+            if dt == 'hour':
+                interval.setHours(1)
+            elif dt == 'day':
+                interval.setDays(1)
+            elif dt == 'month':
+                interval.setMonths(1)
+            else:
+                try:
+                    interval.setHours(float(dt))
+                except Exception:
+                    interval.setHours(1)
+
+            temporalNavigationObject.setFrameDuration(interval)
+            iface.mapCanvas().refresh()
+
+        print("=== update_finished END ===")
+        self.process_running = False
+
         
     def colorStateChanged(self,s):
         if Qt.Checked==s:
-            #print('checked')
+            print('checked')
             self.rbtn_colorVar.setHidden(False)
             self.color_var.setHidden(False)
             self.color_function.setHidden(False)
@@ -367,11 +719,15 @@ class ShowOnMapDialog(QMainWindow):
             self.color_par.setHidden(False)
             self.label_colorramp.setHidden(False)
             self.label_color_classes.setHidden(False)
+            self.label_color_mode.setHidden(False)
+            self.label_color_label.setHidden(False)
             self.colorramp.setHidden(False)
             self.color_classes.setHidden(False)
+            self.colormode.setHidden(False)
+            self.colorlabel.setHidden(False)
                 
         else:
-            #print('unckecked')
+            print('unckecked')
             self.rbtn_colorVar.setHidden(True)
             self.color_var.setHidden(True)
             self.color_function.setHidden(True)
@@ -379,12 +735,16 @@ class ShowOnMapDialog(QMainWindow):
             self.rbtn_colorPar.setHidden(True)
             self.label_colorramp.setHidden(True)
             self.label_color_classes.setHidden(True)
+            self.label_color_mode.setHidden(True)
+            self.label_color_label.setHidden(True)
             self.colorramp.setHidden(True)
             self.color_classes.setHidden(True)
+            self.colormode.setHidden(True)
+            self.colorlabel.setHidden(True)
         self.varSelectionGroupChanged(False)
 
     def varSelectionGroupChanged(self,radioButton):
-        #print('radio var/par changed')
+        print('radio var/par changed')
         if self.rbtn_colorVar.isChecked() and self.checkbox_varColor.isChecked() or self.rbtn_sizeVar.isChecked() and self.checkbox_varSize.isChecked() or self.rbtn_rotationVar.isChecked() and self.checkbox_varRotation.isChecked():
             if self.label_endtime.isHidden():
                 self.label_endtime.setHidden(False)
@@ -400,7 +760,7 @@ class ShowOnMapDialog(QMainWindow):
 
     def sizeStateChanged(self,s):
         if Qt.Checked==s:
-            #print('checked')
+            print('checked')
             self.rbtn_sizeVar.setHidden(False)
             self.size_var.setHidden(False)
             self.size_function.setHidden(False)
@@ -412,7 +772,7 @@ class ShowOnMapDialog(QMainWindow):
             self.size_symbolMin.setHidden(False)
 
         else:
-            #print('unckecked')
+            print('unckecked')
             self.rbtn_sizeVar.setHidden(True)
             self.size_var.setHidden(True)
             self.size_function.setHidden(True)
@@ -426,7 +786,7 @@ class ShowOnMapDialog(QMainWindow):
 
     def rotationStateChanged(self,s):
         if Qt.Checked==s:
-            #print('checked')
+            print('checked')
             self.rbtn_rotationVar.setHidden(False)
             self.rotation_var.setHidden(False)
             self.rotation_function.setHidden(False)
@@ -438,7 +798,7 @@ class ShowOnMapDialog(QMainWindow):
             self.rotation_symbolMin.setHidden(False)
 
         else:
-            #print('unckecked')
+            print('unckecked')
             self.rbtn_rotationVar.setHidden(True)
             self.rotation_var.setHidden(True)
             self.rotation_function.setHidden(True)
@@ -451,35 +811,67 @@ class ShowOnMapDialog(QMainWindow):
         self.varSelectionGroupChanged(False)
             
     def hideRotationWidgets(self):
-            self.rbtn_rotationVar.setHidden(True)
-            self.rotation_var.setHidden(True)
-            self.rotation_function.setHidden(True)
-            self.rbtn_rotationPar.setHidden(True)
-            self.rotation_par.setHidden(True)
-            self.label_rotation_symbolMax.setHidden(True)
-            self.label_rotation_symbolMin.setHidden(True)
-            self.rotation_symbolMax.setHidden(True)
-            self.rotation_symbolMin.setHidden(True)
+        self.rbtn_rotationVar.setHidden(True)
+        self.rotation_var.setHidden(True)
+        self.rotation_function.setHidden(True)
+        self.rbtn_rotationPar.setHidden(True)
+        self.rotation_par.setHidden(True)
+        self.label_rotation_symbolMax.setHidden(True)
+        self.label_rotation_symbolMin.setHidden(True)
+        self.rotation_symbolMax.setHidden(True)
+        self.rotation_symbolMin.setHidden(True)
             
     def displayRotationWidgets(self):
-            self.rbtn_rotationVar.setHidden(False)
-            self.rotation_var.setHidden(False)
-            self.rotation_function.setHidden(False)
-            self.rbtn_rotationPar.setHidden(False)
-            self.rotation_par.setHidden(False)
-            self.label_rotation_symbolMax.setHidden(False)
-            self.label_rotation_symbolMin.setHidden(False)
-            self.rotation_symbolMax.setHidden(False)
-            self.rotation_symbolMin.setHidden(False)
+        self.rbtn_rotationVar.setHidden(False)
+        self.rotation_var.setHidden(False)
+        self.rotation_function.setHidden(False)
+        self.rbtn_rotationPar.setHidden(False)
+        self.rotation_par.setHidden(False)
+        self.label_rotation_symbolMax.setHidden(False)
+        self.label_rotation_symbolMin.setHidden(False)
+        self.rotation_symbolMax.setHidden(False)
+        self.rotation_symbolMin.setHidden(False)
+
+    def hideSizeWidgets(self):
+        self.rbtn_sizeVar.setHidden(True)
+        self.size_var.setHidden(True)
+        self.size_function.setHidden(True)
+        self.rbtn_sizePar.setHidden(True)
+        self.size_par.setHidden(True)
+        self.label_size_symbolMax.setHidden(True)
+        self.label_size_symbolMin.setHidden(True)
+        self.size_symbolMax.setHidden(True)
+        self.size_symbolMin.setHidden(True)
+            
+    def displaySizeWidgets(self):
+        self.rbtn_sizeVar.setHidden(False)
+        self.size_var.setHidden(False)
+        self.size_function.setHidden(False)
+        self.rbtn_sizePar.setHidden(False)
+        self.size_par.setHidden(False)
+        self.label_size_symbolMax.setHidden(False)
+        self.label_size_symbolMin.setHidden(False)
+        self.size_symbolMax.setHidden(False)
+        self.size_symbolMin.setHidden(False)
             
     def hideRotationLayout(self):
         self.checkbox_varRotation.setHidden(True)
         self.hideRotationWidgets()
 
+    def hideSizeLayout(self):
+        self.checkbox_varSize.setHidden(True)
+        self.checkbox_varSize.setChecked(False)
+        self.hideSizeWidgets()
+
     def displayRotationLayout(self):
         self.checkbox_varRotation.setHidden(False)
         if self.checkbox_varRotation.isChecked():
             self.displayRotationWidgets()
+    
+    def displaySizeLayout(self):
+        self.checkbox_varSize.setHidden(False)
+        if self.checkbox_varSize.isChecked():
+            self.displaySizeWidgets()
         
     def color_function_Changed(self,s):
         if s in self.time_values:
@@ -503,6 +895,16 @@ class ShowOnMapDialog(QMainWindow):
                 self.color_function.setCurrentText(s) 
         
     def color_varChanged(self,s):
+        self.color_function.clear()
+        self.color_function.addItems(self.function_items)
+        if s.split('$')[0]=='p':
+            self.color_function.addItem('specific dp')
+                
+        if s.split('$')[0]=='mdot' and self.rbtn_lines.isChecked():
+            self.hideSizeLayout()
+        else:
+            self.displaySizeLayout()
+            
         self.color_table_name=self.feature+'_'+self.type+'_'+s
         sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.dictDB['versionName'],self.color_table_name)
         try:
@@ -585,29 +987,31 @@ class ShowOnMapDialog(QMainWindow):
         self.rotation_var.clear()
         self.rotation_par.clear()
         if self.rbtn_mDatap.isChecked():
-            #print('Measurement data')
+            print('Measurement data')
             self.type='m'
         elif self.rbtn_simData.isChecked():
             self.type='s'
         if self.rbtn_customers.isChecked():
-            #print('Customers')
+            print('Customers')
             self.feature='customer'
             vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
             pars=getTableAttr(self.cur,self.dictDB,self.feature)
-            #print(vars)
+            print(vars)
             self.displayRotationLayout()
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
+            self.displaySizeLayout()
         elif self.rbtn_plants.isChecked():
-            #print('Energy plants')
+            print('Energy plants')
             self.feature='energy_plant'
             vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
             pars=getTableAttr(self.cur,self.dictDB,self.feature)
             self.displayRotationLayout()
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
+            self.displaySizeLayout()
         elif self.rbtn_lines.isChecked():
-            #print('Lines')
+            print('Lines')
             self.feature='line'
             vars=getResultVars(self.cur,self.dictDB,self.feature,self.type)
             pars=getTableAttr(self.cur,self.dictDB,self.feature)
@@ -806,7 +1210,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         self.f_conn_bundle_type.addItems(f_conn_types)
 
     def add_combo_items(self, combo, new_items):
-        #print('add combo:'+str(new_items))
+        print('add combo:'+str(new_items))
 
         # Add missing items
         for item in new_items:
@@ -814,7 +1218,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
                 combo.addItem(item)
  
     def on_group_path_clicked(self,id):
-        #print('on_group_path_clicked: '+str(id))
+        print('on_group_path_clicked: '+str(id))
 
         self.f_conn_bundle_type.clear()
         f_conn_types = getConnBundlesByType(self.cur,self.dictDB,'customer' if id in (1,2,3) else 'energy_plant')
@@ -824,29 +1228,29 @@ class IDADistrictsPathReportsDialog(QMainWindow):
             self.add_combo_items(self.f_conn_bundle_type,f_conn_types)
     
     def f_conn_bundle_type_changed(self,s):
-        #print('f_conn_bundle_type changed: '+str(s))
+        print('f_conn_bundle_type changed: '+str(s))
         if self.f_conn_bundle_type.currentText():
             self.f_conn_type.clear() 
             self.f_conn_type.addItems(getConnTypesByConnBundleType(self.cur,self.dictDB,self.f_conn_bundle_type.currentText()))    
         
     def network_changed(self,s):
-        #print(s)
+        print(s)
         epids=getPlantIds(self.cur,self.dictDB,network=s)
-        #print(epids)
+        print(epids)
         self.main_plant.clear()
         self.main_plant.addItems(epids)
 
     def main_plant_changed(self,s):
-        #print(s)
+        print(s)
         conn_types=getConnTypesByFeature(self.cur,self.dictDB,'energy_plant',s)
-        #print(conn_types)
+        print(conn_types)
         self.conn_type.clear()
         self.conn_type.addItems(conn_types)
         
     def conn_type_changed(self,s):
-        #print(s)
+        print(s)
         sequences=getConnSequencesByConnType(self.cur,s)
-        #print(sequences)
+        print(sequences)
         self.sup_sequence.clear()
         self.sup_sequence.addItems(sequences)
         self.ret_sequence.clear()
@@ -870,24 +1274,24 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         self.process_running=False
         
     def showplot(self):
-        #print('show plot')
+        print('show plot')
         if self.dp_recalc.isChecked() and self.rbtn_pathPressure.isChecked():
-            #print(self.dp_min_recalc.text())
+            print(self.dp_min_recalc.text())
             ddp=self.weak_point['sup_f'] - self.weak_point['ret_f']-Decimal(self.dp_min_recalc.text())*100000
         else:
             ddp=0
-        #print(ddp)
+        print(ddp)
 
-        #print(self.weak_point)
-        #print(self.line_data)
+        print(self.weak_point)
+        print(self.line_data)
         quantity_data_sup=[self.weak_point['sup_ep']-ddp]+[lid['var1']-ddp for lid in self.line_data]+[self.weak_point['sup_f']-ddp]
         quantity_data_ret=[self.weak_point['ret_ep']]+[lid['var2'] for lid in self.line_data]+[self.weak_point['ret_f']]
         height=[self.weak_point['height_ep']]+[lid['height_j'] for lid in self.line_data]+[self.weak_point['height_f']]
 
-        #print(height)
-        #print(quantity_data_sup)
-        #print(quantity_data_ret)
-        #print(self.path)
+        print(height)
+        print(quantity_data_sup)
+        print(quantity_data_ret)
+        print(self.path)
         
         SMALL_SIZE = 15
         MEDIUM_SIZE = 20

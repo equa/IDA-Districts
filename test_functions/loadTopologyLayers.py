@@ -11,7 +11,7 @@ cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 def setLayersHidden(tableNames):
 
     for tableName in tableNames:
-        #print(tableName)
+        print(tableName)
         layer=QgsProject.instance().mapLayersByName(tableName)
         if layer:
             layer=layer[0]
@@ -20,8 +20,8 @@ def setLayersHidden(tableNames):
             root = QgsProject.instance().layerTreeRoot()
             node = root.findLayer( layer.id())
             index = model.node2index(node)
-            #print(index)
-            #print(index.row())
+            print(index)
+            print(index.row())
             ltv.setRowHidden( index.row(), index.parent(), True)
         
 def loadTopologyLayers(version,uri,dictDB):
@@ -46,7 +46,7 @@ def removeLayers():
             
 uri = QgsDataSourceUri()
 uri.setConnection(dictDB['host'], dictDB['port'], dictDB['projectName'], dictDB['user'], dictDB['pwd'])
-#print(uri)
+print(uri)
 removeLayers()
 loadTopologyLayers('a',uri,dictDB)
 

@@ -9,7 +9,7 @@ class WorkerOSMBuildingsImport(QRunnable):
     """Import buildings from OSM"""
     def __init__(self,*args,**kwargs):
         super().__init__()
-        #print("Import buildings from OSM")
+        print("Import buildings from OSM")
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.clearOldFeatures=kwargs['clearOldFeatures']
@@ -23,11 +23,11 @@ class WorkerOSMBuildingsImport(QRunnable):
 
             configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
             self.srid=configProject['srid']
-            #print(self.srid)
+            print(self.srid)
                 
     @pyqtSlot()
     def run(self):
-        #print('Import building data')
+        print('Import building data')
         self.signals.progress.emit(1)
         
         nodes=readOSMNodes(self.filePath)
@@ -42,19 +42,19 @@ class WorkerOSMBuildingsImport(QRunnable):
                 #insert into buildings
                 try:
                     sql='INSERT INTO "'+self.dictDB['versionName']+"""\".buildings(geom,b_id,z_id,submodel,z_bh_m,z_height_m,z_template,z_construction,room_unit,win_facade_ratio) VALUES (ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter)+',1,1,0,'+b.height+",NULL,1,1,30);"
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)
                     
                     #insert customers
                     sql='INSERT INTO "'+self.dictDB['versionName']+"""".customers(template,geom) VALUES (1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"
-                    #print(sql)
+                    print(sql)
                     self.cur.execute(sql)  
                 except Exception as e:
                     self.signals.error.emit(str(e))
             self.signals.progress.emit(int(49*counter/len(buildings)))
             
         sql="UPDATE {}.buildings b SET substation_id = c.id FROM (SELECT id,geom FROM {}.customers) c WHERE ST_dWithIn(c.geom,b.geom,0.01);".format(self.dictDB['versionName'],self.dictDB['versionName'])
-        #print(sql)
+        print(sql)
         self.cur.execute(sql) 
         
         refreshMap()
@@ -64,7 +64,7 @@ class WorkerOSMBuildingsImport(QRunnable):
         self.signals.finished.emit('finished')  
                  
     def readOSMBuildings(self,nodes):
-        #print("read OSM buildings")
+        print("read OSM buildings")
         buildings=[]
         latitudes=[]
         longitudes=[]
@@ -104,7 +104,7 @@ class WorkerOSMStreetsImport(QRunnable):
     """Import streets from OSM"""
     def __init__(self,*args,**kwargs):
         super().__init__()
-        #print("Import streets from OSM")
+        print("Import streets from OSM")
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.clearOldFeatures=kwargs['clearOldFeatures']
@@ -118,11 +118,11 @@ class WorkerOSMStreetsImport(QRunnable):
 
             configProject=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)
             self.srid=configProject['srid']
-            #print(self.srid)
+            print(self.srid)
                 
     @pyqtSlot()
     def run(self):
-        #print('Import building data')
+        print('Import building data')
         self.signals.progress.emit(1)
         
         nodes=readOSMNodes(self.filePath)
@@ -135,7 +135,7 @@ class WorkerOSMStreetsImport(QRunnable):
             self.cur.execute(sql)
         for counter,street in enumerate(streets,1):
             sql='INSERT INTO "'+self.dictDB['versionName']+"""".streets(geom) VALUES (ST_Transform(ST_GeomFromText('"""+street.geom+"',4326),"+self.srid+"));"
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             self.signals.progress.emit(int(49*counter/len(streets)))
                     
@@ -145,7 +145,7 @@ class WorkerOSMStreetsImport(QRunnable):
         self.signals.finished.emit('finished') 
 
     def readOSMStreets(self,nodes):
-        #print("read OSM streets")
+        print("read OSM streets")
         streets=[]
         latitudes=[]
         longitudes=[]
@@ -173,7 +173,7 @@ class WorkerOSMStreetsImport(QRunnable):
         return streets
         
 def readOSMNodes(osmStreetFileName):
-    #print("read OSM Nodes")
+    print("read OSM Nodes")
     nodes=[]
     if os.path.exists(osmStreetFileName):
         with open(osmStreetFileName, "r") as myfile:   

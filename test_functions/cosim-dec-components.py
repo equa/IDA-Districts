@@ -20,7 +20,7 @@ def getDecoupledFeatureCompPerFeature(feature,cur,dictDB):
     FROM "{}".{}s f, "{}".feature_decoupling f_dec
     WHERE f.id={} AND f.template=f_dec.template AND f_dec.type='{}';""".format(
         dictDB['versionName'],feature['feature'],dictDB['versionName'],feature['id'],feature['feature'])
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
 
@@ -35,10 +35,10 @@ def getModelInterfaces(model):
     
 def getDataEx(conns_idc,dec_models,components_idm,network_side,sensor_data,submodel,feature_id):
     data_ex=[]
-    #print(network_side)
+    print(network_side)
 
     for conn_idc in conns_idc:
-        #print(conn_idc)
+        print(conn_idc)
         if conn_idc[':FIRST-LINK'][0].replace('"','') in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') not in dec_models or conn_idc[':FIRST-LINK'][0].replace('"','') not in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') in dec_models:
             if conn_idc[':FIRST-LINK'][0].replace('"','') in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') not in dec_models:
                 model_name=conn_idc[':FIRST-LINK'][0]
@@ -50,7 +50,7 @@ def getDataEx(conns_idc,dec_models,components_idm,network_side,sensor_data,submo
                 link=conn_idc[':LAST-LINK'][2]
                 model_name_connected=conn_idc[':FIRST-LINK'][0]
                 link_connected=conn_idc[':FIRST-LINK'][2]
-            #print(model_name)
+            print(model_name)
             if not [True for model in data_ex if model[':N']==model_name]:
                 comp=getCompPerName(components_idm,model_name)
                 link_data = getModelInterfaces(getCompTemplate(comp))
@@ -75,11 +75,11 @@ submodel=2
 submodels=getUsedSubmodels(cur,dictDB)
 submodels.remove(str(submodel))
 features=getFeatureIds(dictDB,cur,submodel,submodels)
-#print(features)
+print(features)
 import_counter=0
 
 seq=['EQUATION-FRAME', ':AT', [['818', '345']], ':FILL-COLOR', '#S', ['RGB', 'RED', '245', 'GREEN', '245', 'BLUE', '245'], ':FILL-TEXTURE', ':SOLID', ':R', ['14', '14'], ':ICON', '"lib:emeter.ids"', ':SLOT', ['"EmeterHotTank1"'], ':NAME', '"EmeterHotTank1"', ':DATA', ':CEO']
-#print(propertyListIDC(seq))
+print(propertyListIDC(seq))
 
 def getSensorIrefsSource(sensor_data):
     return [j for i in sensor_data for j in i['irefs_source'] if j[0]==1]
@@ -96,38 +96,38 @@ for feature in [features[0]]:
 
     dec_models=getDecoupledFeatureCompPerFeature(feature,cur,dictDB)
     dec_models.append(':SELF')
-    #print(dec_models)
+    print(dec_models)
     sensorIrefsSource=getSensorIrefsSource(getSensorData(cur,dictDB))
-    #print(sensorIrefsSource)
+    print(sensorIrefsSource)
     dec_models.extend(sensorIrefsSource)
     data_ex=getDataEx(conns_idc,dec_models,components_idm,feature['network_side'],getSensorData(cur,dictDB),submodel,feature['id'])
-    #print(data_ex)
+    print(data_ex)
     dsf
     dec_models=['"'+i+'"' if i != ':SELF' else i for i in dec_models ]
-    #print(dec_models)
+    print(dec_models)
     
     keep_class=['DOCUMENT-HEADER','CONNECTIONS','\ufeff;IDA']
     #idm
     data_idm=[]
     iref_names=[getCompName(i) for i in components_idm if getCompClass(i)==':IREF']
-    #print(iref_names)
+    print(iref_names)
     for comp in components_idm:
-        #print('+++')
-        #print(comp)
-        #print(getCompName(comp))
-        #print(getCompClass(comp))
-        #print([i[':T'] for i in data_ex])
-        #print(getCompTemplate(comp))
+        print('+++')
+        print(comp)
+        print(getCompName(comp))
+        print(getCompClass(comp))
+        print([i[':T'] for i in data_ex])
+        print(getCompTemplate(comp))
         comp_name=getCompName(comp)
-        #print(comp_name)
+        print(comp_name)
         if comp_name in dec_models and getCompTemplate(comp) not in [i[':T'] for i in data_ex] if feature['network_side'] else comp_name and comp_name not in dec_models:
-            #print('++++**++++')
-            #print('keep: '+comp_name)
+            print('++++**++++')
+            print('keep: '+comp_name)
             data_idm.append(comp)
         else:
             if getCompTemplate(comp)=='|hx|':
                 if feature['network_side']:
-                    #print('network side; |hx| comp')
+                    print('network side; |hx| comp')
                     data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_ASide|'},
                                      {':C':':VAR', ':N': '|mLiqB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                     str(import_counter+getCompImportPos(comp_name,'|mLiqB|',data_ex))]},
@@ -138,55 +138,55 @@ for feature in [features[0]]:
                                     {':C':':VAR', ':N': '|TsupB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                     str(import_counter+getCompImportPos(comp_name,'|TsupB|',data_ex))]}])                            
                 else:
-                    #print('substation side; |hx| comp')
+                    print('substation side; |hx| comp')
                     data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_BSide|'},
                                      {':C':':VAR', ':N': '|TbOut|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['submodel'],
                                     feature['cosim']),'|data_var|',
                                     str(import_counter+getCompImportPos(comp_name,'|TbOut|',data_ex))]}])
         if getCompClass(comp) in keep_class:
             if getCompClass(comp)=='CONNECTIONS':
-                #print('++++---++++')
-                #print('keep: '+getCompClass(comp))
+                print('++++---++++')
+                print('keep: '+getCompClass(comp))
                 [dec_models.remove(i[':N']) for j in dec_models for i in data_ex if i[':N']==j and not feature['network_side']]
                 conns=[]
                 for conn in comp[':CONNS']:
-                    #print('++++++++')
-                    #print(conn)
-                    #print(feature['network_side'])
-                    #print([conn[0][0],conn[1][0]])
+                    print('++++++++')
+                    print(conn)
+                    print(feature['network_side'])
+                    print([conn[0][0],conn[1][0]])
                     if len([True for keep in dec_models if keep in [conn[0][0] if type(conn[0])==list else conn[0],conn[1][0] if type(conn[1])==list else conn[1]]])== (2 if feature['network_side'] else 0):
-                        #print('keep conn')
+                        print('keep conn')
                         conns.append(conn)
                     #elif len([True for keep in dec_models if keep in [conn[0][0],conn[1][0]]])==1 and (conn[0] in iref_names or conn[1] in iref_names):
-                    #    #print('keep iref conn')
+                    #    print('keep iref conn')
                     #    conns.append(conn)
                     #    data_idm.insert(1,getCompPerName(components_idm,conn[0] if conn[0] in iref_names else conn[1]))
                 comp[':CONNS']=conns
                 data_idm.append(comp)
-                #print(comp)
+                print(comp)
                 
             else:
-                #print('keep: '+getCompClass(comp))
+                print('keep: '+getCompClass(comp))
                 data_idm.append(comp)
         import_counter+=len([j for i in data_ex if getCompName(comp)==i[':N'] for j in i[':IMPORT']])
-    #print('++'+str(import_counter))          
-    #print(data_idm)
+    print('++'+str(import_counter))          
+    print(data_idm)
     
     data_idc=[]
     for comp in components_idc:
-        #print(comp)
+        print(comp)
         comp_class=getCompClass(comp)
         if comp_class=='CONNECTION-LINE' and len([True for keep in dec_models if comp[':LAST-LINK'][0]==keep or comp[':FIRST-LINK'][0]==keep])==(2 if feature['network_side'] else 0):
-            #print('keep conn line')
-            #print(comp)
+            print('keep conn line')
+            print(comp)
             data_idc.append(comp)
         elif comp_class=='EQUATION-FRAME' and ((comp[':NAME'] in dec_models if feature['network_side'] else comp[':NAME'] not in dec_models) ):#or [True for i in data_ex if i[':N']==comp[':NAME']]):
-            #print('keep EQUATION-FRAME')
-            #print(comp[':NAME'])
+            print('keep EQUATION-FRAME')
+            print(comp[':NAME'])
             data_idc.append(comp)
         elif comp_class in keep_class:
-            #print('keep')
+            print('keep')
             data_idc.append(comp)
             
-    #print(data_idc)
+    print(data_idc)
             

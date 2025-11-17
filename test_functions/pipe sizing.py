@@ -11,7 +11,7 @@ rho=988
 cp=4180
 
 kin_viscosity = 1/((0.1*(273.15+T)**2-34.335*(273.15+T)+2472)*rho)
-#print(kin_viscosity)
+print(kin_viscosity)
 
 Re=100000
 
@@ -38,8 +38,8 @@ while abs(Re-Re_old)>100:
     Re_old=Re
     Re=z[2]*z[1]/kin_viscosity
     
-#print(abs(Re-Re_old))
-#print(z)
+print(abs(Re-Re_old))
+print(z)
 
 
 

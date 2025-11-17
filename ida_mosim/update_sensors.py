@@ -23,12 +23,12 @@ class UpdateSensors():
         self.dlg.tableWidget_source.currentCellChanged.connect(self.dlg.tableWidget_target.selectRow)
         self.dlg.tableWidget_target.currentCellChanged.connect(self.dlg.tableWidget_source.selectRow)
         self.loadSensorTableValues()
-        #print(self.loadedSensorData)
+        print(self.loadedSensorData)
         self.dlg.show()  
 
     def insertIntoSensorsTable(self,table,row,sensor_id):
         sql="""INSERT INTO "{}".sensors(sensor_id) VALUES ({});""".format(self.dictDB['versionName'],sensor_id)
-        #print(sql)
+        print(sql)
         self.cur.execute(sql)
              
     def collectSensortemplatesTableData(self,table,row,sensor_id,sensor):
@@ -52,8 +52,8 @@ class UpdateSensors():
     def addSensor(self):
         """INSERT a sensor to the source and target table"""
         rowPosition = self.dlg.tableWidget_source.rowCount()
-        #print('&&&&&&&&&&&&&&&&&&&&&&&&&')
-        #print(rowPosition)
+        print('&&&&&&&&&&&&&&&&&&&&&&&&&')
+        print(rowPosition)
         
         maxId=max([getMaxIdAcrossSchemas(self.dictDB,self.cur,'sensors')+1]+[int(self.dlg.tableWidget_source.item(i,0).text())+1 for i in range(self.dlg.tableWidget_source.rowCount())])        
         
@@ -88,7 +88,7 @@ class UpdateSensors():
     def delSensor(self):
         """Delete a sensor from a table"""
         row_index=self.dlg.tableWidget_source.currentRow()
-        #print(row_index)
+        print(row_index)
         if row_index!=-1:
             self.dlg.tableWidget_source.removeRow(row_index)
             self.dlg.tableWidget_target.removeRow(row_index)
@@ -101,7 +101,7 @@ class UpdateSensors():
     FROM "{}".sensor_source s_s, public.type, public.measure m, public.signal_function f, "{}".sensor_target s_t
     WHERE s_s.type=type.id AND s_s.measure=m.id AND s_s.function=f.id AND s_t.sensor_id=s_s.sensor_id
     ORDER BY s_s.sensor_id;""".format(self.dictDB['versionName'],self.dictDB['versionName'])
-        #print(sql)
+        print(sql)
         i=0
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():
@@ -160,12 +160,12 @@ class UpdateSensors():
                 self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','target','target',[1]]]),sensor_data['target_name'],4,i,False)
             self.dlg.tableWidget_target.setItem(i,5,QTableWidgetItem(sensor_data['description_target']))
             i+=1
-        #print(self.loadedSensorData)
+        print(self.loadedSensorData)
 
     def setTableDropDown(self,table,dropdownItems,currentValue,col,row,signal_function):
-        #print(dropdownItems)
-        #print(row)
-        #print(col)
+        print(dropdownItems)
+        print(row)
+        print(col)
         comboBox = QComboBox()
         comboBox.addItems(dropdownItems[1])
         comboBox.setCurrentText(currentValue)
@@ -174,11 +174,11 @@ class UpdateSensors():
         table.setCellWidget(row, col, comboBox)   
     
     def measureChanged(self,table,selected_index,column,row): 
-        #print('************measure changed***************')
+        print('************measure changed***************')
         type=table.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')
         target_type=self.dlg.tableWidget_target.cellWidget(row, 1).currentText().split(':')[1].replace(' ','_')
         if table.cellWidget(row,6).currentText() =='Custom':
-            #print('deactivate conn type')
+            print('deactivate conn type')
             self.setCheckableDropDownItemsTable(table,[],row,4,[]) 
             self.setCheckableDropDownItemsTable(table,[],row,5,[]) 
             if type =='Supervisory_control' or target_type=='Supervisory_control':
@@ -202,10 +202,10 @@ class UpdateSensors():
     WHERE s_ct.source_id=s_id.source_id AND c_type.id=s_ct.conn_type AND s_id.source_id={}
     GROUP BY c_type.id, c_type.description, s_ct.active
     ORDER BY c_type.id;""".format(self.dictDB['versionName'],self.dictDB['versionName'],id)
-        #print(sql)
+        print(sql)
         self.cur.execute(sql)
         source_conn_types=self.cur.fetchall()
-        #print(source_conn_types)
+        print(source_conn_types)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['conn_type_id'])+':'+i['description'] for i in source_conn_types])
@@ -223,10 +223,10 @@ class UpdateSensors():
     WHERE s_conns.connection_id=conns.id AND s_conns.source_id={}
     GROUP BY conns.id, conns.description, s_conns.active
     ORDER BY conns.id;""".format(self.dictDB['versionName'],id)
-        #print(sql)
+        print(sql)
         self.cur.execute(sql)
         source_conns=self.cur.fetchall()
-        #print(source_conns)
+        print(source_conns)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['conn_id'])+':'+i['description'] for i in source_conns])
@@ -243,14 +243,14 @@ class UpdateSensors():
         return items
         
     def setDropDowntemplates(self,table,col,row,type):
-        #print('set templates')
+        print('set templates')
         dropDown=table.cellWidget(row, col)
         if dropDown!=None:
             templates=self.getCheckedItemsFromTable(dropDown)
-            #print(templates)
+            print(templates)
             if templates:
                 dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
-                #print(dropdownItems)
+                print(dropdownItems)
                 self.setCheckableDropDownItemsTable(table,dropdownItems,row,2,[self.setDropDownIds,3,type])
                 if not dropdownItems:
                     for i in range(3,6):
@@ -262,13 +262,13 @@ class UpdateSensors():
                         self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
     def setDropDowntemplatesTarget(self,table,col,row,type):
-        #print('set templates target')
+        print('set templates target')
         dropDown=table.cellWidget(row, col)
         if dropDown!=None:
             templates=self.getCheckedItemsFromTable(dropDown)
             if templates:
                 dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
-                #print(dropdownItems)
+                print(dropdownItems)
                 self.setCheckableDropDownItemsTable(table,dropdownItems,row,2,[self.setDropDownIds,3,type])
                 if not dropdownItems:
                     for i in range(3,4):
@@ -279,7 +279,7 @@ class UpdateSensors():
                     self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
                         
     def setDropDownIds(self,table,col,row,type):
-        #print('set ids')
+        print('set ids')
         dropDown=table.cellWidget(row, col-1)
 
         if dropDown!=None:
@@ -296,12 +296,12 @@ class UpdateSensors():
         GROUP BY t.template, t.template_name
 )    
 SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.template ORDER BY f.id;""".format(self.dictDB['versionName'],type,type,','.join(["'" + i + "'" for i in templates]),self.dictDB['versionName'],type)
-                #print(sql)
+                print(sql)
                 self.cur.execute(sql)
                 ids=self.cur.fetchall()
-                #print(ids)
+                print(ids)
                 dropdownItems=[str(i['f_id'])+'('+i['template_name'] + ')' for i in ids]
-                #print(dropdownItems)
+                print(dropdownItems)
                 if table.cellWidget(row, 4).__class__.__name__=='CheckableComboBox': 
                     self.setCheckableDropDownItemsTable(table,dropdownItems,row,3,[self.setDropDownConntypes,5,type])
                 else:
@@ -312,27 +312,27 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
                         self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
     def setDropDownConntypes(self,table,col,row,type):
-        #print('set conn types')
+        print('set conn types')
         dropDown=table.cellWidget(row, 3)
-        #print(str(row) +';'+str(col))
+        print(str(row) +';'+str(col))
         if dropDown!=None:
-            #print('+++++++++++++++++++++++')
+            print('+++++++++++++++++++++++')
             ids=[]
             for i in range(1,dropDown.count()):
                 if dropDown.itemChecked(i):
                     ids.append(dropDown.itemText(i).split('(')[0])
-            #print(ids)
+            print(ids)
             if ids and table.cellWidget(row, 6).currentText()!='Custom':
-                #print('!=custom')
+                print('!=custom')
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
     FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_templates t, public.connection_types conn_t
     WHERE t.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.template=t.template AND f.id IN ({}) AND conn_t.id=b_t_conns.conn_type_id
     GROUP BY conn_t.id,conn_t.description;""".format(self.dictDB['versionName'],type,type,','.join(ids))
                 self.cur.execute(sql)
                 conntypes=self.cur.fetchall()
-                #print(conntypes)
+                print(conntypes)
                 dropdownItems=[str(i['conn_type_id']) + ':' + str(i['description']) for i in conntypes]
-                #print(dropdownItems)
+                print(dropdownItems)
                 self.setCheckableDropDownItemsTable(table,dropdownItems,row,4,[self.setDropDownConns,5,type])
 
             else:
@@ -340,34 +340,34 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
                     self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
 
     def setDropDownConns(self,table,col,row,type):
-        #print('set conns')
+        print('set conns')
         dropDown=table.cellWidget(row, col-1)
-        #print(str(row) +';'+str(col))
+        print(str(row) +';'+str(col))
         if dropDown!=None:
-            #print('+++++++++++++++++++++++')
-            #print(dropDown.itemText(0))
+            print('+++++++++++++++++++++++')
+            print(dropDown.itemText(0))
             conn_types=[]
             for i in range(dropDown.count()):
                 if dropDown.itemChecked(i):
                     conn_types.append(dropDown.itemText(i).split(':')[0])
-            #print(conn_types)
+            print(conn_types)
             if conn_types:
                 sql="""SELECT conns.id AS conn_id, conns.description
     FROM public.connections conns, public.connection_types conn_t, public.connection_type_connections c_t_conns
     WHERE c_t_conns.connection_id=conns.id AND conn_t.id=c_t_conns.connection_type_id AND conn_t.id IN ({}) 
     GROUP BY conns.id, conns.description
     ORDER BY conns.id;""".format(','.join(conn_types))
-                #print(sql)
+                print(sql)
                 self.cur.execute(sql)
                 conns=self.cur.fetchall()
-                #print(conns)
+                print(conns)
                 dropdownItems=[str(i['conn_id']) + ':' + str(i['description']) for i in conns]
-                #print(dropdownItems)
+                print(dropdownItems)
                 if table.cellWidget(row,6).currentText() in ['Power','Custom']:
-                    #print('deactivated dropdown conns')
+                    print('deactivated dropdown conns')
                     self.setCheckableDropDownItemsTable(table,[],row,5,[])
                 else:
-                    #print('activated dropdown conns') 
+                    print('activated dropdown conns') 
                     self.setCheckableDropDownItemsTable(table,dropdownItems,row,5,[])
             else:
                 for i in range(5,6):
@@ -378,12 +378,12 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
     FROM "{}".{}_template s_t, public.{}_templates f_t
     WHERE s_t.{}_id={} AND f_t.template=s_t.template
     ORDER BY s_t.template;""".format(self.dictDB['versionName'],sensor,type,sensor,id)
-        #print(sql)
+        print(sql)
         self.cur.execute(sql)
         templates=self.cur.fetchall()
-        #print(templates)
-        #print(sensor)
-        #print(self.loadedSensorData)
+        print(templates)
+        print(sensor)
+        print(self.loadedSensorData)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['template'])+':'+i['template_name'] for i in templates])
@@ -394,29 +394,29 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
         table.setCellWidget(row, 2, comboBoxCheckable) 
 
     def setFilteredIdsDropdownItems(self,table,type,id,row,sensor):
-        #print('set Filtered Ids Dropdown Items')
+        print('set Filtered Ids Dropdown Items')
         sql="""SELECT s_id.feature_id, s_id.active, t.template_name
     FROM "{}".{}_ids s_id, "{}".{}s f, public.{}_templates t
     WHERE s_id.{}_id={} AND f.id=s_id.feature_id AND f.template=t.template
     ORDER BY s_id.feature_id;""".format(self.dictDB['versionName'],sensor,self.dictDB['versionName'],type,type,sensor,id)
-        #print(sql)
+        print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()
-        #print(ids)
+        print(ids)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems([str(i['feature_id'])+'('+str(i['template_name'])+')' for i in ids])
         self.loadedSensorData[id][sensor]['ids']={i['feature_id'] : i['active'] for i in ids}
         for i in range(len(ids)):
             comboBoxCheckable.setItemChecked(i+1,ids[i]['active'])
-        #print('+++++++++********++++++++~~~~~')
-        #print(type)
+        print('+++++++++********++++++++~~~~~')
+        print(type)
         if sensor=='source':
             comboBoxCheckable.activated.connect(lambda signal, column=4,row=row: self.setDropDownConntypes(table,column,row,type))
         table.setCellWidget(row, 3, comboBoxCheckable) 
     
     def setCheckableDropDownItemsTable(self,table,dropdownItems,row,col,signal_args):
-        #print(dropdownItems)
+        print(dropdownItems)
         oldDropdown=table.cellWidget(row, col)
         oldTrueItems=[]
         if oldDropdown!=None:
@@ -424,40 +424,40 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
                 if table.cellWidget(row, col).__class__.__name__=='CheckableComboBox':
                     if oldDropdown.itemChecked(i)==True:
                         oldTrueItems.append(oldDropdown.itemText(i))
-        #print(oldTrueItems)
+        print(oldTrueItems)
         comboBoxCheckable = CheckableComboBox()
         comboBoxCheckable.addItem('Check all items')
         comboBoxCheckable.addItems(dropdownItems)
         for i in range(len(dropdownItems)):
-            #print(i)
+            print(i)
             if dropdownItems[i] in oldTrueItems:
                 comboBoxCheckable.setItemChecked(i+1,True) 
             else:
-                #print(row)
-                #print(col)
+                print(row)
+                print(col)
                 comboBoxCheckable.setItemChecked(i+1,False)
         if signal_args:
             signal_args[0](table,signal_args[1],row,signal_args[2])
             comboBoxCheckable.activated.connect(lambda signal, column=signal_args[1],row=row: signal_args[0](table,column,row,signal_args[2]))
         table.setCellWidget(row, col, comboBoxCheckable) 
-        #print('setCheckableDropDownItemsTable finished')
+        print('setCheckableDropDownItemsTable finished')
         
     def sourceTypeChanged(self,table,selected_index,column,row):
-        #print('source type changed')
+        print('source type changed')
         type=table.cellWidget(row, column).currentText().split(':')[1].replace(' ','_')
         if self.dlg.tableWidget_target.cellWidget(row, column):
             target_type=self.dlg.tableWidget_target.cellWidget(row, column).currentText()
             if type==target_type.split(':')[1].replace(' ','_' )and type=='Supervisory_control':
-                #print('+++source type==target type+++')
-                #print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0])
+                print('+++source type==target type+++')
+                print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0])
                 self.setTableDropDown(self.dlg.tableWidget_target,getDropDownItems(self.cur,[[1,'public','type','id','name']]),getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0],1,row,self.targetTypeChanged)
                 self.targetTypeChanged(self.dlg.tableWidget_target,'',1,row)
         else:
             target_type='3:Supervisory_control'
-        #print('+++++target type:'+target_type+'++++')
+        print('+++++target type:'+target_type+'++++')
         
         if type=='Supervisory_control':
-            #print('supervisory')
+            print('supervisory')
             self.setCheckableDropDownItemsTable(table,[],row,column+1,[])
             for i in range(2,6):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
@@ -465,9 +465,9 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'1:Customer',7,row,False)
         else:
             dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
-            #print(dropdownItems)
-            #print('row:'+str(row))
-            #print('column:'+str(column))
+            print(dropdownItems)
+            print('row:'+str(row))
+            print('column:'+str(column))
             self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDowntemplates,2,type])
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,5]]]),'1',6,row,self.measureChanged)
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6] if target_type=='3:Supervisory_control' else [1,2,3,4]]]),'Min',7,row,False)
@@ -475,27 +475,27 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
 
     def targetTypeChanged(self,table,selected_index,column,row):
-        #print('target type changed')
+        print('target type changed')
         type=table.cellWidget(row, column).currentText().split(':')[1].replace(' ','_')
         if self.dlg.tableWidget_source.cellWidget(row, column):
             source_type=self.dlg.tableWidget_source.cellWidget(row, column).currentText()
             if type==source_type.split(':')[1].replace(' ','_') and type=='Supervisory_control':
-                #print('+++source type==target type+++')
-                #print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0])
+                print('+++source type==target type+++')
+                print(getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0])
                 self.setTableDropDown(self.dlg.tableWidget_source,getDropDownItems(self.cur,[[1,'public','type','id','name']]),getFilteredDropDownItems(self.cur,['type','id','name','id',int(table.cellWidget(row, column).currentText().split(':')[0])%3+1])[0],1,row,self.sourceTypeChanged)
                 self.sourceTypeChanged(self.dlg.tableWidget_source,'',1,row)
         else:
             source_type='1:Customer'
-        #print('+++++'+source_type+'++++')
-        #print(type)
+        print('+++++'+source_type+'++++')
+        print(type)
         if type=='Supervisory_control':
-            #print('supervisory')
+            print('supervisory')
             self.setCheckableDropDownItemsTable(table,[],row,column+1,[])
             for i in range(2,3):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
         else:
             dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
-            #print(dropdownItems)
+            print(dropdownItems)
             self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDowntemplatesTarget,2,type])
             for i in range(3,3):
                 self.setCheckableDropDownItemsTable(table,[],row,i,[])  
@@ -516,7 +516,7 @@ class WorkerSensors(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print(args)
+        print(args)
         self.signals=APISignals()
         self.dictDB=kwargs['dictDB']
         self.dlg=kwargs['dlg']
@@ -532,7 +532,7 @@ class WorkerSensors(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        #print('run worker update sensors')
+        print('run worker update sensors')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         self.writeSensorsToDB()
@@ -551,18 +551,18 @@ class WorkerSensors(QRunnable):
         remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.dictDB,source_types=[1,2],filter=" AND s.measure=5")
         remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.dictDB,target_types=[1,2],filter=" AND t.target=1")
 
-        #print('-+sensor data+-')
-        #print(add_sensor_source_idsValues)
-        #print(add_sensor_target_idsValues)
-        #print(remove_sensor_source_ids)
-        #print(remove_sensor_target_ids)
+        print('-+sensor data+-')
+        print(add_sensor_source_idsValues)
+        print(add_sensor_target_idsValues)
+        print(remove_sensor_source_ids)
+        print(remove_sensor_target_ids)
 
         templates={}
         for sensor in add_sensor_source_idsValues:
-            #print(sensor)
-            #print(getTemplateNameById(sensor['type']))
+            print(sensor)
+            print(getTemplateNameById(sensor['type']))
             template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(template_name)
+            print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
             if template_name:
@@ -572,7 +572,7 @@ class WorkerSensors(QRunnable):
                     templates[sensor['type']][template_name[0]]={'source_add': [sensor], 'target_add':[],'source_remove':[],'target_remove':[]}
         for sensor in add_sensor_target_idsValues:
             template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(template_name)
+            print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
             if template_name:
@@ -582,7 +582,7 @@ class WorkerSensors(QRunnable):
                     templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add':[sensor],'source_remove':[],'target_remove':[]}
         for sensor in remove_sensor_source_ids:
             template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(template_name)
+            print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
             if template_name:
@@ -592,7 +592,7 @@ class WorkerSensors(QRunnable):
                     templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add': [],'source_remove':[sensor],'target_remove':[]}
         for sensor in remove_sensor_target_ids:
             template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(template_name)
+            print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
             if template_name:
@@ -601,31 +601,31 @@ class WorkerSensors(QRunnable):
                 else:
                     templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add': [],'source_remove': [],'target_remove': [sensor]}
                 
-        #print('++++++++++++++---------+++++/////////')
-        #print('--------------add_sensor_source_idsValues------------')
-        #print(add_sensor_source_idsValues)
-        #print('--------------add_sensor_target_idsValues--------------')
-        #print(add_sensor_target_idsValues)
-        #print('----------remove_sensor_source_ids------------')
-        #print(remove_sensor_source_ids)
-        #print('------------remove_sensor_target_ids--------------')
-        #print(remove_sensor_target_ids)
+        print('++++++++++++++---------+++++/////////')
+        print('--------------add_sensor_source_idsValues------------')
+        print(add_sensor_source_idsValues)
+        print('--------------add_sensor_target_idsValues--------------')
+        print(add_sensor_target_idsValues)
+        print('----------remove_sensor_source_ids------------')
+        print(remove_sensor_source_ids)
+        print('------------remove_sensor_target_ids--------------')
+        print(remove_sensor_target_ids)
         
         for type in templates:
             for at in templates[type]:
-                #print('++++++++++++++----templatesensorSignals-----+++++/////////')
-                #print(at)
-                #print(templates[type][at])
+                print('++++++++++++++----templatesensorSignals-----+++++/////////')
+                print(at)
+                print(templates[type][at])
                 templatesensorSignals(self.cur,self.dictDB,getDataCenterDir(self.plugin_dir)+'\\'+self.dictDB['projectName']+'\\'+getTemplateNameById(type),at,type,templates[type][at]['source_add'],templates[type][at]['target_add'],templates[type][at]['source_remove'],templates[type][at]['target_remove'])
                 
         #delete from invoked tables in DB
         if remove_sensor_source_ids:
             sql="""DELETE FROM "{}".invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
         if remove_sensor_target_ids:
             sql="""DELETE FROM "{}".invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(self.dictDB['versionName'],','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)  
         
         #write to invoked table in DB    
@@ -639,8 +639,8 @@ class WorkerSensors(QRunnable):
             function=1
         else:
             function=table.cellWidget(row, 7).currentIndex()+1
-        if table.cellWidget(row, 1).currentIndex()==3:
-            measure=table.cellWidget(row, 6).currentIndex()+5
+        if table.cellWidget(row, 1).currentIndex()==2:
+            measure=5
             function+=4
         else:
             measure=table.cellWidget(row, 6).currentIndex()+1
@@ -665,7 +665,7 @@ class WorkerSensors(QRunnable):
         
     def writeSensorsToDB(self):
         """Write sensor data to the DB"""
-        #print('Save table to DB an close dialog')
+        print('Save table to DB an close dialog')
         
         #get sensorData
         for row in range(self.dlg.tableWidget_source.rowCount()):
@@ -687,17 +687,17 @@ class WorkerSensors(QRunnable):
 
         sql=""
         #deleted
-        #print(self.loadedSensorData)
-        #print(self.sensorData)
+        print(self.loadedSensorData)
+        print(self.sensorData)
         for key_loaded in self.loadedSensorData:
             if key_loaded not in self.sensorData: 
-                #print('removed sensor')
+                print('removed sensor')
                 sql+="""DELETE FROM "{}".sensors WHERE id={};""".format(self.dictDB['versionName'],key_loaded)
         
         #added
         for row,key_table in enumerate(self.sensorData):
             if key_table not in self.loadedSensorData: 
-                #print('added sensor')
+                print('added sensor')
                 sql+="""INSERT INTO "{}".sensors (id) VALUES({});\n""".format(self.dictDB['versionName'],key_table)
 
                 #source
@@ -731,8 +731,8 @@ class WorkerSensors(QRunnable):
                         if key not in self.loadedSensorData[key_table][table]['templates']:
                             sql+="""INSERT INTO "{}".{}_template({}_id,template,active) VALUES ({},{},{});\n""".format(self.dictDB['versionName'],table,table,key_table,key,value)
                         else:
-                            #print(key)
-                            #print(self.loadedSensorData[key_table][table]['templates'])
+                            print(key)
+                            print(self.loadedSensorData[key_table][table]['templates'])
                             if value!=self.loadedSensorData[key_table][table]['templates'][key]:
                                 sql+="""UPDATE "{}".{}_template SET active = {} WHERE {}_id = {} AND template = {};\n""".format(self.dictDB['versionName'],table,value,table,key_table,key)
 
@@ -800,7 +800,7 @@ class WorkerSensors(QRunnable):
                     if key not in self.sensorData[key_table]['source']['conns']:
                         sql+="""DELETE FROM "{}".source_conns WHERE source_id = {} AND connection_id = {};\n""".format(self.dictDB['versionName'],key_table,key)
         
-        #print(sql)
+        print(sql)
         if sql:
             self.cur.execute(sql)
  

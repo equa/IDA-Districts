@@ -9,7 +9,7 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-#print(cur)
+print(cur)
 
 sql="""Select a.pipe_bundle_type_id, di_a, di_w
     from 
@@ -20,29 +20,29 @@ sql="""Select a.pipe_bundle_type_id, di_a, di_w
 cur.execute(sql)
 
 db_bp={int(i['pipe_bundle_type_id']): [float(i['di_a']),float(i['di_w'])]for i in cur.fetchall()}
-#print(db_bp)
-#print(db_bp.values())
+print(db_bp)
+print(db_bp.values())
 
 sql="SELECT di_a_m,di_warm_m FROM d_opt_v7.lines GROUP BY di_a_m,di_warm_m"
 cur.execute(sql)
 
 di_pairs=[[float(i['di_a_m']),float(i['di_warm_m'])] for i in cur.fetchall()]
-#print(di_pairs)
+print(di_pairs)
 
 sql = ""
 for item in di_pairs:
-    #print('---')
-    #print(item)
+    print('---')
+    print(item)
     found=False
     for key, value in db_bp.items():
         if item == value:
             found=True
-            #print(key)
+            print(key)
             sql+="UPDATE d_opt_v7.lines set pipe_bundle_type_id={} WHERE di_a_m={} AND di_warm_m={};\n".format(
                 key,value[0],value[1])
-    #print(found)
+    print(found)
 
-#print(sql)
+print(sql)
 cur.execute(sql)
     
     

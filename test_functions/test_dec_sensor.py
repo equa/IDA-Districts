@@ -16,10 +16,10 @@ dictDB={'pwd' : 'p3t3r' , 'host' : 'localhost','port':'5433', 'user' : 'postgres
 #dictDB=getDBConnectionData(plugin_dir)
 conn=dbConnect(dictDB,True)
 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-#print(cur)
+print(cur)
          
 sensor_data=getSensorData(cur,dictDB)
-#print(sensor_data)
+print(sensor_data)
     
 submodel='2'
 dir=plugin_dir+"ida_mosim\\models\\{}\\{}".format(dictDB['projectName'],dictDB['versionName'])
@@ -29,10 +29,10 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
     feature_ids_per_submodel=getFeatureIdsPerSubmodel(str(submodel),cur,dictDB)
     PhiHxLimit_signal=False
     TbSet_signal=False
-    #print('***********')
-    #print(conns_idc)
+    print('***********')
+    print(conns_idc)
     for conn_idc in conns_idc:
-        #print(conn_idc)
+        print(conn_idc)
         if conn_idc[':FIRST-LINK'][0].replace('"','') in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') not in dec_models or conn_idc[':FIRST-LINK'][0].replace('"','') not in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') in dec_models:
             if conn_idc[':FIRST-LINK'][0].replace('"','') in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') not in dec_models:
                 model_name=conn_idc[':FIRST-LINK'][0]
@@ -44,7 +44,7 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                 link=conn_idc[':LAST-LINK'][2]
                 model_name_connected=conn_idc[':FIRST-LINK'][0]
                 link_connected=conn_idc[':FIRST-LINK'][2]
-            #print(model_name)
+            print(model_name)
             if not [True for model in data_ex if model[':N']==model_name]:
                 comp=getCompPerName(components_idm,model_name)
                 link_data = getModelInterfaces(getCompTemplate(comp))
@@ -76,11 +76,11 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
             if PhiHxLimit_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|PhiHxLimit_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|PhiHxLimit_var|']
-                #print(ex[':EXPORT'])
+                print(ex[':EXPORT'])
             if TbSet_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|TbSet_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|TbSet_var|']
-                #print(ex[':EXPORT'])
+                print(ex[':EXPORT'])
     return data_ex
     
 class CopyDecoupledTemplateMacro:
@@ -90,26 +90,26 @@ class CopyDecoupledTemplateMacro:
             -sensor signals
             -connections"""
     def __init__(self,submodel,dir,dictDB,cur,plugin_dir,sensor_data,mode='network'):
-        #print('copy decoupled feature macro')
+        print('copy decoupled feature macro')
         target_dir=dir+"\\{}_".format(mode)+str(submodel)+("\\plant" if mode=='building' else "")
-        #print(target_dir)  
+        print(target_dir)  
         submodels=getUsedSubmodels(cur,dictDB)
         submodels.remove(str(submodel))
-        #print(submodels)
+        print(submodels)
         
         features=getFeatureDecIds(dictDB,cur,submodel,submodels)
         self.import_counter={}
         self.resources=[]
         self.data_ex_f=[]
         for feature in features: 
-            #print(feature)
+            print(feature)
             try:
                 self.import_counter[str(feature['submodel'])]=self.import_counter[str(feature['submodel'])]
             except:
                 self.import_counter[str(feature['submodel'])]=0
             f_idc_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idc"
             f_idm_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idm"
-            #print(f_idm_target)
+            print(f_idm_target)
             source_dir=dir+'\\invoked_'+feature['feature']+'s'
 
             if not os.path.exists("{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']))):
@@ -123,24 +123,24 @@ class CopyDecoupledTemplateMacro:
 
             #idm
             source_f="{}\\{}_{}\\{}_{}.idm".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id']))     
-            #print('++++++++++++++++start read file components ++++++++++++++++++++++++ ')
-            #print(source_f)
+            print('++++++++++++++++start read file components ++++++++++++++++++++++++ ')
+            print(source_f)
             components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f)))
             components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString("{}\\{}_{}\\{}_{}.idc".format(source_dir,feature['feature'].lower(),str(feature['id']),feature['feature'].capitalize(),str(feature['id'])))))
-            #print('++++++++++++++++end read file components  ++++++++++++++++++++++++ ')
+            print('++++++++++++++++end read file components  ++++++++++++++++++++++++ ')
 
             conns_idc=[comp for comp in components_idc if comp[':C']=='CONNECTION-LINE']
 
             keep_class=['DOCUMENT-HEADER','CONNECTIONS','\ufeff;IDA','SELF-FRAME','LIST-FIELD']
                 
             #idc
-            #print(source_f)
+            print(source_f)
             data_idc=[]
                   
             dec_models=getDecoupledFeatureCompPerFeature(feature,cur,dictDB)
-            #print(dec_models)
+            print(dec_models)
             pmtmux_names=[getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id']) for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] in [1,2]]
-            #print(pmtmux_names)
+            print(pmtmux_names)
             building_pmt2s=['"'+getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(feature['feature'],str(feature['id']),cur,dictDB) if i['type'] not in [1,2]]
             building_irefs=['"'+i.split('PMT2mux_')[1] for i in building_pmt2s]
             dec_models.extend(pmtmux_names)
@@ -149,28 +149,28 @@ class CopyDecoupledTemplateMacro:
                 if emeter not in dec_models:
                     dec_models.append(emeter)
             dec_models.append(':SELF')
-            #print(dec_models)
+            print(dec_models)
             
             #idc
             data_ex=getDataExFeature(conns_idc,dec_models,components_idm,feature['network_side'],sensor_data,submodel,feature['id'],cur,dictDB)
-            #print(data_ex)
+            print(data_ex)
             
             irefs=getSensorIrefsFeatureSource(sensor_data,feature['submodel'],feature['id'],cur,dictDB,feature['feature'])
             irefs_target=getSensorIrefsFeatureTarget(sensor_data,feature['submodel'],feature['id'],cur,dictDB,feature['feature'])
             
             dec_models_idc=copy.copy(dec_models)
             dec_models_idc.extend(['Int_Ref_Sensor_Source_'+i.split('_')[0] for i in irefs])
-            #print(dec_models_idc)
+            print(dec_models_idc)
             dec_models_idc.extend(['Int_Ref_Sensor_Target_'+i.split('_')[0] for i in irefs_target])
             dec_models_idc=['"'+i+'"' if i != ':SELF' else i for i in dec_models_idc]
-            #print(dec_models_idc)
+            print(dec_models_idc)
             keep_irefs=[]
             hx=[j[':N'] for j in data_ex if j[':T']=='|hx|']
             dec_models_idc_=[i for i in dec_models_idc if i not in hx]
             PhiHxLimit_signal=False
             TbSet_signal=False
-            #print(feature['network_side'])
-            #print(building_irefs)
+            print(feature['network_side'])
+            print(building_irefs)
             
             for comp in components_idc:
                 comp_class=getCompClass(comp)
@@ -197,21 +197,21 @@ class CopyDecoupledTemplateMacro:
                             (True if feature['network_side'] else 
                                 not (comp[':FIRST-LINK'][0] ==':SELF' and comp[':LAST-LINK'][0] in hx or
                                 comp[':LAST-LINK'][0] ==':SELF' and comp[':FIRST-LINK'][0] in hx ))):
-                        #print('keep conn line')
-                        #print(comp)                       
+                        print('keep conn line')
+                        print(comp)                       
                         data_idc.append(comp)
                         if comp[':FIRST-LINK'][0]==':SELF':
                             keep_irefs.append(comp[':FIRST-LINK'][2])   
                         if comp[':LAST-LINK'][0]==':SELF':
                             keep_irefs.append(comp[':LAST-LINK'][2])
                 elif (comp_class=='EQUATION-FRAME' or comp_class=='LINK-FRAME') and ((comp[':NAME'] in dec_models_idc if feature['network_side'] else comp[':NAME'] not in dec_models_idc or comp[':NAME'] in hx) ):
-                    #print('keep EQUATION-FRAME')
-                    #print(comp[':NAME'])
+                    print('keep EQUATION-FRAME')
+                    print(comp[':NAME'])
                     data_idc.append(comp)
                 elif comp_class in keep_class:
-                    #print('keep')
+                    print('keep')
                     data_idc.append(comp)
-            #print(data_idc)
+            print(data_idc)
             writePropertyListIDCToFile(data_idc,target_dir,f_idc_target)  
             
             
@@ -222,20 +222,20 @@ class CopyDecoupledTemplateMacro:
             for comp in components_idm:
                 comp_name=getCompName(comp)
                 if (comp_name in dec_models if feature['network_side'] else comp_name not in dec_models or comp_name in hx) and getCompClass(comp) not in keep_class or comp_name in keep_irefs:
-                    #print('++++**++++')
-                    #print('keep: '+comp_name)
+                    print('++++**++++')
+                    print('keep: '+comp_name)
                     if getCompName(comp) in building_pmt2s:
                         data=[]
                         for i in comp:
                             if getCompName(i)=='|M_var|':
-                                #print('|M_var|')
+                                print('|M_var|')
                                 i[':B']=['-1','|term_b|','1']
                                 data.append(i)
                             elif getCompName(i)=='|term_b|':
                                 instream_data=[]
                                 for j in i:
                                     if getCompName(j)=='|inStream(T)|':
-                                        #print('|inStream(T)|')
+                                        print('|inStream(T)|')
                                         j[':B']=['-1','|term_b|','2']
                                     instream_data.append(j)
                                 data.append(instream_data)
@@ -245,7 +245,7 @@ class CopyDecoupledTemplateMacro:
                     if getCompTemplate(comp)=='|hx|':
                         data_idm.append({':C':'OUTPUT-FILE',':N': '"HX decoupling"',':T':'OUTPUT-FILE', ':COL':'T',':STM':'1'})
                         if feature['network_side']:
-                            #print('network side; |hx| comp')
+                            print('network side; |hx| comp')
                             data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_ASide|'},
                                              {':C':':VAR', ':N': '|mLiqB|', ':B': [':SYSTEM','"Co-simulation-macro"','"{}<--{}"'.format(feature['cosim'],feature['submodel']),'|data_var|',
                                             str(self.import_counter[str(feature['submodel'])]+getCompImportPos(comp_name,'|mLiqB|',data_ex))],':L':'"HX decoupling"', ':AS':'"mLiqB"'},
@@ -262,13 +262,13 @@ class CopyDecoupledTemplateMacro:
                                             {':C':':VAR',':N': '|TbSet_var|',':L':'"HX decoupling"', ':AS':'"TbSet"'},
                                             {':C':':VAR',':N': '|mLiqA|',':L':'"HX decoupling"', ':AS':'"mLiqA"'}])
                         else:
-                            #print('substation side; |hx| comp')
-                            #print(feature)
-                            #print(feature['submodel'])
-                            #print(self.import_counter)
-                            #print(comp_name)
-                            #print(data_ex)
-                            #print(getCompImportPos(comp_name,'|TbOut|',data_ex))
+                            print('substation side; |hx| comp')
+                            print(feature)
+                            print(feature['submodel'])
+                            print(self.import_counter)
+                            print(comp_name)
+                            print(data_ex)
+                            print(getCompImportPos(comp_name,'|TbOut|',data_ex))
                             data_idm.append([{':C':'Model', ':N': comp_name, ':T': '|hx_BSide|'},
                                              {':C':':VAR', ':N': '|PhiHxLimit_var|', ':B': '-1' if PhiHxLimit_signal else ['-1','|PhiHxLimit|','0']},
                                              {':C':':VAR', ':N': '|TbSet_var|', ':B': '-1' if TbSet_signal else ['-1','|TbSet|','0'],':L':'"HX decoupling"', ':AS':'"TbSet"'},
@@ -280,22 +280,22 @@ class CopyDecoupledTemplateMacro:
                                             {':C':':VAR',':N': '|TsupA|',':L':'"HX decoupling"', ':AS':'"TaIn"'},
                                             {':C':':VAR',':N': '|TsupB|',':L':'"HX decoupling"', ':AS':'"TbIn"'},
                                             {':C':':VAR',':N': '|mLiqB|',':L':'"HX decoupling"', ':AS':'"mLiqB"'}])
-                            #print('substation side; |hx| comp; finished')
+                            print('substation side; |hx| comp; finished')
                     else:
                         data_idm.append(comp)
                 if getCompClass(comp) in keep_class:
-                    #print(getCompClass(comp))
+                    print(getCompClass(comp))
                     if getCompClass(comp)=='CONNECTIONS':
-                        #print('++++---++++')
-                        #print('keep: '+getCompClass(comp))
+                        print('++++---++++')
+                        print('keep: '+getCompClass(comp))
                         dec_models.extend(keep_irefs)
 
                         conns=[]
                         for conn in comp[':CONNS']:
-                            #print('++++++++')
-                            #print(conn)
-                            #print(feature['network_side'])
-                            #print([conn[0][0],conn[1][0]])
+                            print('++++++++')
+                            print(conn)
+                            print(feature['network_side'])
+                            print([conn[0][0],conn[1][0]])
                             if          (((conn[0][0] in dec_models
                                             if feature['network_side'] else
                                                 conn[0][0] not in dec_models_)    
@@ -312,39 +312,39 @@ class CopyDecoupledTemplateMacro:
                                             (True if feature['network_side'] else 
                                             not((conn[0][0] in hx if type(conn[0])==list else True) and (conn[1][0] in hx if type(conn[1])==list else True) or
                                                 (conn[1][0] in hx if type(conn[1])==list else True) and (conn[0][0] in hx if type(conn[0])==list else True)))):
-                                #print('keep conn')
+                                print('keep conn')
                                 conns.append(conn)
                             #elif len([True for keep in dec_models if keep in [conn[0][0],conn[1][0]]])==1 and (conn[0] in iref_names or conn[1] in iref_names):
-                            #    #print('keep iref conn')
+                            #    print('keep iref conn')
                             #    conns.append(conn)
                             #    data_idm.insert(1,getCompPerName(components_idm,conn[0] if conn[0] in iref_names else conn[1]))
                         comp[':CONNS']=conns
-                        #print(data_idm)
+                        print(data_idm)
 
                         data_idm.append(comp)
-                        #print(comp)
-                        #print(data_idm)
+                        print(comp)
+                        print(data_idm)
                         
                     else:
-                        #print('keep: '+getCompClass(comp))
+                        print('keep: '+getCompClass(comp))
                         data_idm.append(comp)
                 
                 self.import_counter[str(feature['submodel'])]+=len([j for i in data_ex if getCompName(comp)==i[':N'] for j in i[':IMPORT']])
                 #self.import_counter[str(feature['submodel'])]+=len(keep_irefs)
-            #print('++'+str(self.import_counter))          
-            #print(data_idm)
+            print('++'+str(self.import_counter))          
+            print(data_idm)
             
              
             writePropertyListIDMToFile(data_idm,target_dir,f_idm_target)
             
             #check if folder contains macros
-            #print('----------------------------------------check if macros exist----------------------')
-            #print(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id']))
+            print('----------------------------------------check if macros exist----------------------')
+            print(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id']))
             if os.path.exists(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])):
                 for root, dirs, files in os.walk(source_dir+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id'])):
                     for file in files:
                         if file.endswith('.idm') or file.endswith('.idc'):
-                            #print('---------macro exists: '+file)
+                            print('---------macro exists: '+file)
                             subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(feature['feature'].capitalize()+"_"+str(feature['id'])+'\\'+feature['feature'].capitalize()+"_"+str(feature['id']))[1]
                             path=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+subfolder
                             createSubDir(path)

@@ -6,9 +6,9 @@ from qgis.core import Qgis
 
 def deleteTableRow (dlg):
     """ Delete selected template and refresh table"""
-    #print('delete row')
+    print('delete row')
     row_index=dlg.tableWidget.currentRow()
-    #print(row_index)
+    print(row_index)
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
@@ -21,7 +21,7 @@ class TableDialog(QMainWindow):
         self.setWindowTitle(title)   
         
         self.trace_type=trace
-        #print('++++++trace: '+str(trace))
+        print('++++++trace: '+str(trace))
         self.type=type
         #table buttons     
         layout_buttons_table = QHBoxLayout()
@@ -72,34 +72,34 @@ class TableDialog(QMainWindow):
         self.traceTableValues=[] 
     
     def changedDropdownItem(self, s):
-        #print('+++++')
+        print('+++++')
         combo = self.sender()  # Get the combo box that sent the signal
         index = self.tableWidget.indexAt(combo.pos())
         row = index.row()
         col = index.column()
-        #print(row)
-        #print(col)
+        print(row)
+        print(col)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
             self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
         elif self.trace_type:
             if col==2:
-                #print(col)
+                print(col)
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],s.split(':')[0]]
-        #print(self.traceTableValues)
+        print(self.traceTableValues)
         
     def changeItem(self, item):
         row = item.row()
-        #print('changed')
-        #print(row)
-        #print(item)
-        #print(self.traceTableValues)
+        print('changed')
+        print(row)
+        print(item)
+        print(self.traceTableValues)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
             try:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
             except:
                 pass
         elif self.trace_type == 'building_template':
-            #print(item.text())
+            print(item.text())
             self.traceTableValues[row][item.column()][1]=item.text()
         elif self.trace_type:
             changedValue=''
@@ -108,12 +108,12 @@ class TableDialog(QMainWindow):
             if self.tableWidget.item(row,1):
                 changedValue+=self.tableWidget.item(row,1).text()
             try:
-                #print(changedValue)
+                print(changedValue)
                 self.tableWidget.cellWidget(row,2).currentText()
                 self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
             except:
                 pass
-        #print(self.traceTableValues)
+        print(self.traceTableValues)
         
     
     """@QtCore.pyqtSlot()
@@ -186,7 +186,7 @@ def getMaxTableId(table):
         if table.item(row_index,0):
             if int(table.item(row_index,0).text()) > maxId:
                 maxId=int(table.item(row_index,0).text())
-    #print(maxId)
+    print(maxId)
     return maxId
         
 class LabelTextOkCancelDialog(QMainWindow):
@@ -237,9 +237,9 @@ def addTableRow(table):
     
 def deleteSelectedTableRow (table):
     """Selected table row is deleted"""
-    #print('delete row')
+    print('delete row')
     row_index=table.currentRow()
-    #print(row_index)
+    print(row_index)
     if row_index!=-1:
         table.removeRow(row_index)
     else:

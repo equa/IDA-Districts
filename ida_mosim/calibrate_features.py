@@ -6,37 +6,37 @@ from qgis.utils import iface
 
 def openResult(dlg,plugin_dir,conn,cur):
     """ Open the selected result"""
-    #print('Open result')
-    #print(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()])
+    print('Open result')
+    print(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()])
     idx=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].currentRow()
-    #print(idx)
+    print(idx)
     if idx!=-1:
         if conn:
             cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor) 
             
             id=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx,0).text()
             parmRun_name=[dlg.tableWidget_customer.cellWidget(idx, 3).currentText() for idx in range(0,dlg.tableWidget_customer.rowCount()) if dlg.tableWidget_customer.item(idx, 0).text()==id][0]
-            #print(parmRun_name)
+            print(parmRun_name)
 
             name='Customer_'+id
             dir=plugin_dir.replace('/','\\')+"\\models\\{}\\{}\\invoked_customers\\".format(dictDB['projectName'],dictDB['versionName'])
             file=dir+"{}.idm".format(name)
             
             # Open the building with the IDA ICE Python API
-            #print('**********************************')
-            #print(file)
+            print('**********************************')
+            print(file)
             process = Process(target=WorkerOpenParRunAPI(file,plugin_dir,parmRun_name))
             
-            #print('finished open template')
+            print('finished open template')
     else:
         iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
             
 def openTemplate(dlg,plugin_dir,conn):
     """ Open the selected template"""
-    #print('Open template')
-    #print(dlg.tableWidget_templates)
+    print('Open template')
+    print(dlg.tableWidget_templates)
     row_index=dlg.tableWidget_templates.currentRow()
-    #print(row_index)
+    print(row_index)
     if row_index!=-1:
         if conn:
             cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor) 
@@ -50,27 +50,27 @@ def openTemplate(dlg,plugin_dir,conn):
             file=dir+"{}.idm".format(name)
             
             # Open the building with the IDA ICE Python API
-            #print('**********************************')
-            #print(file)
+            print('**********************************')
+            print(file)
             #process = Process(target=WorkerOpenParRunAPI(file,plugin_dir,parmRun_name))
             openModelCmd(loadIDADistrictsConfig(plugin_dir)['path_ice'],file)
             
-            #print('finished open template')
+            print('finished open template')
     else:
         iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
 
 def startCallibration(dlg,plugin_dir,conn,dictDB,iface):
     """Start the czustomer calibration. Seperate between calibration with annual energy consumption or load profile. Invoke each customer with ParmRun Macro for Error calculation. 
     Start each selected customer in a loop per API script and write results back to form."""
-    #print('Start customer calibration')
-    #print(dlg.tableWidget_customer.selectedIndexes())
+    print('Start customer calibration')
+    print(dlg.tableWidget_customer.selectedIndexes())
 
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        #print('invoke')
+        print('invoke')
         parmRuns_cids={}
         for index in dlg.tableWidget_customer.selectedIndexes():
-            #print(index.row())
+            print(index.row())
             
             idx=index.row()
             parmRun_name=dlg.tableWidget_customer.cellWidget(index.row(), 3).currentText()
@@ -80,7 +80,7 @@ def startCallibration(dlg,plugin_dir,conn,dictDB,iface):
                 except:
                     parmRuns_cids[parmRun_name]=[idx]
         
-        #print(parmRuns_cids)
+        print(parmRuns_cids)
         dlg.tabwidget.clear()
         dlg.list_tableWidgetResults=[]
         list_counter=0
@@ -93,7 +93,7 @@ def startCallibration(dlg,plugin_dir,conn,dictDB,iface):
             for idx in parmRuns_cids[parmRun_cids]:
                 id=dlg.tableWidget_customer.item(idx, 0).text() 
                 parmRun_name=dlg.tableWidget_customer.cellWidget(idx, 3).currentText()
-                #print('++++id:'+id)
+                print('++++id:'+id)
                 #invoke customer
                 invokeOneFeature(dlg,idx,plugin_dir,cur,dictDB,'customer',iface,False,parmRun=True)
                 process = Process(target=WorkerRunAutoMooAPI(plugin_dir+'\\models\\{}\\{}\\invoked_customers\\Customer_{}.idm'.format(dictDB['projectName'],dictDB['versionName'],id),plugin_dir,parmRun_name))
@@ -101,15 +101,15 @@ def startCallibration(dlg,plugin_dir,conn,dictDB,iface):
                 #get best results
                 parmRun_file_data=readFileToList(plugin_dir+'\\models\\{}\\{}\\invoked_customers\\Customer_{}\\{}.idm'.format(dictDB['projectName'],dictDB['versionName'],id,parmRun_name))
                 bestParmRuns=getBestParmRunsInputs(parmRun_file_data)
-                #print(bestParmRuns)
+                print(bestParmRuns)
                 #write best results to Outputs table
                 dlg.list_tableWidgetResults[list_counter].insertRow(i)
                 columns=['ID']+getParmRunsInputNames(parmRun_file_data)+['']+getParmRunsOutputNames(parmRun_file_data)
-                #print(columns)
-                #print(len(columns))
+                print(columns)
+                print(len(columns))
                 dlg.list_tableWidgetResults[list_counter].setColumnCount(len(columns)) 
-                #print(getParmRunsInputNames(parmRun_file_data))                
-                #print(getParmRunsOutputNames(parmRun_file_data))                
+                print(getParmRunsInputNames(parmRun_file_data))                
+                print(getParmRunsOutputNames(parmRun_file_data))                
                 dlg.list_tableWidgetResults[list_counter].setHorizontalHeaderLabels(columns)
                                                 
                 item=QTableWidgetItem(id)
@@ -140,67 +140,67 @@ def saveCallibValues(dlg,dictDB,conn,plugin_dir):
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         layer =QgsProject.instance().mapLayersByName('customers')
         if layer:
-            #print('save results')
-            #print(dlg.tabwidget.currentIndex())
-            #print(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()])
-            #print(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].selectedIndexes())
+            print('save results')
+            print(dlg.tabwidget.currentIndex())
+            print(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()])
+            print(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].selectedIndexes())
             
             idxs=[]              
             [idxs.append(idx.row()) for idx in dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].selectedIndexes() if idx.row() not in idxs]
-            #print(idxs)
+            print(idxs)
                     
             if idxs:      
                 for idx in idxs:
                     id=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx,0).text()
-                    #print(id)
+                    print(id)
                     
                     parmRun_name=[dlg.tableWidget_customer.cellWidget(idx, 3).currentText() for idx in range(0,dlg.tableWidget_customer.rowCount()) if dlg.tableWidget_customer.item(idx, 0).text()==id][0]
-                    #print(parmRun_name)
+                    print(parmRun_name)
 
                     file_data=readFileToList(plugin_dir+'\\models\\{}\\{}\\invoked_customers\\Customer_{}\\{}.idm'.format(dictDB['projectName'],dictDB['versionName'],id,parmRun_name))
                     names_target=getParmRunsInputNamesTargets(file_data)
-                    #print(names_target)             
+                    print(names_target)             
                     names_target.update(getParmRunsOutputNamesTargets(file_data))
-                    #print(names_target)
+                    print(names_target)
 
                     layer_fields= [str(i.name()) for i in layer[0].fields()]
                     unique_field_names={}
                     cur.execute("""SELECT * FROM "{}".model_parms WHERE mapping_direction IN ('<--','<-->') AND type=1;""".format(dictDB['versionName']))
                     
                     for parm in cur.fetchall():
-                        #print(parm)
+                        print(parm)
                         field_name=[i for i in re.findall(r'[^|]+', parm['mapping_expression']) if i in layer_fields]
-                        #print(field_name)
+                        print(field_name)
                         if len(field_name)==1 and field_name[0] not in unique_field_names:
                             unique_field_names[field_name[0]]=[parm['model_name'], parm['parm_name']]
-                    #print(unique_field_names)
+                    print(unique_field_names)
 
                     labels=[]
                     for c in range(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].columnCount()):
                         it = dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].horizontalHeaderItem(c)
                         labels.append(str(c+1) if it is None else it.text())
 
-                    #print(labels)
+                    print(labels)
                 
-                    #print('unique_field_names')
+                    print('unique_field_names')
                     for unique_field_name in unique_field_names:
                         for name_target in names_target:
                             if [i.replace('"','') for i in names_target[name_target]]==unique_field_names[unique_field_name]:
-                                #print('++++++') 
-                                #print(unique_field_name)
-                                #print(unique_field_names[unique_field_name])
-                                #print(name_target)
+                                print('++++++') 
+                                print(unique_field_name)
+                                print(unique_field_names[unique_field_name])
+                                print(name_target)
                             
                                 for col in range(0,len(labels)):
                                     if labels[col]==name_target:
                                         value=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx,col).text()
                                         break
-                                #print(col)
-                                #print(value)
+                                print(col)
+                                print(value)
 
                                 #update layers
                                 sql="""UPDATE "{}".customers SET "{}"={} WHERE id={};\n""".format(dictDB['versionName'],unique_field_name,value,id)
-                                #print(sql)
+                                print(sql)
                                 cur.execute(sql)    
 
                     #invoke customers with callib values

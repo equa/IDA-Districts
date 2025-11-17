@@ -68,13 +68,13 @@ def pListToCompString(pList,level):
         i+=1
     return r.rstrip()
     
-#print(comp)
+print(comp)
 
 
            
-#print(pListToCompString(comp,0))
+print(pListToCompString(comp,0))
 
-#print(len(dict))
+print(len(dict))
 #for i in dict:
-#    #print(i)
-#    #print(dict[i])
+#    print(i)
+#    print(dict[i])
