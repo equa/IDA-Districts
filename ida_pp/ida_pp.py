@@ -72,7 +72,7 @@ class IdaDistrictsPreProcessing:
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
-            'IdaDistrictsPreProcessing_{}.qm'.format(locale))
+            'ida_pp_{}.qm'.format(locale))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -81,7 +81,7 @@ class IdaDistrictsPreProcessing:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&Ida Districts Pre Processing')
+        self.menu = self.tr("ida_pp_name")
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -199,7 +199,7 @@ class IdaDistrictsPreProcessing:
         icon_path = self.plugin_dir+"\\icon-pre-processing.png"
         self.add_action(
             icon_path,
-            text=self.tr(u'IDA Districts Preprocessing'),
+            text=self.tr("ida_pp_name"),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -211,7 +211,7 @@ class IdaDistrictsPreProcessing:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&Ida Districts Pre Processing'),
+                self.tr("ida_pp_name"),
                 action)
             self.iface.removeToolBarIcon(action)
             

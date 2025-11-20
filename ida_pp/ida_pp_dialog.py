@@ -89,7 +89,7 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         
         #-------------Data import---------------
         #titel
-        label_import_title =QLabel("Data import")
+        label_import_title =QLabel(self.tr("data_import"))
         font=label_import_title.font()
         font.setPointSize(15)
         label_import_title.setFont(font)
@@ -97,13 +97,13 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         #import buttons
         layout_data_btn_import = QVBoxLayout()      
         
-        self.btn_importStreetsFromOSM=QPushButton("Streets")
+        self.btn_importStreetsFromOSM=QPushButton(self.tr("streets"))
         layout_data_btn_import.addWidget(self.btn_importStreetsFromOSM)
         
-        self.btn_importBuildingsFromOSM=QPushButton("Buildings")
+        self.btn_importBuildingsFromOSM=QPushButton(self.tr("buildings"))
         layout_data_btn_import.addWidget(self.btn_importBuildingsFromOSM)
         
-        self.btn_importElevationData=QPushButton("Elevation data")
+        self.btn_importElevationData=QPushButton(self.tr("elevation_data"))
         layout_data_btn_import.addWidget(self.btn_importElevationData)
         
              
@@ -114,22 +114,22 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         
         #---------------Network topology---------------
         #titel
-        label_topology_title =QLabel("Network topology")
+        label_topology_title =QLabel(self.tr("network_topology"))
         label_topology_title.setFont(font)
         
         #buttons
         layout_topology_buttons = QVBoxLayout()
         
-        self.btn_importPointLayer=QPushButton("Import plant or customer from layer")
+        self.btn_importPointLayer=QPushButton(self.tr("import_plant_or_customer_from_layer"))
         layout_topology_buttons.addWidget(self.btn_importPointLayer)
         
-        self.btn_importNetworkTopologyFromLayer=QPushButton("Import network topology from layer")
+        self.btn_importNetworkTopologyFromLayer=QPushButton(self.tr("import_network_topology_from_layer"))
         layout_topology_buttons.addWidget(self.btn_importNetworkTopologyFromLayer)
 
-        self.btn_pipeLayingAlgorithm=QPushButton("Pipe laying algorithm")
+        self.btn_pipeLayingAlgorithm=QPushButton(self.tr("pipe_laying_algorithm"))
         layout_topology_buttons.addWidget(self.btn_pipeLayingAlgorithm)
         
-        self.btn_generateTopology=QPushButton("Generate Topology")
+        self.btn_generateTopology=QPushButton(self.tr("generate_topology"))
         layout_topology_buttons.addWidget(self.btn_generateTopology)
         
         #set network topology layout together
@@ -139,13 +139,13 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         
         #---------------Sizing---------------
         #titel
-        label_sizing_title =QLabel("Sizing")
+        label_sizing_title =QLabel(self.tr("sizing"))
         label_sizing_title.setFont(font)
         
         #buttons
         layout_sizing_buttons = QVBoxLayout()
         
-        self.btn_pipeSizing=QPushButton("Pipe sizing")
+        self.btn_pipeSizing=QPushButton(self.tr("pipe_sizing"))
         layout_sizing_buttons.addWidget(self.btn_pipeSizing)
         
         #set sizing layout together
@@ -155,13 +155,13 @@ class IdaDistrictsPreProcessingDialog(QMainWindow):
         
         #---------------Sizing---------------
         #titel
-        label_mapping_title =QLabel("Mapping")
+        label_mapping_title =QLabel(self.tr("mapping"))
         label_mapping_title.setFont(font)
         
         #buttons
         layout_mapping_buttons = QVBoxLayout()
         
-        self.btn_mapPlants=QPushButton("Map connection types to lines")
+        self.btn_mapPlants=QPushButton(self.tr("map_connection_types_to_lines"))
         layout_mapping_buttons.addWidget(self.btn_mapPlants)
         
         #set sizing layout together
