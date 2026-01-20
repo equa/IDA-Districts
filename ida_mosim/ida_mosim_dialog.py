@@ -49,38 +49,38 @@ class SensorSignalsDialog(QMainWindow):
         self.conn=dbConnect(self.dictDB,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.process_running=False
-        self.setWindowTitle("Sensor signals dialog")
+        self.setWindowTitle(self.tr("sensor_signals_dlg"))
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
 
         #action buttons     
         layout_action_buttons = QHBoxLayout()
-        self.btn_add=QPushButton("Add")
+        self.btn_add=QPushButton(self.tr("add"))
         layout_action_buttons.addWidget(self.btn_add)
-        self.btn_del=QPushButton("Delete")
+        self.btn_del=QPushButton(self.tr("delete"))
         layout_action_buttons.addWidget(self.btn_del)
         
         #source
-        label_source =QLabel("Source")
+        label_source =QLabel(self.tr("sensor_source"))
         label_source.setFont(myBoldFont)
         
         #table
         self.tableWidget_source = QTableWidget(0,10)   
-        self.tableWidget_source.setHorizontalHeaderLabels(['Sensor ID','Type','Templates','ID`s','Connection types','Connections','Measure','Apply function','Test value','Description'])     
+        self.tableWidget_source.setHorizontalHeaderLabels([self.tr('sensor_id'),self.tr('type'),self.tr('templates'),self.tr('ids'),self.tr('connection_types'),self.tr('connections'),self.tr('measure'),self.tr('apply_function'),self.tr('test_value'),self.tr('description')])     
         
         #target
-        label_target =QLabel("Target")
+        label_target =QLabel(self.tr("sensor_target"))
         label_target.setFont(myBoldFont)
         
         #table
         self.tableWidget_target = QTableWidget(0,6)   
-        self.tableWidget_target.setHorizontalHeaderLabels(['Sensor ID','Type','Templates','ID`s','Target','Description'])     
+        self.tableWidget_target.setHorizontalHeaderLabels([self.tr('sensor_id'),self.tr('type'),self.tr('templates'),self.tr('ids'),self.tr('target'),self.tr('description')])     
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(self.tr("ok"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(self.tr("cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #progress bar
@@ -1125,20 +1125,20 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         
         #-------------Settings---------------
         #titel
-        label_settings_title =QLabel("Settings")
+        label_settings_title =QLabel(self.tr("settings"))
         font=label_settings_title.font()
         font.setPointSize(15)
         label_settings_title.setFont(font)
         
         layout_modeling_settings = QVBoxLayout() 
         
-        self.btn_requestedOutputs=QPushButton("Requested outputs")
+        self.btn_requestedOutputs=QPushButton(self.tr("requested_outputs"))
         layout_modeling_settings.addWidget(self.btn_requestedOutputs)
         
-        self.btn_modellingSettings=QPushButton("Modelling settings")
+        self.btn_modellingSettings=QPushButton(self.tr("modelling_settings"))
         layout_modeling_settings.addWidget(self.btn_modellingSettings)
 
-        self.btn_boreholeFieldSettings=QPushButton("Borehole field settings")
+        self.btn_boreholeFieldSettings=QPushButton(self.tr("borehole_field_settings"))
         layout_modeling_settings.addWidget(self.btn_boreholeFieldSettings)
         
         #set settings layout together
@@ -1149,7 +1149,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         
         #-------------Network Modeling---------------
         #titel
-        label_modeling_title =QLabel("Network modeling")
+        label_modeling_title =QLabel(self.tr("network_modeling"))
         font=label_modeling_title.font()
         font.setPointSize(15)
         label_modeling_title.setFont(font)
@@ -1157,31 +1157,31 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         #model buttons
         layout_modeling_btn = QVBoxLayout()   
         
-        self.btn_custModelParm=QPushButton("Feature model parameter mapping")
+        self.btn_custModelParm=QPushButton(self.tr("feature_model_parameter_mapping"))
         layout_modeling_btn.addWidget(self.btn_custModelParm)
 
-        self.btn_supervisoryContr=QPushButton("Supervisory control")
+        self.btn_supervisoryContr=QPushButton(self.tr("supervisory_ctrl"))
         layout_modeling_btn.addWidget(self.btn_supervisoryContr)
         
-        self.btn_calibrateCustomers=QPushButton("Calibrate customer models")
+        self.btn_calibrateCustomers=QPushButton(self.tr("calibrate_customer_models"))
         #layout_modeling_btn.addWidget(self.btn_calibrateCustomers)
         
         
-        self.btn_invokeFeatures=QPushButton("Invoke feature models from templates")
+        self.btn_invokeFeatures=QPushButton(self.tr("invoke_feature_models_from_templates"))
         layout_modeling_btn.addWidget(self.btn_invokeFeatures)
         
-        self.btn_sensorSignals=QPushButton("Sensor signals")
+        self.btn_sensorSignals=QPushButton(self.tr("sensor_signals"))
         layout_modeling_btn.addWidget(self.btn_sensorSignals)
 
-        self.btn_featureDecoupling=QPushButton("Feature decoupling")
+        self.btn_featureDecoupling=QPushButton("feature_decoupling")
         #layout_modeling_btn.addWidget(self.btn_featureDecoupling)
         
         layout_model_btn = QHBoxLayout()      
         
-        self.btn_buildModel=QPushButton("Build model")
+        self.btn_buildModel=QPushButton(self.tr("build_model"))
         layout_model_btn.addWidget(self.btn_buildModel)
         
-        self.btn_openModel=QPushButton("Open model")
+        self.btn_openModel=QPushButton(self.tr("open_model"))
         layout_model_btn.addWidget(self.btn_openModel)
         
         
@@ -1193,17 +1193,17 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
 
         #-------------Building Modeling---------------
         #titel
-        label_modeling_title =QLabel("Building modeling")
+        label_modeling_title =QLabel(self.tr("building_modeling"))
         font=label_modeling_title.font()
         font.setPointSize(15)
         label_modeling_title.setFont(font)
                
         layout_building_model_btn = QHBoxLayout()      
         
-        self.btn_buildBuildingModel=QPushButton("Build model")
+        self.btn_buildBuildingModel=QPushButton(self.tr("build_model"))
         layout_building_model_btn.addWidget(self.btn_buildBuildingModel)
         
-        self.btn_openBuildingModel=QPushButton("Open model")
+        self.btn_openBuildingModel=QPushButton(self.tr("open_model"))
         layout_building_model_btn.addWidget(self.btn_openBuildingModel)
         
         #set modeling layout together
@@ -1213,7 +1213,7 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         
         #-------------Simulation---------------
         #titel
-        label_simulation_title =QLabel("Simulation")
+        label_simulation_title =QLabel(self.tr("simulation"))
         font=label_simulation_title.font()
         font.setPointSize(15)
         label_simulation_title.setFont(font)
@@ -1221,10 +1221,10 @@ class IDADistrictsModelingSimulationDialog(QMainWindow):
         #buttons
         layout_simulation_btn = QHBoxLayout()      
         
-        self.btn_runModel=QPushButton("Run model")
+        self.btn_runModel=QPushButton(self.tr("run_model"))
         layout_simulation_btn.addWidget(self.btn_runModel)
         
-        self.btn_loadResults=QPushButton("Load results")
+        self.btn_loadResults=QPushButton(self.tr("load_results"))
         layout_simulation_btn.addWidget(self.btn_loadResults)
         
         

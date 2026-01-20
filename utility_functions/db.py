@@ -712,7 +712,7 @@ def getDropDownItems(cur,dropdowns):
         print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
-        dropdownItems[id]=[str(i['key'])+':'+i['name'] for i in dropdown_data]
+        dropdownItems[id]={i['name'] : str(i['key'])+':'+i['name'] for i in dropdown_data}
     return dropdownItems
     
 def getFilteredDropDownItemNames(cur,dropdowns):
@@ -725,9 +725,9 @@ def getFilteredDropDownItemNames(cur,dropdowns):
             print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
-            dropdownItems[id]=[str(i['name']) for i in dropdown_data]
+            dropdownItems[id]={i['name'] : str(i['name']) for i in dropdown_data}
         else:
-            dropdownItems[id]=[]
+            dropdownItems[id]={}
     return dropdownItems
 
 def getFilteredNotInDropDownItemNames(cur,dropdowns):

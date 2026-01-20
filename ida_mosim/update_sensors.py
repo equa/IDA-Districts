@@ -1,6 +1,7 @@
 from .ida_mosim_dialog import SensorSignalsDialog
 from plugins.utility_functions.sensor_signals import *
 from plugins.utility_functions.db import *
+from plugins.utility_functions.translations import *
 from .supervisory_control import Supervisory_control
 from qgis.utils import iface
 
@@ -34,17 +35,17 @@ class UpdateSensors():
     def collectSensortemplatesTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 2)
         if dropDown!=None:
-            self.sensorData[int(sensor_id)][sensor]['templates']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
+            self.sensorData[int(sensor_id)][sensor]['templates']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemData(i) != 'check_all_items']                 
                     
     def collectSensorIdsTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 3)
         if dropDown!=None:
-            self.sensorData[int(sensor_id)][sensor]['ids']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                 
+            self.sensorData[int(sensor_id)][sensor]['ids']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemData(i) != 'check_all_items']                 
                     
     def insertIntoSensorSourceConntypesTable(self,table,row,sensor_id):
         dropDown=table.cellWidget(row, 4)
         if dropDown!=None:
-            self.sensorData[int(sensor_id)][sensor]['conn_types']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items']                  
+            self.sensorData[int(sensor_id)][sensor]['conn_types']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemData(i) != 'check_all_items']                  
                     
     def insertIntoSensorSourceConnsTable(self,table,row,sensor_id):
         dropDown=table.cellWidget(row, 5)
@@ -166,8 +167,17 @@ class UpdateSensors():
         print(dropdownItems)
         print(row)
         print(col)
+
+        try:
+            items={key : text.split(':')[0]+':'+tr("@default",text.split(':')[1]) for key,text in dropdownItems[1].items()}
+        except:
+            items={key : tr("@default",text) for key,text in dropdownItems[1].items()}
+        print(items)
         comboBox = QComboBox()
-        comboBox.addItems(dropdownItems[1])
+        
+        # Add items to the combobox, storing the original key as user data
+        for original_key, translated_text in items.items():
+            comboBox.addItem(translated_text, original_key) # The second argument is the userData
         comboBox.setCurrentText(currentValue)
         if signal_function:
             comboBox.currentIndexChanged.connect(lambda selected_index, column=col,row=row: signal_function(table,selected_index,column,row))
@@ -207,7 +217,7 @@ class UpdateSensors():
         source_conn_types=self.cur.fetchall()
         print(source_conn_types)
         comboBoxCheckable = CheckableComboBox()
-        comboBoxCheckable.addItem('Check all items')
+        comboBoxCheckable.addItem(tr("@default",'check_all_items'),'check_all_items')
         comboBoxCheckable.addItems([str(i['conn_type_id'])+':'+i['description'] for i in source_conn_types])
         #self.loadedSensorData[id]['source']['conn_types']={i['conn_type_id'] : i['active'] for i in source_conn_types}
 
@@ -228,7 +238,7 @@ class UpdateSensors():
         source_conns=self.cur.fetchall()
         print(source_conns)
         comboBoxCheckable = CheckableComboBox()
-        comboBoxCheckable.addItem('Check all items')
+        comboBoxCheckable.addItem(tr("@default",'check_all_items'),'check_all_items')
         comboBoxCheckable.addItems([str(i['conn_id'])+':'+i['description'] for i in source_conns])
         #self.loadedSensorData[id]['source']['conns']={i['conn_id'] : i['active'] for i in source_conns}
         for i in range(len(source_conns)):
@@ -238,7 +248,7 @@ class UpdateSensors():
     def getCheckedItemsFromTable(self,dropDown):
         items=[]
         for i in range(dropDown.count()):
-            if dropDown.itemText(i) != 'Check all items' and dropDown.itemChecked(i)==True:
+            if dropDown.itemData(i) != 'check_all_items' and dropDown.itemChecked(i)==True:
                 items.append(dropDown.itemText(i).split(':')[0])
         return items
         
@@ -385,7 +395,7 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
         print(sensor)
         print(self.loadedSensorData)
         comboBoxCheckable = CheckableComboBox()
-        comboBoxCheckable.addItem('Check all items')
+        comboBoxCheckable.addItem(tr("@default",'check_all_items'),'check_all_items')
         comboBoxCheckable.addItems([str(i['template'])+':'+i['template_name'] for i in templates])
         self.loadedSensorData[id][sensor]['templates']={i['template'] : i['active'] for i in templates}
         for i in range(len(templates)):
@@ -404,7 +414,7 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
         ids=self.cur.fetchall()
         print(ids)
         comboBoxCheckable = CheckableComboBox()
-        comboBoxCheckable.addItem('Check all items')
+        comboBoxCheckable.addItem(tr("@default",'check_all_items'),'check_all_items')
         comboBoxCheckable.addItems([str(i['feature_id'])+'('+str(i['template_name'])+')' for i in ids])
         self.loadedSensorData[id][sensor]['ids']={i['feature_id'] : i['active'] for i in ids}
         for i in range(len(ids)):
@@ -426,7 +436,7 @@ SELECT f.id AS f_id,sub.template_name FROM "{}".{}s f, sub WHERE f.template=sub.
                         oldTrueItems.append(oldDropdown.itemText(i))
         print(oldTrueItems)
         comboBoxCheckable = CheckableComboBox()
-        comboBoxCheckable.addItem('Check all items')
+        comboBoxCheckable.addItem(tr("@default",'check_all_items'),'check_all_items')
         comboBoxCheckable.addItems(dropdownItems)
         for i in range(len(dropdownItems)):
             print(i)
@@ -656,7 +666,7 @@ class WorkerSensors(QRunnable):
         
     def collectCheckableDropdownTableData(self,table,row,sensor_id,table_col):
         dropDown=table.cellWidget(row, table_col)
-        return {int(dropDown.itemText(i).split(':')[0].split('(')[0]) : dropDown.itemChecked(i) for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items'}
+        return {int(dropDown.itemText(i).split(':')[0].split('(')[0]) : dropDown.itemChecked(i) for i in range(dropDown.count()) if dropDown.itemData(i) != 'check_all_items'}
         
     def collectSensorTargetTableData(self,table,row,sensor_id):
         self.sensorData[int(sensor_id)]['target']['type']=int(table.cellWidget(row, 1).currentText().split(':')[0])
