@@ -929,12 +929,13 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             for col in range(len(row)):
                 if col in list([i[0] for i in dropdowns]):
                     comboBox = QComboBox()
-                    comboBox.addItems(dropdownItems[col])
+                    for original_key, translated_text in dropdownItems[col].items():
+                        comboBox.addItem(translated_text, original_key) # The second argument is the userData
                     currentText=''
                     if dropdownItems[col]:
-                        for dropDownItem in dropdownItems[col]:
-                            if dropDownItem.split(':')[0]==str(row[col]):
-                                currentText=dropDownItem
+                        for original_key, translated_text in dropdownItems[col].items():
+                            if translated_text.split(':')[0]==str(row[col]):
+                                currentText=translated_text
                     comboBox.setCurrentText(currentText)
                     if trace in ['conn_type_trace','bt_conns_trace']:
                         changedConnectionBundleType=currentText
@@ -1257,7 +1258,8 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
         for col in range(dlg.tableWidget.columnCount()):
             if col in list([i[0] for i in dropdowns]):
                 comboBox = QComboBox()
-                comboBox.addItems(dropdownItems[col])
+                for original_key, translated_text in dropdownItems[col].items():
+                    comboBox.addItem(translated_text, original_key) # The second argument is the userData 
                 dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)
                 if trace:
                     comboBox.currentTextChanged.connect(dlg.changedDropdownItem)
@@ -1360,11 +1362,12 @@ ORDER BY ordinal_position;""".format(self.dictDB['versionName'],table)
             maxId=getMaxTableId(dlg.tableWidget)
             template_name=dlg.tableWidget.item(row_idx, 1).text()+' (copy)'
             conn_bundle_type_old=dlg.tableWidget.cellWidget(row_idx, 2).currentText()
+            print(conn_bundle_type_old)
             file_name_old=str(template_id)+'_'+dlg.tableWidget.item(row_idx, 1).text()
             file_name_new=str(maxId+1)+'_'+template_name
             if not os.path.exists(self.plugin_dir+"\\{}\\{}\\{}.idm".format(self.dictDB['projectName'],table_name,file_name_new)): 
                 CopyTemplateFiles(source_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),source_name=file_name_old,target_dir='\\\\?\\'+self.plugin_dir+"\\{}\\{}".format(self.dictDB['projectName'],table_name),target_name=file_name_new)
-            
+
             self.addTableRow(dlg,dropdowns,True,[])
             dlg.tableWidget.setItem(0,0,QTableWidgetItem(str(maxId+1)))
             dlg.tableWidget.setItem(0,1,QTableWidgetItem(template_name))

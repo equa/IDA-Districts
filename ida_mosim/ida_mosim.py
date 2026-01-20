@@ -23,6 +23,7 @@
 """
 
 from plugins.utility_functions.util import *
+from plugins.utility_functions.translations import *
 from plugins.utility_functions.macros import *
 from plugins.utility_functions.files import *
 from plugins.utility_functions.ida_components import *
@@ -86,7 +87,7 @@ class IDADistrictsModelingSimulation:
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
-            'IDADistrictsModelingSimulation_{}.qm'.format(locale))
+            'ida_mosim_{}.qm'.format(locale))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -95,7 +96,7 @@ class IDADistrictsModelingSimulation:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&IDADistricts Modeling Simulation')
+        self.menu = self.tr("plugin_name")
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -171,7 +172,7 @@ class IDADistrictsModelingSimulation:
         icon_path = self.plugin_dir+'\\icon-mo-sim.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'IDA Districts Modelling Simulation'),
+            text=self.tr("plugin_name"),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -183,7 +184,7 @@ class IDADistrictsModelingSimulation:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&IDADistricts Modeling Simulation'),
+                self.tr("plugin_name"),
                 action)
             self.iface.removeToolBarIcon(action)
         

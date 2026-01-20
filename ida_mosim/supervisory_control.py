@@ -120,7 +120,7 @@ class Supervisory_control():
             
             #supervisory idm project file
             file=dir+"""\\supervisory_control.idm"""
-            file_data=""""""
+            file_data=""
             if os.path.exists(file):
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)
@@ -146,7 +146,7 @@ class Supervisory_control():
                     connections=False
                     for line in file_data:
                         data.append(line)
-                        if """(MACRO-OBJECT :N "Supervisory_control\"""" in line:
+                        if '(MACRO-OBJECT :N "Supervisory_control\"' in line:
                             idx=file_data.index(line)
                             if file_data[idx].count('(')-file_data[idx].count(')')==0:
                                 data[-1]=data[-1].replace('\n','').rstrip()[:-1]+'\n'
@@ -158,7 +158,7 @@ class Supervisory_control():
                             else:
                                 data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]))
                                 data.append('\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
-                        if """(MACRO-OBJECT :N "Sensor-macro\"""" in line:
+                        if '(MACRO-OBJECT :N "Sensor-macro\"' in line:
                             idx=file_data.index(line)
                             if file_data[idx].count('(')-file_data[idx].count(')')==0:
                                 data[-1]=data[-1].replace('\n','').rstrip()[:-1]+'\n'
@@ -246,7 +246,7 @@ class Supervisory_control():
             
             #supervisory idc project file
             file=dir+"""\\supervisory_control.idc"""
-            file_data=""""""
+            file_data=''
             if os.path.exists(file):
                 pass
             else:
@@ -270,7 +270,7 @@ class Supervisory_control():
             
             #supervisory idm macro file
             file=dir+"""\\Supervisory_control.idm"""
-            file_data=""""""
+            file_data=''
             if os.path.exists(file):
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)

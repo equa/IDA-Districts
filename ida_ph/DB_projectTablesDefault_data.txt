@@ -212,45 +212,45 @@ INSERT INTO public.liquids(id,liquid) VALUES(12,'Sodium_Chloride');
 INSERT INTO public.liquids(id,liquid) VALUES(13,'Potassium_Acetate');
 
 -------------------table public.pipe_ambient------------------------------------
-INSERT INTO public.pipe_ambient (id,ambient) VALUES (1,'Ambient air');
-INSERT INTO public.pipe_ambient (id,ambient) VALUES (2,'Ground');
-INSERT INTO public.pipe_ambient (id,ambient) VALUES (3,'Duct');
+INSERT INTO public.pipe_ambient (id,ambient) VALUES (1,'ambient_air');
+INSERT INTO public.pipe_ambient (id,ambient) VALUES (2,'ground');
+INSERT INTO public.pipe_ambient (id,ambient) VALUES (3,'duct');
 
 -------------------table public.type------------------------------------
-INSERT INTO public.type (id,name) VALUES (1,'Customer');
-INSERT INTO public.type (id,name) VALUES (2,'Energy plant');
-INSERT INTO public.type (id,name) VALUES (3,'Supervisory control');
+INSERT INTO public.type (id,name) VALUES (1,'customer');
+INSERT INTO public.type (id,name) VALUES (2,'energy_plant');
+INSERT INTO public.type (id,name) VALUES (3,'supervisory');
 
 -------------------table public.target------------------------------------
-INSERT INTO public.target (id,target) VALUES (1,'Custom');
-INSERT INTO public.target (id,target) VALUES (2,'HCMode');
+INSERT INTO public.target (id,target) VALUES (1,'custom');
+INSERT INTO public.target (id,target) VALUES (2,'hcmode');
 
 -------------------table public.measure------------------------------------
-INSERT INTO public.measure (id,measure,unit) VALUES (1,'Temperature','°C');
-INSERT INTO public.measure (id,measure,unit) VALUES (2,'Pressure','Pa');
-INSERT INTO public.measure (id,measure,unit) VALUES (3,'Mass flow','kg/s');
-INSERT INTO public.measure (id,measure,unit) VALUES (4,'Power','W');
-INSERT INTO public.measure (id,measure,unit) VALUES (5,'Custom','');
+INSERT INTO public.measure (id,measure,unit) VALUES (1,'temperature','°C');
+INSERT INTO public.measure (id,measure,unit) VALUES (2,'pressure','Pa');
+INSERT INTO public.measure (id,measure,unit) VALUES (3,'mass_flow','kg/s');
+INSERT INTO public.measure (id,measure,unit) VALUES (4,'power','W');
+INSERT INTO public.measure (id,measure,unit) VALUES (5,'custom','');
 
 -------------------table public.signal_function------------------------------------
-INSERT INTO public.signal_function (id,function) VALUES (1,'Min');
-INSERT INTO public.signal_function (id,function) VALUES (2,'Max');
-INSERT INTO public.signal_function (id,function) VALUES (3,'Average');
-INSERT INTO public.signal_function (id,function) VALUES (4,'Add');
-INSERT INTO public.signal_function (id,function) VALUES (5,'Same signal for all targets');
-INSERT INTO public.signal_function (id,function) VALUES (6,'Individual signals for each target');
+INSERT INTO public.signal_function (id,function) VALUES (1,'min');
+INSERT INTO public.signal_function (id,function) VALUES (2,'max');
+INSERT INTO public.signal_function (id,function) VALUES (3,'average');
+INSERT INTO public.signal_function (id,function) VALUES (4,'add');
+INSERT INTO public.signal_function (id,function) VALUES (5,'same_signal');
+INSERT INTO public.signal_function (id,function) VALUES (6,'individual_signals');
 
 -------------------table public.prefered_conn_dir------------------------------------
-INSERT INTO public.prefered_conn_dir VALUES(1,'Supply');
-INSERT INTO public.prefered_conn_dir VALUES(2,'Return');
-INSERT INTO public.prefered_conn_dir VALUES(3,'Zone_sup_hot');
-INSERT INTO public.prefered_conn_dir VALUES(4,'Zone_rtn_hot');
-INSERT INTO public.prefered_conn_dir VALUES(5,'Zone_sup_cold');
-INSERT INTO public.prefered_conn_dir VALUES(6,'Zone_ret_cold');
-INSERT INTO public.prefered_conn_dir VALUES(7,'AHU_sup_hot');
-INSERT INTO public.prefered_conn_dir VALUES(8,'AHU_rtn_hot');
-INSERT INTO public.prefered_conn_dir VALUES(9,'AHU_sup_cold');
-INSERT INTO public.prefered_conn_dir VALUES(10,'AHU_rtn_cold');
+INSERT INTO public.prefered_conn_dir VALUES(1,'supply');
+INSERT INTO public.prefered_conn_dir VALUES(2,'return');
+INSERT INTO public.prefered_conn_dir VALUES(3,'zone_sup_hot');
+INSERT INTO public.prefered_conn_dir VALUES(4,'zone_rtn_hot');
+INSERT INTO public.prefered_conn_dir VALUES(5,'zone_sup_cold');
+INSERT INTO public.prefered_conn_dir VALUES(6,'zone_ret_cold');
+INSERT INTO public.prefered_conn_dir VALUES(7,'ahu_sup_hot');
+INSERT INTO public.prefered_conn_dir VALUES(8,'ahu_rtn_hot');
+INSERT INTO public.prefered_conn_dir VALUES(9,'ahu_rtn_hot');
+INSERT INTO public.prefered_conn_dir VALUES(10,'ahu_rtn_cold');
 
 ---------------------------------connections----------------------------------------------
 -------------------table public.conn_bundle_types------------------------------------
