@@ -9,7 +9,7 @@ plugin_dir="""C:\\Users\\Peter\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\default
 
 current_date = datetime.now().strftime('%Y-%m-%d-%H%M')
 target_dir=r'C:\EQUA\Projekte\DistrictEnergySystemModelling\QGIS plugin developement'+'\\'+current_date+'\\'
-new_version ='5.18002' 
+new_version ='5.11' 
 # Check if the folder exists and delete it
 if os.path.exists(target_dir) and os.path.isdir(target_dir):
     shutil.rmtree(target_dir)
@@ -93,7 +93,7 @@ trg_dir=target_plugin_dir+'ida_pp\\'
 os.mkdir(trg_dir)
 shutil.copytree(src_dir+'help',trg_dir+'help')
 shutil.copytree(src_dir+'scripts',trg_dir+'scripts')
-shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
+#shutil.copytree(src_dir+'i18n',trg_dir+'i18n')
 shutil.copy(src_dir+'icon-pre-processing.png', trg_dir+'icon-pre-processing.png')
 shutil.copy(src_dir+'elevation_data.py', trg_dir+'elevation_data.py')
 shutil.copy(src_dir+'GenerateNetworkTopology.py', trg_dir+'GenerateNetworkTopology.py')

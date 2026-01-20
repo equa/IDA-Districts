@@ -445,9 +445,9 @@ ORDER BY m.id;
                 mdot=""
             if requestedOutputs['p_lines']: 
                 idm+="""\n(output-file :sf "self:\\Line_p_{}.prn" :n "Line_p_{}" :t output-file)""".format(lid,lid)
-                p="""\n ((CONNECTOR :N |liqL|)
+                p="""\n ((CONNECTOR :N |liq1|)
   (:VAR :N P :L "Line_p_{}" :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))
- ((CONNECTOR :N |liqR|)
+ ((CONNECTOR :N |liq2|)
   (:VAR :N P :L "Line_p_{}" :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))""".format(lid,''.join(["""({} . "L_{}")""".format(i+1,i+1) for i in range(npipes)]),lid,''.join(["""({} . "R_{}")""".format(i+1,i+1) for i in range(npipes)]))
             else:
                 p=""
@@ -507,7 +507,7 @@ ORDER BY m.id;
     
     def insertJunctionConnections(self,submodel,idm_conn,idc_conn,networks):
         """Insert the junction connections between plants or customers and pipes"""
-        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liqL' ELSE 'liqR' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
+        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liq1' ELSE 'liq2' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
     FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
@@ -588,7 +588,7 @@ ORDER BY m.id;
         elif type=='energy_plants':
             id_name='epid'
             seq_name='ep_seq'
-        sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,f.id AS fid, ST_AsText(f.geom) AS f_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN ST_dWithIn(st_startpoint(l.geom),f.geom,0.01) THEN 'liqL' ELSE 'liqR' END AS dir
+        sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,f.id AS fid, ST_AsText(f.geom) AS f_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN ST_dWithIn(st_startpoint(l.geom),f.geom,0.01) THEN 'liq1' ELSE 'liq2' END AS dir
     FROM "{}".{} f, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates f_t, public.connections conn, public.connection_type_connections conn_t_conns
     WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=f_t.conn_bundle_type AND fc.{}=conn_b_t.sequence AND f_t.template=f.template AND l.id=fc.lid AND f.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
     ORDER BY f.id, conn_b_t.sequence, conn_type_seq;""".format(self.dictDB['versionName'],type,self.dictDB['versionName'],type[:-1],self.dictDB['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))

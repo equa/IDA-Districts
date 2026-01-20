@@ -971,7 +971,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
                     
                         
-                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_script,exit_ida=True,finished_fn=self.finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
+                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_script,exit_ida=False,finished_fn=self.finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
                         self.threadpool_buildBuildingModel = QThreadPool()
                         self.threadpool_buildBuildingModel.start(self.worker_buildBuildingModel)
                         self.worker_buildBuildingModel.signals.error.connect(show_error_message)

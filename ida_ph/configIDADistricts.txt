@@ -1,1 +1,1 @@
-{'path_ice': 'C:\Program Files (x86)\IDA511Beta\', 'ice_api_delay': '20', 'path_postgresql': 'C:\Program Files\PostgreSQL\17\', 'debug': True, 'autosave': True, 'invoked_features': False, 'prn': False, 'db_results': False, 'autosave_dt': '120'}
+{'path_ice': 'C:\Program Files (x86)\IDA52\', 'ice_api_delay': '20', 'path_postgresql': 'C:\Program Files\PostgreSQL\17\', 'debug': True, 'autosave': True, 'invoked_features': False, 'prn': False, 'db_results': False, 'autosave_dt': '120'}
