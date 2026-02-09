@@ -1,9 +1,132 @@
 from qgis.PyQt.QtCore import QObject,pyqtSignal,Qt
 from qgis.PyQt import uic, QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
+from qgis.PyQt.QtWidgets import QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
 from qgis.utils import iface
 from qgis.core import Qgis
+from PyQt6.QtGui import QIcon
 
+from .db import *
+
+import copy
+
+def addParmTableRow(dlg,cur,config):
+    
+    maxId=max(getMaxIdAcrossSchemas(config,cur,'model_parms')+1,max([int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())],default=0))
+    dlg.tableWidget_parameters.insertRow(0)
+        
+    item = QTableWidgetItem(str(maxId))
+    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+    dlg.tableWidget_parameters.setItem(0 , 0, item)
+    dlg.tableWidget_parameters.setItem(0 , 1, QTableWidgetItem(''))
+    comboBox = QComboBox()
+    comboBox.addItems(['<-->','<--','-->'])
+    comboBox.setCurrentText('-->')
+    dlg.tableWidget_parameters.setCellWidget(0, 2, comboBox)  
+    dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))
+    dlg.tableWidget_parameters.setItem(0 , 4, QTableWidgetItem(''))        
+    dlg.tableWidget_parameters.setItem(0 , 5, QTableWidgetItem(''))        
+  
+def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
+    print('copyTableRow')
+    print(row_idx)
+    if row_idx!=-1: 
+        maxId=getMaxTableId(dlg.tableWidget)
+        addTableRowTrace(dlg,dropdowns,True,[],cur)
+        print('row added')
+        for col in range(dlg.tableWidget.columnCount())[1:]:
+            if dlg.tableWidget.item(row_idx+1,col):
+                print(dlg.tableWidget.item(row_idx+1,col).text())
+                dlg.tableWidget.setItem(0,col,QTableWidgetItem(dlg.tableWidget.item(row_idx+1,col).text()))
+            else:
+                dlg.tableWidget.cellWidget(0, col).setCurrentText(dlg.tableWidget.cellWidget(row_idx+1,col).currentText())
+        if openFn:
+            print(openFnArg)
+            id=dlg.tableWidget.item(row_idx+1,0).text()
+            table=openFnArg[0]
+            columns=openFnArg[1]
+            filter=openFnArg[3]+id
+            orderby=openFnArg[4]
+            sql="""INSERT INTO public.{} (id,{},{})
+    WITH sub AS(
+        SELECT max(id) AS max_id FROM public.{}
+    )
+    SELECT ROW_NUMBER() OVER (ORDER BY {}) + max_id AS row_number,{},{} FROM public.{},sub {} {} ;""".format(table,filter.split('WHERE ')[1].split('=')[0].strip(),','.join(i for i in columns),table,columns[0],str(maxId+1),','.join(i for i in columns),table,filter,orderby)
+            print(sql)
+            cur.execute(sql)
+    else:
+        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
+    
+def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
+    """Insert table row"""
+    rowPosition = 0
+    traceTableValues=copy.deepcopy(dlg.traceTableValues)
+    print('-------insert row---------------')
+    dlg.tableWidget.insertRow(rowPosition)
+    dropdownItems=getDropDownItems(cur,dropdowns)
+    for col in range(dlg.tableWidget.columnCount()):
+        if col in list([i[0] for i in dropdowns]):
+            comboBox = QComboBox()
+            for original_key, translated_text in dropdownItems[col].items():
+                comboBox.addItem(translated_text, original_key) # The second argument is the userData 
+            dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)
+            if trace:
+                comboBox.currentTextChanged.connect(dlg.changedDropdownItem)
+        else:
+            if col==0:
+                item=QTableWidgetItem(str(getMaxTableId(dlg.tableWidget)+1))
+            else:
+                item=QTableWidgetItem('')
+            if col in deactivated:
+                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+
+            dlg.tableWidget.setItem(0,col,item)
+            
+    #add row to dlg.traceTableValues in order to trace the changed values     
+    if trace:
+        print('----------trace-------'+str(trace))
+        for row in reversed(sorted(traceTableValues)):
+            print(row)
+            print(traceTableValues[row])
+            dlg.traceTableValues[row+1]=traceTableValues[row]
+        try:
+            print('--add trace values of row 0--')
+            if trace=='building_template':
+                dlg.traceTableValues[0]={i: ['',str(getMaxTableId(dlg.tableWidget)) if i==0 else ''] for i in range(dlg.tableWidget.columnCount())}            
+            elif trace in ['conn_type_trace','bt_conns_trace']:
+                print('conn_type_trace or bt_conns_trace')
+                print(dlg.tableWidget.item(0,0).text())
+                print(dlg.tableWidget.cellWidget(0,1).currentText())
+                dlg.traceTableValues[0]= ['',dlg.tableWidget.item(0,0).text(),'',dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0]]
+            elif trace:                   
+                print(dlg.tableWidget.item(0,1))
+                print(dlg.tableWidget.item(0,1).text())
+                print(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
+                dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
+            print(dlg.traceTableValues)
+            print('--finished trace values of row 0--')
+        except:
+            pass
+        print(dlg.traceTableValues)
+
+def deleteTableRowTrace (dlg,trace):
+    """ Delete selected template and refresh table"""
+    print('delete row')
+    row_index=dlg.tableWidget.currentRow()
+    print(row_index)
+    if row_index!=-1:
+        dlg.tableWidget.removeRow(row_index)
+    else:
+        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            
+    #delete row to dlg.traceTableValues in order to trace the changed values         
+    if trace:
+        for row in sorted(dlg.traceTableValues):
+            if row>row_index:
+                dlg.traceTableValues[row-1]=dlg.traceTableValues[row]
+        dlg.traceTableValues.pop(len(dlg.traceTableValues)-1,None)
+        print(dlg.traceTableValues)
+            
 def deleteTableRow (dlg):
     """ Delete selected template and refresh table"""
     print('delete row')
@@ -26,21 +149,27 @@ class TableDialog(QMainWindow):
         #table buttons     
         layout_buttons_table = QHBoxLayout()
         if addBtn:
-            self.btn_add=QPushButton("Add")
+            self.btn_add=QPushButton("")
+            self.btn_add.setIcon(QIcon(":/images/themes/default/symbologyAdd.svg"))
             layout_buttons_table.addWidget(self.btn_add)
         if deleteBtn:
-            self.btn_delete=QPushButton("Delete")
+            self.btn_delete=QPushButton("")
+            self.btn_delete.setIcon(QIcon(":/images/themes/default/symbologyRemove.svg"))
             layout_buttons_table.addWidget(self.btn_delete)
         if openBtn:
-            self.btn_open=QPushButton("Open and Save")
+            self.btn_open=QPushButton("")
+            self.btn_open.setIcon(QIcon(":/images/themes/default/mActionFileOpen.svg"))
             layout_buttons_table.addWidget(self.btn_open)
         if importBtn:
-            self.btn_import=QPushButton("Import")
+            self.btn_import=QPushButton("")
+            self.btn_import.setIcon(QIcon(":/images/themes/default/mActionSharingImport.svg"))
             layout_buttons_table.addWidget(self.btn_import)
         if saveAsBtn:
-            self.btn_saveAs=QPushButton("Copy")
+            self.btn_saveAs=QPushButton("")
+            self.btn_saveAs.setIcon(QIcon(":/images/themes/default/mActionEditCopy.svg"))
             layout_buttons_table.addWidget(self.btn_saveAs)
-        
+            
+        layout_buttons_table.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
         #Table
         layout_table = QHBoxLayout() 
         self.tableWidget = QTableWidget(0,len(headers))   
@@ -54,7 +183,7 @@ class TableDialog(QMainWindow):
 
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Save")
+        self.btn_ok=QPushButton("Ok")
         layout_buttons.addWidget(self.btn_ok)
         self.btn_cancel=QPushButton("Cancel")
         layout_buttons.addWidget(self.btn_cancel)
@@ -138,9 +267,9 @@ class CheckableComboBox(QComboBox):
         item=self.model().item(index,self.modelColumn())
         
         if checked:
-            item.setCheckState(Qt.Checked)
+            item.setCheckState(Qt.CheckState.Checked)
         else:
-            item.setCheckState(Qt.Unchecked)
+            item.setCheckState(Qt.CheckState.Unchecked)
             
     def setAllItemsChecked(self,checked=False):
         [self.setItemChecked(i,checked=checked) for i in range(self.count()) if not self.itemText(i)=='Check all items']
@@ -157,12 +286,12 @@ class CheckableComboBox(QComboBox):
         item=self.model().itemFromIndex(index)
         if item.row()==0:
             for i in range(1,self.model().rowCount()):
-                self.model().item(i,0).setCheckState(Qt.Checked)
+                self.model().item(i,0).setCheckState(Qt.CheckState.Checked)
         else:
-            if item.checkState()==Qt.Checked:
-                item.setCheckState(Qt.Unchecked)
+            if item.checkState()==Qt.CheckState.Checked:
+                item.setCheckState(Qt.CheckState.Unchecked)
             else:
-                item.setCheckState(Qt.Checked)
+                item.setCheckState(Qt.CheckState.Checked)
                 
         self._changed=True
         
@@ -173,7 +302,7 @@ class CheckableComboBox(QComboBox):
         
     def itemChecked(self,index):
         item=self.model().item(index,self.modelColumn())
-        return item.checkState()==Qt.Checked
+        return item.checkState()==Qt.CheckState.Checked
         
 def closeDialog(dlg):
     """ close dialog window"""

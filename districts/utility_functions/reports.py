@@ -5,10 +5,10 @@ def setupCustomerDataSheet():
     feature_layer=QgsProject.instance().mapLayersByName('customers')[0] 
 
     layoutName = "Customer Data Sheet"
-    action_text="""from PyQt5.QtGui import QFont,QColor
-from PyQt5.QtCore import *
+    action_text="""from qgis.PyQt.QtGui import QFont,QColor
+from qgis.PyQt.QtCore import *
 from qgis.core import *
-from PyQt5.QtGui import *
+from qgis.PyQt.QtGui import *
 from qgis.utils import iface
 import subprocess
 

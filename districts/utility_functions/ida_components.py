@@ -1,5 +1,5 @@
-from plugins.utility_functions.utility import *
-from plugins.utility_functions.db import *
+from .utility import *
+from .db import *
 
 import re
 
@@ -362,22 +362,22 @@ def getModelInterfaces(model):
     except:
         return ''                 
 
-def checkFeatureSubmodel(id,submodel,feature,feature_ids_per_submodel,cur,dictDB):
+def checkFeatureSubmodel(id,submodel,feature,feature_ids_per_submodel,cur,config):
     return [True for k in feature_ids_per_submodel if str(k['id'])==str(id) and k['feature']==feature]
 
-def getFeatureIdsPerSubmodel(submodel,cur,dictDB):
+def getFeatureIdsPerSubmodel(submodel,cur,config):
     sql="""(
     SELECT 1 AS feature, id FROM "{}".customers WHERE submodel={}
     UNION
     SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
 )
-ORDER BY feature,id;""".format(dictDB['versionName'],submodel,dictDB['versionName'],submodel,submodel)
+ORDER BY feature,id;""".format(config['versionName'],submodel,config['versionName'],submodel,submodel)
     cur.execute(sql)
     return cur.fetchall()
     
-def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_data,submodel,feature_id,cur,dictDB):
+def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_data,submodel,feature_id,cur,config):
     data_ex=[]
-    feature_ids_per_submodel=getFeatureIdsPerSubmodel(str(submodel),cur,dictDB)
+    feature_ids_per_submodel=getFeatureIdsPerSubmodel(str(submodel),cur,config)
     PhiHxLimit_signal=False
     TbSet_signal=False
     for conn_idc in conns_idc:
@@ -402,12 +402,12 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                         ':IMPORT': (link_data['import'] if network_side else link_data['export']),
                         ':EXPORT':(link_data['export'] if network_side else link_data['import']),
                         ':CONN-IDC':conn_idc}]
-            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Source_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_source'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,dictDB) and network_side==False or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,dictDB) and network_side)]:
+            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Source_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_source'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,config) and network_side==False or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,config) and network_side)]:
                 data_ex+=[{':N':model_name,':T': 'OUT',
                     ':IMPORT': [],
                     ':EXPORT': [link],
                     ':CONN-IDC':conn_idc}]
-            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_target'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,dictDB) and network_side==False or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,dictDB) and network_side)]:
+            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_target'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,config) and network_side==False or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,config) and network_side)]:
                 data_ex+=[{':N':model_name,':T': 'IN',
                     ':IMPORT': [link],
                     ':EXPORT': [],
@@ -432,7 +432,7 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                 print(ex[':EXPORT'])
     return data_ex
 
-def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_dec_data,submodel,cur,dictDB):
+def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_dec_data,submodel,cur,config):
     data_ex=[]
     PhiHxLimit_signal=False
     TbSet_signal=False
@@ -470,7 +470,7 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
                     ':IMPORT': [],
                     ':EXPORT': [link],
                     ':CONN-IDC':conn_idc}]
-            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data if i['source_type']==3 and i['function']==5 and submodel==str(getSupervisorySubmodel(cur,dictDB)['submodel']) 
+            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data if i['source_type']==3 and i['function']==5 and submodel==str(getSupervisorySubmodel(cur,config)['submodel']) 
                 and [True for j in i['irefs_target'] if j['cosim']==submodel and not j['network_side']]]:
                 print('supervisory target')
                 data_ex+=[{':N':model_name,':T': 'OUT',

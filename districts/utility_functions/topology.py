@@ -1,8 +1,8 @@
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT     
 import psycopg2.extras
-from plugins.utility_functions.utility import *
-from plugins.utility_functions.db import *
+from .utility import *
+from .db import *
 from qgis.PyQt.QtWidgets import QMessageBox
 
 def checkNetwork(cur,version,networks):
@@ -16,11 +16,11 @@ def checkNetwork(cur,version,networks):
         dlg_question = QMessageBox()
         dlg_question.setWindowTitle('Network attribute value missing!')
         dlg_question.setText("""{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?""".format(networkNullCount))
-        dlg_question.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
-        dlg_question.setIcon(QMessageBox.Question)
+        dlg_question.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        dlg_question.setIcon(QMessageBox.Icon.Question)
         button = dlg_question.exec()
 
-        if button == QMessageBox.Yes:
+        if button == QMessageBox.StandardButton.Yes:
             sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version)
             print(sql)
             cur.execute(sql)
@@ -309,7 +309,7 @@ def getPMT2muxIdentFromConnValues(connValues,conn_seq,conn_t_seq=1):
     except:
         return ''
         
-def checkLineDirectionTopology(cur,version,tolerance,iface,network):
+def checkLineDirectionTopology(cur,version,tolerance,signals,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
     print('Check line direction')
     sql="""SELECT st_v.id::integer AS epid 
@@ -384,7 +384,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
                 print(sql)
                 cur.execute(sql)
         except:
-            #iface.messageBar().pushMessage("Error", "Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.", level=Qgis.Critical)   
+            signals.error.emit("Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.")
             print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
             pass
 

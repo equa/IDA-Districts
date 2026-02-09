@@ -1,7 +1,7 @@
-from plugins.utility_functions.db import *
-from plugins.utility_functions.files import *
-from plugins.utility_functions.macros import *
-from plugins.utility_functions.dialog import *
+from .db import *
+from .files import *
+from .macros import *
+from .dialog import *
 
 
 import psycopg2
@@ -9,8 +9,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from qgis.PyQt.QtWidgets import QTableWidgetItem
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPool, pyqtSlot, QRunnable
-from plugins.utility_functions.util import *
-from plugins.utility_functions.workers import WorkerOpenAPI
+from .util import *
+from .workers import WorkerOpenAPI
     
 def cleanupSensorSignals(cur,dictDB):
     #tables source_ids,target_ids

@@ -61,7 +61,7 @@ class WorkerOSMBuildingsImport(QRunnable):
         zoomToLayer("customers")
         
         self.signals.progress.emit(100)  
-        self.signals.finished.emit('finished')  
+        self.signals.finished.emit('Import buildings finished!')  
                  
     def readOSMBuildings(self,nodes):
         print("read OSM buildings")
@@ -142,7 +142,7 @@ class WorkerOSMStreetsImport(QRunnable):
         refreshMap()
         zoomToLayer("streets")
         self.signals.progress.emit(100)  
-        self.signals.finished.emit('finished') 
+        self.signals.finished.emit('Import streets finished!') 
 
     def readOSMStreets(self,nodes):
         print("read OSM streets")

@@ -1,9 +1,12 @@
-from PyQt5.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication
 
 def tr(context,key):
     return QCoreApplication.translate(context, key)
     
 def _register_translation_keys():
+    #project
+    
+    
     #apply functions
     tr("min")
     tr("max")

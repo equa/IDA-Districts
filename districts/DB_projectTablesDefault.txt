@@ -1,0 +1,526 @@
+
+-------------------table public.sensors;------------------------------------
+DROP TABLE IF EXISTS public.sensors CASCADE;
+CREATE TABLE IF NOT EXISTS public.sensors
+(
+    id serial,
+    CONSTRAINT sensors_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.sensor_source;------------------------------------
+DROP TABLE IF EXISTS public.sensor_source CASCADE;
+CREATE TABLE IF NOT EXISTS public.sensor_source
+(
+    id serial,
+    sensor_id int,
+    type int,
+    template int,
+    measure int,
+    function int,
+    conn_type int,
+    conns int,
+    ids int,
+    test_value numeric DEFAULT 1,
+    description text,
+    CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
+    FOREIGN KEY (sensor_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+
+-------------------table public.source_template;------------------------------------
+DROP TABLE IF EXISTS public.source_template CASCADE;
+CREATE TABLE IF NOT EXISTS public.source_template
+(
+    id serial,
+    source_id int,
+    template int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_template_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+-------------------table public.source_conn_type;------------------------------------
+DROP TABLE IF EXISTS public.source_conn_type CASCADE;
+CREATE TABLE IF NOT EXISTS public.source_conn_type
+(
+    id serial,
+    source_id int,
+    conn_type int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_conn_type_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+-------------------table public.source_conns;------------------------------------
+DROP TABLE IF EXISTS public.source_conns CASCADE;
+CREATE TABLE IF NOT EXISTS public.source_conns
+(
+    id serial,
+    source_id integer,
+    connection_id integer,
+    active boolean DEFAULT false,
+    CONSTRAINT source_conns_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+-------------------table public.source_ids;------------------------------------
+DROP TABLE IF EXISTS public.source_ids CASCADE;
+CREATE TABLE IF NOT EXISTS public.source_ids
+(
+    id serial,
+    source_id int,
+    feature_id int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT source_ids_pkey PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+-------------------table public.invoked_sensor_source_signals;------------------------------------
+DROP TABLE IF EXISTS public.invoked_sensor_source_signals CASCADE;
+CREATE TABLE IF NOT EXISTS public.invoked_sensor_source_signals
+(
+    id serial,
+    type integer,
+    sensor_id integer,
+    templates integer[],
+    multi_signal boolean,
+    test_value numeric,
+    description text,
+    CONSTRAINT unique_sensor_source_id UNIQUE (sensor_id),
+    CONSTRAINT invoked_sensor_source_signals_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.sensor_target;------------------------------------
+DROP TABLE IF EXISTS public.sensor_target CASCADE;
+CREATE TABLE IF NOT EXISTS public.sensor_target
+(
+    id serial,
+    sensor_id int,
+    type int,
+    template int,
+    ids int,
+    target int,
+    test_value numeric,
+    description text,
+    CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
+    FOREIGN KEY (sensor_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+-------------------table public.target_template;------------------------------------
+DROP TABLE IF EXISTS public.target_template CASCADE;
+CREATE TABLE IF NOT EXISTS public.target_template
+(
+    id serial,
+    target_id int,
+    template int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_template_pkey PRIMARY KEY (id),
+    FOREIGN KEY (target_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+
+-------------------table public.target_ids;------------------------------------
+DROP TABLE IF EXISTS public.target_ids CASCADE;
+CREATE TABLE IF NOT EXISTS public.target_ids
+(
+    id serial,
+    target_id int,
+    feature_id int,
+    active boolean DEFAULT FALSE,
+    CONSTRAINT target_ids_pkey PRIMARY KEY (id),
+    FOREIGN KEY (target_id) REFERENCES public.sensors(id) ON DELETE CASCADE
+);
+
+-------------------table public.invoked_sensor_target_signals;------------------------------------
+DROP TABLE IF EXISTS public.invoked_sensor_target_signals CASCADE;
+CREATE TABLE IF NOT EXISTS public.invoked_sensor_target_signals
+(
+    id serial,
+    type integer,
+    sensor_id integer,
+    templates integer[],
+    target integer,
+    multi_signal boolean,
+    test_value numeric,
+    description text,
+    CONSTRAINT unique_sensor_target_id UNIQUE (sensor_id),
+    CONSTRAINT invoked_sensor_target_signals_pkey PRIMARY KEY (id)
+);
+-------------------table public.model_parms;------------------------------------
+DROP TABLE IF EXISTS public.model_parms CASCADE;
+CREATE TABLE IF NOT EXISTS public.model_parms
+(
+    id serial,
+    type integer,
+    parm_name text,
+    model_name text,
+    mapping_expression text,
+    macro_name text,
+    mapping_direction text DEFAULT 'ToIDA',
+    CONSTRAINT model_parms_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.zone_templates------------------------------------
+DROP TABLE IF EXISTS public.zone_templates CASCADE;
+CREATE TABLE IF NOT EXISTS public.zone_templates
+(
+    id serial,
+    name text,
+    description text,
+    CONSTRAINT zone_templates_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.room_units------------------------------------
+DROP TABLE IF EXISTS public.room_units CASCADE;
+CREATE TABLE IF NOT EXISTS public.room_units
+(
+    id serial,
+    name text,
+    CONSTRAINT room_units_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_construction_standard------------------------------------
+DROP TABLE IF EXISTS public.building_construction_standard CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_construction_standard
+(
+    id serial,
+    construction_standard_name text,
+    description text,
+    CONSTRAINT building_construction_standard_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_constructions------------------------------------
+DROP TABLE IF EXISTS public.building_constructions CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_constructions
+(
+    id serial,
+    construction_standard_id int,
+    construction_type_id int,
+    construction_name text,
+    description text,
+    CONSTRAINT building_constructions_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_construction_types------------------------------------
+DROP TABLE IF EXISTS public.building_construction_types CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_construction_types
+(
+    id serial,
+    type text,
+    name text,
+    CONSTRAINT building_construction_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.building_templates------------------------------------
+DROP TABLE IF EXISTS public.building_templates CASCADE;
+CREATE TABLE IF NOT EXISTS public.building_templates
+(
+    id serial,
+    template_name text,
+    description text,
+    CONSTRAINT building_templates_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.liquids------------------------------------
+DROP TABLE IF EXISTS public.liquids CASCADE;
+CREATE TABLE public.liquids(
+    id serial,
+    liquid text,
+    CONSTRAINT liquids_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.usage_category------------------------------------
+DROP TABLE IF EXISTS public.usage_category CASCADE;
+CREATE TABLE public.usage_category(
+    id serial,
+    name text,
+    CONSTRAINT usage_category_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipe_ambient------------------------------------
+DROP TABLE IF EXISTS public.pipe_ambient CASCADE;
+CREATE TABLE IF NOT EXISTS public.pipe_ambient
+(
+    id serial,
+    ambient text,
+    CONSTRAINT pipe_ambient_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.type------------------------------------
+DROP TABLE IF EXISTS public.type CASCADE;
+CREATE TABLE IF NOT EXISTS public.type
+(
+    id serial,
+    name text,
+    CONSTRAINT type_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.type------------------------------------
+DROP TABLE IF EXISTS public.measure CASCADE;
+CREATE TABLE IF NOT EXISTS public.measure
+(
+    id serial,
+    measure text,
+    unit text,
+    CONSTRAINT measure_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.target------------------------------------
+DROP TABLE IF EXISTS public.target CASCADE;
+CREATE TABLE IF NOT EXISTS public.target
+(
+    id serial,
+    target text,
+    CONSTRAINT target_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.signal_function------------------------------------
+DROP TABLE IF EXISTS public.signal_function CASCADE;
+CREATE TABLE IF NOT EXISTS public.signal_function
+(
+    id serial,
+    function text,
+    CONSTRAINT signal_function_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.prefered_conn_dir------------------------------------
+DROP TABLE IF EXISTS public.prefered_conn_dir CASCADE;
+CREATE TABLE public.prefered_conn_dir
+(
+  id serial,
+  name text,
+  CONSTRAINT prefered_conn_dir_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.conn_bundle_types------------------------------------
+DROP TABLE IF EXISTS public.conn_bundle_types CASCADE;
+CREATE TABLE public.conn_bundle_types
+(
+  id serial,
+  description text,
+  CONSTRAINT conn_bundle_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.bundle_type_conns------------------------------------
+DROP TABLE IF EXISTS public.bundle_type_conns CASCADE;
+CREATE TABLE public.bundle_type_conns
+(
+  id serial,
+  conn_bundle_type_id integer,
+  sequence int,
+  conn_type_id numeric,
+  description text,
+  CONSTRAINT bundle_type_conns_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.connection_types------------------------------------
+DROP TABLE IF EXISTS public.connection_types CASCADE;
+CREATE TABLE public.connection_types
+(
+  id serial,
+  description text,
+  CONSTRAINT connection_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.connection_type_connections------------------------------------
+DROP TABLE IF EXISTS public.connection_type_connections CASCADE;
+CREATE TABLE public.connection_type_connections
+(
+  id serial,
+  connection_type_id integer,
+  sequence integer,
+  connection_id integer,
+  CONSTRAINT connection_type_connections_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.connections------------------------------------
+DROP TABLE IF EXISTS public.connections CASCADE;
+CREATE TABLE public.connections
+(
+  id serial,
+  type integer,
+  p_ctrl BOOLEAN DEFAULT TRUE,
+  temp numeric,
+  p numeric,
+  mdot numeric,
+  description text,
+  CONSTRAINT connections_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipe_bundle_types------------------------------------
+DROP TABLE IF EXISTS public.pipe_bundle_types CASCADE;
+CREATE TABLE public.pipe_bundle_types
+(
+  id serial,
+  invest_costs numeric,
+  operation_costs numeric,
+  description text,
+  CONSTRAINT pipe_bundle_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.bundle_pipes------------------------------------
+DROP TABLE IF EXISTS public.bundle_pipes CASCADE;
+CREATE TABLE public.bundle_pipes
+(
+  id serial,
+  pipe_bundle_type_id integer,
+  sequence int,
+  pipe_id numeric,
+  x numeric,
+  y numeric,
+  ambient int,
+  CONSTRAINT bundle_pipes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipes------------------------------------
+DROP TABLE IF EXISTS public.pipes CASCADE;
+CREATE TABLE public.pipes
+(
+  id serial,
+  name text,
+  innerpipediameter numeric,
+  piperoughnessfactor numeric,
+  pipe_construction_id integer,
+  costs numeric,
+  description text,
+  CONSTRAINT pipes_pkey PRIMARY KEY (id)
+);
+  
+-------------------table public.pipe_constructions------------------------------------
+DROP TABLE IF EXISTS public.pipe_constructions CASCADE;  
+CREATE TABLE public.pipe_constructions
+(
+  id serial,
+  name text,
+  CONSTRAINT pipe_constructions_pkey PRIMARY KEY (id)
+);  
+
+-------------------table public.pipe_layers------------------------------------
+DROP TABLE IF EXISTS public.pipe_layers CASCADE;  
+CREATE TABLE public.pipe_layers
+(
+  id serial,
+  pipe_construction_id integer,
+  materialid integer,
+  thickness numeric,
+  sequence integer,
+  CONSTRAINT layer_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.materials------------------------------------
+DROP TABLE IF EXISTS public.materials CASCADE; 
+CREATE TABLE public.materials
+(
+  id serial,
+  name text,
+  thermal_conductivity_w7mkelvin numeric,
+  specific_heat_j7kgkelvin numeric,
+  density_kg7m3 numeric,
+  CONSTRAINT material_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.versionhandling;------------------------------------
+DROP TABLE IF EXISTS public.versionhandling CASCADE;
+CREATE TABLE public.versionhandling
+(
+  id serial,
+  name text,
+  id_base int,
+  description text,
+  CONSTRAINT versionhandling_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.customer_templates------------------------------------
+DROP TABLE IF EXISTS public.customer_templates CASCADE;
+CREATE TABLE public.customer_templates
+(
+	id serial,
+    template integer,
+	template_name text,
+    conn_bundle_type integer,
+	description text,
+	CONSTRAINT customer_template_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.energy_plant_templates------------------------------------
+DROP TABLE IF EXISTS public.energy_plant_templates CASCADE;
+CREATE TABLE public.energy_plant_templates
+(
+	id serial,
+	template integer,
+	template_name text,
+	conn_bundle_type integer DEFAULT 2,
+	description text,
+	CONSTRAINT energy_plant_templates_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.line_types------------------------------------
+DROP TABLE IF EXISTS public.line_types CASCADE;
+CREATE TABLE public.line_types
+(
+	id serial,
+	type text,
+	description text,
+	CONSTRAINT line_types_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.junction_types------------------------------------
+DROP TABLE IF EXISTS public.junction_types CASCADE;
+CREATE TABLE public.junction_types
+(
+	id serial,
+	type text,
+	description text,
+	CONSTRAINT junction_types_pkey PRIMARY KEY (id)
+);
+
+
+--------------------------------------------------------------------------------
+------------------temp tables-----------------------------------------
+
+-- Table: temp.junction_connections
+-- DROP TABLE temp.junction_connections;
+CREATE TABLE temp.junction_connections
+(
+  id serial,
+  jid integer,
+  lid integer,
+  CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: temp.customer_connections
+-- DROP TABLE temp.customer_connections;
+CREATE TABLE temp.customer_connections
+(
+  id serial,
+  cid integer,
+  c_seq integer,
+  lid integer,
+  CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
+);
+  
+-- Table: temp.energy_plant_connections
+-- DROP TABLE temp.energy_plant_connections;
+CREATE TABLE temp.energy_plant_connections
+(
+  id serial,
+  epid integer,
+  ep_seq integer,
+  lid integer,
+  CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: temp.streets_help
+-- DROP TABLE temp.streets_help;
+CREATE TABLE temp.streets_help (
+    id serial,
+    geom public.geometry(LineString,25832),
+    type integer,
+    pipe_bundle_type_id integer,
+    zeta numeric,
+    length_m double precision,
+    costs_eur7m numeric DEFAULT 100,
+    source integer,
+    target integer,
+    CONSTRAINT streets_help_pkey PRIMARY KEY (id)
+);

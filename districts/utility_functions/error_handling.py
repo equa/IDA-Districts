@@ -1,4 +1,4 @@
-from plugins.utility_functions.db import *
+from .db import *
 
 import psycopg2
 import psycopg2.extras

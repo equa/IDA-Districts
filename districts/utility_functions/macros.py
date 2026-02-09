@@ -1,5 +1,4 @@
-#from plugins.utility_functions.db import *
-from plugins.utility_functions.files import *
+from .files import *
 import os
 
 def writeSensorMacroIdm(dir,name):

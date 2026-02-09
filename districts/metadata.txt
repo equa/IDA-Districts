@@ -5,10 +5,13 @@
 [general]
 name=IDA Districts
 qgisMinimumVersion=3.0
+qgisMaximumVersion=3.99
 description=This is the IDA Districts plugin
 version=0.1
 author=EQUA
 email=peter.nageler@equa.ch
+supportsQt6=True
+icon=icons/IDA_Districts_Icon_QGIS.png
 
 about=This is IDA Districts for network modelling.
 
@@ -27,7 +30,6 @@ tags=
 
 homepage=
 category=Plugins
-icon=icon.png
 # experimental flag
 experimental=True
 

@@ -1,4 +1,4 @@
-from plugins.utility_functions.files import *
+from .files import *
 
 def switchDebugMode(debug,plugin_dir):
     if debug:

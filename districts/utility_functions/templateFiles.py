@@ -1,14 +1,14 @@
-from plugins.utility_functions.db import *
-from plugins.utility_functions.files import *
-from plugins.utility_functions.macros import *
+from .db import *
+from .files import *
+from .macros import *
 import os.path
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os
 
-from plugins.ida_mosim.invoke import *
-from plugins.utility_functions.topology import *
+from .invoke import *
+from .topology import *
 
 def readDecoupledFeatureSensorSignals(submodel,dir,dictDB,cur,plugin_dir,sensor_data):
     target_dir=dir+"\\network_"+str(submodel)
@@ -384,11 +384,11 @@ class CopyDecoupledTemplateMacro:
         
 class ExchangeConntypeFiles:
     """ Exchanges connection types: 1) Removes the old connection type; 2) add the new connection type !!!!To do!!!!"""
-    def __init__(self,plugin_dir,name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=[]):
+    def __init__(self,plugin_dir,config,name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=[]):
         print('*********ExchangeConntypeFiles********')
         self.plugin_dir=plugin_dir
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
+        self.config=config
+        dir=self.plugin_dir+"\\projects\\"+self.config['projectName']+"\\{}_templates".format(type)
         
         if not oldConnValues:
             oldConnValues=getConnsValues(b_conn_t_old,cur)
@@ -680,17 +680,17 @@ class ExchangeConntypeFiles:
 
 class RenameTemplateFiles:
     """ Rename the templates"""
-    def __init__(self,plugin_dir,name,type,new_name,cur):
+    def __init__(self,config,plugin_dir,name,type,new_name,cur):
         print('RenameTemplateFiles')
         self.plugin_dir=plugin_dir
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
+        self.config=config
+        dir=self.plugin_dir+"\\projects\\"+self.config['projectName']+"\\{}_templates".format(type)
         filedata=""
         if not os.path.exists(dir+'\\'+name+'.idm') or not os.path.exists(dir+'\\'+name+'.idc'):
             sql=f"""DELETE FROM {type}_templates WHERE template={name.split('_')[0]};"""
             print(sql)
             cur.execute(sql)
-            return False
+            return None
                
         moveFileReplaceStr(dir+'\\'+name+'.idm',dir,dir+'\\'+new_name+'.idm',[name],[new_name],replaceDict=False)     
         moveFileReplaceStr(dir+'\\'+name+'.idc',dir,dir+'\\'+new_name+'.idc',[name],[new_name],replaceDict=False)           
@@ -858,13 +858,13 @@ class CopyTemplateMacro:
             
 class WriteTemplateFiles:
     """ writes the .idm and .idc to the plugin folder and adds a macro to define and test templates """
-    def __init__(self,plugin_dir,name,type,cur,bundle):
+    def __init__(self,config,plugin_dir,name,type,cur,bundle):
         print('write template {}'.format(type))
         print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------')
         self.cur=cur
         self.plugin_dir=plugin_dir
-        self.dictDB=getDBConnectionData(self.plugin_dir)
-        self.dir=self.plugin_dir+"\\"+self.dictDB['projectName']+"\\{}_templates".format(type)
+        self.config=config
+        self.dir=self.plugin_dir+"\\projects\\"+self.config['projectName']+"\\{}_templates".format(type)
         print('bundle: {}'.format(bundle))
         connValues=getConnsValues(bundle,self.cur)
         print(connValues)
@@ -877,11 +877,11 @@ class WriteTemplateFiles:
         writeSensorMacroIdm(self.dir,name)
         writeSensorMacroIdc(self.dir,name)
         
-        writeMacroClimateIdm(self.dictDB,self.cur,name,self.dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.dictDB),getClimateData(self.cur,self.dictDB,True))
-        writeMacroClimateIdc(name,self.dir,loadModellingSettings(self.plugin_dir,self.dictDB))
+        writeMacroClimateIdm(self.config,self.cur,name,self.dir,self.plugin_dir,loadModellingSettings(self.plugin_dir,self.config),getClimateData(self.cur,self.config,True))
+        writeMacroClimateIdc(name,self.dir,loadModellingSettings(self.plugin_dir,self.config))
         
-        writeMacroSFIdm(self.dictDB,self.cur,self.dir+'\\'+name)
-        writeMacroSFIdc(self.dictDB,self.cur,self.dir+'\\'+name)
+        writeMacroSFIdm(self.config,self.cur,self.dir+'\\'+name)
+        writeMacroSFIdc(self.config,self.cur,self.dir+'\\'+name)
         
     def createMacroDir(self,dir,name):
         """ makes a new folder for the template macro if it does not exists"""

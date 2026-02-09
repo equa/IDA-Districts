@@ -1,0 +1,283 @@
+------------------------------ version tables ---------------------------------
+
+-------------------table "$versionName$".boreholes;----------------------------------------------------------
+DROP TABLE IF EXISTS "$versionName$".boreholes CASCADE;
+CREATE TABLE "$versionName$".boreholes(
+    id serial,
+    geom GEOMETRY (POINTZ,$srid$),
+    plant_id int DEFAULT 1,
+    "group" int DEFAULT 1,
+    mir boolean DEFAULT FALSE,
+    CONSTRAINT boreholes_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".borehole_fields;----------------------------------------------------------
+DROP TABLE IF EXISTS "$versionName$".borehole_fields CASCADE;
+CREATE TABLE "$versionName$".borehole_fields(
+    id serial,
+    ep_id integer,
+    zhole numeric CHECK (zhole > 0),
+    rhole numeric CHECK (rhole > 0),
+    rb numeric CHECK (rb >= 0), 
+    rpipeearth numeric CHECK (rpipeearth > 0), 
+    rpipegrout numeric CHECK (rpipegrout > 0), 
+    rringearth numeric CHECK (rringearth > 0), 
+    rgroutearth numeric CHECK (rgroutearth > 0), 
+    rgroutgrout numeric CHECK (rgroutgrout > 0), 
+    mir int,
+    rmax numeric CHECK (rmax > 0),
+    nring int CHECK (nring > 0),
+    nzhole int CHECK (nzhole > 0),
+    nlayt int CHECK (nlayt > 0),
+    n1 int CHECK (n1 >= 0),
+    n2 int CHECK (n2 >= 0),
+    n3 int CHECK (n3 >= 0),
+    toutput numeric CHECK (toutput >= 0),
+    cpgrd numeric CHECK (cpgrd > 0),
+    lambgrd numeric CHECK (lambgrd > 0),
+    rhogrd numeric CHECK (rhogrd > 0),
+    cpgrout numeric CHECK (cpgrout > 0),
+    lambgrout numeric CHECK (lambgrout > 0),
+    rhogrout numeric CHECK (rhogrout > 0),
+    rpipe numeric CHECK (rpipe > 0),
+    thickpipe numeric CHECK (thickpipe > 0),
+    cppipe numeric CHECK (cppipe > 0),
+    lambpipe numeric CHECK (lambpipe > 0),    
+    lcasting numeric CHECK (lcasting > 0),
+    lambda numeric CHECK (lambda > 0),
+    rhosurface numeric CHECK (rhosurface > 0),
+    cpsurface numeric CHECK (cpsurface > 0),  
+    liqtype int,
+    tfreeze numeric,
+    lambliq numeric CHECK (lambliq > 0),
+    tmean numeric,
+    geotgrad numeric,
+    CONSTRAINT borehole_fields_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".supervisory_ctrl;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".supervisory_ctrl CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".supervisory_ctrl
+(
+    id serial,
+    submodel integer,
+    CONSTRAINT supervisory_ctrl_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".feature_decoupling;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".feature_decoupling CASCADE;
+CREATE TABLE IF NOT EXISTS "$versionName$".feature_decoupling
+(
+    id serial,
+    template int,
+    comp_name text,
+    type text,
+    CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".climate;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".climate CASCADE;
+CREATE TABLE "$versionName$".climate
+(
+  id serial,
+  name text DEFAULT 'Graz',
+  file_name text DEFAULT '$plugins_path$\ida_districts_data_center\Samples\climate\Graz-hour_std.prn',
+  latitude numeric DEFAULT 47.4,
+  longitude numeric DEFAULT -15.26,
+  timezone integer DEFAULT -1,
+  height numeric DEFAULT 353,
+  CONSTRAINT climate_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".submodels;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".submodels CASCADE;
+CREATE TABLE "$versionName$".submodels
+(
+  id serial,
+  submodel text,
+  geom geometry(MultiPolygon,$srid$),
+  CONSTRAINT submodel_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".network;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".network CASCADE;
+CREATE TABLE "$versionName$".network
+(
+  id serial,
+  description text,
+  CONSTRAINT network_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".customers;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".customers CASCADE;
+CREATE TABLE "$versionName$".customers
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	template integer DEFAULT 0,
+    network integer[] DEFAULT ARRAY[1],
+    load_w numeric DEFAULT 10000,
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+    dhw_id integer,
+    internal_load_id integer,   
+    gfa numeric DEFAULT 100,   
+	CONSTRAINT customers_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table "$versionName$".energy_plants;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".energy_plants CASCADE;
+CREATE TABLE "$versionName$".energy_plants
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	template integer DEFAULT 0,
+    network integer[] DEFAULT ARRAY[1],
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
+);
+
+
+-------------------table "$versionName$".lines;------------------------------------
+DROP TABLE IF EXISTS "$versionName$".lines CASCADE;
+CREATE TABLE "$versionName$".lines
+(
+	id serial,
+	geom geometry(LineStringZ,$srid$),
+    network integer DEFAULT 1,
+	type integer,
+    pipe_bundle_type_id integer DEFAULT 1,
+	length numeric,
+    zeta numeric DEFAULT 0,
+	submodel integer[] DEFAULT ARRAY[1],
+	CONSTRAINT lines_pkey PRIMARY KEY (id)
+);
+
+-------------------table "$versionName$".junctions------------------------------------
+DROP TABLE IF EXISTS "$versionName$".junctions CASCADE;
+CREATE TABLE "$versionName$".junctions
+(
+	id serial,
+	geom geometry(PointZ,$srid$),
+	type integer,
+    n_connections integer check(n_connections >= 1),
+	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
+    network integer DEFAULT 1, --reference to submodelname in subnet_line 
+    zeta numeric DEFAULT 0,
+	CONSTRAINT junctions_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".buildings
+-- DROP TABLE "$versionName$".buildings;
+CREATE TABLE "$versionName$".buildings
+(
+  id serial,
+  b_id integer,
+  z_id integer,
+  substation_id integer,
+  submodel integer DEFAULT 1,
+  geom geometry(MultiPolygon,$srid$),
+  z_bh_m numeric,
+  z_height_m numeric,
+  z_template integer,
+  z_construction integer,
+  room_unit integer,
+  win_facade_ratio NUMERIC DEFAULT 30,
+  CONSTRAINT buildings_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".junction_connections
+-- DROP TABLE "$versionName$".junction_connections;
+CREATE TABLE "$versionName$".junction_connections
+(
+  id serial,
+  jid integer,
+  lid integer,
+  CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".customer_connections
+-- DROP TABLE "$versionName$".customer_connections;
+CREATE TABLE "$versionName$".customer_connections
+(
+  id serial,
+  cid integer,
+  c_seq integer,
+  lid integer,
+  CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
+);
+  
+-- Table: "$versionName$".energy_plant_connections
+-- DROP TABLE "$versionName$".energy_plant_connections;
+CREATE TABLE "$versionName$".energy_plant_connections
+(
+  id serial,
+  epid integer,
+  ep_seq integer,
+  lid integer,
+  CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".pipes_model
+-- DROP TABLE "$versionName$".pipes_model;
+CREATE TABLE "$versionName$".pipes_model
+(
+  id serial,
+  sim_model integer,
+  pid integer,
+  co_sim integer,
+  CONSTRAINT id_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".segment_lines_00
+-- DROP TABLE "$versionName$".segment_lines_00;
+CREATE TABLE "$versionName$".segment_lines_00
+(
+  lines_id integer,
+  rc_split_multi geometry
+);
+
+-- Index: "$versionName$".segment_lines_00_rc_split_multi_idx
+-- DROP INDEX "$versionName$".segment_lines_00_rc_split_multi_idx;
+CREATE INDEX segment_lines_00_rc_split_multi_idx
+  ON "$versionName$".segment_lines_00
+  USING gist
+  (rc_split_multi);
+
+-- Table: "$versionName$".streets
+-- DROP TABLE "$versionName$".streets;
+CREATE TABLE "$versionName$".streets
+(
+  id serial,
+  geom geometry(LineString,$srid$),
+  length_m double precision,
+  costs_eur7m numeric DEFAULT 100,
+  source integer,
+  target integer,
+  CONSTRAINT streets_pkey PRIMARY KEY (id)
+);
+
+	
+-- Table: "$versionName$".time_manager_tair
+-- DROP TABLE "$versionName$".time_manager_tair;
+CREATE TABLE "$versionName$".time_manager_tair
+(
+  id serial,
+  b_id serial,
+  the_geom geometry(MultiPolygon,$srid$),
+  time_h text,
+  time_stamp timestamp without time zone,
+  t_air_c numeric,
+  CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
+);
+
+-- Table: "$versionName$".invoked_sf
+-- DROP TABLE IF EXISTS "$versionName$".invoked_sf;
+CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sf
+(
+    id serial,
+    sf text,
+    type text,
+    vars text[],
+    CONSTRAINT invoked_sf_pkey PRIMARY KEY (id)
+);

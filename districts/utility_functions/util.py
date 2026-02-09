@@ -4,20 +4,19 @@ import time
 from win32 import win32process
 import sys
 import os
-from plugins.utility_functions.files import *
+from .files import *
 
 class Util_api:
-    def __init__(self,plugin_dir,submodel='1'):
+    def __init__(self,plugin_dir,config,submodel='1'):
         # Define your path to the IDA ICE bin folder here
-        path_to_ice = loadIDADistrictsConfig(plugin_dir)['path_ice'].replace("\\","\\\\")+"bin\\\\"
+        path_to_ice = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
         command = "\""+path_to_ice + "ida-ice.exe\" \"" + path_to_ice + "ida.img\" -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
         print(command)
-        configIDADistricts=loadIDADistrictsConfig(plugin_dir)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
         self.pid = str(ret[2])
         print(self.pid)
-        time.sleep(float(configIDADistricts['ice_api_delay']))
+        time.sleep(float(config['districts_api_delay']))
         #Add path_to_ice to PATH variable, is removed when program finishes
         os.environ['PATH'] = path_to_ice + os.pathsep  + os.environ['PATH']
 

@@ -1,0 +1,2075 @@
+--version handling: update trigger
+
+CREATE OR REPLACE FUNCTION my_trigger_update_function() 
+RETURNS TRIGGER AS $$
+DECLARE
+    col_name text;
+    old_value text;
+    new_value text;
+    version RECORD;
+    col_data_type text;
+    column_exists BOOLEAN;
+BEGIN
+    -- Loop through each version schema
+    FOR version IN
+        SELECT name FROM get_version_hierarchy(TG_TABLE_SCHEMA) WHERE name != TG_TABLE_SCHEMA
+    LOOP 
+        -- Loop through each column in the table for the version schema
+        FOR col_name IN
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = TG_TABLE_NAME AND table_schema = version.name
+        LOOP
+            -- Check if the column exists in the version schema (before attempting to process it)
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = TG_TABLE_NAME AND table_schema = TG_TABLE_SCHEMA AND column_name = col_name
+            ) INTO column_exists;
+
+            IF column_exists THEN
+                -- Get the column's data type
+                SELECT data_type INTO col_data_type
+                FROM information_schema.columns
+                WHERE table_name = TG_TABLE_NAME AND table_schema = version.name AND column_name = col_name;
+
+                -- Construct the old and new values dynamically using the column name
+                BEGIN
+                    EXECUTE format('SELECT $1.%I, $2.%I', col_name, col_name) INTO old_value, new_value USING OLD, NEW;
+
+                    -- Check if the column has been updated
+                    IF old_value IS DISTINCT FROM new_value THEN
+                        -- If the column is one of the specified types, use quotes
+                        IF col_data_type IN ('geometry', 'text', 'character varying', 'char') THEN
+                            -- Modify old and new values to use quotes for these specific types
+                            old_value := COALESCE(old_value, ''''::text);  -- Use a single quote
+                            new_value := COALESCE(new_value, ''''::text);  -- Use a single quote
+                        END IF;
+
+                        -- Update the value in the corresponding version schema
+                        EXECUTE format('UPDATE "%I".%I SET %I = %L WHERE id = %s', version.name, TG_TABLE_NAME, col_name, new_value, OLD.id);
+                    END IF;
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        RAISE NOTICE 'Error processing column % in schema %: %', col_name, version.name, SQLERRM;
+                END;
+            END IF;
+        END LOOP;
+    END LOOP;
+
+    -- Return the new row after the update
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+--version handling: delete trigger
+
+CREATE OR REPLACE FUNCTION my_trigger_delete_function() 
+RETURNS trigger AS $$
+DECLARE
+    recB RECORD;
+BEGIN
+    -- RAISE notice '%',TG_OP;
+    -- Handling delete trigger (for normal DELETE operations)
+    IF TG_OP = 'DELETE' THEN
+        FOR recB IN 
+            SELECT * FROM get_version_hierarchy(TG_TABLE_SCHEMA) WHERE name != TG_TABLE_SCHEMA
+        LOOP
+            -- Performing delete operation in related tables
+            EXECUTE format('DELETE FROM "%s".%s WHERE id=%s', recB.name, TG_TABLE_NAME, OLD.id);
+        END LOOP;
+        -- Return the new row for AFTER INSERT triggers (although it's not really used in DELETE triggers)
+        RETURN NEW;
+    END IF;
+    
+END;
+$$ LANGUAGE plpgsql;
+
+--version handling: truncate trigger
+
+CREATE OR REPLACE FUNCTION my_trigger_truncate_function() 
+RETURNS trigger AS $$
+DECLARE
+    recB RECORD;
+BEGIN
+    -- Handling truncate operation (for TRUNCATE operations)
+    IF TG_OP = 'TRUNCATE' THEN
+        FOR recB IN 
+            SELECT * FROM get_version_hierarchy(TG_TABLE_SCHEMA) WHERE name != TG_TABLE_SCHEMA
+        LOOP
+            -- Performing truncate operation in related tables
+            EXECUTE format('TRUNCATE TABLE "%s".%s CASCADE', recB.name, TG_TABLE_NAME);
+        END LOOP;
+        -- No need to return anything for truncate, as no row is affected
+        RETURN NULL;
+    END IF;
+    
+END;
+$$ LANGUAGE plpgsql;
+
+--versionhandling: insert trigger (update the id, if child versions has higher id) 
+
+
+CREATE OR REPLACE FUNCTION my_trigger_insert_function() 
+RETURNS trigger AS $$
+DECLARE
+	recB Record;
+    max_id int;
+    common_columns text;
+    sql_query text;
+BEGIN
+    sql_query := format('SELECT * FROM get_highest_id_across_schemas(''%s'', (SELECT array_agg(name) FROM get_version_hierarchy(''%s'') WHERE name NOT IN (''%s'',''temp'')))', TG_TABLE_NAME,TG_TABLE_SCHEMA,TG_TABLE_SCHEMA);
+    --RAISE NOTICE 'query: %', sql_query;
+    EXECUTE sql_query INTO max_id;
+    max_id := max_id+1;
+    --RAISE NOTICE 'Max_id: % ', max_id;
+    IF max_id > New.id THEN
+        --RAISE NOTICE '+++++update id: % ++++++',max_id;
+        EXECUTE format('UPDATE "%s"."%s" SET id = %s WHERE id=%s',TG_TABLE_SCHEMA,TG_TABLE_NAME,max_id,New.id);
+        EXECUTE format('SELECT SETVAL(''%s.%s_id_seq'',%s)',TG_TABLE_SCHEMA,TG_TABLE_NAME,max_id);
+    END IF;
+    max_id:= GREATEST(max_id,New.id);
+    --RAISE NOTICE 'Max_id: % ', max_id;
+
+	FOR recB IN 
+		EXECUTE format('SELECT * FROM get_version_hierarchy(''%s'') WHERE name!=''%s''',TG_TABLE_SCHEMA,TG_TABLE_SCHEMA)
+	LOOP
+        --RAISE NOTICE 'New row inserted:% ; %',recB.name ,TG_TABLE_NAME;
+        
+        SELECT string_agg('"'||column_name||'"',',') INTO common_columns
+        FROM information_schema.columns
+        WHERE table_name = TG_TABLE_NAME AND table_schema = TG_TABLE_SCHEMA
+            AND column_name IN (
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = TG_TABLE_NAME AND table_schema = recB.name
+            );
+        --RAISE NOTICE '%',common_columns;
+
+        -- Remove trailing comma and space
+        common_columns := rtrim(common_columns, ', ');
+
+        -- Create the dynamic SQL query for insertion
+        sql_query := 'INSERT INTO "' || recB.name ||'".' || TG_TABLE_NAME || ' (' || common_columns || ') ' ||
+                     'SELECT ' || common_columns || ' FROM "' || TG_TABLE_SCHEMA ||'".' || TG_TABLE_NAME || ' WHERE id = '|| max_id;
+
+        --RAISE NOTICE 'Insert query: % ', sql_query;
+        -- Execute the dynamic SQL
+        EXECUTE sql_query;
+    END LOOP; 
+    
+	FOR recB IN 
+		EXECUTE format('SELECT * FROM get_version_tree(''%s'')',TG_TABLE_SCHEMA)
+	LOOP 
+        BEGIN
+            --update sequence
+            EXECUTE format('SELECT SETVAL(''%s.%s_id_seq'',%s)',recB.name,TG_TABLE_NAME,max_id);
+        EXCEPTION
+            WHEN undefined_table OR undefined_object THEN
+                RAISE NOTICE 'Sequence %.%_id_seq does not exist.', recB.name, TG_TABLE_NAME;
+        END;      
+    END LOOP; 
+    -- Return the new row (for `AFTER INSERT` triggers)
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+--get all child versions (including version) of version
+
+CREATE OR REPLACE FUNCTION public.get_version_hierarchy(versionname text) RETURNS TABLE(id INT, name TEXT, id_base INT)
+    LANGUAGE plpgsql
+    AS $_$DECLARE
+BEGIN		
+	RETURN QUERY
+    EXECUTE format('WITH RECURSIVE version_hierarchy AS (
+    SELECT id, name,id_base FROM versionhandling WHERE name=''%s''
+    
+    UNION ALL
+    
+    SELECT v.id, v.name,v.id_base FROM versionhandling v JOIN version_hierarchy vh ON v.id_base = vh.id
+)
+SELECT id,name,id_base FROM version_hierarchy;', versionName);
+END;
+$_$;
+
+CREATE OR REPLACE FUNCTION public.get_version_tree(versionname text) 
+RETURNS TABLE(id INT, name TEXT, id_base INT)
+LANGUAGE plpgsql
+AS $_$
+DECLARE
+BEGIN
+    RETURN QUERY
+    EXECUTE format('WITH RECURSIVE version_hierarchy AS (
+        -- Non-recursive part: Start from the specified version
+        SELECT id, name, id_base
+        FROM versionhandling 
+        WHERE name = ''%s''
+
+        UNION ALL
+
+        -- Recursive part: Get ancestor versions (parent versions)
+        SELECT v.id, v.name, v.id_base
+        FROM versionhandling v
+        JOIN version_hierarchy vh ON v.id = vh.id_base
+    ),
+    -- Another CTE to get descendants (child versions)
+    descendants AS (
+        SELECT id, name, id_base
+        FROM versionhandling
+        WHERE name = ''%s''
+
+        UNION ALL
+        
+        SELECT v.id, v.name, v.id_base
+        FROM versionhandling v
+        JOIN descendants d ON v.id_base = d.id
+    )
+    -- Combine both parents and children in the final result
+    SELECT id, name, id_base
+    FROM version_hierarchy
+    UNION
+    SELECT id, name, id_base
+    FROM descendants;', versionname, versionname);
+END;
+$_$;
+
+--get max id of table accross versions (used in insert trigger function)
+
+CREATE OR REPLACE FUNCTION get_highest_id_across_schemas(table_name text, schemas text[])
+RETURNS bigint AS
+$$
+DECLARE
+    schema text;
+    query text;
+    max_id bigint;
+    overall_max_id bigint := 0;  -- To store the highest value across all schemas
+BEGIN
+    IF schemas IS NOT NULL THEN 
+        -- Loop through each schema in the array
+        FOREACH schema IN ARRAY schemas LOOP
+            -- Construct the dynamic query for each schema
+            query := 'SELECT MAX(id) FROM ' || quote_ident(schema) || '.' || quote_ident(table_name);
+
+            -- Execute the query dynamically and store the result in max_id
+            EXECUTE query INTO max_id;
+
+            -- Update the overall_max_id if we found a higher ID
+            IF max_id IS NOT NULL AND max_id > overall_max_id THEN
+                overall_max_id := max_id;
+            END IF;
+        END LOOP;
+    END IF;
+    
+    -- Return the highest ID found across all schemas
+    RETURN overall_max_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Version handling for: ADD, DROP and RENAME COLUMN & ALTER DATA TYPE 
+
+CREATE OR REPLACE FUNCTION table_alterations()
+RETURNS event_trigger AS $$
+DECLARE
+    command_text TEXT;
+    command_parts TEXT[];
+    version RECORD;
+    schema_name TEXT;
+    table_name_ TEXT;
+    column_name TEXT;
+    new_column_name TEXT;
+    new_data_type TEXT;
+    sql_query TEXT;
+    command_clean TEXT;
+    column_match TEXT[];
+    column_clause TEXT;
+    column_defs TEXT[];
+    matches TEXT[];
+    statements TEXT[];
+    stmt TEXT;
+BEGIN
+    -- Check if the temporary table 'event_trigger_flag' exists
+    -- If not, create it to track the function execution flag
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'event_trigger_flag') THEN
+        CREATE TEMPORARY TABLE event_trigger_flag (is_running BOOLEAN);
+        -- Initially set flag to false
+        INSERT INTO event_trigger_flag VALUES (false);
+    END IF;
+
+    -- Check if the event trigger function is already running in this session
+    IF (SELECT is_running FROM event_trigger_flag) = true THEN
+        -- Skip processing if the flag is already set (i.e., the function is already running)
+        RETURN;
+    END IF;
+
+    -- Set the flag to true indicating the function is running
+    UPDATE event_trigger_flag SET is_running = true;
+
+    -- Capture the executed DDL command (the query)
+    command_text := current_query();
+    -- Normalize whitespace and remove BEGIN/COMMIT if present
+    command_text := regexp_replace(command_text, '\s+', ' ', 'g');
+    command_clean := trim(regexp_replace(command_text, 'BEGIN;|COMMIT;', '', 'gi'));
+
+    RAISE NOTICE 'command text: %',command_text;
+    RAISE NOTICE 'command clean: %',command_clean;
+
+
+    -- Check if it's an ALTER TABLE command
+    IF command_clean ILIKE 'ALTER TABLE%' THEN
+        -- If it's an ALTER TABLE ADD COLUMN, extract the details
+        IF command_clean ILIKE '%ADD COLUMN%' THEN
+            -- Extract schema and table names
+            SELECT 
+                trim(both '"' FROM COALESCE(NULLIF((string_to_array(split_part(command_clean, ' ', 3), '.'))[1], ''), current_schema)),
+                trim(both '"' FROM (string_to_array(split_part(command_clean, ' ', 3), '.'))[2])
+            INTO schema_name, table_name_;
+
+            -- Extract all ADD COLUMN clauses into an array
+            column_defs := regexp_split_to_array(
+                command_clean,
+                'ADD COLUMN\s+(?:IF NOT EXISTS\s+)?',  -- use this to split multiple column additions
+                'i'
+            );
+
+            -- Skip the first element (it contains the table name part)
+            FOR i IN 2 .. array_length(column_defs, 1) LOOP
+                column_clause := column_defs[i];
+
+                column_match := regexp_matches(
+                    column_clause,
+                    '("?[\w\d_]+"?)\s+((?:(?!DEFAULT|NOT|NULL|CHECK|CONSTRAINT|,|;).)+)',
+                    'i'
+                );
+
+                IF column_match IS NOT NULL THEN
+                    column_name := trim(both '"' FROM column_match[1]);
+                    new_data_type := trim(column_match[2]);
+
+                    RAISE NOTICE 'Schema: %, Table: %, Column: %, Data Type: %',
+                        schema_name, table_name_, column_name, new_data_type;
+
+                    FOR version IN 
+                        SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+                    LOOP
+                        -- Generate the ALTER TABLE command for the other schemas
+                        RAISE NOTICE 'version: %', version.name; 
+                        sql_query := format('ALTER TABLE %I.%I ADD COLUMN IF NOT EXISTS %I %s', version.name, table_name_, column_name, new_data_type);
+                        -- Log the generated query
+                        RAISE NOTICE 'Query: %', sql_query; 
+                        -- Execute the generated ALTER TABLE command
+                        EXECUTE sql_query;
+                    END LOOP;
+                END IF;
+            END LOOP;
+
+        -- If it's an ALTER TABLE DROP COLUMN, extract the details
+        ELSIF command_clean ILIKE '%DROP COLUMN%' THEN           
+             -- Match column definition from DROP COLUMN clause
+            matches := regexp_matches(
+                command_text,
+                'ALTER\s+TABLE\s+(?:"?(\w+)"?\.)?"?(\w+)"?\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?("?[\w\d_]+"?)',
+                'i'
+            );
+
+            IF matches IS NOT NULL THEN
+                schema_name := trim(both '"' FROM COALESCE(matches[1], current_schema));  -- fallback if no schema explicitly specified
+                table_name_ := trim(both '"' FROM matches[2]);
+                column_name := trim(both '"' FROM matches[3]);
+                new_data_type := trim(matches[4]);
+
+                RAISE NOTICE 'Schema: %, Table: %, Column: %, Data Type: %',
+                    schema_name, table_name_, column_name, new_data_type;
+                    
+                FOR version IN 
+                    SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+                LOOP
+                    -- Generate the ALTER TABLE command for the other schemas
+                    sql_query := format('ALTER TABLE %I.%I DROP COLUMN IF EXISTS %I', version.name, table_name_, column_name);
+                    -- Log the generated query
+                    --RAISE NOTICE 'Query: %', sql_query; 
+                    -- Execute the generated ALTER TABLE command
+                    EXECUTE sql_query;
+                END LOOP;
+            ELSE
+                RAISE NOTICE 'No matches found. Command: %', command_text;
+            END IF;
+
+        -- If it's an ALTER TABLE RENAME COLUMN, extract the details
+        ELSIF command_clean ILIKE '%RENAME COLUMN%' THEN
+            RAISE NOTICE 'rename';
+            -- Split into individual ALTER statements
+            statements := regexp_split_to_array(command_clean, '\s*;\s*');
+
+            -- Process each ALTER TABLE ... RENAME COLUMN statement
+            FOREACH stmt IN ARRAY statements LOOP
+                -- Skip empty statements
+                CONTINUE WHEN trim(stmt) = '';
+                RAISE NOTICE 'Statement: %', stmt;
+                -- Match: ALTER TABLE schema.table RENAME COLUMN old TO new
+                column_match := regexp_matches(
+                    stmt,
+                    'ALTER\s+TABLE\s+(?:"?([\w\d_]+)"?\.)?"?([\w\d_]+)"?\s+RENAME\s+COLUMN\s+"?([\w\d_]+)"?\s+TO\s+"?([\w\d_]+)"?',
+                    'i'
+                );
+
+                IF column_match IS NOT NULL THEN
+                    schema_name := trim(both '"' FROM COALESCE(column_match[1], current_schema));
+                    table_name_ := trim(both '"' FROM column_match[2]);
+                    column_name := trim(both '"' FROM column_match[3]);
+                    new_column_name := trim(both '"' FROM column_match[4]);
+
+                    RAISE NOTICE 'Schema: %, Table: %, Column renamed: % -> %',
+                        schema_name, table_name_, column_name, new_column_name;
+                    BEGIN 
+                        FOR version IN 
+                            SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+                        LOOP
+                            RAISE NOTICE 'Version: %', version; 
+                            -- Generate the ALTER TABLE command for the other schemas
+                            sql_query := format('ALTER TABLE %I.%I RENAME COLUMN %I TO %I', version.name, table_name_, column_name, new_column_name);
+                            -- Log the generated query
+                            RAISE NOTICE 'Query: %', sql_query; 
+                            -- Execute the generated ALTER TABLE command
+                            EXECUTE sql_query;
+                        END LOOP;
+                    EXCEPTION
+                        WHEN OTHERS THEN
+                            RAISE NOTICE 'Caught some other exception';
+                    END;
+                END IF;
+            END LOOP;
+
+
+
+        -- If it's an ALTER TABLE SET DATA TYPE, extract the details
+        ELSIF command_clean ILIKE '%SET DATA TYPE%' THEN
+            -- Extract table name, column name, and new data type
+            command_parts := regexp_split_to_array(command_text, '\s+');
+
+            -- Extract schema and table names
+            schema_name := TRIM((string_to_array(command_parts[3],'.'))[1],'"');
+            table_name_ := TRIM((string_to_array(command_parts[3],'.'))[2],'"');
+            column_name := TRIM(command_parts[6],'"');
+            new_data_type := TRIM(command_parts[8],';');
+
+            --RAISE NOTICE 'Schema: %, Table: %, Column data type changed: % -> %',
+            --    schema_name,  -- Schema name (before the table name)
+            --    table_name_,  -- Table name (after ALTER TABLE)
+            --    column_name,  -- Column name (after SET DATA TYPE)
+            --    new_data_type;  -- New data type
+
+            FOR version IN 
+                SELECT * FROM get_version_hierarchy(schema_name) WHERE name != schema_name
+            LOOP
+                -- Generate the ALTER TABLE command for the other schemas
+                sql_query := format('ALTER TABLE %I.%I ALTER COLUMN %I SET DATA TYPE %s', version.name, table_name_, column_name, new_data_type);
+                -- Log the generated query
+                RAISE NOTICE 'Query: %', sql_query; 
+                -- Execute the generated ALTER TABLE command
+                EXECUTE sql_query;
+            END LOOP;
+        END IF;
+    END IF;
+
+    -- Reset the flag to false after the function execution is complete
+    UPDATE event_trigger_flag SET is_running = false;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP EVENT TRIGGER IF EXISTS track_alter_table;
+
+CREATE EVENT TRIGGER track_alter_table
+ON ddl_command_end
+WHEN TAG IN ('ALTER TABLE', 'DROP TABLE')
+EXECUTE FUNCTION table_alterations();
+
+-- Create the event trigger function with an array of restricted column names
+
+CREATE OR REPLACE FUNCTION restrict_column_alterations()
+RETURNS event_trigger AS
+$$
+DECLARE
+    restricted_columns text[] := ARRAY['id', 'type', 'template', 'network', 'submodel']; -- List of restricted columns
+    col_name text;
+    ddl_command text; -- To hold the DDL command text
+    schema_name text;
+    table_name text;
+    matches text[];
+BEGIN
+    -- Get the current query being executed using current_query()
+    ddl_command := current_query();
+
+    -- Only process ALTER TABLE statements
+    IF ddl_command ILIKE 'ALTER TABLE%' THEN
+        -- Use regex to extract schema and table name
+        matches := regexp_matches(ddl_command, 'ALTER TABLE\s+(\S+)\.(\S+)', 'g');
+
+        IF matches IS NOT NULL THEN
+            schema_name := matches[1];
+            table_name := matches[2];
+        END IF;
+
+        -- Skip restrictions for schema 'temp'
+        IF schema_name = 'temp' THEN
+            RETURN;
+        END IF;
+
+        -- Loop through each restricted column
+        FOREACH col_name IN ARRAY restricted_columns LOOP
+            -- Normalize column reference (quoted or unquoted)
+            IF ddl_command ~* format('ALTER COLUMN\s+"?%s"?\s+(?!SET\s+DEFAULT)', col_name) THEN
+                RAISE EXCEPTION 'Only altering the default value of column "%" is allowed.', col_name;
+            END IF;
+
+            -- Check for RENAME COLUMN operations explicitly
+            IF ddl_command ~* format('RENAME COLUMN\s+"?%s"?\s+TO', col_name) THEN
+                RAISE EXCEPTION 'Renaming the column "%" is not allowed.', col_name;
+            END IF;
+        END LOOP;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP EVENT TRIGGER IF EXISTS prevent_column_alter;
+
+CREATE EVENT TRIGGER prevent_column_alter
+ON ddl_command_start  -- Triggered before the DDL command is executed
+WHEN TAG IN ('ALTER TABLE')
+EXECUTE FUNCTION restrict_column_alterations();
+
+-- FUNCTION: public.rc_split_multi(geometry, geometry, double precision)
+-- DROP FUNCTION public.rc_split_multi(geometry, geometry, double precision);
+
+CREATE OR REPLACE FUNCTION public.rc_split_multi(
+	input_geom geometry,
+	blade geometry,
+	tolerance double precision)
+    RETURNS geometry
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    IMMUTABLE 
+AS $BODY$
+		--this function is a wrapper around the function ST_Split to allow splitting mutli_lines with multi_points
+		    DECLARE
+			result geometry;
+			simple_blade geometry;
+			blade_geometry_type text := GeometryType(blade); geom_geometry_type text := GeometryType(input_geom);
+			blade_coded_type SMALLINT; geom_coded_type SMALLINT;
+			srid_blade INT := ST_SRID(blade);
+			srid_input_geom INT := ST_SRID(input_geom);
+			
+		    BEGIN
+
+			--finding type of input : mixed type are not allowed
+			--if type is not multi, simply splitting and returning result
+
+				IF blade_geometry_type NOT ILIKE 'MULTI%' THEN
+					--RAISE NOTICE 'input geom is simple, doing regular split';
+					RETURN ST_Split(input_geom,blade);
+				ELSIF blade_geometry_type ILIKE '%POINT' THEN
+					blade_coded_type:= 1;
+				ELSIF blade_geometry_type ILIKE '%LINESTRING' THEN
+					blade_coded_type:= 2;
+				ELSIF blade_geometry_type ILIKE '%POLYGON' THEN
+					blade_coded_type:= 3;
+				ELSE
+					RAISE NOTICE 'mutliple input geometry types for the blade : should be homogenous ';
+					RETURN NULL;
+				END IF;
+
+				IF geom_geometry_type ILIKE '%POINT' THEN
+					geom_coded_type:= 1;
+				ELSIF geom_geometry_type ILIKE '%LINESTRING' THEN
+					geom_coded_type:= 2;
+				ELSIF geom_geometry_type ILIKE '%POLYGON' THEN
+					geom_coded_type:= 3;
+				ELSE
+					RAISE NOTICE 'mutliple input geometry types for the geom: should be homogenous ';
+					RETURN NULL;
+				END IF;
+
+			result := input_geom;			
+			--Loop on all the geometry in the blade
+			FOR simple_blade IN SELECT  ST_SetSRID( (ST_Dump(ST_CollectionExtract(blade, blade_coded_type))).geom , srid_blade) 
+			LOOP
+					result:= ST_SetSRID(ST_CollectionExtract(ST_Split(ST_CollectionExtract(result,geom_coded_type),simple_blade),geom_coded_type), srid_input_geom);
+			END LOOP;
+			RETURN result;
+		    END;
+		$BODY$;
+
+-- FUNCTION: public.segmentize(float,character varying(255),character varying(255))
+CREATE OR REPLACE FUNCTION public.segmentize(
+	nodesperm float,versionName character varying(255),tableName character varying(255))
+    RETURNS void
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+AS $BODY$DECLARE
+	startfraction float;
+	endfraction float;
+	fraction float;
+	numberOfSeg int;
+	count int;
+	recB Record;
+BEGIN		
+	FOR recB IN 
+		EXECUTE format('SELECT id FROM %I.lines', versionName)
+	LOOP	
+		RAISE NOTICE 'id=%',recB.id;
+		EXECUTE format('SELECT 1/(ST_Length(geom)/(ST_Length(geom)/ceil(ST_Length(geom)/' ||nodesPerM||'))),
+			ceil(ST_Length(geom)/' ||nodesPerM||')
+			FROM %I.lines WHERE id=$1', versionName) USING recB.id INTO fraction,numberOfSeg;
+		RAISE NOTICE 'fraction=%; number of segments=%',fraction,numberOfSeg;
+		startfraction=-fraction;
+		endfraction=0;
+		count=0;
+		LOOP		
+			count=count+1;
+			startfraction=startfraction+fraction;
+			endfraction=endfraction+fraction;
+			IF endfraction>1 THEN
+				endfraction=1;
+			END IF;
+			EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,$1, ST_LineSubstring(geom,'||startfraction||','||endfraction||') FROM %I.lines WHERE id=$2',versionName,tableName,versionName) USING count,recB.id;
+			RAISE NOTICE 'count=%; start fraction=%; end fraction=%',count,startfraction,endfraction;
+			EXIT WHEN count >= numberOfSeg;  
+		END LOOP;
+		--RAISE NOTICE 'count=%; start fraction=%; end fraction=%',count,startfraction,endfraction;
+		RAISE NOTICE '';
+	END LOOP;
+END;
+$BODY$;
+
+-- FUNCTION: public.halve_geom(character varying(255),character varying(255))
+CREATE OR REPLACE FUNCTION public.halve_geom(
+	versionName character varying(255),tableName character varying(255))
+    RETURNS void
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+AS $BODY$DECLARE
+	startfraction float;
+	endfraction float;
+	fraction float;
+	numberOfSeg int;
+	count int;
+	recB Record;
+BEGIN		
+	FOR recB IN 
+		EXECUTE format('SELECT id FROM %I.lines', versionName)
+	LOOP	
+		RAISE NOTICE 'id=%',recB.id;
+        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,1, ST_LineSubstring(geom,0,0.5) FROM %I.lines WHERE id=$1',versionName,tableName,versionName) USING recB.id;
+        EXECUTE format('INSERT INTO %I.%I (lid,lid_seg,geom) SELECT id,2, ST_LineSubstring(geom,0.5,1) FROM %I.lines WHERE id=$1',versionName,tableName,versionName) USING recB.id;
+	END LOOP;
+END;
+$BODY$;
+
+CREATE OR REPLACE FUNCTION execute_dynamic_sql(sql_command TEXT)
+RETURNS VOID AS $$
+BEGIN
+    EXECUTE sql_command;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION set_building_height() RETURNS void AS $$
+DECLARE
+	rec record;
+BEGIN
+	FOR rec IN 
+		SELECT id FROM a.structure_boundarys WHERE St_area(geom)>30
+	LOOP
+		RAISE NOTICE 'id:%' 	, rec.id;
+		UPDATE a.structure_boundarys b SET asl_m= a.asl_m 
+            FROM 
+			(SELECT g.id,avg((gv).val) AS asl_m
+				FROM (SELECT ST_PixelAsPolygons(t.rast) gv FROM a.terrain t,  a.structure_boundarys g WHERE ST_Intersects(t.rast,g.geom) AND g.id=rec.id
+				) foo, a.structure_boundarys g WHERE ST_Intersects((gv).geom,g.geom) AND g.id=rec.id GROUP BY id) a
+            WHERE a.id=b.id;
+
+		UPDATE a.structure_boundarys b SET f_vexp_m= a.height-b.asl_m FROM (
+			SELECT g.id,avg((gv).val) AS height
+				FROM (SELECT ST_PixelAsPolygons(s.rast) gv FROM a.surface s, a.structure_boundarys g WHERE ST_Intersects(s.rast,g.geom) AND g.id=rec.id
+				) foo, a.structure_boundarys g WHERE ST_Intersects((gv).geom,g.geom) AND g.id=rec.id GROUP BY id) a
+            WHERE b.id=a.id;
+	END LOOP;	
+END;
+$$ LANGUAGE 'plpgsql' STRICT;
+ALTER FUNCTION set_building_height() OWNER TO postgres;
+
+CREATE OR REPLACE FUNCTION public.createFloors()
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE
+	recB Record;
+    f_height integer Default 0;
+    room_height integer Default 3;
+    z_id integer;
+BEGIN		
+	FOR recB IN 
+		SELECT * FROM base1.structure_boundarys
+	LOOP	
+		RAISE NOTICE 'id=%; f_vexp_m=%',recB.id,recB.f_vexp_m;
+        z_id := 1;
+        f_height:=0;
+        WHILE f_height < recB.f_vexp_m LOOP
+            RAISE NOTICE '  f_height=%',f_height;
+            INSERT INTO base1.buildings(b_id,z_id,geom,substation_id,z_bh_m,z_height_m,z_template,z_construction,room_unit,submodel) VALUES 
+                (recB.id,z_id,recB.geom,recB.id,f_height,2.7,1,1,2,2);
+            f_height:= f_height + room_height;
+            z_id := z_id+1;
+        END LOOP;
+END LOOP;
+END;
+$BODY$;
+
+--deprecated pgr_routing functions since v.4
+-- FUNCTION: public._pgr_pointtoid(geometry, double precision, text, integer)
+
+-- DROP FUNCTION IF EXISTS public._pgr_pointtoid(geometry, double precision, text, integer);
+
+CREATE OR REPLACE FUNCTION public._pgr_pointtoid(
+	point geometry,
+	tolerance double precision,
+	vertname text,
+	srid integer)
+    RETURNS bigint
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    rec record;
+    pid bigint;
+
+BEGIN
+    EXECUTE 'SELECT ST_Distance(
+        the_geom,
+        ST_GeomFromText(ST_AsText('
+                || quote_literal(point::text)
+                || '),'
+            || srid ||')) AS d, id, the_geom
+    FROM '||_pgr_quote_ident(vertname)||'
+    WHERE ST_DWithin(
+        the_geom,
+        ST_GeomFromText(
+            ST_AsText(' || quote_literal(point::text) ||'),
+            ' || srid || '),' || tolerance||')
+    ORDER BY d
+    LIMIT 1' INTO rec ;
+    IF rec.id IS NOT NULL THEN
+        pid := rec.id;
+    ELSE
+        execute 'INSERT INTO '||_pgr_quote_ident(vertname)||' (the_geom) VALUES ('||quote_literal(point::text)||')';
+        pid := lastval();
+END IF;
+
+RETURN pid;
+
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_pointtoid(geometry, double precision, text, integer)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_pointtoid(geometry, double precision, text, integer)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_endpoint(geometry)
+
+-- DROP FUNCTION IF EXISTS public._pgr_endpoint(geometry);
+
+CREATE OR REPLACE FUNCTION public._pgr_endpoint(
+	g geometry)
+    RETURNS geometry
+    LANGUAGE 'sql'
+    COST 100
+    IMMUTABLE PARALLEL UNSAFE
+AS $BODY$
+
+SELECT CASE WHEN geometryType($1) ~ '^MULTI' THEN ST_EndPoint(st_geometryN($1,1))
+ELSE ST_EndPoint($1)
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_endpoint(geometry)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_endpoint(geometry)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_startpoint(geometry)
+
+-- DROP FUNCTION IF EXISTS public._pgr_startpoint(geometry);
+
+CREATE OR REPLACE FUNCTION public._pgr_startpoint(
+	g geometry)
+    RETURNS geometry
+    LANGUAGE 'sql'
+    COST 100
+    IMMUTABLE PARALLEL UNSAFE
+AS $BODY$
+
+SELECT CASE WHEN geometryType($1) ~ '^MULTI' THEN ST_StartPoint(ST_geometryN($1,1))
+ELSE ST_StartPoint($1)
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_startpoint(geometry)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_startpoint(geometry)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_getcolumnname(text, text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_getcolumnname(text, text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_getcolumnname(
+	tab text,
+	col text,
+	reporterrs integer DEFAULT 1,
+	fnname text DEFAULT '_pgr_getColumnName'::text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    sname text;
+    tname text;
+    cname text;
+    naming record;
+    err boolean;
+BEGIN
+    select a.sname, a.tname into naming from _pgr_getTableName(tab,reportErrs, fnName) AS a;
+    sname=naming.sname;
+    tname=naming.tname;
+
+    select _pgr_getColumnName into cname from _pgr_getColumnName(sname,tname,col,reportErrs, fnName);
+    RETURN cname;
+END;
+
+$BODY$;
+
+ALTER FUNCTION public._pgr_getcolumnname(text, text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_getcolumnname(text, text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_checkverttab(text, text[], integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_checkverttab(text, text[], integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_checkverttab(
+	vertname text,
+	columnsarr text[],
+	reporterrs integer DEFAULT 1,
+	fnname text DEFAULT '_pgr_checkVertTab'::text,
+	OUT sname text,
+	OUT vname text)
+    RETURNS record
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    cname text;
+    colname text;
+    naming record;
+    debuglevel text;
+    err  boolean;
+    msgKind int;
+
+BEGIN
+    msgKind = 0; -- debug_
+    execute 'show client_min_messages' into debuglevel;
+
+    perform _pgr_msg(msgKind, fnName, 'Checking table ' || vertname || ' exists');
+       select * from _pgr_getTableName(vertname, 0, fnName) into naming;
+       sname=naming.sname;
+       vname=naming.tname;
+       err = sname is NULL or vname is NULL;
+    perform _pgr_onError( err, 2, fnName,
+          'Vertex Table: ' || vertname || ' not found',
+          'Please create ' || vertname || ' using  _pgr_createTopology() or pgr_createVerticesTable()',
+          'Vertex Table: ' || vertname || ' found');
+
+
+    perform _pgr_msg(msgKind, fnName, 'Checking columns of ' || vertname);
+      FOREACH cname IN ARRAY columnsArr
+      loop
+         select _pgr_getcolumnName(vertname, cname, 0, fnName) into colname;
+         if colname is null then
+           perform _pgr_msg(msgKind, fnName, 'Adding column ' || cname || ' in ' || vertname);
+           set client_min_messages  to warning;
+                execute 'ALTER TABLE '||_pgr_quote_ident(vertname)||' ADD COLUMN '||cname|| ' integer';
+           execute 'set client_min_messages  to '|| debuglevel;
+           perform _pgr_msg(msgKind, fnName);
+         end if;
+      end loop;
+    perform _pgr_msg(msgKind, fnName, 'Finished checking columns of ' || vertname);
+
+    perform _pgr_createIndex(vertname , 'id' , 'btree', reportErrs, fnName);
+ END
+$BODY$;
+
+ALTER FUNCTION public._pgr_checkverttab(text, text[], integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_checkverttab(text, text[], integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_createindex(text, text, text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_createindex(text, text, text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_createindex(
+	tabname text,
+	colname text,
+	indext text,
+	reporterrs integer DEFAULT 1,
+	fnname text DEFAULT '_pgr_createIndex'::text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    naming record;
+    sname text;
+    tname text;
+
+BEGIN
+    select * from _pgr_getTableName(tabname, 2, fnName)  into naming;
+    sname=naming.sname;
+    tname=naming.tname;
+    execute _pgr_createIndex(sname, tname, colname, indext, reportErrs, fnName);
+END;
+
+$BODY$;
+
+ALTER FUNCTION public._pgr_createindex(text, text, text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_createindex(text, text, text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_iscolumnindexed(text, text, text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_iscolumnindexed(text, text, text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_iscolumnindexed(
+	sname text,
+	tname text,
+	cname text,
+	reporterrs integer DEFAULT 1,
+	fnname text DEFAULT '_pgr_isColumnIndexed'::text)
+    RETURNS boolean
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    naming record;
+    rec record;
+    pkey text;
+BEGIN
+    SELECT
+          pg_attribute.attname into pkey
+         --  format_type(pg_attribute.atttypid, pg_attribute.atttypmod)
+          FROM pg_index, pg_class, pg_attribute
+          WHERE
+                  pg_class.oid = _pgr_quote_ident(sname||'.'||tname)::regclass AND
+                  indrelid = pg_class.oid AND
+                  pg_attribute.attrelid = pg_class.oid AND
+                  pg_attribute.attnum = any(pg_index.indkey)
+                  AND indisprimary;
+
+    IF pkey=cname then
+          RETURN TRUE;
+    END IF;
+
+    SELECT a.index_name,
+           b.attname,
+           b.attnum,
+           a.indisunique,
+           a.indisprimary
+      INTO rec
+      FROM ( SELECT a.indrelid,
+                    a.indisunique,
+                    a.indisprimary,
+                    c.relname index_name,
+                    unnest(a.indkey) index_num
+               FROM pg_index a,
+                    pg_class b,
+                    pg_class c,
+                    pg_namespace d
+              WHERE b.relname=tname
+                AND b.relnamespace=d.oid
+                AND d.nspname=sname
+                AND b.oid=a.indrelid
+                AND a.indexrelid=c.oid
+           ) a,
+           pg_attribute b
+     WHERE a.indrelid = b.attrelid
+       AND a.index_num = b.attnum
+       AND b.attname = cname
+  ORDER BY a.index_name,
+           a.index_num;
+
+  RETURN FOUND;
+  EXCEPTION WHEN OTHERS THEN
+    perform _pgr_onError( true, reportErrs, fnName,
+    'Error when checking for the postgres system attributes', SQLERR);
+    RETURN FALSE;
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_iscolumnindexed(text, text, text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_iscolumnindexed(text, text, text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_createindex(text, text, text, text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_createindex(text, text, text, text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_createindex(
+	sname text,
+	tname text,
+	colname text,
+	indext text,
+	reporterrs integer DEFAULT 1,
+	fnname text DEFAULT '_pgr_createIndex'::text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    debuglevel text;
+    naming record;
+    tabname text;
+    query text;
+    msgKind int;
+BEGIN
+  msgKind = 0; -- debug_
+
+  execute 'show client_min_messages' into debuglevel;
+  tabname=_pgr_quote_ident(sname||'.'||tname);
+  perform _pgr_msg(msgKind, fnName, 'Checking ' || colname || ' column in ' || tabname || ' is indexed');
+    IF (_pgr_isColumnIndexed(sname,tname,colname, 0, fnName)) then
+       perform _pgr_msg(msgKind, fnName);
+    else
+      if indext = 'gist' then
+        query = 'create  index '||_pgr_quote_ident(tname||'_'||colname||'_idx')||'
+                         on '||tabname||' using gist('||quote_ident(colname)||')';
+      else
+        query = 'create  index '||_pgr_quote_ident(tname||'_'||colname||'_idx')||'
+                         on '||tabname||' using btree('||quote_ident(colname)||')';
+      end if;
+      perform _pgr_msg(msgKind, fnName, 'Adding index ' || tabname || '_' ||  colname || '_idx');
+      perform _pgr_msg(msgKind, fnName, ' Using ' ||  query);
+      set client_min_messages  to warning;
+      BEGIN
+        execute query;
+        EXCEPTION WHEN others THEN
+          perform _pgr_onError( true, reportErrs, fnName,
+            'Could not create index on:' || colname, SQLERRM);
+      END;
+      execute 'set client_min_messages  to '|| debuglevel;
+      perform _pgr_msg(msgKind, fnName);
+    END IF;
+END;
+
+$BODY$;
+
+ALTER FUNCTION public._pgr_createindex(text, text, text, text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_createindex(text, text, text, text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_versionless(text, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_versionless(text, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_versionless(
+	v1 text,
+	v2 text)
+    RETURNS boolean
+    LANGUAGE 'plpgsql'
+    COST 1
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+
+
+declare
+    v1a text[];
+    v2a text[];
+    nv1 integer;
+    nv2 integer;
+    ne1 integer;
+    ne2 integer;
+
+begin
+    -- separate components into an array, like:
+    -- '2.1.0-beta3dev'  =>  {2,1,0,beta3dev}
+    v1a := regexp_matches(v1, E'^(\\d+)(?:[\\.](\\d+))?(?:[\\.](\\d+))?[-+\\.]?(.*)$');
+    v2a := regexp_matches(v2, E'^(\\d+)(?:[\\.](\\d+))?(?:[\\.](\\d+))?[-+\\.]?(.*)$');
+
+    -- convert modifiers to numbers for comparison
+    -- we do not delineate between alpha1, alpha2, alpha3, etc
+    ne1 := case when v1a[4] is null or v1a[4]='' then 5
+                when v1a[4] ilike 'rc%' then 4
+                when v1a[4] ilike 'beta%' then 3
+                when v1a[4] ilike 'alpha%' then 2
+                when v1a[4] ilike 'dev%' then 1
+                else 0 end;
+
+    ne2 := case when v2a[4] is null or v2a[4]='' then 5
+                when v2a[4] ilike 'rc%' then 4
+                when v2a[4] ilike 'beta%' then 3
+                when v2a[4] ilike 'alpha%' then 2
+                when v2a[4] ilike 'dev%' then 1
+                else 0 end;
+
+    nv1 := v1a[1]::integer * 10000 +
+           coalesce(v1a[2], '0')::integer * 1000 +
+           coalesce(v1a[3], '0')::integer *  100 + ne1;
+    nv2 := v2a[1]::integer * 10000 +
+           coalesce(v2a[2], '0')::integer * 1000 +
+           coalesce(v2a[3], '0')::integer *  100 + ne2;
+
+    --raise notice 'nv1: %, nv2: %, ne1: %, ne2: %', nv1, nv2, ne1, ne2;
+
+    return nv1 < nv2;
+end;
+$BODY$;
+
+ALTER FUNCTION public._pgr_versionless(text, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_versionless(text, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_quote_ident(text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_quote_ident(text);
+
+CREATE OR REPLACE FUNCTION public._pgr_quote_ident(
+	idname text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+    COST 100
+    IMMUTABLE PARALLEL UNSAFE
+AS $BODY$
+
+declare
+    t text[];
+    pgver text;
+
+begin
+    pgver := regexp_replace(version(), E'^PostgreSQL ([^ ]+)[ ,].*$', E'\\1');
+
+    if _pgr_versionless(pgver, '9.2') then
+        select into t array_agg(quote_ident(term)) from
+            (select nullif(unnest, '') as term
+               from unnest(string_to_array(idname, '.'))) as foo;
+    else
+        select into t array_agg(quote_ident(term)) from
+            (select unnest(string_to_array(idname, '.', '')) as term) as foo;
+    end if;
+    return array_to_string(t, '.');
+end;
+$BODY$;
+
+ALTER FUNCTION public._pgr_quote_ident(text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_quote_ident(text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_getcolumntype(text, text, text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_getcolumntype(text, text, text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_getcolumntype(
+	sname text,
+	tname text,
+	cname text,
+	reporterrs integer DEFAULT 0,
+	fnname text DEFAULT '_pgr_getColumnType'::text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    ctype text;
+    naming record;
+    err boolean;
+BEGIN
+
+    EXECUTE 'select data_type  from information_schema.columns '
+            || 'where table_name = '||quote_literal(tname)
+                 || ' and table_schema=' || quote_literal(sname)
+                 || ' and column_name='||quote_literal(cname)
+       into ctype;
+    err = ctype is null;
+    perform _pgr_onError(err, reportErrs, fnName,
+            'Type of Column '|| cname ||' not found',
+            'Check your column name',
+            'OK: Type of Column '|| cname || ' is ' || ctype);
+    RETURN ctype;
+END;
+
+$BODY$;
+
+ALTER FUNCTION public._pgr_getcolumntype(text, text, text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_getcolumntype(text, text, text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_getcolumnname(text, text, text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_getcolumnname(text, text, text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_getcolumnname(
+	sname text,
+	tname text,
+	col text,
+	reporterrs integer DEFAULT 1,
+	fnname text DEFAULT '_pgr_getColumnName'::text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+    cname text;
+    naming record;
+    err boolean;
+BEGIN
+
+    execute 'SELECT column_name FROM information_schema.columns
+          WHERE table_name='||quote_literal(tname)||' and table_schema='||quote_literal(sname)||' and column_name='||quote_literal(col) into cname;
+
+    IF cname is null  THEN
+    execute 'SELECT column_name FROM information_schema.columns
+          WHERE table_name='||quote_literal(tname)||' and table_schema='||quote_literal(sname)||' and column_name='||quote_literal(lower(col))  into cname;
+    END if;
+
+    err = cname is null;
+
+    perform _pgr_onError(err, reportErrs, fnName,  'Column '|| col ||' not found', ' Check your column name','Column '|| col || ' found');
+    RETURN cname;
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_getcolumnname(text, text, text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_getcolumnname(text, text, text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_onerror(boolean, integer, text, text, text, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_onerror(boolean, integer, text, text, text, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_onerror(
+	errcond boolean,
+	reporterrs integer,
+	fnname text,
+	msgerr text,
+	hinto text DEFAULT 'No hint'::text,
+	msgok text DEFAULT 'OK'::text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+BEGIN
+  if errCond=true then
+     if reportErrs=0 then
+       raise debug '----> PGR DEBUG in %: %',fnName,msgerr USING HINT = '  ---->'|| hinto;
+     else
+       if reportErrs = 2 then
+         raise notice '----> PGR ERROR in %: %',fnName,msgerr USING HINT = '  ---->'|| hinto;
+         raise raise_exception;
+       else
+         raise notice '----> PGR NOTICE in %: %',fnName,msgerr USING HINT = '  ---->'|| hinto;
+       end if;
+     end if;
+  else
+       raise debug 'PGR ----> %: %',fnName,msgok;
+  end if;
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_onerror(boolean, integer, text, text, text, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_onerror(boolean, integer, text, text, text, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_msg(integer, text, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_msg(integer, text, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_msg(
+	msgkind integer,
+	fnname text,
+	msg text DEFAULT '---->OK'::text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+BEGIN
+  if msgKind = 0 then
+       raise debug '----> PGR DEBUG in %: %',fnName,msg;
+  else
+       raise notice '----> PGR NOTICE in %: %',fnName,msg;
+  end if;
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_msg(integer, text, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_msg(integer, text, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public._pgr_gettablename(text, integer, text)
+
+-- DROP FUNCTION IF EXISTS public._pgr_gettablename(text, integer, text);
+
+CREATE OR REPLACE FUNCTION public._pgr_gettablename(
+	tab text,
+	reporterrs integer DEFAULT 0,
+	fnname text DEFAULT '_pgr_getTableName'::text,
+	OUT sname text,
+	OUT tname text)
+    RETURNS record
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+DECLARE
+        naming record;
+        i integer;
+        query text;
+        sn text; -- schema name
+        tn text; -- table name
+        ttype text; --table type for future use
+        err boolean;
+        debuglevel text;
+        var_types text[] = ARRAY['BASE TABLE', 'VIEW'];
+BEGIN
+
+    execute 'show client_min_messages' into debuglevel;
+
+
+    perform _pgr_msg( 0, fnName, 'Checking table ' || tab || ' exists');
+    --RAISE DEBUG 'Checking % exists',tab;
+
+    i := strpos(tab,'.');
+    IF (i <> 0) THEN
+        sn := split_part(tab, '.',1);
+        tn := split_part(tab, '.',2);
+    ELSE
+        sn := current_schema;
+        tn := tab;
+    END IF;
+
+
+   SELECT schema_name INTO sname
+   FROM information_schema.schemata WHERE schema_name = sn;
+
+    IF sname IS NOT NULL THEN -- found schema (as is)
+       SELECT table_name, table_type INTO tname, ttype
+       FROM information_schema.tables
+       WHERE
+                table_type = ANY(var_types) and
+                table_schema = sname and
+                table_name = tn ;
+        IF tname is NULL THEN
+            SELECT table_name, table_type INTO tname, ttype
+            FROM information_schema.tables
+            WHERE
+                table_type  = ANY(var_types) and
+                table_schema = sname and
+                table_name = lower(tn) ORDER BY table_name;
+        END IF;
+    END IF;
+    IF sname is NULL or tname is NULL THEN --schema not found or table not found
+        SELECT schema_name INTO sname
+        FROM information_schema.schemata
+        WHERE schema_name = lower(sn) ;
+
+        IF sname IS NOT NULL THEN -- found schema (with lower caps)
+            SELECT table_name, table_type INTO tname, ttype
+            FROM information_schema.tables
+            WHERE
+                table_type  =  ANY(var_types) and
+                table_schema = sname and
+                table_name= tn ;
+
+           IF tname IS NULL THEN
+                SELECT table_name, table_type INTO tname, ttype
+                FROM information_schema.tables
+                WHERE
+                    table_type  =  ANY(var_types) and
+                    table_schema = sname and
+                    table_name= lower(tn) ;
+           END IF;
+        END IF;
+    END IF;
+   err = (sname IS NULL OR tname IS NULL);
+   perform _pgr_onError(err, reportErrs, fnName, 'Table ' || tab ||' not found',' Check your table name', 'Table '|| tab || ' found');
+
+END;
+$BODY$;
+
+ALTER FUNCTION public._pgr_gettablename(text, integer, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public._pgr_gettablename(text, integer, text)
+    IS 'pgRouting internal function';
+
+
+-- FUNCTION: public.pgr_analyzegraph(text, double precision, text, text, text, text, text)
+
+-- DROP FUNCTION IF EXISTS public.pgr_analyzegraph(text, double precision, text, text, text, text, text);
+
+CREATE OR REPLACE FUNCTION public.pgr_analyzegraph(
+	text,
+	double precision,
+	the_geom text DEFAULT 'the_geom'::text,
+	id text DEFAULT 'id'::text,
+	source text DEFAULT 'source'::text,
+	target text DEFAULT 'target'::text,
+	rows_where text DEFAULT 'true'::text)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+
+DECLARE
+    edge_table TEXT := $1;
+    tolerance TEXT := $2;
+    points record;
+    seg record;
+    naming record;
+    sridinfo record;
+    srid INTEGER;
+    ecnt INTEGER;
+    vertname TEXT;
+    sname TEXT;
+    tname TEXT;
+    vname TEXT;
+    idname TEXT;
+    sourcename TEXT;
+    targetname TEXT;
+    sourcetype TEXT;
+    targettype TEXT;
+    geotype TEXT;
+    gname TEXT;
+    tabName TEXT;
+    flag boolean ;
+    query TEXT;
+    selectionquery TEXT;
+    i INTEGER;
+    tot INTEGER;
+    NumIsolated INTEGER;
+    numdeadends INTEGER;
+    numgaps INTEGER;
+    NumCrossing INTEGER;
+    numRings INTEGER;
+    debuglevel TEXT;
+
+
+
+
+BEGIN
+  RAISE NOTICE 'PROCESSING:';
+  RAISE NOTICE 'pgr_analyzeGraph(''%'',%,''%'',''%'',''%'',''%'',''%'')',edge_table,tolerance,the_geom,id,source,target,rows_where;
+  RAISE NOTICE 'Performing checks, please wait ...';
+  EXECUTE 'show client_min_messages' INTO debuglevel;
+
+
+  BEGIN
+    RAISE DEBUG 'Checking % exists',edge_table;
+    EXECUTE 'select * FROM _pgr_getTableName('||quote_literal(edge_table)||',2)' INTO naming;
+    sname=naming.sname;
+    tname=naming.tname;
+    tabname=sname||'.'||tname;
+    vname=tname||'_vertices_pgr';
+    vertname= sname||'.'||vname;
+    rows_where = ' AND ('||rows_where||')';
+    RAISE DEBUG '     --> OK';
+
+  END;
+
+  BEGIN
+       RAISE DEBUG 'Checking Vertices table';
+       EXECUTE 'select * FROM  _pgr_checkVertTab('||quote_literal(vertname) ||', ''{"id","cnt","chk"}''::TEXT[])' INTO naming;
+       EXECUTE 'UPDATE '||_pgr_quote_ident(vertname)||' SET cnt=0 ,chk=0';
+       RAISE DEBUG '     --> OK';
+       EXCEPTION WHEN raise_exception THEN
+          RAISE NOTICE 'ERROR: something went wrong checking the vertices table';
+          RETURN 'FAIL';
+  END;
+
+
+
+  BEGIN
+       RAISE DEBUG 'Checking column names in edge table';
+       SELECT * INTO idname     FROM _pgr_getColumnName(sname, tname,id,2);
+       SELECT * INTO sourcename FROM _pgr_getColumnName(sname, tname,source,2);
+       SELECT * INTO targetname FROM _pgr_getColumnName(sname, tname,target,2);
+       SELECT * INTO gname      FROM _pgr_getColumnName(sname, tname,the_geom,2);
+
+
+       perform _pgr_onError( sourcename IN (targetname,idname,gname) OR  targetname IN (idname,gname) OR idname=gname, 2,
+                       'pgr_analyzeGraph',  'Two columns share the same name', 'Parameter names for id,the_geom,source and target  must be different',
+                       'Column names are OK');
+
+        RAISE DEBUG '     --> OK';
+       EXCEPTION WHEN raise_exception THEN
+          RAISE NOTICE 'ERROR: something went wrong checking the column names';
+          RETURN 'FAIL';
+  END;
+
+
+  BEGIN
+       RAISE DEBUG 'Checking column types in edge table';
+       SELECT * INTO sourcetype FROM _pgr_getColumnType(sname,tname,sourcename,1);
+       SELECT * INTO targettype FROM _pgr_getColumnType(sname,tname,targetname,1);
+
+       perform _pgr_onError(sourcetype NOT in('integer','smallint','bigint') , 2,
+                       'pgr_analyzeGraph',  'Wrong type of Column '|| sourcename, ' Expected type of '|| sourcename || ' is integer, smallint or bigint but '||sourcetype||' was found',
+                       'Type of Column '|| sourcename || ' is ' || sourcetype);
+
+       perform _pgr_onError(targettype NOT in('integer','smallint','bigint') , 2,
+                       'pgr_analyzeGraph',  'Wrong type of Column '|| targetname, ' Expected type of '|| targetname || ' is integer, smallint or bigint but '||targettype||' was found',
+                       'Type of Column '|| targetname || ' is ' || targettype);
+
+       RAISE DEBUG '     --> OK';
+       EXCEPTION WHEN raise_exception THEN
+          RAISE NOTICE 'ERROR: something went wrong checking the column types';
+          RETURN 'FAIL';
+   END;
+
+   BEGIN
+       RAISE DEBUG 'Checking SRID of geometry column';
+         query= 'SELECT ST_SRID(' || quote_ident(gname) || ') AS srid '
+            || ' FROM ' || _pgr_quote_ident(tabname)
+            || ' WHERE ' || quote_ident(gname)
+            || ' IS NOT NULL LIMIT 1';
+         EXECUTE QUERY INTO sridinfo;
+
+         perform _pgr_onError( sridinfo IS NULL OR sridinfo.srid IS NULL,2,
+                 'Can not determine the srid of the geometry '|| gname ||' in table '||tabname, 'Check the geometry of column '||gname,
+                 'SRID of '||gname||' is '||sridinfo.srid);
+
+         IF sridinfo IS NULL OR sridinfo.srid IS NULL THEN
+             RAISE NOTICE ' Can not determine the srid of the geometry "%" in table %', the_geom,tabname;
+             RETURN 'FAIL';
+         END IF;
+         srid := sridinfo.srid;
+         RAISE DEBUG '     --> OK';
+         EXCEPTION WHEN OTHERS THEN
+             RAISE NOTICE 'Got %', SQLERRM;--issue 210,211,213
+             RAISE NOTICE 'ERROR: something went wrong when checking for SRID of % in table %', the_geom,tabname;
+             RETURN 'FAIL';
+    END;
+
+
+    BEGIN
+       RAISE DEBUG 'Checking  indices in edge table';
+       perform _pgr_createIndex(tabname , idname , 'btree');
+       perform _pgr_createIndex(tabname , sourcename , 'btree');
+       perform _pgr_createIndex(tabname , targetname , 'btree');
+       perform _pgr_createIndex(tabname , gname , 'gist');
+
+       gname=quote_ident(gname);
+       sourcename=quote_ident(sourcename);
+       targetname=quote_ident(targetname);
+       idname=quote_ident(idname);
+       RAISE DEBUG '     --> OK';
+       EXCEPTION WHEN raise_exception THEN
+          RAISE NOTICE 'ERROR: something went wrong checking indices';
+          RETURN 'FAIL';
+    END;
+
+
+    BEGIN
+        query='select count(*) from '||_pgr_quote_ident(tabname)||' WHERE true  '||rows_where;
+        EXECUTE query INTO ecnt;
+        RAISE DEBUG '-->Rows WHERE condition: OK';
+        RAISE DEBUG '     --> OK';
+         EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Got %', SQLERRM;  --issue 210,211,213
+            RAISE NOTICE 'ERROR: Condition is not correct. Please execute the following query to test your condition';
+            RAISE NOTICE '%',query;
+            RETURN 'FAIL';
+    END;
+
+    selectionquery ='with
+           selectedRows as( (select '||sourcename||' AS id FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||')
+                           UNION
+                           (select '||targetname||' AS id FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||'))';
+
+
+
+
+
+   BEGIN
+       RAISE NOTICE 'Analyzing for dead ends. Please wait...';
+       query= 'with countingsource AS (select a.'||sourcename||' AS id,count(*) AS cnts
+               FROM (select * FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||' ) a  GROUP BY a.'||sourcename||')
+                     ,countingtarget AS (select a.'||targetname||' AS id,count(*) AS cntt
+                    FROM (select * FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||' ) a  GROUP BY a.'||targetname||')
+                   ,totalcount AS (select id,case when cnts is NULL AND cntt is NULL then 0
+                                                   when cnts is NULL then cntt
+                                                   when cntt is NULL then cnts
+                                                   else cnts+cntt end as totcnt
+                                   FROM ('||_pgr_quote_ident(vertname)||' AS a left
+                                   join countingsource AS t using(id) ) left join countingtarget using(id))
+               UPDATE '||_pgr_quote_ident(vertname)||' AS a set cnt=totcnt FROM totalcount AS b WHERE a.id=b.id';
+       RAISE DEBUG '%',query;
+       EXECUTE query;
+       query=selectionquery||'
+              select count(*)  FROM '||_pgr_quote_ident(vertname)||' WHERE cnt=1 AND id IN (select id FROM selectedRows)';
+       RAISE DEBUG '%',query;
+       EXECUTE query  INTO numdeadends;
+       RAISE DEBUG '     --> OK';
+       EXCEPTION WHEN raise_exception THEN
+          RAISE NOTICE 'Got %', SQLERRM;  --issue 210,211,213
+          RAISE NOTICE 'ERROR: something went wrong when analizing for dead ends';
+          RETURN 'FAIL';
+   END;
+
+
+
+    BEGIN
+          RAISE NOTICE 'Analyzing for gaps. Please wait...';
+          query = 'with
+                   buffer AS (select id,st_buffer(the_geom,'||tolerance||') AS buff FROM '||_pgr_quote_ident(vertname)||' WHERE cnt=1)
+                   ,veryclose AS (select b.id,st_crosses(a.'||gname||',b.buff) AS flag
+                   FROM  (select * FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||' ) AS a
+                   join buffer AS b on (a.'||gname||'&&b.buff)
+                   WHERE '||sourcename||'!=b.id AND '||targetname||'!=b.id )
+                   UPDATE '||_pgr_quote_ident(vertname)||' set chk=1 WHERE id IN (select distinct id FROM veryclose WHERE flag=true)';
+          RAISE DEBUG '%' ,query;
+          EXECUTE query;
+          GET DIAGNOSTICS  numgaps= ROW_COUNT;
+          RAISE DEBUG '     --> OK';
+          EXCEPTION WHEN raise_exception THEN
+            RAISE NOTICE 'ERROR: something went wrong when Analyzing for gaps';
+            RETURN 'FAIL';
+    END;
+
+    BEGIN
+        RAISE NOTICE 'Analyzing for isolated edges. Please wait...';
+        query=selectionquery|| ' select count(*) FROM (select * FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||' )  AS a,
+                                                 '||_pgr_quote_ident(vertname)||' AS b,
+                                                 '||_pgr_quote_ident(vertname)||' AS c
+                            WHERE b.id IN (select id FROM selectedRows) AND a.'||sourcename||' =b.id
+                            AND b.cnt=1 AND a.'||targetname||' =c.id
+                            AND c.cnt=1';
+        RAISE DEBUG '%' ,query;
+        EXECUTE query  INTO NumIsolated;
+        RAISE DEBUG '     --> OK';
+        EXCEPTION WHEN raise_exception THEN
+            RAISE NOTICE 'ERROR: something went wrong when Analyzing for isolated edges';
+            RETURN 'FAIL';
+    END;
+
+    BEGIN
+        RAISE NOTICE 'Analyzing for ring geometries. Please wait...';
+        EXECUTE 'select geometrytype('||gname||')  FROM '||_pgr_quote_ident(tabname) limit 1 INTO geotype;
+        IF (geotype='MULTILINESTRING') THEN
+            query ='select count(*)  FROM '||_pgr_quote_ident(tabname)||'
+                                 WHERE true  '||rows_where||' AND st_isRing(st_linemerge('||gname||'))';
+            RAISE DEBUG '%' ,query;
+            EXECUTE query  INTO numRings;
+        ELSE query ='select count(*)  FROM '||_pgr_quote_ident(tabname)||'
+                                  WHERE true  '||rows_where||' AND st_isRing('||gname||')';
+            RAISE DEBUG '%' ,query;
+            EXECUTE query  INTO numRings;
+        END IF;
+        RAISE DEBUG '     --> OK';
+        EXCEPTION WHEN raise_exception THEN
+            RAISE NOTICE 'ERROR: something went wrong when Analyzing for ring geometries';
+            RETURN 'FAIL';
+    END;
+
+    BEGIN
+        RAISE NOTICE 'Analyzing for intersections. Please wait...';
+        query = 'select count(*) FROM (select distinct case when a.'||idname||' < b.'||idname||' then a.'||idname||'
+                                                        else b.'||idname||' end,
+                                                   case when a.'||idname||' < b.'||idname||' then b.'||idname||'
+                                                        else a.'||idname||' end
+                                    FROM (select * FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||') AS a
+                                    JOIN (select * FROM '||_pgr_quote_ident(tabname)||' WHERE true '||rows_where||') AS b
+                                    ON (a.'|| gname||' && b.'||gname||')
+                                    WHERE a.'||idname||' != b.'||idname|| '
+                                        AND (a.'||sourcename||' IN (b.'||sourcename||',b.'||targetname||')
+                                              OR a.'||targetname||' IN (b.'||sourcename||',b.'||targetname||')) = false
+                                        AND st_intersects(a.'||gname||', b.'||gname||')=true) AS d ';
+        RAISE DEBUG '%' ,query;
+        EXECUTE query  INTO numCrossing;
+        RAISE DEBUG '     --> OK';
+        EXCEPTION WHEN raise_exception THEN
+            RAISE NOTICE 'ERROR: something went wrong when Analyzing for intersections';
+            RETURN 'FAIL';
+    END;
+
+
+
+
+    RAISE NOTICE '            ANALYSIS RESULTS FOR SELECTED EDGES:';
+    RAISE NOTICE '                  Isolated segments: %', NumIsolated;
+    RAISE NOTICE '                          Dead ends: %', numdeadends;
+    RAISE NOTICE 'Potential gaps found near dead ends: %', numgaps;
+    RAISE NOTICE '             Intersections detected: %',numCrossing;
+    RAISE NOTICE '                    Ring geometries: %',numRings;
+
+
+    RETURN 'OK';
+END;
+$BODY$;
+
+ALTER FUNCTION public.pgr_analyzegraph(text, double precision, text, text, text, text, text)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public.pgr_analyzegraph(text, double precision, text, text, text, text, text)
+    IS 'pgr_analyzeGraph
+- Parameters
+  - Edge table name
+  - tolerance
+- Optional parameters
+  - the_geom: default ''the_geom''
+  - id := ''id''
+  - source := ''source''
+  - target := ''target''
+  - rows_where := ''true''
+- Documentation:
+  - https://docs.pgrouting.org/latest/en/pgr_analyzeGraph.html
+';
+
+
+-- FUNCTION: public.pgr_createtopology(text, double precision, text, text, text, text, text, boolean)
+
+-- DROP FUNCTION IF EXISTS public.pgr_createtopology(text, double precision, text, text, text, text, text, boolean);
+
+CREATE OR REPLACE FUNCTION public.pgr_createtopology(
+	text,
+	double precision,
+	the_geom text DEFAULT 'the_geom'::text,
+	id text DEFAULT 'id'::text,
+	source text DEFAULT 'source'::text,
+	target text DEFAULT 'target'::text,
+	rows_where text DEFAULT 'true'::text,
+	clean boolean DEFAULT false)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE STRICT PARALLEL UNSAFE
+AS $BODY$
+
+
+DECLARE
+    edge_table TEXT := $1;
+    tolerance FLOAT := $2;
+    points record;
+    sridinfo record;
+    source_id BIGINT;
+    target_id BIGINT;
+    totcount BIGINT;
+    rowcount BIGINT;
+    srid INTEGER;
+    sql TEXT;
+    sname TEXT;
+    tname TEXT;
+    tabname TEXT;
+    vname TEXT;
+    vertname TEXT;
+    gname TEXT;
+    idname TEXT;
+    sourcename TEXT;
+    targetname TEXT;
+    notincluded INTEGER;
+    i INTEGER;
+    naming record;
+    info record;
+    flag boolean;
+    query TEXT;
+    idtype TEXT;
+    gtype TEXT;
+    sourcetype TEXT;
+    targettype TEXT;
+    debuglevel TEXT;
+    dummyRec record;
+    fnName TEXT;
+    err bool;
+    msgKind int;
+    emptied BOOLEAN;
+
+BEGIN
+    msgKind = 1; -- notice
+    fnName = 'pgr_createTopology';
+    RAISE notice 'PROCESSING:';
+    RAISE notice 'pgr_createTopology(''%'', %, ''%'', ''%'', ''%'', ''%'', rows_where := ''%'', clean := %)',edge_table,tolerance,the_geom,id,source,target,rows_where, clean;
+    EXECUTE 'show client_min_messages' INTO debuglevel;
+
+
+    RAISE notice 'Performing checks, please wait .....';
+
+        EXECUTE 'SELECT sname, tname FROM _pgr_getTableName('|| quote_literal(edge_table)
+                                                  || ',2,' || quote_literal(fnName) ||' )' INTO naming;
+        sname=naming.sname;
+        tname=naming.tname;
+        tabname=sname||'.'||tname;
+        vname=tname||'_vertices_pgr';
+        vertname= sname||'.'||vname;
+        rows_where = ' AND ('||rows_where||')';
+      RAISE DEBUG '     --> OK';
+
+
+      RAISE debug 'Checking column names in edge table';
+        SELECT _pgr_getColumnName INTO idname     FROM _pgr_getColumnName(sname, tname,id,2,fnName);
+        SELECT _pgr_getColumnName INTO sourcename FROM _pgr_getColumnName(sname, tname,source,2,fnName);
+        SELECT _pgr_getColumnName INTO targetname FROM _pgr_getColumnName(sname, tname,target,2,fnName);
+        SELECT _pgr_getColumnName INTO gname      FROM _pgr_getColumnName(sname, tname,the_geom,2,fnName);
+
+
+        err = sourcename in (targetname,idname,gname) OR  targetname in (idname,gname) OR idname=gname;
+        perform _pgr_onError( err, 2, fnName,
+               'Two columns share the same name', 'Parameter names for id,the_geom,source and target  must be different',
+	       'Column names are OK');
+
+      RAISE DEBUG '     --> OK';
+
+      RAISE debug 'Checking column types in edge table';
+        SELECT _pgr_getColumnType INTO sourcetype FROM _pgr_getColumnType(sname,tname,sourcename,1, fnName);
+        SELECT _pgr_getColumnType INTO targettype FROM _pgr_getColumnType(sname,tname,targetname,1, fnName);
+        SELECT _pgr_getColumnType INTO idtype FROM _pgr_getColumnType(sname,tname,idname,1, fnName);
+
+        err = idtype NOT in('integer','smallint','bigint');
+        perform _pgr_onError(err, 2, fnName,
+	       'Wrong type of Column id:'|| idname, ' Expected type of '|| idname || ' is integer,smallint or bigint but '||idtype||' was found');
+
+        err = sourcetype NOT in('integer','smallint','bigint');
+        perform _pgr_onError(err, 2, fnName,
+	       'Wrong type of Column source:'|| sourcename, ' Expected type of '|| sourcename || ' is integer,smallint or bigint but '||sourcetype||' was found');
+
+        err = targettype NOT in('integer','smallint','bigint');
+        perform _pgr_onError(err, 2, fnName,
+	       'Wrong type of Column target:'|| targetname, ' Expected type of '|| targetname || ' is integer,smallint or bigint but '||targettype||' was found');
+
+      RAISE DEBUG '     --> OK';
+
+      RAISE debug 'Checking SRID of geometry column';
+         query= 'SELECT ST_SRID(' || quote_ident(gname) || ') AS srid '
+            || ' FROM ' || _pgr_quote_ident(tabname)
+            || ' WHERE ' || quote_ident(gname)
+            || ' IS NOT NULL LIMIT 1';
+         RAISE debug '%',query;
+         EXECUTE query INTO sridinfo;
+
+         err =  sridinfo IS NULL OR sridinfo.srid IS NULL;
+         perform _pgr_onError(err, 2, fnName,
+	     'Can not determine the srid of the geometry '|| gname ||' in table '||tabname, 'Check the geometry of column '||gname);
+
+         srid := sridinfo.srid;
+      RAISE DEBUG '     --> OK';
+
+      RAISE debug 'Checking and creating indices in edge table';
+        perform _pgr_createIndex(sname, tname , idname , 'btree'::TEXT);
+        perform _pgr_createIndex(sname, tname , sourcename , 'btree'::TEXT);
+        perform _pgr_createIndex(sname, tname , targetname , 'btree'::TEXT);
+        perform _pgr_createIndex(sname, tname , gname , 'gist'::TEXT);
+
+        gname=quote_ident(gname);
+        idname=quote_ident(idname);
+        sourcename=quote_ident(sourcename);
+        targetname=quote_ident(targetname);
+      RAISE DEBUG '     --> OK';
+
+
+
+
+
+    BEGIN
+        -- issue #193 & issue #210 & #213
+        -- this sql is for trying out the where clause
+        -- the select * is to avoid any column name conflicts
+        -- limit 1, just try on first record
+        -- if the where clasuse is ill formed it will be caught in the exception
+        sql = 'SELECT '||idname ||','|| sourcename ||','|| targetname ||','|| gname || ' FROM '||_pgr_quote_ident(tabname)||' WHERE true'||rows_where ||' limit 1';
+        EXECUTE sql INTO dummyRec;
+        -- end
+
+        -- if above where clasue works this one should work
+        -- any error will be caught by the exception also
+        sql = 'SELECT count(*) FROM '||_pgr_quote_ident(tabname)||' WHERE (' || gname || ' IS NOT NULL AND '||
+	    idname||' IS NOT NULL)=false '||rows_where;
+        EXECUTE SQL  INTO notincluded;
+
+        if clean then
+            RAISE debug 'Cleaning previous Topology ';
+               EXECUTE 'UPDATE ' || _pgr_quote_ident(tabname) ||
+               ' SET '||sourcename||' = NULL,'||targetname||' = NULL';
+        else
+            RAISE debug 'Creating topology for edges with non assigned topology';
+            if rows_where=' AND (true)' then
+                rows_where=  ' AND ('||quote_ident(sourcename)||' is NULL OR '||quote_ident(targetname)||' is  NULL)';
+            end if;
+        end if;
+        -- my thoery is that the select Count(*) will never go through here
+        EXCEPTION WHEN OTHERS THEN
+             RAISE NOTICE 'Got %', SQLERRM; -- issue 210,211
+             RAISE NOTICE 'ERROR: Condition is not correct, please execute the following query to test your condition';
+             RAISE NOTICE '%',sql;
+             RETURN 'FAIL';
+    END;
+
+    BEGIN
+         RAISE DEBUG 'initializing %',vertname;
+         EXECUTE 'SELECT sname, tname FROM _pgr_getTableName('||quote_literal(vertname)
+                                                  || ',0,' || quote_literal(fnName) ||' )' INTO naming;
+         emptied = false;
+         set client_min_messages  to warning;
+         IF sname=naming.sname AND vname=naming.tname  THEN
+            if clean then
+                EXECUTE 'TRUNCATE TABLE '||_pgr_quote_ident(vertname)||' RESTART IDENTITY';
+                EXECUTE 'SELECT DROPGEOMETRYCOLUMN('||quote_literal(sname)||','||quote_literal(vname)||','||quote_literal('the_geom')||')';
+                emptied = true;
+            end if;
+         ELSE -- table doesn't exist
+            EXECUTE 'CREATE TABLE '||_pgr_quote_ident(vertname)||' (id bigserial PRIMARY KEY,cnt integer,chk integer,ein integer,eout integer)';
+            emptied = true;
+         END IF;
+         IF (emptied) THEN
+             EXECUTE 'SELECT addGeometryColumn('||quote_literal(sname)||','||quote_literal(vname)||','||
+	         quote_literal('the_geom')||','|| srid||', '||quote_literal('POINT')||', 2)';
+             perform _pgr_createIndex(vertname , 'the_geom'::TEXT , 'gist'::TEXT);
+         END IF;
+         EXECUTE 'SELECT _pgr_checkVertTab FROM  _pgr_checkVertTab('||quote_literal(vertname) ||', ''{"id"}''::TEXT[])' INTO naming;
+         EXECUTE 'set client_min_messages  to '|| debuglevel;
+         RAISE DEBUG  '  ------>OK';
+         EXCEPTION WHEN OTHERS THEN
+             RAISE NOTICE 'Got %', SQLERRM; -- issue 210,211
+             RAISE NOTICE 'ERROR: something went wrong when initializing the verties table';
+             RETURN 'FAIL';
+    END;
+
+
+
+    RAISE notice 'Creating Topology, Please wait...';
+        rowcount := 0;
+        FOR points IN EXECUTE 'SELECT ' || idname || '::BIGINT AS id,'
+            || ' _pgr_StartPoint(' || gname || ') AS source,'
+            || ' _pgr_EndPoint('   || gname || ') AS target'
+            || ' FROM '  || _pgr_quote_ident(tabname)
+            || ' WHERE ' || gname || ' IS NOT NULL AND ' || idname||' IS NOT NULL '||rows_where
+        LOOP
+
+            rowcount := rowcount + 1;
+            IF rowcount % 1000 = 0 THEN
+                RAISE NOTICE '% edges processed', rowcount;
+            END IF;
+
+
+            source_id := _pgr_pointToId(points.source, tolerance,vertname,srid);
+            target_id := _pgr_pointToId(points.target, tolerance,vertname,srid);
+            BEGIN
+                sql := 'UPDATE ' || _pgr_quote_ident(tabname) ||
+                    ' SET '||sourcename||' = '|| source_id::TEXT || ','||targetname||' = ' || target_id::TEXT ||
+                    ' WHERE ' || idname || ' =  ' || points.id::TEXT;
+
+                IF sql IS NULL THEN
+                    RAISE NOTICE 'WARNING: UPDATE % SET source = %, target = % WHERE % = % ', tabname, source_id::TEXT, target_id::TEXT, idname,  points.id::TEXT;
+                ELSE
+                    EXECUTE sql;
+                END IF;
+                EXCEPTION WHEN OTHERS THEN
+                    RAISE NOTICE '%', SQLERRM;
+                    RAISE NOTICE '%',sql;
+                    RETURN 'FAIL';
+            end;
+        END LOOP;
+        RAISE notice '-------------> TOPOLOGY CREATED FOR  % edges', rowcount;
+        RAISE NOTICE 'Rows with NULL geometry or NULL id: %',notincluded;
+        RAISE notice 'Vertices table for table % is: %',_pgr_quote_ident(tabname), _pgr_quote_ident(vertname);
+        RAISE notice '----------------------------------------------';
+
+    RETURN 'OK';
+ EXCEPTION WHEN OTHERS THEN
+   RAISE NOTICE 'Unexpected error %', SQLERRM; -- issue 210,211
+   RETURN 'FAIL';
+END;
+
+
+$BODY$;
+
+ALTER FUNCTION public.pgr_createtopology(text, double precision, text, text, text, text, text, boolean)
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION public.pgr_createtopology(text, double precision, text, text, text, text, text, boolean)
+    IS 'pgr_createTopology
+ - Parameters
+   - Edge table name
+   - tolerance
+ - Optional parameters
+   - the_geom := ''the_geom''
+   - id := ''id''
+   - source := ''source''
+   - target := ''target''
+   - rows_where := ''true''
+   - clean := false
+- Documentation:
+   - https://docs.pgrouting.org/latest/en/pgr_createTopology.html
+';

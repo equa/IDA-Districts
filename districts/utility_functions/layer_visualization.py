@@ -1,7 +1,14 @@
-from plugins.utility_functions.files import *
-from plugins.utility_functions.db import *
+from .files import *
+from .db import *
 from qgis.core import  QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
-
+from qgis.utils import iface
+   
+def removeTempLayers():
+    layers = QgsProject.instance().mapLayers().values()
+    for layer in layers:
+        if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp','energy_plants_temp']:
+            QgsProject.instance().removeMapLayer(layer)
+            
 def zoomToLayer(layer_name):
     # Get the active QGIS map canvas
     canvas = iface.mapCanvas()
@@ -47,7 +54,7 @@ def setFieldConstraints(constraints_dict):
                 layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
             
 def getDHCLayerNames():
-    return ["lines","junctions","energy_plants"]
+    return ["lines","junctions","energy_plants","customers","boreholes"]
     
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
@@ -123,7 +130,7 @@ def valueRelationInternalLoadId():
     field_idx = fields.indexOf('internal_load_id')
     QgsProject.instance().mapLayersByName('customers')[0].setEditorWidgetSetup(field_idx, widget_setup)  
  
-def setupVersionForm(cur,dictDB):  
+def setupVersionForm(cur,config):  
     """ setup form for version layers"""
     for vlayerName in ['lines','junctions','customers','energy_plants']:
         vlayer=QgsProject.instance().mapLayersByName(vlayerName)[0] 
@@ -193,11 +200,10 @@ def removeLayer(layer_name):
         layer=QgsProject.instance().mapLayersByName(layer_name)[0]
         QgsProject.instance().removeMapLayer(layer)
 
-def loadBoreholesLayer(version,uri,dictDB,plugin_dir,cur):
-    dir=getProjectHandlingDir(plugin_dir)
+def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
     vlayerName='boreholes'
     uri.setDataSource(version, vlayerName, "geom")
-    vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
+    vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
     QgsProject.instance().addMapLayer(vlayer)  
     target_layer = QgsProject.instance().mapLayersByName('energy_plants')[0]
     config = {'AllowMulti': False,
@@ -235,6 +241,8 @@ def removeLayers():
             'pipematerial','lines_results_supply_temperature','customer_results_load',
             'room_units','zone_templates','building_construction_standard']:
             QgsProject.instance().removeMapLayer(layer)
+    iface.mapCanvas().refresh()
+
         
 def removeTempLayers():
     layers = QgsProject.instance().mapLayers().values()
@@ -242,7 +250,7 @@ def removeTempLayers():
         if layer.name() in ['customers_temp','lines_temp','lines_heating_temp','lines_cooling_temp','junctions_temp','energy_plants_temp']:
             QgsProject.instance().removeMapLayer(layer)
 
-def showTempTables(uri,dictDB,plugin_dir,iface,cur):
+def showTempTables(uri,config,plugin_dir,signals,cur):
     """Show temp tables (lines,customers,junctions,energy_plants)"""
     print('show temp tables')
     removeTempLayers()
@@ -252,11 +260,14 @@ def showTempTables(uri,dictDB,plugin_dir,iface,cur):
             vlayer= QgsProject.instance().mapLayersByName(layer)[0]
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
         else:
-            #iface.messageBar().pushMessage("Warning", "No project tables loaded", level=Qgis.Warning)
+            signals.error.emit("No project tables loaded")
             print("No project tables loaded")
             return False
     try:
-        loadProjectLayers('temp',uri,dictDB,plugin_dir,cur)  
+        auth_cfg = QgsAuthMethodConfig()
+        QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
+
+        loadProjectLayers('temp',uri,config,plugin_dir,cur,auth_cfg.config("username"))  
     except:
         print('Load project layers failed')
         pass
@@ -273,14 +284,14 @@ def setLayersHidden(tableNames):
             index = model.node2index(node)
             ltv.setRowHidden( index.row(), index.parent(), True)
         
-def loadTopologyLayers(version,uri,dictDB):
+def loadTopologyLayers(version,uri,config,username):
     #load tables without geometry and hide them in layers panel
     tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_templates','energy_plant_templates',
         'junction_types',
         'line_types','room_units','building_construction_standard','zone_templates']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
-        layer = QgsVectorLayer(uri.uri(False), tableName, dictDB['user'])
+        layer = QgsVectorLayer(uri.uri(False), tableName, username)
         QgsProject.instance().addMapLayer(layer)
     
     setLayersHidden(tableNames) 
@@ -294,8 +305,7 @@ def getConstraintExpressionDict(networks_array):
                                 'customers': {'network': f'array_all({networks_array}, "network") AND array_length( "network" ) > 0'},
                                 'lines': {'network': f'array_contains({networks_array},"network")'}} 
     
-def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
-    dir=getProjectHandlingDir(plugin_dir)
+def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
     print('load project layers')
     for vlayerName in ['energy_plants','customers','lines','junctions']:  
         print('------')
@@ -307,16 +317,16 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
 
         uri.setDataSource(version, vlayerName, "geom")
         if version =='temp':
-            vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])
+            vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', username)
         else:
-            vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
+            vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
         QgsProject.instance().addMapLayer(vlayer)  
         print(vlayerName[:-1])
         target_layer_name=vlayerName[:-1] + ('_templates' if vlayerName in ['energy_plants','customers'] else '_types')
         cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
         print(target_layer_name)
         print(cat_colmn_name)
-        config = {'AllowMulti': False,
+        config_layer = {'AllowMulti': False,
                   'AllowNull': True,
                   'FilterExpression': '',
                   'Key': '',
@@ -328,15 +338,15 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
         fields=vlayer.fields()
 
         if vlayerName in ['customers','energy_plants']:     
-            config['Key'] = 'template'
-            config['Value'] = 'template_name'
+            config_layer['Key'] = 'template'
+            config_layer['Value'] = 'template_name'
         else:
-            config['Key'] = 'id'
-            config['Value'] = 'type'
+            config_layer['Key'] = 'id'
+            config_layer['Value'] = 'type'
         target_layer = QgsProject.instance().mapLayersByName(target_layer_name)[0]             
-        config['Layer'] = target_layer.id()
-        config['FilterExpression']=""
-        widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+        config_layer['Layer'] = target_layer.id()
+        config_layer['FilterExpression']=""
+        widget_setup = QgsEditorWidgetSetup('ValueRelation',config_layer)
         field_idx = fields.indexOf(cat_colmn_name)
         vlayer.setEditorWidgetSetup(field_idx, widget_setup)
 
@@ -347,9 +357,10 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
             if vlayerName in ['lines']:
                 symbol.setWidth(0.75) 
             else:
-                symbol.setSize(2)
+                if symbol is not None:
+                    symbol.setSize(2)
                 svgStyle = {}
-                dir_icon=dir+'/icons/{}/'.format(vlayerName)
+                dir_icon=plugin_dir+'/icons/{}/'.format(vlayerName)
                 svg_fname=dir_icon+ category+'.svg'
                 if os.path.exists(svg_fname):
                     svgStyle['name'] = svg_fname
@@ -367,10 +378,10 @@ def loadProjectLayers(version,uri,dictDB,plugin_dir,cur):
             
     #set field widget type as list
     setEditorWidgetListType(getListTypeDict())
-    updateNetworkDependingFields(cur,dictDB)        
+    updateNetworkDependingFields(cur,config)        
 
-def updateNetworkDependingFields(cur,dictDB):
-    networks=getNetworks(cur,dictDB)
+def updateNetworkDependingFields(cur,config):
+    networks=getNetworks(cur,config)
     networks_array='array({})'.format(','.join([i for i in networks]))
     constraint_expression_dict = getConstraintExpressionDict(networks_array)
     setFieldConstraints(constraint_expression_dict)
@@ -397,22 +408,24 @@ def featureLayerGroupIds(vlayerName,cur):
     except:
         return []
         
-def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
+def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
     print('load feature layer')
-    dir=getProjectHandlingDir(plugin_dir)
     categories=featureLayerGroups(vlayerName,cur)
     ids=featureLayerGroupIds(vlayerName,cur)
     
     uri = QgsDataSourceUri()
-    uri.setConnection(dictDB['host'], dictDB['port'], dictDB['projectName'], None, None)
+    auth_cfg = QgsAuthMethodConfig()
+    QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
+
+    uri.setConnection(config['host'], config['port'], config['projectName'], None, None)
     connInfo = uri.connectionInfo()
-    QgsCredentials.instance().put( connInfo, dictDB['user'], dictDB['pwd'])  
+    QgsCredentials.instance().put( connInfo, auth_cfg.config("username"), auth_cfg.config("password"))  
     uri.setDataSource(version, vlayerName, "geom")
  
     if version =='temp':
-        vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', dictDB['user'])
+        vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', auth_cfg.config("username"))
     else:
-        vlayer = QgsVectorLayer(uri.uri(False), vlayerName, dictDB['user'])
+        vlayer = QgsVectorLayer(uri.uri(False), vlayerName, auth_cfg.config("username"))
     QgsProject.instance().addMapLayer(vlayer)  
     target_layer_name=vlayerName[:-1] + ('_templates' if vlayerName in ['energy_plants','customers'] else '_types')
     cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
@@ -449,7 +462,7 @@ def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
         else:
             symbol.setSize(2)
             svgStyle = {}
-            dir_icon=dir+'/icons/{}/'.format(vlayerName)
+            dir_icon=plugin_dir+'/icons/{}/'.format(vlayerName)
             svg_fname=dir_icon+ category+'.svg'
             if os.path.exists(svg_fname):
                 svgStyle['name'] = svg_fname
@@ -470,5 +483,5 @@ def loadFeatureLayer(version,dictDB,plugin_dir,vlayerName,cur):
         valueRelationDhwId()    
         valueRelationInternalLoadId() 
       
-    setupVersionForm(cur,dictDB)  
+    setupVersionForm(cur,config)  
         

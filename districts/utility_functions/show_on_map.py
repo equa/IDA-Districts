@@ -1,5 +1,5 @@
-from plugins.utility_functions.db import *
-from plugins.utility_functions.workers import *
+from .db import *
+from .workers import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
@@ -20,7 +20,7 @@ class WorkerShowOnMap(QRunnable):
         print('WorkerShowOnMap')
         print(kwargs)
         self.signals=APISignals2()
-        self.dictDB=kwargs['dictDB']
+        self.config=kwargs['config']
         self.dlg=kwargs['dlg']
         if self.dlg:
             self.dlg.process_running=True
@@ -34,7 +34,7 @@ class WorkerShowOnMap(QRunnable):
         self.plugin_dir=kwargs['plugin_dir']
         self.simData=kwargs['simData']
         self.time_values=['Values','Hourly average','Daily average','Monthly average']
-        self.conn = dbConnect(self.dictDB,True)
+        self.conn = dbConnect(self.config,True)
         self.vars=None
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -108,7 +108,7 @@ class WorkerShowOnMap(QRunnable):
       AND table_name LIKE 'line_s_%_vis'
 )
 SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
-    FROM tables_to_drop;""".format(self.dictDB['versionName'],self.dictDB['versionName'])
+    FROM tables_to_drop;""".format(self.config['versionName'],self.config['versionName'])
         self.cur.execute(sql)
         
         if vars['color']['var_function'] in self.time_values:
@@ -127,7 +127,7 @@ SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
         self.first_time_var='color' if time_color else ('size' if time_size else ('rotation' if time_rotation else False))
         print('++first-time-var: '+str(self.first_time_var))
         if self.first_time_var:
-            dt=getAvergageByMode(vars[self.first_time_var]['var_function'],self.cur,self.dictDB,vars[self.first_time_var]['table_name']) #hours
+            dt=getAvergageByMode(vars[self.first_time_var]['var_function'],self.cur,self.config,vars[self.first_time_var]['table_name']) #hours
         else:
             dt=False
         print(dt)
@@ -142,7 +142,7 @@ SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
             #re-create table line_seg_vis, which holds the geometry of the visualized pipe segements
             #check if > calculated segments
                 
-            srid=loadProjectConfig(self.plugin_dir,self.dictDB['projectName'])['srid']
+            srid=loadProjectConfig(self.plugin_dir,self.config['projectName'])['srid']
             
             #store cumulate simulation results in _vis table if lineSegVis!=0 and var
             if vars['color']['mode']=='var' and vars['color']['name'].split('$')[0] in ('temp','p') or vars['size']['mode']=='var' and vars['size']['name'].split('$')[0] in ('temp','p'):
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
     lid_seg integer NOT NULL,
     geom geometry(LineStringZ,{})
 );
-SELECT segmentize({},'{}','line_seg_vis');""".format(self.dictDB['versionName'],self.dictDB['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.dictDB['versionName'])
+SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.config['versionName'])
                 print(sql)
                 self.cur.execute(sql)
             
@@ -170,7 +170,7 @@ CREATE TABLE "{}".line_s_{}_vis
 	segment integer,
 	"${}" numeric,
 	CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
-);""".format(self.dictDB['versionName'],vars['color']['name'],self.dictDB['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name'])
+);""".format(self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name'])
                     
                     if vars['color']['name'].split('$')[0]=='p': #linear interpolation using pressure values at start and end of the line
                         print('++++interpoation++++')
@@ -185,15 +185,15 @@ CREATE TABLE "{}".line_s_{}_vis
             "{}".line_seg_vis seg,
             (SELECT lid, count(*) AS count FROM "{}".line_seg_vis GROUP BY lid ORDER BY lid) seg_counter
         WHERE  seg_counter.lid=s.fid AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
-        ORDER BY s.fid,seg.lid_seg,time;""".format(self.dictDB['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],self.dictDB['versionName'],vars['color']['name'],self.dictDB['versionName'],vars['color']['name'],self.dictDB['versionName'],self.dictDB['versionName'],vars['time']['starttime'],vars['time']['endtime'])    
+        ORDER BY s.fid,seg.lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],self.config['versionName'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])    
                     else:
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
         FROM "{}".line_s_{} s, "{}".line_seg_vis seg
         WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
-        ORDER BY fid,lid_seg,time;""".format(self.dictDB['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.dictDB['versionName'],vars['color']['name'],self.dictDB['versionName'],vars['time']['starttime'],vars['time']['endtime'])
-                    sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['color']['name'],self.dictDB['versionName'],vars['color']['name'])
+        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])
+                    sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['color']['name'],self.config['versionName'],vars['color']['name'])
                     print(sql)
                     self.cur.execute(sql)
                     
@@ -211,14 +211,14 @@ CREATE TABLE "{}".line_s_{}_vis
 	segment integer,
 	"${}" numeric, -- use $ in order not to have a conflict the var column with oder columns
 	CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
-);""".format(self.dictDB['versionName'],vars['size']['name'],self.dictDB['versionName'],vars['size']['name'],srid,vars['size']['name'].split('$')[0],vars['size']['name'])
+);""".format(self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['size']['name'],srid,vars['size']['name'].split('$')[0],vars['size']['name'])
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
         FROM "{}".line_s_{} s, "{}".line_seg_vis seg
         WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
-        ORDER BY fid,lid_seg,time;""".format(self.dictDB['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.dictDB['versionName'],vars['size']['name'],self.dictDB['versionName'],vars['time']['starttime'],vars['time']['endtime'])
-                        sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['size']['name'],self.dictDB['versionName'],vars['size']['name'])
+        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])
+                        sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['size']['name'],self.config['versionName'],vars['size']['name'])
                         print(sql)
                         self.cur.execute(sql)
                         
@@ -239,15 +239,15 @@ CREATE TABLE "{}".line_s_{}_vis
                 'avg(rotation."${}") AS rotation'.format(vars['rotation']['name'].split('$')[0]) if time_rotation else ('rotation.rotation' if vars['rotation']['mode']=='var' else ('rotation."{}"'.format(vars['rotation']['name']) +' AS rotation' if vars['rotation']['mode'] else '') )] 
                 if i]),
                 ','.join([i for i in  #from
-                    [""""{}".{} color""".format(self.dictDB['versionName'],vars['color']['table_name']) if time_color else (
+                    [""""{}".{} color""".format(self.config['versionName'],vars['color']['table_name']) if time_color else (
                     """({}) color""".format(self.getNonTimeVarFunctionValue(vars['color'],'color',vars['time'])) 
-                    if vars['color']['mode']=='var' else ('"{}".{} AS color'.format(self.dictDB['versionName'],vars['color']['table_name']) if vars['color']['mode']=='par' else '')),
-                    """"{}".{} size""".format(self.dictDB['versionName'],vars['size']['table_name']) if time_size else (
+                    if vars['color']['mode']=='var' else ('"{}".{} AS color'.format(self.config['versionName'],vars['color']['table_name']) if vars['color']['mode']=='par' else '')),
+                    """"{}".{} size""".format(self.config['versionName'],vars['size']['table_name']) if time_size else (
                     """({}) size""".format(self.getNonTimeVarFunctionValue(vars['size'],'size',vars['time']))  
-                    if vars['size']['mode']=='var'else ('"{}".{} AS size'.format(self.dictDB['versionName'],vars['size']['table_name']) if vars['size']['mode']=='par' else '')),
-                    """"{}".{} rotation""".format(self.dictDB['versionName'],vars['rotation']['table_name']) if time_rotation else (
+                    if vars['size']['mode']=='var'else ('"{}".{} AS size'.format(self.config['versionName'],vars['size']['table_name']) if vars['size']['mode']=='par' else '')),
+                    """"{}".{} rotation""".format(self.config['versionName'],vars['rotation']['table_name']) if time_rotation else (
                     """({}) rotation""".format(self.getNonTimeVarFunctionValue(vars['rotation'],'rotation',vars['time'])) 
-                    if vars['rotation']['mode']=='var' else ('"{}".{} AS rotation'.format(self.dictDB['versionName'],vars['rotation']['table_name']) if vars['rotation']['mode']=='par' else ''))] 
+                    if vars['rotation']['mode']=='var' else ('"{}".{} AS rotation'.format(self.config['versionName'],vars['rotation']['table_name']) if vars['rotation']['mode']=='par' else ''))] 
                     if i]),
                 '\n    WHERE ' if len([var for var in vars if var not in ['time','data']and vars[var]['mode']])>=2  or self.first_time_var else '',
                 ' AND '.join([i for i in #where
@@ -278,7 +278,7 @@ CREATE TABLE "{}".line_s_{}_vis
         GROUP BY time 
         ORDER BY time
 )
-SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;""".format(self.dictDB['versionName'],vars[self.first_time_var]['table_name'])
+SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;""".format(self.config['versionName'],vars[self.first_time_var]['table_name'])
             print(sql)
             self.cur.execute(sql)
             dt=self.cur.fetchone()['dt']
@@ -291,25 +291,25 @@ SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;"
     
     def getNonTimeVarFunctionValue(self,var,type,time):
         if var['var_function']=='Max':
-            sql="""SELECT fid,geom AS geom,max("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.dictDB['versionName'],var['table_name'],time['starttime'],time['endtime'])
+            sql="""SELECT fid,geom AS geom,max("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
         elif var['var_function']=='Min':
-            sql="""SELECT fid,geom AS geom,min("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.dictDB['versionName'],var['table_name'],time['starttime'],time['endtime'])
+            sql="""SELECT fid,geom AS geom,min("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
         elif var['var_function']=='Average':
-            sql="""SELECT fid,geom AS geom,avg("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.dictDB['versionName'],var['table_name'],time['starttime'],time['endtime'])
+            sql="""SELECT fid,geom AS geom,avg("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
         elif var['var_function']=='Last value':
             sql="""SELECT DISTINCT ON (fid{}) 
     fid,geom,"${}" AS {},time
 FROM "{}".{}
 WHERE time <= '{}'
-ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '' ,var['name'].split('$')[0],type,self.dictDB['versionName'],var['table_name'],time['endtime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
+ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '' ,var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['endtime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
         elif var['var_function']=='Sum':
-             sql="""SELECT fid,geom AS geom,sum("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.dictDB['versionName'],var['table_name'],time['starttime'],time['endtime'])
+             sql="""SELECT fid,geom AS geom,sum("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
         elif var['var_function']=='First value':
             sql="""SELECT DISTINCT ON (fid{}) 
     fid,geom AS geom,"${}" AS {},time
 FROM "{}".{}
 WHERE time >= '{}'
-ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.dictDB['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
+ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
         elif var['var_function']=='specific dp':
             sql="""WITH length_per_fid AS (
     SELECT lid AS fid, st_length(geom) AS len, geom
@@ -328,7 +328,7 @@ JOIN length_per_fid lp
     ON lp.fid = a.fid
 WHERE a.time between '{}' and '{}'
 GROUP BY a.fid, lp.geom""".format(
-                self.dictDB['versionName'],type,self.dictDB['versionName'],var['table_name'],self.dictDB['versionName'],var['table_name'],time['starttime'],time['endtime'])
+                self.config['versionName'],type,self.config['versionName'],var['table_name'],self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
         return sql
 
             
@@ -347,7 +347,7 @@ GROUP BY a.fid, lp.geom""".format(
         # make new memory layer
         self.temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
             'LineStringZ' if self.feature=='line' else 'PointZ',
-            loadProjectConfig(self.plugin_dir,self.dictDB['projectName'],signals=self.signals)['srid'],
+            loadProjectConfig(self.plugin_dir,self.config['projectName'],signals=self.signals)['srid'],
             'field=time:datetime&' if self.vars['time']['first_time_var'] else '',
             '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),self.layer_name, "memory")
         self.temp_layer.startEditing()

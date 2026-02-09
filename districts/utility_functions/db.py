@@ -1,58 +1,123 @@
-#from plugins.utility_functions.files import *
+from qgis.core import QgsApplication, QgsAuthMethodConfig
+
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT   
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  
+import psycopg2.extras
+ 
 from qgis.utils import iface
 from qgis.core import Qgis, QgsMessageLog
 from typing import Iterator, Optional,Dict, Any
 import io
 import subprocess
 import os
-from plugins.utility_functions.files import *
+from .files import *
+from .utility import *
 
-def dropDBTriggers(cur,dictDB):
-    sql=''
-    no_trigger_table=['invoked_sf']
-    for table in getDBTableNames(cur,dictDB):
-        if table not in no_trigger_table:
-            sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
-            sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
-            sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
-            sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(dictDB['versionName'],table)
-    if sql:
-        print(sql)
-        cur.execute(sql)
-
-def insertDBTriggers(cur,dictDB):
-    sql=''
-    no_trigger_table=['invoked_sf']
-    for table in getDBTableNames(cur,dictDB):
-        if table not in no_trigger_table:
-            sql+="""CREATE TRIGGER my_insert_trigger
-AFTER INSERT ON {}.{}
-FOR EACH ROW
-EXECUTE FUNCTION my_trigger_insert_function();\n""".format(dictDB['versionName'],table)
-            sql+="""CREATE TRIGGER my_delete_trigger
-AFTER DELETE ON {}.{}
-FOR EACH ROW
-EXECUTE FUNCTION my_trigger_delete_function();\n""".format(dictDB['versionName'],table)
-            sql+="""CREATE TRIGGER my_truncate_trigger
-AFTER TRUNCATE ON {}.{}
-FOR EACH STATEMENT
-EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(dictDB['versionName'],table)
-            sql+="""CREATE TRIGGER column_update_trigger
-AFTER UPDATE ON {}.{}
-FOR EACH ROW
-EXECUTE FUNCTION my_trigger_update_function();\n""".format(dictDB['versionName'],table)
-
-    if sql:
-        print(sql)
-        cur.execute(sql)
+def get_pgrouting_major_version(cur):
+    """
+    Returns the major version of pgRouting as an integer.
+    Example: 3 for 3.4.0, 4 for 4.0.0
+    """
+    cur.execute("SELECT split_part(pgr_version(), '.', 1)::int AS version;")
+    version = cur.fetchone()['version']
+    return version
     
-def getDBTableNames(cur,dictDB):
+def getDBIds(column,table,cur):
+    """ load the ids from DB table"""
+    sql='SELECT {} AS id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column)
+    print(sql)
+    cur.execute(sql)
+    return list([id['id'] for id in cur.fetchall()])           
+        
+def delIfNotInDBIds(table,openFnArg,cur):
+    """delete entries in subtable, if filter and not listed in DB table """
+    if openFnArg:
+        filter=openFnArg[3]
+        if filter:
+            ids=getDBIds('id',table,cur)
+            print(ids)
+            if ids:
+                ids=','.join([str(i) for i in ids])
+                sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids)
+            else:
+                sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0]))
+            print(sql)
+            cur.execute(sql)
+  
+  
+def rowCountDB(table,filter,cur):
+    """ Count the rows of table with filter"""
+    sql="SELECT count(*) AS count FROM {} {};".format(table,filter)
+    cur.execute(sql)
+    return cur.fetchone()['count']    
+        
+def updateProjectNamesList(dlg,cur_postgres,config):
+    projectNames=loadProjectNames(cur_postgres,config)
+    dlg.selectProject.blockSignals(True)
+    dlg.selectProject.clear()
+    dlg.selectProject.addItems(projectNames)
+    if config['projectName']:
+        dlg.selectProject.setCurrentText(config['projectName'])
+    dlg.selectProject.blockSignals(False)
+    return projectNames
+    
+def connectDBPostgres(config,dlg):
+    print('--connectDBPostgres--')
+    conn_postgres=dbConnectPerName(config,"postgres",True)
+    print(conn_postgres)
+    projectNames=None
+    if conn_postgres:
+        cur_postgres=conn_postgres.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        projectNames=updateProjectNamesList(dlg,cur_postgres,config)
+        return [conn_postgres,cur_postgres,projectNames]
+    return [False,False,projectNames]
+                
+def dropDBTriggers(cur,config,lastLoad=False):
+    sql=''
+    no_trigger_table=['invoked_sf']
+    if config['lastVersionName'] if lastLoad else config['versionName']:
+        for table in getDBTableNames(cur,config):
+            if table not in no_trigger_table:
+                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
+        if sql:
+            print(sql)
+            cur.execute(sql)
+
+def insertDBTriggers(cur,config):
+    sql=''
+    no_trigger_table=['invoked_sf']
+    if config['versionName']:
+        for table in getDBTableNames(cur,config):
+            if table not in no_trigger_table:
+                sql+="""CREATE TRIGGER my_insert_trigger
+AFTER INSERT ON "{}".{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_insert_function();\n""".format(config['versionName'],table)
+                sql+="""CREATE TRIGGER my_delete_trigger
+AFTER DELETE ON "{}".{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_delete_function();\n""".format(config['versionName'],table)
+                sql+="""CREATE TRIGGER my_truncate_trigger
+AFTER TRUNCATE ON "{}".{}
+FOR EACH STATEMENT
+EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(config['versionName'],table)
+                sql+="""CREATE TRIGGER column_update_trigger
+AFTER UPDATE ON "{}".{}
+FOR EACH ROW
+EXECUTE FUNCTION my_trigger_update_function();\n""".format(config['versionName'],table)
+
+        if sql:
+            print(sql)
+            cur.execute(sql)
+    
+def getDBTableNames(cur,config):
     sql="""SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = '{}'
-    AND table_type = 'BASE TABLE';""".format(dictDB['versionName'])
+    AND table_type = 'BASE TABLE';""".format(config['versionName'])
     cur.execute(sql)
     return [table['table_name'] for table in cur.fetchall()]
             
@@ -76,11 +141,11 @@ def dbColumnIsNumeric(cur,version,table,col):
     else:
         return False
     
-def copy_schema(baseName,new_versionName,dictDB,cur,plugin_dir):
+def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password):
     """copy schema"""
-    os.environ['PGPASSWORD'] = dictDB['pwd']
-    path_postgres=loadIDADistrictsConfig(plugin_dir)['path_postgresql']
-    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n """{}""" > "{}\\dump_schema.sql" '.format(path_postgres,dictDB['user'],dictDB['host'],dictDB['port'],dictDB['projectName'],baseName,plugin_dir)
+    os.environ['PGPASSWORD'] = password
+
+    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n """{}""" > "{}\\dump_schema.sql" '.format(config['pathPostgres'],username,config['host'],config['port'],config['projectName'],baseName,plugin_dir)
     print(cmd)
     subprocess.call(cmd, shell=True)  
     
@@ -92,7 +157,7 @@ def copy_schema(baseName,new_versionName,dictDB,cur,plugin_dir):
     print(sql)
     cur.execute(sql)
     
-    cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(path_postgres,dictDB['projectName'],dictDB['host'],dictDB['port'], dictDB['user'],plugin_dir)
+    cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(config['pathPostgres'],config['projectName'],config['host'],config['port'], username,plugin_dir)
     print(cmd)
     subprocess.call(cmd, shell=True)  
     
@@ -574,23 +639,11 @@ def getMaxIdSchema(cur,table_name,schema):
         return id['max_id']
     else:
         return 0
-
-def checkDBProjectConnected(dictDB,errorMsg):
-    """ Check if connected to DB project"""
-    print('check project connection')
-    if dictDB['pwd'] and dictDB['user'] and dictDB['host'] and dictDB['port'] and dictDB['projectName']:
-        print('connected to project!')
-        return True
-    else:
-        print('not connected to project!')
-        if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "Not connected to DB!", level=Qgis.Critical)
-        return False
         
-def checkDBVersionConnected(dictDB,errorMsg):
+def checkDBVersionConnected(config,errorMsg):
     """ Check if connected to DB version"""
     print('check version connection')
-    if dictDB['pwd'] and dictDB['user'] and dictDB['host'] and dictDB['port'] and dictDB['projectName'] and dictDB['versionName']:
+    if config['versionName']:
         print('connected to version!')
         return True
     else:
@@ -599,32 +652,54 @@ def checkDBVersionConnected(dictDB,errorMsg):
             iface.messageBar().pushMessage("WARNING", "Not connected to DB!", level=Qgis.Warning)
         return False
         
-def dbConnect(dictDB,errorMsg):
-    conn=""      
-    if checkDBProjectConnected(dictDB,errorMsg):
-        try:
-            conn = psycopg2.connect(
-                host=dictDB['host'],
-                database=dictDB['projectName'],
-                port=int(dictDB['port']),
-                user=dictDB['user'],
-                password=dictDB['pwd'])       
-            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        except:
-            print("DB connection has failed")
-            if errorMsg:
-                iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
+def dbConnect(config,errorMsg):
+    conn=None     
+    try:
+        auth_cfg = QgsAuthMethodConfig()
+        QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
+        conn = psycopg2.connect(
+            host=config['host'],
+            database=config['projectName'],
+            port=int(config['port']),
+            user=auth_cfg.config("username"),
+            password=auth_cfg.config("password"),
+            connect_timeout=5)       
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    except:
+        print("DB connection has failed")
+        if errorMsg:
+            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
     return conn
     
-def dbConnectPerName(dictDB,dbName,errorMsg):
-    conn=""
+def dbConnectProvidePwdUser(config,signals_error,pwd,user):
+    conn=None      
     try:
         conn = psycopg2.connect(
-            host=dictDB['host'],
+            host=config['host'],
+            database=config['projectName'],
+            port=int(config['port']),
+            user=user,
+            password=pwd,
+            connect_timeout=1)       
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    except Exception as e:
+        print("DB connection has failed:",e)
+        if signals_error:
+            signals_error.emit(str(e))
+    return conn
+    
+def dbConnectPerName(config,dbName,errorMsg):
+    conn=""
+    try:
+        auth_cfg = QgsAuthMethodConfig()
+        QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
+        conn = psycopg2.connect(
+            host=config['host'],
             database=dbName,
-            port=int(dictDB['port']),
-            user=dictDB['user'],
-            password=dictDB['pwd'])       
+            port=int(config['port']),
+            user=auth_cfg.config("username"),
+            password=auth_cfg.config("password"),
+            connect_timeout=1)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except:
         print("DB connection has failed")
@@ -652,28 +727,39 @@ def getTemplateName(cur,template_name,template_id):
     cur.execute(sql)
     return [i['template_names'] for i in cur.fetchall()]
     
-def loadProjectNames(cur,dictDB):
+def loadProjectNamesCheckDistricts(cur,config):
     """load the project names into comboBox selectProject """
-    print('Load project names')
-    cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false;')
-    db_names =list(cur.fetchall())
-    print(db_names)
+    print('--loadProjectNames--')
     project_names=[]
-    for db in db_names:
-        conn=dbConnectPerName(dictDB,db['datname'],False)
-        if conn:
-            print(conn)
-            cur = conn.cursor()
-            cur.execute("""SELECT EXISTS (
-                           SELECT * FROM information_schema.tables 
-                           WHERE  table_schema = 'public'
-                           AND    table_name   = 'customer_templates'
-                           );""")
-            if "True" in str(cur.fetchone()):
-                project_names.append(db['datname'])
-            conn.close()
-    print(project_names)
+    if cur:
+        cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false;')
+        db_names =list(cur.fetchall())
+        print(db_names)
+        for db in db_names:
+            conn=dbConnectPerName(config,db['datname'],False)
+            if conn:
+                print(conn)
+                cur = conn.cursor()
+                cur.execute("""SELECT EXISTS (
+                               SELECT * FROM information_schema.tables 
+                               WHERE  table_schema = 'public'
+                               AND    table_name   = 'customer_templates'
+                               );""")
+                if "True" in str(cur.fetchone()):
+                    project_names.append(db['datname'])
+                conn.close()
+        print(project_names)
     return project_names
+    
+def loadProjectNames(cur,config):
+    """load the project names into comboBox selectProject """
+    print('--loadProjectNames--')
+    if cur:
+        cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false;')
+        dbs =list(cur.fetchall())
+        return [db['datname'] for db in dbs if db['datname'] != 'postgres']
+    else:
+        return []
         
 def checkDBName(nameDb,projectNames):
     """Check if the DB name already exists """

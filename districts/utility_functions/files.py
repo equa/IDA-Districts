@@ -1,7 +1,7 @@
 import os
 import shutil
-from plugins.utility_functions.utility import *
-from plugins.utility_functions.ida_components import *
+from .utility import *
+from .ida_components import *
 from qgis.core import Qgis, QgsMessageLog
 
 def replace_in_file(file_path, old_string, new_string):
@@ -26,8 +26,8 @@ def replace_in_folder(root_folder, old_string, new_string, file_extensions=None,
                 full_path = os.path.join(dirpath, filename)
                 replace_in_file(full_path, old_string, new_string)
                 
-def writeMacroSFIdm(dictDB,cur,dir):
-    sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(dictDB['versionName'])
+def writeMacroSFIdm(config,cur,dir):
+    sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(config['versionName'])
     cur.execute(sql)
     sf_ids=cur.fetchall()     
     print(sf_ids)
@@ -38,8 +38,8 @@ def writeMacroSFIdm(dictDB,cur,dir):
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
     print(dir)
                 
-def writeMacroSFIdc(dictDB,cur,dir):
-    sql='SELECT id,sf FROM "{}".invoked_sf;'.format(dictDB['versionName'])
+def writeMacroSFIdc(config,cur,dir):
+    sql='SELECT id,sf FROM "{}".invoked_sf;'.format(config['versionName'])
     cur.execute(sql)
     sf_ids=cur.fetchall()
         
@@ -48,30 +48,6 @@ def writeMacroSFIdc(dictDB,cur,dir):
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
     filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idc')
-
-def getQGISPluginsDir(plugin_dir):
-    """ get directory of QGIS plugins"""
-    dir=plugin_dir.replace("/","\\")
-    dir="\\".join(i for i in dir.split("\\")[0:-1])
-    return dir
-
-def getProjectHandlingDir(plugin_dir):
-    """ get directory of project handling plugin"""
-    dir=getQGISPluginsDir(plugin_dir)
-    dir+='\\ida_ph'
-    return dir
-    
-def getDataCenterDir(plugin_dir):
-    """ get directory of data center plugin"""
-    dir=getQGISPluginsDir(plugin_dir)
-    dir+='\\ida_data'
-    return dir
-    
-def getModellingDir(plugin_dir):
-    """ get directory of modelling and simulation plugin"""
-    dir=getQGISPluginsDir(plugin_dir)
-    dir+='\\ida_mosim'
-    return dir
 
 def readAndReplaceFileToList(file,replaceDict):
     data=[]
@@ -98,26 +74,12 @@ def readFileToList(file):
                     else:
                         data.append(line+'\n')
     return data
-
-    
-def getDBConnectionData(plugin_dir,filename='dbSettings'):
-    """ load the DB connection data from file dbSettings.txt"""
-    print('get DB settings')
-    dbSettings=""
-    dir=getProjectHandlingDir(plugin_dir)
-    file="{}\\{}.txt".format(dir,filename)
-    if os.path.exists(file):
-        with open(file, "r") as myfile:   
-            for line in myfile:        
-                dbSettings+=line
-    print(strToDict(dbSettings))
-    return strToDict(dbSettings)
         
 def loadProjectConfig(plugin_dir,db_name,signals=False):
     """ load project config data from configProject.txt in project handling"""
-    config=""
+    config=''
     if db_name:
-        dir=getProjectHandlingDir(plugin_dir)
+        dir=plugin_dir+'\\projects'
         config_f="{}\\{}\\configProject.txt".format(dir,db_name)
         print(config_f)
         if os.path.exists(config_f):
@@ -129,6 +91,7 @@ def loadProjectConfig(plugin_dir,db_name,signals=False):
             print('Failed to load project config!')
             if signals:
                 signals.error.emit('Failed to load project config!')
+            return {'srid':''}
         config=strToDict(config)
     else:
         print('No project name')
@@ -138,48 +101,55 @@ def loadProjectConfig(plugin_dir,db_name,signals=False):
     
 def writeProjectConfig(plugin_dir,db_name,configProject):
     """ write project config data from configProject.txt in project handling"""
-    dir=getProjectHandlingDir(plugin_dir)
+    dir=plugin_dir+'\\projects'
     config_path=config_f="{}\\{}".format(dir,db_name)
     config_f=config_path+"\\configProject.txt"
     if os.path.exists(config_path):
         with open(config_f, "w") as myfile:   
             myfile.write(str(configProject))
             
-def writeRequestedOutputs(plugin_dir,dictDB,requestedOutputs):
+def writeRequestedOutputs(plugin_dir,config,requestedOutputs):
     """Writes the requested outputs to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""
-    dir=plugin_dir+"\\models\\"
-    createDir(dir,dictDB['projectName'])
-    dir+=dictDB['projectName']+"\\"
-    createDir(dir,dictDB['versionName'])
-    file=dir+dictDB['versionName']+"\\requestedOutputs.txt"
+    dir=plugin_dir+"\\projects\\"
+    createDir(dir,config['projectName'])
+    dir+=config['projectName']+"\\"
+    createDir(dir,"models\\")
+    dir+="models\\"
+    createDir(dir,config['versionName'])
+    file=dir+config['versionName']+"\\requestedOutputs.txt"
     with open(file, "w") as myfile:   
         myfile.write(str(requestedOutputs))
         
-def writeSimulatedOutputs(plugin_dir,dictDB,simulatedOutputs):
+def writeSimulatedOutputs(plugin_dir,config,simulatedOutputs):
     """Writes the simulated outputs to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""
-    dir=plugin_dir+"\\models\\"
-    createDir(dir,dictDB['projectName'])
-    dir+=dictDB['projectName']+"\\"
-    createDir(dir,dictDB['versionName'])
-    file=dir+dictDB['versionName']+"\\simulatedOutputs.txt"
+    dir=plugin_dir+"\\projects\\"
+    createDir(dir,config['projectName'])
+    dir+=config['projectName']+"\\"
+    createDir(dir,"models\\")
+    dir+="models\\"
+    createDir(dir,config['versionName'])
+    file=dir+config['versionName']+"\\simulatedOutputs.txt"
     with open(file, "w") as myfile:   
         myfile.write(str(simulatedOutputs))
         
-def writeInvokedOutputs(plugin_dir,dictDB,invokedOutputs):
+def writeInvokedOutputs(plugin_dir,config,invokedOutputs):
     """Writes the invoked outputs to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""
-    dir=plugin_dir+"\\models\\"
-    createDir(dir,dictDB['projectName'])
-    dir+=dictDB['projectName']+"\\"
-    createDir(dir,dictDB['versionName'])
-    file=dir+dictDB['versionName']+"\\invokedOutputs.txt"
+    dir=plugin_dir+"\\projects\\"
+    createDir(dir,config['projectName'])
+    dir+=config['projectName']+"\\"
+    createDir(dir,"models\\")
+    dir+="models\\"
+    createDir(dir,config['versionName'])
+    print(dir)
+    file=dir+config['versionName']+"\\invokedOutputs.txt"
     with open(file, "w") as myfile:   
         myfile.write(str(invokedOutputs))
             
-def loadRequestedOutputs(plugin_dir,dictDB):
+def loadRequestedOutputs(plugin_dir,config):
     """ load requested outputs from requestedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     requestedOutputs=""
-    if dictDB['projectName']:
-        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+    if config['projectName']:
+        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models\\"+config['versionName']
         file="{}\\requestedOutputs.txt".format(dir)
         if os.path.exists(file):
             print(file)
@@ -188,7 +158,7 @@ def loadRequestedOutputs(plugin_dir,dictDB):
                     requestedOutputs+=line
         else:
             #load from template in data center plugin if file does not exists
-            file_template=getDataCenterDir(plugin_dir)+"\\config\\requestedOutputs_template.txt"
+            file_template=plugin_dir+"\\config\\requestedOutputs_template.txt"
             if os.path.exists(file_template):
                 print(file_template)
                 with open(file_template, "r") as myfile:   
@@ -201,11 +171,11 @@ def loadRequestedOutputs(plugin_dir,dictDB):
         pass
     return requestedOutputs
     
-def loadSimulatedOutputs(plugin_dir,dictDB):
+def loadSimulatedOutputs(plugin_dir,config):
     """ load simulated outputs from simulatedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     simulatedOutputs=""
-    if dictDB['projectName']:
-        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+    if config['projectName']:
+        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models\\"+config['versionName']
         file="{}\\simulatedOutputs.txt".format(dir)
         if os.path.exists(file):
             print(file)
@@ -221,11 +191,11 @@ def loadSimulatedOutputs(plugin_dir,dictDB):
         pass
     return simulatedOutputs
     
-def loadInvokedOutputs(plugin_dir,dictDB):
+def loadInvokedOutputs(plugin_dir,config):
     """ load invoked outputs from invokedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     invokedOutputs=""
-    if dictDB['projectName']:
-        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+    if config['projectName']:
+        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models\\"+config['versionName']
         file="{}\\invokedOutputs.txt".format(dir)
         if os.path.exists(file):
             print(file)
@@ -241,31 +211,35 @@ def loadInvokedOutputs(plugin_dir,dictDB):
         pass
     return invokedOutputs
     
-def writeModellingSettings(plugin_dir,dictDB,modellingSettings):
-    """Writes the modelling settings to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""   
-    dir=plugin_dir+"\\models\\"
-    createDir(dir,dictDB['projectName'])
-    dir+=dictDB['projectName']+"\\"
-    createDir(dir,dictDB['versionName'])
-    file=dir+dictDB['versionName']+"\\modellingSettings.txt"
+def writeModellingSettings(plugin_dir,config,modellingSettings):
+    """Writes the modelling settings to file in projects --> project name -->  models   --> version name"""   
+    dir=plugin_dir+"\\projects\\"
+    createDir(dir,config['projectName'])
+    dir+=config['projectName']+"\\"
+    createDir(dir,"models\\")
+    dir+="models\\"
+    createDir(dir,config['versionName'])
+    file=dir+config['versionName']+"\\modellingSettings.txt"
     with open(file, "w") as myfile:   
         myfile.write(str(modellingSettings))
         
-def writeNetworkSimData(plugin_dir,dictDB,modellingSettings):
+def writeNetworkSimData(plugin_dir,config,modellingSettings):
     """Writes the network simulation settings to file in the modelling & simulation plugin -->  models  --> projet name --> version name"""   
-    dir=plugin_dir+"\\models\\"
-    createDir(dir,dictDB['projectName'])
-    dir+=dictDB['projectName']+"\\"
-    createDir(dir,dictDB['versionName'])
-    file=dir+dictDB['versionName']+"\\networkSimData.txt"
+    dir=plugin_dir+"\\projects\\"
+    createDir(dir,config['projectName'])
+    dir+=config['projectName']+"\\"
+    createDir(dir,"models\\")
+    dir+="models\\"
+    createDir(dir,config['versionName'])
+    file=dir+config['versionName']+"\\networkSimData.txt"
     with open(file, "w") as myfile:   
         myfile.write(str(modellingSettings))
             
-def loadModellingSettings(plugin_dir,dictDB):
+def loadModellingSettings(plugin_dir,config):
     """ load modelling settings from modellingSettings.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     modellingSettings=""
-    if dictDB['projectName']:
-        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+    if config['projectName']:
+        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models\\"+config['versionName']
         file="{}\\modellingSettings.txt".format(dir)
         if os.path.exists(file):
             print(file)
@@ -274,7 +248,7 @@ def loadModellingSettings(plugin_dir,dictDB):
                     modellingSettings+=line
         else:
             #load from template in data center plugin if file does not exists
-            file_template=getDataCenterDir(plugin_dir)+"\\config\\modellingSettings_template.txt"
+            file_template=plugin_dir+"\\config\\modellingSettings_template.txt"
             if os.path.exists(file_template):
                 print(file_template)
                 with open(file_template, "r") as myfile:   
@@ -287,11 +261,11 @@ def loadModellingSettings(plugin_dir,dictDB):
         pass
     return modellingSettings
     
-def loadNetworkSimData(plugin_dir,dictDB):
+def loadNetworkSimData(plugin_dir,config):
     """ load modelling settings from modellingSettings.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     networkSimData=""
-    if dictDB['projectName']:
-        dir=plugin_dir+"\\models\\"+dictDB['projectName']+"\\"+dictDB['versionName']
+    if config['projectName']:
+        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models\\"+config['versionName']
         file="{}\\networkSimData.txt".format(dir)
         if os.path.exists(file):
             print(file)
@@ -300,7 +274,7 @@ def loadNetworkSimData(plugin_dir,dictDB):
                     networkSimData+=line
         else:
             #load from template in data center plugin if file does not exists
-            file_template=getDataCenterDir(plugin_dir)+"\\config\\networkSimData_template.txt"
+            file_template=plugin_dir+"\\config\\networkSimData_template.txt"
             if os.path.exists(file_template):
                 print(file_template)
                 with open(file_template, "r") as myfile:   
@@ -311,48 +285,8 @@ def loadNetworkSimData(plugin_dir,dictDB):
     else:
         print('No project name')
         pass
-    return networkSimData
-            
-def writeDBSettings(plugin_dir,dictDB,filename='dbSettings'):
-    """ write db settings to file dbSettings.txt in project handling."""
-    dir=getProjectHandlingDir(plugin_dir)
-    file=dir+f"\\{filename}.txt"
-    if os.path.exists(dir):
-        with open(file, "w") as myfile:   
-            myfile.write(str(dictDB))
+    return networkSimData    
         
-def writeIDADistrictsConfig(plugin_dir,configIDADistricts):
-    """ write project config data from configProject.txt in project handling"""
-    dir=getProjectHandlingDir(plugin_dir)
-    config_f="{}\\configIDADistricts.txt".format(dir)
-    if os.path.exists(config_f):
-        if checkDirExists("IDA Path",configIDADistricts['path_ice']) and checkDirExists("PostgreSQL Path",configIDADistricts['path_postgresql']):
-            if not isNumber(configIDADistricts['ice_api_delay']):
-                iface.messageBar().pushMessage('Error', "Please enter a number as IDA ICE API delay!", level=Qgis.Critical)
-                return False
-            if configIDADistricts['path_ice'][-1]!="\\":
-                configIDADistricts['path_ice']=configIDADistricts['path_ice']+"\\"
-            if configIDADistricts['path_postgresql'][-1]!="\\":
-                configIDADistricts['path_postgresql']=configIDADistricts['path_postgresql']+"\\"
-            with open(config_f, "w") as myfile:   
-                myfile.write(str(configIDADistricts).replace('\\\\','\\'))
-            return True
-        else:
-            return False
-        
-def loadIDADistrictsConfig(plugin_dir):
-    """ load IDA Districts config data from configIDADistrict.txt in project handling"""
-    project_dir=getProjectHandlingDir(plugin_dir)
-    config_f="{}\\configIDADistricts.txt".format(project_dir)
-    config=""
-    if os.path.exists(config_f):
-        with open(config_f, "r") as myfile:   
-            for line in myfile:        
-                config+=line
-    config=strToDict(config)
-    print(config)
-    return config
-    
 def createDir(dir,name):
     """ makes a new folder if it does not exists"""
     if os.path.exists(dir):
@@ -480,8 +414,8 @@ def getSFList(pList,sf=[]):
     print(sf)                
     return sf
     
-def getUsedtemplatesFDict(plugin_dir,cur,dictDB):
-    usedFeaturetemplates=getUsedFeatureTemplates(cur,dictDB)
+def getUsedtemplatesFDict(plugin_dir,cur,config):
+    usedFeaturetemplates=getUsedFeatureTemplates(cur,config)
     print(usedFeaturetemplates)
 
     sf={}
@@ -489,7 +423,7 @@ def getUsedtemplatesFDict(plugin_dir,cur,dictDB):
         print(template)
         template_name="{}_{}".format(template['template'],template['template_name'])
         print(template_name)
-        dir=plugin_dir+"""ida_data\\{}\\{}_templates""".format(dictDB['projectName'],template['feature'])
+        dir=plugin_dir+"""\\{}\\{}_templates""".format(config['projectName'],template['feature'])
         filedata=readFileToList(dir+'\\'+template_name+'\\'+template_name+'.idm')
         
         for line in filedata:

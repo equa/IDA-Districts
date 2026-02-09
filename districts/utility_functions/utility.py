@@ -1,7 +1,7 @@
-from qgis.core import Qgis, QgsMessageLog, QgsProject
+from qgis.core import QgsApplication,Qgis, QgsMessageLog, QgsProject
+from qgis.PyQt.QtCore import QSettings
 from qgis.utils import iface
 from datetime import datetime 
-#from plugins.utility_functions.db import *
 from scipy.interpolate import interp1d
 import numpy as np
 import shutil
@@ -11,6 +11,52 @@ import ast
 import json
 import re
 
+def getAuthNames():
+    """return a dictionary of authenication ids"""
+    auth_dict={}
+    auth_mgr = QgsApplication.authManager()
+    auth_configs = auth_mgr.availableAuthMethodConfigs()
+    for auth_id, cfg in auth_configs.items():
+        auth_dict[cfg.name()] = auth_id
+        
+    return auth_dict
+
+def write_plugin_settings(config):
+    settings = QSettings()        
+    settings.beginGroup("districts")
+    for key,value in config.items():
+        settings.setValue(key, value)
+    settings.endGroup()
+        
+def load_plugin_settings():
+    settings = QSettings()
+    settings.beginGroup("districts")
+
+    config = {
+        #tool settings
+        "pathDistricts": settings.value("pathDistricts","C:\\Program Files (x86)\\IDA52\\"),
+        "districts_api_delay": settings.value("districts_api_delay","20"),
+        "pathPostgres": settings.value("pathPostgres","C:\\Program Files\\PostgreSQL\\18\\"),
+        "debug": settings.value("debug",False, type=bool),
+        "autosave": settings.value("autosave", True, type=bool),
+        "autosave_dt": settings.value("autosave_dt", "120"),
+        "exportInvokedFeatures": settings.value("exportInvokedFeatures", False, type=bool),
+        "exportPrn": settings.value("exportPrn", False, type=bool),
+        "exportDbResults": settings.value("exportDbResults", False, type=bool),
+        #db
+        "host": settings.value("host", "localhost"),
+        "port": settings.value("port", "5432"),
+        "autosave": settings.value("autosave", False, type=bool),
+        "auth_id": settings.value("auth_id", ""),
+        #project
+        "projectName": settings.value("projectName",""),
+        "versionName": settings.value("versionName",""),        
+        "lastVersionName": settings.value("lastVersionName","")        
+    }
+
+    settings.endGroup()
+    return config
+    
 def rmtree_long_path(dir):
     if os.path.exists(dir) and os.path.isdir(dir):
         if os.name == 'nt':

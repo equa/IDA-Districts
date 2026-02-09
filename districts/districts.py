@@ -21,13 +21,38 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtGui import QStandardItemModel
+from qgis.PyQt.QtWidgets import QMenu,QAbstractItemView,QFileDialog
+from qgis.PyQt.QtCore import Qt,QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtGui import QIcon,QPixmap
 from qgis.PyQt.QtWidgets import QAction
+
+from functools import partial
 
 # Import the code for the dialog
 from .districts_dialog import *
+from .ida_ph_dialog import *
+from .ida_resources_dialog import *
+from .ida_pp_dialog import *
+from .ida_mosim_dialog import *
+from .ida_pp import *
+from .ida_ph import *
+from .ida_mosim import *
+from .ida_resources import *
+from .ida_import import *
+from .ida_import_dialog import *
+from .ida_rv import *
+from .ida_rv_dialog import *
+from .osm import *
+from .load_results import *
+from .elevation_data import *
+from .update_sensors import *
+from .utility_functions.dialog import *
+from .utility_functions.db import *
+from .utility_functions.invoke import *
 import os.path
+import tempfile
 
 
 class Districts:
@@ -45,6 +70,11 @@ class Districts:
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+        self.icon_path = os.path.join(
+            self.plugin_dir,
+            'icons',
+            'IDA_Districts_Icon_QGIS.png'
+        )
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(
@@ -63,8 +93,17 @@ class Districts:
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
-
+        self.first_start = True
+      
+        self.conn=None
+        self.cur=None
+        self.conn_postgres=None
+        self.cur_postgres=None
+        self.config=load_plugin_settings()
+        self.projectConfig = loadProjectConfig(self.plugin_dir,self.config['projectName'])  
+        self.timer=None
+        self.process_running=False
+        
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -158,16 +197,11 @@ class Districts:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/districts/icon.png'
         self.add_action(
-            icon_path,
-            text=self.tr(u'This is IDA Districts'),
+            self.icon_path,
+            text=self.tr(u'IDA Districts'),
             callback=self.run,
             parent=self.iface.mainWindow())
-
-        # will be set False in run()
-        self.first_start = True
-
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -177,7 +211,787 @@ class Districts:
                 action)
             self.iface.removeToolBarIcon(action)
 
+    def openMenu(self, position):
+        """Function to add right click menu to treeview item"""
+        indexes = self.dlg.treeViewVersions.selectedIndexes()
+        mdlIdx = self.dlg.treeViewVersions.indexAt(position)
+        if not mdlIdx.isValid():
+            return
+        item = self.model.itemFromIndex(mdlIdx)
+        if len(indexes) > 0:
+            level = 0
+            index = indexes[0]
+            while index.parent().isValid():
+                index = index.parent()
+                level += 1
+        else:
+            level = 0
+        right_click_menu = QMenu()
+        act_add = right_click_menu.addAction(self.tr("Add Child version"))
+        act_add.triggered.connect(partial(self.treeItem_addDialog, level, mdlIdx))
+        act_add = right_click_menu.addAction(self.tr("Save version as"))
+        act_add.triggered.connect(partial(self.treeItem_saveAsDialog, level, mdlIdx))
+        act_add = right_click_menu.addAction(self.tr("Rename version"))
+        act_add.triggered.connect(partial(self.treeItem_renameDialog, level, mdlIdx,item))
+        act_del = right_click_menu.addAction(self.tr("Delete Item"))
+        act_del.triggered.connect(partial(self.deleteVersionDialog, item))
+        act_del = right_click_menu.addAction(self.tr("Load version"))
+        act_del.triggered.connect(partial(treeItem_load, item, mdlIdx,self))
+        right_click_menu.exec(self.dlg.treeViewVersions.viewport().mapToGlobal(position))
 
+    def treeItem_addDialog(self,level, mdlIdx):
+        """Project version add dialog --> connects to the TreeItem_Add function, which does the adding"""
+        print('Add dialog started')
+        if self.conn:
+            title='Add child version'
+            label_text='Child version name:'
+            self.dlg_addVersion = IDA_Districts_NameDialog(title,label_text,'','')
+            self.dlg_addVersion.btn_ok.clicked.connect(lambda: treeItem_add(level,mdlIdx,self.dlg_addVersion,self))
+            self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
+            self.dlg_addVersion.show()               
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+    def treeItem_saveAsDialog(self,level, mdlIdx):
+        """Project version Save As dialog --> connects to the TreeItem_SaveAs function, which does the Save As"""
+        print('Save As dialog started')
+        if self.conn:
+            title='Save project version as'
+            label_text='Project version name:'
+            self.dlg_saveAsVersion = IDA_Districts_NameDialog(title,label_text,'','')
+            self.dlg_saveAsVersion.btn_ok.clicked.connect(lambda: treeItem_saveAs(level,mdlIdx,self,self.dlg_saveAsVersion))
+            self.dlg_saveAsVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_saveAsVersion))
+            self.dlg_saveAsVersion.show()               
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+    def showDeleteVersionDialog(self):
+        try:
+            print(self.model)
+            print(self.dlg.treeViewVersions.selectedIndexes())
+            item=self.model.itemFromIndex(self.dlg.treeViewVersions.selectedIndexes()[0])
+            print(item)
+            self.deleteVersionDialog(item)
+        except:
+            iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            print('No item selected!')
+
+    def deleteVersionDialog(self,item):
+        """Delete project version dialog"""
+        print('Delete project version dialog started')
+        versionName=item.text()
+        if self.conn_postgres != '':
+            title='Delete project version'
+            label_text='Are you sure you want to delete project version "{}"?'.format(versionName)
+            self.dlg_deleteVersion = ApproveDialog(title,label_text)
+            self.dlg_deleteVersion.btn_ok.clicked.connect(lambda: treeItem_delete(item,self.dlg_deleteVersion,self))
+            self.dlg_deleteVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteVersion))
+            self.dlg_deleteVersion.show()               
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+            
+    def addBaseVersionDialog(self):
+        #Creating version --> new schema in project 
+        if self.conn != '':
+            title='Add base version'
+            label_text='Add base version:'
+            self.dlg_addBase = IDA_Districts_NameDialog(title,label_text,'','')
+            self.dlg_addBase.btn_ok.clicked.connect(lambda: addBaseVersion(self.dlg_addBase,self))
+            self.dlg_addBase.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addBase))
+            self.dlg_addBase.show()               
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+    def loadSelectedVersion(self):
+        try:
+            mdlIdx=self.dlg.treeViewVersions.selectedIndexes()[0]
+            item=self.model.itemFromIndex(mdlIdx)
+            treeItem_load(item, mdlIdx,self)
+        except:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            print('No item selected!')
+
+    def renameVersion(self):
+        try:
+            mdlIdx=self.dlg.treeViewVersions.selectedIndexes()[0]
+            item=self.model.itemFromIndex(mdlIdx)
+            level = 0
+            index = mdlIdx
+            while index.parent().isValid():
+                index = index.parent()
+                level += 1
+            self.treeItem_renameDialog(level, mdlIdx,item)
+        except:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            print('No item selected!')
+
+    def treeItem_renameDialog(self, level, mdlIdx,item):
+        """Project version rename dialog --> connects to the TreeItem_Rename function, which does the renameing"""
+        print('Rename dialog started')
+        title='Rename version'
+        label_text='New version name:'
+        if self.conn:
+            description=getDescription(item.text(),self.cur)
+            self.dlg_renameVersion = IDA_Districts_NameDialog(title,label_text,item.text(),description)
+            self.dlg_renameVersion.btn_ok.clicked.connect(lambda: treeItem_rename(level,mdlIdx,self,self.dlg_renameVersion))
+            self.dlg_renameVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_renameVersion))
+            self.dlg_renameVersion.show()               
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+    def fileDialog(self,dlg,dir,extensions):
+        print(dir)
+        filename, _filter = QFileDialog.getOpenFileName(
+            dlg, "Import data",dir, extensions)
+        if filename:
+            dlg.lineEditFileName.setText(filename)
+
+    def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
+        print(default_path)
+        if self.conn:
+            if self.config['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_import=ImportGeoDataDlg(title=title,default_path=default_path)
+                self.dlg_import.btn_import.clicked.connect(lambda: ok_fn(self.dlg_import))
+                self.dlg_import.btn_cancel.clicked.connect(lambda: ok_fn(lambda: closeDialog(self.dlg_import)))
+                
+                self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
+                self.dlg_import.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)           
+
+    def importBuildingsFromOSM(self,dlg):
+        if self.conn:
+            if self.config['versionName']:
+                osmBuildingsFileName=dlg.lineEditFileName.text()
+                clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()     
+                dlg.process_running=True
+                self.worker_importBuildings = WorkerOSMBuildingsImport(filePath=osmBuildingsFileName,clearOldFeatures=clearOldBuildings,config=self.config,plugin_dir=self.plugin_dir)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(self.worker_importBuildings) 
+                self.worker_importBuildings.signals.error.connect(show_error_message)
+                self.worker_importBuildings.signals.progress.connect(dlg.update_progress)    
+                self.worker_importBuildings.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))    
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+  
+    def importStreetsFromOSM(self,dlg):
+        if self.conn:
+            if self.config['versionName']:
+                osmStreetFileName=dlg.lineEditFileName.text()
+                clearOldStreets=dlg.checkBoxClearOldFeatures.isChecked() 
+                dlg.process_running=True
+                self.worker_importStreets = WorkerOSMStreetsImport(filePath=osmStreetFileName,clearOldFeatures=clearOldStreets,config=self.config,plugin_dir=self.plugin_dir)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(self.worker_importStreets) 
+                self.worker_importStreets.signals.error.connect(show_error_message)
+                self.worker_importStreets.signals.progress.connect(dlg.update_progress)
+                self.worker_importStreets.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+        
+    def importElevationData(self,dlg):
+        if self.conn:
+            if self.config['versionName']:
+                elevationFileName=dlg.lineEditFileName.text()
+                clearOldTerrain=dlg.checkBoxClearOldFeatures.isChecked()    
+                dlg.process_running=True
+                self.worker_importElevevationData = WorkerImportElevationData(filePath=elevationFileName,clearOldTerrain=clearOldTerrain,config=self.config,plugin_dir=self.plugin_dir)
+                self.threadpool = QThreadPool()
+                self.threadpool.start(self.worker_importElevevationData) 
+                self.worker_importElevevationData.signals.error.connect(show_error_message)
+                self.worker_importElevevationData.signals.progress.connect(dlg.update_progress)
+                self.worker_importElevevationData.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)     
+        
+    def show_setClimateDialog(self):
+        """ show set climate dialog"""
+        if self.conn:
+            if self.config['versionName']:
+                title='Climate data'
+                climateData=getClimateData(self.cur,self.config,True)
+                print(climateData)
+                try:
+                    inputs=[{'label':'Name:','text':climateData['name']},{'label':'Latitude:','text':str(climateData['latitude'])},{'label':'Longitude:','text':str(climateData['longitude'])},{'label':'Climate file path:','text':climateData['filename']},{'label':'Time zone:','text':str(climateData['timezone'])},{'label':'Elevation height:','text':str(climateData['height'])}]
+                except:
+                    inputs=[{'label':'Name:','text':''},{'label':'Latitude:','text':''},{'label':'Longitude:','text':''},{'label':'Climate file path:','text':''},{'label':'Time zone:','text':''},{'label':'Elevation height:','text':''}]
+                print(inputs)
+                self.dlg_climate=IDA_Districts_InputsDialog(title,inputs,False,False)
+                self.dlg_climate.btn_ok.clicked.connect(lambda: writeClimateDataToDB(self.dlg_climate,self))
+                self.dlg_climate.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_climate))
+                self.dlg_climate.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "Please load a prooject version first!", level=Qgis.Info)        
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)     
+
+    def showExportProject(self):
+        if self.conn:
+            self.dlg_export = ExportProjectDialog()
+            self.dlg_export.btn_ok.clicked.connect(lambda: exportProject(filename=self.dlg_export.filename.text(),dlg=self.dlg_export,exportPrn=self.dlg_export.exportPrn.isChecked(),exportInvokedFeatures=self.dlg_export.exportInvokedFeatures.isChecked(),exportDBResults=self.dlg_export.exportDBResults.isChecked(),plugin_dir=self.plugin_dir,config=self.config,main_dlg=self.dlg))
+            self.dlg_export.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_export))
+            self.dlg_export.show()               
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+  
+
+    def importProject(self):
+        """ import a project from a sql file and write the data center and modelling files to the folders"""
+        print("--importProject--")
+        if self.cur_postgres:
+            filename, _filter = QFileDialog.getOpenFileName(
+                self.dlg, "Import IDA Districts project",'','*.ida')
+            print(filename)
+            filename=filename.replace('/','\\')
+
+            if filename:
+                auth_cfg = QgsAuthMethodConfig()
+                QgsApplication.authManager().loadAuthenticationConfig(self.config["auth_id"], auth_cfg, True)  
+ 
+                self.worker_import = WorkerImportProject(versionNames=[],projectNames=self.dlg.projectNames,project_name=False,filename=filename,config=self.config,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False,password=auth_cfg.config("password"),username=auth_cfg.config("username"))
+                self.worker_import.signals.progress.connect(self.dlg.update_progress)
+                self.worker_import.signals.error.connect(self.dlg.show_error_message)   
+                self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=filename.split('\\')[-1].split('.')[0]))                  
+                self.threadpool_import = QThreadPool()            
+                self.threadpool_import.start(self.worker_import)    
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+
+    def deleteProjectDialog(self):
+        """Delete project dialog --> connects to the deleteProject function, which deletes the project"""
+        print('--deleteProjectDialog--')
+        projectName=self.dlg.selectProject.currentText()
+        if self.conn_postgres != '':
+            title='Delete project'
+            label_text='Are you sure you want to delete project "{}"?'.format(projectName)
+            self.dlg_deleteProject = ApproveDialog(title,label_text)
+            self.dlg_deleteProject.btn_ok.clicked.connect(lambda: deleteProject(self.dlg_deleteProject,projectName,self.dlg,self.cur_postgres,self.plugin_dir,self.config,self.model))
+            self.dlg_deleteProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteProject))
+            self.dlg_deleteProject.show()               
+        else:
+            iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+    def importPointLayer(self):
+        print('Import plant or customer from point layer')
+        if self.conn:
+            if self.config['versionName']:
+                self.dlg_importPointLayer=ImportPointLayer(self.config,self.plugin_dir)
+
+                self.dlg_importPointLayer.selectLayer.currentTextChanged.connect(lambda s: setLayerListAttributes(s,self.dlg_importPointLayer.listWidget_layerAttributes,self.dlg_importPointLayer))
+                self.dlg_importPointLayer.btn_import.pressed.connect(lambda: importLayerToDb('point',self.dlg_importPointLayer,self))
+                self.dlg_importPointLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importPointLayer))
+                self.dlg_importPointLayer.show()     
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
+
+    def showGeneratePipebundleTyps(self,dlg):
+        """Generate pipe bundle types based on layer attributes"""
+        layer=getImportLayer(dlg)
+        if layer:
+            self.dlg_pipeBundleEditor=PipeBundleEditor(self.config,self.plugin_dir,layer,getLayerAttributesName(layer=layer))
+            self.dlg_pipeBundleEditor.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_pipeBundleEditor))
+            self.dlg_pipeBundleEditor.btn_generate.pressed.connect(lambda: generatePipebundleTyps(dlg,self.dlg_pipeBundleEditor, layer,self))
+            self.dlg_pipeBundleEditor.show() 
+        else:
+            iface.messageBar().pushMessage("Info", "No Layer is selected!", level=Qgis.Info)
+            
+    def importNetworkTopologyFromLayer(self):
+        print('Import Network topology from layer')
+        if self.conn:
+            if self.config['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_importNetworkTopologyFromLayer=ImportNetworkTopologyFromLayer(self.config,self.plugin_dir)
+
+                self.dlg_importNetworkTopologyFromLayer.selectLayer.currentTextChanged.connect(lambda s: setLayerListAttributes(s,self.dlg_importNetworkTopologyFromLayer.listWidget_layerAttributes,self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.btn_import.pressed.connect(lambda: importLayerToDb('line',self.dlg_importNetworkTopologyFromLayer,self))
+                self.dlg_importNetworkTopologyFromLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.btn_generate_pipe_bundles.pressed.connect(lambda: self.showGeneratePipebundleTyps(self.dlg_importNetworkTopologyFromLayer))
+                self.dlg_importNetworkTopologyFromLayer.show() 
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
+           
+    def showCreateNewProject(self):
+        """Creates a new Project"""
+        
+        self.dlg_createNewProject=NewProjectDlg()
+        self.dlg_createNewProject.btn_ok.clicked.connect(lambda: createNewProject(self.dlg_createNewProject,self))
+        self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
+        self.dlg_createNewProject.show()   
+
+    def showDistrictsSettings(self):
+        """Show districts settings"""
+        
+        self.dlg_showDistrictsSettings=DistrictsSettingsDialog()
+        self.dlg_showDistrictsSettings.btn_save.clicked.connect(lambda: self.saveDistrictsSettings(self.dlg_showDistrictsSettings))
+        self.dlg_showDistrictsSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showDistrictsSettings))
+        self.dlg_showDistrictsSettings.show()   
+
+    def show_DefaultsLinesDialog(self):
+        """ show the efaultsLinesDialog"""
+        if self.conn:
+            defaults=getDefaults("lines",self.cur,self.config)
+            print(defaults)
+            self.dlg_defaultsLines=DefaultsDialog('line',"Defaults layer lines",[{'label': 'Type','value': ['type',0,'general']},{'label': 'Pipe bundle type','value': ['pipe_bundle_type_id',0,'general']},{'label': 'Network','value': ['network',0,'general']}],self.cur)
+            self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsLines,'lines'))
+            self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsLines,'',['',[],[],'','',[]]))
+            showDefaults(self.dlg_defaultsLines,defaults,'line',self.cur,self.config)
+            self.dlg_defaultsLines.show()
+        
+    def show_DefaultsCustomersDialog(self):
+        """ show the efaultsLinesDialog"""
+        if self.conn:
+            defaults=getDefaults("customers",self.cur,self.config)
+            print(defaults)
+            self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer customers",[{'label': 'Template','value': ['template',0,'general']},{'label': 'Submodel','value': ['submodel',1,'general']},
+                                                    {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Internal load ID','value': ['internal_load_id',0,'physical']},
+                                                    {'label': 'Load, W','value': ['load_w',1,'physical']}],self.cur)
+            self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsCustomers,'customers'))
+            self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsCustomers,'',['',[],[],'','',[]]))
+            showDefaults(self.dlg_defaultsCustomers,defaults,'customer',self.cur,self.config)
+            self.dlg_defaultsCustomers.show()
+        
+    def show_DefaultsPlantsDialog(self):
+        """ show the defaultsDialog"""
+        if self.conn:
+            defaults=getDefaults("energy_plants",self.cur,self.config)
+            self.dlg_defaultsPlants=DefaultsDialog('energy_plant',"Defaults layer energy_plants",[{'label': 'Template','value': ['template',0,'general']},{'label': 'Submodel','value': ['submodel',1,'general']}],self.cur)
+            self.dlg_defaultsPlants.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsPlants,'energy_plants'))
+            self.dlg_defaultsPlants.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsPlants,'',['',[],[],'','',[]]))
+            showDefaults(self.dlg_defaultsPlants,defaults,'energy_plant',self.cur,self.config)
+            self.dlg_defaultsPlants.show()
+
+    def manageConnections(self):
+        if self.conn:
+            print('Manage connections')
+            dropdowns=[[1,'public','prefered_conn_dir','id','name']]
+            checkBoxes=[2]
+            columns='(id,type,p_ctrl,temp,p,mdot,description)'
+            dlg = ConnectionsDialog('Connections',['Connection Id','Type','Massflow set as boundary condition','Design temperature, °C','Design pressure, Pa','Design massflow, kg/s','Description'])
+            dlg.btn_ok.clicked.connect(lambda: saveConnectionsTable(dlg,'connections',columns,dropdowns,False,checkBoxes,self))
+            dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
+            dlg.btn_delete.clicked.connect(lambda: deleteTableRowTrace(dlg,True))
+            dlg.btn_add.clicked.connect(lambda: addConnectionsTableRow(dlg,dropdowns,0,self.cur))
+            showConnectionsContent(dlg,dropdowns,self.conn,self.cur)         
+            dlg.tableWidget.itemChanged.connect(dlg.changedItem)
+            dlg.show()
+
+    def manageConnectionTypes(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Connection types',table='connection_types',headers=['Connection Type Id','Description'],columns='(id,description)', openFn=show_TableCurrentRowDialog, openFnArg=['connection_type_connections',['sequence','connection_id'],['Sequence','Connection Id'],'WHERE connection_type_id =','ORDER BY sequence',[[1,'public','connections','id','description']],False,'','conn_type_trace',False,[]]) #title, table, list: table headers, String: column names, Import button function , Open button function, Open function arguments: table,columns,headers,filter, order by, dropdowns [[column_numbers],[tables],[table_cols],[table_names]],openFunction,openFunctionArg,trace, save as btn,[deactivated]
+
+    def manageConnBundleTypes(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Connection bundles',table='conn_bundle_types',headers=['Connection bundle Id','Description'],columns='(id,description)', openFn=show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],['Sequence','Type','Description'],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'','bt_conns_trace',False,[0]]) 
+
+    def managePipeBundlesTypes(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Pipe bundles',table='pipe_bundle_types',headers=['Pipe bundle Id','Investment costs, €/m pipe','Operating costs, €/(m pipe * a)','Description'],columns='(id,invest_costs,operation_costs,description)', openFn=show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],['Sequence','Pipe ID','x, m','y, m','Ambient'],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[0]]) 
+            
+    def manageMaterials(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Materials',table='materials',headers=['Id','Name','Thermal conductivity, W/(m*K)','Specific heat, J/(kg*K)','Density, kg/m3'],columns='(id,name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3)') 
+
+    def managePipeConstructions(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Pipe constructions',table='pipe_constructions',headers=['Construction Id','Name'],columns='(id,name)', openFn=show_TableCurrentRowDialog,openFnArg=['pipe_layers',['sequence','materialid','thickness'],['Sequence', 'Material','Thickness'],'WHERE pipe_construction_id =','ORDER BY id',[[1,'public','materials','id','name']],False,'',False,False,[0]]) 
+
+    def managePipes(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Pipes',table='pipes',headers=['Id','Name','Inner pipe diameter, m','Absolute pipe roughness, m','Pipe construction Id','Costs, €/m pipe','Description'],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
+
+    def manageTemplates(self,type):
+        if self.conn:
+            show_templateDialog(main=self,type=type) 
+
+    def manageNetworks(self):
+        if self.conn:
+            show_TableDialog(main=self,title='Networks',table='"{}".network'.format(self.config['versionName']),headers=['Id','Description'],columns='(id,description)',ok_fn=updateNetworkDependingFields,ok_fn_arg=[self.cur,self.config],deactivated=[]) 
+
+    def pipeLayingAlgorithm(self):
+        print('--pipeLayingAlgorithm--')
+        if self.conn:
+            if self.config['versionName']:
+                self.dlg_pipeLayingAlgorithm=PipeLayingDialog(self.config,self.plugin_dir)
+                self.dlg_pipeLayingAlgorithm.show()   
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
+            
+    def generateNetworkTopology(self):
+        """ Generate network topology"""
+        print('--generateNetworkTopology--')
+        if self.conn:
+            if self.config['versionName']:
+                self.window_topology=NetworkTopologyDialog(self.config,self.plugin_dir)
+                self.window_topology.show() 
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+
+    def pipeSizing(self):
+        """Pipe sizing"""
+        print('--pipeSizing--')
+        if self.conn: 
+            if self.config['versionName']:
+                self.dlg_pipeSizing=PipeSizingDlg(self.config,self.plugin_dir,self.cur)
+                self.dlg_pipeSizing.btn_save.pressed.connect(lambda: savePipeSizingResults(self.config,self.conn,self.dlg_pipeSizing))
+                self.dlg_pipeSizing.btn_start.pressed.connect(lambda: startPipeSizing(self.config,self.dlg_pipeSizing,self.plugin_dir))
+                self.dlg_pipeSizing.btn_reject.pressed.connect(lambda: rejectPipeSizingResults(self.config,self.conn,self.dlg_pipeSizing))
+                
+                loadPipes(self.config, self.cur,self.dlg_pipeSizing)
+                self.dlg_pipeSizing.show()  
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+        
+    
+    def mapFeatures(self):
+        """Map Features to lines"""
+        print('--mapFeatures--')
+        if self.conn:
+            if self.config['versionName']:
+                self.window_mapPlants=MapFeaturesDialog(self.config,self.plugin_dir)
+                self.window_mapPlants.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+            
+    def setProjectConfig(self):
+        """ open Dialog to set Project configuration data"""
+        print("Project config dialog")
+        self.dlg_projectConfig = ProjectConfigDialog()
+        self.dlg_projectConfig.btn_ok.clicked.connect(lambda: saveProjectConfigSettings(self.dlg_projectConfig,self))
+        self.dlg_projectConfig.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_projectConfig))
+        showProjectConfigData(self.dlg_projectConfig,self)
+        self.dlg_projectConfig.show()
+        
+    def saveDistrictsSettings(self,dlg):
+        """Save the districts settings to QSettings"""
+        settings = QSettings()        
+        settings.beginGroup("districts")
+        settings.setValue("pathDistricts", dlg.lineEdit_pathDistricts.text())
+        settings.setValue("districts_api_delay", dlg.lineEdit_districts_api_delay.text())
+        settings.setValue("pathPostgres", dlg.lineEdit_pathPostgres.text())
+        settings.setValue("debug", dlg.checkBox_debug.checkState())
+        settings.setValue("autosave", dlg.groupBox_autosave.isChecked())
+        settings.setValue("autosave_dt", dlg.lineEdit_autosave_dt.text())
+        settings.setValue("exportInvokedFeatures", dlg.checkBox_exportInvokedFeatures.checkState())
+        settings.setValue("exportPrn", dlg.checkBox_exportPrn.checkState())
+        settings.setValue("exportDbResults", dlg.checkBox_exportDbResults.checkState())
+        settings.setValue("host", dlg.lineEdit_host.text())
+        settings.setValue("port", dlg.lineEdit_port.text())
+        settings.setValue("auth_id", dlg.auth_dict[dlg.comboBox_AuthId.currentText()])
+        settings.endGroup()
+        
+        if dlg.checkBox_debug.isChecked() != self.config["debug"]:
+            switchDebugMode(True if dlg.checkBox_debug.isChecked() else False,self.plugin_dir)
+      
+        #check if db settings settings changed
+        if self.config["auth_id"]!=dlg.auth_dict[dlg.comboBox_AuthId.currentText()] or self.config["host"]!=dlg.lineEdit_host.text() or self.config["port"]!=dlg.lineEdit_port.text():
+            self.config= load_plugin_settings() #update config
+            self.conn_postgres,self.cur_postgres,self.dlg.projectNames=connectDBPostgres(self.config,self.dlg)
+            updateProjectNamesList(self.dlg,self.cur_postgres,self.config)
+        self.checkDBConnectionState()
+
+        #timer for autosave
+        if self.timer:
+            self.timer.stop()
+            if self.config['projectName']:
+                self.timer.start(int(float(dlg.lineEdit_autosave_dt.text())*60*1000))
+            dlg.close()
+            
+        closeDialog(dlg)
+        self.dlg.statusMessage.setText('Settings saved correctly!')
+
+        print("finished settings")
+            
+    def setTreeViewModel(self,data):
+        self.model = QStandardItemModel()   
+        self.model.setHorizontalHeaderLabels(['Version name', 'Description'])
+        self.dlg.treeViewVersions.header().setDefaultSectionSize(180)
+        self.dlg.treeViewVersions.setModel(self.model)
+        importData(self.model,data)
+        self.dlg.treeViewVersions.expandAll()
+        self.dlg.treeViewVersions.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)           
+        
+    def loadProject(self):
+        print('--load project--')
+        self.conn=dbConnect(self.config,True)
+        print(self.config)
+        print(self.conn)
+        if self.conn:
+            print(self.config)
+            self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+            data=getVersionData(self.cur)
+            print(data)
+            self.setTreeViewModel(data)
+            
+            #timer if autosave
+            if self.config['autosave']:
+                temp_folder = tempfile.gettempdir()+'\\'
+                name='ida_districts'
+                createDir(temp_folder,name)
+                
+                print(temp_folder)
+                self.timer = QTimer()
+                self.timer.timeout.connect(lambda: exportProject(self.plugin_dir,self.config,exportPrn=self.config['exportPrn'],exportInvokedFeatures=self.config['exportInvokedFeatures'],exportDBResults=self.config['exportDbResults']))
+                self.timer.start(int(float(self.config['autosave_dt'])*60*1000))
+                
+        self.dlg.labelActiveProject.setText(self.config['projectName'])
+        self.dlg.label_activeVersion.setText(self.config['versionName'])
+        self.dlg.statusMessage.setText(f'Project "{self.config['projectName']}" is loaded!')
+
+
+            
+    def selectedProjectUpdated(self,index):
+        """load selected project and write it to QSettings and update config"""
+        print('--selectedProjectUpdated--')
+        print(index)
+        self.config['projectName']=self.dlg.selectProject.currentText()
+        self.config['versionName']=''
+        write_plugin_settings(self.config)
+        self.dlg.update_progress(1)
+        removeLayers()
+        self.loadProject()
+        self.dlg.update_progress(100)
+        
+    def closeDlg(self):
+        if self.timer:
+            self.timer.stop()
+            
+        if self.conn_postgres:
+            self.conn_postgres.close()    
+            print('close postgres connection')
+        if self.conn:
+            self.conn.close()
+            print('close project connection')   
+            
+    def checkDBConnectionState(self):
+        if self.conn_postgres:
+            self.dlg.connectionStatusIcon.setPixmap(QgsApplication.getThemeIcon("/mIconSuccess.svg").pixmap(16,16))
+            self.dlg.labelDBConnectState.setText('Connected to DB')
+            return True
+        else:
+            self.dlg.connectionStatusIcon.setPixmap(QgsApplication.getThemeIcon("/mIconCritical.svg").pixmap(16,16))
+            self.dlg.labelDBConnectState.setText('Unconnected to DB')   
+            self.dlg.statusMessage.setText('Not connected to DB!')
+            return False
+
+    def showModellingSettings(self):
+        if self.conn:
+            if self.config['versionName']:
+                modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
+                self.dlg_modellingSettings=ModellingSettings(self.plugin_dir,modellingSettings,self.cur)
+                self.dlg_modellingSettings.btn_ok.clicked.connect(lambda: setModellingSettings(self.plugin_dir,self.config,self.dlg_modellingSettings))
+                self.dlg_modellingSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_modellingSettings))
+                self.dlg_modellingSettings.show() 
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showRequestedOutputs(self):
+        if self.conn:
+            if self.config['versionName']:
+                self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
+                self.dlg_outputs=RequestedOutputsDialog(self.requestedOutputs)
+                self.dlg_outputs.btn_ok.clicked.connect(lambda: setRequestedOutputs(self.config,self.plugin_dir,self.dlg_outputs,self.requestedOutputs))
+                self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
+                self.dlg_outputs.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showParmMapping(self):
+        if self.conn:
+            if self.config['versionName']:
+                self.dlg_featureParm=FeatureModelParmDlg(self.cur,self.config)
+                self.dlg_featureParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_featureParm,self.cur,self.config))
+                self.dlg_featureParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_featureParm.tableWidget_parameters))
+                self.dlg_featureParm.btn_ok.clicked.connect(lambda: setFeatureParm(self.dlg_featureParm,self.conn,self.config,self.plugin_dir))
+                self.dlg_featureParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureParm))
+                self.dlg_featureParm.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def sensorSignals(self):
+        """Create sensor signals for comunication between plants, customers and supervisory control"""
+        print('Create sensor signals for comunication between plants, customers and supervisory control')
+        if self.conn:
+            if self.config['versionName']:
+                self.updateSensor=UpdateSensors(config=self.config,cur=self.cur,plugin_dir=self.plugin_dir)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showFeatureModels(self):
+        if self.conn:
+            if self.config['versionName']:
+                self.invoke_features=InvokeFeatures(self.plugin_dir,self.config)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showBuildModel(self):
+        """ Build IDA subnetwork models; loop over subnetworks"""
+        print('Build IDA model')
+        if self.conn:
+            if self.config['versionName']:
+                self.dlg_buildModel=BuildNetworkModelDialog(self.dlg)
+                sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.config['versionName'])
+                self.cur.execute(sql)
+                self.dlg_buildModel.combo_network_models.addItem('Check all items')
+                networks=self.cur.fetchall()
+                self.dlg_buildModel.combo_network_models.addItems([str(i['network']) for i in networks])
+                for i in range(len(networks)):
+                    self.dlg_buildModel.combo_network_models.setItemChecked(i+1,False)
+                
+                self.dlg_buildModel.combo_submodels.addItem('Check all items')
+                submodels=getUsedNetworkSubmodels(self.cur,self.config)
+                self.dlg_buildModel.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                    self.dlg_buildModel.combo_submodels.setItemChecked(i+1,False)
+                self.dlg_buildModel.show()
+                self.dlg_buildModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildModel))
+                self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: buildModel(self.dlg_buildModel,self))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showOpenModel(self,mode='network'):
+        """ Show IDA submodels; loop over submodels"""
+        print('Show IDA model')
+        if self.conn:
+            if self.config['versionName']:
+                self.dlg_openModel=OpenModelDialog(self.dlg,mode)
+                self.dlg_openModel.combo_submodels.addItem('Check all items')
+                dir=self.plugin_dir+'\\projects\\{}\\models\\{}'.format(self.config['projectName'],self.config['versionName'])
+                if os.path.exists(dir):
+                    submodels=getNetworkFileSubmodels(dir) if mode=='network' else getBuildingFileSubmodels(dir) 
+                    print(submodels)
+                    self.dlg_openModel.combo_submodels.addItems(submodels)
+                    for i in range(len(submodels)):
+                        self.dlg_openModel.combo_submodels.setItemChecked(i+1,False)
+                    self.dlg_openModel.show()
+                    self.dlg_openModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_openModel))
+                    self.dlg_openModel.btn_openModel.clicked.connect(lambda: openModel(self.dlg_openModel,self.plugin_dir,self.config,mode))  
+                else:
+                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=Qgis.Info)
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showRunModel(self):
+        """ Run IDA submodels; loop over submodels"""
+        print('Run IDA model')
+        if self.conn:
+            if self.config['versionName']:
+                self.dlg_runModel=RunNetworkModelDialog(self.plugin_dir,self.config)
+                self.dlg_runModel.combo_submodels.addItem('Check all items')
+                dir=self.plugin_dir+'\\projects\\{}\\models\\{}'.format(self.config['projectName'],self.config['versionName'])
+                submodels=getNetworkFileSubmodels(dir)
+                self.dlg_runModel.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                    self.dlg_runModel.combo_submodels.setItemChecked(int(i)+1,False)
+                self.dlg_runModel.show()
+                self.dlg_runModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_runModel))
+                self.dlg_runModel.btn_runModel.clicked.connect(lambda: runModel(self.dlg_runModel,self.plugin_dir,self.config))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showLoadResults(self):
+        """ show load results; loop over submodels"""
+        print('load results')
+        if self.conn:
+            if self.config['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                self.dlg_loadResults=LoadResultsDialog(self.dlg)
+                self.dlg_loadResults.combo_submodels.addItem('Check all items')
+                dir=self.plugin_dir+'\\projects\\{}\\models\\{}'.format(self.config['projectName'],self.config['versionName'])
+                submodels=getNetworkFileSubmodels(dir)
+                self.dlg_loadResults.combo_submodels.addItems(submodels)
+                for i in range(len(submodels)):
+                   self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,False)
+                self.dlg_loadResults.show()
+                self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
+                self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: loadResults(self.dlg_loadResults,self.plugin_dir,self.config))
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showPathReports(self):                  
+        if self.conn:
+            self.dlg_pathReports=IDADistrictsPathReportsDialog(self.cur,self.config,self.dlg)
+            self.dlg_pathReports.btn_ok.clicked.connect(lambda: runPathReports(self.dlg_pathReports,self.plugin_dir,self.config))
+            self.dlg_pathReports.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_pathReports))
+            self.dlg_pathReports.btn_addSelectedIDs.clicked.connect(lambda: addSelectedIDs(self.dlg_pathReports))
+            self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: deleteIDs(self.dlg_pathReports))
+            self.dlg_pathReports.btn_addID.clicked.connect(lambda: addID(self.dlg_pathReports))
+            
+            self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.config['versionName']))
+            self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
+            self.dlg_pathReports.show()
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def loadProfiles(self):                   
+        if self.conn:
+            self.dlg_plotLoads=PlotLoadProfilesDialog()
+            self.dlg_plotLoads.btn_plot.clicked.connect(lambda: plotLoadProfiles(self.dlg_plotLoads))
+            self.dlg_plotLoads.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_plotLoads))
+            self.dlg_plotLoads.rbtn_customer.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
+            self.dlg_plotLoads.rbtn_energy_plant.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
+            
+            self.dlg_plotLoads.combo_networks.addItem('Check all items')
+            networks=getNetworks(self.cur,self.config)
+            self.dlg_plotLoads.combo_networks.addItems([str(i) for i in networks])
+            for i in range(len(networks)):
+                self.dlg_plotLoads.combo_networks.setItemChecked(i+1,False)
+            self.dlg_plotLoads.combo_networks.activated.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
+            loadFeatureIds(self.dlg_plotLoads,self.cur,self.config)
+            self.dlg_plotLoads.show()
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+
+    def showDataOnMap(self):                      
+        if self.conn:
+            self.dlg_showOnMap=ShowOnMapDialog(self.cur,self.config,self.plugin_dir,self.dlg)
+            self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: showOnMap(self.dlg_showOnMap))
+            self.dlg_showOnMap.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showOnMap))
+            self.dlg_showOnMap.featureGroupChanged(False)
+            self.dlg_showOnMap.show()
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+            
     def run(self):
         """Run method that performs all the real work"""
 
@@ -185,13 +999,89 @@ class Districts:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
-            self.dlg = DistrictsDialog()
+            self.dlg = DistrictsDialog(self.plugin_dir)
+            
+            #project handling connections
+            self.dlg.btn_settings.clicked.connect(self.showDistrictsSettings)
+            self.dlg.btn_createProject.clicked.connect(self.showCreateNewProject)
+            self.dlg.btn_deleteProject.clicked.connect(self.deleteProjectDialog)
+            
+            if self.projectConfig['srid']:
+                self.dlg.btn_sridProject.setText('EPSG: '+str(self.projectConfig['srid']))
+            self.dlg.btn_sridProject.clicked.connect(self.setProjectConfig)
+            self.dlg.btn_importProject.clicked.connect(self.importProject)
+            self.dlg.btn_exportProject.clicked.connect(self.showExportProject)
+            self.dlg.btn_addVersion.clicked.connect(self.addBaseVersionDialog)
+            self.dlg.btn_loadVersion.clicked.connect(self.loadSelectedVersion)
+            self.dlg.btn_deleteVersion.clicked.connect(self.showDeleteVersionDialog)
+            
+            self.dlg.treeViewVersions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            self.dlg.treeViewVersions.customContextMenuRequested.connect(self.openMenu)
+            self.dlg.signals.close.connect(self.closeDlg)
+            
+            #import connections
+            self.dlg.btn_importStreetsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path=self.plugin_dir+"/Samples/OSM/map_1.osm",title='Streets from OSM',ok_fn=self.importStreetsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importBuildingsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path=self.plugin_dir+"/Samples/OSM/map_1.osm",title='Buildings from OSM',ok_fn=self.importBuildingsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importElevationData.clicked.connect(lambda: self.openImportDlg(default_path=self.plugin_dir+"/Samples/elevation_data/N59E017.hgt",title='Elevation data',ok_fn=self.importElevationData,extensions='*.hgt;*.tif;*.tiff'))
+            self.dlg.btn_climate.clicked.connect(self.show_setClimateDialog)
+            self.dlg.btn_importPointLayer.clicked.connect(self.importPointLayer)
+            self.dlg.btn_importNetworkTopologyFromLayer.clicked.connect(self.importNetworkTopologyFromLayer)
 
+            #resources
+            self.dlg.btn_defaults_lines.clicked.connect(self.show_DefaultsLinesDialog)
+            self.dlg.btn_defaults_customers.clicked.connect(self.show_DefaultsCustomersDialog)
+            self.dlg.btn_defaults_plants.clicked.connect(self.show_DefaultsPlantsDialog)
+            self.dlg.btn_connections.clicked.connect(lambda: self.manageConnections())
+            self.dlg.btn_connection_types.clicked.connect(lambda: self.manageConnectionTypes())
+            self.dlg.btn_conn_bundle_types.clicked.connect(lambda: self.manageConnBundleTypes())
+            self.dlg.btn_pipe_bundle_types.clicked.connect(lambda: self.managePipeBundlesTypes())
+            self.dlg.btn_materials.clicked.connect(lambda: self.manageMaterials())
+            self.dlg.btn_pipe_constructions.clicked.connect(lambda: self.managePipeConstructions())
+            self.dlg.btn_pipes.clicked.connect(lambda: self.managePipes())
+            self.dlg.btn_manageCustomerTemplates.clicked.connect(lambda: self.manageTemplates('customer'))
+            self.dlg.btn_manageEnergyPlantTemplates.clicked.connect(lambda: self.manageTemplates('energy_plant'))
+            
+            #preprocessing
+            self.dlg.btn_manageNetworks.clicked.connect(self.manageNetworks)
+            self.dlg.btn_pipeLayingAlgorithm.clicked.connect(self.pipeLayingAlgorithm)
+            self.dlg.btn_generateTopology.clicked.connect(self.generateNetworkTopology)
+            self.dlg.btn_pipeSizing.clicked.connect(self.pipeSizing)
+            self.dlg.btn_mapFeatures.clicked.connect(self.mapFeatures)
+            
+            #modeling and simulation
+            self.dlg.btn_modellingSettings.clicked.connect(self.showModellingSettings)
+            self.dlg.btn_requestedOutputs.clicked.connect(self.showRequestedOutputs)
+            self.dlg.btn_parmMapping.clicked.connect(self.showParmMapping)
+            self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)      
+            self.dlg.btn_featureModels.clicked.connect(self.showFeatureModels)
+            self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
+            self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
+            self.dlg.btn_runModel.clicked.connect(self.showRunModel)
+            
+            #results and visualization
+            self.dlg.btn_loadResults.clicked.connect(self.showLoadResults)
+            self.dlg.btn_path_reports.clicked.connect(self.showPathReports)
+            self.dlg.btn_plotLoadProfiles.clicked.connect(self.loadProfiles)
+            self.dlg.btn_showDataOnMap.clicked.connect(self.showDataOnMap)            
+            
             # show the dialog
             self.dlg.show()
+            
+            #connect to DB and load project and version
+            self.dlg.update_progress(0)
+            self.conn_postgres,self.cur_postgres,self.dlg.projectNames=connectDBPostgres(self.config,self.dlg)
+            if self.config['projectName']:
+                self.loadProject()
+            if self.config['versionName']:
+                loadVersion(main=self)
+                
+            self.dlg.selectProject.currentIndexChanged.connect(self.selectedProjectUpdated)
+            self.dlg.update_progress(100)
+            if self.checkDBConnectionState():
+                self.dlg.statusMessage.setText('IDA Districts is ready!')
+
+            self.dlg.setWindowIcon(QIcon(self.icon_path))  # ← HIER
         else:
             self.dlg.show()
             self.dlg.activateWindow()
             print("activate")
-        
-
