@@ -90,19 +90,19 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
         for key_loaded in dlg.loadedMappingParms:
             if key_loaded not in mappingParms: 
                 print('removed sensor')
-                sql+="""DELETE FROM "{}".model_parms WHERE id={};""".format(config['versionName'],key_loaded)
+                sql+="""DELETE FROM model_parms WHERE id={};""".format(key_loaded)
         
         #added
         for key_table in mappingParms:
             if key_table not in dlg.loadedMappingParms: 
                 print('added parm')
-                sql+="""INSERT INTO "{}".model_parms (id,type,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},{},'{}','{}','{}','{}','{}');\n""".format(
-                    config['versionName'],key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'])               
+                sql+="""INSERT INTO model_parms (id,type,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},{},'{}','{}','{}','{}','{}');\n""".format(
+                    key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'])               
             else:   
                 #Check for updated columns
                 for col in ['mapping_expression','parm_name','model_name','macro_name','mapping_direction']:
                     if dlg.loadedMappingParms[key_table][col]!=mappingParms[key_table][col]:
-                        sql+="""UPDATE "{}".model_parms SET {} = '{}' WHERE id = {} ;\n""".format(config['versionName'],col,mappingParms[key_table][col],key_table)   
+                        sql+="""UPDATE model_parms SET {} = '{}' WHERE id = {} ;\n""".format(col,mappingParms[key_table][col],key_table)   
         
         if sql:
             print(sql)
@@ -125,7 +125,7 @@ def setupCustomerVersionForm(cur,config,plugin_dir):
     
     attrNamesTabs= [['id','template','network'],
                     ['heat_e_kwh','heat_p_kw','tsup_h_deg','cool_e_kwh','cool_p_kw','tsup_c_deg'],
-                    ['dhw_id', 'dhw_scale','internal_load_id','submodel',modelParm],
+                    ['submodel',modelParm],
                     ['owner','building_nr','street','street_nr','zip','location','usage','energy_carrier','qdot_heat_kw','heat_kwh7a','full_load_hours_h7a','Tsup_max_deg','Tret_max_deg','connection','connection_since']]
     for tab,attrNamesTab in zip(['General','Physical data','Simulation data','Metadata'],attrNamesTabs):
         if attrNamesTab:
@@ -249,7 +249,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             print(replaceDict)
             
             #get model parameter
-            sql="""SELECT * FROM "{}".model_parms WHERE type = {} ORDER BY id;""".format(config['versionName'],1 if type=='customer' else 2)
+            sql="""SELECT * FROM model_parms WHERE type = {} ORDER BY id;""".format(1 if type=='customer' else 2)
             print(sql)
             cur.execute(sql)
             parms=cur.fetchall()
@@ -263,25 +263,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             for parm in parms:
                 mapping_expression=parm['mapping_expression']
                 for field in fields:
-                    if '"'+field+'"'=='"dhw_id"' and mapping_expression=='"dhw_id"':
-                        if not dhw_file:
-                            if parallize:
-                                signals.error.emit("No DHW file selected for {} {}!".format(type.capitalize(),id))
-                            else:
-                                iface.messageBar().pushMessage("Error", "No DHW file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
-                            return False
-                        mapping_expression=dhw_file
-                    elif '"'+field+'"'=='"internal_load_id"' and mapping_expression=='"internal_load_id"':
-                        if not internal_loads_file:
-                            if parallize:
-                                if signals:
-                                    signals.error.emit("No internal load file selected for {} {}!".format(type.capitalize(),id))
-                            else:
-                                iface.messageBar().pushMessage("Error", "No internal load file selected for {} {}!".format(type.capitalize(),id), level=Qgis.Critical)
-                            return False
-                        mapping_expression=internal_loads_file
-                    else:
-                        mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
+                    mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
                 print(mapping_expression)
                 try:
                     mapping_expression=eval(mapping_expression)
@@ -498,20 +480,17 @@ class CopyTemplateFiles:
         type_name=type
         if update_sensors:
             type=getTypeIdByName(type)
-            sql="""SELECT s.sensor_id, s_ids.feature_id 
-    FROM "{}".sensor_source s, "{}".source_template s_t, "{}".source_ids s_ids
-    WHERE s.sensor_id=s_t.source_id AND s_t.template={} AND s.measure=5 AND s.type={} AND
-        s.sensor_id=s_ids.source_id AND s_t.active=true AND s_ids.active=false AND s_ids.feature_id={};""".format(
-                self.config['versionName'],self.config['versionName'],self.config['versionName'],template,type,str(id))
+            sql="""SELECT s.sensor_id
+    FROM sensor_source s, source_template s_t
+    WHERE s.sensor_id=s_t.source_id AND s_t.template={} AND s.measure=5 AND s.type={} AND s_t.active=true;""".format(template,type)
             print(sql)
             cur.execute(sql)
             remove_sensor_source_ids=cur.fetchall()
             print(remove_sensor_source_ids)
             
-            sql="""SELECT t.sensor_id, t_ids.feature_id 
-    FROM "{}".sensor_target t,"{}".target_ids t_ids
-    WHERE t.type={} AND t.sensor_id=t_ids.target_id AND t_ids.active=false AND t_ids.feature_id={};""".format(
-                self.config['versionName'],self.config['versionName'],type,str(id))
+            sql="""SELECT t.sensor_id
+    FROM sensor_target t
+    WHERE t.type={};""".format(type)
             print(sql)
             cur.execute(sql)
             remove_sensor_target_ids=cur.fetchall()
@@ -583,15 +562,15 @@ class CopyTemplateFiles:
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idc')   
         
         #sf-macro.idm
-        filedata=[""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
+        filedata=[""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.19001)) """]
         for i in sf:
             i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
             filedata+=["""\n{}""".format(pListToCompString(i,0))]
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idm')
 
         #sf-macro.idc
-        filedata=[""";IDA 5.11 Data UTF-8
+        filedata=[""";IDA 5.19001 Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
         filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate([j for i in sf for j in sf_ids if i[0][':SF']==j['sf']],1)]

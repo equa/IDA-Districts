@@ -3,7 +3,7 @@ from qgis.PyQt.QtWidgets import QSpacerItem,QSizePolicy,QGroupBox,QMessageBox,QB
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface 
 from qgis.PyQt import QtGui, QtCore
-from PyQt6.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon
 
 from .utility_functions.db import *
 from .utility_functions.topology import *

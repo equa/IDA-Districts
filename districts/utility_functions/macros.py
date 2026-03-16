@@ -4,14 +4,14 @@ import os
 def writeSensorMacroIdm(dir,name):
     """Create a sensor macro"""
     if not os.path.exists(dir+"""\\{}\\Sensor-macro.idm""".format(name)):
-        data=""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """
+        data=""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.19001)) """
         writeToFile(data,dir,dir+"""\\{}\\Sensor-macro.idm""".format(name))  
 
 def writeSensorMacroIdc(dir,name):
     """Create a sensor macro"""
     if not os.path.exists(dir+"""\\{}\\Sensor-macro.idc""".format(name)):
-        data=""";IDA 5.11 Form UTF-8
+        data=""";IDA 5.19001 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """
         writeToFile(data,dir,dir+"""\\{}\\Sensor-macro.idc""".format(name)) 
@@ -53,8 +53,8 @@ def writeMacroClimateIdm(dictDB,cur,name,dir,plugin_dir,modellingSettings,climat
  (:PAR :N X :V {}))""".format(modellingSettings['duct_temp'])
         ductConnection=""" (("TDuct" (INSIGNALLINK 1)) ("TDuct-Const" LINK) 0 0 NIL)"""
         
-    data=""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "Climate macro" :ETM 3857463573 :APP (ICE :VER 5.11)) 
+    data=""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "Climate macro" :ETM 3857463573 :APP (ICE :VER 5.19001)) 
 ((:EO :N \"TDuct\" :T ADDER)
  (:PAR :N N_IN :V 1)
  (:VAR :N INSIGNAL :DIM (1) :V #(7.919) :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (INSIGNALLINK 1) 0))))) 
@@ -171,7 +171,7 @@ def writeMacroClimateIdc(name,dir,modellingSettings):
         ductModel="""(CONNECTION-LINE :AT ((1882/5 46) (1934/5 46)) :FIRST-LINK ("TDuct-Const" (1 0.5) LINK) :LAST-LINK ("TDuct" (0 0.491) (INSIGNALLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) 
 (EQUATION-FRAME :AT ((348.6 46)) :R (18.2 10) :ICON "sys:constant.ids" :SLOT ("TDuct-Const") :NAME "TDuct-Const" :DATA SOURCE-CONSTANT) """.format()
         
-    data=""";IDA 5.11 Form UTF-8
+    data=""";IDA 5.19001 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 {}
 {}

@@ -1,5 +1,6 @@
 from qgis.PyQt.QtWidgets import QMessageBox
 
+from .outputs import *
 from .utility_functions.util import *
 from .utility_functions.db import *
 from .utility_functions.files import *
@@ -125,8 +126,9 @@ class InvokeNetworkModel:
         self.conn=dbConnect(self.config,True)
         self.signals=signals
         if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+
             try:
-                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
                 self.projectConfig=loadProjectConfig(self.plugin_dir,self.config['projectName'],signals=self.signals)
                 
                 dir+="\\projects\\"
@@ -151,12 +153,14 @@ class InvokeNetworkModel:
                 #setSubnetwork(self.cur,self.config)
                 feature_dec_irefs=[]
                 resources=[]
-                filter=''
                 
-                #clean up data which might be removed since adding the sensor
-                cleanupSensorSignals(self.cur,self.config)
-                sensor_data=getSensorData(self.cur,self.config,filter=filter)
+                added_sensor_info=addRequestedOutputsSensors(self.cur,self.config,requestedOutputs)
+                print('---added-----')
+                filter=''
+                sensor_data=getSensorData(self.cur,self.config,target_types=[1,2,3,4],filter=filter)               
+                print('---sensor-data-----')
                 print(sensor_data)
+                
 
                 print(getUsedSubmodels(self.cur, self.config))
                 for submodel in getUsedSubmodels(self.cur, self.config):
@@ -172,6 +176,7 @@ class InvokeNetworkModel:
                 self.signals.progress.emit(2)
                 sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.config)      
                 print(sensor_dec_data)
+                
                 self.signals.progress.emit(3)
                 supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.config)['submodel'])
                 self.signals.progress.emit(4)
@@ -179,7 +184,7 @@ class InvokeNetworkModel:
                 for submodel in submodels: 
                     print(submodel)
                     self.pageSettings=PageSettings(self.cur,submodel,self.config['versionName'],networks).getPageSettings()
-                    idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData)
+                    idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData,sensor_dec_data)
                     dec_templates=CopyDecoupledTemplateMacro(submodel,dir,self.config,self.cur,self.plugin_dir,sensor_data)
                    
                     self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
@@ -208,7 +213,7 @@ class InvokeNetworkModel:
                     idc_conn=""
                     
                     #supervisory control
-                    sql="""SELECT submodel from "{}".supervisory_ctrl;""".format(self.config['versionName'])
+                    sql="""SELECT submodel from supervisory_ctrl;"""
                     self.cur.execute(sql)
                     if submodel==str(self.cur.fetchone()['submodel']):
                         """*-*-*-*-copy supervisory*-*-*-*-"""
@@ -257,6 +262,11 @@ class InvokeNetworkModel:
                     #sf-macro
                     writeMacroSFIdm(self.config,self.cur,dir_network)
                     writeMacroSFIdc(self.config,self.cur,dir_network)
+                    self.signals.progress.emit(int(2+16*(submodels.index(submodel)+1)/len(submodels)*97))
+
+                    #results-macro
+                    writeMacroResultsIdm(self.config,self.cur,dir_network,requestedOutputs,sensor_dec_data,added_sensor_info)
+                    writeMacroResultsIdc(self.config,self.cur,dir_network,requestedOutputs,sensor_dec_data,added_sensor_info)
                     self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
                     
                     # Define the path to the building idm file
@@ -285,12 +295,13 @@ class InvokeNetworkModel:
                     writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
                     writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
                 writeInvokedOutputs(self.plugin_dir,self.config,self.invokedOutputs)
+                removeResultSensors(self.cur,added_sensor_info.values())
                 self.signals.progress.emit(100)  
                 self.signals.finished.emit('Network model has been build successfully!')
 
             except Exception as e:
                 self.signals.error.emit(str(e))
-                self.signals.progress.emit(0)
+                #self.signals.progress.emit(0)
                 
             
     def closeDocument(self):
@@ -443,6 +454,11 @@ ORDER BY m.id;
                 mdot="""\n  (:VAR :N |mLiq| :L "Line_mdot_{}")""".format(lid)
             else:
                 mdot=""
+            if requestedOutputs['qamb_lines']: 
+                idm+="""\n(output-file :sf "self:\\Line_qamb_{}.prn" :n "Line_qamb_{}" :t output-file)""".format(lid,lid)
+                qamb="""\n  (:VAR :N |QAmbtotal| :L "Line_qamb_{}")""".format(lid)
+            else:
+                qamb=""
             if requestedOutputs['p_lines']: 
                 idm+="""\n(output-file :sf "self:\\Line_p_{}.prn" :n "Line_p_{}" :t output-file)""".format(lid,lid)
                 p="""\n ((CONNECTOR :N |liq1|)
@@ -474,7 +490,7 @@ ORDER BY m.id;
   (:PAR :N |cpIns| :V #({}))
   (:PAR :N |rhoIns| :V #({}))
   (:PAR :N |lambdaIns| :V #({}))
-  (:PAR :N |epsilon| :V #({})){}{}{}){})""".format(lid,
+  (:PAR :N |epsilon| :V #({})){}{}{}{}){})""".format(lid,
                                                 npipes,
                                                 modellingSettings['fd_meterPerNode'],
                                                 length,
@@ -499,6 +515,7 @@ ORDER BY m.id;
                                                 temp,
                                                 vel,
                                                 mdot,
+                                                qamb,
                                                 p)
             idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:FDpipebundle.ids" :SYMMETRY {} :SLOT ("Pipebundle_{}") :NAME "Pipebundle_{}" :DATA MODEL) 
 """.format(coordinates['x_pipe'],coordinates['y_pipe'],coordinates['angle'],lid,lid)
@@ -655,13 +672,13 @@ ORDER BY m.id;
             print('not connected!')
             return False
  
-    def writeNetworkTemplateIdm(self,submodel,dir,requestedOutputs,networkSimData):    
+    def writeNetworkTemplateIdm(self,submodel,dir,requestedOutputs,networkSimData,sensor_dec_data):    
         """ write idm file with """
         print('write idm network model')
         print(networkSimData)
         simulation_data=getSimData(requestedOutputs,networkSimData)
-        data=""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 5.11))
+        data=""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N \"network_{}\" :ETM 3728281380 :MS 6 :PARENT ICE :APP (ICE :VER 5.19001))
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -678,7 +695,11 @@ ORDER BY m.id;
  (:VAR :N VELOCITY :T GENERIC :D "velocity" :U || :IV NIL :B (1 "Climate-macro" "vel" |y_var|)))
 ((MACRO-OBJECT :N "Climate-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
 ((MACRO-OBJECT :N "sf-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
-((MACRO-OBJECT :N "Co-simulation-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))""".format(submodel,simulation_data)
+((MACRO-OBJECT :N "Results-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887){})
+((MACRO-OBJECT :N "Co-simulation-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))""".format(submodel,simulation_data,
+    ''.join(["""\n(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
+                        for i in sensor_dec_data  if i['target_type'] ==4 
+                        for j in i['irefs_target']]))
         return data
         
     #TODO CHECK
@@ -801,9 +822,10 @@ output to current demand. It can also be operated in installations with differen
         print('write idc network model')
         pageSettings=PageSettings(self.cur,submodel,self.config['versionName'],networks).getPageSettings()
         print(pageSettings)
-        data=""";IDA 5.11 Form UTF-8
+        data=""";IDA 5.19001 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {})
-(EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
+(EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Results-macro") :NAME "Results-macro" :DATA MACRO-OBJECT) 
+(EQUATION-FRAME :AT ((265 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((26 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT)  
 (EQUATION-FRAME :AT ((170 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT)  
 (EQUATION-FRAME :AT ((75 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Sensor-macro") :NAME "Sensor-macro" :DATA MACRO-OBJECT) 
@@ -980,7 +1002,7 @@ output to current demand. It can also be operated in installations with differen
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(str(i['sensor_id'])) 
                     for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
-                    for i in sensor_dec_data if i['target_type']==1 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
+                    for i in sensor_dec_data if i['target_type']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
                 idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,cid_old,cid_old)
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             cid_old=cid
@@ -995,7 +1017,7 @@ output to current demand. It can also be operated in installations with differen
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(str(i['sensor_id'])) 
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
-                        for i in sensor_dec_data if i['target_type']==1 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
+                        for i in sensor_dec_data if i['target_type']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
             idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,cid,cid)
         
         return idm,idc
@@ -1039,7 +1061,7 @@ output to current demand. It can also be operated in installations with differen
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(str(i['sensor_id'])) 
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==2 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
-                        for i in sensor_dec_data if i['target_type']==2 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
+                        for i in sensor_dec_data if i['target_type']==2 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
                 idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:boil1circ.ids" :SLOT ("Energy_plant_{}") :NAME "Energy_plant_{}" :DATA MACRO-OBJECT) """.format(x_old,y_old,epid_old,epid_old) 
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             epid_old=epid
@@ -1053,7 +1075,7 @@ output to current demand. It can also be operated in installations with differen
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)""".format(str(i['sensor_id'])) 
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==2 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
-                        for i in sensor_dec_data if i['target_type']==2 and i['target']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
+                        for i in sensor_dec_data if i['target_type']==2 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
             idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:boil1circ.ids" :SLOT ("energy_plant_{}") :NAME "energy_plant_{}" :DATA MACRO-OBJECT) """.format(x,y,epid,epid)                   
         return idm,idc
 

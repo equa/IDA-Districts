@@ -3,15 +3,107 @@ from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.PyQt.QtWidgets import QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
 from qgis.utils import iface
 from qgis.core import Qgis
-from PyQt6.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon,QPixmap
 
 from .db import *
 
 import copy
 
+class SvgLabel(QLabel):
+    """
+    QLabel subclass to display an SVG at high quality, scaled proportionally
+    and optionally limited by a maximum height.
+    Designed for QGIS Plugins with Qt Designer promote.
+    """
+    def __init__(self, svg_path=None, max_height=None, parent=None):
+        super().__init__(parent)
+        self._max_height = max_height
+        self._svg_renderer = None
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        if svg_path:
+            self.load_svg(svg_path)
+
+    def load_svg(self, svg_path):
+        """Load an SVG file."""
+        self._svg_renderer = QSvgRenderer(svg_path)
+        self.update_pixmap()
+
+    def set_max_height(self, max_height):
+        """Optionally set a maximum height for the SVG."""
+        self._max_height = max_height
+        self.update_pixmap()
+
+    def resizeEvent(self, event):
+        """Render SVG into QPixmap whenever the label resizes."""
+        self.update_pixmap()
+        super().resizeEvent(event)
+
+    def update_pixmap(self):
+        if self._svg_renderer and self._svg_renderer.isValid():
+            # Determine target size
+            width = self.width()
+            height = self.height()
+            if self._max_height and height > self._max_height:
+                height = self._max_height
+            # Preserve aspect ratio of the SVG
+            size_ratio = self._svg_renderer.defaultSize().width() / self._svg_renderer.defaultSize().height()
+            width = int(height * size_ratio)
+            # Render SVG to QPixmap
+            pixmap = QPixmap(width, height)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(pixmap)
+            self._svg_renderer.render(painter)
+            painter.end()
+            super().setPixmap(pixmap)
+            
+class ScaledLabel(QLabel):
+    def __init__(self, parent=None, max_height=None):
+        super().__init__(parent)
+        self._original_pixmap = None  # Originalbild behalten
+        self._max_height = max_height
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    def setPixmap(self, pixmap):
+        self._original_pixmap = pixmap  # niemals überschreiben!
+        self.updatePixmap()
+
+    def resizeEvent(self, event):
+        self.updatePixmap()
+        super().resizeEvent(event)
+
+    def updatePixmap(self):
+        if self._original_pixmap and not self._original_pixmap.isNull():
+            # Berechne Zielgröße
+            target_height = self._max_height if self._max_height else self.height()
+            scaled = self._original_pixmap.scaled(
+                target_height, 
+                target_height * self._original_pixmap.width() / self._original_pixmap.height(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            super().setPixmap(scaled)
+            
+def load_image(path,label,scale=False,size=False):
+    pixmap = QPixmap(path)
+
+    if pixmap.isNull():
+        print("Image failed to load")
+        return
+    print(pixmap.size())
+    
+        
+    if scale:
+        pixmap = pixmap.scaled(
+            label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+    label.setPixmap(pixmap)
+        
 def addParmTableRow(dlg,cur,config):
     
-    maxId=max(getMaxIdAcrossSchemas(config,cur,'model_parms')+1,max([int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())],default=0))
+    maxId=max([int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())],default=0)
     dlg.tableWidget_parameters.insertRow(0)
         
     item = QTableWidgetItem(str(maxId))

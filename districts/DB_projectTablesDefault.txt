@@ -1,3 +1,22 @@
+-------------------table public.supervisory_ctrl;------------------------------------
+DROP TABLE IF EXISTS public.supervisory_ctrl CASCADE;
+CREATE TABLE IF NOT EXISTS public.supervisory_ctrl
+(
+    id serial,
+    submodel integer,
+    CONSTRAINT supervisory_ctrl_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.feature_decoupling;------------------------------------
+DROP TABLE IF EXISTS public.feature_decoupling CASCADE;
+CREATE TABLE IF NOT EXISTS public.feature_decoupling
+(
+    id serial,
+    template int,
+    comp_name text,
+    type text,
+    CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
+);
 
 -------------------table public.sensors;------------------------------------
 DROP TABLE IF EXISTS public.sensors CASCADE;
@@ -19,7 +38,6 @@ CREATE TABLE IF NOT EXISTS public.sensor_source
     function int,
     conn_type int,
     conns int,
-    ids int,
     test_value numeric DEFAULT 1,
     description text,
     CONSTRAINT sensor_source_pkey PRIMARY KEY (id),
@@ -63,17 +81,6 @@ CREATE TABLE IF NOT EXISTS public.source_conns
     FOREIGN KEY (source_id) REFERENCES public.sensors(id) ON DELETE CASCADE
 );
 
--------------------table public.source_ids;------------------------------------
-DROP TABLE IF EXISTS public.source_ids CASCADE;
-CREATE TABLE IF NOT EXISTS public.source_ids
-(
-    id serial,
-    source_id int,
-    feature_id int,
-    active boolean DEFAULT FALSE,
-    CONSTRAINT source_ids_pkey PRIMARY KEY (id),
-    FOREIGN KEY (source_id) REFERENCES public.sensors(id) ON DELETE CASCADE
-);
 
 -------------------table public.invoked_sensor_source_signals;------------------------------------
 DROP TABLE IF EXISTS public.invoked_sensor_source_signals CASCADE;
@@ -98,8 +105,6 @@ CREATE TABLE IF NOT EXISTS public.sensor_target
     sensor_id int,
     type int,
     template int,
-    ids int,
-    target int,
     test_value numeric,
     description text,
     CONSTRAINT sensor_target_pkey PRIMARY KEY (id),
@@ -119,18 +124,6 @@ CREATE TABLE IF NOT EXISTS public.target_template
 );
 
 
--------------------table public.target_ids;------------------------------------
-DROP TABLE IF EXISTS public.target_ids CASCADE;
-CREATE TABLE IF NOT EXISTS public.target_ids
-(
-    id serial,
-    target_id int,
-    feature_id int,
-    active boolean DEFAULT FALSE,
-    CONSTRAINT target_ids_pkey PRIMARY KEY (id),
-    FOREIGN KEY (target_id) REFERENCES public.sensors(id) ON DELETE CASCADE
-);
-
 -------------------table public.invoked_sensor_target_signals;------------------------------------
 DROP TABLE IF EXISTS public.invoked_sensor_target_signals CASCADE;
 CREATE TABLE IF NOT EXISTS public.invoked_sensor_target_signals
@@ -139,7 +132,6 @@ CREATE TABLE IF NOT EXISTS public.invoked_sensor_target_signals
     type integer,
     sensor_id integer,
     templates integer[],
-    target integer,
     multi_signal boolean,
     test_value numeric,
     description text,
@@ -265,15 +257,6 @@ CREATE TABLE IF NOT EXISTS public.measure
     CONSTRAINT measure_pkey PRIMARY KEY (id)
 );
 
--------------------table public.target------------------------------------
-DROP TABLE IF EXISTS public.target CASCADE;
-CREATE TABLE IF NOT EXISTS public.target
-(
-    id serial,
-    target text,
-    CONSTRAINT target_pkey PRIMARY KEY (id)
-);
-
 -------------------table public.signal_function------------------------------------
 DROP TABLE IF EXISTS public.signal_function CASCADE;
 CREATE TABLE IF NOT EXISTS public.signal_function
@@ -308,7 +291,7 @@ CREATE TABLE public.bundle_type_conns
   id serial,
   conn_bundle_type_id integer,
   sequence int,
-  conn_type_id numeric,
+  conn_type_id integer,
   description text,
   CONSTRAINT bundle_type_conns_pkey PRIMARY KEY (id)
 );

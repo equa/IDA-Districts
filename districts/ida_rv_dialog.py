@@ -1,9 +1,37 @@
 from qgis.PyQt.QtWidgets import QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
 from qgis.utils import iface
+from qgis.core import QgsWkbTypes,QgsProperty,QgsSymbolLayer,QgsLineSymbol,QgsSymbol,QgsGraduatedSymbolRenderer,QgsStyle,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsClassificationQuantile,QgsTextFormat,QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsPalLayerSettings
 
 from .utility_functions.dialog import *
 from .utility_functions.topology import *
+from .utility_functions.show_on_map import *
 
+from qgis.PyQt import sip
+from decimal import Decimal
+from qgis.PyQt.QtGui import QFont, QColor
+
+class NetworkReportDialog(QtWidgets.QDialog):
+    def __init__(self,plugin_dir):
+        super().__init__()
+
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "network_report.ui")
+        uic.loadUi(ui_path, self)
+        self.btn_addPlot.setIcon(QIcon(":/images/themes/default/symbologyAdd.svg"))
+        self.btn_deletePlot.setIcon(QIcon(":/images/themes/default/symbologyRemove.svg"))
+        self.data=[]
+    
+    def deleteTableRow(self):
+        """ Delete selected template and refresh table"""
+        print('delete row')
+        row_index=self.tableWidget_diagrams.currentRow()
+        print(row_index)
+        if row_index!=-1:
+            self.data = [i for i in self.data if i.get("name") != self.tableWidget_diagrams.item(row_index,0).text()]
+            self.tableWidget_diagrams.removeRow(row_index)
+        else:
+            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        
 
 class PlotLoadProfilesDialog(QMainWindow):
     def __init__(self):     
@@ -51,7 +79,7 @@ class PlotLoadProfilesDialog(QMainWindow):
         self.setCentralWidget(widget)
         
 class ShowOnMapDialog(QMainWindow):
-    def __init__(self,cur,config,plugin_dir,dlg_main):     
+    def __init__(self,cur,config,plugin_dir,dlg_main,networkReportDlg=None,function_items=None,time_values=None):     
         """Initialize GUI for path reports"""
         super().__init__()
         
@@ -63,11 +91,19 @@ class ShowOnMapDialog(QMainWindow):
         self.feature=''
         self.color_table_name=''
         self.size_table_name=''
-        self.function_items=['Max','Min','Values','Hourly average','Daily average','Monthly average','Average','Sum','Last value','First value']
-        self.time_values=['Values','Hourly average','Daily average','Monthly average']
+        if function_items:
+            self.function_items=function_items
+        else:    
+            self.function_items=['Max','Min','Values','Hourly average','Daily average','Monthly average','Average','Sum','Last value','First value']
+        
+        if time_values:
+            self.time_values=time_values
+        else: 
+            self.time_values=['Values','Hourly average','Daily average','Monthly average']
         self.colorramps=['Magma','Blues','Cividis','Greens','Greys','Mako','RdGy','Reds','Rocket','Spectral','Turbo','Viridis']
         self.colormodes=['Equal Count','Equal Interval']
         self.process_running=False
+        self.networkReportDlg=networkReportDlg
         
         self.setWindowTitle("Show data on map")   
         widget=QWidget()
@@ -399,7 +435,8 @@ class ShowOnMapDialog(QMainWindow):
         layout.addLayout(layout_layer_name)
         layout.addLayout(layout_timeSettings)
         layout.addLayout(layout_btn)
-        layout.addWidget(self.progress)
+        if not networkReportDlg:
+            layout.addWidget(self.progress)
         layout.addStretch()
         
         widget.setLayout(layout)
@@ -413,331 +450,39 @@ class ShowOnMapDialog(QMainWindow):
         Called in main thread when worker finished.
         Signature: (message: str, worker: WorkerShowOnMap)
         """
+        
         print("=== update_finished START ===", message)
-
-        # convenience
-        layer = worker.temp_layer
+        try:
+            # convenience
+            layer = worker.temp_layer
+        except:
+            layer=None
 
         # 0) make sure layer exists
         if layer is None:
             print("No layer returned from worker.")
             self.process_running = False
-            return
+            addTableRow(self.networkReportDlg.tableWidget_diagrams)
+            self.networkReportDlg.tableWidget_diagrams.setItem(0, 0, QTableWidgetItem(self.layer_name.text()))
+            self.networkReportDlg.data.append({'name':self.layer_name.text(),'data' : worker.vars,'feature': 'customer' if self.rbtn_customers.isChecked() else ('line' if self.rbtn_lines.isChecked() else 'energy_plant'),
+                'first_time_var': worker.first_time_var,'colorlabel': self.colorlabel.isChecked(),'varRotation': self.checkbox_varRotation.isChecked(),
+                'color_classes': self.color_classes.text(),'colormode': self.colormode.currentText(),'colorramp': self.colorramp.currentText(),
+                'size_symbolMin': self.size_symbolMin.text(),'size_symbolMax': self.size_symbolMax.text(),'rotation_symbolMin': self.rotation_symbolMin.text(),'rotation_symbolMax': self.rotation_symbolMax.text()})
+            return False
 
         # 1) Ensure no edit session is open
-        if layer.isEditable():
+        if layer and layer.isEditable():
             try:
                 layer.commitChanges()
                 print("Committed pending edits.")
             except Exception as e:
                 print("Commit error:", e)
                 layer.rollBack()
-
-        if self.colorlabel.isChecked():
-            # Construct the expression for one decimal place formatting
-            label_expression = f"format_number(\"{'color_' + worker.vars['color']['name'].split('$')[0]}\", 1)"
-
-            # --- Label Settings ---
-            palyr = QgsPalLayerSettings()
-            palyr.enabled = True
-            palyr.fieldName = label_expression 
-            
-            # Ensure QGIS knows this is an expression, not just a field name
-            palyr.isExpression = True 
-            
-            # Configure placement using modern enums
-            if layer.geometryType() == QgsWkbTypes.PointGeometry:
-                palyr.placement = Qgis.LabelPlacement.OverPoint
-            elif layer.geometryType() == QgsWkbTypes.LineGeometry:
-                palyr.placement = Qgis.LabelPlacement.Line
-            else: # Polygon
-                palyr.placement = Qgis.LabelPlacement.AroundPoint
-                # For polygons, sometimes 'centroid' placement is more reliable
-                # palyr.placement = Qgis.LabelPlacement.PointOnSurface 
-
-            # Customize text formatting (using points or millimeters is more reliable than map units)
-            palyr.textColor = QColor(0, 0, 0)
-            palyr.fontSizeInMapUnits = False # Use millimeters (False) or points (True and adjust unit)
-            palyr.fontSize = 10 # 10 mm/points size
-            palyr.fontFamily = "Arial"
-            
-            # Optional: Enable showing all labels, even colliding ones, for debugging
-            palyr.limitLabelMapUnits = False
-            palyr.scaleMax = 0
-            palyr.scaleMin = 0
-            palyr.displayAllLabels = True # Force display for troubleshooting
-
-
-            # --- Apply Settings ---
-            layer_settings = QgsVectorLayerSimpleLabeling(palyr)
-            layer.setLabeling(layer_settings)
-            layer.setLabelsEnabled(True)
-            
-            # --- Refresh Map Canvas ---
-            # Trigger a repaint to force QGIS to re-render the labels immediately
-            layer.triggerRepaint() 
-            iface.mapCanvas().refresh()
-            print(f"Labels enabled for layer '{layer.name()}' using expression: {label_expression}")
-
-
-        # ===== BUILD RENDERER (in main thread!) =====
-        print("Building renderer in main thread...")
-        renderer = None
-
-        if worker.vars['color']['mode']:
-            # target field name used for graduated renderer
-            target_field = 'color_' + worker.vars['color']['name'].split('$')[0]
-            print("Renderer target field:", target_field)
-            
-            
-
-            if worker.vars['color']['name'].split('$')[0] == 'mdot':
-                # --- mdot: rule-based renderer with arrows (positive / negative)
-                attr = "color_mdot"
-                arrow_size = 3
-                num_classes = int(self.color_classes.text())
-                classification_mode = self.colormode.currentText()
-                color_ramp_name = self.colorramp.currentText()
-
-                style_mgr = QgsStyle().defaultStyle()
-                ramp = style_mgr.colorRamp(color_ramp_name)
-                if ramp is None:
-                    raise ValueError(f"Color ramp '{color_ramp_name}' not found in QGIS Style Manager")
-
-                # compute vals (absolute) and bounds
-                vals = [abs(f[attr]) for f in layer.getFeatures() if f[attr] is not None]
-                if not vals:
-                    # fallback: set single-class renderer
-                    print("No values for attr", attr, " -> single symbol")
-                    renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
-                else:
-                    vmin, vmax = min(vals), max(vals)
-                    if vmin == vmax:
-                        # degenerate case -> single class
-                        bounds = [vmin, vmax]
-                        num_classes = 1
-                    else:
-                        if classification_mode == 'Equal Count':
-                            percentiles = np.linspace(0, 100, num_classes + 1)
-                            bounds = np.percentile(vals, percentiles).tolist()
-                        else:
-                            step = (vmax - vmin) / num_classes
-                            bounds = [vmin + i * step for i in range(num_classes + 1)]
-
-                    root_rule = QgsRuleBasedRenderer.Rule(None)
-
-                    for i_cls in range(num_classes):
-                        lower = bounds[i_cls]
-                        upper = bounds[i_cls + 1]
-                        frac = i_cls / (num_classes - 1) if num_classes > 1 else 0.0
-                        color = ramp.color(frac)
-
-                        # Positive flows
-                        expr_pos = f'("{attr}" >= {lower} AND "{attr}" < {upper} AND "{attr}" > 0)'
-                        line_sym_pos = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
-
-                        marker_line_pos = QgsMarkerLineSymbolLayer()
-                        # try to use newer API if available
-                        if hasattr(marker_line_pos, "setPlacementType"):
-                            marker_line_pos.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
-                        else:
-                            marker_line_pos.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
-                        # rotate according to line direction
-                        marker_line_pos.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
-
-                        arrow_layer_pos = QgsSimpleMarkerSymbolLayer(
-                            shape=QgsSimpleMarkerSymbolLayer.Triangle,
-                            color=color,
-                            size=arrow_size
-                        )
-                        arrow_layer_pos.setAngle(90)  # rightward
-                        arrow_marker_pos = QgsMarkerSymbol()
-                        arrow_marker_pos.changeSymbolLayer(0, arrow_layer_pos)
-                        marker_line_pos.setSubSymbol(arrow_marker_pos)
-                        line_sym_pos.appendSymbolLayer(marker_line_pos)
-
-                        rule_pos = QgsRuleBasedRenderer.Rule(line_sym_pos)
-                        rule_pos.setFilterExpression(expr_pos)
-                        rule_pos.setLabel(f"{lower:.2f} – {upper:.2f}")
-                        root_rule.appendChild(rule_pos)
-
-                        # Negative flows
-                        expr_neg = f'("{attr}" >= -{upper} AND "{attr}" < -{lower} AND "{attr}" < 0)'
-                        line_sym_neg = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
-
-                        marker_line_neg = QgsMarkerLineSymbolLayer()
-                        if hasattr(marker_line_neg, "setPlacementType"):
-                            marker_line_neg.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
-                        else:
-                            marker_line_neg.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
-                        marker_line_neg.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
-
-                        arrow_layer_neg = QgsSimpleMarkerSymbolLayer(
-                            shape=QgsSimpleMarkerSymbolLayer.Triangle,
-                            color=color,
-                            size=arrow_size
-                        )
-                        arrow_layer_neg.setAngle(270)  # leftward
-                        arrow_marker_neg = QgsMarkerSymbol()
-                        arrow_marker_neg.changeSymbolLayer(0, arrow_layer_neg)
-                        marker_line_neg.setSubSymbol(arrow_marker_neg)
-                        line_sym_neg.appendSymbolLayer(marker_line_neg)
-
-                        rule_neg = QgsRuleBasedRenderer.Rule(line_sym_neg)
-                        rule_neg.setFilterExpression(expr_neg)
-                        rule_neg.setLabel("")  # hidden
-                        root_rule.appendChild(rule_neg)
-
-                    renderer = QgsRuleBasedRenderer(root_rule)
-
-            else:
-                # --- Graduated renderer branch ---
-                if self.colormode.currentText() == 'Equal Count':
-                    classification_method = QgsClassificationQuantile()
-                else:
-                    classification_method = QgsClassificationEqualInterval()
-                classification_method.setLabelPrecision(1)
-                classification_method.setLabelTrimTrailingZeroes(True)
-
-                default_style = QgsStyle().defaultStyle()
-                color_ramp = default_style.colorRamp(self.colorramp.currentText())
-
-                renderer = QgsGraduatedSymbolRenderer()
-                renderer.setClassAttribute(target_field)
-                renderer.setClassificationMethod(classification_method)
-                renderer.updateClasses(layer, int(self.color_classes.text()))
-                renderer.updateColorRamp(color_ramp)
-                symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-                if self.feature == 'line':
-                    symbol.setWidth(2)
-                else:
-                    symbol.setSize(4)
-                renderer.updateSymbols(symbol)
-
-        else:
-            # no color mode -> single symbol
-            renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
-
-        # ===== SIZE / ROTATION data-defined properties (apply to marker symbol) =====
-        # Note: we need to modify a symbol for the renderer. For rule-based renderer, modify
-        # top-level symbol in case of single-symbol rules; for graduated renderer we update symbols.
-        try:
-            if worker.vars['size']['mode'] or worker.vars['rotation']['mode']:
-                print("Applying size/rotation DDPs...")
-                # create a base symbol to apply changes to
-                base_symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-                style = {}
-                if self.checkbox_varRotation.isChecked():
-                    style['name'] = 'arrow'
-                else:
-                    style['name'] = 'point'
-                style['color'] = 'black'
-                symbolLayer = QgsFilledMarkerSymbolLayer.create(style)
-                base_symbol.changeSymbolLayer(0, symbolLayer)
-
-                # size scale
-                if worker.vars['size']['mode']:
-                    if worker.vars['size']['mode'] == 'var':
-                        min_value = getMinTimeTableValue(worker.vars['size']['var_function'], worker.cur, self.config, worker.vars['size']['table_name'], worker.vars['size']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
-                        max_value = getMaxTimeTableValue(worker.vars['size']['var_function'], worker.cur, self.config, worker.vars['size']['table_name'], worker.vars['size']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
-                    else:
-                        min_value = getMinTableValue(worker.cur, self.config, worker.vars['size']['table_name'], worker.vars['size']['name'])
-                        max_value = getMaxTableValue(worker.cur, self.config, worker.vars['size']['table_name'], worker.vars['size']['name'])
-
-                    scale_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
-                        'size_' + worker.vars['size']['name'].split('$')[0],
-                        min_value, max_value,
-                        float(self.size_symbolMin.text()), float(self.size_symbolMax.text())
-                    )
-                    # property for size or stroke width
-                    prop = QgsSymbolLayer.PropertyStrokeWidth if self.feature == 'line' else QgsSymbolLayer.PropertySize
-                    base_symbol.symbolLayer(0).setDataDefinedProperty(prop, QgsProperty.fromExpression(scale_expr))
-
-                # rotation
-                if worker.vars['rotation']['mode']:
-                    if worker.vars['rotation']['mode'] == 'var':
-                        min_value = getMinTimeTableValue(worker.vars['rotation']['var_function'], worker.cur, self.config, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
-                        max_value = getMaxTimeTableValue(worker.vars['rotation']['var_function'], worker.cur, self.config, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'].split('$')[0], worker.vars['time']['starttime'], worker.vars['time']['endtime'])
-                    else:
-                        min_value = getMinTableValue(worker.cur, self.config, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'])
-                        max_value = getMaxTableValue(worker.cur, self.config, worker.vars['rotation']['table_name'], worker.vars['rotation']['name'])
-
-                    rotation_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
-                        'rotation_' + worker.vars['rotation']['name'].split('$')[0],
-                        min_value, max_value,
-                        float(self.rotation_symbolMin.text()), float(self.rotation_symbolMax.text())
-                    )
-                    base_symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromExpression(rotation_expr))
-
-                # apply the base symbol to renderer
-                try:
-                    renderer.updateSymbols(base_symbol)
-                except Exception:
-                    renderer.setSymbol(base_symbol)
-
-        except Exception as e:
-            print("Error applying size/rotation:", e)
-
-        # ===== APPLY RENDERER (after labeling) =====
-        try:
-            print("Applying renderer to layer...")
-            layer.setRenderer(renderer)
-        except Exception as e:
-            print("Error setting renderer:", e)
-
-        # ===== ADD TO PROJECT =====
-        print("Adding layer to project...")
-        QgsProject.instance().addMapLayer(layer)
-
-        # ===== FINAL REFRESH =====
-        layer.triggerRepaint()
-        try:
-            iface.layerTreeView().refreshLayerSymbology(layer.id())
-        except Exception:
-            pass
-        iface.mapCanvas().refresh()
-
-        # ===== TEMPORAL CONTROLLER (if applicable) =====
-        if worker.first_time_var:
-            print("Configuring temporal controller...")
-            # set temporal properties on the layer
-            temp_prop = layer.temporalProperties()
-            temp_prop.setIsActive(True)
-            temp_prop.setStartField('time')
-            temp_prop.setEndField('time')
-            temp_prop.setLimitMode(Qgis.VectorTemporalLimitMode.IncludeBeginIncludeEnd)
-            temp_prop.setMode(Qgis.VectorTemporalMode(2))
-
-            temporalController = iface.mapCanvas().temporalController()
-            temporalNavigationObject = sip.cast(temporalController, QgsTemporalNavigationObject)
-
-            temporalNavigationObject.setNavigationMode(Qgis.TemporalNavigationMode.Animated)
-            temporalNavigationObject.setFramesPerSecond(2)
-            temporalNavigationObject.setTemporalExtents(
-                QgsDateTimeRange(
-                    getDatetimeFromString(worker.vars['time']['starttime']),
-                    getDatetimeFromString(worker.vars['time']['endtime'])
-                )
-            )
-            temporalNavigationObject.setLooping(True)
-            temporalNavigationObject.setAnimationState(Qgis.AnimationState.Forward)
-
-            interval = QgsInterval()
-            dt = worker.vars['time']['dt']
-            if dt == 'hour':
-                interval.setHours(1)
-            elif dt == 'day':
-                interval.setDays(1)
-            elif dt == 'month':
-                interval.setMonths(1)
-            else:
-                try:
-                    interval.setHours(float(dt))
-                except Exception:
-                    interval.setHours(1)
-
-            temporalNavigationObject.setFrameDuration(interval)
-            iface.mapCanvas().refresh()
+        
+        if layer:
+            renderMapPlot(layer,worker.vars,self.cur,self.config,first_time_var=worker.first_time_var,colorlabel=self.colorlabel.isChecked(),varRotation=self.checkbox_varRotation.isChecked(),
+                color_classes=self.color_classes.text(),colormode=self.colormode.currentText(),colorramp=self.colorramp.currentText(),feature=self.feature,
+                size_symbolMin=self.size_symbolMin.text(),size_symbolMax=self.size_symbolMax.text(),rotation_symbolMin=self.rotation_symbolMin.text(),rotation_symbolMax=self.rotation_symbolMax.text())
 
         print("=== update_finished END ===")
         self.dlg_main.statusMessage.setText(message)        

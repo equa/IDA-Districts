@@ -54,7 +54,7 @@ for /f "usebackq delims=" %%A in ("pyfiles.txt") do (
     set /a NUM+=1
     set /a TOTAL+=1
 
-    if !NUM! GEQ 20 (
+    if !NUM! GEQ 100 (
         echo Running pylupdate5 on chunk...
         call "%OSGEO4W_ROOT%\OSGeo4W.bat" pylupdate5 !CHUNK! -ts i18n\districts_de.ts i18n\districts_en.ts
         set CHUNK=

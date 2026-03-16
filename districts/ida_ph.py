@@ -7,6 +7,7 @@ from qgis.PyQt.QtGui import QColor,QStandardItem
 from .utility_functions.dialog import *
 from .utility_functions.workers import *
 from .utility_functions.layer_visualization import *
+from .utility_functions.reports import *
 
 import datetime
 import tempfile
@@ -357,7 +358,7 @@ def addBaseVersion(dlg,main):
                             filedata=filedata+line
                     newdata = filedata.replace("$versionName$", main.config['versionName'])
                     newdata = newdata.replace("$srid$", main.projectConfig['srid'])
-                    newdata = newdata.replace("$plugins_path$", getQGISPluginsDir(main.plugin_dir))
+                    newdata = newdata.replace("$plugins_path$", main.plugin_dir)
                     
                     with open(main.plugin_dir+"\\DB_versionTables.txt",'w') as myfile:
                         myfile.write(newdata)   
@@ -371,7 +372,7 @@ def addBaseVersion(dlg,main):
                         for line in myfile:
                             filedata=filedata+line
                     newdata = filedata.replace("$versionName$", main.config['versionName'])
-                    newdata = newdata.replace("$plugins_path$", getQGISPluginsDir(main.plugin_dir))
+                    newdata = newdata.replace("$plugins_path$", main.plugin_dir)
                     
                     with open(main.plugin_dir+"\\DB_versionTables_data.txt",'w') as myfile:
                         myfile.write(newdata)     
@@ -510,13 +511,13 @@ def loadVersionLayers(config,cur,plugin_dir):
     loadTopologyLayers(config['versionName'],uri,config,auth_cfg.config("username"))   
     loadBuildingsLayer(uri,config,view,auth_cfg.config("username"))    
     try: 
-        uri.setDataSource(config['versionName'], "submodels", "geom")
-        vlayer = QgsVectorLayer(uri.uri(False), "submodels", auth_cfg.config("username"))
-        QgsProject.instance().addMapLayer(vlayer)
-        single_symbol_renderer = vlayer.renderer()
-        symbol = single_symbol_renderer.symbol()
-        symbol.setColor(QColor.fromRgb(255, 0, 0))
-        view.refreshLayerSymbology(vlayer.id())
+        #uri.setDataSource(config['versionName'], "submodels", "geom")
+        #vlayer = QgsVectorLayer(uri.uri(False), "submodels", auth_cfg.config("username"))
+        #QgsProject.instance().addMapLayer(vlayer)
+        #single_symbol_renderer = vlayer.renderer()
+        #symbol = single_symbol_renderer.symbol()
+        #symbol.setColor(QColor.fromRgb(255, 0, 0))
+        #view.refreshLayerSymbology(vlayer.id())
 
         uri.setDataSource(config['versionName'], "streets", "geom")
         vlayer = QgsVectorLayer(uri.uri(False), "streets", auth_cfg.config("username"))
@@ -534,7 +535,7 @@ def loadVersionLayers(config,cur,plugin_dir):
     
     loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
     view = iface.layerTreeView()
-    view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
+    #view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
     view.setLayerVisible(QgsProject.instance().mapLayersByName('streets')[0], False)    
     view.setLayerVisible(QgsProject.instance().mapLayersByName('junctions')[0], False)    
 
@@ -544,11 +545,9 @@ def loadVersionLayers(config,cur,plugin_dir):
    
     versionLayersAliasNames()
     setupVersionForm(cur,config)
-    #setupCustomerDataSheet()
+    setupCustomerDataSheet(config,plugin_dir,loadProjectConfig(plugin_dir,config['projectName']))
       
     valueRelationPipeBundleType()    
-    valueRelationDhwId()    
-    valueRelationInternalLoadId() 
     zoomToLayer('customers')
     
 def finishedImportProject(dlg=None,main=None,projectName=''):

@@ -74,8 +74,8 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                     else:
                         self.signals.error.emit('Please select a model, which starts with an Integer and belongs to one of your modeled networks.')
                         return False
-                        
-                    dir_path=self.plugin_dir+'\\models\\{}\\{}\\network_{}\\'.format(self.config['projectName'],self.config['versionName'],submodel)
+                    
+                    dir_path=self.plugin_dir+'\\projects\\{}\\models\\{}\\network_{}\\'.format(self.config['projectName'],self.config['versionName'],submodel)
                     pipe_sequences=getUsedPipeBundleSequences(self.cur,self.config)
                     #-----update DB tables--------
                     #-----------create tables----------------
@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                     c_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output]]
                     if c_outputs:
                         used_b_types=getUsedConnBundleTypes('customer',self.cur,self.config)
-                        c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power']]
+                        c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power','qsup']]
+                        c_power_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] in ['power']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('customer',self.cur,self.config)
                         tables=[]
@@ -105,19 +106,18 @@ CREATE TABLE "{}".customer_s_{}${}
                         tables+=["customer_s_{}${}".format(output,conn_name) for output in c_conn_outputs for conn_name in conn_names]
                         
                         #connection type tables (power)
-                        if 'power' in c_outputs:
-                            sql+='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_power${} CASCADE;
-CREATE TABLE "{}".customer_s_power${}
+                        sql+='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_{}${} CASCADE;
+CREATE TABLE "{}".customer_s_{}${}
 (
 	id serial,
     fid integer,
     time timestamp,
 	geom geometry(PointZ,{}),
-	"$power" numeric,
-	CONSTRAINT customer_s_power${}_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],ident,self.config['versionName'],ident,srid,ident) 
-                                for ident in conn_t_power_names])
-                            tables+=["customer_s_power${}".format(ident) for ident in conn_t_power_names]
+	"${}" numeric,
+	CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
+);""".format(self.config['versionName'],i,ident,self.config['versionName'],i,ident,srid,i,i,ident) 
+                            for i in c_power_outputs for ident in conn_t_power_names])
+                        tables+=["customer_s_{}${}".format(i,ident) for i in c_power_outputs for ident in conn_t_power_names]
 
                         #room air temperature table
                         if 'troom' in c_outputs:
@@ -270,7 +270,7 @@ CREATE TABLE "{}".customer_s_ventilation
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
 
-                                        if self.dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                        if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
                                             #linear interpolation
                                             print(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
@@ -284,7 +284,7 @@ CREATE TABLE "{}".customer_s_ventilation
                                 print(fname)
                                 if os.path.exists(fname):         
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
-                                    if self.dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                    if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
                                         #linear interpolation
                                         print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
@@ -299,7 +299,7 @@ CREATE TABLE "{}".customer_s_ventilation
                                 print(fname)
                                 if os.path.exists(fname):                                              
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
-                                    if self.dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                    if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
                                         #linear interpolation
                                         print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
@@ -396,7 +396,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
 
-                                        if self.dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                        if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
                                             #linear interpolation
                                             print(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
@@ -411,7 +411,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                             self.updateResultLayerGeometry(tables,'energy_plant')
                             
                     self.signals.progress.emit(66)
-                    #lines tables: line_s_t,line_s_v,nodes_s_mdot,nodes_s_p,nodes_s_t
+                    #lines
                     line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
                     if line_outputs:
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_s_{}${} CASCADE;
@@ -425,7 +425,20 @@ CREATE TABLE "{}".line_s_{}${}
 	"${}" numeric,
 	CONSTRAINT line_s_{}${}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],output,seq,self.config['versionName'],output,seq,srid,output,output,seq) 
-                            for output in line_outputs for seq in pipe_sequences])
+                            for output in line_outputs for seq in pipe_sequences if output!='qamb'])
+                        if 'qamb' in line_outputs:
+                            sql+="""\nDROP TABLE IF EXISTS "{}".line_s_qamb CASCADE;
+CREATE TABLE "{}".line_s_qamb
+(
+	id serial,
+    fid integer,
+    time timestamp,
+	geom geometry(LineStringZ,{}),
+	segment integer,
+	"$qamb" numeric,
+	CONSTRAINT line_s_qamb_pkey PRIMARY KEY (id)
+);""".format(self.config['versionName'],self.config['versionName'],srid)
+
                         print(sql)
                         self.cur.execute(sql)
 
@@ -476,12 +489,15 @@ CREATE TABLE "{}".line_s_{}${}
                                     
                                     start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                             
-                                    if self.dlg.checkbox_timestep.checkState() == Qt.Checked:
+                                    if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
                                         #linear interpolation
                                         print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                             
-                                    table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
+                                    if output=='qamb':
+                                        table_names=['line_s_qamb']
+                                    else:
+                                        table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                                     print(table_names)
                                     self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
                                 self.signals.progress.emit(int(66+counter_l / len(lids)*32/len(line_outputs)+counter_of/len(line_outputs)*32))
@@ -491,10 +507,78 @@ CREATE TABLE "{}".line_s_{}${}
                             #update line geometry
                             if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']]:
                                 self.updateResultLayerLineSegGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']])
-                            if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']]:
+                            elif ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['mdot','v']]:
                                 self.updateResultLayerGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']],'line')
+                            elif output=='qamb':
+                                self.updateResultLayerGeometry(['line_s_qamb'],'line')
+
 
                         self.signals.progress.emit(99)
+                        
+                    #--------KPI`s------
+                    print('------kpi----------')
+                    kpis={}
+                    if self.simulatedOutputs['tsup_mean_ep_kpi']: 
+                        kpis['tsup_mean_ep']=''
+                    if self.simulatedOutputs['tsup_max_ep_kpi']: 
+                        kpis['tsup_max_ep']=''
+                    if self.simulatedOutputs['tsup_min_ep_kpi']: 
+                        kpis['tsup_min_ep']=''
+                    if self.simulatedOutputs['tret_mean_ep_kpi']: 
+                        kpis['tret_mean_ep']=''
+                    if self.simulatedOutputs['tret_max_ep_kpi']: 
+                        kpis['tret_max_ep']=''
+                    if self.simulatedOutputs['tret_min_ep_kpi']: 
+                        kpis['tret_min_ep']=''
+                    if self.simulatedOutputs['qsup_heat_ep_kpi']: 
+                        kpis['qsup_heat_ep']=''
+                    if self.simulatedOutputs['qsup_cold_ep_kpi']: 
+                        kpis['qsup_cold_ep']=''
+                    if self.simulatedOutputs['qsup_ep_kpi']: 
+                        kpis['qsup_ep']=''                    
+                    
+                    if self.simulatedOutputs['tsup_mean_c_kpi']: 
+                        kpis['tsup_mean_c']=''
+                    if self.simulatedOutputs['tsup_max_c_kpi']: 
+                        kpis['tsup_max_c']=''
+                    if self.simulatedOutputs['tsup_min_c_kpi']: 
+                        kpis['tsup_min_c']=''
+                    if self.simulatedOutputs['tret_mean_c_kpi']: 
+                        kpis['tret_mean_c']=''
+                    if self.simulatedOutputs['tret_max_c_kpi']: 
+                        kpis['tret_max_c']=''
+                    if self.simulatedOutputs['tret_min_c_kpi']: 
+                        kpis['tret_min_c']=''
+                    if self.simulatedOutputs['qsup_heat_c_kpi']: 
+                        kpis['qsup_heat_c']=''
+                    if self.simulatedOutputs['qsup_cold_c_kpi']: 
+                        kpis['qsup_cold_c']=''
+                    if self.simulatedOutputs['qsup_c_kpi']: 
+                        kpis['qsup_c']=''
+
+                    if self.simulatedOutputs['qamb_kpi']: 
+                        kpis['qamb']=''
+                    for counter_of,kpi in enumerate(kpis,1):
+                        print('+++++++++'+kpi+'++++++++++++')
+
+                        fname=dir_path+'Results-macro\\{}_kpi_outputfile.prn'.format(kpi.capitalize())
+                        print(fname)
+                        if os.path.exists(fname):
+                            with open(fname, "r") as f:
+                                for line in f:
+                                    last_line = line
+                                
+                            try:
+                                kpis[kpi]=last_line.split()[-1]
+                            except:
+                                pass
+                    print(kpis)
+                    sql="""TRUNCATE "{}".kpi;\n""".format(self.config['versionName'])
+                    sql+="""INSERT INTO "{}".kpi ({}) SELECT {};""".format(self.config['versionName'],
+                        "id"+''.join([",{}".format(kpi) for kpi in kpis]),
+                        "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))
+                    print(sql)
+                    self.cur.execute(sql)
                 except Exception as e:
                     self.signals.error.emit(str(e))
                         

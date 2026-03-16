@@ -6,10 +6,343 @@ import psycopg2.extras
 from qgis.utils import iface
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
-from qgis.core import QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsLineSymbol,QgsClassificationQuantile,QgsGeometry,QgsVectorLayer,QgsFeature,QgsClassificationEqualInterval,QgsRendererRangeLabelFormat,QgsStyle,QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer,QgsSymbol,QgsFilledMarkerSymbolLayer,QgsSymbolLayer,QgsProperty,Qgis
+from qgis.core import QgsVectorLayerSimpleLabeling,QgsWkbTypes,QgsPalLayerSettings,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsLineSymbol,QgsClassificationQuantile,QgsGeometry,QgsVectorLayer,QgsFeature,QgsClassificationEqualInterval,QgsRendererRangeLabelFormat,QgsStyle,QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer,QgsSymbol,QgsFilledMarkerSymbolLayer,QgsSymbolLayer,QgsProperty,Qgis
 from qgis.PyQt.QtWidgets import QShortcut,QAction,QListWidgetItem,QFileDialog,QStackedWidget,QListView,QLineEdit,QDialog,QTableWidgetItem
+from qgis.PyQt.QtGui import QFont, QColor
+
+def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,color_classes=None,colormode=None,colorramp=None,feature=None,varRotation=None,size_symbolMin=None,size_symbolMax=None,rotation_symbolMin=None,rotation_symbolMax=None,networkReportDlg=None):
+    print(data)
+    if colorlabel:
+        # Construct the expression for one decimal place formatting
+        label_expression = f"format_number(\"{'color_' + data['color']['name'].split('$')[0]}\", 1)"
+
+        # --- Label Settings ---
+        palyr = QgsPalLayerSettings()
+        palyr.enabled = True
+        palyr.fieldName = label_expression 
+        
+        # Ensure QGIS knows this is an expression, not just a field name
+        palyr.isExpression = True 
+        
+        # Configure placement using modern enums
+        if layer.geometryType() == QgsWkbTypes.PointGeometry:
+            palyr.placement = Qgis.LabelPlacement.OverPoint
+        elif layer.geometryType() == QgsWkbTypes.LineGeometry:
+            palyr.placement = Qgis.LabelPlacement.Line
+        else: # Polygon
+            palyr.placement = Qgis.LabelPlacement.AroundPoint
+            # For polygons, sometimes 'centroid' placement is more reliable
+            # palyr.placement = Qgis.LabelPlacement.PointOnSurface 
+
+        # Customize text formatting (using points or millimeters is more reliable than map units)
+        palyr.textColor = QColor(0, 0, 0)
+        palyr.fontSizeInMapUnits = False # Use millimeters (False) or points (True and adjust unit)
+        palyr.fontSize = 10 # 10 mm/points size
+        palyr.fontFamily = "Arial"
+        
+        # Optional: Enable showing all labels, even colliding ones, for debugging
+        palyr.limitLabelMapUnits = False
+        palyr.scaleMax = 0
+        palyr.scaleMin = 0
+        palyr.displayAllLabels = True # Force display for troubleshooting
 
 
+        # --- Apply Settings ---
+        layer_settings = QgsVectorLayerSimpleLabeling(palyr)
+        layer.setLabeling(layer_settings)
+        layer.setLabelsEnabled(True)
+        
+        # --- Refresh Map Canvas ---
+        # Trigger a repaint to force QGIS to re-render the labels immediately
+        layer.triggerRepaint() 
+        iface.mapCanvas().refresh()
+        print(f"Labels enabled for layer '{layer.name()}' using expression: {label_expression}")
+
+
+    # ===== BUILD RENDERER (in main thread!) =====
+    print("Building renderer in main thread...")
+    renderer = None
+
+    if data['color']['mode']:
+        # target field name used for graduated renderer
+        target_field = 'color_' + data['color']['name'].split('$')[0]
+        print("Renderer target field:", target_field)
+        if data['color']['name'].split('$')[0] == 'mdot' and feature=='line':
+            # --- mdot: rule-based renderer with arrows (positive / negative)
+            attr = "color_mdot"
+            arrow_size = 3
+            num_classes = int(color_classes)
+            classification_mode = colormode
+            color_ramp_name = colorramp
+
+            style_mgr = QgsStyle().defaultStyle()
+            ramp = style_mgr.colorRamp(color_ramp_name)
+            if ramp is None:
+                raise ValueError(f"Color ramp '{color_ramp_name}' not found in QGIS Style Manager")
+
+            # compute vals (absolute) and bounds
+            vals = [abs(f[attr]) for f in layer.getFeatures() if f[attr] is not None]
+            if not vals:
+                # fallback: set single-class renderer
+                print("No values for attr", attr, " -> single symbol")
+                renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
+            else:
+                vmin, vmax = min(vals), max(vals)
+                if vmin == vmax:
+                    # degenerate case -> single class
+                    bounds = [vmin, vmax]
+                    num_classes = 1
+                else:
+                    if classification_mode == 'Equal Count':
+                        percentiles = np.linspace(0, 100, num_classes + 1)
+                        bounds = np.percentile(vals, percentiles).tolist()
+                    else:
+                        step = (vmax - vmin) / num_classes
+                        bounds = [vmin + i * step for i in range(num_classes + 1)]
+
+                root_rule = QgsRuleBasedRenderer.Rule(None)
+
+                for i_cls in range(num_classes):
+                    lower = bounds[i_cls]
+                    upper = bounds[i_cls + 1]
+                    frac = i_cls / (num_classes - 1) if num_classes > 1 else 0.0
+                    color = ramp.color(frac)
+
+                    # Positive flows
+                    expr_pos = f'("{attr}" >= {lower} AND "{attr}" < {upper} AND "{attr}" > 0)'
+                    line_sym_pos = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
+
+                    marker_line_pos = QgsMarkerLineSymbolLayer()
+                    # try to use newer API if available
+                    if hasattr(marker_line_pos, "setPlacementType"):
+                        marker_line_pos.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
+                    else:
+                        marker_line_pos.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
+                    # rotate according to line direction
+                    marker_line_pos.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
+
+                    arrow_layer_pos = QgsSimpleMarkerSymbolLayer(
+                        shape=QgsSimpleMarkerSymbolLayer.Triangle,
+                        color=color,
+                        size=arrow_size
+                    )
+                    arrow_layer_pos.setAngle(90)  # rightward
+                    arrow_marker_pos = QgsMarkerSymbol()
+                    arrow_marker_pos.changeSymbolLayer(0, arrow_layer_pos)
+                    marker_line_pos.setSubSymbol(arrow_marker_pos)
+                    line_sym_pos.appendSymbolLayer(marker_line_pos)
+
+                    rule_pos = QgsRuleBasedRenderer.Rule(line_sym_pos)
+                    rule_pos.setFilterExpression(expr_pos)
+                    rule_pos.setLabel(f"{lower:.2f} – {upper:.2f}")
+                    root_rule.appendChild(rule_pos)
+
+                    # Negative flows
+                    expr_neg = f'("{attr}" >= -{upper} AND "{attr}" < -{lower} AND "{attr}" < 0)'
+                    line_sym_neg = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
+
+                    marker_line_neg = QgsMarkerLineSymbolLayer()
+                    if hasattr(marker_line_neg, "setPlacementType"):
+                        marker_line_neg.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
+                    else:
+                        marker_line_neg.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
+                    marker_line_neg.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
+
+                    arrow_layer_neg = QgsSimpleMarkerSymbolLayer(
+                        shape=QgsSimpleMarkerSymbolLayer.Triangle,
+                        color=color,
+                        size=arrow_size
+                    )
+                    arrow_layer_neg.setAngle(270)  # leftward
+                    arrow_marker_neg = QgsMarkerSymbol()
+                    arrow_marker_neg.changeSymbolLayer(0, arrow_layer_neg)
+                    marker_line_neg.setSubSymbol(arrow_marker_neg)
+                    line_sym_neg.appendSymbolLayer(marker_line_neg)
+
+                    rule_neg = QgsRuleBasedRenderer.Rule(line_sym_neg)
+                    rule_neg.setFilterExpression(expr_neg)
+                    rule_neg.setLabel("")  # hidden
+                    root_rule.appendChild(rule_neg)
+
+                renderer = QgsRuleBasedRenderer(root_rule)
+
+        else:
+            # --- Graduated renderer branch ---
+            if colormode == 'Equal Count':
+                classification_method = QgsClassificationQuantile()
+            else:
+                classification_method = QgsClassificationEqualInterval()
+            classification_method.setLabelPrecision(1)
+            classification_method.setLabelTrimTrailingZeroes(True)
+
+            default_style = QgsStyle().defaultStyle()
+            color_ramp = default_style.colorRamp(colorramp)
+
+            renderer = QgsGraduatedSymbolRenderer()
+            renderer.setClassAttribute(target_field)
+            renderer.setClassificationMethod(classification_method)
+            renderer.updateClasses(layer, int(color_classes))
+            renderer.updateColorRamp(color_ramp)
+            symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+            if feature == 'line':
+                symbol.setWidth(2)
+            else:
+                symbol.setSize(4)
+            renderer.updateSymbols(symbol)
+
+    else:
+        # no color mode -> single symbol
+        renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
+
+    # ===== SIZE / ROTATION data-defined properties (apply to marker symbol) =====
+    # Note: we need to modify a symbol for the renderer. For rule-based renderer, modify
+    # top-level symbol in case of single-symbol rules; for graduated renderer we update symbols.
+    try:
+        if data['size']['mode'] or data['rotation']['mode']:
+            print("Applying size/rotation DDPs...")
+            # create a base symbol to apply changes to
+            base_symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+            style = {}
+            if varRotation:
+                style['name'] = 'arrow'
+            else:
+                style['name'] = 'point'
+            style['color'] = 'black'
+            symbolLayer = QgsFilledMarkerSymbolLayer.create(style)
+            base_symbol.changeSymbolLayer(0, symbolLayer)
+
+            # size scale
+            if data['size']['mode']:
+                if data['size']['mode'] == 'var':
+                    min_value = getMinTimeTableValue(data['size']['var_function'], cur, config, data['size']['table_name'], data['size']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
+                    max_value = getMaxTimeTableValue(data['size']['var_function'], cur, config, data['size']['table_name'], data['size']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
+                else:
+                    min_value = getMinTableValue(cur, config, data['size']['table_name'], data['size']['name'])
+                    max_value = getMaxTableValue(cur, config, data['size']['table_name'], data['size']['name'])
+
+                scale_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
+                    'size_' + data['size']['name'].split('$')[0],
+                    min_value, max_value,
+                    float(size_symbolMin), float(size_symbolMax)
+                )
+                # property for size or stroke width
+                prop = QgsSymbolLayer.PropertyStrokeWidth if feature == 'line' else QgsSymbolLayer.PropertySize
+                base_symbol.symbolLayer(0).setDataDefinedProperty(prop, QgsProperty.fromExpression(scale_expr))
+
+            # rotation
+            if data['rotation']['mode']:
+                if data['rotation']['mode'] == 'var':
+                    min_value = getMinTimeTableValue(data['rotation']['var_function'], cur, config, data['rotation']['table_name'], data['rotation']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
+                    max_value = getMaxTimeTableValue(data['rotation']['var_function'], cur, config, data['rotation']['table_name'], data['rotation']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
+                else:
+                    min_value = getMinTableValue(cur, config, data['rotation']['table_name'], data['rotation']['name'])
+                    max_value = getMaxTableValue(cur, config, data['rotation']['table_name'], data['rotation']['name'])
+
+                rotation_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
+                    'rotation_' + data['rotation']['name'].split('$')[0],
+                    min_value, max_value,
+                    float(rotation_symbolMin), float(rotation_symbolMax)
+                )
+                base_symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromExpression(rotation_expr))
+
+            # apply the base symbol to renderer
+            try:
+                renderer.updateSymbols(base_symbol)
+            except Exception:
+                renderer.setSymbol(base_symbol)
+
+    except Exception as e:
+        print("Error applying size/rotation:", e)
+
+    # ===== APPLY RENDERER (after labeling) =====
+    try:
+        print("Applying renderer to layer...")
+        layer.setRenderer(renderer)
+    except Exception as e:
+        print("Error setting renderer:", e)
+
+    # ===== ADD TO PROJECT =====
+    print("Adding layer to project...")
+    QgsProject.instance().addMapLayer(layer)    
+    
+    # ===== TEMPORAL CONTROLLER (if applicable) =====
+    if first_time_var:
+        print("Configuring temporal controller...")
+        # set temporal properties on the layer
+        temp_prop = layer.temporalProperties()
+        temp_prop.setIsActive(True)
+        temp_prop.setStartField('time')
+        temp_prop.setEndField('time')
+        temp_prop.setLimitMode(Qgis.VectorTemporalLimitMode.IncludeBeginIncludeEnd)
+        temp_prop.setMode(Qgis.VectorTemporalMode(2))
+
+        temporalController = iface.mapCanvas().temporalController()
+        temporalNavigationObject = sip.cast(temporalController, QgsTemporalNavigationObject)
+
+        temporalNavigationObject.setNavigationMode(Qgis.TemporalNavigationMode.Animated)
+        temporalNavigationObject.setFramesPerSecond(2)
+        temporalNavigationObject.setTemporalExtents(
+            QgsDateTimeRange(
+                getDatetimeFromString(data['time']['starttime']),
+                getDatetimeFromString(data['time']['endtime'])
+            )
+        )
+        temporalNavigationObject.setLooping(True)
+        temporalNavigationObject.setAnimationState(Qgis.AnimationState.Forward)
+
+        interval = QgsInterval()
+        dt = data['time']['dt']
+        if dt == 'hour':
+            interval.setHours(1)
+        elif dt == 'day':
+            interval.setDays(1)
+        elif dt == 'month':
+            interval.setMonths(1)
+        else:
+            try:
+                interval.setHours(float(dt))
+            except Exception:
+                interval.setHours(1)
+
+        temporalNavigationObject.setFrameDuration(interval)
+        
+    # ===== FINAL REFRESH =====
+    layer.triggerRepaint()
+    try:
+        iface.layerTreeView().refreshLayerSymbology(layer.id())
+    except Exception:
+        pass
+    iface.mapCanvas().refresh()
+    
+def showOnMapMemoryLayer(vars,config,plugin_dir,feature,layer_name):   
+    print('showOnMapMemoryLayer')
+    column_names=[vars[var]['name'].split('$')[0] for var in vars if var not in ['time','data'] and vars[var]['mode']]
+    column_types=[var for var in vars if var not in ['time','data'] and vars[var]['mode']]
+    print(column_names)
+    print(column_types)
+    
+    # make new memory layer
+    temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
+        'LineStringZ' if feature=='line' else 'PointZ',
+        loadProjectConfig(plugin_dir,config['projectName'])['srid'],
+        'field=time:datetime&' if vars['time']['first_time_var'] else '',
+        '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),layer_name, "memory")
+    temp_layer.startEditing()
+    print('temp_layer generated')
+
+    #make new features
+    for i in vars['data']:
+        feat = QgsFeature(temp_layer.fields())
+        feat["id"] = i['fid']
+        if vars['time']['first_time_var']:
+            feat["time"] = str(i['time'])
+        feat.setGeometry(QgsGeometry.fromWkt(i['geom']))
+        for type,name in zip(column_types,column_names):
+            feat[type+'_'+name]=float(i[type])
+        temp_layer.addFeature(feat)
+    print('features added')
+    
+    return temp_layer
 
 class WorkerShowOnMap(QRunnable):
     """Worker thread
@@ -20,6 +353,7 @@ class WorkerShowOnMap(QRunnable):
         print('WorkerShowOnMap')
         print(kwargs)
         self.signals=APISignals2()
+        self.dlg_main=kwargs['dlg_main']
         self.config=kwargs['config']
         self.dlg=kwargs['dlg']
         if self.dlg:
@@ -29,6 +363,7 @@ class WorkerShowOnMap(QRunnable):
         self.layer_name= kwargs['layer_name']
         self.lineSegVisLength= kwargs['lineSegVis']
         self.enable= kwargs['enable']
+        self.networkReportDlg= kwargs['networkReportDlg']
         self.conn=""
         self.cur=""
         self.plugin_dir=kwargs['plugin_dir']
@@ -335,41 +670,11 @@ GROUP BY a.fid, lp.geom""".format(
     def showOnMap(self):
         self.vars=self.getShowOnMapVarsDict()      
         self.signals.progress.emit(65)  
-        self.showOnMapMemoryLayer()
-
-    def showOnMapMemoryLayer(self):   
-        print('showOnMapMemoryLayer')
-        column_names=[self.vars[var]['name'].split('$')[0] for var in self.vars if var not in ['time','data'] and self.vars[var]['mode']]
-        column_types=[var for var in self.vars if var not in ['time','data'] and self.vars[var]['mode']]
-        print(column_names)
-        print(column_types)
-        
-        # make new memory layer
-        self.temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
-            'LineStringZ' if self.feature=='line' else 'PointZ',
-            loadProjectConfig(self.plugin_dir,self.config['projectName'],signals=self.signals)['srid'],
-            'field=time:datetime&' if self.vars['time']['first_time_var'] else '',
-            '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),self.layer_name, "memory")
-        self.temp_layer.startEditing()
-        print('temp_layer generated')
-
-        #make new features
-        for i in self.vars['data']:
-            feat = QgsFeature(self.temp_layer.fields())
-            feat["id"] = i['fid']
-            if self.vars['time']['first_time_var']:
-                feat["time"] = str(i['time'])
-            feat.setGeometry(QgsGeometry.fromWkt(i['geom']))
-            for type,name in zip(column_types,column_names):
-                feat[type+'_'+name]=float(i[type])
-            self.temp_layer.addFeature(feat)
-        print('features added')
-
-                
-        self.signals.progress.emit(98)     
-                
-        self.signals.finished.emit('',self)
-        
+        if not self.networkReportDlg:
+            self.temp_layer = showOnMapMemoryLayer(self.vars,self.config,self.plugin_dir,self.feature,self.layer_name)
+            self.signals.progress.emit(98)      
+            self.signals.finished.emit('',self)
+ 
     @pyqtSlot()
     def run(self):
         print('Show data on map')
@@ -377,8 +682,9 @@ GROUP BY a.fid, lp.geom""".format(
         self.signals.progress.emit(self.progress_value)
         try:
             self.showOnMap()
+            self.signals.progress.emit(100)  
+            self.signals.finished.emit('Data has been successfully visualized on map!',self)  
         except Exception as e:
             self.signals.error.emit(str(e))  
             self.signals.progress.emit(0) 
-        self.signals.progress.emit(100)  
-        self.signals.finished.emit('finished',self)  
+            self.signals.finished.emit('Data visualization has failed!',self)  

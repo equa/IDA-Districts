@@ -1,5 +1,31 @@
 ------------------------------ version tables ---------------------------------
 
+-------------------table "$versionName$".kpi;----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "$versionName$".kpi
+(
+    id serial,
+    tsup_mean_ep numeric,
+    tsup_max_ep numeric,
+    tsup_min_ep numeric,
+    tret_mean_ep numeric,
+    tret_max_ep numeric,
+    tret_min_ep numeric,
+    qsup_heat_ep numeric,
+    qsup_cold_ep numeric,
+    qsup_ep numeric,
+    tsup_mean_c numeric,
+    tsup_max_c numeric,
+    tsup_min_c numeric,
+    tret_mean_c numeric,
+    tret_max_c numeric,
+    tret_min_c numeric,
+    qsup_heat_c numeric,
+    qsup_cold_c numeric,
+    qsup_c numeric,
+    qamb numeric,
+    CONSTRAINT kpi_pkey PRIMARY KEY (id)
+);
+
 -------------------table "$versionName$".boreholes;----------------------------------------------------------
 DROP TABLE IF EXISTS "$versionName$".boreholes CASCADE;
 CREATE TABLE "$versionName$".boreholes(
@@ -53,26 +79,6 @@ CREATE TABLE "$versionName$".borehole_fields(
     tmean numeric,
     geotgrad numeric,
     CONSTRAINT borehole_fields_pkey PRIMARY KEY (id)
-);
-
--------------------table "$versionName$".supervisory_ctrl;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".supervisory_ctrl CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".supervisory_ctrl
-(
-    id serial,
-    submodel integer,
-    CONSTRAINT supervisory_ctrl_pkey PRIMARY KEY (id)
-);
-
--------------------table "$versionName$".feature_decoupling;------------------------------------
-DROP TABLE IF EXISTS "$versionName$".feature_decoupling CASCADE;
-CREATE TABLE IF NOT EXISTS "$versionName$".feature_decoupling
-(
-    id serial,
-    template int,
-    comp_name text,
-    type text,
-    CONSTRAINT feature_decoupling_pkey PRIMARY KEY (id)
 );
 
 -------------------table "$versionName$".climate;------------------------------------

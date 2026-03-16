@@ -32,8 +32,8 @@ def writeMacroSFIdm(config,cur,dir):
     sf_ids=cur.fetchall()     
     print(sf_ids)
 
-    filedata=[""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """]
+    filedata=[""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.19001)) """]
     filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
     print(dir)
@@ -43,12 +43,12 @@ def writeMacroSFIdc(config,cur,dir):
     cur.execute(sql)
     sf_ids=cur.fetchall()
         
-    filedata=[""";IDA 5.11 Data UTF-8
+    filedata=[""";IDA 5.19001 Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """]
     filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idc')
-
+    
 def readAndReplaceFileToList(file,replaceDict):
     data=[]
     if os.path.exists(file):
@@ -114,9 +114,7 @@ def writeRequestedOutputs(plugin_dir,config,requestedOutputs):
     createDir(dir,config['projectName'])
     dir+=config['projectName']+"\\"
     createDir(dir,"models\\")
-    dir+="models\\"
-    createDir(dir,config['versionName'])
-    file=dir+config['versionName']+"\\requestedOutputs.txt"
+    file=dir+"models\\requestedOutputs.txt"
     with open(file, "w") as myfile:   
         myfile.write(str(requestedOutputs))
         
@@ -149,7 +147,7 @@ def loadRequestedOutputs(plugin_dir,config):
     """ load requested outputs from requestedOutputs.txt in modelling & simulation plugin -->  models  --> projet name --> version name"""
     requestedOutputs=""
     if config['projectName']:
-        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models\\"+config['versionName']
+        dir=plugin_dir+"\\projects\\"+config['projectName']+"\\models"
         file="{}\\requestedOutputs.txt".format(dir)
         if os.path.exists(file):
             print(file)
@@ -306,14 +304,10 @@ def getBuildingFileSubmodels(dir):
 def createSubDir(dir):
     """ makes a new folder and subfolders if it does not exists"""
     if not os.path.exists(dir):
-        if os.name == 'nt' and '\\\\?\\' not in dir:
-            dir='\\\\?\\'+dir
         os.makedirs(dir)  
             
 def removeFilesInDir(dir):
     if os.path.exists(dir):
-        if os.name == 'nt' and '\\\\?\\' not in dir:
-            dir='\\\\?\\'+dir
         for root, dirs, files in os.walk(dir, topdown=False):
             for name in files:
                 os.remove(os.path.join(root, name))
@@ -324,8 +318,6 @@ def writePropertyListIDMToFile(plist,dir,file):
     print(dir)
     if os.path.exists(dir):
         print(file)
-        if os.name == 'nt' and '\\\\?\\' not in dir:
-            dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
             myfile.write(';IDA '+plist[0][':APP'].split(':VER ')[1].split(')')[0]+' Data UTF-8\n')
             for comp in plist:
@@ -336,10 +328,8 @@ def writePropertyListIDCToFile(plist,dir,file):
     print(dir)
     if os.path.exists(dir):
         print(file)
-        if os.name == 'nt' and '\\\\?\\' not in dir:
-            dir='\\\\?\\'+dir
         with open(file,'w') as myfile:
-            myfile.write(';IDA 5.11 Form UTF-8\n')
+            myfile.write(';IDA 5.19001 Form UTF-8\n')
             for comp in plist:
                 myfile.write(pListToCompString(comp,0)+'\n')
                 

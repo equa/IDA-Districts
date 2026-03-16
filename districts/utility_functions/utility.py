@@ -341,7 +341,7 @@ def getTypeIdByName(type_name):
     elif type_name=='energy_plant' or type_name=='Energy plant' or type_name=='Energy_plant':
         type_id='2'
     else:
-        type_id='4'
+        type_id='3'
     return type_id
     
 def returnVarName(measure):
@@ -364,6 +364,8 @@ def getMacroTypeName(type):
         type_name='Energy_plant'
     elif type==3:
         type_name='Supervisory_control'
+    elif type==4:
+        type_name='Results-macro'
     return type_name
     
 def checkListNumbers(list_numb):

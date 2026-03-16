@@ -3,9 +3,27 @@ from qgis.PyQt.QtCore import QThreadPool
 from .utility_functions.files import *
 from .utility_functions.dialog import *
 from .utility_functions.workers import *
+from .supervisory_control import Supervisory_control
+
 from .outputs import WorkerSetRequestedOutputs
 from .invoke_network import WorkerBuildNetworkModel
 
+def openSupervisoryCtrl(dlg,cur,plugin_dir,config):
+    Supervisory_control(plugin_dir,config)
+    setSupervisoryCrtlSubmodel(dlg,cur)
+    file = plugin_dir+'\\projects\\{}\\models\\supervisory_control\\supervisory_control.idm'.format(config['projectName'])
+    file=file.replace('/','\\')
+    print(file)
+    worker_openSupervisory = WorkerOpenModelCmd(file,plugin_dir,config)
+    threadpool_openSupervisory = QThreadPool()
+    threadpool_openSupervisory.start(worker_openSupervisory)
+    worker_openSupervisory.signals.error.connect(show_error_message)
+        
+def setSupervisoryCrtlSubmodel(dlg,cur):
+    sql="""UPDATE supervisory_ctrl SET submodel={};""".format(dlg.combo_submodel.currentText())
+    cur.execute(sql)
+    closeDialog(dlg)
+        
 def checkSimOutputs(invokedOutputs,requestedOutputs):
     #check customers plants
     for type in ['customers','energy_plants']:

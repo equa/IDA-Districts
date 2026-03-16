@@ -888,8 +888,8 @@ class WriteTemplateFiles:
         createDir(dir,name)
     
     def writeMacroIdm(self,dir,name,connValues):
-        data=""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.11)) """
+        data=""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.19001)) """
         meters=[]
         meter={'name':'','n_sup':0,'n_ret':0,'sup_conn':[],'ret_conn':[],'p':True}
         sequence_old=0        
@@ -951,7 +951,7 @@ class WriteTemplateFiles:
         return meters
 
     def writeMacroIdc(self,dir,name,connValues,meters):
-        data=""";IDA 5.11 Form UTF-8
+        data=""";IDA 5.19001 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """
         counter_p=0
@@ -978,8 +978,8 @@ class WriteTemplateFiles:
         writeToFile(data,dir,dir+"""\\{}\\{}.idc""".format(name,name))         
     
     def writeIdm(self,dir,name,connValues):    
-        data=""";IDA 5.11 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "{}" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.11)) 
+        data=""";IDA 5.19001 Data UTF-8
+(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "{}" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.19001)) 
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -1040,7 +1040,7 @@ class WriteTemplateFiles:
         writeToFile(data,dir,dir+"""\\{}.idm""".format(name))
 
     def writeIdc(self,dir,name,connValues):
-        data=""";IDA 5.11 Form UTF-8
+        data=""";IDA 5.19001 Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 197 :PAGE-HEIGHT 290) 
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((352 348)) :R (203.5 126.5) :ICON "sys:eo.ids" :SLOT ("{}") :NAME "{}" :DATA MACRO-OBJECT)

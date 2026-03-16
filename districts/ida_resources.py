@@ -65,22 +65,22 @@ def saveAsTemplate(cur,config,plugin_dir,dlg,table_name,dropdowns,trace):
         print(dlg.traceTableValues)
         
         #add sensor data to source and target templates and invoked signals
-        sql="""INSERT INTO {}.target_template(target_id,template,active) 
-    SELECT templ.target_id,{},templ.active FROM {}.target_template templ, {}.sensor_target t 
+        sql="""INSERT INTO target_template(target_id,template,active) 
+    SELECT templ.target_id,{},templ.active FROM target_template templ, sensor_target t 
         WHERE templ.template = {} AND templ.target_id=t.sensor_id AND t.type = {};
-INSERT INTO {}.source_template(source_id,template,active) 
-    SELECT templ.source_id,{},templ.active FROM {}.source_template templ, {}.sensor_source s 
+INSERT INTO source_template(source_id,template,active) 
+    SELECT templ.source_id,{},templ.active FROM source_template templ, sensor_source s 
         WHERE templ.template = {} AND templ.source_id=s.sensor_id AND s.type = {};
-UPDATE {}.invoked_sensor_source_signals
+UPDATE invoked_sensor_source_signals
     SET templates = templates || {}
     WHERE {} = ANY(templates)  AND type = {};
-UPDATE {}.invoked_sensor_target_signals
+UPDATE invoked_sensor_target_signals
     SET templates = templates || {}
     WHERE {} = ANY(templates) AND type = {};""".format(
-    config['versionName'],str(maxId+1),config['versionName'],config['versionName'],template_id,dlg.type,
-    config['versionName'],str(maxId+1),config['versionName'],config['versionName'],template_id,dlg.type,
-    config['versionName'],str(maxId+1),template_id,dlg.type,
-    config['versionName'],str(maxId+1),template_id,dlg.type)
+    str(maxId+1),template_id,dlg.type,
+    str(maxId+1),template_id,dlg.type,
+    str(maxId+1),template_id,dlg.type,
+    str(maxId+1),template_id,dlg.type)
         print(sql)
         cur.execute(sql)
 
@@ -312,22 +312,22 @@ def saveAsTemplate(cur,config,plugin_dir,dlg,table_name,dropdowns,trace):
         print(dlg.traceTableValues)
         
         #add sensor data to source and target templates and invoked signals
-        sql="""INSERT INTO {}.target_template(target_id,template,active) 
-SELECT templ.target_id,{},templ.active FROM {}.target_template templ, {}.sensor_target t 
+        sql="""INSERT INTO target_template(target_id,template,active) 
+SELECT templ.target_id,{},templ.active FROM target_template templ, sensor_target t 
     WHERE templ.template = {} AND templ.target_id=t.sensor_id AND t.type = {};
-INSERT INTO {}.source_template(source_id,template,active) 
-SELECT templ.source_id,{},templ.active FROM {}.source_template templ, {}.sensor_source s 
+INSERT INTO source_template(source_id,template,active) 
+SELECT templ.source_id,{},templ.active FROM source_template templ, sensor_source s 
     WHERE templ.template = {} AND templ.source_id=s.sensor_id AND s.type = {};
-UPDATE {}.invoked_sensor_source_signals
+UPDATE invoked_sensor_source_signals
 SET templates = templates || {}
 WHERE {} = ANY(templates)  AND type = {};
-UPDATE {}.invoked_sensor_target_signals
+UPDATE invoked_sensor_target_signals
 SET templates = templates || {}
 WHERE {} = ANY(templates) AND type = {};""".format(
-    config['versionName'],str(maxId+1),config['versionName'],config['versionName'],template_id,dlg.type,
-    config['versionName'],str(maxId+1),config['versionName'],config['versionName'],template_id,dlg.type,
-    config['versionName'],str(maxId+1),template_id,dlg.type,
-    config['versionName'],str(maxId+1),template_id,dlg.type)
+    str(maxId+1),template_id,dlg.type,
+    str(maxId+1),template_id,dlg.type,
+    str(maxId+1),template_id,dlg.type,
+    str(maxId+1),template_id,dlg.type)
         print(sql)
         cur.execute(sql)
 
@@ -710,7 +710,7 @@ def showDefaults(dlg,defaults,template_name,cur,config):
     print('--showDefaults--')
     print(defaults)
     for default in defaults:
-        if default['column_name'] in ['template','pipe_bundle_type_id','network','type','internal_load_id','dhw_id']:
+        if default['column_name'] in ['template','pipe_bundle_type_id','network','type']:
             if default['column_name'] =='template':
                 dropdownItems=getDropDownItems(cur,[[0,'public','{}_templates'.format(template_name),'id','template_name']])
             elif default['column_name'] =='type':
@@ -719,10 +719,6 @@ def showDefaults(dlg,defaults,template_name,cur,config):
                 dropdownItems=getDropDownItems(cur,[[0,'public','pipe_bundle_types','id','description']])
             elif default['column_name'] =='network':  
                 dropdownItems=getDropDownItems(cur,[[0,config['versionName'],'network','id','description']])
-            elif default['column_name'] =='internal_load_id':  
-                dropdownItems=getDropDownItems(cur,[[0,'public','internal_loads_profiles','id','description']])
-            elif default['column_name'] =='dhw_id':  
-                dropdownItems=getDropDownItems(cur,[[0,'public','dhw_timeseries','id','description']])
             try:
                 dlg.input[default['column_name']].clear()    
                 dlg.input[default['column_name']].addItems(['(no selection)']+list(dropdownItems[0].values()))

@@ -12,33 +12,19 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPoo
 from .util import *
 from .workers import WorkerOpenAPI
     
-def cleanupSensorSignals(cur,dictDB):
-    #tables source_ids,target_ids
-    sql="""DELETE FROM "{}".source_ids WHERE id NOT IN ( 
-    SELECT s_ids.id
-        FROM "{}".sensor_source ss, "{}".source_ids s_ids, "{}".source_template s_t,
-        (SELECT id,template FROM "{}".customers) f
-        WHERE ss.type=1 AND ss.sensor_id=s_ids.source_id AND ss.sensor_id=s_t.source_id AND s_ids.feature_id=f.id AND s_t.template=f.template
-    UNION
-    SELECT s_ids.id
-        FROM "{}".sensor_source ss, "{}".source_ids s_ids, "{}".source_template s_t,
-        (SELECT id,template FROM "{}".energy_plants) f
-        WHERE ss.type=2 AND ss.sensor_id=s_ids.source_id AND ss.sensor_id=s_t.source_id AND s_ids.feature_id=f.id AND s_t.template=f.template
-);""".format(dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
-    cur.execute(sql) 
-    
-def getSubmodelFromSensorSource(cur,dictDB,sensor,source):
+def getSubmodelFromSensorSource(cur,config,sensor,source):
     try:
-        return str((getSupervisorySubmodel(cur,dictDB) if sensor['source_type']==3 else getSubmodelPerFeatureIdTypename(source.split('_')[1],sensor['source_type_name'],cur,dictDB))['submodel'])
+        return str((getSupervisorySubmodel(cur,config) if sensor['source_type']==3 else getSubmodelPerFeatureIdTypename(source.split('_')[1],sensor['source_type_name'],cur,config))['submodel'])
     except:
-        return ''
+        return str(getDrawnSubmodels(cur,config)[0])
         
-def getSubmodelFromSensorTarget(cur,dictDB,sensor,target):
-    return str((getSupervisorySubmodel(cur,dictDB) if sensor['target_type']==3 else getSubmodelPerFeatureIdTypename(target.split('_')[1],sensor['target_type_name'],cur,dictDB))['submodel'])
-    
-def getSensorDecData(sensor_data,feature_dec_irefs,cur,dictDB):
+def getSubmodelFromSensorTarget(cur,config,sensor,target):
+    try:
+        return str((getSupervisorySubmodel(cur,config) if sensor['target_type']==3 else getSubmodelPerFeatureIdTypename(target.split('_')[1],sensor['target_type_name'],cur,config))['submodel'])
+    except:
+        return str(getDrawnSubmodels(cur,config)[0]) 
+        
+def getSensorDecData(sensor_data,feature_dec_irefs,cur,config):
     sensor_dec_data=[]
     print(sensor_data)
     for sensor in sensor_data:
@@ -50,7 +36,7 @@ def getSensorDecData(sensor_data,feature_dec_irefs,cur,dictDB):
                     if '"Int_Ref_Sensor_Source_{}"'.format(source.split('_')[0]) == dec_feature_iref and str(dec_irefs['id'])==source.split('_')[1]:
                         irefs_source.append({'submodel':str(dec_irefs['submodel']),'cosim':dec_irefs['cosim'],'network_side':dec_irefs['network_side'],'iref':source})
             if not dec and source not in [i['iref'] for i in irefs_source]:
-                irefs_source.append({'submodel':getSubmodelFromSensorSource(cur,dictDB,sensor,source),'cosim': '','network_side': '','iref':source})
+                irefs_source.append({'submodel':getSubmodelFromSensorSource(cur,config,sensor,source),'cosim': '','network_side': '','iref':source})
         irefs_target=[]
         for target in sensor['irefs_target']:
             dec=False
@@ -59,9 +45,9 @@ def getSensorDecData(sensor_data,feature_dec_irefs,cur,dictDB):
                     if '"Int_Ref_Sensor_Target_{}"'.format(target.split('_')[0]) == dec_feature_iref and str(dec_irefs['id'])==target.split('_')[1]:
                         irefs_target.append({'submodel':str(dec_irefs['submodel']),'cosim':dec_irefs['cosim'],'network_side':dec_irefs['network_side'],'iref':target})
             if not dec and target not in [i['iref'] for i in irefs_target]:
-                irefs_target.append({'submodel':getSubmodelFromSensorTarget(cur,dictDB,sensor,target),'cosim': '','network_side': '','iref':target})
+                irefs_target.append({'submodel':getSubmodelFromSensorTarget(cur,config,sensor,target),'cosim': '','network_side': '','iref':target})
 
-        sensor_dec_data.append({'sensor_id':sensor['sensor_id'],'source_type':sensor['source_type'],'source_type_name':sensor['source_type_name'],'source_template_names':sensor['source_template_names'],'target_type':sensor['target_type'],'target_type_name':sensor['target_type_name'],'target_template_names':sensor['target_template_names'],'function':sensor['function'],'function_name':sensor['function_name'],'measure':sensor['measure'],'measure_name':sensor['measure_name'],'irefs_source':irefs_source,'irefs_target':irefs_target,'test_value':sensor['test_value'],'target':sensor['target'],'target_name':sensor['target_name'],'description_source':sensor['description_source'],'description_target':sensor['description_target']})
+        sensor_dec_data.append({'sensor_id':sensor['sensor_id'],'source_type':sensor['source_type'],'source_type_name':sensor['source_type_name'],'source_template_names':sensor['source_template_names'],'target_type':sensor['target_type'],'target_type_name':sensor['target_type_name'],'target_template_names':sensor['target_template_names'],'function':sensor['function'],'function_name':sensor['function_name'],'measure':sensor['measure'],'measure_name':sensor['measure_name'],'irefs_source':irefs_source,'irefs_target':irefs_target,'test_value':sensor['test_value'],'description_source':sensor['description_source'],'description_target':sensor['description_target']})
     print(sensor_dec_data)
     return sensor_dec_data
 
@@ -70,7 +56,7 @@ def getLength(sensor,submodel):
                     if [True for j in sensor['irefs_target'] if j['submodel']==submodel and not j['network_side'] or submodel==j['cosim'] and j['network_side']]
                         or j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side']])
                         
-def getCosimImportSourceSignals(sensor_dec_data,submodel,cur,dictDB,cosim):
+def getCosimImportSourceSignals(sensor_dec_data,submodel,cur,config,cosim):
     return [j for i in sensor_dec_data if 
             [True for j in i['irefs_target'] if submodel==j['submodel'] and j['cosim']=='']
                 for j in i['irefs_source'] 
@@ -98,7 +84,7 @@ def getCosimExportTargetSignals(sensor_dec_data,submodel,exportVarsCounter,cosim
                     for i in sensor_dec_data if ([True for j in i['irefs_target'] if submodel==j['submodel'] and submodel!=j['cosim']]) and not ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim']])] for j in i],1)]
     return exportVars
                 
-def getCosimCounter(sensor_dec_data,iref,submodel,cur,dictDB):
+def getCosimCounter(sensor_dec_data,iref,submodel,cur,config):
     counters={}
     for i,target_type,function,source_type in [[j,i['target_type'],i['function'],i['source_type']] for i in sensor_dec_data 
                 for j in i['irefs_source']
@@ -109,7 +95,7 @@ def getCosimCounter(sensor_dec_data,iref,submodel,cur,dictDB):
                 return counters[i['submodel']]+1
             except:
                 return 1
-        if not (function==6 and source_type==3) or i['iref'].split('_')[1] in [str(k['id']) for k in getFeatureIdsPerSubmodel(submodel,cur,dictDB) if k['feature']==target_type]:
+        if not (function==6 and source_type==3) or i['iref'].split('_')[1] in [str(k['id']) for k in getFeatureIdsPerSubmodel(submodel,cur,config) if k['feature']==target_type]:
             try:
                 counters[i['submodel']]=counters[i['submodel']]+1
             except:
@@ -128,29 +114,29 @@ def getCosimVarCounter(sensor_dec_data,iref,submodel):
             return counter+1
         counter+=1
         
-def getSensorIrefsSource(sensor_data,submodel,cur,dictDB,feature):
-    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,dictDB)
-    feature_type=getFeatureIdFromName(dictDB,cur,feature)
+def getSensorIrefsSource(sensor_data,submodel,cur,config,feature):
+    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,config)
+    feature_type=getFeatureIdFromName(config,cur,feature)
     return [j for i in sensor_data for j in i['irefs_source'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['source_type'] and j.split('_')[1]==str(k['id'])]]
 
-def getSensorIrefsSourceDec(sensor_dec_data,submodel,cur,dictDB,feature):
-    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,dictDB)
-    feature_type=getFeatureIdFromName(dictDB,cur,feature)
+def getSensorIrefsSourceDec(sensor_dec_data,submodel,cur,config,feature):
+    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,config)
+    feature_type=getFeatureIdFromName(config,cur,feature)
     return [j['iref'] for i in sensor_dec_data for j in i['irefs_source'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['source_type'] and j['iref'].split('_')[1]==str(k['id']) or j['network_side'] and j['submodel']==submodel]]
 
-def getSensorIrefsFeatureTarget(sensor_data,submodel,feature_id,cur,dictDB,feature):
-    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,dictDB)
-    feature_type=getFeatureIdFromName(dictDB,cur,feature)
+def getSensorIrefsFeatureTarget(sensor_data,submodel,feature_id,cur,config,feature):
+    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,config)
+    feature_type=getFeatureIdFromName(config,cur,feature)
     return [j for i in sensor_data for j in i['irefs_target'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['target_type'] and j.split('_')[1]==str(k['id']) and j.split('_')[1]==str(feature_id)]]
     
-def getSensorIrefsTarget(sensor_data,submodel,cur,dictDB,feature):
-    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,dictDB)
-    feature_type=getFeatureIdFromName(dictDB,cur,feature)
+def getSensorIrefsTarget(sensor_data,submodel,cur,config,feature):
+    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,config)
+    feature_type=getFeatureIdFromName(config,cur,feature)
     return [j for i in sensor_data for j in i['irefs_target'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['target_type'] and j.split('_')[1]==str(k['id'])]]
     
-def getSensorIrefsFeatureSource(sensor_data,submodel,feature_id,cur,dictDB,feature):
-    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,dictDB)
-    feature_type=getFeatureIdFromName(dictDB,cur,feature)
+def getSensorIrefsFeatureSource(sensor_data,submodel,feature_id,cur,config,feature):
+    feature_ids_per_submodel=getFeatureIdsPerSubmodel(submodel,cur,config)
+    feature_type=getFeatureIdFromName(config,cur,feature)
     return [j for i in sensor_data for j in i['irefs_source'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['source_type'] and j.split('_')[1]==str(k['id']) and j.split('_')[1]==str(feature_id)]]
 
 def getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target):
@@ -240,80 +226,80 @@ def delSensorComp(file_data,remove_sensor_ids,type):
         counter+=1
     return data
     
-def getRemovedSensorSourceData(cur,dictDB,source_types=[1,2,3],filter=""):
+def getRemovedSensorSourceData(cur,config,source_types=[1,2,3],filter=""):
     print('--------------getRemovedSensorSourceData------------')
     sql="""{}{}{}
 EXCEPT
-{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM {}.invoked_sensor_source_signals s WHERE s.type IN ({})""".format(dictDB['versionName'],','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
+{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
-        """SELECT sensor_id,type,NULL AS template,multi_signal FROM {}.invoked_sensor_source_signals s WHERE s.type IN (3)""".format(dictDB['versionName']) if 3 in source_types else "",
+        """SELECT sensor_id,type,NULL AS template,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "",
         """SELECT s.sensor_id,s.type,t.template, False AS multi_signal
-    FROM {}.source_template t, {}.sensor_source s
-    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "",
+    FROM source_template t, sensor_source s
+    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
         """SELECT s.sensor_id,s.type,NULL AS template,CASE WHEN function=6 THEN True ELSE False END AS multi_signal
-    FROM {}.sensor_source s 
-    WHERE s.type IN (3)""".format(dictDB['versionName']) if 3 in source_types else "")
+    FROM sensor_source s 
+    WHERE s.type IN (3)""" if 3 in source_types else "")
     print(sql)
     cur.execute(sql)
     return cur.fetchall()   
 
-def getRemovedSensorTargetData(cur,dictDB,target_types=[1,2,3],filter=""):
+def getRemovedSensorTargetData(cur,config,target_types=[1,2,3],filter=""):
     print('--------------getRemovedSensorTargetData------------')
     sql="""{}{}{}
 EXCEPT
-{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM {}.invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(dictDB['versionName'],','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
+{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
-        """SELECT sensor_id,type,NULL AS template,multi_signal FROM {}.invoked_sensor_target_signals t WHERE t.type IN (3)""".format(dictDB['versionName']) if 3 in target_types else "",
+        """SELECT sensor_id,type,NULL AS template,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "",
         """SELECT t.sensor_id,t.type,t_temp.template, False AS multi_signal
-    FROM {}.target_template t_temp, {}.sensor_target t, {}.sensor_source s
-    WHERE s.sensor_id=t.sensor_id AND t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "",
+    FROM target_template t_temp, sensor_target t, sensor_source s
+    WHERE s.sensor_id=t.sensor_id AND t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
         """SELECT t.sensor_id,t.type,NULL AS template,CASE WHEN s.function=6 and t.type=3 THEN True ELSE False END AS multi_signal
-    FROM {}.sensor_target t, {}.sensor_source s
-    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""".format(dictDB['versionName'],dictDB['versionName']) if 3 in target_types else "")
+    FROM sensor_target t, sensor_source s
+    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "")
     print(sql)
     cur.execute(sql)
     return cur.fetchall()    
 
-def getAddedSensorSourceData(cur,dictDB,source_types=[1,2,3],filter=""):
+def getAddedSensorSourceData(cur,config,source_types=[1,2,3],filter=""):
     print('--------------getAddedSensorSourceData------------')
     sql="""{}{}{}
 EXCEPT
 {}{}{};""".format("""SELECT s.sensor_id,s.type,t.template,s.test_value, False AS multi_signal
-    FROM {}.source_template t, {}.sensor_source s
-    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "",
+    FROM source_template t, sensor_source s
+    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
         """SELECT s.sensor_id,s.type,NULL AS template,s.test_value, CASE WHEN function=6 THEN True ELSE False END AS multi_signal
-    FROM {}.sensor_source s 
-    WHERE s.type IN (3) """.format(dictDB['versionName']) if 3 in source_types else "",
-        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM {}.invoked_sensor_source_signals s WHERE s.type IN ({})""".format(dictDB['versionName'],','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
+    FROM sensor_source s 
+    WHERE s.type IN (3) """ if 3 in source_types else "",
+        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
-        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM {}.invoked_sensor_source_signals s WHERE s.type IN (3)""".format(dictDB['versionName']) if 3 in source_types else "")
+        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "")
     print(sql)
     cur.execute(sql)
     return cur.fetchall()
 
-def getAddedSensorTargetData(cur,dictDB,target_types=[1,2,3],filter=""):
+def getAddedSensorTargetData(cur,config,target_types=[1,2,3],filter=""):
     print('-------------getAddedSensorTargetData-----------------')
     sql="""{}{}{}
 EXCEPT
 {}{}{};""".format(
-    """SELECT t.sensor_id,t.type,t_temp.template, t.test_value,t.target, False AS multi_signal
-    FROM {}.target_template t_temp, {}.sensor_target t
-    WHERE t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(dictDB['versionName'],dictDB['versionName'],','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "",
+    """SELECT t.sensor_id,t.type,t_temp.template, t.test_value, False AS multi_signal
+    FROM target_template t_temp, sensor_target t
+    WHERE t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "",
     "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
-        """SELECT t.sensor_id,t.type,NULL AS template,t.test_value,t.target, CASE WHEN s.function=6 and t.type=3 THEN True ELSE False END AS multi_signal
-    FROM {}.sensor_target t, {}.sensor_source s
-    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""".format(dictDB['versionName'],dictDB['versionName']) if 3 in target_types else "",
-        """SELECT sensor_id,type,unnest(templates) AS template,test_value,target,multi_signal FROM {}.invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(dictDB['versionName'],','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
+        """SELECT t.sensor_id,t.type,NULL AS template,t.test_value, CASE WHEN s.function=6 and t.type=3 THEN True ELSE False END AS multi_signal
+    FROM sensor_target t, sensor_source s
+    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "",
+        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
-        """SELECT sensor_id,type,NULL AS template,test_value,target,multi_signal FROM {}.invoked_sensor_target_signals t WHERE t.type IN (3)""".format(dictDB['versionName']) if 3 in target_types else "")
+        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "")
     print(sql)
     cur.execute(sql)
     return cur.fetchall()
 
-def writeInvokedSensorSourceSignals (cur,dictDB,add_sensor_source_idsValues):
+def writeInvokedSensorSourceSignals (cur,config,add_sensor_source_idsValues):
     print(add_sensor_source_idsValues)
     if add_sensor_source_idsValues:
         sensor_data = {}
@@ -329,193 +315,195 @@ def writeInvokedSensorSourceSignals (cur,dictDB,add_sensor_source_idsValues):
                 
         for sensor in sensor_data:
             print(sensor)
-            sql="\n".join(["""INSERT INTO "{}".invoked_sensor_source_signals(sensor_id,type,templates,multi_signal,test_value) VALUES ({},{},array{}::INTEGER[],{},{})
+            sql="\n".join(["""INSERT INTO invoked_sensor_source_signals(sensor_id,type,templates,multi_signal,test_value) VALUES ({},{},array{}::INTEGER[],{},{})
     ON CONFLICT (sensor_id)
     DO UPDATE SET
-        templates = "{}".invoked_sensor_source_signals.templates || EXCLUDED.templates,
+        templates = invoked_sensor_source_signals.templates || EXCLUDED.templates,
         multi_signal = EXCLUDED.multi_signal,
         test_value = EXCLUDED.test_value;""".format(
-                dictDB['versionName'],sensor,sensor_data[sensor]['source_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'],
-                dictDB['versionName'])])
+                sensor,sensor_data[sensor]['source_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
         print(sql)
         cur.execute(sql)
   
-def writeInvokedSensorTargetSignals (cur,dictDB,add_target_idsValues):
+def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
     if add_target_idsValues:
         sensor_data = {}
         for entry in add_target_idsValues:
             sensor_id = entry['sensor_id']
             template = entry['template']
-            target = entry['target']
             if sensor_id not in sensor_data:
-                sensor_data[sensor_id]={'templates':[template],'target_type':entry['type'],'test_value': entry['test_value'],'target': entry['target'],'multi_signal': entry['multi_signal']}
+                sensor_data[sensor_id]={'templates':[template],'target_type':entry['type'],'test_value': entry['test_value'],'multi_signal': entry['multi_signal']}
             else:
                 if template not in sensor_data[sensor_id]['templates']:
                     sensor_data[sensor_id]['templates'].append(template)
         for sensor in sensor_data:
             print(sensor)
             print(sensor_data[sensor])
-            sql="\n".join(["""INSERT INTO "{}".invoked_sensor_target_signals(sensor_id,type,target,templates,multi_signal,test_value) VALUES ({},{},{},array{}::INTEGER[],{},{})
+            sql="\n".join(["""INSERT INTO invoked_sensor_target_signals(sensor_id,type,templates,multi_signal,test_value) VALUES ({},{},array{}::INTEGER[],{},{})
     ON CONFLICT (sensor_id)
     DO UPDATE SET
-        templates = "{}".invoked_sensor_target_signals.templates || EXCLUDED.templates,
+        templates = invoked_sensor_target_signals.templates || EXCLUDED.templates,
         multi_signal = EXCLUDED.multi_signal,
-        target = EXCLUDED.target,
         test_value = EXCLUDED.test_value;""".format(
-                dictDB['versionName'],sensor,sensor_data[sensor]['target_type'],sensor_data[sensor]['target'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'],
-                dictDB['versionName'])])
+                sensor,sensor_data[sensor]['target_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
         print(sql)
         cur.execute(sql) 
 
-def getSensorData(cur,dictDB,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter=""):
+def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter=""):
     sql="""WITH sub AS(
-    WITH sub AS(
-        WITH sub AS(
-            WITH sub AS(
-                --customer (type:1); temp,mass,p(measure:1,2,3) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM "{}".source_ids s_ids, "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, "{}".sensor_source s,
-                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM "{}".source_conns 
+	WITH sub AS(
+		WITH sub AS(
+			WITH sub AS(
+			     --customer (type:1); temp,mass,p(measure:1,2,3) 
+                (SELECT s.sensor_id, f.id::text  AS feature_id, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
+                        FROM {}.customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s_c.source_id=s_ids.source_id AND s.sensor_id=s_ids.source_id
-                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s_ids.source_id AND s.type=1
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id 
+                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=1
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
+                        ORDER BY s.sensor_id, f.id)
+				UNION
                 --plant (type:2); temp,mass,p(measure:1,2,3) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM "{}".source_ids s_ids, "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, "{}".sensor_source s,
-                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
-                            (SELECT source_id, connection_id FROM "{}".source_conns 
+                (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
+                        FROM {}.energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s_c.source_id=s_ids.source_id AND s.sensor_id=s_ids.source_id
-                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s_ids.source_id AND s.type=2
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id AND s.sensor_id=s.sensor_id
+                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=2
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
+                        ORDER BY s.sensor_id, f.id)
                 UNION
-                --customer (type:1); power(measure:4) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM "{}".source_ids s_ids, "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, "{}".sensor_source s,
-                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=1
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                UNION
+				--customer (type:1); power(measure:4) 
+                (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
+                        FROM {}.customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=1
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
+                        ORDER BY s.sensor_id, f.id)
+				UNION
                 --plant (type:2); power(measure:4) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM "{}".source_ids s_ids, "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, "{}".sensor_source s,
-                            (SELECT source_id, conn_type FROM "{}".source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE s_ids.active=True AND f.id=s_ids.feature_id
-                            AND f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s_ids.source_id=s_ct.source_id AND s.sensor_id=s_ids.source_id AND s.measure=4 AND s.type=2
-                        GROUP BY s_ids.source_id, s_ids.feature_id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
+                (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
+                        FROM {}.energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=2
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
+                        ORDER BY s.sensor_id, f.id)
                 UNION
-                --customer,plant; custom (measure:5) 
-                (SELECT s_ids.source_id, s_ids.feature_id::text, 'X', 'X','X'
-                        FROM "{}".source_ids s_ids, "{}".sensor_source s
-                        WHERE s_ids.active=True AND s.sensor_id=s_ids.source_id AND s.measure=5
-                        GROUP BY s_ids.source_id, s_ids.feature_id
-                        ORDER BY s_ids.source_id, s_ids.feature_id)
-                --supervisory ctrl; custom (measure:5) 
+				--customer; custom (measure:5) 
+                (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
+                        FROM  sensor_source s,{}.customers f
+                        WHERE s.measure=5
+                        GROUP BY s.sensor_id, f.id
+                        ORDER BY s.sensor_id, f.id)
+				UNION
+				--plant; custom (measure:5) 
+                (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
+                        FROM  sensor_source s,{}.energy_plants f
+                        WHERE s.measure=5
+                        GROUP BY s.sensor_id, f.id
+                        ORDER BY s.sensor_id, f.id)
+				--supervisory ctrl source ;customer target; custom (measure:5) 
                 UNION
-                (SELECT s.sensor_id, CASE WHEN s.function=6 THEN t_ids.feature_id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
-                        FROM "{}".sensor_source s,"{}".sensor_target t,"{}".target_ids t_ids
-                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_ids.target_id=t.sensor_id
-                        --GROUP BY s.sensor_id
-                        ORDER BY s.sensor_id)
-            )
-            SELECT source_id, s.function, s.type, sub.feature_id,
-                replace(replace(ARRAY_AGG(source_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source 
-                FROM sub, "{}".sensor_source s WHERE s.sensor_id=sub.source_id GROUP BY s.function,source_id,sub.feature_id,conn_type_id, s.type
-        )
-        SELECT source_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.template_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
+                (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
+                        FROM sensor_source s, sensor_target t,target_template t_t, {}.customers f
+                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template
+                        GROUP BY s.sensor_id,s.function,f.id
+                        ORDER BY s.sensor_id,f.id)
+				--supervisory ctrl source ;energy_plants target; custom (measure:5) 
+                UNION
+                (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
+                        FROM sensor_source s, sensor_target t,target_template t_t, {}.energy_plants f
+                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template
+                        GROUP BY s.sensor_id,s.function,f.id
+                        ORDER BY s.sensor_id,f.id)
+			)
+            SELECT sub.sensor_id, s.function, s.type, sub.feature_id,
+                replace(replace(ARRAY_AGG(sub.sensor_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source 
+                FROM sub, sensor_source s WHERE s.sensor_id=sub.sensor_id GROUP BY s.function,sub.sensor_id,sub.feature_id,conn_type_id, s.type
+
+		)		        
+		SELECT sub.sensor_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.template_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
             FROM sub,
                 (SELECT at.type, f.feature_id, at.template_name 
                                         FROM
                                             (SELECT 1 AS type,template,'1'||':'||template::text||'_'||template_name AS template_name FROM customer_templates
                                             UNION
                                             SELECT 2 AS type,template,'2'||':'||template::text||'_'||template_name AS template_name FROM energy_plant_templates) at,
-                                            (SELECT 1 AS type,id::text AS feature_id,template FROM "{}".customers
+                                            (SELECT 1 AS type,id::text AS feature_id,template FROM {}.customers
                                             UNION
-                                            SELECT 2 AS type,id::text AS feature_id,template FROM "{}".energy_plants) f
+                                            SELECT 2 AS type,id::text AS feature_id,template FROM {}.energy_plants) f
                                         WHERE at.type=f.type AND at.template=f.template) at_names
-            GROUP BY at_names.type,at_names.feature_id,at_names.template_name,sub.type,source_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')) 
-    )
-    SELECT b.source_id, sub.type,b.function, CASE WHEN sub.function=6 AND a.target_type=3 THEN b.irefs_source ELSE a.irefs_target END AS irefs_target, b.irefs_source, c.source_template_name, d.target_template_name
+            GROUP BY at_names.type,at_names.feature_id,at_names.template_name,sub.type,sub.sensor_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')) 
+	)
+	SELECT b.sensor_id, sub.type,b.function, CASE WHEN sub.function=6 AND a.target_type=3 THEN b.irefs_source ELSE a.irefs_target END AS irefs_target, b.irefs_source, c.source_template_name, d.target_template_name
         FROM sub,
             (--Customer target irefs
-                SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM "{}".sensor_target t,  "{}".target_ids t_ids, "{}".customers f
-                WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t.type =1 AND t_ids.feature_id=f.id
+                SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
+                FROM sensor_target t, {}.customers f
+                WHERE  t.type =1
                 GROUP BY t.sensor_id,t.type
             UNION
             --Energy plants target irefs
-            SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||t_ids.feature_id::text||'_X_X'::text ORDER BY t.sensor_id,t_ids.feature_id) AS irefs_target, t.type AS target_type
-                FROM "{}".sensor_target t,  "{}".target_ids t_ids, "{}".energy_plants f
-                WHERE  t_ids.target_id=t.sensor_id AND t_ids.active=True AND t.type =2 AND t_ids.feature_id=f.id
+            SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
+                FROM sensor_target t, {}.energy_plants f
+                WHERE  t.type =2
                 GROUP BY t.sensor_id,t.type
             UNION
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_X_X_X'::text ORDER BY t.sensor_id) AS irefs_target, t.type AS target_type
-                FROM "{}".sensor_target t
-                WHERE t.type =3 
+                FROM sensor_target t
+                WHERE t.type IN (3,4)  
                 GROUP BY t.sensor_id,t.type
             ) a,
-            (WITH sub AS (SELECT sub.source_id, sub.function, sub.irefs_source FROM sub GROUP BY sub.source_id, sub.function, sub.irefs_source)
-            SELECT  sub.source_id, sub.function, ARRAY_AGG(sub.irefs_source ORDER BY CASE WHEN split_part(irefs_source,'_',1) ~ '^[0-9\.]+$' THEN split_part(irefs_source,'_',1)::integer ELSE 0 END) AS irefs_source FROM sub GROUP BY sub.source_id, sub.function) b,
-            (WITH sub2 AS(WITH sub1 AS (SELECT sub.source_id, sub.function, sub.feature_id,sub.type,sub.template_name FROM sub 
+            (WITH sub AS (SELECT sub.sensor_id, sub.function, sub.irefs_source FROM sub GROUP BY sub.sensor_id, sub.function, sub.irefs_source)
+            SELECT  sub.sensor_id, sub.function, ARRAY_AGG(sub.irefs_source ORDER BY CASE WHEN split_part(irefs_source,'_',1) ~ '^[0-9\.]+$' THEN split_part(irefs_source,'_',1)::integer ELSE 0 END) AS irefs_source FROM sub GROUP BY sub.sensor_id, sub.function) b,
+            (WITH sub2 AS(WITH sub1 AS (SELECT sub.sensor_id, sub.function, sub.feature_id,sub.type,sub.template_name FROM sub 
                                         WHERE (sub.at_names_type=sub.type AND sub.at_names_feature_id=sub.feature_id) OR sub.type=3
-                                        GROUP BY sub.template_name,sub.type,sub.source_id, sub.function,sub.feature_id)
-                            SELECT sub1.source_id, sub1.function,CASE WHEN sub1.type=3 THEN 'X' ELSE sub1.template_name END AS source_template_name FROM sub1
-                                GROUP BY sub1.source_id, sub1.function,sub1.type,sub1.template_name)
-            SELECT sub2.source_id, sub2.function,ARRAY_AGG(sub2.source_template_name) AS source_template_name FROM sub2 GROUP BY sub2.source_id, sub2.function) c,    
+                                        GROUP BY sub.template_name,sub.type,sub.sensor_id, sub.function,sub.feature_id)
+                            SELECT sub1.sensor_id, sub1.function,CASE WHEN sub1.type=3 THEN 'X' ELSE sub1.template_name END AS source_template_name FROM sub1
+                                GROUP BY sub1.sensor_id, sub1.function,sub1.type,sub1.template_name)
+            SELECT sub2.sensor_id, sub2.function,ARRAY_AGG(sub2.source_template_name) AS source_template_name FROM sub2 GROUP BY sub2.sensor_id, sub2.function) c,    
             (WITH sub AS(
                 SELECT t.sensor_id,sub.template_name AS target_template_name
-                    FROM sub, "{}".sensor_target t,  "{}".target_ids t_ids 
-                    WHERE  t.sensor_id=sub.source_id AND t_ids.target_id=t.sensor_id AND t_ids.active=True AND sub.at_names_type=t.type AND sub.at_names_feature_id=t_ids.feature_id::text
+                    FROM sub, sensor_target t
+                    WHERE  t.sensor_id=sub.sensor_id AND sub.at_names_type=t.type --AND sub.at_names_feature_id=t_ids.feature_id::text
                     GROUP BY t.sensor_id,sub.feature_id,sub.template_name
                 UNION
-                SELECT t.sensor_id, 'Supervisory_control' AS target_template_name
-                    FROM sub, "{}".sensor_target t
-                    WHERE t.type =3 AND t.sensor_id=sub.source_id
+                SELECT t.sensor_id, 'supervisory_control' AS target_template_name
+                    FROM sub, sensor_target t
+                    WHERE t.type =3 AND t.sensor_id=sub.sensor_id
+                    GROUP BY t.sensor_id
+                UNION
+                SELECT t.sensor_id, 'results' AS target_template_name
+                    FROM sub, sensor_target t
+                    WHERE t.type =4 AND t.sensor_id=sub.sensor_id
                     GROUP BY t.sensor_id
                 )
             SELECT sub.sensor_id,ARRAY_AGG(sub.target_template_name::text) AS target_template_name FROM sub GROUP BY sub.sensor_id) d   
-        WHERE c.source_id=d.sensor_id AND c.source_id=a.sensor_id AND a.sensor_id=b.source_id AND sub.source_id=a.sensor_id
-        GROUP BY sub.type,c.source_template_name, d.target_template_name, b.source_id, b.function, a.irefs_target,b.irefs_source,sub.function, target_type
+        WHERE c.sensor_id=d.sensor_id AND c.sensor_id=a.sensor_id AND a.sensor_id=b.sensor_id AND sub.sensor_id=a.sensor_id
+        GROUP BY sub.type,c.source_template_name, d.target_template_name, b.sensor_id, b.function, a.irefs_target,b.irefs_source,sub.function, target_type
 )
-SELECT sub.source_id AS sensor_id, s.type AS source_type, type2.name AS source_type_name, sub.source_template_name AS source_template_names, t.type AS target_type, type1.name AS target_type_name, sub.target_template_name AS target_template_names,
+SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_type_name, sub.source_template_name AS source_template_names, t.type AS target_type, type1.name AS target_type_name, sub.target_template_name AS target_template_names,
     sub.function, s_f.function AS function_name, s.measure, m.measure AS measure_name, 
-    sub.irefs_source,sub.irefs_target, s.test_value, t.target, target.target AS target_name,s.description AS description_source, t.description AS description_target
-    FROM sub, "{}".sensor_source s, "{}".sensor_target t, signal_function s_f, measure m, type type1, type type2, target
-    WHERE target.id=t.target AND s.sensor_id=sub.source_id AND t.sensor_id=s.sensor_id AND m.id=s.measure AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) {}
-    GROUP BY sub.source_template_name, sub.target_template_name, target.target, s.measure,sub.function,sub.source_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,t.target,s.description, t.description,irefs_target
-    ORDER BY sub.source_id;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],
-    
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    
-    dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],
-    dictDB['versionName'],dictDB['versionName'],
+    sub.irefs_source,sub.irefs_target, s.test_value,s.description AS description_source, t.description AS description_target
+    FROM sub, sensor_source s, sensor_target t, signal_function s_f, measure m, type type1, type type2
+    WHERE s.sensor_id=sub.sensor_id AND t.sensor_id=s.sensor_id AND m.id=s.measure 
+	AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
+    GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
+    ORDER BY sub.sensor_id;""".format(
+    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],
+    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],
+    config['versionName'],config['versionName'],
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter)
-    print(sql)
+    print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
@@ -530,27 +518,27 @@ def delSensorDescription(file_data):
     return data
         
 class NetworkSensorSignals():
-    def __init__(self,cur,dictDB,dir):
+    def __init__(self,cur,config,dir):
     
         print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
-        sensor_source_ids=getTableIds(cur,dictDB['versionName'],'sensor_source','sensor_id')
+        sensor_source_ids=getTableIds(cur,config['versionName'],'sensor_source','sensor_id')
         print(sensor_source_ids)
         
-        sensor_target_ids=getTableIds(cur,dictDB['versionName'],'sensor_target','sensor_id')
+        sensor_target_ids=getTableIds(cur,config['versionName'],'sensor_target','sensor_id')
         print(sensor_target_ids)
         
         #sensor idm macro file
         file=dir+"""\\Sensor-macro.idm"""
-        data=[""";IDA 5.11 Data UTF-8\n""","""(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3879491673 :APP (ICE :VER 5.11))\n"""]
+        data=[""";IDA 5.19001 Data UTF-8\n""","""(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3879491673 :APP (ICE :VER 5.19001))\n"""]
         writeToFileFromList(data,dir,file)
         
         #sensor idc macro file
         file=dir+"""\\Sensor-macro.idc"""
-        data=[""";IDA 5.11 Form UTF-8\n""","""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
+        data=[""";IDA 5.19001 Form UTF-8\n""","""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
         writeToFileFromList(data,dir,file)
         
 class templatesensorSignals():
-    def __init__(self,cur,dictDB,dir,template_name,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
+    def __init__(self,cur,config,dir,template_name,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
         print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
         print(dir)
         print(template_name)
@@ -558,10 +546,10 @@ class templatesensorSignals():
         #get number of old sensor target signals --> for component placement in .idc
         sql="""WITH sub AS(
     SELECT sensor_id,unnest(templates) AS template
-        FROM {}.invoked_sensor_target_signals
+        FROM invoked_sensor_target_signals
         WHERE type = {}
 )
-SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(dictDB['versionName'],type,template_name.split('_')[0])
+SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,template_name.split('_')[0])
         print(sql)
         #cur.execute(sql)
         #numberOf_oldSensorTargets=cur.fetchone()['count']      
@@ -576,7 +564,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(dictDB['ver
         print(dir)
         file=dir+'\\'+template_name+'.idm'
         print(file)
-        file_data=""""""
+        file_data=""
         if os.path.exists(file):
             #read file --> remove deleted connections --> add new connections
             file_data=readFileToList(file)
@@ -633,7 +621,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(dictDB['ver
         
         #template macro idm
         file=dir+'\\'+template_name+'.idm'
-        file_data=""""""
+        file_data=""
         if os.path.exists(file):
             #read file --> remove deleted connections --> add new connections
             file_data=readFileToList(file)
@@ -652,7 +640,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(dictDB['ver
             
         #template macro idc
         file=dir+'\\'+template_name+'.idc'
-        file_data=""""""
+        file_data=""
         if os.path.exists(file):
             #read file --> remove deleted connections --> add new connections
             file_data=readFileToList(file)
@@ -665,8 +653,8 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(dictDB['ver
             #if [True for i in add_sensor_target_idsValues if i['target']==2]:
             #    file_data=self.removeHCModeConnection(file_data)
                 
-            sensor_data_source=getSensorData(cur,dictDB,source_types=[type],filter=" AND s.measure=5")
-            sensor_data_target=getSensorData(cur,dictDB,target_types=[type],filter=" AND t.target=1")
+            sensor_data_source=getSensorData(cur,config,source_types=[type],filter=" AND s.measure=5")
+            sensor_data_target=getSensorData(cur,config,target_types=[type],filter="")
             print('---------------------------+++++++++++++++-----------------------')
 
             print(sensor_data_source)

@@ -5,7 +5,8 @@ def tr(context,key):
     
 def _register_translation_keys():
     #project
-    
+    tr("project")
+    tr("version")
     
     #apply functions
     tr("min")
@@ -50,3 +51,55 @@ def _register_translation_keys():
     
     #dropdown 
     tr("check_all_items")
+    
+    #kpi
+    tr("tsup_mean_ep")
+    tr("tsup_max_ep")
+    tr("tsup_min_ep")
+    tr("tret_mean_ep")
+    tr("tret_max_ep")
+    tr("tret_min_ep")
+    tr("qsup_heat_ep")
+    tr("qsup_cold_ep")
+    tr("qsup_ep")
+    
+    tr("tsup_mean_c")
+    tr("tsup_max_c")
+    tr("tsup_min_c")
+    tr("tret_mean_c")
+    tr("tret_max_c")
+    tr("tret_min_c")
+    tr("qsup_heat_c")
+    tr("qsup_cold_c")
+    tr("qsup_c")
+    
+    tr("qamb")
+    
+    tr("qsup_heat_spec_c")
+    tr("qsup_cold_spec_c")
+    tr("qsup_spec_c")
+
+    tr("qsup_heat_density_c")
+    tr("qsup_cold_density_c")
+    tr("qsup_density_c")
+
+    tr("qsup_heat_linedensity_c")
+    tr("qsup_cold_linedensity_c")
+    tr("qsup_linedensity_c")
+    
+    tr("eff_width")
+    
+    #tables
+    tr("unit")
+    tr("value")
+    tr("kpi")
+    tr("length")
+    tr("innerdiameter")
+    tr("pipe")
+    tr("costs")
+    
+    #headers
+    tr("pipe_info_titel")
+    tr("network")
+    
+    

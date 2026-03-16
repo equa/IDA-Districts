@@ -830,6 +830,7 @@ class IDADistrictsModelingSimulation:
                 if self.dictDB['versionName']:
                     self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
                     for submodel in submodel_templates:
+                        ida_scripts=[]
                         print(submodel)
                         sql="""SELECT 
   (ST_XMax(ST_Extent(geom))-ST_XMin(ST_Extent(geom)))/2 + ST_XMin(ST_Extent(geom)) AS x_center, 
@@ -916,33 +917,33 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                             print(constructions_dict)
                             zone_win_dict["Zone_{}_{}".format(zone['b_id'],zone['z_id'])]={'temp_name':constructions_dict['win_template'],'win_facade_ratio':zone['win_facade_ratio']}
                             
-                            ida_script+="""(make-zone-from-qgis [@] "Zone_{}_{}" {} {} {} #2A({}))\n""".format(
+                            ida_script_="""(make-zone-from-qgis [@] "Zone_{}_{}" {} {} {} #2A({}))\n""".format(
                                 zone['b_id'],zone['z_id'],zone['z_bh_m'],zone['z_height_m'],str(len(corners)-1),corners_str)
                             
                             #internal loads (reset templates)
-                            ida_script+="""(apply-zone-template [@] "Zone_{}_{}" "{}" '(:SETPOINTS :CONSTRUCTIONS :INTERNAL-MASSES :INTERNAL-GAINS :vent-system-type :vent-air-flows))\n""".format(
+                            ida_script_+="""(apply-zone-template [@] "Zone_{}_{}" "{}" '(:SETPOINTS :CONSTRUCTIONS :INTERNAL-MASSES :INTERNAL-GAINS :vent-system-type :vent-air-flows))\n""".format(
                                 zone['b_id'],zone['z_id'],zone['z_template'])
                             
-                            ida_script+="""(:SET z_ [@ "Zone_{}_{}"])\n""".format(zone['b_id'],zone['z_id'])
+                            ida_script_+="""(:SET z_ [@ "Zone_{}_{}"])\n""".format(zone['b_id'],zone['z_id'])
                             #constructions
                             construction_plist="'("+' '.join([":" + i + ' "' +constructions_dict[i]+'"' for i in constructions_dict])+")"
                             print(construction_plist)
-                            ida_script+="""(set-zone-constructions [@ z_] {})\n""".format(construction_plist)
+                            ida_script_+="""(set-zone-constructions [@ z_] {})\n""".format(construction_plist)
                             
                             #room units
                             if zone['room_unit']=='Ideal units':
-                                ida_script+="""(make-component z_ '((HC-UNIT :N "Ideal heater" :T IDEAL-HEATER)
+                                ida_script_+="""(make-component z_ '((HC-UNIT :N "Ideal heater" :T IDEAL-HEATER)
   (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'heating-power VALUE])))))
 (make-component z_ '((HC-UNIT :N "Ideal cooler" :T IDEAL-COOLER)
   (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'cooling-power VALUE])))))\n"""
                             elif zone['room_unit']=='Radiator':
-                                ida_script+="""(make-component z_ '((HC-UNIT :N "WatRad" :T WATER_HEATER)
+                                ida_script_+="""(make-component z_ '((HC-UNIT :N "WatRad" :T WATER_HEATER)
   (:PAR :N CONTROLLER :V PI_CONTR)             
   (:PAR :N PMAX :V (:EVAL (* [z_ GEOMETRY NET_FLOOR_AREA VALUE] [z_ zone-usage 'heating-power VALUE])))
   (:RES :N MODEL :F 2560)
   (:PAR :N HEAT_SUP :V (:EVAL (:CALL ESBO-ADV-DISTR-KEY [@ :building PLANT DISTRIBUTION HEAT TO-ZONE "heat{}"])))))\n""".format(zone['b_id'])
                             elif zone['room_unit']=='Heating/cooling floor':
-                                ida_script+="""(make-component [z_ FLOOR] '((floor-heat :n "hc-floor" :t therm_floor)
+                                ida_script_+="""(make-component [z_ FLOOR] '((floor-heat :n "hc-floor" :t therm_floor)
   (:par :n pheat :v (:eval (* [z_ zone-usage 'heating-power VALUE]))))
   (:PAR :N HEAT_SUP :V (:EVAL (:CALL ESBO-ADV-DISTR-KEY [@ :building PLANT DISTRIBUTION HEAT TO-ZONE "heat{}"])))
   (:PAR :N HEAT_SUP :V (:EVAL (:CALL ESBO-ADV-DISTR-KEY[@ :building PLANT DISTRIBUTION COLD TO-ZONE "cold{}"]))))
@@ -953,14 +954,25 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
 (:set corn-array (:call make-array (:call list ncorn 2) :initial-contents corn))
 (set-values [hc_ SHAPE] 'ncorn ncorn 'CORNERS corn-array)\n""".format(zone['b_id'],zone['b_id'])
 
+                            if len(ida_script_)+len(ida_script)<32000:
+                                ida_script+=ida_script_
+                            else:
+                                ida_scripts.append(ida_script)
+                                ida_script=ida_script_
                         for zone in zone_win_dict:
-                            ida_script+="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 nil :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
+                            ida_script_="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 nil :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
+                            if len(ida_script_)+len(ida_script)<32000:
+                                ida_script+=ida_script_
+                            else:
+                                ida_scripts.append(ida_script)
+                                ida_script=ida_script_
                         
                         ida_script+="""(:for (load  (:call :loads [@]))
   (move-internal-gain-to-center load))\n"""
                                 
                         ida_script+="""(save-document [@]))"""
-                        print(ida_script)
+                        ida_scripts.append(ida_script)
+                        print(ida_scripts)
                         
                         src_dir=getDataCenterDir(self.plugin_dir)+"\\{}\\building_templates\\".format(self.dictDB['projectName'])
                         print(src_dir)
@@ -972,7 +984,7 @@ WHERE submodel={};""".format(self.dictDB['versionName'],submodel)
                         copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
                     
                         
-                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_script,exit_ida=False,finished_fn=self.finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
+                        self.worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,self.plugin_dir,ida_scripts,exit_ida=False,finished_fn=self.finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
                         self.threadpool_buildBuildingModel = QThreadPool()
                         self.threadpool_buildBuildingModel.start(self.worker_buildBuildingModel)
                         self.worker_buildBuildingModel.signals.error.connect(show_error_message)

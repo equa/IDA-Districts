@@ -140,7 +140,7 @@ class WorkerImportProject(QRunnable):
                 replace_in_folder(
                     root_folder=target_dir,
                     old_string='$plugins_path$',
-                    new_string=getQGISPluginsDir(self.plugin_dir).replace('\\','\\\\'),
+                    new_string=self.plugin_dir.replace('\\','\\\\'),
                     file_extensions=['.idm'],
                     exclude_filenames=[]
                 )
@@ -199,16 +199,28 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                     self.projectConfig=loadProjectConfig(self.plugin_dir,self.project_name,signals=self.signals)  
                     filedata=readFileToString(self.plugin_dir+"\\DB_versionTablesDefault.txt")
                     filedata = filedata.replace("$srid$", self.projectConfig['srid'])
-                    filedata = filedata.replace("$plugins_path$", getQGISPluginsDir(self.plugin_dir))
+                    filedata = filedata.replace("$plugins_path$", self.plugin_dir)
                     for version in self.versionNames:
                         newdata = filedata.replace("$versionName$", self.config['versionName'])   
                         self.cur.execute(newdata)
             
             self.signals.progress.emit(75)
             sql_dir=(src_dir+'\\'+name if self.project_name else src_dir)+'\\'
+            
+            #create tables in new schema
+            filedata=""
+            if os.path.exists(sql_dir+('db_tables.sql' if self.project_name else name+'.sql')):
+                with open(sql_dir+('db_tables.sql' if self.project_name else name+'.sql'), "r") as myfile:
+                    for line in myfile:
+                        filedata=filedata+line
+                newdata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
+                
+                with open(sql_dir+('db_tables_.sql' if self.project_name else name+'_.sql'),'w') as myfile:
+                    myfile.write(newdata)   
+            
             print(sql_dir)
             cmd="""\"{}bin\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
-                self.config['pathPostgres'],self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ ('db_tables.sql' if self.project_name else name+'.sql'))
+                self.config['pathPostgres'],self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ ('db_tables_.sql' if self.project_name else name+'_.sql'))
             print(cmd)
             subprocess.call(cmd, shell=True)
             self.signals.progress.emit(79)
@@ -228,7 +240,8 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             return False
             
         try:
-            shutil.rmtree(src_dir)  
+            pass
+            #shutil.rmtree(src_dir)  
         except Exception as e:
             print(e)
         self.signals.progress.emit(100)
@@ -529,6 +542,12 @@ class APISignals2(QObject):
     error=pyqtSignal(str)
     status=pyqtSignal(str)
     finished =pyqtSignal(str,object)
+
+class APISignals3Args(QObject):
+    progress=pyqtSignal(int)
+    error=pyqtSignal(str)
+    status=pyqtSignal(str)
+    finished =pyqtSignal(str,object,object)
     
 class WorkerOpenAPI(QRunnable):
     """Worker thread
@@ -623,8 +642,13 @@ class WorkerOpenRunScriptAPI(QRunnable):
             print('+++++++++')
             print(self.building)
             self.signals.progress.emit(50)
-            result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
-            print(result)
+            if isinstance(self.script, list): 
+                for ida_script in self.script:
+                    result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
+                    print(result)
+            else:
+                result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
+                print(result)
             
             if self.exit_ida:
                 try:

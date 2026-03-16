@@ -27,7 +27,9 @@ from qgis.PyQt.QtWidgets import QMenu,QAbstractItemView,QFileDialog
 from qgis.PyQt.QtCore import Qt,QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon,QPixmap
 from qgis.PyQt.QtWidgets import QAction
-
+from qgis.core import QgsRasterLayer, QgsMapSettings, QgsMapRendererParallelJob, QgsCoordinateTransform, QgsProject
+from qgis.PyQt.QtGui import QImage
+from qgis.PyQt.QtCore import Qt  # Qt.GlobalColor lives here
 from functools import partial
 
 # Import the code for the dialog
@@ -53,6 +55,8 @@ from .utility_functions.db import *
 from .utility_functions.invoke import *
 import os.path
 import tempfile
+import webbrowser
+
 
 
 class Districts:
@@ -533,6 +537,11 @@ class Districts:
         self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
         self.dlg_createNewProject.show()   
 
+    def openHelp(self):
+        """Open Wiki page"""
+        url = "https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_GS/"
+        webbrowser.open(url)
+
     def showDistrictsSettings(self):
         """Show districts settings"""
         
@@ -558,7 +567,6 @@ class Districts:
             defaults=getDefaults("customers",self.cur,self.config)
             print(defaults)
             self.dlg_defaultsCustomers=DefaultsDialog('customer',"Defaults layer customers",[{'label': 'Template','value': ['template',0,'general']},{'label': 'Submodel','value': ['submodel',1,'general']},
-                                                    {'label': 'Domestic hot water ID','value': ['dhw_id',0,'physical']},{'label': 'Internal load ID','value': ['internal_load_id',0,'physical']},
                                                     {'label': 'Load, W','value': ['load_w',1,'physical']}],self.cur)
             self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: self.writeDefaultsToDB(self.dlg_defaultsCustomers,'customers'))
             self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsCustomers,'',['',[],[],'','',[]]))
@@ -752,12 +760,18 @@ class Districts:
                 createDir(temp_folder,name)
                 
                 print(temp_folder)
+                try:
+                    self.timer.stop()
+                except:
+                    pass
                 self.timer = QTimer()
                 self.timer.timeout.connect(lambda: exportProject(self.plugin_dir,self.config,exportPrn=self.config['exportPrn'],exportInvokedFeatures=self.config['exportInvokedFeatures'],exportDBResults=self.config['exportDbResults']))
                 self.timer.start(int(float(self.config['autosave_dt'])*60*1000))
                 
         self.dlg.labelActiveProject.setText(self.config['projectName'])
         self.dlg.label_activeVersion.setText(self.config['versionName'])
+        self.projectConfig = loadProjectConfig(self.plugin_dir,self.config['projectName']) 
+        self.dlg.btn_sridProject.setText('EPSG: '+str(self.projectConfig['srid']))
         self.dlg.statusMessage.setText(f'Project "{self.config['projectName']}" is loaded!')
 
 
@@ -841,7 +855,7 @@ class Districts:
         print('Create sensor signals for comunication between plants, customers and supervisory control')
         if self.conn:
             if self.config['versionName']:
-                self.updateSensor=UpdateSensors(config=self.config,cur=self.cur,plugin_dir=self.plugin_dir)
+                self.updateSensor=UpdateSensors(config=self.config,cur=self.cur,plugin_dir=self.plugin_dir,dlg_main=self.dlg)
             else:
                 self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
@@ -966,7 +980,7 @@ class Districts:
     def loadProfiles(self):                   
         if self.conn:
             self.dlg_plotLoads=PlotLoadProfilesDialog()
-            self.dlg_plotLoads.btn_plot.clicked.connect(lambda: plotLoadProfiles(self.dlg_plotLoads))
+            self.dlg_plotLoads.btn_plot.clicked.connect(lambda: plotLoadProfiles(self.dlg_plotLoads,self.plugin_dir,self.config,self.cur))
             self.dlg_plotLoads.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_plotLoads))
             self.dlg_plotLoads.rbtn_customer.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
             self.dlg_plotLoads.rbtn_energy_plant.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
@@ -982,15 +996,81 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
 
-    def showDataOnMap(self):                      
+    def showSupervisoryCtrl(self):
         if self.conn:
-            self.dlg_showOnMap=ShowOnMapDialog(self.cur,self.config,self.plugin_dir,self.dlg)
-            self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: showOnMap(self.dlg_showOnMap))
+            self.dlg_supervisoryCrtl=SupervisoryCtrlDlg(self.cur,self.config)
+            self.dlg_supervisoryCrtl.btn_ok.clicked.connect(lambda: setSupervisoryCrtlSubmodel(self.dlg_supervisoryCrtl,self.cur))
+            self.dlg_supervisoryCrtl.btn_open.clicked.connect(lambda: openSupervisoryCtrl(self.dlg_supervisoryCrtl,self.cur,self.plugin_dir,self.config))
+            self.dlg_supervisoryCrtl.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_supervisoryCrtl))
+            self.dlg_supervisoryCrtl.show()  
+        else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
+            
+    def showDataOnMap(self,networkReportDlg=None,function_items=None,time_values=None):                      
+        if self.conn:
+            self.dlg_showOnMap=ShowOnMapDialog(self.cur,self.config,self.plugin_dir,self.dlg,networkReportDlg=networkReportDlg,function_items=function_items,time_values=time_values)
+            self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: showOnMap(self.dlg_showOnMap,self.plugin_dir,self.config,self.dlg,networkReportDlg=networkReportDlg))
             self.dlg_showOnMap.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showOnMap))
             self.dlg_showOnMap.featureGroupChanged(False)
             self.dlg_showOnMap.show()
         else:
+            self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info) 
+            
+    def showNetworkReport(self):                      
+        if self.conn:
+            self.dlg_networkReport=NetworkReportDialog(self.plugin_dir)
+            self.dlg_networkReport.btn_addPlot.clicked.connect(lambda: self.showDataOnMap(networkReportDlg=self.dlg_networkReport,function_items=['Max','Min','Average','Sum','Last value','First value'],time_values=[]))
+            self.dlg_networkReport.btn_deletePlot.clicked.connect(self.dlg_networkReport.deleteTableRow)
+            self.dlg_networkReport.btn_ok.clicked.connect(lambda: networkReport(self.dlg_networkReport,self.plugin_dir,self.cur,self.config,self.dlg))
+            self.dlg_networkReport.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_networkReport))
+            self.dlg_networkReport.show()
+        else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+            
+    def on_tab_changed(self,index):
+        widget = self.dlg.tabWidget.widget(index)           # get the QWidget for the tab
+        if widget.objectName() == "tab_import":  # compare with object name
+            print("Import tab selected")
+
+            canvas = iface.mapCanvas()
+
+            # OSM layer (Web Mercator)
+            url_with_type = "type=xyz&url=https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            osm_layer = QgsRasterLayer(url_with_type, "OSM Base Map", "wms")  # "wms" works for XYZ layers in Python API
+
+            if not osm_layer.isValid():
+                raise Exception("OSM layer failed to load!")
+
+            # Transform canvas extent from current CRS to OSM CRS (EPSG:3857)
+            crs_src = canvas.mapSettings().destinationCrs()
+            crs_dest = osm_layer.crs()  # EPSG:3857
+            transform = QgsCoordinateTransform(crs_src, crs_dest, QgsProject.instance())
+            extent_3857 = transform.transformBoundingBox(canvas.extent())
+
+            # Map settings
+            settings = QgsMapSettings()
+            settings.setLayers([osm_layer])
+            settings.setOutputSize(canvas.size())
+            settings.setExtent(extent_3857)
+            settings.setBackgroundColor(Qt.GlobalColor.white)
+
+            # Render
+            img = QImage(
+                settings.outputSize().width(),
+                settings.outputSize().height(),
+                QImage.Format.Format_ARGB32_Premultiplied
+            )
+            img.fill(Qt.GlobalColor.white)
+            job = QgsMapRendererParallelJob(settings)
+            job.start()
+            job.waitForFinished()
+            img = job.renderedImage()
+            img.save(self.plugin_dir+"\icons\osm_snapshot.png")
+            print("Snapshot saved!")
+            
+            load_image(self.plugin_dir+"\icons\osm_snapshot.png",self.dlg.labelOsmPreview,scale=True)
+            #self.svg_osm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
             
     def run(self):
         """Run method that performs all the real work"""
@@ -1001,8 +1081,12 @@ class Districts:
             self.first_start = False
             self.dlg = DistrictsDialog(self.plugin_dir)
             
-            #project handling connections
+            #general
             self.dlg.btn_settings.clicked.connect(self.showDistrictsSettings)
+            self.dlg.btn_help.clicked.connect(self.openHelp)
+            self.dlg.tabWidget.currentChanged.connect(self.on_tab_changed)
+            
+            #project handling connections
             self.dlg.btn_createProject.clicked.connect(self.showCreateNewProject)
             self.dlg.btn_deleteProject.clicked.connect(self.deleteProjectDialog)
             
@@ -1052,7 +1136,8 @@ class Districts:
             self.dlg.btn_modellingSettings.clicked.connect(self.showModellingSettings)
             self.dlg.btn_requestedOutputs.clicked.connect(self.showRequestedOutputs)
             self.dlg.btn_parmMapping.clicked.connect(self.showParmMapping)
-            self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)      
+            self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)
+            self.dlg.btn_supervisory.clicked.connect(self.showSupervisoryCtrl)
             self.dlg.btn_featureModels.clicked.connect(self.showFeatureModels)
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
@@ -1063,6 +1148,7 @@ class Districts:
             self.dlg.btn_path_reports.clicked.connect(self.showPathReports)
             self.dlg.btn_plotLoadProfiles.clicked.connect(self.loadProfiles)
             self.dlg.btn_showDataOnMap.clicked.connect(self.showDataOnMap)            
+            self.dlg.btn_networkReport.clicked.connect(self.showNetworkReport)            
             
             # show the dialog
             self.dlg.show()

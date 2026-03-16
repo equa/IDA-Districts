@@ -3,9 +3,27 @@ from qgis.PyQt.QtCore import Qt,QThreadPool
 from qgis.PyQt.QtWidgets import QListWidgetItem
 
 from .utility_functions.workers import *
+from .utility_functions.show_on_map import *
+from .utility_functions.plots import *
+
 from .load_results import *
 from .path_report import *
 
+
+def showOnMap(dlg,plugin_dir,config,dlg_main,networkReportDlg=None):
+    fd_meterPerNode=float(loadModellingSettings(plugin_dir,config)['fd_meterPerNode'])
+    if int(dlg.lineSegVis.text())==0:
+        iface.messageBar().pushMessage("Info", f"The line segment length for visualization should be greater than 0.", level=Qgis.Info)
+        return False
+    worker_showOnMap = WorkerShowOnMap(networkReportDlg=networkReportDlg,dlg_main=dlg_main,config=config,plugin_dir=plugin_dir,dlg=dlg,vars=None,feature=dlg.feature,layer_name=dlg.layer_name.text(),
+        lineSegVis=int(dlg.lineSegVis.text()),simData=dlg.rbtn_simData.isChecked(),enable=True)
+            
+    threadpool_showOnMap = QThreadPool()
+    worker_showOnMap.signals.error.connect(show_error_message)
+    worker_showOnMap.signals.progress.connect(dlg.update_progress)  
+    worker_showOnMap.signals.finished.connect(dlg.update_finished)  
+    threadpool_showOnMap.start(worker_showOnMap) 
+        
 def getType(dlg):
     if dlg.rbtn_customer.isChecked():
         type='customer'
@@ -88,3 +106,19 @@ def runPathReports(dlg,plugin_dir,config):
     worker_pathReport.signals.progress.connect(dlg.update_progress)  
     worker_pathReport.signals.finished.connect(dlg.update_finished)  
     threadpool_pathReport.start(worker_pathReport)   
+                    
+def plotLoadProfiles(dlg,plugin_dir,config,cur):
+    simulatedOutputs=loadSimulatedOutputs(plugin_dir,config)
+    if simulatedOutputs['power_c']==True:
+        selected_items=dlg.listWidget_ids.selectedItems()
+        if selected_items:
+            for item in dlg.listWidget_ids.selectedItems():
+                id=item.text()
+                print(id)
+                matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False)
+        else:
+            iface.messageBar().pushMessage("Info", "Please select an item in the list!!", level=Qgis.Info)    
+    else:
+        iface.messageBar().pushMessage("Info", "The customer`s load is not yet simulated in the current project version!", level=Qgis.Info)
+        
+        

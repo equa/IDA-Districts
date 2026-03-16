@@ -312,8 +312,13 @@ class WorkerOpenRunScriptAPI(QRunnable):
             print('+++++++++')
             print(self.building)
             self.signals.progress.emit(50)
-            result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
-            print(result)
+            if isinstance(self.script, list): 
+                for ida_script in self.script:
+                    result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
+                    print(result)
+            else:
+                result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
+                print(result)
             
             if self.exit_ida:
                 try:

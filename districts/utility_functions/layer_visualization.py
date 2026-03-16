@@ -2,6 +2,7 @@ from .files import *
 from .db import *
 from qgis.core import  QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 from qgis.utils import iface
+from qgis.PyQt.QtGui import QColor
    
 def removeTempLayers():
     layers = QgsProject.instance().mapLayers().values()
@@ -98,38 +99,6 @@ def valueRelationPipeBundleType():
     field_idx = fields.indexOf('pipe_bundle_type_id')
     QgsProject.instance().mapLayersByName('lines')[0].setEditorWidgetSetup(field_idx, widget_setup)   
 
-def valueRelationDhwId():
-    """value relation DHW ID in table dhw_timeseries"""
-    config = {'AllowMulti': False,
-              'AllowNull': True,
-              'FilterExpression': '',
-              'Key': 'id',
-              'Layer': QgsProject.instance().mapLayersByName('dhw_timeseries')[0].id(),
-              'NofColumns': 1,
-              'OrderByValue': False,
-              'UseCompleter': False,
-              'Value': 'description'}
-    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
-    fields = QgsProject.instance().mapLayersByName('customers')[0].fields()
-    field_idx = fields.indexOf('dhw_id')
-    QgsProject.instance().mapLayersByName('customers')[0].setEditorWidgetSetup(field_idx, widget_setup)  
-
-def valueRelationInternalLoadId():
-    """value relation internal load ID in table internal_loads_profiles"""
-    config = {'AllowMulti': False,
-              'AllowNull': True,
-              'FilterExpression': '',
-              'Key': 'id',
-              'Layer': QgsProject.instance().mapLayersByName('internal_loads_profiles')[0].id(),
-              'NofColumns': 1,
-              'OrderByValue': False,
-              'UseCompleter': False,
-              'Value': 'description'}
-    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
-    fields = QgsProject.instance().mapLayersByName('customers')[0].fields()
-    field_idx = fields.indexOf('internal_load_id')
-    QgsProject.instance().mapLayersByName('customers')[0].setEditorWidgetSetup(field_idx, widget_setup)  
- 
 def setupVersionForm(cur,config):  
     """ setup form for version layers"""
     for vlayerName in ['lines','junctions','customers','energy_plants']:
@@ -149,7 +118,7 @@ def setupVersionForm(cur,config):
         elif vlayerName=='customers':
             attrNamesTabs= [['id','template','network'],
                             ['load_w'],
-                            ['dhw_id','internal_load_id','submodel'],
+                            ['submodel'],
                             []]
         elif vlayerName=='energy_plants':
             attrNamesTabs= [['id','template','network'],
@@ -182,8 +151,8 @@ def versionLayersAliasNames():
             attrNames=['type','pipe_bundle_type_id','network','submodel','length']
             aliasNames=['Type','Pipe bundle type','Network','Co-sim','Length, m']
         elif vlayerName=='customers':
-            attrNames=['template','submodel','load_w','dhw_id','internal_load_id']
-            aliasNames=['Template','Co-sim','Load, W','Domestic hot water ID','Internal load ID']
+            attrNames=['template','submodel','load_w']
+            aliasNames=['Template','Co-sim','Load, W']
         elif vlayerName=='energy_plants':
             attrNames=['template','submodel']
             aliasNames=['Template','Co-sim']
@@ -234,7 +203,7 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
     for layer in layers:
-        if layer.name() in ['internal_loads_profiles','pipe_bundle_types','dhw_timeseries','submodels','energy_plants','customers','customer_templates','energy_plant_templates',
+        if layer.name() in ['pipe_bundle_types','submodels','energy_plants','customers','customer_templates','energy_plant_templates',
             'junction_types','junction_templates','junctions',
             'streets', 'buildings','network','cosim',
             'lines','line_types','boreholes','borehole_fields',
@@ -286,7 +255,7 @@ def setLayersHidden(tableNames):
         
 def loadTopologyLayers(version,uri,config,username):
     #load tables without geometry and hide them in layers panel
-    tableNames=['internal_loads_profiles','dhw_timeseries','pipe_bundle_types','customer_templates','energy_plant_templates',
+    tableNames=['pipe_bundle_types','customer_templates','energy_plant_templates',
         'junction_types',
         'line_types','room_units','building_construction_standard','zone_templates']
     for tableName in tableNames:
@@ -352,10 +321,19 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
 
         categorized_renderer = QgsCategorizedSymbolRenderer()            
         categorized_renderer.setClassAttribute(cat_colmn_name) 
-        for category,id in zip(categories,ids):      
+        colors = [
+            "#e31a1c",  # red
+            "#1f78b4",  # blue
+            "#000000",  # black
+            "#33a02c",  # green
+            "#ff7f00",  # orange
+            "#6a3d9a"   # magenta/purple
+        ]
+        for category,id,color in zip(categories,ids,colors):      
             symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
             if vlayerName in ['lines']:
                 symbol.setWidth(0.75) 
+                symbol.setColor(QColor(color)) 
             else:
                 if symbol is not None:
                     symbol.setSize(2)
@@ -479,9 +457,6 @@ def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
     vlayer.setRenderer(categorized_renderer)
     if vlayerName in ['lines']:
         valueRelationPipeBundleType()  
-    if vlayerName in ['customers']:
-        valueRelationDhwId()    
-        valueRelationInternalLoadId() 
       
     setupVersionForm(cur,config)  
         

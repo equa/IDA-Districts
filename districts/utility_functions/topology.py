@@ -5,6 +5,37 @@ from .utility import *
 from .db import *
 from qgis.PyQt.QtWidgets import QMessageBox
 
+def getPipeInfo(cur,config,networks=None):
+    sql="""SELECT p.name,sum(ST_length(l.geom)) AS length, innerpipediameter,sum(p.costs*ST_length(l.geom)) as costs
+	FROM "{}".lines l, bundle_pipes bp, pipes p
+	WHERE l.pipe_bundle_type_id=bp.pipe_bundle_type_id AND bp.pipe_id=p.id {}
+	GROUP BY bp.pipe_id,p.name,innerpipediameter
+	ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '')
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
+    
+def getNetworkLength(cur,config,networks=None):
+    sql="""SELECT sum(ST_length(geom)) AS length FROM "{}".lines{};""".format(config['versionName'],' WHERE network IN ({})'.format(','.join(networks)) if networks else '')
+    cur.execute(sql)
+    return float(cur.fetchone()['length'])
+    
+def getBuildingsEra(cur,config):
+    sql="""SELECT sum(ST_area(b.geom)) AS era
+	FROM "{}".buildings b, "{}".customers c 
+	WHERE ST_dWithIn(b.geom,c.geom,0.001);""".format(config['versionName'],config['versionName'])
+    cur.execute(sql)
+    return float(cur.fetchone()['era'])
+    
+def getFeatureConnbundletypeSequences(id,config,cur,feature_type="customer"):
+    sql="""SELECT f.id , b_t_conns.conn_bundle_type_id, b_t_conns.sequence
+    FROM {}.{}s f, bundle_type_conns b_t_conns, {}_templates t
+    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND f.id={}
+    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature_type,feature_type,id)
+    print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
+    
 def checkNetwork(cur,version,networks):
     sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version)
     cur.execute(sql)
@@ -30,26 +61,26 @@ def checkNetwork(cur,version,networks):
             return False
     return True
             
-def getNetworkSequences(cur,dictDB,network):
+def getNetworkSequences(cur,config,network):
     sql="""SELECT COALESCE(max(bp.sequence),0) AS number_of
     FROM "{}".lines f, bundle_pipes bp
-    WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(dictDB['versionName'],network)
+    WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(config['versionName'],network)
     print(sql)
     cur.execute(sql)
     return [str(i) for i in range(1,cur.fetchone()['number_of']+1)]
     
-def redrawSubnetworkIncludingLines(table,cur,dictDB,srid):
+def redrawSubnetworkIncludingLines(table,cur,config,srid):
     sql="""TRUNCATE "{}".submodels;
 
 WITH sub AS(
     SELECT min(ST_XMin(geom)) AS x_min, min(ST_YMin(geom)) AS y_min, max(ST_XMax(geom)) AS x_max, max(ST_YMax(geom)) AS y_max FROM {}
 )
 INSERT INTO "{}".submodels (id,geom) 
-    SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(dictDB['versionName'],table,dictDB['versionName'],srid)
+    SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(config['versionName'],table,config['versionName'],srid)
     print(sql)
     cur.execute(sql)
     
-def updateSubmodels(cur,dictDB):
+def updateSubmodels(cur,config):
     sql="""UPDATE temp.junctions j SET submodel = s_m.id FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(j.geom,s_m.geom,0.0001);
 UPDATE "{}".energy_plants f SET submodel = s_m.id FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
 UPDATE temp.customers f SET submodel = s_m.id FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(f.geom,s_m.geom,0.0001);
@@ -60,36 +91,36 @@ UPDATE temp.lines l SET submodel = a.sm_id
             GROUP BY l.id) a 
     WHERE a.lid=l.id;
 UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
-UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'],dictDB['versionName'])
+UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'])
     print(sql)
     cur.execute(sql)
         
-def setSubnetwork(cur,dictDB,redraw_submodels_polygons,srid):
+def setSubnetwork(cur,config,redraw_submodels_polygons,srid):
     """set the submodel to 1 if not set otherwise"""
     print('Set submodel if no submodels')
     if redraw_submodels_polygons:
         
         #draw rectangle around all customers
-        sql='TRUNCATE "{}".submodels CASCADE;'.format(dictDB['versionName'])
+        sql='TRUNCATE "{}".submodels CASCADE;'.format(config['versionName'])
         print(sql)
         cur.execute(sql)
             
-        redrawSubnetworkIncludingLines('"{}".lines'.format(dictDB['versionName']),cur,dictDB,srid)
+        redrawSubnetworkIncludingLines('"{}".lines'.format(config['versionName']),cur,config,srid)
         
         #junctions
-        sql='UPDATE "{}".junctions SET submodel = 1;'.format(dictDB['versionName'])
+        sql='UPDATE "{}".junctions SET submodel = 1;'.format(config['versionName'])
         print(sql)
         cur.execute(sql)
         #customers
-        sql='UPDATE "{}".customers SET submodel = 1;'.format(dictDB['versionName'])
+        sql='UPDATE "{}".customers SET submodel = 1;'.format(config['versionName'])
         print(sql)
         cur.execute(sql)
         #energy_plants
-        sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(dictDB['versionName'])
+        sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(config['versionName'])
         print(sql)
         cur.execute(sql)
         #lines
-        sql='UPDATE "{}".lines SET submodel = array[1];'.format(dictDB['versionName'])
+        sql='UPDATE "{}".lines SET submodel = array[1];'.format(config['versionName'])
         print(sql)
         cur.execute(sql)  
 
@@ -101,11 +132,11 @@ def getBundleValues(bundle,cur):
     cur.execute(sql)
     return cur.fetchall()
 
-def getConnTypesByFeature(cur,dictDB,feature,id):
+def getConnTypesByFeature(cur,config,feature,id):
     sql="""SELECT b_t_conns.conn_type_id 
     FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
     WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
-    ORDER BY b_t_conns.sequence;""".format(dictDB['versionName'],feature,feature,id)
+    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature,feature,id)
     print(sql)
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
@@ -138,8 +169,8 @@ def getConnValues(bundle,conn_id,cur):
     cur.execute(sql)
     return cur.fetchone()
 
-def getConnsValuesByFeature(type_id,feature_id,cur,dictDB):
-    return getConnsValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),cur)
+def getConnsValuesByFeature(type_id,feature_id,cur,config):
+    return getConnsValues(getConnBundleByFeature(type_id,feature_id,cur,config),cur)
     
 def getConnsValues(bundle,cur):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id, conns.p_ctrl
@@ -149,84 +180,118 @@ def getConnsValues(bundle,cur):
     cur.execute(sql)
     return cur.fetchall()
     
-def getConnBundleByFeature(feature_type,feature_id,cur,dictDB):
+def getConnBundleByFeature(feature_type,feature_id,cur,config):
     sql="""SELECT c_t.conn_bundle_type 
     FROM "{}".{} f, {} c_t 
-    WHERE f.id={} AND c_t.template=f.template;""".format(dictDB['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id)
+    WHERE f.id={} AND c_t.template=f.template;""".format(config['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
 
-def getConnBundlesByType(cur,dictDB,type):
+def getConnBundlesByType(cur,config,type):
     sql="""SELECT f_t.conn_bundle_type
     FROM {}.{}s f, {}_templates f_t
     WHERE f.template=f_t.template
-    GROUP BY f_t.conn_bundle_type;""".format(dictDB['versionName'],type,type)
+    GROUP BY f_t.conn_bundle_type;""".format(config['versionName'],type,type)
     print(sql)
     cur.execute(sql)
     return [str(i['conn_bundle_type']) for i in cur.fetchall()]
     
-def getConnTypesByConnBundleType(cur,dictDB,c_b_type):
+def getConnTypesByConnBundleType(cur,config,c_b_type):
     sql="""SELECT conn_type_id FROM bundle_type_conns WHERE conn_bundle_type_id={} ORDER BY sequence;""".format(c_b_type)
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
     
-def getBundleValuesByFeature(type_id,feature_id,cur,dictDB):
-    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
+def getBundleValuesByFeature(type_id,feature_id,cur,config):
+    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,config),conn_id,cur)
     
-def getConnTypeSeqFromBundle(cur,dictDB,c_b_type,conn_type):
+def getConnTypeSeqFromBundle(cur,config,c_b_type,conn_type):
     sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type)
     print(sql)
     cur.execute(sql)
     return cur.fetchone()['sequence']
     
-def getConnValuesByFeature(type_id,feature_id,conn_id,cur,dictDB):
-    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,dictDB),conn_id,cur)
+def getConnValuesByFeature(type_id,feature_id,conn_id,cur,config):
+    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,config),conn_id,cur)
 
-def getUsedConnBundleTypes(type_name,cur,dictDB):
-    sql="""Select t.conn_bundle_type
+def getUsedConnBundleTypes(type_name,cur,config):
+    sql="""SELECT t.conn_bundle_type
     FROM "{}".{}s f, {}_templates t
     WHERE f.template=t.template
     GROUP BY t.conn_bundle_type
-    ORDER BY t.conn_bundle_type;""".format(dictDB['versionName'],type_name,type_name)
+    ORDER BY t.conn_bundle_type;""".format(config['versionName'],type_name,type_name)
     cur.execute(sql)
     return [i['conn_bundle_type'] for i in cur.fetchall()]
     
-def getUsedConnTypes(type_name,cur,dictDB):
-    sql="""Select b_t_conns.conn_type_id
+def getUsedConnTypes(type_name,cur,config):
+    sql="""SELECT b_t_conns.conn_type_id
     FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns 
     WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type
     GROUP BY b_t_conns.conn_type_id
-    ORDER BY b_t_conns.conn_type_id;""".format(dictDB['versionName'],type_name,type_name)
+    ORDER BY b_t_conns.conn_type_id;""".format(config['versionName'],type_name,type_name)
     cur.execute(sql)
-    return [i['conn_bundle_type'] for i in cur.fetchall()]
+    return [i['conn_type_id'] for i in cur.fetchall()]
     
-def getUsedConnTypeIdents(type_name,cur,dictDB):
+def getUsedConnections(type_name,cur,config):
+    sql="""SELECT conn_t_conns.connection_id
+    FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+    WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND conn_t_conns.connection_type_id=b_t_conns.conn_type_id
+    GROUP BY conn_t_conns.connection_id
+    ORDER BY conn_t_conns.connection_id;""".format(config['versionName'],type_name,type_name)
+    cur.execute(sql)
+    return [i['connection_id'] for i in cur.fetchall()]
+    
+def getUsedConnectionsFilteredByDirection(type_name,cur,config,direction):
+    sql="""SELECT conn_t_conns.connection_id
+    FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns, connections conns
+    WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND conn_t_conns.connection_type_id=b_t_conns.conn_type_id AND conns.id=conn_t_conns.connection_id AND conns.type IN ({})
+    GROUP BY conn_t_conns.connection_id
+    ORDER BY conn_t_conns.connection_id;""".format(config['versionName'],type_name,type_name,','.join(direction))
+    cur.execute(sql)
+    return [i['connection_id'] for i in cur.fetchall()]
+    
+def getUsedConnTypeIdents(type_name,cur,config):
     sql="""WITH sub AS(
-    Select  b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text as ident
+    SELECT  b_t_conns.conn_bundle_type_id::text||'_'||b_t_conns.sequence::text as ident
         FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns 
         WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type
 )
-SELECT ident FROM sub GROUP BY ident;""".format(dictDB['versionName'],type_name,type_name)
+SELECT ident FROM sub GROUP BY ident;""".format(config['versionName'],type_name,type_name)
     cur.execute(sql)
     return [i['ident'] for i in cur.fetchall()]
     
-def getConnBundleByTemplate(feature,template,cur,dictDB):
+def getConnBundleByTemplate(feature,template,cur,config):
     sql="""SELECT conn_bundle_type 
     FROM {}_templates 
     WHERE template={};""".format(feature,template)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
+    
+def getConntypesByTemplate(feature,template,cur):
+    sql="""SELECT conn_b_t.conn_type_id
+    FROM {}_templates t, bundle_type_conns conn_b_t
+    WHERE conn_b_t.conn_bundle_type_id=conn_bundle_type AND t.template={}
+	ORDER BY conn_b_t.sequence;""".format(feature,template)
+    cur.execute(sql)
+    return [i['conn_type_id'] for i in cur.fetchall()]
+    
+def getConnsByConntype(conntypes,cur,directions=['1']):
+    sql="""SELECT conns.id
+    FROM connection_type_connections conn_t_conns, connections conns
+	WHERE conns.type IN ({}) AND conns.id=conn_t_conns.connection_id AND conn_t_conns.connection_type_id IN ({})
+	ORDER BY sequence;""".format(','.join(directions),','.join([str(i) for i in conntypes]))
+    cur.execute(sql)
+    return [i['id'] for i in cur.fetchall()]
 
-def getLineConnType(cur,dictDB,id):
+def getLineConnType(cur,config,id):
     sql="""SELECT t.conn_type
     FROM "{}".lines l, line_types t
-    WHERE l.assettype=t.assettype AND l.id={};""".format(dictDB['versionName'],id)
+    WHERE l.assettype=t.assettype AND l.id={};""".format(config['versionName'],id)
     cur.execute(sql)
     return cur.fetchone()['conn_type']
 
-def getUsedPipeBundleSequences(cur,dictDB):
+def getUsedPipeBundleSequences(cur,config):
     sql=f"""WITH sub AS(
-    SELECT pipe_bundle_type_id FROM "{dictDB['versionName']}".lines GROUP BY pipe_bundle_type_id 
+    SELECT pipe_bundle_type_id FROM "{config['versionName']}".lines GROUP BY pipe_bundle_type_id 
 )
 SELECT sequence 
     FROM bundle_pipes bp,sub 
@@ -236,13 +301,13 @@ SELECT sequence
     cur.execute(sql)
     return [i['sequence'] for i in cur.fetchall()]
 
-def getConnBundleTypesByConnType(cur,dictDB,conn_type_id):
+def getConnBundleTypesByConnType(cur,config,conn_type_id):
     sql="""SELECT conn_bundle_type_id FROM bundle_type_conns WHERE conn_type_id={};""".format(conn_type_id)
     print(sql)
     cur.execute(sql)
     return cur.fetchall()
         
-def getTemplatesByConnType(cur,dictDB,conn_type_id):
+def getTemplatesByConnType(cur,config,conn_type_id):
     sql="""SELECT 'customer' AS type,t.template, t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
     FROM bundle_type_conns bt_conns, customer_templates t 
     WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id
@@ -254,7 +319,7 @@ SELECT 'energy_plant' AS type,t.template, t.template::text||'_'||t.template_name
     cur.execute(sql)
     return cur.fetchall()
     
-def getTemplatesByConnBundleType(cur,dictDB,conn_bundle_type_id):
+def getTemplatesByConnBundleType(cur,config,conn_bundle_type_id):
     sql="""--getTemplatesByConnType
 SELECT 'customer' AS type,template, template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
     FROM customer_templates WHERE conn_bundle_type={}
@@ -265,8 +330,8 @@ SELECT 'energy_plant' AS type,template, template::text||'_'||template_name AS t_
     cur.execute(sql)
     return cur.fetchall()
     
-def getConnsValuesByTemplate(feature,template,cur,dictDB):
-    return getConnsValues(getConnBundleByTemplate(feature,template,cur,dictDB),cur)
+def getConnsValuesByTemplate(feature,template,cur,config):
+    return getConnsValues(getConnBundleByTemplate(feature,template,cur,config),cur)
     
 def getMeterName(cur,conn_bundle_type,conn_type):
     sql="""SELECT conn_bundle_type_id, sequence
