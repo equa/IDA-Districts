@@ -1,1 +1,0 @@
-{'power_c': False, 'temp_c': False, 'p_c': False, 'mdot_c': False, 'heatbalance_c': False, 'troom_c': False, 'v_lines': False, 'mdot_lines': False, 'p_lines': False, 'temp_lines': False, 'power_ep': False, 'temp_ep': False, 'p_ep': False, 'mdot_ep': False, 'dt_outputs': '0'}

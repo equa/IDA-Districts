@@ -9,7 +9,7 @@ class WorkerImportElevationData(QRunnable):
     """Import elevation data"""
     def __init__(self,*args,**kwargs):
         super().__init__()
-        print("Import buildings from OSM")
+        #print("Import buildings from OSM")
         self.signals=APISignals()
         self.config=kwargs['config']
         self.clearOldTerrain=kwargs['clearOldTerrain']
@@ -22,9 +22,9 @@ class WorkerImportElevationData(QRunnable):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)        
 
-            self.configProject=loadProjectConfig(self.plugin_dir,self.config['projectName'],signals=self.signals)
+            self.configProject=loadProjectConfig(self.config,signals=self.signals)
             self.srid=self.configProject['srid']
-            print(self.srid)
+            #print(self.srid)
             
             auth_cfg = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(self.config["auth_id"], auth_cfg, True)  
@@ -34,30 +34,44 @@ class WorkerImportElevationData(QRunnable):
                 
     @pyqtSlot()
     def run(self):
-        print('Import elevation data')
+        #print('Import elevation data')
         self.signals.progress.emit(1)
         try:
             self.cur.execute("""SELECT EXISTS (
                                 SELECT * FROM information_schema.tables 
                                 WHERE  table_schema = '{}'
                                 AND    table_name   = 'terrain');""".format(self.config['versionName']))
+                                
+            base = QgsApplication.prefixPath()
+
+            gdal_data = os.path.join(base, "share", "gdal")
+            proj_lib = os.path.join(base, "share", "proj")
+
+            os.environ["GDAL_DATA"] = gdal_data
+            os.environ["PROJ_LIB"] = proj_lib
+            os.environ['PGPASSWORD'] = self.password
+
             if self.clearOldTerrain == True or not "True" in str(self.cur.fetchone()):
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.config['versionName']))
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))
                 self.signals.progress.emit(5)
-                cmd = ' "{}bin\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.config['pathPostgres'],self.filePath.replace('\\','/'), self.config['versionName'],self.config['pathPostgres'], self.config['host'], self.config['projectName'], self.username, self.config['port'])
-                print(cmd)
-                os.environ['PGPASSWORD'] = self.password
-                subprocess.call(cmd, shell=True)
+                cmd = ' "{}\\postgreSQL\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain | "{}\\postgreSQL\\psql" -h {} -d {} -U {} -p {}'.format(self.plugin_dir,self.filePath.replace('\\','/'), self.config['versionName'],self.plugin_dir, self.config['host'], self.config['projectName'], self.username, self.config['port'])
+                #print(cmd)
+                result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                #print("STDOUT:\n", result.stdout)
+                #print("STDERR:\n", result.stderr)
+                #print("Return code:", result.returncode)
                 self.signals.progress.emit(100)
             else:
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2;'.format(self.config['versionName'])) 
                 self.signals.progress.emit(5)
-                cmd = ' "{}bin\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain1 | "{}\\bin\\psql" -h {} -d {} -U {} -p {}'.format(self.config['pathPostgres'],self.filePath.replace('\\','/'), self.config['versionName'],self.config['pathPostgres'], self.config['host'], self.config['projectName'], self.username, self.config['port'])
-                print(cmd)
-                os.environ['PGPASSWORD'] = self.password
-                subprocess.call(cmd, shell=True)
+                cmd = ' "{}\\postgreSQL\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain1 | "{}\\postgreSQL\\psql" -h {} -d {} -U {} -p {}'.format(self.plugin_dir,self.filePath.replace('\\','/'), self.config['versionName'],self.plugin_dir, self.config['host'], self.config['projectName'], self.username, self.config['port'])
+                #print(cmd)
+                result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                #print("STDOUT:\n", result.stdout)
+                #print("STDERR:\n", result.stderr)
+                #print("Return code:", result.returncode)
                 self.signals.progress.emit(50)
                 self.cur.execute('CREATE table "{}".terrain2 AS Select * FROM "{}".terrain;'.format(self.config['versionName'],self.config['versionName']))
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain'.format(self.config['versionName']))
@@ -74,6 +88,8 @@ class WorkerImportElevationData(QRunnable):
             self.signals.error.emit(str(e))
             self.signals.progress.emit(0)
             self.signals.finished.emit('Import elevation data failed!')
+            
+        
             
 
             

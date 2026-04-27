@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import    QTableWidgetItem,QButtonGroup,QComboBox,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QProgressBar, QCheckBox, QRadioButton, QListWidget
+from qgis.PyQt.QtWidgets import  QDialog, QTableWidgetItem,QButtonGroup,QComboBox,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QProgressBar, QCheckBox, QRadioButton, QListWidget
 from qgis.PyQt import QtGui, QtCore
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 
@@ -13,7 +13,7 @@ class ComboBox(QComboBox):
         self.popupAboutToBeShown.emit()
         super(ComboBox, self).showPopup()
 
-class PipeBundleEditor(QMainWindow):
+class PipeBundleEditor(QDialog):
     def __init__(self,config,plugin_dir,layer,layer_attributes):     
         """Initialize GUI to Import Network Topology From Point Layer"""
         super().__init__()
@@ -24,8 +24,8 @@ class PipeBundleEditor(QMainWindow):
         self.mappedAttributes={}
         self.activeTable={'general':False,'construction':False }
         
-        print(layer)
-        print(layer_attributes)
+        #print(layer)
+        #print(layer_attributes)
         
         self.setWindowTitle("Pipe bundle type editor")
         myBoldFont=QtGui.QFont('Arial', 12)
@@ -59,7 +59,7 @@ class PipeBundleEditor(QMainWindow):
         self.listWidget_layerAttributes.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
 
         
-        label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected field item.\nYou can use also dictionaries in the form: {key: entry}[value/attribut]')
+        label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected field item.\nYou can use also dictionaries in the form: {key: entry}[value/attribute]')
         layout_list.addLayout(layout_listWidget_layerAttributes)
         layout_list.addWidget(label_list_helptext)
 
@@ -107,9 +107,7 @@ class PipeBundleEditor(QMainWindow):
         layout_win.addLayout(layout_pipe_constr)
         layout_win.addLayout(layout_buttons)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
     
     def constrTableTextChanged(self,s):
         if self.activeTable['general']==True:
@@ -118,20 +116,20 @@ class PipeBundleEditor(QMainWindow):
             table=self.tableWidget_pipe
         table_index=table.currentRow()
         try:
-            print(table_index)
+            #print(table_index)
             seq_constr=table.item(table_index,0).text()
-            print(seq_constr)
+            #print(seq_constr)
             material=table.cellWidget(table_index, 1).currentText()
-            print(material)
+            #print(material)
             thickness=table.item(table_index,2).text()
-            print(thickness)
+            #print(thickness)
             self.mappedAttributes['layer_constr'][seq_constr]=[material, thickness]
-            print(self.mappedAttributes)
+            #print(self.mappedAttributes)
         except:
             pass
         
     def setActiveTable(self,s):
-        print(s)
+        #print(s)
         if s=='general':
             self.activeTable['general']=True
             self.activeTable['pipe']=False
@@ -149,23 +147,23 @@ class PipeBundleEditor(QMainWindow):
         for i in range(0,len(self.pipe_bundle_type_attributes)):
             self.tableWidget.insertRow(i)
             item=QTableWidgetItem('-->')
-            item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+            item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
             self.tableWidget.setItem(i,1,item)
             item=QTableWidgetItem(self.pipe_bundle_type_attributes[i])
-            item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+            item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
             self.tableWidget.setItem(i,2,item)
             item=QTableWidgetItem('')
             self.tableWidget.setItem(i,0,item)
 
     def updateSequences(self,sequences):
         """Updates the number of rows in Tabale self.tableWidget_pipe"""
-        print(sequences)
+        #print(sequences)
         if sequences.isdigit():
             self.tableWidget_pipe.setRowCount(0)
             for i in range(0,int(sequences)):
                 self.tableWidget_pipe.insertRow(i)
                 item=QTableWidgetItem(str(i+1))
-                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
                 self.tableWidget_pipe.setItem(i,0,item)
                 comboBox = QComboBox()
                 comboBox.addItems(getDropDownItems(self.cur,[[1,'public','materials','id','name']])[1].values())
@@ -177,7 +175,7 @@ class PipeBundleEditor(QMainWindow):
 
 
     def mapAttributesDoubleClick(self,s):
-        print(s.text())
+        #print(s.text())
         if self.activeTable['general']==True:
             table=self.tableWidget
         else:
@@ -201,7 +199,7 @@ class PipeBundleEditor(QMainWindow):
         else:
             iface.messageBar().pushMessage("Info", "No pipe bundle type attribute selected!", level=Qgis.Info)
 
-class ImportNetworkTopologyFromLayer(QMainWindow):
+class ImportNetworkTopologyFromLayer(QDialog):
     def __init__(self,config,plugin_dir):     
         """Initialize GUI to Import Network Topology From Layer"""
         super().__init__()
@@ -295,9 +293,7 @@ class ImportNetworkTopologyFromLayer(QMainWindow):
         
         setDHCLayerListAttributes(self,'line')
 
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
 def loadLayers(dlg,type):
     """Load layers when combobox is clicked"""
@@ -313,7 +309,7 @@ def loadLayers(dlg,type):
     dlg.selectLayer.addItems(layers)
     
 def addExpressionToMappedAttributes(dlg,dropdown):
-    print('---------------------')
+    #print('---------------------')
     
     currentRow=dlg.tableWidget.currentRow()
     if currentRow!=-1:
@@ -323,7 +319,7 @@ def addExpressionToMappedAttributes(dlg,dropdown):
             expression=dlg.tableWidget.item(currentRow, 0).text()
         attribute=dlg.tableWidget.item(currentRow, 2).text()
         dlg.mappedAttributes[attribute]=expression
-        print(dlg.mappedAttributes)
+        #print(dlg.mappedAttributes)
 
 def setDHCLayerListAttributes(dlg,type):
     """Sets the layer attributes"""
@@ -334,8 +330,8 @@ def setDHCLayerListAttributes(dlg,type):
             layer_name='energy_plants'
         else:
             layer_name='customers'
-    layer=QgsProject.instance().mapLayersByName(layer_name)
-    print(layer)
+    layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))
+    #print(layer)
     if layer:
         layer=layer[0]
         attributes=layer.fields()
@@ -347,18 +343,18 @@ def setDHCLayerListAttributes(dlg,type):
     
 def disconnectAttributes(dlg):
     """Disconnect the attributes from layer to layer"""
-    print("Disconnect the attributes from layer to layer")
+    #print("Disconnect the attributes from layer to layer")
     row=dlg.tableWidget.currentRow()
     if row!=-1:
-        print(row)
+        #print(row)
         attribute=dlg.tableWidget.item(row,2).text()
-        print(attribute)
+        #print(attribute)
         dlg.mappedAttributes[attribute]=''
         dlg.tableWidget.removeRow(row)
 
 def mapAttributes(dlg):
     """Map the attributes from layer to layer"""
-    print("Map the attributes from layer to layer")
+    #print("Map the attributes from layer to layer")
     currentLayerAttribute=dlg.listWidget_layerAttributes.currentItem()
     currentLayer_attribute=dlg.listWidget_attributes.currentItem()
     if currentLayerAttribute:
@@ -378,16 +374,16 @@ def mapAttributes(dlg):
         dlg.tableWidget.insertRow(rowPosition)
         dlg.tableWidget.setItem(rowPosition,0,QTableWidgetItem(currentLayerAttribute))            
         item=QTableWidgetItem('-->')
-        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+        item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
         dlg.tableWidget.setItem(rowPosition,1,item)
         item=QTableWidgetItem(currentLayer_attribute)
-        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+        item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
         dlg.tableWidget.setItem(rowPosition,2,item)
     else:            
         iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=Qgis.Info)  
-    print(dlg.mappedAttributes)
+    #print(dlg.mappedAttributes)
                
-class ImportPointLayer(QMainWindow):
+class ImportPointLayer(QDialog):
     def __init__(self,config,plugin_dir):     
         """Initialize GUI to Import Network Topology From Point Layer"""
         super().__init__()
@@ -494,11 +490,9 @@ class ImportPointLayer(QMainWindow):
         layout_win.addWidget(self.tableWidget)
         layout_win.addLayout(layout_buttons)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
-class IDA_Districts_InputsDialog(QMainWindow):
+class IDA_Districts_InputsDialog(QDialog):
     def __init__(self,title,inputs,newConnBundleType,newConnType):
         """Constructor."""
         super().__init__()
@@ -581,11 +575,9 @@ class IDA_Districts_InputsDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addStretch()
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
-class ImportGeoDataDlg(QMainWindow):
+class ImportGeoDataDlg(QDialog):
     def __init__(self,title='',default_path=''):        
         super().__init__()
         self.setWindowTitle(title) 
@@ -620,15 +612,13 @@ class ImportGeoDataDlg(QMainWindow):
         layout_win.addLayout(layout_btn)
         layout_win.addWidget(self.progress)
 
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
     def update_finished(self,message,main_dlg):
-        print(message)
+        #print(message)
         main_dlg.statusMessage.setText(message)
         self.process_running=False
  

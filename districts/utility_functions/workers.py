@@ -30,7 +30,7 @@ class WorkerLoadVersion(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APISignals()
         self.config=kwargs['config']
         self.cur=kwargs['cur']
@@ -39,9 +39,9 @@ class WorkerLoadVersion(QRunnable):
     @pyqtSlot()
     def run(self):
         try:
-            print('Load project version')
+            #print('Load project version')
             self.signals.progress.emit(10)  
-            print(self.config['versionName'])
+            #print(self.config['versionName'])
             
             #version handling            
             
@@ -53,7 +53,7 @@ class WorkerLoadVersion(QRunnable):
             self.config['lastVersionName']=self.config['versionName']            
             self.signals.progress.emit(100)            
         except Exception as e:
-            print(f'error: {e}')
+            #print(f'error: {e}')
             self.signals.error.emit("Loading version failed!") 
         finally:
             write_plugin_settings(self.config)
@@ -66,7 +66,7 @@ class WorkerImportProject(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(kwargs)
+        #print(kwargs)
         self.signals=APISignals()
         self.config=kwargs['config']
         self.password=kwargs['password']
@@ -81,18 +81,20 @@ class WorkerImportProject(QRunnable):
         self.project_name=kwargs['project_name']
         self.projectNames=kwargs['projectNames']
         self.versionNames=kwargs['versionNames']
+        if self.dlg:
+            self.dlg.process_running=True
         
     @pyqtSlot()
     def run(self):
-        print('Import project')
-        print(self.project_name)
+        #print('Import project')
+        #print(self.project_name)
         self.signals.progress.emit(1)            
         src_dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
         name=self.filename.split('\\')[-1].split('.')[0]
         src_dir=src_dir+name
-        print(src_dir)
-        print(self.config)
-        print(name)
+        #print(src_dir)
+        #print(self.config)
+        #print(name)
         
         if os.path.exists(src_dir):
             rmtree_long_path(src_dir)
@@ -100,10 +102,10 @@ class WorkerImportProject(QRunnable):
         if not os.path.exists(src_dir): 
             if os.path.exists(self.config['pathDistricts']+"bin\\7za.exe"):
                 cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(self.config['pathDistricts'],self.filename,src_dir)
-                print(cmd)
+                #print(cmd)
                 subprocess.call(cmd, shell=True)
             else:
-                self.signals.error.emit("IDA ICE Directory cannot be found. Please check IDA Districts configuration data!")
+                self.signals.error.emit("IDA Districts Directory cannot be found. Please check Districts Modeler configuration data!")
                 self.signals.progress.emit(0)            
                 return False
         self.signals.progress.emit(15)            
@@ -117,25 +119,25 @@ class WorkerImportProject(QRunnable):
             db_info=strToDict(db_info)
         else:
             db_info={'projectName': self.project_name}                
-        print(db_info)
+        #print(db_info)
         
         #check if project already exists
         if db_info['projectName'] not in self.projectNames:
-            print('project does not exist')
+            #print('project does not exist')
                 
             src_project_dir=src_dir+'\\'+name+'\\'+name+'\\'
 
-            print(src_project_dir)
-            target_dir=self.plugin_dir+'\\projects\\'+(self.project_name if self.project_name else name)
-            print(target_dir)
+            #print(src_project_dir)
+            target_dir=self.config['pathProjects']+(self.project_name if self.project_name else name)
+            #print(target_dir)
             os.makedirs(target_dir, exist_ok=True)
 
             self.signals.progress.emit(20)
             try:
-                print('data copy start')
                 copy_tree_filter_extensions_and_folders(src_project_dir+'customer_templates',target_dir+'\\customer_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
                 copy_tree_filter_extensions_and_folders(src_project_dir+'energy_plant_templates',target_dir+'\\energy_plant_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
-                print('data copy finished')
+                copy_tree_filter_extensions_and_folders(src_project_dir+'climate',target_dir+'\\climate',signals=self.signals,exclude_extensions=self.filter_extensions)
+                copy_tree_filter_extensions_and_folders(src_project_dir+'supervisory_control',target_dir+'\\supervisory_control',signals=self.signals,exclude_extensions=self.filter_extensions)
 
                 replace_in_folder(
                     root_folder=target_dir,
@@ -144,26 +146,44 @@ class WorkerImportProject(QRunnable):
                     file_extensions=['.idm'],
                     exclude_filenames=[]
                 )
+
+                replace_in_folder(
+                    root_folder=target_dir,
+                    old_string='$districts_path$',
+                    new_string=self.config['pathDistricts'].replace('\\','\\\\'),
+                    file_extensions=['.idm'],
+                    exclude_filenames=[]
+                )
                 self.signals.progress.emit(30)
             except Exception as e:
-                print(f'error: {e}')
+                #print(f'error: {e}')
                 self.signals.error.emit("Data center copying failed: "+ str(e))
                 return False
             try:
-                if os.path.exists(src_project_dir+'model'):
-                    copy_tree_filter_extensions_and_folders(src_project_dir+'model',target_dir+'\\models\\',signals=self.signals,exclude_extensions=self.filter_extensions,exclude_folders=self.filter_folders)
+                #print('--versions directory--')
+                if os.path.exists(src_project_dir+'versions'):
+                    copy_tree_filter_extensions_and_folders(src_project_dir+'versions',target_dir+'\\versions\\',signals=self.signals,exclude_extensions=self.filter_extensions,exclude_folders=self.filter_folders)
                 self.signals.progress.emit(50)
             except Exception as e:
-                print(f'error: {e}')
+                #print(f'error: {e}')
                 self.signals.error.emit("Modelling data copying failed!")
                 return False
+                
+            if not os.path.exists(target_dir+'\\versions'):
+                createDir(target_dir,'versions')
+                
             try:
                 copyFile(src_project_dir+'configProject.txt',target_dir,target_dir+'\\configProject.txt')
+                copyFile(src_project_dir+'requestedOutputs.txt',target_dir,target_dir+'\\requestedOutputs.txt')
                 self.signals.progress.emit(70)
             except Exception as e:
-                print(f'error: {e}')
+                #print(f'error: {e}')
                 self.signals.error.emit("Copying data failed!")
                 return False
+            try:
+                copyFile(src_project_dir+'layersConfig.txt',target_dir,target_dir+'\\layersConfig.txt')
+            except Exception as e:
+                pass
             
             sql = """CREATE database {};""".format(db_info['projectName'])
             self.cur_postgres.execute(sql)
@@ -183,7 +203,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.signals.progress.emit(71)
             if self.project_name:
                 sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames])
-                print(sql)
+                #print(sql)
                 if sql:
                     self.cur.execute(sql)
                 self.signals.progress.emit(73)
@@ -191,12 +211,13 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                 #create tables in new schema
                 #project tables
                 filedata=readFileToString(self.plugin_dir+"\\DB_projectTablesDefault.txt")
-                print(filedata)
+                #print(filedata)
                 self.cur.execute(filedata)
+                
                 if self.versionNames:
                     
                     #version tables
-                    self.projectConfig=loadProjectConfig(self.plugin_dir,self.project_name,signals=self.signals)  
+                    self.projectConfig=loadProjectConfig(self.config,project_name=self.project_name,signals=self.signals)  
                     filedata=readFileToString(self.plugin_dir+"\\DB_versionTablesDefault.txt")
                     filedata = filedata.replace("$srid$", self.projectConfig['srid'])
                     filedata = filedata.replace("$plugins_path$", self.plugin_dir)
@@ -205,6 +226,13 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                         self.cur.execute(newdata)
             
             self.signals.progress.emit(75)
+            if name =='heating_network':
+                #print('-----heating_network------')
+                sql="""ALTER TABLE "base1".customers ADD COLUMN load_w NUMERIC;
+ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
+                self.cur.execute(sql)
+            self.signals.progress.emit(76)
+                
             sql_dir=(src_dir+'\\'+name if self.project_name else src_dir)+'\\'
             
             #create tables in new schema
@@ -214,23 +242,24 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                     for line in myfile:
                         filedata=filedata+line
                 newdata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
+                newdata = filedata.replace("$districts_path$", os.path.normpath(self.config['pathDistricts']).replace('\\','\\\\'))
                 
                 with open(sql_dir+('db_tables_.sql' if self.project_name else name+'_.sql'),'w') as myfile:
                     myfile.write(newdata)   
             
-            print(sql_dir)
-            cmd="""\"{}bin\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
-                self.config['pathPostgres'],self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ ('db_tables_.sql' if self.project_name else name+'_.sql'))
-            print(cmd)
+            #print(sql_dir)
+            cmd="""\"{}\\postgreSQL\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
+                self.plugin_dir,self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ ('db_tables_.sql' if self.project_name else name+'_.sql'))
+            #print(cmd)
             subprocess.call(cmd, shell=True)
             self.signals.progress.emit(79)
             filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt")
             self.cur.execute(filedata)
             self.signals.progress.emit(80)            
             if self.project_name and not self.no_db_results:
-                cmd="""\"{}bin\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
-                    self.config['pathPostgres'],self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ 'db_results.sql')
-                print(cmd)
+                cmd="""\"{}\\postgreSQL\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
+                    self.plugin_dir,self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ 'db_results.sql')
+                #print(cmd)
                 subprocess.call(cmd, shell=True) 
             self.conn.close()
 
@@ -243,7 +272,8 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             pass
             #shutil.rmtree(src_dir)  
         except Exception as e:
-            print(e)
+            pass
+            #print(e)
         self.signals.progress.emit(100)
         self.signals.finished.emit(db_info['projectName'])
         
@@ -253,9 +283,10 @@ class WorkerExportProject(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APISignals()
         self.config=kwargs['config']
+        self.plugin_dir=kwargs['plugin_dir']
         self.password=kwargs['password']
         self.username=kwargs['username']
         self.filename=kwargs['filename']
@@ -264,21 +295,20 @@ class WorkerExportProject(QRunnable):
         self.no_db_results=kwargs['no_db_results']
         self.conn=""
         self.cur=""
-        self.plugin_dir=kwargs['plugin_dir']
         self.conn = dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
     @pyqtSlot()
     def run(self):
-        print('Export project worker')
+        #print('Export project worker')
         self.signals.progress.emit(1)
          
-        print(self.filename)
+        #print(self.filename)
         dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
         name=self.filename.split('\\')[-1].split('.')[0]
-        print(dir)
-        print(name)
+        #print(dir)
+        #print(name)
         createDir(dir,name)
         dir=dir+name
 
@@ -292,7 +322,7 @@ class WorkerExportProject(QRunnable):
         os.makedirs(os.path.dirname(sql_path), exist_ok=True)
 
         cmd = [
-            self.config['pathPostgres']+"bin\\pg_dump",  # Path to pg_dump
+            os.path.join(self.plugin_dir,"postgreSQL\\pg_dump"),  # Path to pg_dump
             "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.username,self.password ,self.config['host'],self.config['port'],self.config['projectName'])
         ]
         if self.no_db_results:
@@ -302,7 +332,7 @@ class WorkerExportProject(QRunnable):
             cmd.append("--exclude-table-data=*.customer_m_*")
             cmd.append("--exclude-table-data=*.line_m*")
             cmd.append("--exclude-table-data=*.energy_plant_m*")
-        print(cmd)
+        #print(cmd)
         # Output file redirection (using stdout to redirect the output to a file)
         with open(sql_path, "w") as output_file:
             subprocess.call(cmd, stdout=output_file)        
@@ -310,23 +340,23 @@ class WorkerExportProject(QRunnable):
         self.signals.progress.emit(25)
 
         try:
-            copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\projects\\customer_templates\\'+self.config['projectName'], dir+'\\'+name+'\\customer_templates\\'+name,self.signals,self.filter_extensions,self.filter_folders)
-            copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\projects\\energy_plant_templates\\'+self.config['projectName'], dir+'\\'+name+'\\energy_plant_templates\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+'customer_templates\\'+self.config['projectName'], dir+'\\'+name+'\\customer_templates\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+'energy_plant_templates\\'+self.config['projectName'], dir+'\\'+name+'\\energy_plant_templates\\'+name,self.signals,self.filter_extensions,self.filter_folders)
         except Exception as e:
-            print(f'error: {e}')
+            #print(f'error: {e}')
             self.signals.error.emit("Data center files export failed!")
         self.signals.progress.emit(40)    
         try:
-            copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\projects\\'+self.config['projectName'], dir+'\\'+name+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+self.config['projectName'], dir+'\\'+name+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
         except Exception as e:
-            print(f'error: {e}')
+            #print(f'error: {e}')
             self.signals.error.emit("Project handling files export failed!") 
         self.signals.progress.emit(55)  
-        if os.path.exists(self.plugin_dir+'\\projects\\'+self.config['projectName']+'\\model\\'):
+        if os.path.exists(self.config['pathProjects']+self.config['projectName']+'\\model\\'):
             try:
-                copy_tree_filter_extensions_and_folders(self.plugin_dir+'\\projects\\'+self.config['projectName']+'\\model\\', dir+'\\'+name+'\\model\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+                copy_tree_filter_extensions_and_folders(self.config['pathProjects']+self.config['projectName']+'\\model\\', dir+'\\'+name+'\\model\\'+name,self.signals,self.filter_extensions,self.filter_folders)
             except Exception as e:
-                print(f'error: {e}')
+                #print(f'error: {e}')
                 self.signals.error.emit("Modelling files export failed!") 
         self.signals.progress.emit(70)  
         db_info={'projectName': name}
@@ -334,7 +364,7 @@ class WorkerExportProject(QRunnable):
             with open(dir+'\\DB_info.txt', "w") as myfile:   
                 myfile.write(str(db_info))
         cmd="""\"{}bin\\7za.exe" a -t7z -r "{}.ida" "{}/*.*\"""".format(self.config['pathDistricts'],dir,dir)
-        print(cmd)
+        #print(cmd)
         subprocess.call(cmd, shell=True) 
         shutil.rmtree(dir)  
         self.signals.progress.emit(100)
@@ -346,14 +376,13 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APIPlotinvokedFeatureSignals()
         self.config=kwargs['config']
         self.dlg=kwargs['dlg']
         self.type=kwargs['type']
         self.conn=""
         self.cur=""
-        self.plugin_dir=kwargs['plugin_dir']
         self.conn = dbConnect(self.config,True)
         self.rows=kwargs['rows']
         if self.conn:
@@ -361,7 +390,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        print('Generate network topology')
+        #print('Generate network topology')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
        
@@ -369,19 +398,19 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
         for idx in self.rows:
             id=self.dlg.tableWidget_customer.item(idx,0).text()
             connValues=getConnsValues(getConnBundleByFeature(self.type,id,self.cur,self.config),self.cur)
-            print(connValues)
+            #print(connValues)
             conn_type_seq=set([x['conn_type_seq'] for x in connValues])
-            print(conn_type_seq)
+            #print(conn_type_seq)
             for seq in conn_type_seq:
-                file_path=self.plugin_dir+"\\projects\\{}\\models\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
-                print(file_path)
+                file_path=self.config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
+                #print(file_path)
                 if os.path.exists(file_path):
                     legend=self.type.capitalize()+':'+id
 
-                    print(file_path)
+                    #print(file_path)
                     filedata=readFileToList(file_path)
 
-                    print(filedata)
+                    #print(filedata)
                     i=0
                     time=[]
                     power=[]
@@ -398,7 +427,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                                     energy.append([float(data[0]),energy[-1][1]+(float(data[0])-energy[-1][0])*float(data[power_col])/1000]) #kWh
                             i+=1    
                     except Exception as e:
-                        print(f'error: {e}')
+                        #print(f'error: {e}')
                         self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
                     
                     power=np.array(power)  
@@ -448,30 +477,30 @@ class WorkerSimulateFilesAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir,self.config)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         file_path=""
         try:
             for counter,file_path in enumerate(self.file_pathes,1):
                 if os.path.exists(file_path):
-                    print(file_path)
+                    #print(file_path)
                     #open file
-                    print('+++++++++opening+++++++++++')
+                    #print('+++++++++opening+++++++++++')
                     building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
-                    print('+++++++++opened+++++++++++')
+                    #print('+++++++++opened+++++++++++')
                     #run sim
-                    script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
+                    script="""((RUN-SIMULATION [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
-                    print(script)
+                    #print(script)
                     self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
-                    print('save doc')
+                    #print('save doc')
                     #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('utf-8'), 1)   
-                    print('+++++++++saved++++++++++++++++')
+                    #print('+++++++++saved++++++++++++++++')
                     self.progress_value=int(counter/len(self.file_pathes)*98)+1
-                    print(self.progress_value)
+                    #print(self.progress_value)
                     self.signals.progress.emit(self.progress_value)
                     if self.result:
                         self.signals.status.emit('Simulation finished')
@@ -480,7 +509,7 @@ class WorkerSimulateFilesAPI(QRunnable):
                 else:
                     self.signals.error.emit("Sim model does not exist!")
             self.signals.progress.emit(100)
-            print('simulation-finished')
+            #print('simulation-finished')
         except:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
@@ -500,32 +529,32 @@ class WorkerSimulateAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir,self.config)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         self.building={}
         try:
             if os.path.exists(self.file_path):
-                print(self.file_path)
+                #print(self.file_path)
                 #open file
-                print('+++++++++opening+++++++++++')
+                #print('+++++++++opening+++++++++++')
                 self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-                print('+++++++++opened+++++++++++')
+                #print('+++++++++opened+++++++++++')
                 #run sim
-                script="""((ICE-RUN-BUILDING-EX [@ :SYSTEM])
+                script="""((RUN-SIMULATION [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(self.file_path.replace('\\','\\\\'))
-                print(script)
+                #print(script)
                 self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))
-                print(self.result)
+                #print(self.result)
                 if self.result:
                     self.signals.status.emit('Simulation finished')
                 else:
                     self.signals.status.emit('Simulation failed')
             else:
                 self.signals.error.emit("Sim model does not exist!")
-            print('++++simulation-finished++++')
+            #print('++++simulation-finished++++')
         except:
             self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
         self.signals.finished.emit("finished")
@@ -563,18 +592,18 @@ class WorkerOpenAPI(QRunnable):
     @pyqtSlot()
     def run(self):
         #open file in IDA
-        print('+++++++++++++++++++open Doc++++++++++++++++')
+        #print('+++++++++++++++++++open Doc++++++++++++++++')
 
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir,self.config,submodel=self.submodel)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
             result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            print('++finished++')
+            #print('++finished++')
             self.signals.progress.emit(100)
         except:
             self.signals.progress.emit(0)
@@ -583,10 +612,9 @@ class WorkerOpenAPI(QRunnable):
 class WorkerOpenModelCmd(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,plugin_dir,config,submodel='1'):
+    def __init__(self,file_path,config,submodel='1'):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
-        self.plugin_dir=plugin_dir
         self.signals=APISignals()
         self.submodel=submodel
         self.config=config
@@ -597,16 +625,18 @@ class WorkerOpenModelCmd(QRunnable):
         self.signals.progress.emit(1)
 
         try:
-            cmd='"{}bin\\ice.exe" -C ida_{} -G1 -O "{}"'.format(self.config['pathDistricts'],str(self.submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime()),self.file_path)
-            print(cmd)
+            exe_path = os.path.join(self.config['pathDistricts'], "bin", "districts.exe")
+            cmd='"{}bin\\ida-districts.exe" "{}bin\\ida.img" -C ida_{} -G1 -O "{}"'.format(self.config['pathDistricts'],self.config['pathDistricts'],str(self.submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime()),self.file_path)
+            #print(cmd)
             result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            print("STDOUT:\n", result.stdout)
-            print("STDERR:\n", result.stderr)
-            print("Return code:", result.returncode)
+
+            #print("STDOUT:\n", result.stdout)
+            #print("STDERR:\n", result.stderr)
+            #print("Return code:", result.returncode)
 
             if result.returncode==0:
                 self.signals.progress.emit(100)
-                self.signals.finished.emit('Model opened successfully!')
+                self.signals.finished.emit('IDA Districts model updated successfully!')
             else:
                 self.signals.progress.emit(0)
         except Exception as e:
@@ -616,7 +646,7 @@ class WorkerOpenModelCmd(QRunnable):
 class WorkerOpenRunScriptAPI(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,plugin_dir,config,cript,exit_ida=False,finished_fn=False,finished_fn_args=None):
+    def __init__(self,file_path,plugin_dir,config,script,exit_ida=False,finished_fn=False,finished_fn_args=None):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
         self.plugin_dir=plugin_dir
@@ -633,36 +663,36 @@ class WorkerOpenRunScriptAPI(QRunnable):
         self.signals.progress.emit(1)
         self.util=Util_api(self.plugin_dir,self.config)
 
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
             self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            print('+++++++++')
-            print(self.building)
+            #print('+++++++++')
+            #print(self.building)
             self.signals.progress.emit(50)
             if isinstance(self.script, list): 
                 for ida_script in self.script:
                     result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
-                    print(result)
+                    #print(result)
             else:
                 result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
-                print(result)
+                #print(result)
             
             if self.exit_ida:
                 try:
-                    print('exit-ida')
+                    #print('exit-ida')
                     self.script="(exit-ida)"
-                    print(self.script.encode('utf-8'))
+                    #print(self.script.encode('utf-8'))
                     self.signals.progress.emit(90)
-                    print(self.finished_fn)
+                    #print(self.finished_fn)
                     if callable(self.finished_fn):
                         self.finished_fn(self.finished_fn_args)
                     self.signals.progress.emit(100)
                     self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
                 except Exception as e:
-                    print(e)
+                    #print(e)
                     self.signals.progress.emit(0)
                     self.signals.error.emit("Failed to exit ida!")  
             else:    
@@ -681,10 +711,10 @@ class WorkerOpenParRunAPI():
         #open file in IDA
         self.util=Util_api(plugin_dir,config)
         self.file_path=file_path.replace('/','\\')
-        print(self.util.pid)
+        #print(self.util.pid)
         
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
             building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             if parmRun=='New Parametric Run':
@@ -698,9 +728,9 @@ class WorkerOpenParRunAPI():
                 script="""((:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
 (open-as parm_name 'form))""".format(parmRun)
             
-            print(script)
+            #print(script)
             script_result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
-            print(script_result)
+            #print(script_result)
         except:
             pass
             
@@ -710,20 +740,20 @@ class WorkerRunAutoMooAPI():
         #open file in IDA
         self.util=Util_api(plugin_dir,config)
         self.file_path=file_path.replace('/','\\')
-        print(self.file_path)
-        print(self.util.pid)
-        # IDA ICE connection test
+        #print(self.file_path)
+        #print(self.util.pid)
+        # IDA Districts connection test
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        print(connectionTest)
+        #print(connectionTest)
         try:
-            print('**************ParmRunSkopt*****************')
+            #print('**************ParmRunSkopt*****************')
             self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            print(self.building)
+            #print(self.building)
 
-            print('save doc')
+            #print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
             
-            print('--script---')
+            #print('--script---')
             #execute AutoMOO
             script="""((:set parmrun_ [@ "{}"])
 (:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
@@ -732,19 +762,19 @@ class WorkerRunAutoMooAPI():
 (parmrun-common-check parmrun_ t)
 (PARMRUN-SKOPT parmrun_)
 )""".format(parmRun,parmRun)
-            print(script)
+            #print(script)
             self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
       
-            print('save doc')
+            #print('save doc')
             self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
 
-            print('exit')
+            #print('exit')
             #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
             os.system("taskkill /f /im ida-ice.exe")
             #Disconnect
-            print('disconnect')
+            #print('disconnect')
             #end = self.util.ida_lib.ida_disconnect()
-            print('finish')
+            #print('finish')
         except:
             pass
         

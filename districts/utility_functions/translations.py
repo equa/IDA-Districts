@@ -18,8 +18,15 @@ def _register_translation_keys():
     
     #feature types
     tr("customer")
+    tr("line")
     tr("energy_plant")
+    tr("customers")
+    tr("lines")
+    tr("junctions")
+    tr("energy_plants")
     tr("supervisory")
+    tr("buildings")
+    tr("streets")
     
     #pipe ambient
     tr("ambient_air")
@@ -74,6 +81,7 @@ def _register_translation_keys():
     tr("qsup_c")
     
     tr("qamb")
+    tr("volume")
     
     tr("qsup_heat_spec_c")
     tr("qsup_cold_spec_c")
@@ -101,5 +109,66 @@ def _register_translation_keys():
     #headers
     tr("pipe_info_titel")
     tr("network")
+    tr("map_plots")
+    
+    #fields 
+    tr("id")
+    tr("template")
+    tr("network")
+    tr("submodel")
+    tr("load_w")
+    tr("gfa_m2")
+    tr("type")
+    tr("pipe_bundle_type_id")
+    tr("zeta")
+    tr("n_connections")
+    tr("length_m")
+    tr("costs_eur7m")
+    tr("b_id")
+    tr("z_id")
+    tr("substation_id")
+    tr("z_bh_m")
+    tr("z_height_m")
+    
+    #groups
+    tr("general")
+    tr("physical_data")
+    tr("simulation_data")
+    tr("meta_data")
+    
+    #layer categories
+    tr("unkown")
+    #junctions
+    tr("cross")
+    tr("end_cap")
+    tr("reducer")
+    tr("tee")
+    tr("y_connector")
+    #lines
+    tr("service_pipe")
+    tr("distribution_pipe")
+    tr("transmission_pipe")
+    tr("station_pipe")
+    tr("customer_pipe")
+    #customers
+    tr("simplified_consumer")
+    tr("simplified_consumer_2sup_2ret")
+    tr("simplified_consumer_2sup_1ret")
+    tr("simplified_consumer_hp")
+    #energy_plants
+    tr("ideal_heat_source")
+    tr("ideal_cooling_source")
+    tr("ideal_heat_cooling_source_2sup_2ret")
+    tr("ideal_heat_cooling_source_2sup_1ret")
+    
+    #buttons
+    tr("set_load_attribute")
+    tr("customer_data_sheet")
+    
+    #templates
+    tr("empty_project")
+    tr("heating_network")
+    tr("db_default_values")
+    
     
     

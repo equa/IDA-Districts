@@ -1,17 +1,19 @@
+from qgis.utils import iface
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
+from qgis.core import QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsWkbTypes,QgsPalLayerSettings,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsLineSymbol,QgsClassificationQuantile,QgsGeometry,QgsVectorLayer,QgsFeature,QgsClassificationEqualInterval,QgsRendererRangeLabelFormat,QgsStyle,QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer,QgsSymbol,QgsFilledMarkerSymbolLayer,QgsSymbolLayer,QgsProperty,Qgis
+from qgis.PyQt.QtWidgets import QShortcut,QListWidgetItem,QFileDialog,QStackedWidget,QListView,QLineEdit,QDialog,QTableWidgetItem
+from qgis.PyQt.QtGui import QFont, QColor
+
 from .db import *
 from .workers import *
+from .compat import *
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
-from qgis.utils import iface
-
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
-from qgis.core import QgsVectorLayerSimpleLabeling,QgsWkbTypes,QgsPalLayerSettings,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsLineSymbol,QgsClassificationQuantile,QgsGeometry,QgsVectorLayer,QgsFeature,QgsClassificationEqualInterval,QgsRendererRangeLabelFormat,QgsStyle,QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer,QgsSymbol,QgsFilledMarkerSymbolLayer,QgsSymbolLayer,QgsProperty,Qgis
-from qgis.PyQt.QtWidgets import QShortcut,QAction,QListWidgetItem,QFileDialog,QStackedWidget,QListView,QLineEdit,QDialog,QTableWidgetItem
-from qgis.PyQt.QtGui import QFont, QColor
 
 def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,color_classes=None,colormode=None,colorramp=None,feature=None,varRotation=None,size_symbolMin=None,size_symbolMax=None,rotation_symbolMin=None,rotation_symbolMax=None,networkReportDlg=None):
-    print(data)
+    #print(data)
     if colorlabel:
         # Construct the expression for one decimal place formatting
         label_expression = f"format_number(\"{'color_' + data['color']['name'].split('$')[0]}\", 1)"
@@ -56,17 +58,17 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
         # Trigger a repaint to force QGIS to re-render the labels immediately
         layer.triggerRepaint() 
         iface.mapCanvas().refresh()
-        print(f"Labels enabled for layer '{layer.name()}' using expression: {label_expression}")
+        #print(f"Labels enabled for layer '{layer.name()}' using expression: {label_expression}")
 
 
     # ===== BUILD RENDERER (in main thread!) =====
-    print("Building renderer in main thread...")
+    #print("Building renderer in main thread...")
     renderer = None
 
     if data['color']['mode']:
         # target field name used for graduated renderer
         target_field = 'color_' + data['color']['name'].split('$')[0]
-        print("Renderer target field:", target_field)
+        #print("Renderer target field:", target_field)
         if data['color']['name'].split('$')[0] == 'mdot' and feature=='line':
             # --- mdot: rule-based renderer with arrows (positive / negative)
             attr = "color_mdot"
@@ -84,7 +86,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
             vals = [abs(f[attr]) for f in layer.getFeatures() if f[attr] is not None]
             if not vals:
                 # fallback: set single-class renderer
-                print("No values for attr", attr, " -> single symbol")
+                #print("No values for attr", attr, " -> single symbol")
                 renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
             else:
                 vmin, vmax = min(vals), max(vals)
@@ -199,7 +201,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
     # top-level symbol in case of single-symbol rules; for graduated renderer we update symbols.
     try:
         if data['size']['mode'] or data['rotation']['mode']:
-            print("Applying size/rotation DDPs...")
+            #print("Applying size/rotation DDPs...")
             # create a base symbol to apply changes to
             base_symbol = QgsSymbol.defaultSymbol(layer.geometryType())
             style = {}
@@ -252,22 +254,24 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                 renderer.setSymbol(base_symbol)
 
     except Exception as e:
-        print("Error applying size/rotation:", e)
+        #print("Error applying size/rotation:", e)
+        pass
 
     # ===== APPLY RENDERER (after labeling) =====
     try:
-        print("Applying renderer to layer...")
+        #print("Applying renderer to layer...")
         layer.setRenderer(renderer)
     except Exception as e:
-        print("Error setting renderer:", e)
+        #print("Error setting renderer:", e)
+        pass
 
     # ===== ADD TO PROJECT =====
-    print("Adding layer to project...")
+    #print("Adding layer to project...")
     QgsProject.instance().addMapLayer(layer)    
     
     # ===== TEMPORAL CONTROLLER (if applicable) =====
     if first_time_var:
-        print("Configuring temporal controller...")
+        #print("Configuring temporal controller...")
         # set temporal properties on the layer
         temp_prop = layer.temporalProperties()
         temp_prop.setIsActive(True)
@@ -315,20 +319,20 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
     iface.mapCanvas().refresh()
     
 def showOnMapMemoryLayer(vars,config,plugin_dir,feature,layer_name):   
-    print('showOnMapMemoryLayer')
+    #print('showOnMapMemoryLayer')
     column_names=[vars[var]['name'].split('$')[0] for var in vars if var not in ['time','data'] and vars[var]['mode']]
     column_types=[var for var in vars if var not in ['time','data'] and vars[var]['mode']]
-    print(column_names)
-    print(column_types)
+    #print(column_names)
+    #print(column_types)
     
     # make new memory layer
     temp_layer = QgsVectorLayer("{}?crs=epsg:{}&field=id:integer&{}{}".format(
         'LineStringZ' if feature=='line' else 'PointZ',
-        loadProjectConfig(plugin_dir,config['projectName'])['srid'],
+        loadProjectConfig(config)['srid'],
         'field=time:datetime&' if vars['time']['first_time_var'] else '',
         '&'.join(['field={}:numeric'.format(type+'_'+name) for type,name in zip(column_types,column_names)])),layer_name, "memory")
     temp_layer.startEditing()
-    print('temp_layer generated')
+    #print('temp_layer generated')
 
     #make new features
     for i in vars['data']:
@@ -340,7 +344,7 @@ def showOnMapMemoryLayer(vars,config,plugin_dir,feature,layer_name):
         for type,name in zip(column_types,column_names):
             feat[type+'_'+name]=float(i[type])
         temp_layer.addFeature(feat)
-    print('features added')
+    #print('features added')
     
     return temp_layer
 
@@ -350,8 +354,8 @@ class WorkerShowOnMap(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print('WorkerShowOnMap')
-        print(kwargs)
+        #print('WorkerShowOnMap')
+        #print(kwargs)
         self.signals=APISignals2()
         self.dlg_main=kwargs['dlg_main']
         self.config=kwargs['config']
@@ -426,7 +430,7 @@ class WorkerShowOnMap(QRunnable):
                 if name:
                     vars['rotation']['name']=name
         else:
-            print('kwargs vars')
+            #print('kwargs vars')
             vars=self.vars
             
         self.signals.progress.emit(5)  
@@ -434,7 +438,7 @@ class WorkerShowOnMap(QRunnable):
         return vars
     
     def getShowOnMapData(self,vars):
-        print(vars)
+        #print(vars)
         #drop old line_seg_%_vis tables
         sql="""WITH tables_to_drop AS (
     SELECT table_name
@@ -460,24 +464,24 @@ SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
             time_rotation=False
             
         self.first_time_var='color' if time_color else ('size' if time_size else ('rotation' if time_rotation else False))
-        print('++first-time-var: '+str(self.first_time_var))
+        #print('++first-time-var: '+str(self.first_time_var))
         if self.first_time_var:
             dt=getAvergageByMode(vars[self.first_time_var]['var_function'],self.cur,self.config,vars[self.first_time_var]['table_name']) #hours
         else:
             dt=False
-        print(dt)
+        #print(dt)
         first_par_var='color' if vars['color']['mode'] else ('size' if vars['size']['mode'] else ('rotation' if vars['rotation']['mode'] else False))
-        print(self.first_time_var)
-        print(first_par_var)
+        #print(self.first_time_var)
+        #print(first_par_var)
         first_group=self.first_time_var if self.first_time_var else first_par_var
         
         #if simulation results and line feature
         if self.simData and self.feature=='line':
-            print('update DB with visualization tables')
+            #print('update DB with visualization tables')
             #re-create table line_seg_vis, which holds the geometry of the visualized pipe segements
             #check if > calculated segments
                 
-            srid=loadProjectConfig(self.plugin_dir,self.config['projectName'])['srid']
+            srid=loadProjectConfig(self.config)['srid']
             
             #store cumulate simulation results in _vis table if lineSegVis!=0 and var
             if vars['color']['mode']=='var' and vars['color']['name'].split('$')[0] in ('temp','p') or vars['size']['mode']=='var' and vars['size']['name'].split('$')[0] in ('temp','p'):
@@ -490,7 +494,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
     geom geometry(LineStringZ,{})
 );
 SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.config['versionName'])
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
             
                 #load var data to the coresponding visualization table using averaged values for merged segments
@@ -508,7 +512,7 @@ CREATE TABLE "{}".line_s_{}_vis
 );""".format(self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name'])
                     
                     if vars['color']['name'].split('$')[0]=='p': #linear interpolation using pressure values at start and end of the line
-                        print('++++interpoation++++')
+                        #print('++++interpoation++++')
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,s.seg1_v+CASE WHEN seg_counter.count=1 THEN (s.seg2_v-s.seg1_v)/2 ELSE (s.seg2_v-s.seg1_v)/(seg_counter.count-1)*(seg.lid_seg-1) END AS value,seg.geom,seg.lid_seg
         FROM 
@@ -529,7 +533,7 @@ CREATE TABLE "{}".line_s_{}_vis
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
         ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])
                     sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['color']['name'],self.config['versionName'],vars['color']['name'])
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                     
                     vars['color']['table_name']=vars['color']['table_name']+'_vis'
@@ -554,14 +558,14 @@ CREATE TABLE "{}".line_s_{}_vis
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
         ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])
                         sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['size']['name'],self.config['versionName'],vars['size']['name'])
-                        print(sql)
+                        #print(sql)
                         self.cur.execute(sql)
                         
                     
                     vars['size']['table_name']=vars['size']['table_name']+'_vis'
                     
         self.signals.progress.emit(10)
-        print('get-data')
+        #print('get-data')
         if self.first_time_var or first_par_var:
             sql="""SELECT {}.{} AS fid, ST_AsText({}.geom) AS geom {}, {}
     FROM {}{}{}
@@ -601,7 +605,7 @@ CREATE TABLE "{}".line_s_{}_vis
                     ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]),
                 """date_trunc('{}', {}.time),""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time,'.format(self.first_time_var) if self.first_time_var else ''), #order by
                 first_group,'fid' if vars[first_group]['mode']=='var' else 'id')
-            print(sql)
+            #print(sql)
         self.cur.execute(sql)
         data=self.cur.fetchall()
         self.signals.progress.emit(60)  
@@ -614,10 +618,10 @@ CREATE TABLE "{}".line_s_{}_vis
         ORDER BY time
 )
 SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;""".format(self.config['versionName'],vars[self.first_time_var]['table_name'])
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             dt=self.cur.fetchone()['dt']
-            print(dt)
+            #print(dt)
 
         vars['data']=data
         vars['time']['dt']=dt
@@ -677,7 +681,7 @@ GROUP BY a.fid, lp.geom""".format(
  
     @pyqtSlot()
     def run(self):
-        print('Show data on map')
+        #print('Show data on map')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         try:

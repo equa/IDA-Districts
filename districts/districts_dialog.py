@@ -11,6 +11,7 @@ from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import QWidget
 from qgis.PyQt.QtGui import QPainter
 
+from .utility_functions.compat import *
 from .utility_functions.utility import *
 from .utility_functions.dialog import *
 import sys
@@ -73,9 +74,9 @@ class DistrictsSettingsDialog(QtWidgets.QDialog):
         uic.loadUi(ui_path, self)
         
         config=load_plugin_settings()
-        self.lineEdit_pathDistricts.setText(config["pathDistricts"])
+        self.lineEdit_pathProjects.setText(config["pathProjects"].replace('////','//'))
+        self.lineEdit_pathDistricts.setText(config["pathDistricts"].replace('////','//'))
         self.lineEdit_districts_api_delay.setText(config["districts_api_delay"])
-        self.lineEdit_pathPostgres.setText(config["pathPostgres"])
         self.checkBox_debug.setChecked(config["debug"])
         self.groupBox_autosave.setChecked(config["autosave"])
         self.lineEdit_autosave_dt.setText(config["autosave_dt"])
@@ -139,9 +140,9 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.label_connBundleImage.set_min_width(300)
         self.label_connBundleImage.load_svg(os.path.join(plugin_dir, "icons/Connections.svg"))
         
-        self.btn_materials.setIcon(QIcon(os.path.join(plugin_dir, "icons/customer.svg")))
+        self.btn_materials.setIcon(QIcon(os.path.join(plugin_dir, "icons/materials.png")))
         self.btn_materials.setIconSize(QSize(btn_size, btn_size))
-        self.btn_pipe_constructions.setIcon(QIcon(os.path.join(plugin_dir, "icons/customer.svg")))
+        self.btn_pipe_constructions.setIcon(QIcon(os.path.join(plugin_dir, "icons/Pipe Construction.png")))
         self.btn_pipe_constructions.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipes.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipe.png")))
         self.btn_pipes.setIconSize(QSize(btn_size, btn_size))
@@ -163,7 +164,7 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_climate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.svg")))  
         self.btn_climate.setIconSize(QSize(btn_size, btn_size))
         
-        self.btn_importStreetsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/Streets.svg")))
+        self.btn_importStreetsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/streets.png")))
         self.btn_importStreetsFromOSM.setIconSize(QSize(btn_size, btn_size))
         self.btn_importBuildingsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
         self.btn_importBuildingsFromOSM.setIconSize(QSize(btn_size, btn_size))
@@ -175,7 +176,7 @@ class DistrictsDialog(QtWidgets.QDialog):
         btn_size=150
         self.btn_pipeLayingAlgorithm.setIcon(QIcon(os.path.join(plugin_dir, "icons/Pipe_Laying_Algo__.svg")))
         self.btn_pipeLayingAlgorithm.setIconSize(QSize(btn_size, btn_size))
-        self.btn_mapFeatures.setIcon(QIcon(os.path.join(plugin_dir, "icons/Parameter_Mapping.svg")))
+        self.btn_mapFeatures.setIcon(QIcon(os.path.join(plugin_dir, "icons/LineMapping.svg")))
         self.btn_mapFeatures.setIconSize(QSize(btn_size, btn_size))   
         self.btn_generateTopology.setIcon(QIcon(os.path.join(plugin_dir, "icons/Generate_Topology_v2.svg")))
         self.btn_generateTopology.setIconSize(QSize(btn_size, btn_size))
@@ -189,36 +190,36 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_requestedOutputs.setIcon(QIcon(os.path.join(plugin_dir, "icons/Checkliste.png")))
         self.btn_requestedOutputs.setIconSize(QSize(btn_size, btn_size))   
         
-        self.btn_parmMapping.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_parmMapping.setIcon(QIcon(os.path.join(plugin_dir, "icons/ParameterMapping.png")))
         self.btn_parmMapping.setIconSize(QSize(btn_size, btn_size))   
         self.btn_sensorSignals.setIcon(QIcon(":/images/themes/default/propertyicons/sensor.svg"))
         self.btn_sensorSignals.setIconSize(QSize(btn_size, btn_size))   
-        self.btn_supervisory.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_supervisory.setIcon(QIcon(os.path.join(plugin_dir, "icons/SupervisoryCTRL.png")))
         self.btn_supervisory.setIconSize(QSize(btn_size, btn_size))   
         
-        self.btn_buildModel.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_buildModel.setIcon(QIcon(os.path.join(plugin_dir, "icons/BuildModel.png")))
         self.btn_buildModel.setIconSize(QSize(btn_size, btn_size))   
         self.btn_openModel.setIcon(QIcon(":/images/themes/default/mActionFileOpen.svg"))
         self.btn_openModel.setIconSize(QSize(btn_size, btn_size))   
-        self.btn_featureModels.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_featureModels.setIcon(QIcon(os.path.join(plugin_dir, "icons/FeatureModels.png")))
         self.btn_featureModels.setIconSize(QSize(btn_size, btn_size))   
         self.btn_runModel.setIcon(QIcon(":/images/themes/default/mTemporalNavigationAnimated.svg"))
         self.btn_runModel.setIconSize(QSize(btn_size, btn_size))   
         
         #results & visualization
         btn_size=100
-        self.btn_loadResults.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_loadResults.setIcon(QIcon(":/images/themes/default/dbmanager.svg"))
         self.btn_loadResults.setIconSize(QSize(btn_size, btn_size))   
         
-        self.btn_path_reports.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_path_reports.setIcon(QIcon(os.path.join(plugin_dir, "icons/pathreport.png")))
         self.btn_path_reports.setIconSize(QSize(btn_size, btn_size))  
-        self.btn_plotLoadProfiles.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_plotLoadProfiles.setIcon(QIcon(os.path.join(plugin_dir, "icons/loadprofile.png")))
         self.btn_plotLoadProfiles.setIconSize(QSize(btn_size, btn_size))  
         
-        self.btn_networkReport.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_networkReport.setIcon(QIcon(":/images/themes/default/mIconReport.svg"))
         self.btn_networkReport.setIconSize(QSize(btn_size, btn_size))   
         
-        self.btn_showDataOnMap.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_showDataOnMap.setIcon(QIcon(os.path.join(plugin_dir, "icons/map_plots.png")))
         self.btn_showDataOnMap.setIconSize(QSize(btn_size, btn_size))   
         
         # Drag state
@@ -230,7 +231,16 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.signals=CloseSignals()
         self.projetNames=[]
         
-
+        font = self.projectNameLabel.font()
+        font.setBold(True)
+        self.projectNameLabel.setFont(font)
+        font = self.versionNameLabel.font()
+        font.setBold(True)
+        self.versionNameLabel.setFont(font)
+        
+    def modelOpeningFinished(self,message):
+        self.statusMessage.setText(message)
+        
     def update_progress(self,progress):
         self.progress.setValue(progress)
         
@@ -244,14 +254,14 @@ class DistrictsDialog(QtWidgets.QDialog):
         if source is tabbar:
             if event.type() == QtCore.QEvent.Type.MouseButtonPress:
                 if event.buttons() & QtCore.Qt.MouseButton.LeftButton:
-                    self._drag_start_pos = event.position().toPoint()
+                    self._drag_start_pos = get_event_pos(event)
 
             elif event.type() == QtCore.QEvent.Type.MouseMove:
                 if not self._drag_start_pos:
                     return False
                 if not (event.buttons() & QtCore.Qt.MouseButton.LeftButton):
                     return False
-                if (event.position().toPoint() - self._drag_start_pos).manhattanLength() \
+                if (get_event_pos(event) - self._drag_start_pos).manhattanLength() \
                         < QtWidgets.QApplication.startDragDistance():
                     return False
 

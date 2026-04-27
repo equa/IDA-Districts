@@ -28,18 +28,18 @@ def getCustomerModelParameter(sim_model_id):
      
 def getParmRuns(template_name,dir,dictDB):
     """screen parm runs id the directory"""
-    print('++++++++')
+    #print('++++++++')
     file=dir+"\\"+dictDB['projectName']+"\\customer_templates\\"+template_name+".idm"
-    print(file)
+    #print(file)
     data=readFileToList(file)
     parmRuns=[line.split(':N "')[1].split('" :T')[0] for line in data if ":T PARMRUN-INFO" in line]    
     parmRuns.append('New Parametric Run')
-    print(parmRuns)
+    #print(parmRuns)
     return parmRuns
      
 def loadCustomerCalibrationData(dlg,dictDB,conn,plugin_dir):
     """Load the customers in the customer table with ID, model, Annual energy conumption (heating and cooling)"""
-    print('load customer model calibration data')
+    #print('load customer model calibration data')
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         
@@ -51,12 +51,12 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
     FROM customer_templates 
     ORDER BY template;""".format(dictDB['versionName'])
 
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         i=0
         parmRuns={}
         for template in cur.fetchall():
-            print(template)
+            #print(template)
             dlg.tableWidget_templates.insertRow(i)
             item=QTableWidgetItem(str(template['id']))
             item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
@@ -79,16 +79,16 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
 
             i+=1    
 
-        print(parmRuns)
+        #print(parmRuns)
         sql="""SELECT c.id AS c_id, c_t.template_name, c_t.template
     FROM "{}".customers c, customer_templates c_t
     WHERE c.template=c_t.template
     ORDER BY c.id;""".format(dictDB['versionName'])
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         i=0
         for customer in cur.fetchall():
-            print(customer)
+            #print(customer)
             dlg.tableWidget_customer.insertRow(i)
             item=QTableWidgetItem(str(customer['c_id']))
             item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
@@ -99,7 +99,7 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             dlg.tableWidget_customer.setItem(i,1,item)
             
             comboBox = QComboBox()
-            print(str(customer['template']))
+            #print(str(customer['template']))
             parm_items=parmRuns[str(customer['template'])]
             comboBox.addItems(parm_items)
             dlg.tableWidget_customer.setCellWidget(i, 3, comboBox)
@@ -115,7 +115,7 @@ def getDefaultDBColumnValue(cur,dictDB,table,column):
     return float(cur.fetchone()['column_default'])
     
 def addParamTable(s,dlg,cur,dictDB):
-    print(s.text())
+    #print(s.text())
     #input table
     i=dlg.tableWidget_inputs.rowCount()
     dlg.tableWidget_inputs.insertRow(i)

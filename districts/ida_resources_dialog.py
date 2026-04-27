@@ -1,7 +1,34 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QTableWidgetItem,QCheckBox,QComboBox,QHeaderView,QWidget,QMainWindow,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget
- 
-class ConnectionsDialog(QMainWindow):
+from qgis.PyQt.QtWidgets import QFileDialog,QDialog,QTableWidgetItem,QCheckBox,QComboBox,QHeaderView,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget
+from qgis.PyQt.QtGui import QIcon
+
+from .utility_functions.dialog import *
+from .utility_functions.utility import *
+
+class ClimateDialog(QDialog):
+    def __init__(self,data):
+        super().__init__()
+
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "districts_climate_dialog.ui")
+        uic.loadUi(ui_path, self)
+        self.lineEdit_location.setText(data['name'])
+        self.lineEdit_latitude.setText(str(data['latitude']))
+        self.lineEdit_longitude.setText(str(data['longitude']))
+        self.lineEdit_filePath.setText(data['filename'])
+        self.spinBox_timeZone.setValue(data['timezone'])
+        self.lineEdit_elevationHeight.setText(str(data['height']))  
+        
+        self.btn_openClimate.setIcon(QIcon(":/images/themes/default/mActionFileOpen.svg"))
+        
+    def fileDialog(self):
+        dir=os.path.dirname(self.lineEdit_filePath.text())
+        filename, _filter = QFileDialog.getOpenFileName(
+            self, self.tr("select_climate_data"),dir, "PRN files (*.prn)")
+        if filename:
+            self.lineEdit_filePath.setText(standardizePath(filename,trailingBackSlash=False))
+            
+class ConnectionsDialog(QDialog):
     def __init__(self,title,headers):
         """Constructor"""
         super().__init__()
@@ -36,38 +63,36 @@ class ConnectionsDialog(QMainWindow):
         layout_win.addLayout(layout_table)
         layout_win.addLayout(layout_buttons)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         self.traceTableValues={}      
         self.resize(900, 500)  # Width of 900 pixels, height of 500 pixels        
     
     def changedDropdownItem(self, s):
-        print('changed drop down item')
+        #print('changed drop down item')
         combo = self.sender()  # Get the combo box that sent the signal
         selected_option = combo.currentText().split(':')[0]
-        print(selected_option)
+        #print(selected_option)
 
         index = self.tableWidget.indexAt(combo.pos())
         row = index.row()
-        print(row)
+        #print(row)
         self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],self.traceTableValues[row][7],self.traceTableValues[row][8],selected_option]
-        print(self.traceTableValues[row])
+        #print(self.traceTableValues[row])
     
     def changedCheckboxState(self,s):
-        print('+++changed state++')
+        #print('+++changed state++')
         checkbox = self.sender()
         index = self.tableWidget.indexAt(checkbox.pos())
         row = index.row()
         col = index.column()
-        print(row)
-        print(col)
-        print(s)
+        #print(row)
+        #print(col)
+        #print(s)
         if s==2: #checked
             item=QTableWidgetItem('')
             self.tableWidget.setItem(row,5,item)
             item=QTableWidgetItem('')
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+            item.setFlags(item.flags() & ~qt_item_flag("ItemIsEnabled"))
 
             self.tableWidget.setItem(row,4,item)
             try:
@@ -78,7 +103,7 @@ class ConnectionsDialog(QMainWindow):
             item=QTableWidgetItem('')
             self.tableWidget.setItem(row,4,item)
             item=QTableWidgetItem('')
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
+            item.setFlags(item.flags() & ~qt_item_flag("ItemIsEnabled"))
 
             self.tableWidget.setItem(row,5,item)
             try:
@@ -86,11 +111,11 @@ class ConnectionsDialog(QMainWindow):
             except:
                 pass
         
-        print(self.traceTableValues)
+        #print(self.traceTableValues)
         
     def changedItem(self, item):
         row = item.row()
-        print('changed')
+        #print('changed')
         try:
             if self.traceTableValues[row][0]!=self.tableWidget.item(row,4).text(): #p
                 self.traceTableValues[row][1]=self.tableWidget.item(row,4).text()
@@ -100,9 +125,9 @@ class ConnectionsDialog(QMainWindow):
                 self.traceTableValues[row][5]=self.tableWidget.item(row,3).text()
         except:
             pass
-        print(self.traceTableValues)
+        #print(self.traceTableValues)
 
-class DefaultsDialog(QMainWindow):
+class DefaultsDialog(QDialog):
     def __init__(self,type_name,title,inputs,cur):     
         """Initialize GUI for defaults layers"""
         super().__init__()
@@ -179,6 +204,4 @@ class DefaultsDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addStretch()
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)

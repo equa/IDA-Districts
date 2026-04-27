@@ -29,14 +29,14 @@ def get_svg_size(svg_file):
     return parse_size(width), parse_size(height)
     
 def matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer',show_plot=True,save_plot=False):
-    print(feature_type)
+    #print(feature_type)
     power_connections=getFeatureConnbundletypeSequences(id,config,cur,feature_type=feature_type)
-    print(power_connections)
+    #print(power_connections)
     p_table_names=[feature_type+ '_s_power$'+str(i['conn_bundle_type_id'])+'_'+str(i['sequence']) for i in power_connections]
     filenames=[]
     for p_table_name in p_table_names:
         #try:
-        print(p_table_name)
+        #print(p_table_name)
         sql = """
 SELECT
     time,
@@ -46,7 +46,7 @@ FROM "{}"."{}"
 WHERE fid={}
 ORDER BY time;
         """.format(config['versionName'], p_table_name, id)                    
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         data=cur.fetchall()
         
@@ -112,8 +112,8 @@ ORDER BY time;
             createDir(temp_folder,'ida_districts')
             filename=temp_folder+'ida_districts\\'+p_table_name
             fig.savefig(filename, format='svg')
-            print(f"Plot saved to {filename}")
+            #print(f"Plot saved to {filename}")
             filenames.append(filename)
         #except Exception as e:
-        #    print(e)   
+        #    #print(e)   
     return filenames

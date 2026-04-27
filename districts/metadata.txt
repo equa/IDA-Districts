@@ -3,17 +3,17 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=IDA Districts
+name=Districts Modeler
 qgisMinimumVersion=3.0
-qgisMaximumVersion=3.99
-description=This is the IDA Districts plugin
+qgisMaximumVersion=4.99
+description=This is the Districts Modeler plugin
 version=0.1
 author=EQUA
-email=peter.nageler@equa.ch
+email=districts.support@equa.se
 supportsQt6=True
 icon=icons/IDA_Districts_Icon_QGIS.png
 
-about=This is IDA Districts for network modelling.
+about=This is the Districts Modeler for network modelling.
 
 tracker=http://bugs
 repository=http://repo
@@ -26,7 +26,7 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=
+tags=python,districts,thermal modeling
 
 homepage=
 category=Plugins

@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
+from qgis.PyQt.QtWidgets import QDialog,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
 from qgis.utils import iface
 from qgis.core import QgsWkbTypes,QgsProperty,QgsSymbolLayer,QgsLineSymbol,QgsSymbol,QgsGraduatedSymbolRenderer,QgsStyle,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsClassificationQuantile,QgsTextFormat,QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsPalLayerSettings
 
@@ -6,11 +6,67 @@ from .utility_functions.dialog import *
 from .utility_functions.topology import *
 from .utility_functions.show_on_map import *
 
-from qgis.PyQt import sip
 from decimal import Decimal
 from qgis.PyQt.QtGui import QFont, QColor
 
-class NetworkReportDialog(QtWidgets.QDialog):
+import matplotlib.pyplot as plt
+
+class ImportMeasuremntsDialog(QDialog):
+    def __init__(self):     
+        """Initialize GUI for plotting load profiles"""
+        super().__init__()
+        self.setWindowTitle("Import measurement data into DB")   
+        
+        layout_data_source=QHBoxLayout()
+        label_source =QLabel("Data source")
+        layout_data_source.addWidget(label_source) 
+        
+        self.lineEditSourceName =QLineEdit("")
+        layout_data_source.addWidget(self.lineEditSourceName)
+        self.btn_file_source=QPushButton("Select a file")
+        layout_data_source.addWidget(self.btn_file_source)
+        self.btn_dir_source=QPushButton("Select a directory")
+        layout_data_source.addWidget(self.btn_dir_source)
+        
+        self.tableVars = QTableWidget(0,5)  
+        self.tableVars.setHorizontalHeaderLabels(['Variables','Belongs to','Alias','min','max'])     
+        
+        #interpolate timestep
+        layout_interpolation=QVBoxLayout()
+        self.checkbox_timestep=QCheckBox('data interpolation, s')
+        self.checkbox_timestep.stateChanged.connect(self.interpolation_dt_state)
+        layout_interpolation.addWidget(self.checkbox_timestep)
+        self.interpolation_dt=QLineEdit('')
+        self.interpolation_dt.setHidden(True)
+        layout_interpolation.addWidget(self.interpolation_dt)
+
+        #delete existing data
+        self.delete_existing_data=QCheckBox('Delete data of selected variables')
+        self.delete_existingID_data=QCheckBox('Delete data of selected variables with present feature ID')
+        
+        #buttons     
+        layout_btn=QHBoxLayout()
+        self.btn_import=QPushButton("Import")
+        self.btn_cancel=QPushButton("Cancel")
+        layout_btn.addWidget(self.btn_import)
+        layout_btn.addWidget(self.btn_cancel)
+        
+        #---------------set layouts together-------------------
+        layout = QVBoxLayout()
+        layout.addLayout(layout_data_source)
+        layout.addWidget(self.tableVars)
+        layout.addLayout(layout_interpolation)
+        layout.addWidget(self.delete_existing_data)
+        layout.addWidget(self.delete_existingID_data)
+        layout.addLayout(layout_btn)
+        layout.addStretch()
+        
+        self.setLayout(layout)
+        
+    def interpolation_dt_state(self, s):
+        self.interpolation_dt.setHidden(s != checkState())
+            
+class NetworkReportDialog(QDialog):
     def __init__(self,plugin_dir):
         super().__init__()
 
@@ -23,9 +79,9 @@ class NetworkReportDialog(QtWidgets.QDialog):
     
     def deleteTableRow(self):
         """ Delete selected template and refresh table"""
-        print('delete row')
+        #print('delete row')
         row_index=self.tableWidget_diagrams.currentRow()
-        print(row_index)
+        #print(row_index)
         if row_index!=-1:
             self.data = [i for i in self.data if i.get("name") != self.tableWidget_diagrams.item(row_index,0).text()]
             self.tableWidget_diagrams.removeRow(row_index)
@@ -33,7 +89,7 @@ class NetworkReportDialog(QtWidgets.QDialog):
             self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
         
 
-class PlotLoadProfilesDialog(QMainWindow):
+class PlotLoadProfilesDialog(QDialog):
     def __init__(self):     
         """Initialize GUI for plotting load profiles"""
         super().__init__()
@@ -74,11 +130,9 @@ class PlotLoadProfilesDialog(QMainWindow):
         layout.addLayout(layout_btn)
         layout.addStretch()
         
-        widget=QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.setLayout(layout)
         
-class ShowOnMapDialog(QMainWindow):
+class ShowOnMapDialog(QDialog):
     def __init__(self,cur,config,plugin_dir,dlg_main,networkReportDlg=None,function_items=None,time_values=None):     
         """Initialize GUI for path reports"""
         super().__init__()
@@ -106,11 +160,10 @@ class ShowOnMapDialog(QMainWindow):
         self.networkReportDlg=networkReportDlg
         
         self.setWindowTitle("Show data on map")   
-        widget=QWidget()
 
         #radio buttons Measurement data/Simulation data
         layout_rbtn_dataGroup = QHBoxLayout()
-        self.group_dataGroup=QButtonGroup(widget)
+        self.group_dataGroup=QButtonGroup(self)
         self.rbtn_simData = QRadioButton('Simulation data')
         self.rbtn_simData.setChecked(True)
         self.rbtn_mDatap = QRadioButton('Measurement data')
@@ -124,7 +177,7 @@ class ShowOnMapDialog(QMainWindow):
         
         #radio buttons features
         layout_rbtn_feature = QHBoxLayout()
-        self.group_feature=QButtonGroup(widget)
+        self.group_feature=QButtonGroup(self)
         self.rbtn_customers = QRadioButton('Customers')
         self.rbtn_customers.setChecked(True)
         self.rbtn_plants = QRadioButton('Energy plants')
@@ -159,7 +212,7 @@ class ShowOnMapDialog(QMainWindow):
         #---radio buttons var/par selection---
         #--var--
         layout_colorVarSelection = QHBoxLayout()
-        self.group_colorVarSelection=QButtonGroup(widget)
+        self.group_colorVarSelection=QButtonGroup(self)
         self.rbtn_colorVar = QRadioButton('Variable')
         self.rbtn_colorVar.setChecked(True)
         self.rbtn_colorVar.setStyleSheet("padding-left: 30")
@@ -245,7 +298,7 @@ class ShowOnMapDialog(QMainWindow):
         #---radio buttons var/par selection---
         #--var--
         layout_sizeVarSelection = QHBoxLayout()
-        self.group_sizeVarSelection=QButtonGroup(widget)
+        self.group_sizeVarSelection=QButtonGroup(self)
         self.rbtn_sizeVar = QRadioButton('Variable')
         self.rbtn_sizeVar.setChecked(True)
         self.rbtn_sizeVar.setStyleSheet("padding-left: 30")
@@ -316,7 +369,7 @@ class ShowOnMapDialog(QMainWindow):
         #---radio buttons var/par selection---
         #--var--
         layout_rotationVarSelection = QHBoxLayout()
-        self.group_rotationVarSelection=QButtonGroup(widget)
+        self.group_rotationVarSelection=QButtonGroup(self)
         self.rbtn_rotationVar = QRadioButton('Variable')
         self.rbtn_rotationVar.setChecked(True)
         self.rbtn_rotationVar.setStyleSheet("padding-left: 30")
@@ -439,8 +492,7 @@ class ShowOnMapDialog(QMainWindow):
             layout.addWidget(self.progress)
         layout.addStretch()
         
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.setLayout(layout)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -451,7 +503,7 @@ class ShowOnMapDialog(QMainWindow):
         Signature: (message: str, worker: WorkerShowOnMap)
         """
         
-        print("=== update_finished START ===", message)
+        #print("=== update_finished START ===", message)
         try:
             # convenience
             layer = worker.temp_layer
@@ -460,7 +512,7 @@ class ShowOnMapDialog(QMainWindow):
 
         # 0) make sure layer exists
         if layer is None:
-            print("No layer returned from worker.")
+            #print("No layer returned from worker.")
             self.process_running = False
             addTableRow(self.networkReportDlg.tableWidget_diagrams)
             self.networkReportDlg.tableWidget_diagrams.setItem(0, 0, QTableWidgetItem(self.layer_name.text()))
@@ -474,9 +526,9 @@ class ShowOnMapDialog(QMainWindow):
         if layer and layer.isEditable():
             try:
                 layer.commitChanges()
-                print("Committed pending edits.")
+                #print("Committed pending edits.")
             except Exception as e:
-                print("Commit error:", e)
+                #print("Commit error:", e)
                 layer.rollBack()
         
         if layer:
@@ -484,14 +536,14 @@ class ShowOnMapDialog(QMainWindow):
                 color_classes=self.color_classes.text(),colormode=self.colormode.currentText(),colorramp=self.colorramp.currentText(),feature=self.feature,
                 size_symbolMin=self.size_symbolMin.text(),size_symbolMax=self.size_symbolMax.text(),rotation_symbolMin=self.rotation_symbolMin.text(),rotation_symbolMax=self.rotation_symbolMax.text())
 
-        print("=== update_finished END ===")
+        #print("=== update_finished END ===")
         self.dlg_main.statusMessage.setText(message)        
         self.process_running = False
 
         
     def colorStateChanged(self,s):
-        if Qt.CheckState.Checked==s:
-            print('checked')
+        if checkState()==s:
+            #print('checked')
             self.rbtn_colorVar.setHidden(False)
             self.color_var.setHidden(False)
             self.color_function.setHidden(False)
@@ -507,7 +559,7 @@ class ShowOnMapDialog(QMainWindow):
             self.colorlabel.setHidden(False)
                 
         else:
-            print('unckecked')
+            #print('unckecked')
             self.rbtn_colorVar.setHidden(True)
             self.color_var.setHidden(True)
             self.color_function.setHidden(True)
@@ -524,7 +576,7 @@ class ShowOnMapDialog(QMainWindow):
         self.varSelectionGroupChanged(False)
 
     def varSelectionGroupChanged(self,radioButton):
-        print('radio var/par changed')
+        #print('radio var/par changed')
         if self.rbtn_colorVar.isChecked() and self.checkbox_varColor.isChecked() or self.rbtn_sizeVar.isChecked() and self.checkbox_varSize.isChecked() or self.rbtn_rotationVar.isChecked() and self.checkbox_varRotation.isChecked():
             if self.label_endtime.isHidden():
                 self.label_endtime.setHidden(False)
@@ -539,8 +591,8 @@ class ShowOnMapDialog(QMainWindow):
                 self.endtime.setHidden(True)
 
     def sizeStateChanged(self,s):
-        if Qt.CheckState.Checked==s:
-            print('checked')
+        if checkState()==s:
+            #print('checked')
             self.rbtn_sizeVar.setHidden(False)
             self.size_var.setHidden(False)
             self.size_function.setHidden(False)
@@ -552,7 +604,7 @@ class ShowOnMapDialog(QMainWindow):
             self.size_symbolMin.setHidden(False)
 
         else:
-            print('unckecked')
+            #print('unckecked')
             self.rbtn_sizeVar.setHidden(True)
             self.size_var.setHidden(True)
             self.size_function.setHidden(True)
@@ -565,8 +617,8 @@ class ShowOnMapDialog(QMainWindow):
         self.varSelectionGroupChanged(False)
 
     def rotationStateChanged(self,s):
-        if Qt.CheckState.Checked==s:
-            print('checked')
+        if checkState()==s:
+            #print('checked')
             self.rbtn_rotationVar.setHidden(False)
             self.rotation_var.setHidden(False)
             self.rotation_function.setHidden(False)
@@ -578,7 +630,7 @@ class ShowOnMapDialog(QMainWindow):
             self.rotation_symbolMin.setHidden(False)
 
         else:
-            print('unckecked')
+            #print('unckecked')
             self.rbtn_rotationVar.setHidden(True)
             self.rotation_var.setHidden(True)
             self.rotation_function.setHidden(True)
@@ -767,22 +819,22 @@ class ShowOnMapDialog(QMainWindow):
         self.rotation_var.clear()
         self.rotation_par.clear()
         if self.rbtn_mDatap.isChecked():
-            print('Measurement data')
+            #print('Measurement data')
             self.type='m'
         elif self.rbtn_simData.isChecked():
             self.type='s'
         if self.rbtn_customers.isChecked():
-            print('Customers')
+            #print('Customers')
             self.feature='customer'
             vars=getResultVars(self.cur,self.config,self.feature,self.type)
             pars=getTableAttr(self.cur,self.config,self.feature)
-            print(vars)
+            #print(vars)
             self.displayRotationLayout()
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
             self.displaySizeLayout()
         elif self.rbtn_plants.isChecked():
-            print('Energy plants')
+            #print('Energy plants')
             self.feature='energy_plant'
             vars=getResultVars(self.cur,self.config,self.feature,self.type)
             pars=getTableAttr(self.cur,self.config,self.feature)
@@ -791,7 +843,7 @@ class ShowOnMapDialog(QMainWindow):
             self.lineSegVis.setHidden(True)
             self.displaySizeLayout()
         elif self.rbtn_lines.isChecked():
-            print('Lines')
+            #print('Lines')
             self.feature='line'
             vars=getResultVars(self.cur,self.config,self.feature,self.type)
             pars=getTableAttr(self.cur,self.config,self.feature)
@@ -808,12 +860,11 @@ class ShowOnMapDialog(QMainWindow):
         self.rotation_var.addItems(vars)
         self.rotation_par.addItems(pars)
         
-class IDADistrictsPathReportsDialog(QMainWindow):
+class IDADistrictsPathReportsDialog(QDialog):
     def __init__(self,cur,config,dlg_main):     
         """Initialize GUI for path reports"""
         super().__init__()
         self.setWindowTitle("Path reports")   
-        widget=QWidget()
         self.cur=cur
         self.config=config
         self.dlg_main=dlg_main
@@ -831,7 +882,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         label_titel.setFont(font)
         #radio buttons Temp/pressure
         layout_rbtn_quantity = QHBoxLayout()
-        group_quantity=QButtonGroup(widget)
+        group_quantity=QButtonGroup(self)
         self.rbtn_pathTemp = QRadioButton('Temperature')
         self.rbtn_pathPressure = QRadioButton('Pressure')
         self.rbtn_pathPressure.setChecked(True)
@@ -862,7 +913,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
            
         layout_rbtn_date.addWidget(self.rbtn_maxValue)
         layout_rbtn_date.addWidget(self.rbtn_Date) 
-        group_date=QButtonGroup(widget)
+        group_date=QButtonGroup(self)
         group_date.addButton(self.rbtn_maxValue)      
         group_date.addButton(self.rbtn_Date)  
 
@@ -891,7 +942,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout_rbtn_path.addWidget(self.rbtn_lineIds)
         layout_rbtn_path.addWidget(self.rbtn_customer) 
         layout_rbtn_path.addWidget(self.rbtn_energy_plant) 
-        self.group_path=QButtonGroup(widget)
+        self.group_path=QButtonGroup(self)
         self.group_path.addButton(self.rbtn_weakPoint,1)  
         self.group_path.addButton(self.rbtn_lineIds,2)      
         self.group_path.addButton(self.rbtn_customer,3)  
@@ -985,14 +1036,13 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         layout.addWidget(self.progress)
         layout.addStretch()
         
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.setLayout(layout)
         
         f_conn_types = getConnBundlesByType(self.cur,self.config,'customer')
         self.f_conn_bundle_type.addItems(f_conn_types)
 
     def add_combo_items(self, combo, new_items):
-        print('add combo:'+str(new_items))
+        #print('add combo:'+str(new_items))
 
         # Add missing items
         for item in new_items:
@@ -1002,7 +1052,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
     #def on_group_path_clicked(self,id):
     def on_group_path_clicked(self,button):
         id = self.group_path.id(button)
-        print('on_group_path_clicked: '+str(id))
+        #print('on_group_path_clicked: '+str(id))
         
         self.f_conn_bundle_type.clear()
         f_conn_types = getConnBundlesByType(self.cur,self.config,'customer' if id in (1,2,3) else 'energy_plant')
@@ -1012,29 +1062,29 @@ class IDADistrictsPathReportsDialog(QMainWindow):
             self.add_combo_items(self.f_conn_bundle_type,f_conn_types)
     
     def f_conn_bundle_type_changed(self,s):
-        print('f_conn_bundle_type changed: '+str(s))
+        #print('f_conn_bundle_type changed: '+str(s))
         if self.f_conn_bundle_type.currentText():
             self.f_conn_type.clear() 
             self.f_conn_type.addItems(getConnTypesByConnBundleType(self.cur,self.config,self.f_conn_bundle_type.currentText()))    
         
     def network_changed(self,s):
-        print(s)
+        #print(s)
         epids=getPlantIds(self.cur,self.config,network=s)
-        print(epids)
+        #print(epids)
         self.main_plant.clear()
         self.main_plant.addItems(epids)
 
     def main_plant_changed(self,s):
-        print(s)
+        #print(s)
         conn_types=getConnTypesByFeature(self.cur,self.config,'energy_plant',s)
-        print(conn_types)
+        #print(conn_types)
         self.conn_type.clear()
         self.conn_type.addItems(conn_types)
         
     def conn_type_changed(self,s):
-        print(s)
+        #print(s)
         sequences=getConnSequencesByConnType(self.cur,s)
-        print(sequences)
+        #print(sequences)
         self.sup_sequence.clear()
         self.sup_sequence.addItems(sequences)
         self.ret_sequence.clear()
@@ -1051,7 +1101,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         if str(message)=='finished':
             self.showplot()
             #select lids in lines
-            lines_layer=QgsProject.instance().mapLayersByName('lines')   
+            lines_layer=QgsProject.instance().mapLayersByName(tr('@default','lines'))   
             if lines_layer:             
                 lines_layer[0].selectByExpression("id in {}".format(tuple([lid[0] for lid in self.lids])))
         
@@ -1059,24 +1109,24 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         self.process_running=False
         
     def showplot(self):
-        print('show plot')
+        #print('show plot')
         if self.dp_recalc.isChecked() and self.rbtn_pathPressure.isChecked():
-            print(self.dp_min_recalc.text())
+            #print(self.dp_min_recalc.text())
             ddp=self.weak_point['sup_f'] - self.weak_point['ret_f']-Decimal(self.dp_min_recalc.text())*100000
         else:
             ddp=0
-        print(ddp)
+        #print(ddp)
 
-        print(self.weak_point)
-        print(self.line_data)
+        #print(self.weak_point)
+        #print(self.line_data)
         quantity_data_sup=[self.weak_point['sup_ep']-ddp]+[lid['var1']-ddp for lid in self.line_data]+[self.weak_point['sup_f']-ddp]
         quantity_data_ret=[self.weak_point['ret_ep']]+[lid['var2'] for lid in self.line_data]+[self.weak_point['ret_f']]
         height=[self.weak_point['height_ep']]+[lid['height_j'] for lid in self.line_data]+[self.weak_point['height_f']]
 
-        print(height)
-        print(quantity_data_sup)
-        print(quantity_data_ret)
-        print(self.path)
+        #print(height)
+        #print(quantity_data_sup)
+        #print(quantity_data_ret)
+        #print(self.path)
         
         SMALL_SIZE = 15
         MEDIUM_SIZE = 20
@@ -1117,7 +1167,7 @@ class IDADistrictsPathReportsDialog(QMainWindow):
         manager.window.showMaximized()
         plt.show() 
         
-class LoadResultsDialog(QMainWindow):
+class LoadResultsDialog(QDialog):
     def __init__(self,dlg_main):
         """Constructor."""
         super().__init__()
@@ -1161,12 +1211,10 @@ class LoadResultsDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
     def interpolation_dt_state(self,s):
-        if Qt.CheckState.Checked==s:
+        if checkState()==s:
             self.interpolation_dt.setHidden(False)
         else:
             self.interpolation_dt.setHidden(True)

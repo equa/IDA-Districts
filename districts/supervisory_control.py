@@ -9,14 +9,13 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 class CopySupervisoryControl:
     """ Copy supervisory control with resources and macros"""
     def __init__(self,dir,config,cur,submodel):
-        print('copy supervisory control')
+        #print('copy supervisory control')
         
-        target_dir=dir+"\\network_"+str(submodel)
+        target_dir=dir+'\\versions\\'+config['versionName']+"\\network_"+str(submodel)
         source_dir=dir+'\\supervisory_control'
 
         f_idc_target=target_dir+'\\Supervisory_control.idc'
         f_idm_target=target_dir+'\\Supervisory_control.idm'
-        print(f_idm_target)
         
         #collect ressources
         source_f="{}\\Supervisory_control.idm".format(source_dir)     
@@ -42,19 +41,16 @@ class Supervisory_control():
                 --if not create a directory and an IDA file with a supervisory control macro 
                 --if yes add to IDA files
            3) Open IDA file"""
-        print('++++++++++++++Supervisory+++++++++++++++++++')
+        #print('++++++++++++++Supervisory+++++++++++++++++++')
         self.config=config
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
-            dir=plugin_dir+"\\projects\\"
-            createDir(dir,config['projectName'])
-            dir+=config['projectName']+"\\"
-            createDir(dir,"models\\")
-            dir+="models\\"
+            dir=config['pathProjects']+config['projectName']+"\\"
             createDir(dir,'supervisory_control')
             dir+='supervisory_control'
+            #print(dir)
             
             #supervisory idm project file
             file=dir+"""\\supervisory_control.idm"""
@@ -67,18 +63,18 @@ class Supervisory_control():
             sensor_data_target=getSensorData(self.cur,self.config,target_types=[3])
 
             if update_sensors:
-                print('--update_sensors--')
+                #print('--update_sensors--')
                 #Get all removed sensor sources (table invoked_sensor_source_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
                 remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.config,source_types=[3])
-                print(remove_sensor_source_ids)
+                #print(remove_sensor_source_ids)
                 if remove_sensor_source_ids:
                     sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                     
                 #Get all new sensor sources (table invoked_sensor_source_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
                 add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.config,source_types=[3])
-                print(add_sensor_source_idsValues)
+                #print(add_sensor_source_idsValues)
                 writeInvokedSensorSourceSignals(self.cur,self.config,add_sensor_source_idsValues)
                     
                 #Get all removed sensor targets (table $versionName$.invoked_sensor_target_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
@@ -86,12 +82,12 @@ class Supervisory_control():
                 
                 if remove_sensor_target_ids:
                     sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                     
                 #Get all new sensor targets (table $versionName$.invoked_sensor_targets_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
                 add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.config,target_types=[3])
-                print(add_sensor_target_idsValues)
+                #print(add_sensor_target_idsValues)
                 writeInvokedSensorTargetSignals(self.cur,self.config,add_sensor_target_idsValues)
             else:
                 remove_sensor_source_ids=[]
@@ -103,13 +99,13 @@ class Supervisory_control():
                     add_sensor_source_idsValues=getSensorData(self.cur,self.config,source_types=[3])
                     add_sensor_target_idsValues=getSensorData(self.cur,self.config,target_types=[3])
                 
-            print('++++++Supervisory sensor data+++++++++')
-            print(add_sensor_source_idsValues)
-            print(add_sensor_target_idsValues)
-            print(sensor_data_source)
-            print(sensor_data_target)
-            print([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
-            print([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
+            #print('++++++Supervisory sensor data+++++++++')
+            #print(add_sensor_source_idsValues)
+            #print(add_sensor_target_idsValues)
+            #print(sensor_data_source)
+            #print(sensor_data_target)
+            #print([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
+            #print([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
             
             #2)
             #supervisory idm project file
@@ -118,19 +114,19 @@ class Supervisory_control():
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)
                 lines_del=[]
-                print(file_data)
+                #print(file_data)
                 file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 
                 #todo get number of old sensor source signals --> for component placement in .idc
                 sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=4;"""
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorSources=self.cur.fetchone()['count']
                 
                 #todo get number of old sensor target signals --> for component placement in .idc
                 sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=4;"""
-                print(sql)
+                #print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorTargets=self.cur.fetchone()['count'] 
                 
@@ -208,8 +204,8 @@ class Supervisory_control():
                         supervisory_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])
                         sensor_conns+='\n'+'\n'.join([""" (:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])
                         connections+='\n'+'\n'.join([""" (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("Supervisory_control" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])
-                file_data=""";IDA 5.19001 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-SYSTEM :N "supervisory_control" :ETM 3856940957 :MS 4 :PARENT ICE :APP (ICE :VER 5.19001)) 
+                file_data=""";IDA {} Data UTF-8
+(DOCUMENT-HEADER :TYPE |districts| :N "supervisory_control" :PARENT DISTRICTS :APP (DISTRICTS :VER {})) 
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -230,10 +226,10 @@ class Supervisory_control():
  (:VAR :N ITOT :T GENERIC :D "ITot" :U || :IV NIL :B (1 "Climate-macro" "ISolar" OUTSIGNAL))
  (:VAR :N TAIR :T TEMP :D "Tair" :U |Deg-C| :IV NIL :B (1 "Climate-macro" "climate_processor" TAIR))
  (:VAR :N VELOCITY :T GENERIC :D "velocity" :U || :IV NIL :B (1 "Climate-macro" "vel" |y_var|)))
-((MACRO-OBJECT :N "Supervisory_control" :T ICE-MACRO :ETM 3857461881 :STM 3857461887){})
-((MACRO-OBJECT :N "Climate-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887))
-((MACRO-OBJECT :N "Sensor-macro" :T ICE-MACRO :ETM 3857461881 :STM 3857461887){})
-(CONNECTIONS {})""".format(supervisory_conns,sensor_conns,connections)
+((MACRO-OBJECT :N "Supervisory_control" :T DISTRICTS-MACRO){})
+((MACRO-OBJECT :N "Climate-macro" :T DISTRICTS-MACRO))
+((MACRO-OBJECT :N "Sensor-macro" :T DISTRICTS-MACRO){})
+(CONNECTIONS {})""".format(getIDAVersion(config),getIDADistrictsVersion(config),supervisory_conns,sensor_conns,connections)
             
                 writeToFile(file_data,dir,file)
             
@@ -243,7 +239,7 @@ class Supervisory_control():
             if os.path.exists(file):
                 pass
             else:
-                file_data=""";IDA 5.19001 Form UTF-8
+                file_data=""";IDA {} Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 197 :PAGE-HEIGHT 290) 
 (EQUATION-FRAME :AT ((63 145)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((352 348)) :R (203.5 126.5) :ICON "sys:eo.ids" :SLOT ("Supervisory_control") :NAME "Supervisory_control" :DATA MACRO-OBJECT) 
@@ -254,10 +250,10 @@ class Supervisory_control():
 (FIELD :AT ((100 8) (496 29)) :SLOT (NAME) :TEXT-COLOR #S(RGB RED 0 GREEN 0 BLUE 160) :FONT (:SWISS :ARIAL 17 2) :HELP-STRING "NAME" :TYPE SYMBOL) 
 (LABEL-TEXT :VALUE "Description:" :FONT (:SWISS :ARIAL 11 1) :VERTICAL :CENTER :WRAP-P NIL :AT ((13 33) (96 53))) 
 (FIELD :AT ((96 32) (496 100)) :SLOT (DESCRIPTION) :TEXT-COLOR #S(RGB RED 0 GREEN 0 BLUE 0)) 
-(LINE :AT ((21 108) (760 108))) """
+(LINE :AT ((21 108) (760 108))) """.format(getIDAVersion(config))
                 writeToFile(file_data,dir,file)
                 
-            print(dir)
+            #print(dir)
             createDir(dir,'Supervisory_control')
             dir+='\\Supervisory_control'
             
@@ -275,8 +271,8 @@ class Supervisory_control():
                     file_data.insert(2,''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))
                 writeToFileFromList(file_data,dir,file)
             else:
-                file_data=""";IDA 5.19001 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.19001))\n{}{}""".format(
+                file_data=""";IDA {} Data UTF-8
+(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n{}{}""".format(getIDAVersion(config),getIDADistrictsVersion(config),
                     ''.join(["""(:IREF :N "Int_Ref_Sensor_Source_{}" :T OUT :F 224)\n""".format(k) for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']]),
                     ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]))                
                 writeToFile(file_data,dir,file)
@@ -284,9 +280,9 @@ class Supervisory_control():
             #supervisory idc macro file
             file=dir+"""\\Supervisory_control.idc"""
             file_data=[]
-            print('-----------------sensor-description-------------------')
+            #print('-----------------sensor-description-------------------')
             sensor_description=getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target)
-            print(sensor_description)
+            #print(sensor_description)
             if os.path.exists(file):
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)
@@ -297,9 +293,9 @@ class Supervisory_control():
                 file_data.append(sensor_description)
                 writeToFileFromList(file_data,dir,file)
             else:
-                file_data.append(""";IDA 5.19001 Form UTF-8
+                file_data.append(""";IDA {} Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 140) 
-(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n""")
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n""".format(getIDAVersion(config)))
                 file_data.append(sensor_description)
                 writeToFileFromList(file_data,dir,file)
                 
@@ -347,8 +343,8 @@ class Supervisory_control():
                     conns+='\n'+'\n'.join([""" (("Sensor_Target_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)""".format(k,k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']])                          
                     conns+=')'
 
-                file_data=""";IDA 5.19001 Data UTF-8
-(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3857463573 :APP (ICE :VER 5.19001))\n{}{}{}""".format(
+                file_data=""";IDA {} Data UTF-8
+(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n{}{}{}""".format(getIDAVersion(config),getIDADistrictsVersion(config),
                     ''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T OUT :F 224)\n""".format(k) for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']]),
                     ''.join(["""((:EO :N "Sensor_Target_{}" :T ADDER)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 . {}))))
@@ -370,9 +366,9 @@ class Supervisory_control():
                     file_data[1]=file_data[1].split(':PAGE-HEIGHT ')[0]+':PAGE-HEIGHT '+str(50+50+35*max(list(enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)))[0])+')\n'
                 writeToFileFromList(file_data,dir,file)  
             else:
-                file_data=""";IDA 5.19001 Form UTF-8
+                file_data=""";IDA {} Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
-(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n{}{}""".format(
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n{}{}""".format(getIDAVersion(config),
                     ''.join(["""(EQUATION-FRAME :AT ((643 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_Target_{}") :NAME "Sensor_Target_{}" :PADDING 3 :DATA :EO)\n""".format(str(50+35*i[0]),i[1],i[1])
                         for i in enumerate([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in  j['irefs_target']],numberOf_oldSensorTargets+1)]),
                     ''.join(["""(CONNECTION-LINE :AT ((660 {}) (694 {})) :FIRST-LINK ("Sensor_Target_{}" (0 0.491) OUTSIGNALLINK) :LAST-LINK (:SELF (0.0 0.144) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(str(50+35*i[0]),str(50+35*i[0]),i[1],i[1]) 
@@ -380,6 +376,7 @@ class Supervisory_control():
                 writeToFile(file_data,dir,file)
                 
             #climate macro
-            writeMacroClimateIdm(self.config,self.cur,'supervisory_control','\\'.join(dir.split("\\")[:-1]),plugin_dir,loadModellingSettings(plugin_dir,self.config),getClimateData(self.cur,self.config,True))
-            writeMacroClimateIdc('supervisory_control','\\'.join(dir.split("\\")[:-1]),loadModellingSettings(plugin_dir,self.config))
+            source_dir_climateMacro=self.config['pathProjects']+self.config['projectName']+'\\climate\\climate\\'
+            copyFile(source_dir_climateMacro+'climate-macro.idm',dir,dir+'\\climate-macro.idm')
+            copyFile(source_dir_climateMacro+'climate-macro.idc',dir,dir+'\\climate-macro.idc')
    

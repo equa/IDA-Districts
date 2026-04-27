@@ -87,11 +87,11 @@ CREATE TABLE "$versionName$".climate
 (
   id serial,
   name text DEFAULT 'Graz',
-  file_name text DEFAULT '$plugins_path$\ida_districts_data_center\Samples\climate\Graz-hour_std.prn',
-  latitude numeric DEFAULT 47.4,
-  longitude numeric DEFAULT -15.26,
+  file_name text DEFAULT '$districts_path$climate\BROMMA.PRN',
+  latitude numeric DEFAULT 59.366,
+  longitude numeric DEFAULT -17.9999,
   timezone integer DEFAULT -1,
-  height numeric DEFAULT 353,
+  height numeric DEFAULT 27,
   CONSTRAINT climate_pkey PRIMARY KEY (id)
 );
 
@@ -120,13 +120,9 @@ CREATE TABLE "$versionName$".customers
 (
 	id serial,
 	geom geometry(PointZ,$srid$),
-	template integer DEFAULT 0,
+	template integer DEFAULT 1,
     network integer[] DEFAULT ARRAY[1],
-    load_w numeric DEFAULT 10000,
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
-    dhw_id integer,
-    internal_load_id integer,   
-    gfa numeric DEFAULT 100,   
 	CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 
@@ -137,7 +133,7 @@ CREATE TABLE "$versionName$".energy_plants
 (
 	id serial,
 	geom geometry(PointZ,$srid$),
-	template integer DEFAULT 0,
+	template integer DEFAULT 1,
     network integer[] DEFAULT ARRAY[1],
 	submodel integer DEFAULT 1, --reference to submodelname in subnet_line 
 	CONSTRAINT energy_plants_pkey PRIMARY KEY (id)
@@ -151,9 +147,8 @@ CREATE TABLE "$versionName$".lines
 	id serial,
 	geom geometry(LineStringZ,$srid$),
     network integer DEFAULT 1,
-	type integer,
+	type integer DEFAULT 0,
     pipe_bundle_type_id integer DEFAULT 1,
-	length numeric,
     zeta numeric DEFAULT 0,
 	submodel integer[] DEFAULT ARRAY[1],
 	CONSTRAINT lines_pkey PRIMARY KEY (id)
@@ -185,10 +180,6 @@ CREATE TABLE "$versionName$".buildings
   geom geometry(MultiPolygon,$srid$),
   z_bh_m numeric,
   z_height_m numeric,
-  z_template integer,
-  z_construction integer,
-  room_unit integer,
-  win_facade_ratio NUMERIC DEFAULT 30,
   CONSTRAINT buildings_pkey PRIMARY KEY (id)
 );
 
@@ -256,7 +247,6 @@ CREATE TABLE "$versionName$".streets
 (
   id serial,
   geom geometry(LineString,$srid$),
-  length_m double precision,
   costs_eur7m numeric DEFAULT 100,
   source integer,
   target integer,

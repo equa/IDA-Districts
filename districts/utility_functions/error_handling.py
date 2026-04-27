@@ -31,7 +31,7 @@ def checkLoopInConnections(cur,version,table,type):
     
 def checkGenerateTopologyLayerData(dictDB,cur,networks,connectPlants,connectCustomers):
     checked_networks=[]
-    print('checkGenerateTopologyLayerData')
+    #print('checkGenerateTopologyLayerData')
     for network in networks:
         network_check=True
         #check numer of features (customers and plants) > 0 

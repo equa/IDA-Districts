@@ -8,20 +8,20 @@ from .files import *
 
 class Util_api:
     def __init__(self,plugin_dir,config,submodel='1'):
-        # Define your path to the IDA ICE bin folder here
-        path_to_ice = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
-        command = "\""+path_to_ice + "ida-ice.exe\" \"" + path_to_ice + "ida.img\" -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
-        print(command)
+        # Define your path to the IDA Districts bin folder here
+        path_to_districts = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
+        command = "\""+path_to_districts + "ida-districts.exe\" \"" + path_to_districts + "ida.img\" -G1 -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
+        #print(command)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
         self.pid = str(ret[2])
-        print(self.pid)
+        #print(self.pid)
         time.sleep(float(config['districts_api_delay']))
-        #Add path_to_ice to PATH variable, is removed when program finishes
-        os.environ['PATH'] = path_to_ice + os.pathsep  + os.environ['PATH']
+        #Add path_to_districts to PATH variable, is removed when program finishes
+        os.environ['PATH'] = path_to_districts + os.pathsep  + os.environ['PATH']
 
 
-        self.ida_lib = ctypes.CDLL(path_to_ice + 'x64\\idaapi2.dll')
+        self.ida_lib = ctypes.CDLL(path_to_districts + 'x64\\idaapi2.dll')
 
         self.ida_lib.connect_to_ida.restype = ctypes.c_bool
         self.ida_lib.connect_to_ida.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
@@ -120,9 +120,9 @@ class Util_api:
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
         try:
             poll_result2 = json.loads(doc_str.value.decode("utf-8"))
-            print(poll_result2)
+            #print(poll_result2)
             if isinstance(poll_result2, list):
-              print(poll_result2[0]['value'])
+              #print(poll_result2[0]['value'])
               poll_result = poll_result2[0]['value']
             else:
               return ""

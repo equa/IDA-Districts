@@ -10,9 +10,53 @@ from typing import Iterator, Optional,Dict, Any
 import io
 import subprocess
 import os
+from pathlib import Path
+
 from .files import *
 from .utility import *
+#from .dialog import *
+#from .layer_visualization import *
 
+def getNetworkVolume(cur,config,networks=None):
+    sql="""SELECT sum(innerpipediameter * innerpipediameter*3.1415/4*ST_length(l.geom)) as volume_m3
+	FROM "{}".lines l, bundle_pipes bp, pipes p
+	WHERE bp.pipe_bundle_type_id=l.pipe_bundle_type_id AND p.id=bp.pipe_id{};""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '')
+    cur.execute(sql)
+    return float(cur.fetchone()['volume_m3'])  
+    
+def getNetworkLength(cur,config,networks=None):
+    sql="""SELECT sum(ST_length(geom)) AS length FROM "{}".lines{};""".format(config['versionName'],' WHERE network IN ({})'.format(','.join(networks)) if networks else '')
+    cur.execute(sql)
+    return float(cur.fetchone()['length'])
+    
+def getBuildingsEra(cur,config):
+    sql="""SELECT sum(ST_area(b.geom)) AS era
+	FROM "{}".buildings b, "{}".customers c 
+	WHERE ST_dWithIn(b.geom,c.geom,0.001);""".format(config['versionName'],config['versionName'])
+    cur.execute(sql)
+    return float(cur.fetchone()['era'])
+    
+def getPipeInfo(cur,config,networks=None):
+    sql="""SELECT p.name,sum(ST_length(l.geom)) AS length, innerpipediameter,sum(p.costs*ST_length(l.geom)) as costs
+	FROM "{}".lines l, bundle_pipes bp, pipes p
+	WHERE l.pipe_bundle_type_id=bp.pipe_bundle_type_id AND bp.pipe_id=p.id {}
+	GROUP BY bp.pipe_id,p.name,innerpipediameter
+	ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '')
+    #print(sql)
+    cur.execute(sql)
+    return cur.fetchall()
+    
+def getNetworks(cur,config):
+    sql="""SELECT id AS network FROM "{}".network ORDER BY id;""".format(config['versionName'])
+    cur.execute(sql)
+    networks=[str(i['network']) for i in cur.fetchall()]
+    return networks
+    
+def setDistrictsModelerVersion2DB(cur,config):
+    getDistrictsModelerVersion(config)
+    sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config))
+    cur.execute(sql)  
+            
 def get_pgrouting_major_version(cur):
     """
     Returns the major version of pgRouting as an integer.
@@ -25,7 +69,7 @@ def get_pgrouting_major_version(cur):
 def getDBIds(column,table,cur):
     """ load the ids from DB table"""
     sql='SELECT {} AS id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return list([id['id'] for id in cur.fetchall()])           
         
@@ -35,13 +79,13 @@ def delIfNotInDBIds(table,openFnArg,cur):
         filter=openFnArg[3]
         if filter:
             ids=getDBIds('id',table,cur)
-            print(ids)
+            #print(ids)
             if ids:
                 ids=','.join([str(i) for i in ids])
                 sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids)
             else:
                 sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0]))
-            print(sql)
+            #print(sql)
             cur.execute(sql)
   
   
@@ -49,10 +93,17 @@ def rowCountDB(table,filter,cur):
     """ Count the rows of table with filter"""
     sql="SELECT count(*) AS count FROM {} {};".format(table,filter)
     cur.execute(sql)
-    return cur.fetchone()['count']    
+    return cur.fetchone()['count']     
+
+def get_folder_names(directory):
+    return [p.name for p in Path(directory).iterdir() if p.is_dir()]
+
+def loadProjectNames(config):
+    """load the project names into comboBox selectProject """
+    return get_folder_names(config['pathProjects'])
         
-def updateProjectNamesList(dlg,cur_postgres,config):
-    projectNames=loadProjectNames(cur_postgres,config)
+def updateProjectNamesList(dlg,config):
+    projectNames=loadProjectNames(config)
     dlg.selectProject.blockSignals(True)
     dlg.selectProject.clear()
     dlg.selectProject.addItems(projectNames)
@@ -60,15 +111,15 @@ def updateProjectNamesList(dlg,cur_postgres,config):
         dlg.selectProject.setCurrentText(config['projectName'])
     dlg.selectProject.blockSignals(False)
     return projectNames
-    
+      
 def connectDBPostgres(config,dlg):
-    print('--connectDBPostgres--')
+    #print('--connectDBPostgres--')
     conn_postgres=dbConnectPerName(config,"postgres",True)
-    print(conn_postgres)
+    #print(conn_postgres)
     projectNames=None
     if conn_postgres:
         cur_postgres=conn_postgres.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        projectNames=updateProjectNamesList(dlg,cur_postgres,config)
+        projectNames=updateProjectNamesList(dlg,config)
         return [conn_postgres,cur_postgres,projectNames]
     return [False,False,projectNames]
                 
@@ -83,7 +134,7 @@ def dropDBTriggers(cur,config,lastLoad=False):
                 sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
                 sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
         if sql:
-            print(sql)
+            #print(sql)
             cur.execute(sql)
 
 def insertDBTriggers(cur,config):
@@ -110,7 +161,7 @@ FOR EACH ROW
 EXECUTE FUNCTION my_trigger_update_function();\n""".format(config['versionName'],table)
 
         if sql:
-            print(sql)
+            #print(sql)
             cur.execute(sql)
     
 def getDBTableNames(cur,config):
@@ -145,39 +196,39 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
     """copy schema"""
     os.environ['PGPASSWORD'] = password
 
-    cmd=' "{}bin\\pg_dump" -U {} -h {} -p {} -d {} -n """{}""" > "{}\\dump_schema.sql" '.format(config['pathPostgres'],username,config['host'],config['port'],config['projectName'],baseName,plugin_dir)
-    print(cmd)
+    cmd=' "{}\\postgreSQL\\pg_dump" -U {} -h {} -p {} -d {} -n """{}""" > "{}\\dump_schema.sql" '.format(plugin_dir,username,config['host'],config['port'],config['projectName'],baseName,plugin_dir)
+    #print(cmd)
     subprocess.call(cmd, shell=True)  
     
     sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;'
-    print(sql)
+    #print(sql)
     cur.execute(sql)           
     
     sql="DROP EVENT TRIGGER IF EXISTS prevent_column_alter;"
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     
-    cmd = ' "{}bin\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(config['pathPostgres'],config['projectName'],config['host'],config['port'], username,plugin_dir)
-    print(cmd)
+    cmd = ' "{}\\postgreSQL\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(plugin_dir,config['projectName'],config['host'],config['port'], username,plugin_dir)
+    #print(cmd)
     subprocess.call(cmd, shell=True)  
     
     sql="""CREATE EVENT TRIGGER prevent_column_alter
 ON ddl_command_start  -- Triggered before the DDL command is executed
 WHEN TAG IN ('ALTER TABLE')
 EXECUTE FUNCTION restrict_column_alterations();"""
-    print(sql)
+    #print(sql)
     cur.execute(sql)
         
 def setSeqIdToMax(seq,table,col,cur):
     sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
 
 def getTimeDiff(cur,config,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
     FROM (SELECT {} AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1) start_time,
         (SELECT {}  AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1 OFFSET 1) next_time;""".format(col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col,col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchone()['diff']
     
@@ -206,7 +257,7 @@ def getDecoupledFeatureCompPerFeature(feature,cur,config):
     sql="""SELECT f_dec.comp_name
     FROM "{}".{}s f, "{}".feature_decoupling f_dec
     WHERE f.id={} AND f.template=f_dec.template AND f_dec.type='{}';""".format(config['versionName'],feature['feature'],config['versionName'],feature['id'],feature['feature'])
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
     
@@ -214,7 +265,7 @@ def getDecoupledFeatureCompPerTemplate(config,cur,template):
     sql="""SELECT f_dec.comp_name
     FROM "{}".feature_decoupling f_dec
     WHERE {}=f_dec.template AND f_dec.type='customer';""".format(config['versionName'],template)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
 
@@ -232,12 +283,12 @@ UNION
     GROUP BY feature,f.template, network_side)
 ORDER BY feature,template;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,
             submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim)
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         decoupled_templates=[{'feature': i['feature'], 'template': i['template'], 'template_name':j['template_name'], 'network_side': i['network_side']} 
             for i in cur.fetchall() for j in usedFeatureTemplates if i['feature']==j['feature'] and i['template']==j['template']]
         templates.extend([at for at in decoupled_templates if at not in templates])
-    print(templates)
+    #print(templates)
     return templates
     
 def getFeatureDecIds(config,cur,submodel,cosims):
@@ -252,7 +303,7 @@ UNION
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.epid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,
             submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim)
-        print(sql)
+        #print(sql)
         
         cur.execute(sql)
         fids.extend([i for i in cur.fetchall() if i not in fids])
@@ -260,15 +311,9 @@ ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionNam
 
 def getFeatureIdFromName(config,cur,feature):
     sql="""SELECT id FROM type WHERE replace(lower(name),' ','_')='{}';""".format(feature)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchone()['id']
-    
-def getNetworks(cur,config):
-    sql="""SELECT id AS network FROM "{}".network;""".format(config['versionName'])
-    cur.execute(sql)
-    networks=[str(i['network']) for i in cur.fetchall()]
-    return networks
     
 def getUsedNetworks(cur,config):
     sql="""(
@@ -411,7 +456,7 @@ def getSupervisorySubmodel(cur,config):
 def getNetworkSubmodels(cur,config,networks):
     """Get submodels of a list of networks based on lines"""
     sql="""SELECT unnest(submodel) AS submodel FROM "{}".lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(config['versionName'], ','.join([i for i in networks]))
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
@@ -435,10 +480,10 @@ def getProjectVersionNames(cur):
     
 def getClimateData(cur,config,errorMsg):
     """ get climate data from DB"""
-    print('get climate data')
+    #print('get climate data')
     if checkDBVersionConnected(config,errorMsg):
         sql='SELECT name, longitude, latitude,file_name AS filename ,timezone,height FROM "{}".climate;'.format(config['versionName'])
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         return cur.fetchone()
 
@@ -561,7 +606,7 @@ def getMinAvgTimeValue(mode,cur,config,table,colmn,starttime,endtime):
         ORDER BY date_trunc('{}', time), fid
 )
 SELECT min(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -630,7 +675,7 @@ def getMaxAvgTimeValue(mode,cur,config,table,colmn,starttime,endtime):
         ORDER BY date_trunc('{}', time), fid
 )
 SELECT max(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -656,12 +701,12 @@ def getMaxIdSchema(cur,table_name,schema):
         
 def checkDBVersionConnected(config,errorMsg):
     """ Check if connected to DB version"""
-    print('check version connection')
+    #print('check version connection')
     if config['versionName']:
-        print('connected to version!')
+        #print('connected to version!')
         return True
     else:
-        print('not connected to version!')
+        #print('not connected to version!')
         if errorMsg:
             iface.messageBar().pushMessage("WARNING", "Not connected to DB!", level=Qgis.Warning)
         return False
@@ -680,9 +725,9 @@ def dbConnect(config,errorMsg):
             connect_timeout=5)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except:
-        print("DB connection has failed")
+        #print("DB connection has failed")
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
+            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password, user name or project does not exists!", level=Qgis.Critical)
     return conn
     
 def dbConnectProvidePwdUser(config,signals_error,pwd,user):
@@ -697,7 +742,7 @@ def dbConnectProvidePwdUser(config,signals_error,pwd,user):
             connect_timeout=1)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except Exception as e:
-        print("DB connection has failed:",e)
+        #print("DB connection has failed:",e)
         if signals_error:
             signals_error.emit(str(e))
     return conn
@@ -716,7 +761,7 @@ def dbConnectPerName(config,dbName,errorMsg):
             connect_timeout=1)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except:
-        print("DB connection has failed")
+        #print("DB connection has failed")
         if errorMsg:
             iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
     return conn
@@ -741,8 +786,8 @@ def getTemplateName(cur,template_name,template_id):
     cur.execute(sql)
     return [i['template_names'] for i in cur.fetchall()]
     
-def getTemplateNameByTemplateId(cur,template_id):
-    sql="""SELECT template_name FROM customer_templates WHERE template={};""".format(template_id)
+def getTemplateNameByTemplateId(cur,template_id,feature_type):
+    sql="""SELECT template_name FROM {}_templates WHERE template={};""".format(feature_type,template_id)
     cur.execute(sql)
     try:
         return cur.fetchone()['template_name']
@@ -751,16 +796,16 @@ def getTemplateNameByTemplateId(cur,template_id):
     
 def loadProjectNamesCheckDistricts(cur,config):
     """load the project names into comboBox selectProject """
-    print('--loadProjectNames--')
+    #print('--loadProjectNames--')
     project_names=[]
     if cur:
         cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false;')
         db_names =list(cur.fetchall())
-        print(db_names)
+        #print(db_names)
         for db in db_names:
             conn=dbConnectPerName(config,db['datname'],False)
             if conn:
-                print(conn)
+                #print(conn)
                 cur = conn.cursor()
                 cur.execute("""SELECT EXISTS (
                                SELECT * FROM information_schema.tables 
@@ -770,18 +815,8 @@ def loadProjectNamesCheckDistricts(cur,config):
                 if "True" in str(cur.fetchone()):
                     project_names.append(db['datname'])
                 conn.close()
-        print(project_names)
+        #print(project_names)
     return project_names
-    
-def loadProjectNames(cur,config):
-    """load the project names into comboBox selectProject """
-    print('--loadProjectNames--')
-    if cur:
-        cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false;')
-        dbs =list(cur.fetchall())
-        return [db['datname'] for db in dbs if db['datname'] != 'postgres']
-    else:
-        return []
         
 def checkDBName(nameDb,projectNames):
     """Check if the DB name already exists """
@@ -794,20 +829,20 @@ def checkDBName(nameDb,projectNames):
 def getFilteredDropDownItems(cur,dropdown):
     """dropdowns: [table,id,name,filter_column,filter_value]"""
     sql='SELECT {} AS key,{} AS name FROM public.{} WHERE {}={};'.format(dropdown[1],dropdown[2],dropdown[0],dropdown[3],dropdown[4])
-    print(sql)
+    #print(sql)
     cur.execute(sql) 
     dropdown_data = cur.fetchall()
-    print(dropdown_data)
+    #print(dropdown_data)
     dropdownItems=[str(i['key'])+':'+i['name'] for i in dropdown_data]
     return dropdownItems
 
 def getFilteredNotInDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name,filter in dropdowns:
-        print(getFilteredNotInDropDownItems)
+        #print(getFilteredNotInDropDownItems)
         filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))    
         sql='SELECT {} AS key,{} AS name FROM "{}".{} {};'.format(column,name,version,table,filter)
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
         dropdownItems[id]=[str(i['key'])+':'+i['name'] for i in dropdown_data]
@@ -817,20 +852,20 @@ def getDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name in dropdowns:         
         sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table,column)
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
-        dropdownItems[id]={i['name'] : str(i['key'])+':'+i['name'] for i in dropdown_data}
+        dropdownItems[id]={i['key'] : str(i['key'])+':'+tr('@default',i['name']) for i in dropdown_data}
     return dropdownItems
     
 def getFilteredDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name,filter in dropdowns:
-        print(filter)
+        #print(filter)
         if filter:
             filter="WHERE id IN({}) ".format(','.join([str(i) for i in filter]))
             sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter)
-            print(sql)
+            #print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
             dropdownItems[id]={i['name'] : str(i['name']) for i in dropdown_data}
@@ -841,11 +876,11 @@ def getFilteredDropDownItemNames(cur,dropdowns):
 def getFilteredNotInDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name,filter in dropdowns:
-        print(filter)
+        #print(filter)
         if filter:
             filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))
             sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter)
-            print(sql)
+            #print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
             dropdownItems[id]=[str(i['name']) for i in dropdown_data]
@@ -857,7 +892,7 @@ def getDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name in dropdowns:         
         sql='SELECT {} AS name FROM "{}".{} ORDER BY id;'.format(name,version,table)
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
         dropdownItems[id]=[str(i['name']) for i in dropdown_data]
@@ -869,7 +904,7 @@ def getConnValue(cur,bundle,sequence):
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.sequence={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
 	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle, sequence)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchall()
 
@@ -953,14 +988,14 @@ def getResultVars(cur,config,feature,type):
     sql="""SELECT split_part(table_name,'_{}_',2) AS var
     FROM information_schema.tables 
     WHERE table_schema = '{}' AND split_part(table_name,'_',{})='{}' AND split_part(table_name,'_',1)='{}' AND NOT split_part(table_name,'_{}_',2) LIKE '%_vis';""".format(type,config['versionName'],col,type,feature,type)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return [var['var'] for var in cur.fetchall()]
     
-def getTableAttr(cur,config,feature):
+def getTableAttr(cur,config,feature,withoutID=False):
     sql="""SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name = '{}s' AND table_schema='{}';""".format(feature,config['versionName'])
-    print(sql)
+    #print(sql)
     cur.execute(sql)
-    return [attr['column_name'] for attr in cur.fetchall()]
+    return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]

@@ -1,1 +1,0 @@
-{'calc_type': 'periodic', 'numb_of_periods': '1', 'startup_time_from': '2024-01-01 00:00:00', 'startup_time_to': '2024-01-02 00:00:00', 'calc_time_from': '2024-01-01 00:00:00', 'calc_time_to': '2024-01-02 00:00:00', 'startup_type': 'periodic','max_timestep': '1'}

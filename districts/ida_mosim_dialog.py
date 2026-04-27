@@ -2,7 +2,7 @@ from qgis.utils import iface
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QSpacerItem,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QAction,QMainWindow,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
+from qgis.PyQt.QtWidgets import QStatusBar,QDialog,QSpacerItem,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
 from qgis.PyQt import QtCore,QtGui
 from qgis.PyQt.QtGui import QIcon
 
@@ -19,7 +19,7 @@ from qgis.core import Qgis
 from qgis.PyQt.QtGui import QKeySequence
 import matplotlib.pyplot as plt      
         
-class SensorSignalsDialog(QMainWindow):
+class SensorSignalsDialog(QDialog):
     def __init__(self,config,plugin_dir,dlg_main):     
         """Initialize GUI for sensor signals"""
         super().__init__()
@@ -82,9 +82,7 @@ class SensorSignalsDialog(QMainWindow):
         layout_win.addWidget(self.progress)
         layout_win.addStretch()
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)           
+        self.setLayout(layout_win)
 
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -94,7 +92,7 @@ class SensorSignalsDialog(QMainWindow):
         self.dlg_main.statusMessage.setText(message)
         self.process_running=False
 
-class RequestedOutputsDialog(QMainWindow):
+class RequestedOutputsDialog(QDialog):
     def __init__(self,requestedOutputs):
         """Constructor."""
         super().__init__()
@@ -153,7 +151,7 @@ class RequestedOutputsDialog(QMainWindow):
         
         #checkboxes 
         layout_network_checkbox = QVBoxLayout()      
-        print(requestedOutputs)
+        #print(requestedOutputs)
         self.checkBoxMdotNode=QCheckBox(self.tr("massflows_pipes"))
         if requestedOutputs['mdot_lines']:
             self.checkBoxMdotNode.setChecked(True)
@@ -407,8 +405,12 @@ class RequestedOutputsDialog(QMainWindow):
         self.checkBoxQambLines=QCheckBox(self.tr("qamb_lines"))
         if requestedOutputs['qamb_kpi']:
             self.checkBoxQambLines.setChecked(True)
+        self.checkBoxVolumeLines=QCheckBox(self.tr("network_volume"))
+        if requestedOutputs['volume_kpi']:
+            self.checkBoxVolumeLines.setChecked(True)
             
         layout_outputs_kpi_lines_system.addWidget(self.checkBoxQambLines)
+        layout_outputs_kpi_lines_system.addWidget(self.checkBoxVolumeLines)
 
         #System
         #titel
@@ -520,19 +522,16 @@ class RequestedOutputsDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
-        self.shortcut = QShortcut(QKeySequence("Alt+F4"), self)
-        self.shortcut.activated.connect(lambda : closeDialog(self))
+        self.setLayout(layout_win)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
     def update_finished(self,message):
         self.process_running=False
+        closeDialog(self)
 
-class BuildNetworkModelDialog(QMainWindow):
+class BuildNetworkModelDialog(QDialog):
     def __init__(self,dlg_main):
         """Constructor."""
         super().__init__()
@@ -556,10 +555,12 @@ class BuildNetworkModelDialog(QMainWindow):
         self.label_submodels.setFont(font)
         #self.label_submodels.setHidden(True)
         #layout_networks.addWidget(self.checkBoxCosim)
-        layout_networks.addWidget(self.label_submodels)
+        #layout_networks.addWidget(self.label_submodels)
         self.combo_submodels = CheckableComboBox()
+        self.combo_submodels.addItem('1')
+        self.combo_submodels.setItemChecked(0,checked=True)
         #self.combo_submodels.setHidden(True)
-        layout_networks.addWidget(self.combo_submodels)
+        #layout_networks.addWidget(self.combo_submodels)
         
         #reinvoke feature templates
         self.checkbox_reinvokeFeatures = QCheckBox("Reinvoke feature templates")
@@ -582,9 +583,7 @@ class BuildNetworkModelDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
                   
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -593,7 +592,7 @@ class BuildNetworkModelDialog(QMainWindow):
         self.process_running=False
         self.dlg_main.statusMessage.setText(message)
         
-class BuildBuildingModelDialog(QMainWindow):
+class BuildBuildingModelDialog(QDialog):
     def __init__(self):
         """Constructor."""
         super().__init__()
@@ -638,14 +637,12 @@ class BuildBuildingModelDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
                   
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
-class OpenModelDialog(QMainWindow):
+class OpenModelDialog(QDialog):
     def __init__(self,dlg_main,mode):
         """Constructor."""
         super().__init__()
@@ -677,9 +674,7 @@ class OpenModelDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -688,7 +683,7 @@ class OpenModelDialog(QMainWindow):
         #self.process_running=False
         self.dlg_main.statusMessage.setText(message)
             
-class LoadResultsDialog(QMainWindow):
+class LoadResultsDialog(QDialog):
     def __init__(self,dlg_main):
         """Constructor."""
         super().__init__()
@@ -732,15 +727,10 @@ class LoadResultsDialog(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
     def interpolation_dt_state(self,s):
-        if Qt.CheckState.Checked==s:
-            self.interpolation_dt.setHidden(False)
-        else:
-            self.interpolation_dt.setHidden(True)
+        self.interpolation_dt.setHidden(s != checkState())
     
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -750,13 +740,13 @@ class LoadResultsDialog(QMainWindow):
         self.dlg_main.statusMessage.setText(message)
 
         
-class RunNetworkModelDialog(QMainWindow):
+class RunNetworkModelDialog(QDialog):
     def __init__(self,plugin_dir,config):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Run network submodels") 
+        self.setWindowTitle("Run network model") 
         self.networkSimData=loadNetworkSimData(plugin_dir,config)
-        print(self.networkSimData)
+        #print(self.networkSimData)
         self.finished_sims=0
         self.process_running=False
         
@@ -775,8 +765,7 @@ class RunNetworkModelDialog(QMainWindow):
         label_simtime =QLabel("Simulation")
         font=label_simtime.font()
         font.setPointSize(12)
-        label_simtime.setFont(font)
-        
+        label_simtime.setFont(font)      
       
         #radio buttons calc type
         self.btngroup_calc_type = QButtonGroup()
@@ -863,7 +852,7 @@ class RunNetworkModelDialog(QMainWindow):
                 
         self.dateedit_calcFrom = QtWidgets.QDateTimeEdit(calendarPopup=True)
         if self.networkSimData['calc_time_from']:
-            print(self.networkSimData['calc_time_from'])
+            #print(self.networkSimData['calc_time_from'])
             date_time=self.networkSimData['calc_time_from']
         else:
             date_time=str(QtCore.QDate.currentDate().year())+'-01-01 00:00:00'
@@ -876,7 +865,7 @@ class RunNetworkModelDialog(QMainWindow):
                 
         self.dateedit_calcTo = QtWidgets.QDateTimeEdit(calendarPopup=True)
         if self.networkSimData['calc_time_to']:
-            print(self.networkSimData['calc_time_to'])
+            #print(self.networkSimData['calc_time_to'])
             date_time=self.networkSimData['calc_time_to']
         else:
             date_time=str(QtCore.QDate.currentDate().year())+'-12-31 23:59:59'
@@ -895,7 +884,7 @@ class RunNetworkModelDialog(QMainWindow):
         layout_simtime.addLayout(layout_calctime)
         
         #status bar
-        self.status_bar = self.statusBar()
+        self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet("""
     QStatusBar {
                 background-color: white;
@@ -915,14 +904,12 @@ class RunNetworkModelDialog(QMainWindow):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_submodels)
+        #layout_win.addLayout(layout_submodels)
         layout_win.addLayout(layout_simtime)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.status_bar)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
         self.rbtn_calc_type_periodic.toggled.connect(self.onClickedRadioCalcType)
         self.rbtn_calc_type_dynamic.toggled.connect(self.onClickedRadioCalcType)
@@ -938,7 +925,7 @@ class RunNetworkModelDialog(QMainWindow):
             self.rbtn_startup_type_dynamic.setChecked(True)
         
     def onClickedRadioCalcType(self,s):
-        print(s)
+        #print(s)
         
         if self.rbtn_calc_type_dynamic.isChecked():
             self.label_startup.setHidden(False)
@@ -964,7 +951,7 @@ class RunNetworkModelDialog(QMainWindow):
             self.numb_periods.setHidden(False)    
 
     def onClickedRadioStartupType(self,s):
-        print(s)
+        #print(s)
         if self.rbtn_startup_type_dynamic.isChecked():
             self.label_calcStartupFrom.setHidden(False)
             self.dateedit_startupFrom.setHidden(False)
@@ -978,10 +965,10 @@ class RunNetworkModelDialog(QMainWindow):
             self.numb_periods.setHidden(False)
             
     def updateStatusBar(self,message):
-        print(f"signal:{message}")
-        if message=="Simulation finished" and self.statusBar().currentMessage()!="Simulation failed":
+        #print(f"signal:{message}")
+        if message=="Simulation finished" and self.status_bar.currentMessage()!="Simulation failed":
             self.finished_sims+=1
-            print(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
+            #print(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
             if self.finished_sims==self.n_sims:
                 self.status_bar.showMessage(message) 
         else:
@@ -993,7 +980,7 @@ class RunNetworkModelDialog(QMainWindow):
     def update_finished(self,message):
         self.process_running=False
         
-class CalibrateCustomers(QMainWindow):
+class CalibrateCustomers(QDialog):
     def __init__(self,config,conn):
         """Constructor."""
         super().__init__()
@@ -1067,11 +1054,9 @@ class CalibrateCustomers(QMainWindow):
         layout_win.addLayout(layout_results)
         layout_win.addLayout(layout_buttons)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
-class FeatureModelParmDlg(QMainWindow):
+class FeatureModelParmDlg(QDialog):
     def __init__(self,cur,config):
         """Constructor."""
         super().__init__()
@@ -1100,7 +1085,7 @@ class FeatureModelParmDlg(QMainWindow):
         layout_listWidget_featureFields.addWidget(self.listWidget_featureFields)
         self.listWidget_featureFields.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
         
-        label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected mapping expression.\nYou can use also dictionaries in the form: {key: entry}[value/attribut]')
+        label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected mapping expression.\nYou can use also dictionaries in the form: {key: entry}[value/attribute]')
         layout_list.addLayout(layout_listWidget_featureFields)
         layout_list.addWidget(label_list_helptext)
        
@@ -1137,9 +1122,7 @@ class FeatureModelParmDlg(QMainWindow):
         self.loadParm()
         self.loadFieldAttributes()
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         
     def mapAttributesDoubleClick(self,s):
         table_index=self.tableWidget_parameters.currentRow()
@@ -1149,7 +1132,7 @@ class FeatureModelParmDlg(QMainWindow):
             iface.messageBar().pushMessage("Info", "No model parameter selected!", level=Qgis.Info)
             
     def onClickedRadio(self,s):
-        print(s)
+        #print(s)
         self.loadedMappingParms={}
         self.loadParm()
         self.loadFieldAttributes()
@@ -1169,7 +1152,7 @@ class FeatureModelParmDlg(QMainWindow):
             self.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction']}
             table.insertRow(i)
             item = QTableWidgetItem(str(parm['id']))
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            item.setFlags(item.flags() & ~qt_item_flag("ItemIsEditable"))
 
             table.setItem(i,0,item)
             table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
@@ -1183,7 +1166,7 @@ class FeatureModelParmDlg(QMainWindow):
             table.setItem(i,4,QTableWidgetItem(parm['model_name']))
             table.setItem(i,5,QTableWidgetItem(parm['macro_name'])) 
 
-class FeatureDecouplingDlg(QMainWindow):
+class FeatureDecouplingDlg(QDialog):
     def __init__(self,plugin_dir,cur,config):
         """List the feature model names, which belongs to network side in decoupling mode"""
         super().__init__()
@@ -1246,9 +1229,7 @@ class FeatureDecouplingDlg(QMainWindow):
         layout_win.addLayout(layout_buttons_action)
         layout_win.addLayout(layout_buttons) 
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
         self.onClickedRadio('')
         self.no_submodels.setText(str(len([i for i in getFeatureSubmodels(self.cur,self.config,'customer' if self.rbtn_customers.isChecked() else 'energy_plant') if i not in getLineSubmodels(self.cur,self.config)])))
 
@@ -1258,7 +1239,7 @@ class FeatureDecouplingDlg(QMainWindow):
         self.listWidget_featureModels.insertItem(0, item)    
         
     def onClickedRadio(self,s):
-        print(s)
+        #print(s)
         self.listWidget_featureModels.clear()
         self.feature_template.clear()
         
@@ -1266,12 +1247,12 @@ class FeatureDecouplingDlg(QMainWindow):
             sql="""SELECT template,template_name FROM customer_templates ORDER BY template;"""
         else:
             sql="""SELECT template,template_name FROM energy_plant_templates ORDER BY template;"""
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         self.feature_template.addItems([i['template_name'] for i in self.cur.fetchall()])
 
     def onClickedTemplate(self,s):
-        print(s)
+        #print(s)
         self.listWidget_featureModels.clear()
         if self.rbtn_customers.isChecked():
             sql="""SELECT f_dec.comp_name
@@ -1283,22 +1264,22 @@ class FeatureDecouplingDlg(QMainWindow):
     FROM energy_plant_templates ep_t, "{}".feature_decoupling f_dec
     WHERE ep_t.template_name='{}' AND f_dec.template=ep_t.template AND type='energy_plant';
 """.format(self.config['versionName'],self.feature_template.itemText(s))
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         self.listWidget_featureModels.addItems([i['comp_name'] for i in self.cur.fetchall()])
         
     def saveListContent(self):
-        print('Save list conetent')
+        #print('Save list conetent')
         if self.rbtn_customers.isChecked():
             type='customer'
         else:
             type='energy_plant'
 
         sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,template)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         template_id=self.cur.fetchone()['template']
-        print(template_id)
+        #print(template_id)
         
         sql="""DELETE FROM "{}".feature_decoupling WHERE template={};\n""".format(self.config['versionName'],template_id)
         sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (template,comp_name,type) VALUES ({},'{}','{}');""".format(self.config['versionName'],template_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
@@ -1327,7 +1308,7 @@ class FeatureDecouplingDlg(QMainWindow):
            pass
 
         
-        print(sql)
+        #print(sql)
         if sql:
             self.cur.execute(sql)
             
@@ -1338,139 +1319,7 @@ class FeatureDecouplingDlg(QMainWindow):
         for item in listItems:
             self.listWidget_featureModels.takeItem(self.listWidget_featureModels.row(item))
 
-class IDADistrictsModelingSimulationDialog(QMainWindow):
-    def __init__(self):
-        """Constructor."""
-        super().__init__()
-        self.setWindowTitle("IDA Districts Modeling & Simulation")    
-        
-        #-------------Settings---------------
-        #titel
-        label_settings_title =QLabel(self.tr("settings"))
-        font=label_settings_title.font()
-        font.setPointSize(15)
-        label_settings_title.setFont(font)
-        
-        layout_modeling_settings = QVBoxLayout() 
-        
-        self.btn_requestedOutputs=QPushButton(self.tr("requested_outputs"))
-        layout_modeling_settings.addWidget(self.btn_requestedOutputs)
-        
-        self.btn_modellingSettings=QPushButton(self.tr("modelling_settings"))
-        layout_modeling_settings.addWidget(self.btn_modellingSettings)
-
-        self.btn_boreholeFieldSettings=QPushButton(self.tr("borehole_field_settings"))
-        layout_modeling_settings.addWidget(self.btn_boreholeFieldSettings)
-        
-        #set settings layout together
-        layout_settings = QVBoxLayout()
-        layout_settings.addWidget(label_settings_title)
-        layout_settings.addLayout(layout_modeling_settings)
-        
-        
-        #-------------Network Modeling---------------
-        #titel
-        label_modeling_title =QLabel(self.tr("network_modeling"))
-        font=label_modeling_title.font()
-        font.setPointSize(15)
-        label_modeling_title.setFont(font)
-               
-        #model buttons
-        layout_modeling_btn = QVBoxLayout()   
-        
-        self.btn_custModelParm=QPushButton(self.tr("feature_model_parameter_mapping"))
-        layout_modeling_btn.addWidget(self.btn_custModelParm)
-
-        self.btn_supervisoryContr=QPushButton(self.tr("supervisory_ctrl"))
-        layout_modeling_btn.addWidget(self.btn_supervisoryContr)
-        
-        self.btn_calibrateCustomers=QPushButton(self.tr("calibrate_customer_models"))
-        #layout_modeling_btn.addWidget(self.btn_calibrateCustomers)
-        
-        
-        self.btn_invokeFeatures=QPushButton(self.tr("invoke_feature_models_from_templates"))
-        layout_modeling_btn.addWidget(self.btn_invokeFeatures)
-        
-        self.btn_sensorSignals=QPushButton(self.tr("sensor_signals"))
-        layout_modeling_btn.addWidget(self.btn_sensorSignals)
-
-        self.btn_featureDecoupling=QPushButton("feature_decoupling")
-        #layout_modeling_btn.addWidget(self.btn_featureDecoupling)
-        
-        layout_model_btn = QHBoxLayout()      
-        
-        self.btn_buildModel=QPushButton(self.tr("build_model"))
-        layout_model_btn.addWidget(self.btn_buildModel)
-        
-        self.btn_openModel=QPushButton(self.tr("open_model"))
-        layout_model_btn.addWidget(self.btn_openModel)
-        
-        
-        #set modeling layout together
-        layout_modeling = QVBoxLayout()
-        layout_modeling.addWidget(label_modeling_title)
-        layout_modeling_btn.addLayout(layout_model_btn)
-        layout_modeling.addLayout(layout_modeling_btn)
-
-        #-------------Building Modeling---------------
-        #titel
-        label_modeling_title =QLabel(self.tr("building_modeling"))
-        font=label_modeling_title.font()
-        font.setPointSize(15)
-        label_modeling_title.setFont(font)
-               
-        layout_building_model_btn = QHBoxLayout()      
-        
-        self.btn_buildBuildingModel=QPushButton(self.tr("build_model"))
-        layout_building_model_btn.addWidget(self.btn_buildBuildingModel)
-        
-        self.btn_openBuildingModel=QPushButton(self.tr("open_model"))
-        layout_building_model_btn.addWidget(self.btn_openBuildingModel)
-        
-        #set modeling layout together
-        layout_building_modeling = QVBoxLayout()
-        layout_building_modeling.addWidget(label_modeling_title)
-        layout_building_modeling.addLayout(layout_building_model_btn)
-        
-        #-------------Simulation---------------
-        #titel
-        label_simulation_title =QLabel(self.tr("simulation"))
-        font=label_simulation_title.font()
-        font.setPointSize(15)
-        label_simulation_title.setFont(font)
-        
-        #buttons
-        layout_simulation_btn = QHBoxLayout()      
-        
-        self.btn_runModel=QPushButton(self.tr("run_model"))
-        layout_simulation_btn.addWidget(self.btn_runModel)
-        
-        self.btn_loadResults=QPushButton(self.tr("load_results"))
-        layout_simulation_btn.addWidget(self.btn_loadResults)
-        
-        
-        #set modeling layout together
-        layout_simulation = QVBoxLayout()
-        layout_simulation.addWidget(label_simulation_title)
-        layout_simulation.addLayout(layout_simulation_btn)
-        
-        #---------------set layouts together-------------------
-        layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_settings)
-        layout_win.addLayout(layout_modeling)
-        layout_win.addLayout(layout_building_modeling)
-        layout_win.addLayout(layout_simulation)
-        
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
-        self.addShortCuts()
-        
-    def addShortCuts(self):
-        self.shortcut_closeForm = QShortcut(QKeySequence("Alt+F4"), self)
-        self.shortcut_closeForm.activated.connect(lambda : closeDialog(self))
-
-class InvokeFeaturesDlg(QMainWindow):
+class InvokeFeaturesDlg(QDialog):
     def __init__(self):
         """Constructor."""
         super().__init__()
@@ -1523,10 +1372,7 @@ class InvokeFeaturesDlg(QMainWindow):
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
-                
+        self.setLayout(layout_win)         
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
@@ -1584,7 +1430,7 @@ class ComboBox(QComboBox):
         self.popupAboutToBeShown.emit()
         super(ComboBox, self).showPopup()
         
-class ModellingSettings(QMainWindow):
+class ModellingSettings(QDialog):
     def __init__(self,plugin_dir,modellingSettings,cur):
         """Constructor."""
         super().__init__()
@@ -1838,9 +1684,7 @@ class ModellingSettings(QMainWindow):
         self.amb_duct_model.currentTextChanged.connect(self.showDuctModelParameter)
         self.amb_ground_model.currentTextChanged.connect(self.showGroundModelParameter)
 
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)
     
     def setTimeseriesIds(self,combobox,table_name):
         ids=self.getTimeseriesIds(table_name)
@@ -1849,12 +1693,12 @@ class ModellingSettings(QMainWindow):
         
     def getTimeseriesIds(self,table_name):
         sql="""SELECT id FROM {} ORDER BY id;""".format(table_name)
-        print(sql)
+        #print(sql)
         self.cur.execute(sql)
         return [str(i['id']) for i in self.cur.fetchall()]
               
     def showDuctModelParameter(self,s):
-        print(s)
+        #print(s)
         if s=='Timeseries':
             self.amb_duct_profile.setHidden(False)
             self.label_amb_duct_profile.setHidden(False)
@@ -1869,7 +1713,7 @@ class ModellingSettings(QMainWindow):
         self.adjustSize()
                 
     def showGroundModelParameter(self,s):
-        print(s)
+        #print(s)
         if s=='Kusuda':
             self.amb_kusuda_tsurfmean.setHidden(False)
             self.amb_kusuda_tsurfampl.setHidden(False)
@@ -1931,7 +1775,7 @@ class ModellingSettings(QMainWindow):
             self.label_amb_kusuda_lambda.setHidden(True)
             self.label_amb_kusuda_depth.setHidden(True)
             
-class SupervisoryCtrlDlg(QMainWindow):
+class SupervisoryCtrlDlg(QDialog):
     def __init__(self,cur,config):
         """Constructor."""
         super().__init__()
@@ -1959,9 +1803,7 @@ class SupervisoryCtrlDlg(QMainWindow):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_submodel)
+        #layout_win.addLayout(layout_submodel)
         layout_win.addLayout(layout_buttons)
         
-        widget=QWidget()
-        widget.setLayout(layout_win)
-        self.setCentralWidget(widget)
+        self.setLayout(layout_win)

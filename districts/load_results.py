@@ -16,7 +16,7 @@ class WorkerLoadResults(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APISignals()
         self.config=kwargs['config']
         self.dlg=kwargs['dlg']
@@ -32,7 +32,7 @@ class WorkerLoadResults(QRunnable):
             
     @pyqtSlot()
     def run(self):
-        print('run worker load results')
+        #print('run worker load results')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         self.loadResults()
@@ -40,10 +40,10 @@ class WorkerLoadResults(QRunnable):
         self.signals.finished.emit('Loading results has been successfully completed!')  
         
     def loadResults(self):
-        print('-***-')
+        #print('-***-')
         networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
 
-        srid=loadProjectConfig(self.plugin_dir,self.config['projectName'])['srid']
+        srid=loadProjectConfig(self.config)['srid']
         modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
 
         #re-create table line_seg for temperature (according to the pipe distrectization) and pressure (2 segments per line), which holds the geometry of the simulated pipe segements
@@ -59,23 +59,23 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
             "SELECT segmentize({},'{}','line_seg_temp');".format(modellingSettings['fd_meterPerNode'],self.config['versionName']) if output=='temp_lines' else "SELECT halve_geom('{}','line_seg_p');".format(self.config['versionName']))
             for output in self.simulatedOutputs if output in ['temp_lines','p_lines'] and self.simulatedOutputs[output]])
         if sql:
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
         
         for i in range(self.dlg.combo_submodels.count()):
             if self.dlg.combo_submodels.itemText(i) != 'Check all items' and self.dlg.combo_submodels.itemChecked(i):
                 try:
                     submodel=self.dlg.combo_submodels.itemText(i)
-                    print(submodel)
+                    #print(submodel)
                     match = re.match(r'\d+', submodel)
                     if match:
                         submodel_id = match.group()
-                        print(submodel_id)
+                        #print(submodel_id)
                     else:
                         self.signals.error.emit('Please select a model, which starts with an Integer and belongs to one of your modeled networks.')
                         return False
                     
-                    dir_path=self.plugin_dir+'\\projects\\{}\\models\\{}\\network_{}\\'.format(self.config['projectName'],self.config['versionName'],submodel)
+                    dir_path=self.config['pathProjects']+'{}\\versions\\{}\\network_{}\\'.format(self.config['projectName'],self.config['versionName'],submodel)
                     pipe_sequences=getUsedPipeBundleSequences(self.cur,self.config)
                     #-----update DB tables--------
                     #-----------create tables----------------
@@ -89,8 +89,8 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                         conn_t_power_names= getUsedConnTypeIdents('customer',self.cur,self.config)
                         tables=[]
                         
-                        print(conn_names)
-                        print(conn_t_power_names)
+                        #print(conn_names)
+                        #print(conn_t_power_names)
                         #connection tables (p,m,T)
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_{}${} CASCADE;
 CREATE TABLE "{}".customer_s_{}${}
@@ -225,7 +225,7 @@ CREATE TABLE "{}".customer_s_ventilation
 );""".format(self.config['versionName'],self.config['versionName'],srid)
                             tables.append('customer_s_ventilation')
                             
-                        print(sql)
+                        #print(sql)
                         if sql:
                             self.cur.execute(sql)
                         
@@ -241,23 +241,23 @@ CREATE TABLE "{}".customer_s_ventilation
                         self.signals.progress.emit(5)
                         
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
-                        print(b_t_connValues_dict)
+                        #print(b_t_connValues_dict)
                         for counter,id in enumerate(cids,1):
-                            print(id)
-                            print(c_conn_outputs)
+                            #print(id)
+                            #print(c_conn_outputs)
                             if c_conn_outputs or conn_t_power_names:
                                 connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
-                                print(f"conn_type_seq:{conn_type_seq}")
+                                #print(f"conn_type_seq:{conn_type_seq}")
                                 for seq in conn_type_seq:
                                     fname=dir_path+'customer_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
-                                    print(fname)
+                                    #print(fname)
                                     if os.path.exists(fname):
                                         with open(fname, "r") as myfile:
                                             col_var_dict={}
                                             for line in myfile:
                                                 header=line.split()
-                                                print(header)
+                                                #print(header)
                                                 for col,var in enumerate(header,-1):
                                                     if len(var.split('_'))==2:
                                                         col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
@@ -265,50 +265,50 @@ CREATE TABLE "{}".customer_s_ventilation
                                                     elif var=='power':
                                                         col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'customer_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
                                                         
-                                                print(col_var_dict)
+                                                #print(col_var_dict)
                                                 break
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
 
-                                        if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
+                                        if self.dlg.checkbox_timestep.checkState() == checkState():
                                             #linear interpolation
-                                            print(self.dlg.interpolation_dt.text())
+                                            #print(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
-                                        print(file_data)
+                                        #print(file_data)
                                         start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
                             
                             if 'troom' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\TRoom.prn'
-                                print(fname)
+                                #print(fname)
                                 if os.path.exists(fname):         
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
-                                    if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
+                                    if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
-                                        print(self.dlg.interpolation_dt.text())
+                                        #print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
-                                    print(file_data)
+                                    #print(file_data)
                                     start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                     col_var_dict={2: {'var': 'troom','name': '','table_name': 'customer_s_troom'}}
                                     self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
                                 
                             if 'heatbalance' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'.format(seq)
-                                print(fname)
+                                #print(fname)
                                 if os.path.exists(fname):                                              
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
-                                    if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
+                                    if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
-                                        print(self.dlg.interpolation_dt.text())
+                                        #print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
-                                    print(file_data)
+                                    #print(file_data)
                                     start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                     self.copy_string_iterator_c_heatbalance_sData(file_data,id['id'],start_datetime)
                             self.signals.progress.emit(int(5+counter / len(cids) *28))
                         #update point geometry
-                        print(tables)
+                        #print(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'customer')
                             self.updateResultLayerGeometry(tables,'customer')
@@ -324,8 +324,8 @@ CREATE TABLE "{}".customer_s_ventilation
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('energy_plant',self.cur,self.config)
                         tables=[]
-                        print(conn_names)
-                        print(conn_t_power_names)
+                        #print(conn_names)
+                        #print(conn_t_power_names)
                         #connection tables (p,m,T)
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".energy_plant_s_{}${} CASCADE;
 CREATE TABLE "{}".energy_plant_s_{}${}
@@ -355,7 +355,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                 for ident in conn_t_power_names])
                             tables+=["energy_plant_s_power${}".format(ident) for ident in conn_t_power_names]
                         
-                        print(sql)
+                        #print(sql)
                         if sql:
                             self.cur.execute(sql)
                             
@@ -364,26 +364,26 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
     FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={};""".format(self.config['versionName'],submodel_id)
-                        print(sql)
+                        #print(sql)
                         self.cur.execute(sql)
                         epids=self.cur.fetchall()
                         
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
-                        print(b_t_connValues_dict)
+                        #print(b_t_connValues_dict)
                         for counter,id in enumerate(epids,1):
-                            print(id)
+                            #print(id)
                             if ep_conn_outputs or conn_t_power_names:
                                 connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
                                 for seq in conn_type_seq:
                                     fname=dir_path+'energy_plant_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
-                                    print(fname)
+                                    #print(fname)
                                     if os.path.exists(fname):
                                         with open(fname, "r") as myfile:
                                             col_var_dict={}
                                             for line in myfile:
                                                 header=line.split()
-                                                print(header)
+                                                #print(header)
                                                 for col,var in enumerate(header,-1):
                                                     if len(var.split('_'))==2:
                                                         col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
@@ -391,21 +391,21 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                                     elif var=='power':
                                                         col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'energy_plant_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
                                                         
-                                                print(col_var_dict)
+                                                #print(col_var_dict)
                                                 break
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
 
-                                        if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
+                                        if self.dlg.checkbox_timestep.checkState() == checkState():
                                             #linear interpolation
-                                            print(self.dlg.interpolation_dt.text())
+                                            #print(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
-                                        print(file_data)
+                                        #print(file_data)
                                         start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
                             self.signals.progress.emit(int(33+counter / len(epids) *33))
                         #update point geometry
-                        print(tables)
+                        #print(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'energy_plant')
                             self.updateResultLayerGeometry(tables,'energy_plant')
@@ -439,7 +439,7 @@ CREATE TABLE "{}".line_s_qamb
 	CONSTRAINT line_s_qamb_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid)
 
-                        print(sql)
+                        #print(sql)
                         self.cur.execute(sql)
 
                         #load data
@@ -449,11 +449,11 @@ CREATE TABLE "{}".line_s_qamb
                         lids=self.cur.fetchall()
                         
                         for counter_of,output in enumerate(line_outputs,1):
-                            print('+++++++++'+output+'++++++++++++')
+                            #print('+++++++++'+output+'++++++++++++')
                             #get connection sequence
                             for counter_l,id in enumerate(lids,1):
                                 fname=dir_path+'Line_{}_{}.prn'.format(output,id['id'])
-                                print(fname)
+                                #print(fname)
                                 if os.path.exists(fname):
                                     data=[]
                                     if output=='temp': #get number of temp segments per line; just read first line
@@ -462,7 +462,7 @@ CREATE TABLE "{}".line_s_qamb
                                                 values_len=len(line.split())-3
                                                 conn_seq_len=len(set([int(i.split('_')[1]) for i in line.split()[3:]]))
                                                 value_per_conn_seq=values_len/conn_seq_len
-                                                print(value_per_conn_seq)
+                                                #print(value_per_conn_seq)
                                                 break
                                     elif output=='p':
                                         with open(fname, "r") as myfile:
@@ -471,34 +471,34 @@ CREATE TABLE "{}".line_s_qamb
                                                 break
                                         value_per_conn_seq=2
                                         conn_seq_len=values_len/value_per_conn_seq
-                                        print(value_per_conn_seq)
-                                        print(conn_seq_len)
+                                        #print(value_per_conn_seq)
+                                        #print(conn_seq_len)
                                     else:
                                         value_per_conn_seq=1
-                                        print(value_per_conn_seq)
+                                        #print(value_per_conn_seq)
 
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                     if output=='p':
                                         new_order=[0,1]+[int(i+2 + conn_seq_len*j) for i in range(int(conn_seq_len)) for j in range(value_per_conn_seq)]
-                                        print(new_order)
+                                        #print(new_order)
                                         file_data=file_data[:,new_order]
                                         
                                     if output=='v': #only positive values for v are needed
                                         file_data[:, 2:]=np.abs(file_data[:, 2:])
-                                        print(file_data)
+                                        #print(file_data)
                                     
                                     start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                             
-                                    if self.dlg.checkbox_timestep.checkState() == Qt.CheckState.Checked:
+                                    if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
-                                        print(self.dlg.interpolation_dt.text())
+                                        #print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                             
                                     if output=='qamb':
                                         table_names=['line_s_qamb']
                                     else:
                                         table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
-                                    print(table_names)
+                                    #print(table_names)
                                     self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
                                 self.signals.progress.emit(int(66+counter_l / len(lids)*32/len(line_outputs)+counter_of/len(line_outputs)*32))
                             
@@ -516,7 +516,7 @@ CREATE TABLE "{}".line_s_qamb
                         self.signals.progress.emit(99)
                         
                     #--------KPI`s------
-                    print('------kpi----------')
+                    #print('------kpi----------')
                     kpis={}
                     if self.simulatedOutputs['tsup_mean_ep_kpi']: 
                         kpis['tsup_mean_ep']=''
@@ -559,10 +559,10 @@ CREATE TABLE "{}".line_s_qamb
                     if self.simulatedOutputs['qamb_kpi']: 
                         kpis['qamb']=''
                     for counter_of,kpi in enumerate(kpis,1):
-                        print('+++++++++'+kpi+'++++++++++++')
+                        #print('+++++++++'+kpi+'++++++++++++')
 
                         fname=dir_path+'Results-macro\\{}_kpi_outputfile.prn'.format(kpi.capitalize())
-                        print(fname)
+                        #print(fname)
                         if os.path.exists(fname):
                             with open(fname, "r") as f:
                                 for line in f:
@@ -572,12 +572,12 @@ CREATE TABLE "{}".line_s_qamb
                                 kpis[kpi]=last_line.split()[-1]
                             except:
                                 pass
-                    print(kpis)
+                    #print(kpis)
                     sql="""TRUNCATE "{}".kpi;\n""".format(self.config['versionName'])
                     sql+="""INSERT INTO "{}".kpi ({}) SELECT {};""".format(self.config['versionName'],
                         "id"+''.join([",{}".format(kpi) for kpi in kpis]),
                         "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))
-                    print(sql)
+                    #print(sql)
                     self.cur.execute(sql)
                 except Exception as e:
                     self.signals.error.emit(str(e))
@@ -585,11 +585,11 @@ CREATE TABLE "{}".line_s_qamb
 
     def copy_string_iterator_feature_c_t_seq_sData(self,sdata,fid,col_dict,start_datetime) -> None:
         for col in col_dict:
-            print(col)
+            #print(col)
             table_name=col_dict[col]['table_name']
-            print(table_name)
+            #print(table_name)
             max_id=getMaxIdSchema(self.cur,table_name,self.config['versionName'])+1
-            print(max_id)
+            #print(max_id)
             with self.conn.cursor() as cursor:
                 mdata_string_iterator = StringIteratorIO((
                     '|'.join(map(clean_csv_value, (
@@ -625,17 +625,17 @@ CREATE TABLE "{}".line_s_qamb
             sql="""UPDATE "{}".{} r set geom = f.geom 
     FROM (SELECT id, geom FROM "{}".{}s) f
     WHERE f.id=r.fid;""".format(self.config['versionName'],table_name,self.config['versionName'],type)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
     def createResultLayerIndex(self,tables,type):
         for counter,table_name in enumerate(tables,1):
-            print('-------------**---**-'+table_name.split('_')[1].split('$')[0])
+            #print('-------------**---**-'+table_name.split('_')[1].split('$')[0])
             if type=='line' and table_name.split('$')[0].split('_')[-1] in ['temp','p']:
                 sql="""CREATE INDEX "idx_{}_fid_time_segment" ON {}."{}" (fid, time, segment);""".format(table_name,self.config['versionName'],table_name)
             else:
                 sql="""CREATE INDEX "idx_{}_fid_time" ON {}."{}" (fid, time);""".format(table_name,self.config['versionName'],table_name)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
     def updateResultLayerLineSegGeometry(self,tables):   
@@ -644,7 +644,7 @@ CREATE TABLE "{}".line_s_qamb
             sql="""UPDATE "{}".{} r set geom = seg.geom 
     FROM (SELECT lid,lid_seg, geom FROM "{}".line_seg_{}) seg
     WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.config['versionName'],table_name,self.config['versionName'],var)
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
     def copy_string_iterator_sData(self, sdata,fid,table_names,value_per_conn_seq,start_datetime,mode) -> None:

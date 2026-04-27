@@ -1,6 +1,6 @@
 {'power_c': False, 'temp_c': False, 'p_c': False, 'mdot_c': False, 'heatbalance_c': False, 'troom_c': False, 'v_lines': False,'mdot_lines': False,'p_lines': False,'temp_lines': False, 'qamb_lines': False, 'power_ep': False, 'temp_ep': False, 'p_ep': False, 'mdot_ep': False, 'heatbalance_system': False, 'massbalance_system': False, 'tsup_mean_c_system': False, 'tsup_max_c_system': False, 'tsup_min_c_system': False, 'tsup_mean_ep_system': False, 'tsup_max_ep_system': False, 'tsup_min_ep_system': False, 'tret_mean_c_system': False, 'tret_max_c_system': False, 'tret_min_c_system': False, 'tret_mean_ep_system': False, 'tret_max_ep_system': False, 'tret_min_ep_system': False,
 'tsup_mean_ep_kpi': False, 'tsup_max_ep_kpi': False, 'tsup_min_ep_kpi': False, 'tret_mean_ep_kpi': False, 'tret_max_ep_kpi': False, 'tret_min_ep_kpi': False, 'qsup_heat_ep_kpi': False, 'qsup_cold_ep_kpi': False, 'qsup_ep_kpi': False,
 'tsup_mean_c_kpi': False, 'tsup_max_c_kpi': False, 'tsup_min_c_kpi': False, 'tret_mean_c_kpi': False, 'tret_max_c_kpi': False, 'tret_min_c_kpi': False, 'qsup_heat_c_kpi': False, 'qsup_cold_c_kpi': False, 'qsup_c_kpi': False,
-'qamb_kpi': False,
+'qamb_kpi': False, 'volume_kpi': False,
 'qsup_heat_spec_c_kpi': False, 'qsup_cold_spec_c_kpi': False, 'qsup_spec_c_kpi': False, 'qsup_heat_density_c_kpi': False, 'qsup_cold_density_c_kpi': False, 'qsup_density_c_kpi': False, 'qsup_heat_linedensity_c_kpi': False, 'qsup_cold_linedensity_c_kpi': False, 'qsup_linedensity_c_kpi': False, 'eff_width': False, 
 'dt_outputs': '0'}

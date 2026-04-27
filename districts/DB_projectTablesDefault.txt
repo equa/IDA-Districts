@@ -1,3 +1,12 @@
+-------------------table public.db_info;------------------------------------
+DROP TABLE IF EXISTS public.db_info CASCADE;
+CREATE TABLE IF NOT EXISTS public.db_info
+(
+    id serial,
+    version text,
+    CONSTRAINT db_info_pkey PRIMARY KEY (id)
+);
+
 -------------------table public.supervisory_ctrl;------------------------------------
 DROP TABLE IF EXISTS public.supervisory_ctrl CASCADE;
 CREATE TABLE IF NOT EXISTS public.supervisory_ctrl

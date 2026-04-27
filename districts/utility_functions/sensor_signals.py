@@ -26,7 +26,7 @@ def getSubmodelFromSensorTarget(cur,config,sensor,target):
         
 def getSensorDecData(sensor_data,feature_dec_irefs,cur,config):
     sensor_dec_data=[]
-    print(sensor_data)
+    #print(sensor_data)
     for sensor in sensor_data:
         irefs_source=[]
         for source in sensor['irefs_source']:
@@ -48,7 +48,7 @@ def getSensorDecData(sensor_data,feature_dec_irefs,cur,config):
                 irefs_target.append({'submodel':getSubmodelFromSensorTarget(cur,config,sensor,target),'cosim': '','network_side': '','iref':target})
 
         sensor_dec_data.append({'sensor_id':sensor['sensor_id'],'source_type':sensor['source_type'],'source_type_name':sensor['source_type_name'],'source_template_names':sensor['source_template_names'],'target_type':sensor['target_type'],'target_type_name':sensor['target_type_name'],'target_template_names':sensor['target_template_names'],'function':sensor['function'],'function_name':sensor['function_name'],'measure':sensor['measure'],'measure_name':sensor['measure_name'],'irefs_source':irefs_source,'irefs_target':irefs_target,'test_value':sensor['test_value'],'description_source':sensor['description_source'],'description_target':sensor['description_target']})
-    print(sensor_dec_data)
+    #print(sensor_dec_data)
     return sensor_dec_data
 
 def getLength(sensor,submodel):
@@ -102,14 +102,14 @@ def getCosimCounter(sensor_dec_data,iref,submodel,cur,config):
                 counters[i['submodel']]=1
 
 def getCosimVarCounter(sensor_dec_data,iref,submodel):
-    print(iref)
-    print('////')
+    #print(iref)
+    #print('////')
     counter=0
     for i in [j for i in sensor_dec_data 
                 for j in i['irefs_source']
                     if [True for j in i['irefs_target'] if j['submodel']==submodel and not j['network_side'] or submodel==j['cosim'] and j['network_side']] 
                     and not j['submodel']==submodel and not (j['cosim']==submodel and j['network_side'])]:
-        print(i)
+        #print(i)
         if iref==i['iref']:
             return counter+1
         counter+=1
@@ -140,8 +140,8 @@ def getSensorIrefsFeatureSource(sensor_data,submodel,feature_id,cur,config,featu
     return [j for i in sensor_data for j in i['irefs_source'] if [True for k in feature_ids_per_submodel if k['feature']==feature_type and k['feature']==i['source_type'] and j.split('_')[1]==str(k['id']) and j.split('_')[1]==str(feature_id)]]
 
 def getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target):
-    print('*/-')
-    print(sensor_data_target)
+    #print('*/-')
+    #print(sensor_data_target)
     sensor_description="""(TEXT-OBJECT :VALUE (ENGLISH "<meta name=\\"sensor-description\\"><b>Sensor descriptions:</b><br>"""
     sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+j +"</b> --> "+"Source description='"+(i['description_source'] if i['description_source'] else "")+"'; Sensor ID='"+str(i['sensor_id'])+"'; Target feature ID`s='{}'".format(','.join([id.split('_')[1] for id in ([j] if i['function']==6 else i['irefs_target'])]))
                                         for i in sensor_data_source for j in i['irefs_source']])
@@ -175,8 +175,8 @@ def delSensorConnection(file_data,remove_sensor_ids,type):
     
 def delSensorConnectionPList(plist,remove_sensor_ids,type):
     data=[]
-    remove_sensor_names=["""\"Int_Ref_Sensor_{}_{}""".format(str(type),str(sensor['sensor_id'])) for sensor in remove_sensor_ids]
-    print(plist)
+    remove_sensor_names=["""\"Int_Ref_Sensor_{}_{}\"""".format(str(type),str(sensor['sensor_id'])) for sensor in remove_sensor_ids]
+    #print(plist)
     for comp in plist:
         if getCompClass(comp)=='CONNECTIONS':
             new_conns=[]
@@ -227,7 +227,7 @@ def delSensorComp(file_data,remove_sensor_ids,type):
     return data
     
 def getRemovedSensorSourceData(cur,config,source_types=[1,2,3],filter=""):
-    print('--------------getRemovedSensorSourceData------------')
+    #print('--------------getRemovedSensorSourceData------------')
     sql="""{}{}{}
 EXCEPT
 {}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
@@ -240,12 +240,12 @@ EXCEPT
         """SELECT s.sensor_id,s.type,NULL AS template,CASE WHEN function=6 THEN True ELSE False END AS multi_signal
     FROM sensor_source s 
     WHERE s.type IN (3)""" if 3 in source_types else "")
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchall()   
 
 def getRemovedSensorTargetData(cur,config,target_types=[1,2,3],filter=""):
-    print('--------------getRemovedSensorTargetData------------')
+    #print('--------------getRemovedSensorTargetData------------')
     sql="""{}{}{}
 EXCEPT
 {}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
@@ -258,12 +258,12 @@ EXCEPT
         """SELECT t.sensor_id,t.type,NULL AS template,CASE WHEN s.function=6 and t.type=3 THEN True ELSE False END AS multi_signal
     FROM sensor_target t, sensor_source s
     WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "")
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchall()    
 
 def getAddedSensorSourceData(cur,config,source_types=[1,2,3],filter=""):
-    print('--------------getAddedSensorSourceData------------')
+    #print('--------------getAddedSensorSourceData------------')
     sql="""{}{}{}
 EXCEPT
 {}{}{};""".format("""SELECT s.sensor_id,s.type,t.template,s.test_value, False AS multi_signal
@@ -276,12 +276,12 @@ EXCEPT
         """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
         """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "")
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchall()
 
 def getAddedSensorTargetData(cur,config,target_types=[1,2,3],filter=""):
-    print('-------------getAddedSensorTargetData-----------------')
+    #print('-------------getAddedSensorTargetData-----------------')
     sql="""{}{}{}
 EXCEPT
 {}{}{};""".format(
@@ -295,12 +295,12 @@ EXCEPT
         """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
         "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
         """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "")
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     return cur.fetchall()
 
 def writeInvokedSensorSourceSignals (cur,config,add_sensor_source_idsValues):
-    print(add_sensor_source_idsValues)
+    #print(add_sensor_source_idsValues)
     if add_sensor_source_idsValues:
         sensor_data = {}
         for entry in add_sensor_source_idsValues:
@@ -311,10 +311,10 @@ def writeInvokedSensorSourceSignals (cur,config,add_sensor_source_idsValues):
             else:
                 if template not in sensor_data[sensor_id]['templates']:
                     sensor_data[sensor_id]['templates'].append(template)
-        print(sensor_data)
+        #print(sensor_data)
                 
         for sensor in sensor_data:
-            print(sensor)
+            #print(sensor)
             sql="\n".join(["""INSERT INTO invoked_sensor_source_signals(sensor_id,type,templates,multi_signal,test_value) VALUES ({},{},array{}::INTEGER[],{},{})
     ON CONFLICT (sensor_id)
     DO UPDATE SET
@@ -322,7 +322,7 @@ def writeInvokedSensorSourceSignals (cur,config,add_sensor_source_idsValues):
         multi_signal = EXCLUDED.multi_signal,
         test_value = EXCLUDED.test_value;""".format(
                 sensor,sensor_data[sensor]['source_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
-        print(sql)
+        #print(sql)
         cur.execute(sql)
   
 def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
@@ -337,8 +337,8 @@ def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
                 if template not in sensor_data[sensor_id]['templates']:
                     sensor_data[sensor_id]['templates'].append(template)
         for sensor in sensor_data:
-            print(sensor)
-            print(sensor_data[sensor])
+            #print(sensor)
+            #print(sensor_data[sensor])
             sql="\n".join(["""INSERT INTO invoked_sensor_target_signals(sensor_id,type,templates,multi_signal,test_value) VALUES ({},{},array{}::INTEGER[],{},{})
     ON CONFLICT (sensor_id)
     DO UPDATE SET
@@ -346,7 +346,7 @@ def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
         multi_signal = EXCLUDED.multi_signal,
         test_value = EXCLUDED.test_value;""".format(
                 sensor,sensor_data[sensor]['target_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
-        print(sql)
+        #print(sql)
         cur.execute(sql) 
 
 def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter=""):
@@ -503,7 +503,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],
     config['versionName'],config['versionName'],
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter)
-    print(sql)   
+    #print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
@@ -520,28 +520,28 @@ def delSensorDescription(file_data):
 class NetworkSensorSignals():
     def __init__(self,cur,config,dir):
     
-        print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
+        #print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
         sensor_source_ids=getTableIds(cur,config['versionName'],'sensor_source','sensor_id')
-        print(sensor_source_ids)
+        #print(sensor_source_ids)
         
         sensor_target_ids=getTableIds(cur,config['versionName'],'sensor_target','sensor_id')
-        print(sensor_target_ids)
+        #print(sensor_target_ids)
         
         #sensor idm macro file
         file=dir+"""\\Sensor-macro.idm"""
-        data=[""";IDA 5.19001 Data UTF-8\n""","""(DOCUMENT-HEADER :TYPE ICE-MACRO :D "ICE macro" :ETM 3879491673 :APP (ICE :VER 5.19001))\n"""]
+        data=[""";IDA {} Data UTF-8\n""".format(getIDAVersion(config)),"""(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n""".format(getIDADistrictsVersion(config))]
         writeToFileFromList(data,dir,file)
         
         #sensor idc macro file
         file=dir+"""\\Sensor-macro.idc"""
-        data=[""";IDA 5.19001 Form UTF-8\n""","""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
+        data=[""";IDA {} Form UTF-8\n""".format(getIDAVersion(config)),"""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
         writeToFileFromList(data,dir,file)
         
 class templatesensorSignals():
     def __init__(self,cur,config,dir,template_name,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
-        print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-        print(dir)
-        print(template_name)
+        #print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+        #print(dir)
+        #print(template_name)
         
         #get number of old sensor target signals --> for component placement in .idc
         sql="""WITH sub AS(
@@ -550,30 +550,30 @@ class templatesensorSignals():
         WHERE type = {}
 )
 SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,template_name.split('_')[0])
-        print(sql)
+        #print(sql)
         #cur.execute(sql)
         #numberOf_oldSensorTargets=cur.fetchone()['count']      
         numberOf_oldSensorTargets=1        
         
-        print(add_sensor_source_idsValues)
-        print(remove_sensor_source_ids)            
-        print(add_sensor_target_idsValues)
-        print(remove_sensor_target_ids)      
+        #print(add_sensor_source_idsValues)
+        #print(remove_sensor_source_ids)            
+        #print(add_sensor_target_idsValues)
+        #print(remove_sensor_target_ids)      
         
         #template idm project file
-        print(dir)
+        #print(dir)
         file=dir+'\\'+template_name+'.idm'
-        print(file)
+        #print(file)
         file_data=""
         if os.path.exists(file):
             #read file --> remove deleted connections --> add new connections
             file_data=readFileToList(file)
-            print(file_data)
+            #print(file_data)
             file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')    
             file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')              
             
-            print(file_data)
-            print('++++++++++++++---------+++++/////////')
+            #print(file_data)
+            #print('++++++++++++++---------+++++/////////')
             if add_sensor_source_idsValues or add_sensor_target_idsValues:
                 data=[]
                 connections=False
@@ -655,15 +655,15 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
                 
             sensor_data_source=getSensorData(cur,config,source_types=[type],filter=" AND s.measure=5")
             sensor_data_target=getSensorData(cur,config,target_types=[type],filter="")
-            print('---------------------------+++++++++++++++-----------------------')
+            #print('---------------------------+++++++++++++++-----------------------')
 
-            print(sensor_data_source)
-            print(sensor_data_target)
-            print('++')
+            #print(sensor_data_source)
+            #print(sensor_data_target)
+            #print('++')
             sensor_data_source=[sensor for sensor in sensor_data_source for at_name in sensor['source_template_names'] if at_name==str(type)+':'+template_name]
             sensor_data_target=[sensor for sensor in sensor_data_target for at_name in sensor['target_template_names'] if at_name==str(type)+':'+template_name]
-            print(sensor_data_source)
-            print(sensor_data_target)
+            #print(sensor_data_source)
+            #print(sensor_data_target)
                 
             
             sensor_description=getSensorDescriptionsTemplate(sensor_data_source,sensor_data_target)
@@ -733,7 +733,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
         return data
         
     def addHCModeLink(self,file_data,add_sensor_target_idsValues):
-        print('--------------++++++++++/////////')
+        #print('--------------++++++++++/////////')
         data=[]
         for line in file_data:
             data.append(line)

@@ -42,17 +42,17 @@ def solvePipeSize(z,dp,epsilon,rho,Re,mdot):
     
 def setEnergyColLines(cur,version,network,energy_columns,main_plant_id):
     """Update the number of customers and the peak power of each line, which are supplied by the main plant"""
-    print(energy_columns)
+    #print(energy_columns)
     sql='\n'.join(["""DO $$
 BEGIN
    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                   WHERE table_schema = 'temp' 
                     AND table_name = 'lines' 
                     AND column_name = '{}') THEN
-      ALTER TABLE temp.lines ADD COLUMN {} numeric;
+      ALTER TABLE temp.lines ADD COLUMN "{}" numeric;
    END IF;
 END $$;""".format(i,i) for i in energy_columns+['no_customer']])
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     
     sql="""UPDATE temp.lines l 
@@ -66,8 +66,8 @@ END $$;""".format(i,i) for i in energy_columns+['no_customer']])
                 temp.customers c, temp.streets_help_vertices_pgr sth_v,temp.streets_help sth, temp.lines l
             WHERE ST_dWithIn(sth_v.the_geom,c.geom,0.01) AND sth_v.id=di.end_vid AND edge>0 AND sth.id=di.edge AND sth.id=l.id
             GROUP BY lid) a
-    WHERE a.lid=l.id;""".format(''.join([',\n        {}=a.{}'.format(i,i) for i in energy_columns]),''.join(['sum(c.{}) AS {}, '.format(i,i) for i in energy_columns]),network,main_plant_id,network)
-    print(sql)
+    WHERE a.lid=l.id;""".format(''.join([',\n        "{}"=a."{}"'.format(i,i) for i in energy_columns]),''.join(['sum(c."{}") AS "{}", '.format(i,i) for i in energy_columns]),network,main_plant_id,network)
+    #print(sql)
     cur.execute(sql)    
 
 def getPipeDiameter(cur,id):
@@ -81,7 +81,7 @@ class WorkerPipeSizing(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        print(args)
+        #print(args)
         self.signals=APISignals()
         self.cur=kwargs['cur']
         self.config=kwargs['config']
@@ -99,18 +99,18 @@ class WorkerPipeSizing(QRunnable):
     @pyqtSlot()
     def run(self):
         try:
-            print('***Start Worker pipe sizing***')
+            #print('***Start Worker pipe sizing***')
             self.signals.progress.emit(1)
             energy_columns=[self.dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(self.dlg.table_circuits.rowCount())]
             if self.dlg.rbtn_customers.isChecked():    
                 setEnergyColLines(self.cur,self.config['versionName'],self.network,energy_columns,self.dlg.combo_main_plants.currentText())
                 self.signals.progress.emit(2)
-                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l.{}, '.format(i) for i in energy_columns]),self.network)
+                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l."{}", '.format(i) for i in energy_columns]),self.network)
             else:
                 sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format(
-                    ''.join(['l.{}, '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network)
+                    ''.join(['l."{}", '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network)
 
-            print(sql)
+            #print(sql)
             self.signals.progress.emit(3)
             self.cur.execute(sql)
             lines=self.cur.fetchall()
@@ -129,43 +129,43 @@ class WorkerPipeSizing(QRunnable):
                 except:
                     pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
             pipe_boundary_dict=dict(sorted(pipe_boundary_dict.items()))
-            print(pipe_boundary_dict)
+            #print(pipe_boundary_dict)
             
             for i in range(self.dlg.table_sequences.rowCount()):
                 #get checked pipes from list
                 dropDown=self.dlg.table_sequences.cellWidget(i,1)
                 pipes=[int(dropDown.itemText(i).split(':')[0].split('(')[0]) for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items' and dropDown.itemChecked(i)]
-                print(pipes)
+                #print(pipes)
                 seq_pipes_dict[int(self.dlg.table_sequences.item(i,0).text())]=[[id,getPipeDiameter(self.cur,id)] for id in pipes]
-            print(seq_pipes_dict)
+            #print(seq_pipes_dict)
             seq_pipes_dict = {
                 k: sorted(v, key=lambda x: x[1])
                 for k, v in seq_pipes_dict.items()
             }
-            print(seq_pipes_dict)
+            #print(seq_pipes_dict)
             
             self.signals.progress.emit(5)        
             for counter,line in enumerate(lines,1):
-                print('line id: '+str(line['id']))
+                #print('line id: '+str(line['id']))
                 pipe_bundle=[]
                 Re=100000
                 if self.dlg.checkBoxSimultaneity.isChecked():
                     simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
                 else:
                     simulaneity=1
-                print(simulaneity)
+                #print(simulaneity)
                 zGuess = np.array([0.02,0.075,2])
 
                 i=1
                 for pipe_boundary in pipe_boundary_dict:
-                    print(pipe_boundary)
-                    print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
+                    #print(pipe_boundary)
+                    #print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
                     mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
-                    print(mdot_pipe)
+                    #print(mdot_pipe)
 
                     if not self.kin_viscosity:
                         self.kin_viscosity=sum([1/((0.1*(273.15+i[2])**2-34.335*(273.15+i[2])+2472)*self.rho) for i in pipe_boundary_dict[pipe_boundary]])/len(pipe_boundary_dict[pipe_boundary])
-                        print(self.kin_viscosity)
+                        #print(self.kin_viscosity)
                     Re_old=0
                     while abs(Re-Re_old)>100:
                         z = fsolve(lambda zGuess: solvePipeSize(zGuess,self.dp,self.epsilon,self.rho,Re,mdot_pipe),zGuess) #z[0]--> f; z[1]--> di; z[2]--> vel 
@@ -173,7 +173,7 @@ class WorkerPipeSizing(QRunnable):
                         Re=z[2]*z[1]/self.kin_viscosity
                         zGuess = np.array([z[0],z[1],z[2]])
                         
-                    print(z)
+                    #print(z)
                     #take next bigger inner pipe diamater of DB (pipes)
                     pipe=[pipe for pipe in seq_pipes_dict[int(pipe_boundary)] if  pipe[1] > z[1]]
                     if pipe:
@@ -182,7 +182,7 @@ class WorkerPipeSizing(QRunnable):
                         #iface.messageBar().pushMessage("Error", "No proper pipe available for inner diameter: "+str(z[1]), level=Qgis.Critical)
                         return False
                     i+=1
-                print(pipe_bundle)  
+                #print(pipe_bundle)  
                 
                 #check if pipe bundle type already exists in DB otherwise add to DB
                 bundle_type_id,new_pipe_bundles=addMissingPipeBundleType(self.cur,self.pipe_bundles,pipe_bundle,new_pipe_bundles)
@@ -193,7 +193,7 @@ class WorkerPipeSizing(QRunnable):
                 self.signals.progress.emit(int(5+counter/len(lines)*85))
                 
             self.signals.progress.emit(90)
-            print(sql_lines)
+            #print(sql_lines)
             if sql_lines:
                 self.cur.execute(sql_lines)
             
@@ -209,7 +209,7 @@ class WorkerPipeSizing(QRunnable):
         
 def startPipeSizing(config,dlg,plugin_dir):
     """Start pipe sizing"""
-    print('Start pipe sizing')
+    #print('Start pipe sizing')
     conn=dbConnect(config,True)
     if conn:
         dlg.process_running=True
@@ -217,11 +217,11 @@ def startPipeSizing(config,dlg,plugin_dir):
         
         #get networks
         network=dlg.combo_network_models.currentText()                    
-        print(network)
+        #print(network)
         
         #get pipe bundle in DB
         pipe_bundles=getPipeBundleTypesDB(cur)
-        print(pipe_bundles)
+        #print(pipe_bundles)
         
         dp=dlg.dp.text()
         epsilon=dlg.epsilon.text()
@@ -260,7 +260,7 @@ CREATE TABLE temp.lines (
     including indexes
 );
 INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['versionName'],config['versionName'])
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         
         if dlg.rbtn_customers.isChecked():
@@ -279,24 +279,24 @@ def showLinesTempTable(version,config,plugin_dir):
     password=auth_cfg.config('password')
     #deactivate version.lines
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-    if QgsProject.instance().mapLayersByName('lines'):
-        vlayer= QgsProject.instance().mapLayersByName('lines')[0]
+    if QgsProject.instance().mapLayersByName(tr('@default','lines')):
+        vlayer= QgsProject.instance().mapLayersByName(tr('@default','lines'))[0]
         layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
     
     #render temp.lines
     uri = QgsDataSourceUri()
     uri.setConnection(config['host'], config['port'], config['projectName'], username, password)    
     vlayerName='lines'
-    categories=['Unkown','Service Pipe','Distribution Pipe','Transmission Pipe','Station Pipe','Customer Pipe']
+    categories=[tr('@default','unkown'),tr('@default','service_pipe'),tr('@default','distribution_pipe'),tr('@default','transmission_pipe'),tr('@default','station_pipe'),tr('@default','customer_pipe')]
     ids=['0','1','2','3','5','6']
 
     uri.setDataSource(version, vlayerName, "geom")
     if version =='temp':
-        vlayer = QgsVectorLayer(uri.uri(False), vlayerName+'_temp', username)
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+' temp.', username)
     else:
-        vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), username)
     QgsProject.instance().addMapLayer(vlayer)  
-    print(vlayerName[:-1] + '_types')
+    #print(vlayerName[:-1] + '_types')
     target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_types')
     if target_layer:
         target_layer=target_layer[0]
@@ -322,8 +322,8 @@ def showLinesTempTable(version,config,plugin_dir):
     categorized_renderer = QgsCategorizedSymbolRenderer()            
     categorized_renderer.setClassAttribute('type') 
     for category,id in zip(categories,ids):      
-        print(vlayerName)
-        print(vlayer)
+        #print(vlayerName)
+        #print(vlayer)
         symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
         symbol.setWidth(0.75) 
             
@@ -332,14 +332,14 @@ def showLinesTempTable(version,config,plugin_dir):
     vlayer.setRenderer(categorized_renderer)
     
 def addMissingPipeBundleType(cur,pipe_bundles,conn_type_pipes,new_pipe_bundles):
-    print(pipe_bundles)
+    #print(pipe_bundles)
     
-    print([True for i in pipe_bundles if pipe_bundles[i]==conn_type_pipes])
+    #print([True for i in pipe_bundles if pipe_bundles[i]==conn_type_pipes])
     bundle_type_id=[i for i in pipe_bundles if pipe_bundles[i]==conn_type_pipes]
     if bundle_type_id:
         bundle_type_id=bundle_type_id[0]
     else:
-        print('*****--*****Add bundle*****---****')
+        #print('*****--*****Add bundle*****---****')
         bundle_type_id=getMaxId(cur,'pipe_bundle_types')+1
         bundle_pipes_max_id=getMaxId(cur,'bundle_pipes')+1
         pipe_bundles[bundle_type_id]=conn_type_pipes
@@ -354,39 +354,35 @@ def addMissingPipeBundleType(cur,pipe_bundles,conn_type_pipes,new_pipe_bundles):
             sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format(
                 bundle_pipes_max_id,bundle_type_id,pipe[0],pipe[1],x,1,pipe[2])
             bundle_pipes_max_id+=1
-        print(sql)
+        #print(sql)
         cur.execute(sql)
     return bundle_type_id, new_pipe_bundles
     
 def savePipeSizingResults(config,conn,dlg):
     """save pipe sizing results"""
-    print('save pipe sizing results')
+    #print('save pipe sizing results')
     cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-    sql="""TRUNCATE "{}".lines CASCADE;""".format(config['versionName'])
-    print(sql) 
-    cur.execute(sql)  
+
     
     #remove added load columns in temp.lines
     if dlg.rbtn_customers.isChecked():
         energy_columns=[dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(dlg.table_circuits.rowCount())]+['no_customer']
         table_columns=getTableAttr(cur,config,'line')
         energy_columns = [col for col in energy_columns if col not in table_columns]
-        print(energy_columns)
+        #print(energy_columns)
         sql='\n'.join(["""DO $$
 BEGIN
    IF EXISTS (SELECT 1 FROM information_schema.columns 
                   WHERE table_schema = 'temp' 
                     AND table_name = 'lines' 
                     AND column_name = '{}') THEN
-      ALTER TABLE temp.lines DROP COLUMN {};
+      ALTER TABLE temp.lines DROP COLUMN "{}";
    END IF;
 END $$;""".format(i,i) for i in energy_columns])
-        print(sql)
+        #print(sql)
         cur.execute(sql)
     
-    sql="""INSERT INTO "{}".lines SELECT * FROM temp.lines;""".format(config['versionName'])
-    print(sql) 
-    cur.execute(sql)
+    saveTempTables(cur,config)
 
     dlg.new_pipe_bundles=[]   
     
@@ -394,7 +390,7 @@ END $$;""".format(i,i) for i in energy_columns])
     
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
     iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
-    vlayer= QgsProject.instance().mapLayersByName('lines')
+    vlayer= QgsProject.instance().mapLayersByName(tr('@default','lines'))
     if vlayer:
         vlayer=vlayer[0]
         layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
@@ -404,17 +400,17 @@ END $$;""".format(i,i) for i in energy_columns])
     
 def rejectPipeSizingResults(config,conn,dlg):
     """reject pipe sizing results"""
-    print('reject pipe sizing results')
+    #print('reject pipe sizing results')
     removeTempLayers()
     
     cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
-    if QgsProject.instance().mapLayersByName('lines'):
-        vlayer= QgsProject.instance().mapLayersByName('lines')[0]
+    if QgsProject.instance().mapLayersByName(tr('@default','lines')):
+        vlayer= QgsProject.instance().mapLayersByName(tr('@default','lines'))[0]
         layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
     
     #remove new pipe bundles from DB
-    print(dlg.new_pipe_bundles)
+    #print(dlg.new_pipe_bundles)
     sql=""
     for bundle_id in dlg.new_pipe_bundles:
         sql+="""DELETE FROM bundle_pipes WHERE pipe_bundle_type_id={};""".format(bundle_id)

@@ -1,4 +1,5 @@
 from qgis.core import QgsProperty,QgsVectorLayer,QgsProject,QgsApplication, QgsAuthMethodConfig,QgsDataSourceUri,QgsVectorLayer
+from qgis.PyQt.QtWidgets import QButtonGroup
 
 from qgis.PyQt.QtCore import QThreadPool
 from qgis.utils import iface
@@ -21,11 +22,91 @@ from qgis._3d import (
 )
 from qgis.PyQt.QtGui import QColor
 
+class ShowLoadAttributeDialog:
+    def __init__(self,fid):
+        self.dlg=LoadAttributeDialog()
+
+        self.dlg.btn_ok.clicked.connect(lambda: setLoadAttribute(self.dlg,fid))
+        self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
+        self.dlg.show()
+    
+def setLoadAttribute(dlg,fid):
+    sql=""
+    if dlg.radioButton_existingAttribute.isChecked():
+        attribute_name=dlg.comboBox_attribute.currentData()
+    else:
+        attribute_name=dlg.lineEdit_newAttribute.text()
+        sql+="""ALTER TABLE {}.customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)
+        
+        layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
+        layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
+        if layer:
+            data = extract_group_fields(layer[0])
+            data[tr('@default','physical_data')].append(attribute_name)
+            #print(data)
+            layersConfig[layer[0].name()]=data
+            writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
+        
+    sql+="""WITH sub AS(
+	SELECT b_id,sum(ST_Area(geom))*{} AS load FROM {}.buildings GROUP BY b_id
+)
+UPDATE {}.customers c SET {} = sub.load 
+	FROM sub
+	WHERE c.id=sub.b_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid))
+    #print(sql)
+    dlg.cur.execute(sql)
+    
+    if dlg.radioButton_newAttribute.isChecked():
+        setupFeatureLayerDialog('customers',dlg.cur,dlg.config,get_districts_plugin_dir())
+    
+    closeDialog(dlg)
+    
+class LoadAttributeDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.config=load_plugin_settings()
+        self.conn=dbConnect(self.config,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "districts_setLoadAttribute.ui")
+        uic.loadUi(ui_path, self)
+        self.lineEdit_specificLoad.setText('30')
+        self.group_attribute=QButtonGroup(self)
+        self.group_attribute.addButton(self.radioButton_existingAttribute) 
+        self.radioButton_existingAttribute.setChecked(True)
+        self.label_newAttribute.setHidden(True)
+        self.lineEdit_newAttribute.setHidden(True)
+        self.group_attribute.addButton(self.radioButton_newAttribute) 
+        self.group_attribute.buttonClicked.connect(self.attributeChanged)
+        
+
+        existing_attributes=getTableAttr(self.cur,self.config,'customer',withoutID=True)
+        items={attribute : tr("@default",attribute) for attribute in existing_attributes}
+        
+        # Add items to the combobox, storing the original key as user data
+        for original_key, translated_text in items.items():
+            self.comboBox_attribute.addItem(translated_text, original_key) # The second argument is the userData
+                    
+        self.comboBox_attribute
+
+    def attributeChanged(self,radioButton):
+        if self.radioButton_existingAttribute.isChecked():
+            showExistingAttribute=True
+        else:
+            showExistingAttribute=False
+        self.label_attribute.setHidden(not showExistingAttribute)
+        self.comboBox_attribute.setHidden(not showExistingAttribute)
+        self.label_newAttribute.setHidden(showExistingAttribute)
+        self.lineEdit_newAttribute.setHidden(showExistingAttribute)
+        
 def loadBuildingsLayer(uri,config,view,username):
     uri.setDataSource(config['versionName'], "buildings", "geom")
-    vlayer = QgsVectorLayer(uri.uri(False), "buildings", username)
+    vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"buildings"), username)
     QgsProject.instance().addMapLayer(vlayer)
-    
+    """
     target_layer = QgsProject.instance().mapLayersByName('room_units')[0]
     config_layer = {'AllowMulti': False,
               'AllowNull': True,
@@ -70,7 +151,7 @@ def loadBuildingsLayer(uri,config,view,username):
     fields=vlayer.fields()
     field_idx = fields.indexOf('z_template')
     vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
-    
+    """
     single_symbol_renderer = vlayer.renderer()
     symbol = single_symbol_renderer.symbol()
     symbol.setColor(QColor.fromRgb(25, 25, 25))
@@ -110,7 +191,7 @@ def loadBuildingsLayer(uri,config,view,username):
             action.trigger()
             break
     else:
-        print(f"Could not find '{target_action_name}' action")
+        #print(f"Could not find '{target_action_name}' action")
     """
     
 def treeItem_add(level, mdlIdx,dlg,main):
@@ -118,7 +199,7 @@ def treeItem_add(level, mdlIdx,dlg,main):
     main.dlg.update_progress(0)
     versionName=dlg.input.text()
     description=dlg.input_description.text()
-    print('****************add version*****************')
+    #print('****************add version*****************')
     if versionName:
         newVersionName=checkIfVersionIsNew(main.cur,versionName)
         if newVersionName:
@@ -130,12 +211,12 @@ def treeItem_add(level, mdlIdx,dlg,main):
                 if item:
                     baseName=item.text()
                     sql="SELECT id FROM public.versionhandling WHERE name = '"+baseName+"';"
-                    print(sql)
+                    #print(sql)
                     main.cur.execute(sql)
                     for base in main.cur.fetchall():
                         idBase = base['id']         
                 sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\','+str(idBase)+',\''+description+'\');'
-                print(sql)
+                #print(sql)
                 main.cur.execute(sql)
 
                 temp_key = QStandardItem(versionName)
@@ -144,19 +225,16 @@ def treeItem_add(level, mdlIdx,dlg,main):
                     
                 auth_cfg = QgsAuthMethodConfig()
                 QgsApplication.authManager().loadAuthenticationConfig(main.config["auth_id"], auth_cfg, True)
-                copy_schema(item.text(),versionName,main.config,main.cur,main.plugin_dir,auth_cfg.config("username"), auth_cfg.config("password"))
-                
-                #check if supervisory control exists
-                if os.path.exists(main.plugin_dir+'projects\\models\\{}\\{}\\supervisory_control\\supervisory_control.idm'.format(main.config['projectName'],item.text())):
-                    print('supervisory exists')
-                    print(main.plugin_dir+'projects\\models\\{}\\{}\\supervisory_control\\supervisory_control.idm'.format(main.config['projectName'],item.text()))
-                    copy_tree_filter_extensions_and_folders(main.plugin_dir+'projects\\models\\{}\\{}\\supervisory_control\\'.format(main.config['projectName'],item.text()),main.plugin_dir+'projects\\models\\{}\\{}\\supervisory_control\\'.format(main.config['projectName'],versionName))
+                copy_schema(item.text(),versionName,main.config,main.cur,main.plugin_dir,auth_cfg.config("username"), auth_cfg.config("password"))       
                 
                 data=getVersionData(main.cur)
                 importData(main.model,data)
                 main.dlg.treeViewVersions.expandAll()   
                 main.config['versionName']=versionName
-                writeDBSettings(main.plugin_dir,main.config)
+                write_plugin_settings(main.config)
+                
+                createNewVersionFiles(main.config,main.plugin_dir)
+                
                 loadVersion(main=main)
                 item=get_item_by_text(versionName,main)
                 highlight_item(item,main.model.invisibleRootItem())
@@ -183,7 +261,7 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
             item = main.model.itemFromIndex(mdlIdx)
 
             sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\',0,\''+description+'\');'
-            print(sql)
+            #print(sql)
             main.cur.execute(sql)
 
             temp_key = QStandardItem(versionName)
@@ -217,7 +295,7 @@ def getDescription(versionName,cur):
    
 def treeItem_rename(level,mdlIdx,main,dlg): 
     """ Renames a project version, if the version name does not exist and is not empty"""
-    print('Rename')
+    #print('Rename')
     versionName=main.dlg_renameVersion.input.text()
     description=main.dlg_renameVersion.input_description.text()
     if versionName:
@@ -226,20 +304,20 @@ def treeItem_rename(level,mdlIdx,main,dlg):
             item = main.model.itemFromIndex(mdlIdx)
             oldSchemaName=item.text()
             if newVersionName:
-                print(oldSchemaName)
+                #print(oldSchemaName)
                 newSchemaName=versionName
-                print(newSchemaName)
+                #print(newSchemaName)
                 main.model.setData(mdlIdx, versionName)
                 sql = 'ALTER SCHEMA "'+oldSchemaName+'" RENAME TO "'+newSchemaName+'";'
-                print(sql)
+                #print(sql)
                 main.cur.execute(sql)
                 sql = 'UPDATE public.versionhandling SET name= \''+newSchemaName+'\' WHERE name= \''+oldSchemaName+'\';'
-                print(sql)
+                #print(sql)
                 main.cur.execute(sql)
             else:
                 iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=Qgis.Critical)
             sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'
-            print(sql)
+            #print(sql)
             main.cur.execute(sql)
             data=getVersionData(main.cur)
             importData(main.model,data)
@@ -259,34 +337,33 @@ def treeItem_rename(level,mdlIdx,main,dlg):
         
 def treeItem_delete(item,dlg,main):
     """Function to delete project version and removes it from the tree"""
-    print('--treeItem_delete--')
+    #print('--treeItem_delete--')
     main.dlg.update_progress(1)
     try:
         sql = 'DROP SCHEMA "'+item.text()+'" CASCADE;'
-        print(sql)
+        #print(sql)
         main.cur.execute(sql)
     except:
         pass
     try:
         idBase=''
         sql="SELECT id, id_base FROM public.versionhandling WHERE name = '"+item.text()+"';"
-        print(sql)
+        #print(sql)
         main.cur.execute(sql)
         sql=''
         for base in main.cur.fetchall():
-            print(base)
+            #print(base)
             sql += 'UPDATE public.versionhandling SET id_base = {} WHERE id_base ='.format(base['id_base'])+str(base['id'])+';\n'
-        print(sql)
+        #print(sql)
         main.cur.execute(sql)         
         
         sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'
-        print(sql)
+        #print(sql)
         main.cur.execute(sql)
         
         #delete modelling plugin folder if exists
-        if os.path.exists(main.plugin_dir+'\\projects\\{}\\models\\{}\\'.format(main.config['projectName'],item.text())):
-            print(main.plugin_dir+'\\projects\\{}\\models\\{}\\'.format(main.config['projectName'],item.text()))
-            shutil.rmtree(main.plugin_dir+'\\projects\\{}\\models\\{}\\'.format(main.config['projectName'],item.text()))
+        if os.path.exists(main.config['pathProjects']+'{}\\versions\\{}\\'.format(main.config['projectName'],item.text())):
+            shutil.rmtree(main.config['pathProjects']+'{}\\versions\\{}\\'.format(main.config['projectName'],item.text()))
         if item.parent():
             main.config['versionName']=item.parent().text()
         else:
@@ -315,7 +392,7 @@ def getVersionData(cur):
             data.append({'unique_id': version['id'], 'parent_id': version['id_base'], 'name': version['name'], 'description': version['description']})
     except:
         pass
-    print(data)
+    #print(data)
     return data
         
 def checkIfVersionIsNew(cur,versionName):
@@ -331,23 +408,23 @@ def addBaseVersion(dlg,main):
     """add new base version to DB if a version name is entered and version does not exists in DB"""
     main.config['versionName']=dlg.input.text()
     description=dlg.input_description.text()
-    print(main.config['versionName'])
+    #print(main.config['versionName'])
     if main.config['versionName']:
         #check if version name exists
         newVersionName=checkIfVersionIsNew(main.cur,main.config['versionName'])
-        print(newVersionName)        
+        #print(newVersionName)        
         if newVersionName:
             if checkString(main.config['versionName']):
                 main.dlg.update_progress(1)
 
                 #Creating version --> new schema in project      
                 sql = 'CREATE SCHEMA IF NOT EXISTS "'+main.config['versionName']+'";'
-                print(sql)
+                #print(sql)
                 main.cur.execute(sql) 
 
                 idBase=0
                 sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+main.config['versionName']+'\','+str(idBase)+',\''+description+'\');'
-                print(sql)
+                #print(sql)
                 main.cur.execute(sql) 
                 
                 #create tables in new schema
@@ -359,10 +436,11 @@ def addBaseVersion(dlg,main):
                     newdata = filedata.replace("$versionName$", main.config['versionName'])
                     newdata = newdata.replace("$srid$", main.projectConfig['srid'])
                     newdata = newdata.replace("$plugins_path$", main.plugin_dir)
+                    newdata = newdata.replace("$districts_path$", main.config['pathDistricts'])
                     
                     with open(main.plugin_dir+"\\DB_versionTables.txt",'w') as myfile:
                         myfile.write(newdata)   
-                    print(newdata)
+                    #print(newdata)
                     main.cur.execute(newdata)
                     
                 #insert data in new schema
@@ -377,7 +455,10 @@ def addBaseVersion(dlg,main):
                     with open(main.plugin_dir+"\\DB_versionTables_data.txt",'w') as myfile:
                         myfile.write(newdata)     
                     main.cur.execute(newdata)
-                
+                    
+                #create version directory & copy climate files
+                createNewVersionFiles(main.config,main.plugin_dir)
+
                 data=getVersionData(main.cur)
                 importData(main.model,data)
                 main.dlg.treeViewVersions.expandAll() 
@@ -387,7 +468,11 @@ def addBaseVersion(dlg,main):
             iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(main.config['versionName']), level=Qgis.Critical)
     else:
         iface.messageBar().pushMessage("Error", "Please enter a version name!", level=Qgis.Critical)
-    
+
+def createNewVersionFiles(config,plugin_dir):
+    versions_dir=config['pathProjects']+'{}\\versions'.format(config['projectName'])
+    createDir(versions_dir,config['versionName'])             
+                
 # Function to load version from treeview
 def treeItem_load(item, mdlIdx,main):
     main.config['versionName'] = item.text()
@@ -396,10 +481,10 @@ def treeItem_load(item, mdlIdx,main):
         
 def showProjectConfigData(dlg,main):
     """ Show the onfiguration data from file configIDADistricts.txt"""
-    print('--showProjectConfigData--')
+    #print('--showProjectConfigData--')
     if main.conn:
-        main.projectConfig=loadProjectConfig(main.plugin_dir,main.config['projectName'])       
-        print(main.projectConfig)
+        main.projectConfig=loadProjectConfig(main.config)       
+        #print(main.projectConfig)
         if main.projectConfig:
             dlg.srid.setText(main.projectConfig['srid'])
         else:
@@ -409,12 +494,12 @@ def showProjectConfigData(dlg,main):
 
 def saveProjectConfigSettings(dlg,main):
     """ save project config data to file projectConfig.txt"""
-    print('saveProjectConfigSettings')    
+    #print('saveProjectConfigSettings')    
     srid_old=main.projectConfig['srid']        
     main.projectConfig['srid']=dlg.srid.text()
 
     if main.conn:
-        writeProjectConfig(main.plugin_dir,main.config['projectName'],main.projectConfig)
+        writeProjectConfig(main.config,main.config['projectName'],main.projectConfig)
         projectVersions=getProjectVersionNames(main.cur)
         
         if srid_old!=main.projectConfig['srid']:
@@ -427,7 +512,7 @@ def saveProjectConfigSettings(dlg,main):
     dlg.close()
         
 def importData(model, data, root=None):
-    print(model)
+    #print(model)
     if model:
         model.setRowCount(0)
         if root is None:
@@ -451,11 +536,11 @@ def importData(model, data, root=None):
             ])
             seen[unique_id] = parent.child(parent.rowCount() - 1)
             
-def deleteProject(dlg,projectName,main_dlg,cur_postgres,plugin_dir,config,model):
+def deleteProject(projectName,main_dlg,cur_postgres,plugin_dir,config,model,dlg=None):
     """Drop selected DB """
     index=main_dlg.selectProject.findText(projectName)
     if index!=-1:
-        print('Delete DB: {}'.format(projectName))
+        #print('Delete DB: {}'.format(projectName))
         main_dlg.update_progress(1)
         
         #close open connections
@@ -463,7 +548,7 @@ def deleteProject(dlg,projectName,main_dlg,cur_postgres,plugin_dir,config,model)
 FROM pg_stat_activity
 WHERE pg_stat_activity.datname = '{}'
   AND pid <> pg_backend_pid();""".format(projectName)
-        print(sql)
+        #print(sql)
         cur_postgres.execute(sql)
 
         sql='DROP DATABASE IF EXISTS {};'.format(projectName)
@@ -471,8 +556,8 @@ WHERE pg_stat_activity.datname = '{}'
         main_dlg.selectProject.removeItem(index)
         
         #delete folders
-        dir = os.path.normpath(os.path.join(plugin_dir, "projects", projectName))
-        print(dir)
+        dir = os.path.normpath(os.path.join(config['pathProjects'], projectName))
+        #print(dir)
         try:
             shutil.rmtree(dir)
         except:
@@ -498,14 +583,14 @@ def loadVersionLayers(config,cur,plugin_dir):
     """Loads the layers in QGIS"""
     removeLayers()    
             
-    print(config['projectName'])
+    #print(config['projectName'])
     
     auth_cfg = QgsAuthMethodConfig()
     QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
 
     uri = QgsDataSourceUri()
     uri.setConnection(config['host'], config['port'], config['projectName'], auth_cfg.config("username"), auth_cfg.config("password"))
-    print(uri)
+    #print(uri)
 
     view = iface.layerTreeView()
     loadTopologyLayers(config['versionName'],uri,config,auth_cfg.config("username"))   
@@ -520,7 +605,7 @@ def loadVersionLayers(config,cur,plugin_dir):
         #view.refreshLayerSymbology(vlayer.id())
 
         uri.setDataSource(config['versionName'], "streets", "geom")
-        vlayer = QgsVectorLayer(uri.uri(False), "streets", auth_cfg.config("username"))
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"streets"), auth_cfg.config("username"))
         QgsProject.instance().addMapLayer(vlayer) 
         single_symbol_renderer = vlayer.renderer()
         symbol = single_symbol_renderer.symbol()
@@ -530,37 +615,38 @@ def loadVersionLayers(config,cur,plugin_dir):
         
         
     except Exception as e:
-        print(f'error: {e}')
+        #print(f'error: {e}')
         pass
     
     loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
     view = iface.layerTreeView()
     #view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
-    view.setLayerVisible(QgsProject.instance().mapLayersByName('streets')[0], False)    
-    view.setLayerVisible(QgsProject.instance().mapLayersByName('junctions')[0], False)    
+    view.setLayerVisible(QgsProject.instance().mapLayersByName(tr('@default','streets'))[0], False)    
+    view.setLayerVisible(QgsProject.instance().mapLayersByName(tr('@default','junctions'))[0], False)    
 
     
-    loadBoreholesLayer(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
+    #loadBoreholesLayer(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
 
    
     versionLayersAliasNames()
-    setupVersionForm(cur,config)
-    setupCustomerDataSheet(config,plugin_dir,loadProjectConfig(plugin_dir,config['projectName']))
+    setupVersionForm(cur,plugin_dir,config)
+    setupCustomerDataSheet(config,plugin_dir,loadProjectConfig(config))
+    setupCustomerLoadValue(config,plugin_dir,loadProjectConfig(config))
       
     valueRelationPipeBundleType()    
     zoomToLayer('customers')
     
 def finishedImportProject(dlg=None,main=None,projectName=''):
-    print('+++finished import project+++')
+    #print('+++finished import project+++')
     
     if main:
-        print(main.config)
-        print(projectName)
+        #print(main.config)
+        #print(projectName)
         main.dlg.projectNames.append(main.config['projectName'])
         main.dlg.selectProject.addItem(main.config['projectName'])
         main.dlg.selectProject.setCurrentText(main.config['projectName'])
         main.loadProject()
-        if dlg and dlg.selectTemplate.currentText() in ['Heating network']:
+        if dlg and dlg.selectTemplate.currentData() in ['heating_network']:
             main.config['versionName']='base1'
             loadVersion(main=main)
         else:
@@ -570,9 +656,13 @@ def finishedImportProject(dlg=None,main=None,projectName=''):
         main.process_running=False
     if dlg==None:
         main.config['versionName']=''
-
+        
+    setDistrictsModelerVersion2DB(main.cur,main.config)
     write_plugin_settings(main.config)
-
+    
+    if dlg:
+        dlg.process_running=False
+        closeDialog(dlg)
 
 def get_item_by_text(text,main):
     # Iterate over all the items in the model and find the one with the given text
@@ -594,7 +684,6 @@ def get_item_by_text(text,main):
 def highlight_item(item,root_item):
     # Reset background of all items first
     reset_items_background(root_item)
-    
     # Highlight the specific item
     item.setBackground(QColor(211, 211, 211))  # Bright Grey (RGB)
 
@@ -614,6 +703,7 @@ def finishedLoadVersion(main):
 
 
 def loadVersion(main=None,item=None):
+    #print('loadVersion')
     if main and main.conn:
         if item==None:
             item=get_item_by_text(main.config['versionName'],main)
@@ -633,26 +723,25 @@ def loadVersion(main=None,item=None):
         worker_loadVersion.signals.progress.connect(main.dlg.update_progress)      
         worker_loadVersion.signals.finished.connect(lambda: finishedLoadVersion(main))                
                     
-        threadpool = QThreadPool()            
-        threadpool.start(worker_loadVersion)
+        QThreadPool.globalInstance().start(worker_loadVersion)
     else:
         iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)        
     
     
 def createNewProject(dlg,main):
-    print('--create new project--')
+    #print('--create new project--')
     dlg.update_progress(0)
     if checkString(dlg.project_name.text()):
         if checkDBName(dlg.project_name.text(),main.dlg.projectNames):
             dlg.update_progress(1)
             main.config['projectName']=dlg.project_name.text()
-            if dlg.selectTemplate.currentText() in ['DB default values','No template']:
+            if dlg.selectTemplate.currentData() in ['db_default_values','empty_project']:
                 main.config['versionName']=''
                 versionNames=[]
             else:
                 main.config['versionName']='base1'
                 versionNames=['base1']
-            print(main.plugin_dir)
+            #print(main.plugin_dir)
             project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
             filename=main.plugin_dir+'\\templates\\'+project_name+'.ida'
             filename=filename.replace('/','\\')
@@ -673,17 +762,16 @@ def createNewProject(dlg,main):
             auth_cfg = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(main.config["auth_id"], auth_cfg, True)  
             dlg.update_progress(10)
-            worker_newProject = WorkerImportProject(versionNames=versionNames,projectNames=main.dlg.projectNames,project_name=main.config['projectName'],filename=filename,config=main.config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),plugin_dir=main.plugin_dir,cur=main.cur_postgres,dlg=dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
-            worker_newProject.signals.progress.connect(dlg.update_progress)
-            worker_newProject.signals.error.connect(dlg.show_error_message)
-            worker_newProject.signals.finished.connect(lambda: finishedImportProject(dlg=dlg,main=main))                
-            threadpool_newProject = QThreadPool()            
-            threadpool_newProject.start(worker_newProject)    
+            main.worker_newProject = WorkerImportProject(versionNames=versionNames,projectNames=main.dlg.projectNames,project_name=main.config['projectName'],filename=filename,config=main.config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),plugin_dir=main.plugin_dir,cur=main.cur_postgres,dlg=dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+            main.worker_newProject.signals.progress.connect(dlg.update_progress)
+            main.worker_newProject.signals.error.connect(dlg.show_error_message)
+            main.worker_newProject.signals.finished.connect(lambda: finishedImportProject(dlg=dlg,main=main))                
+            QThreadPool.globalInstance().start(main.worker_newProject)    
             
-def exportProject(plugin_dir,config,filename=None,dlg=None,exportPrn=None,exportInvokedFeatures=None,exportDBResults=None,main_dlg=None):
+def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=None,exportInvokedFeatures=None,exportDBResults=None,main_dlg=None):
     """Export the DB to a sql file and write the data center and modelling files to the folders + dDB description file --> zip"""
-    print("Export project")
-    print(filename)
+    #print("Export project")
+    #print(filename)
 
     if not filename:
         # Get current date and time
@@ -709,17 +797,16 @@ def exportProject(plugin_dir,config,filename=None,dlg=None,exportPrn=None,export
         if filename:
             auth_cfg = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
-            worker_export = WorkerExportProject(filename=filename,config=config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),plugin_dir=plugin_dir,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+            worker_export = WorkerExportProject(plugin_dir=plugin_dir, filename=filename,config=config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
             if dlg:
                 worker_export.signals.progress.connect(dlg.update_progress)
                 worker_export.signals.error.connect(dlg.show_error_message)      
             worker_export.signals.finished.connect(lambda: finishedExportProject(config,filename,main_dlg))
             
-            threadpool_export = QThreadPool.globalInstance()            
-            threadpool_export.start(worker_export)   
+            QThreadPool.globalInstance().start(worker_export)   
             
 def finishedExportProject(config,filename,main_dlg):
-    msg="IDA Districts project ({}) saved: ".format(config['projectName'])+filename
+    msg="Districts project ({}) saved: ".format(config['projectName'])+filename
     iface.messageBar().pushMessage("Info", msg, level=Qgis.Info)
     if main_dlg:    
         main_dlg.statusMessage.setText(msg)

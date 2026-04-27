@@ -1,6 +1,10 @@
 from qgis.core import QgsApplication,Qgis, QgsMessageLog, QgsProject
 from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt import QtCore
 from qgis.utils import iface
+
+from .translations import *
+
 from datetime import datetime 
 from scipy.interpolate import interp1d
 import numpy as np
@@ -10,7 +14,66 @@ import os
 import ast
 import json
 import re
+import ntpath
 
+def get_districts_plugin_dir():
+    """
+    Returns the path to the QGIS districts directory
+    for the active user profile.
+    """
+    settings_dir = QgsApplication.qgisSettingsDirPath()
+    return os.path.join(settings_dir, "python", "plugins","districts")
+    
+def checkToolPaths(config):
+    pathCheck={'pathDistricts':False,'pathProjects':False}
+    if os.path.exists(os.path.join(config['pathDistricts'],'bin','districts.exe')):
+        pathCheck['pathDistricts']=True
+    else:
+        iface.messageBar().pushMessage("Info", "Please update your IDA Districts path!", level=Qgis.Info)
+    if os.path.exists(config['pathProjects']):
+        pathCheck['pathProjects']=True
+    else:
+        iface.messageBar().pushMessage("Info", "Please update your project path!", level=Qgis.Info)
+
+    return pathCheck
+    
+def standardizePath(path: str, create_if_not_exists: bool = False,trailingBackSlash: bool = True) -> str:
+    if not path:
+        return ""
+
+    # Normalize path (Windows-style)
+    normalized = ntpath.normpath(path)
+
+    # Convert to backslashes
+    standardized = normalized.replace("/", "\\")
+
+    # Ensure trailing backslash
+    if trailingBackSlash:
+        if not standardized.endswith("\\"):
+            standardized += "\\"
+    else: 
+        if standardized.endswith("\\"):
+            standardized=standardized[:-1]
+            
+    # Optionally create directory
+    if create_if_not_exists:
+        os.makedirs(standardized, exist_ok=True)
+        
+    return standardized
+    
+def getIDAVersion(config):
+    return config['ida_version']
+    
+def getIDADistrictsVersion(config):
+    version=config['ida_districts_version'].split('.')
+    return version[0]+'.'+''.join(version[1:4])
+    
+def getDistrictsModelerVersion(config):
+    return config['districts_modeler_version']
+    
+def getQtVersion():
+    return QtCore.QT_VERSION >= 0x060000
+    
 def getAuthNames():
     """return a dictionary of authenication ids"""
     auth_dict={}
@@ -22,6 +85,9 @@ def getAuthNames():
     return auth_dict
 
 def write_plugin_settings(config):
+    config['ida_version']='5.21801'
+    config['ida_districts_version']='0.9.0.0'
+    config['districts_modeler_version']='1.0.0.0'
     settings = QSettings()        
     settings.beginGroup("districts")
     for key,value in config.items():
@@ -34,9 +100,9 @@ def load_plugin_settings():
 
     config = {
         #tool settings
-        "pathDistricts": settings.value("pathDistricts","C:\\Program Files (x86)\\IDA52\\"),
+        "pathProjects": settings.value("pathProjects","C:\\projects\\"),
+        "pathDistricts": settings.value("pathDistricts","C:\\Program Files (x86)\\IDA Districts\\"),
         "districts_api_delay": settings.value("districts_api_delay","20"),
-        "pathPostgres": settings.value("pathPostgres","C:\\Program Files\\PostgreSQL\\18\\"),
         "debug": settings.value("debug",False, type=bool),
         "autosave": settings.value("autosave", True, type=bool),
         "autosave_dt": settings.value("autosave_dt", "120"),
@@ -51,10 +117,15 @@ def load_plugin_settings():
         #project
         "projectName": settings.value("projectName",""),
         "versionName": settings.value("versionName",""),        
-        "lastVersionName": settings.value("lastVersionName","")        
+        "lastVersionName": settings.value("lastVersionName",""),      
+        #versions
+        "ida_version": settings.value("ida_version",""),
+        "ida_districts_version": settings.value("ida_districts_version",""),
+        "districts_modeler_version": settings.value("districts_modeler_version","")
     }
 
     settings.endGroup()
+    #print(config)
     return config
     
 def rmtree_long_path(dir):
@@ -63,7 +134,7 @@ def rmtree_long_path(dir):
             dir='\\\\?\\'+dir
         shutil.rmtree(dir)
         
-def copy_tree_filter_extensions_and_folders(src, dst, signals=None,exclude_extensions=None, exclude_folders=None):
+def copy_tree_filter_extensions_and_folders2(src, dst, signals=None,exclude_extensions=None, exclude_folders=None):
     # Set default values if no extensions or folders are provided
     if exclude_extensions is None:
         exclude_extensions = []
@@ -104,7 +175,60 @@ def copy_tree_filter_extensions_and_folders(src, dst, signals=None,exclude_exten
         for dir_name in dirs[:]:
             if dir_name.lower() in exclude_folders:
                 dirs.remove(dir_name)  # Remove directory from traversal list
-                
+
+def copy_tree_filter_extensions_and_folders(src, dst, signals=None, exclude_extensions=None, exclude_folders=None):
+    # Set defaults
+    if exclude_extensions is None:
+        exclude_extensions = []
+    if exclude_folders is None:
+        exclude_folders = []
+    if signals is None:
+        signals = False
+
+    # Normalize to lowercase
+    exclude_extensions = [ext.lower() for ext in exclude_extensions]
+    exclude_folders = [folder.lower() for folder in exclude_folders]
+
+    for root, dirs, files in os.walk(src):
+        # Remove excluded directories from traversal
+        dirs[:] = [d for d in dirs if d.lower() not in exclude_folders]
+
+        # Compute destination directory path
+        relative_dir = os.path.relpath(root, src)
+        destination_dir = os.path.join(dst, relative_dir)
+
+        try:
+            # Ensure directory exists (this is what enables empty folder copying)
+            os.makedirs(destination_dir, exist_ok=True)
+        except Exception as e:
+            if signals:
+                signals.error.emit(f"Failed to create directory: {destination_dir} | {e}")
+            continue
+
+        # Filter files by extension
+        files_to_copy = [
+            f for f in files
+            if not any(f.lower().endswith(ext) for ext in exclude_extensions)
+        ]
+
+        for file in files_to_copy:
+            full_file_path = os.path.join(root, file)
+            destination_file_path = os.path.join(destination_dir, file)
+
+            try:
+                # Windows long path handling
+                if os.name == 'nt':
+                    if not destination_file_path.startswith('\\\\?\\'):
+                        destination_file_path = '\\\\?\\' + os.path.abspath(destination_file_path)
+                    if not full_file_path.startswith('\\\\?\\'):
+                        full_file_path = '\\\\?\\' + os.path.abspath(full_file_path)
+
+                shutil.copy2(full_file_path, destination_file_path)
+
+            except Exception as e:
+                if signals:
+                    signals.error.emit(f"Failed to copy file: {destination_file_path} | {e}")
+                    
 def flatten(nested_list):
     return [item for sublist in nested_list for item in sublist]
     
@@ -306,7 +430,7 @@ def refreshMap():
     
 def zoomToLayer(layerName):
     """Zoom extends to layer with layerName"""
-    vLayer = QgsProject.instance().mapLayersByName(layerName)[0]
+    vLayer = QgsProject.instance().mapLayersByName(tr('@default',layerName))[0]
     canvas = iface.mapCanvas()
     extent = vLayer.extent()
     canvas.setExtent(extent)
