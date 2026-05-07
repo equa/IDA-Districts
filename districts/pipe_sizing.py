@@ -134,7 +134,7 @@ class WorkerPipeSizing(QRunnable):
             for i in range(self.dlg.table_sequences.rowCount()):
                 #get checked pipes from list
                 dropDown=self.dlg.table_sequences.cellWidget(i,1)
-                pipes=[int(dropDown.itemText(i).split(':')[0].split('(')[0]) for i in range(dropDown.count()) if dropDown.itemText(i) != 'Check all items' and dropDown.itemChecked(i)]
+                pipes=[int(dropDown.itemText(i).split(':')[0].split('(')[0]) for i in range(dropDown.count()) if dropDown.itemText(i) != tr('@default','check_all_items') and dropDown.itemChecked(i)]
                 #print(pipes)
                 seq_pipes_dict[int(self.dlg.table_sequences.item(i,0).text())]=[[id,getPipeDiameter(self.cur,id)] for id in pipes]
             #print(seq_pipes_dict)
@@ -179,7 +179,7 @@ class WorkerPipeSizing(QRunnable):
                     if pipe:
                         pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
                     else:
-                        #iface.messageBar().pushMessage("Error", "No proper pipe available for inner diameter: "+str(z[1]), level=Qgis.Critical)
+                        self.signals.error.emit("No proper pipe available for line ID = {} with inner diameter: ".format(line['id'])+str(z[1]))
                         return False
                     i+=1
                 #print(pipe_bundle)  
@@ -206,11 +206,49 @@ class WorkerPipeSizing(QRunnable):
         except Exception as e:
             self.signals.error.emit(str(e))
         self.signals.finished.emit('finished')
-        
+ 
+def checkPipeSizingInput(dlg):
+    #check number of liquid circuits > 0
+    #check for each circuit
+        #check return sequence != supply sequence
+        #check Tsup number
+        #check Tret number
+        #check Tsup != Tret
+        #check if at least 1 pipe is selected
+    table_circuits=dlg.table_circuits
+    rowcount_circuits=table_circuits.rowCount()
+    if rowcount_circuits==0:
+        iface.messageBar().pushMessage("Info", "Please add at least one liquid circuit!", level=Qgis.Info)
+        return False
+    for row in range(rowcount_circuits):
+        if table_circuits.cellWidget(row,0).currentText()==table_circuits.cellWidget(row,3).currentText():
+            iface.messageBar().pushMessage("Info", "Return must be differ from supply!", level=Qgis.Info)
+            return False
+        if not isNumber(table_circuits.item(row,1).text()):
+            iface.messageBar().pushMessage("Info", "Please enter a number as supply temperature!", level=Qgis.Info)
+            return False
+        if not isNumber(table_circuits.item(row,4).text()):
+            iface.messageBar().pushMessage("Info", "Please enter a number as return temperature!", level=Qgis.Info)
+            return False
+        if table_circuits.item(row,1).text() == table_circuits.item(row,4).text():
+            iface.messageBar().pushMessage("Info", "Supply temperature must be differ from return temperature!", level=Qgis.Info)
+            return False
+            
+    table_sequences=dlg.table_sequences
+    rowcount_sequences=table_sequences.rowCount()        
+    for row in range(rowcount_sequences):
+        checkedItems=table_sequences.cellWidget(row,1).getCheckItems()
+        if len(checkedItems)==0:
+            iface.messageBar().pushMessage("Info", "Please select at least one pipe!", level=Qgis.Info)
+            return False
+    return True
+    
 def startPipeSizing(config,dlg,plugin_dir):
     """Start pipe sizing"""
     #print('Start pipe sizing')
     conn=dbConnect(config,True)
+    if not checkPipeSizingInput(dlg):
+        return
     if conn:
         dlg.process_running=True
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)

@@ -96,18 +96,9 @@ class WorkerImportProject(QRunnable):
         #print(self.config)
         #print(name)
         
-        if os.path.exists(src_dir):
-            rmtree_long_path(src_dir)
+        #if os.path.exists(src_dir):
+        #    rmtree_long_path(src_dir)
         
-        if not os.path.exists(src_dir): 
-            if os.path.exists(self.config['pathDistricts']+"bin\\7za.exe"):
-                cmd="""\"{}bin\\7za.exe" x "{}" -o"{}\"""".format(self.config['pathDistricts'],self.filename,src_dir)
-                #print(cmd)
-                subprocess.call(cmd, shell=True)
-            else:
-                self.signals.error.emit("IDA Districts Directory cannot be found. Please check Districts Modeler configuration data!")
-                self.signals.progress.emit(0)            
-                return False
         self.signals.progress.emit(15)            
 
         #get project name
@@ -248,19 +239,37 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                     myfile.write(newdata)   
             
             #print(sql_dir)
-            cmd="""\"{}\\postgreSQL\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
-                self.plugin_dir,self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ ('db_tables_.sql' if self.project_name else name+'_.sql'))
-            #print(cmd)
-            subprocess.call(cmd, shell=True)
+            self.signals.progress.emit(77)
+            env = os.environ.copy()
+            env["PGPASSWORD"] = self.password
+
+            dbname = sanitize_pg_identifier(db_info['projectName'])
+            
+            cmd = [
+                f"{self.config['pathPostgresql']}bin\\psql",
+                f"--dbname=postgresql://{self.username}@{self.config['host']}:{self.config['port']}/{dbname}",
+                "-f",
+                sql_dir + ('db_tables_.sql' if self.project_name else name + '_.sql')
+            ]
+
+            print(cmd)
+            subprocess.call(cmd, env=env)
+            
             self.signals.progress.emit(79)
             filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt")
             self.cur.execute(filedata)
             self.signals.progress.emit(80)            
             if self.project_name and not self.no_db_results:
-                cmd="""\"{}\\postgreSQL\\psql" --dbname=\"postgresql://{}:{}@{}:{}/{}\" -f "{}\"""".format(
-                    self.plugin_dir,self.username,self.password,self.config['host'],self.config['port'],db_info['projectName'],sql_dir+ 'db_results.sql')
-                #print(cmd)
-                subprocess.call(cmd, shell=True) 
+                cmd = [
+                    f"{self.config['pathPostgresql']}bin\\psql",
+                    f"--dbname=postgresql://{self.username}@{self.config['host']}:{self.config['port']}/{dbname}",
+                    "-f",
+                    sql_dir + "db_results.sql"
+                ]
+
+                #print(cmd)  # optional zum Debuggen
+
+                subprocess.call(cmd, env=env)
             self.conn.close()
 
         else:
@@ -322,7 +331,7 @@ class WorkerExportProject(QRunnable):
         os.makedirs(os.path.dirname(sql_path), exist_ok=True)
 
         cmd = [
-            os.path.join(self.plugin_dir,"postgreSQL\\pg_dump"),  # Path to pg_dump
+            os.path.join(self.config['pathPostgresql'],"bin\\pg_dump"),  # Path to pg_dump
             "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.username,self.password ,self.config['host'],self.config['port'],self.config['projectName'])
         ]
         if self.no_db_results:
@@ -363,10 +372,7 @@ class WorkerExportProject(QRunnable):
         if os.path.exists(dir):
             with open(dir+'\\DB_info.txt', "w") as myfile:   
                 myfile.write(str(db_info))
-        cmd="""\"{}bin\\7za.exe" a -t7z -r "{}.ida" "{}/*.*\"""".format(self.config['pathDistricts'],dir,dir)
-        #print(cmd)
-        subprocess.call(cmd, shell=True) 
-        shutil.rmtree(dir)  
+
         self.signals.progress.emit(100)
         self.signals.finished.emit(self.filename)
     
@@ -489,12 +495,12 @@ class WorkerSimulateFilesAPI(QRunnable):
                     #open file
                     #print('+++++++++opening+++++++++++')
                     building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
-                    #print('+++++++++opened+++++++++++')
+                    print('+++++++++opened+++++++++++')
                     #run sim
                     script="""((RUN-SIMULATION [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
-                    #print(script)
+                    print(script)
                     self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
                     #print('save doc')
                     #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('utf-8'), 1)   

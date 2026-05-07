@@ -345,6 +345,7 @@ class UpdateSensors():
                     self.setCheckableDropDownItemsTable(table,[],row,i,[]) 
                     
     def setFilteredTemplateDropdownItems(self,table,type,id,row,sensor,checkActive=True):
+        #print('--setFilteredTemplateDropdownItems--')
         sql="""SELECT s_t.active, f_t.template, f_t.template_name
     FROM {}_template s_t, {}_templates f_t
     WHERE s_t.{}_id={} AND f_t.template=s_t.template
@@ -405,10 +406,11 @@ class UpdateSensors():
         if signal_args:
             #print('----')
             #print(signal_args)
-            signal_args[0](table,signal_args[1],row,signal_args[2])
             comboBoxCheckable.activated.connect(lambda signal, column=signal_args[1],row=row: signal_args[0](table,column,row,signal_args[2]))
         table.setCellWidget(row, col, comboBoxCheckable) 
         #print('setCheckableDropDownItemsTable finished')
+        
+
         
     def sourceTypeChanged(self,table,selected_index,column,row):
         #print('source type changed')
@@ -434,7 +436,7 @@ class UpdateSensors():
             dropdownItems=[i['name'] for i in getTemplatesInfo(source_type,self.cur)]
             #print('row:'+str(row))
             #print('column:'+str(column))
-            self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDowntemplates,2,source_type])
+            self.setCheckableDropDownItemsTable(table,dropdownItems,row,column+1,[self.setDropDownConntypes,2,source_type])
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','measure','measure',[1,2,3,4,5]]]),'1',5,row,self.measureChanged)
             self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6] if target_type=='supervisory' else [1,2,3,4]]]),'min',6,row,False)
             for i in range(3,5):

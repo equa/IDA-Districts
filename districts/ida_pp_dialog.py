@@ -832,7 +832,7 @@ class NetworkTopologyDialog(QDialog):
         layout_networks.addWidget(QLabel("Networks"))
         
         self.combo_network_models = CheckableComboBox()     
-        self.combo_network_models.addItem('Check all items')
+        self.combo_network_models.addItem(tr('@default','check_all_items'))
         networks=getNetworks(self.cur,self.config)
         self.combo_network_models.addItems(networks)  
         for i in range(len(networks)):
@@ -906,7 +906,7 @@ class NetworkTopologyDialog(QDialog):
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != 'Check all items' and self.combo_network_models.itemChecked(i)]
+            networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != tr('@default','check_all_items') and self.combo_network_models.itemChecked(i)]
             if checkNetwork(self.cur,self.config['versionName'],networks):
                 self.process_running=True
                 self.worker = WorkerGenerateNetworkTopology(config=self.config,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
@@ -1251,7 +1251,7 @@ class PipeSizingDlg(QDialog):
 
         #energy demand
         energy_demand_colmn = QComboBox(self)
-        energy_demand_colmn.addItems(getTableAttr(self.cur,self.config,'customer' if self.rbtn_customers.isChecked() else 'line',withoutID=True))            
+        energy_demand_colmn.addItems(getTableNumericAttr(self.cur,self.config,'customer' if self.rbtn_customers.isChecked() else 'line',withoutID=True))            
         self.table_circuits.setCellWidget(0, 5, energy_demand_colmn)
 
     def on_combo_changed(self, index):
@@ -1288,7 +1288,7 @@ class PipeSizingDlg(QDialog):
         self.table_sequences.insertRow(new_row)
         self.table_sequences.setItem(new_row, 0, QTableWidgetItem(sequence))
         pipes_combo = CheckableComboBox()
-        pipes_combo.addItem('Check all items')
+        pipes_combo.addItem(tr('@default','check_all_items'))
         pipes_combo.addItems(self.pipes_list)
         for i in range(len(self.pipes_list)):
             pipes_combo.setItemChecked(i+1,False) 

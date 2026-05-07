@@ -1,8 +1,9 @@
-from qgis.PyQt.QtWidgets import QDialog,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
+from qgis.PyQt.QtWidgets import QTextEdit,QDialog,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
 from qgis.utils import iface
 from qgis.core import QgsWkbTypes,QgsProperty,QgsSymbolLayer,QgsLineSymbol,QgsSymbol,QgsGraduatedSymbolRenderer,QgsStyle,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsClassificationQuantile,QgsTextFormat,QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsPalLayerSettings
 
 from .utility_functions.dialog import *
+from .utility_functions.translations import *
 from .utility_functions.topology import *
 from .utility_functions.show_on_map import *
 
@@ -17,6 +18,19 @@ class ImportMeasuremntsDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Import measurement data into DB")   
         
+        self.label_description=QTextEdit(tr('@default','description_importPRNData'))
+        
+        #radio buttons features
+        layout_rbtn_feature = QHBoxLayout()
+        self.group_feature=QButtonGroup(self)
+        self.rbtn_customers = QRadioButton(tr('@default','customers'))
+        self.rbtn_customers.setChecked(True)
+        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
+        self.rbtn_lines = QRadioButton(tr('@default','lines'))
+        layout_rbtn_feature.addWidget(self.rbtn_customers)
+        layout_rbtn_feature.addWidget(self.rbtn_plants)
+        layout_rbtn_feature.addWidget(self.rbtn_lines)
+        
         layout_data_source=QHBoxLayout()
         label_source =QLabel("Data source")
         layout_data_source.addWidget(label_source) 
@@ -28,8 +42,8 @@ class ImportMeasuremntsDialog(QDialog):
         self.btn_dir_source=QPushButton("Select a directory")
         layout_data_source.addWidget(self.btn_dir_source)
         
-        self.tableVars = QTableWidget(0,5)  
-        self.tableVars.setHorizontalHeaderLabels(['Variables','Belongs to','Alias','min','max'])     
+        self.tableVars = QTableWidget(0,4)  
+        self.tableVars.setHorizontalHeaderLabels(['Variables','Alias','min','max'])     
         
         #interpolate timestep
         layout_interpolation=QVBoxLayout()
@@ -53,6 +67,8 @@ class ImportMeasuremntsDialog(QDialog):
         
         #---------------set layouts together-------------------
         layout = QVBoxLayout()
+        layout.addWidget(self.label_description)
+        layout.addLayout(layout_rbtn_feature)
         layout.addLayout(layout_data_source)
         layout.addWidget(self.tableVars)
         layout.addLayout(layout_interpolation)

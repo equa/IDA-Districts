@@ -386,7 +386,6 @@ def importLayerToDb(type,dlg,main):
                 attributes={}
                 for feature in layer.getFeatures():
                     mappedAttributesValues=dlg.mappedAttributes.copy() #make a copy in order to lose reference
-                    #print(mappedAttributesValues)
                     attributes=getLayerAttributesDict(feature,layer=layer)
                     for mappedAttribute in dlg.mappedAttributes:
                         if dlg.mappedAttributes[mappedAttribute]:
@@ -396,6 +395,7 @@ def importLayerToDb(type,dlg,main):
                     values=[]
                     #print(attributes)
                     attributes=[attribute for attribute in mappedAttributesValues if mappedAttributesValues[attribute]]
+                    #print(attributes)
                     #print(mappedAttributesValues)
                     for attribute in attributes:
                         #print(attribute)

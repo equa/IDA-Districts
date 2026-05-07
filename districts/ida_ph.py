@@ -48,12 +48,12 @@ def setLoadAttribute(dlg,fid):
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
     sql+="""WITH sub AS(
-	SELECT b_id,sum(ST_Area(geom))*{} AS load FROM {}.buildings GROUP BY b_id
+	SELECT b_id,substation_id,sum(ST_Area(geom))*{} AS load FROM {}.buildings GROUP BY b_id,substation_id
 )
 UPDATE {}.customers c SET {} = sub.load 
 	FROM sub
-	WHERE c.id=sub.b_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid))
-    #print(sql)
+	WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid))
+    print(sql)
     dlg.cur.execute(sql)
     
     if dlg.radioButton_newAttribute.isChecked():
@@ -779,7 +779,7 @@ def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=N
         # Format the datetime to 'Year-Month-Day-HourMinuteSecond'
         formatted_datetime = current_datetime.strftime('%Y_%m_%d_%H%M%S')
 
-        filename=tempfile.gettempdir()+'\\ida_districts\\'+config['projectName']+'_'+formatted_datetime+'.ida'
+        filename=tempfile.gettempdir()+'\\ida_districts\\'+config['projectName']+'_'+formatted_datetime
         
     if filename.split('\\') and filename.split('\\')[-1].split('.') and checkString(filename.split('\\')[-1].split('.')[0]):
         filter_extensions=[]

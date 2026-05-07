@@ -37,9 +37,6 @@ for /r %%F in (*.ui) do (
     echo "%%F" >> pyfiles.txt
 )
 
-REM Add the translations.py file one folder above (for tr() registry)
-echo "..\utility_functions\translations.py" >> pyfiles.txt
-
 echo Files found:
 type pyfiles.txt
 echo.

@@ -66,7 +66,7 @@ class FloatingTabDialog(QtWidgets.QDialog):
 
 
 class DistrictsSettingsDialog(QtWidgets.QDialog):
-    def __init__(self):
+    def __init__(self,main):
         super().__init__()
 
         # Load UI
@@ -76,6 +76,7 @@ class DistrictsSettingsDialog(QtWidgets.QDialog):
         config=load_plugin_settings()
         self.lineEdit_pathProjects.setText(config["pathProjects"].replace('////','//'))
         self.lineEdit_pathDistricts.setText(config["pathDistricts"].replace('////','//'))
+        self.lineEdit_pathPostgresql.setText(config["pathPostgresql"].replace('////','//'))
         self.lineEdit_districts_api_delay.setText(config["districts_api_delay"])
         self.checkBox_debug.setChecked(config["debug"])
         self.groupBox_autosave.setChecked(config["autosave"])
@@ -85,6 +86,10 @@ class DistrictsSettingsDialog(QtWidgets.QDialog):
         self.checkBox_exportDbResults.setChecked(config["exportDbResults"])
         self.lineEdit_host.setText(config["host"])
         self.lineEdit_port.setText(config["port"])
+        
+        self.btn_fileChoserIDADistrictsPath.clicked.connect(lambda: main.folderDialog(self, self.lineEdit_pathDistricts.text(),self.lineEdit_pathDistricts))
+        self.btn_fileChoserPostgresqlPath.clicked.connect(lambda: main.folderDialog(self, self.lineEdit_pathPostgresql.text(),self.lineEdit_pathPostgresql))
+        self.btn_fileChoserProjectPath.clicked.connect(lambda: main.folderDialog(self, self.lineEdit_pathProjects.text(),self.lineEdit_pathProjects))
         
         self.auth_dict=getAuthNames()
         self.comboBox_AuthId.addItems(self.auth_dict)
@@ -148,6 +153,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_pipes.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipe_bundle_types.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipebundle.png")))
         self.btn_pipe_bundle_types.setIconSize(QSize(btn_size, btn_size))
+        self.btn_climateTemplate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.svg")))  
+        self.btn_climateTemplate.setIconSize(QSize(btn_size, btn_size))
 
 
         
@@ -161,8 +168,6 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_importNetworkTopologyFromLayer.setIconSize(QSize(btn_size, btn_size))
         self.btn_importMeasurements.setIcon(QIcon(":/images/themes/default/mActionMeasure.svg"))  
         self.btn_importMeasurements.setIconSize(QSize(btn_size, btn_size))
-        self.btn_climate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.svg")))  
-        self.btn_climate.setIconSize(QSize(btn_size, btn_size))
         
         self.btn_importStreetsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/streets.png")))
         self.btn_importStreetsFromOSM.setIconSize(QSize(btn_size, btn_size))
@@ -196,6 +201,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_sensorSignals.setIconSize(QSize(btn_size, btn_size))   
         self.btn_supervisory.setIcon(QIcon(os.path.join(plugin_dir, "icons/SupervisoryCTRL.png")))
         self.btn_supervisory.setIconSize(QSize(btn_size, btn_size))   
+        self.btn_climateVersionData.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.svg")))  
+        self.btn_climateVersionData.setIconSize(QSize(btn_size, btn_size))
         
         self.btn_buildModel.setIcon(QIcon(os.path.join(plugin_dir, "icons/BuildModel.png")))
         self.btn_buildModel.setIconSize(QSize(btn_size, btn_size))   

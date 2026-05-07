@@ -16,6 +16,24 @@ import json
 import re
 import ntpath
 
+def sanitize_pg_identifier(name: str) -> str:
+    """
+    Macht PostgreSQL-Identifier sicher:
+    - unkritische Namen bleiben unverändert
+    - alles mit Großbuchstaben / Sonderzeichen wird gequotet
+    """
+
+    if name is None:
+        return None
+
+    # erlaubt: a-z, 0-9, _
+    if re.fullmatch(r"[a-z0-9_]+", name):
+        return name
+
+    # sonst: doppelte Quotes setzen (PostgreSQL-Style)
+    name = name.replace('"', '""')  # escape existing quotes
+    return f'"{name}"'
+    
 def get_districts_plugin_dir():
     """
     Returns the path to the QGIS districts directory
@@ -86,8 +104,8 @@ def getAuthNames():
 
 def write_plugin_settings(config):
     config['ida_version']='5.21801'
-    config['ida_districts_version']='0.9.0.0'
-    config['districts_modeler_version']='1.0.0.0'
+    config['ida_districts_version']='1.0.0.0'
+    config['districts_modeler_version']='0.9.0.0'
     settings = QSettings()        
     settings.beginGroup("districts")
     for key,value in config.items():
@@ -102,6 +120,7 @@ def load_plugin_settings():
         #tool settings
         "pathProjects": settings.value("pathProjects","C:\\projects\\"),
         "pathDistricts": settings.value("pathDistricts","C:\\Program Files (x86)\\IDA Districts\\"),
+        "pathPostgresql": settings.value("pathPostgresql","C:\\Program Files\\PostgreSQL\\18\\"),
         "districts_api_delay": settings.value("districts_api_delay","20"),
         "debug": settings.value("debug",False, type=bool),
         "autosave": settings.value("autosave", True, type=bool),

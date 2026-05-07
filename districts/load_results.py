@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
             self.cur.execute(sql)
         
         for i in range(self.dlg.combo_submodels.count()):
-            if self.dlg.combo_submodels.itemText(i) != 'Check all items' and self.dlg.combo_submodels.itemChecked(i):
+            if self.dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and self.dlg.combo_submodels.itemChecked(i):
                 try:
                     submodel=self.dlg.combo_submodels.itemText(i)
                     #print(submodel)

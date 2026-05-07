@@ -39,12 +39,12 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
         
 def openModel(dlg,plugin_dir,config,mode='network'):
     #print('-***-')
-    if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])==0:
+    if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
         return False
     requestedOutputs=loadRequestedOutputs(plugin_dir,config)
     for i in range(dlg.combo_submodels.count()):
-        if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i):        
+        if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i):        
             submodel=dlg.combo_submodels.itemText(i)
             #print(submodel)
             dir=config['pathProjects']+'{}\\versions\\{}\\'.format(config['projectName'],config['versionName'])
@@ -89,7 +89,7 @@ def setNetworkSimData(dlg,plugin_dir,config):
 def runModel(dlg,plugin_dir,config):
     networkSimData=setNetworkSimData(dlg,plugin_dir,config)
     if networkSimData:
-        dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)])
+        dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])
         if dlg.n_sims==0:
             iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
             return False
@@ -101,7 +101,7 @@ def runModel(dlg,plugin_dir,config):
             dlg.finished_sims=0
             dlg.process_running=True
             for i in range(dlg.combo_submodels.count()):
-                if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i):        
+                if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i):        
                     submodel=dlg.combo_submodels.itemText(i)
             
                     #print('----Update simulation data----')
@@ -133,11 +133,11 @@ def runModel(dlg,plugin_dir,config):
 def buildModel(dlg,main):
     networks=[]
     for i in range(dlg.combo_network_models.count()):
-        if dlg.combo_network_models.itemText(i) != 'Check all items' and dlg.combo_network_models.itemChecked(i):        
+        if dlg.combo_network_models.itemText(i) != tr('@default','check_all_items') and dlg.combo_network_models.itemChecked(i):        
             networks.append(dlg.combo_network_models.itemText(i))
                 
     #print(networks)
-    submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
+    submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)]
     #print(submodels)
     if networks and submodels:
         main.worker_invokeNetwork = WorkerBuildNetworkModel(config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)

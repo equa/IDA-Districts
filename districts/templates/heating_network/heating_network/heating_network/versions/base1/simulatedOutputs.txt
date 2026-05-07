@@ -1,0 +1,1 @@
+{'power_c': True, 'temp_c': True, 'p_c': True, 'mdot_c': True, 'heatbalance_c': True, 'troom_c': True, 'v_lines': True, 'mdot_lines': True, 'p_lines': True, 'temp_lines': True, 'power_ep': True, 'temp_ep': True, 'p_ep': True, 'mdot_ep': True, 'dt_outputs': '0.1'}

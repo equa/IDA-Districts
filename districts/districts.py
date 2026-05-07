@@ -74,6 +74,7 @@ class Districts:
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+        
         self.icon_path = os.path.join(
             self.plugin_dir,
             'icons',
@@ -470,6 +471,16 @@ class Districts:
         if filename:
             dlg.lineEditFileName.setText(filename)
 
+    def folderDialog(self, dlg, dir,lineEdit):
+        folder = QFileDialog.getExistingDirectory(
+            dlg,
+            "Please select a folder",
+            dir
+        )
+
+        if folder:
+            lineEdit.setText(standardizePath(folder))
+
     def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
         #print(default_path)
         if self.conn:
@@ -534,14 +545,16 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)     
         
-    def show_setClimateDialog(self):
+    def show_manageClimateTemplate(self):
+        openClimateMacro(self)
+
+    def show_setClimateVersionDialog(self):
         """ show set climate dialog"""
         if self.conn:
             if self.config['versionName']:
                 climateData=getClimateData(self.cur,self.config,True)
 
                 self.dlg_climate=ClimateDialog(climateData)
-                self.dlg_climate.btn_openClimate.clicked.connect(lambda: openClimateMacro(self.dlg_climate,self))
                 self.dlg_climate.btn_climateFileDialog.clicked.connect(self.dlg_climate.fileDialog)
                 self.dlg_climate.btn_ok.clicked.connect(lambda: writeClimateDataToDB(self.dlg_climate,self))
                 self.dlg_climate.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_climate))
@@ -554,7 +567,7 @@ class Districts:
     def showExportProject(self):
         if self.conn:
             self.dlg_export = ExportProjectDialog()
-            self.dlg_export.btn_ok.clicked.connect(lambda: exportProject(filename=self.dlg_export.filename.text(),dlg=self.dlg_export,exportPrn=self.dlg_export.exportPrn.isChecked(),exportInvokedFeatures=self.dlg_export.exportInvokedFeatures.isChecked(),exportDBResults=self.dlg_export.exportDBResults.isChecked(),plugin_dir=self.plugin_dir,config=self.config,main_dlg=self.dlg))
+            self.dlg_export.btn_ok.clicked.connect(lambda: exportProject(filename=self.dlg_export.dirname.text()+self.dlg_export.project_name_input.text(),dlg=self.dlg_export,exportPrn=self.dlg_export.exportPrn.isChecked(),exportInvokedFeatures=self.dlg_export.exportInvokedFeatures.isChecked(),exportDBResults=self.dlg_export.exportDBResults.isChecked(),plugin_dir=self.plugin_dir,config=self.config,main_dlg=self.dlg))
             self.dlg_export.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_export))
             self.dlg_export.show()               
         else:
@@ -565,19 +578,21 @@ class Districts:
         """ import a project from a sql file and write the data center and modelling files to the folders"""
         #print("--importProject--")
         if self.cur_postgres:
-            filename, _filter = QFileDialog.getOpenFileName(
-                self.dlg, "Import Districts project",'','*.ida')
-            #print(filename)
-            filename=filename.replace('/','\\')
+            project_folder = QFileDialog.getExistingDirectory(
+                self.dlg,
+                tr('@default',"import_districts_project_directory"),
+                ''
+            )
+            project_folder=project_folder.replace('/','\\')
 
-            if filename:
+            if project_folder:
                 auth_cfg = QgsAuthMethodConfig()
                 QgsApplication.authManager().loadAuthenticationConfig(self.config["auth_id"], auth_cfg, True)  
  
-                self.worker_import = WorkerImportProject(versionNames=[],projectNames=self.dlg.projectNames,project_name=False,filename=filename,config=self.config,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False,password=auth_cfg.config("password"),username=auth_cfg.config("username"))
+                self.worker_import = WorkerImportProject(versionNames=[],projectNames=self.dlg.projectNames,project_name=False,filename=project_folder,config=self.config,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False,password=auth_cfg.config("password"),username=auth_cfg.config("username"))
                 self.worker_import.signals.progress.connect(self.dlg.update_progress)
                 self.worker_import.signals.error.connect(self.dlg.show_error_message)   
-                self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=filename.split('\\')[-1].split('.')[0]))                  
+                self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=project_folder.split('\\')[-1].split('.')[0]))                  
                 QThreadPool.globalInstance().start(self.worker_import)    
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
@@ -676,7 +691,7 @@ class Districts:
     def showDistrictsSettings(self):
         """Show districts settings"""
         
-        self.dlg_showDistrictsSettings=DistrictsSettingsDialog()
+        self.dlg_showDistrictsSettings=DistrictsSettingsDialog(self)
         self.dlg_showDistrictsSettings.btn_save.clicked.connect(lambda: self.saveDistrictsSettings(self.dlg_showDistrictsSettings))
         self.dlg_showDistrictsSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showDistrictsSettings))
         self.dlg_showDistrictsSettings.show()   
@@ -836,12 +851,27 @@ class Districts:
         """Save the districts settings to QSettings"""
         settings = QSettings()        
         settings.beginGroup("districts")
-        settings.setValue("pathProjects", standardizePath(dlg.lineEdit_pathProjects.text(),create_if_not_exists=True))
+        pathProjects=standardizePath(dlg.lineEdit_pathProjects.text(),create_if_not_exists=False)
+        settings.setValue("pathProjects",pathProjects)
+        if not os.path.exists(pathProjects):
+            dlg_question = QMessageBox(dlg)
+            dlg_question.setWindowTitle('IDA Project Path does not exist!')
+            dlg_question.setText("""Do you want to create the project folder?""")
+            dlg_question.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+            dlg_question.setIcon(QMessageBox.Icon.Question)
+            button = dlg_question.exec()
+
+            if button == QMessageBox.StandardButton.Yes:
+                os.makedirs(pathProjects)
+            else:
+                pass
+            
         pathDistricts=standardizePath(dlg.lineEdit_pathDistricts.text())
+        pathPostgresql=standardizePath(dlg.lineEdit_pathPostgresql.text())
         if not os.path.exists(pathDistricts):
-            self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=Qgis.Warning)
-            return False
+            self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=Qgis.Info)
         settings.setValue("pathDistricts", pathDistricts)
+        settings.setValue("pathPostgresql", pathPostgresql)
         settings.setValue("districts_api_delay", dlg.lineEdit_districts_api_delay.text())
         settings.setValue("debug", dlg.checkBox_debug.checkState())
         settings.setValue("autosave", dlg.groupBox_autosave.isChecked())
@@ -1032,13 +1062,13 @@ class Districts:
                 self.dlg_buildModel=BuildNetworkModelDialog(self.dlg)
                 sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.config['versionName'])
                 self.cur.execute(sql)
-                self.dlg_buildModel.combo_network_models.addItem('Check all items')
+                self.dlg_buildModel.combo_network_models.addItem(tr('@default','check_all_items'))
                 networks=self.cur.fetchall()
                 self.dlg_buildModel.combo_network_models.addItems([str(i['network']) for i in networks])
                 for i in range(len(networks)):
                     self.dlg_buildModel.combo_network_models.setItemChecked(i+1,False)
                 
-                self.dlg_buildModel.combo_submodels.addItem('Check all items')
+                self.dlg_buildModel.combo_submodels.addItem(tr('@default','check_all_items'))
                 submodels=getUsedNetworkSubmodels(self.cur,self.config)
                 self.dlg_buildModel.combo_submodels.addItems(submodels)
                 
@@ -1076,7 +1106,7 @@ class Districts:
                     worker_openNetwork.signals.progress.connect(self.dlg.update_progress)
                     """
                     self.dlg_openModel=OpenModelDialog(self.dlg,mode)
-                    self.dlg_openModel.combo_submodels.addItem('Check all items')
+                    self.dlg_openModel.combo_submodels.addItem(tr('@default','check_all_items'))
                         #print(submodels)
                         self.dlg_openModel.combo_submodels.addItems(submodels)
                         for i in range(len(submodels)):
@@ -1099,7 +1129,7 @@ class Districts:
         if self.conn:
             if self.config['versionName']:
                 self.dlg_runModel=RunNetworkModelDialog(self.plugin_dir,self.config)
-                self.dlg_runModel.combo_submodels.addItem('Check all items')
+                self.dlg_runModel.combo_submodels.addItem(tr('@default','check_all_items'))
                 dir=self.config['pathProjects']+'{}\\versions\\{}'.format(self.config['projectName'],self.config['versionName'])
                 submodels=getNetworkFileSubmodels(dir)
                 self.dlg_runModel.combo_submodels.addItems(submodels)
@@ -1123,7 +1153,7 @@ class Districts:
             if self.config['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
                 self.dlg_loadResults=LoadResultsDialog(self.dlg)
-                self.dlg_loadResults.combo_submodels.addItem('Check all items')
+                self.dlg_loadResults.combo_submodels.addItem(tr('@default','check_all_items'))
                 dir=self.config['pathProjects']+'{}\\versions\\{}'.format(self.config['projectName'],self.config['versionName'])
                 submodels=getNetworkFileSubmodels(dir)
                 self.dlg_loadResults.combo_submodels.addItems(submodels)
@@ -1160,7 +1190,7 @@ class Districts:
             self.dlg_plotLoads.rbtn_customer.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
             self.dlg_plotLoads.rbtn_energy_plant.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
             
-            self.dlg_plotLoads.combo_networks.addItem('Check all items')
+            self.dlg_plotLoads.combo_networks.addItem(tr('@default','check_all_items'))
             networks=getNetworks(self.cur,self.config)
             self.dlg_plotLoads.combo_networks.addItems([str(i) for i in networks])
             for i in range(len(networks)):
@@ -1173,14 +1203,17 @@ class Districts:
 
     def showSupervisoryCtrl(self):
         if self.conn:
-            openSupervisoryCtrl(self.cur,self.plugin_dir,self.config)
-            """
-            self.dlg_supervisoryCrtl=SupervisoryCtrlDlg(self.cur,self.config)
-            self.dlg_supervisoryCrtl.btn_ok.clicked.connect(lambda: setSupervisoryCrtlSubmodel(self.dlg_supervisoryCrtl,self.cur))
-            self.dlg_supervisoryCrtl.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_supervisoryCrtl))
-            self.dlg_supervisoryCrtl.btn_open.clicked.connect(lambda: openSupervisoryCtrl(self.dlg_supervisoryCrtl,self.cur,self.plugin_dir,self.config))
-            self.dlg_supervisoryCrtl.show()  
-            """
+            if self.config['versionName']:
+                openSupervisoryCtrl(self.cur,self.plugin_dir,self.config)
+                """
+                self.dlg_supervisoryCrtl=SupervisoryCtrlDlg(self.cur,self.config)
+                self.dlg_supervisoryCrtl.btn_ok.clicked.connect(lambda: setSupervisoryCrtlSubmodel(self.dlg_supervisoryCrtl,self.cur))
+                self.dlg_supervisoryCrtl.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_supervisoryCrtl))
+                self.dlg_supervisoryCrtl.btn_open.clicked.connect(lambda: openSupervisoryCtrl(self.dlg_supervisoryCrtl,self.cur,self.plugin_dir,self.config))
+                self.dlg_supervisoryCrtl.show()  
+                """
+            else:
+                self.iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)   
             
@@ -1291,7 +1324,7 @@ class Districts:
             self.dlg.btn_importNetworkTopologyFromLayer.clicked.connect(self.importNetworkTopologyFromLayer)
 
             #resources
-            self.dlg.btn_climate.clicked.connect(self.show_setClimateDialog)
+            self.dlg.btn_climateTemplate.clicked.connect(self.show_manageClimateTemplate)
             self.dlg.btn_defaults_lines.clicked.connect(self.show_DefaultsLinesDialog)
             self.dlg.btn_defaults_customers.clicked.connect(self.show_DefaultsCustomersDialog)
             self.dlg.btn_defaults_plants.clicked.connect(self.show_DefaultsPlantsDialog)
@@ -1318,6 +1351,7 @@ class Districts:
             self.dlg.btn_parmMapping.clicked.connect(self.showParmMapping)
             self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)
             self.dlg.btn_supervisory.clicked.connect(self.showSupervisoryCtrl)
+            self.dlg.btn_climateVersionData.clicked.connect(self.show_setClimateVersionDialog)
             self.dlg.btn_featureModels.clicked.connect(self.showFeatureModels)
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))

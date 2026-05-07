@@ -35,32 +35,26 @@ class WorkerOSMBuildingsImport(QRunnable):
         self.signals.progress.emit(50)
         if self.clearOldFeatures:
             sql='TRUNCATE "'+self.config['versionName']+'".customers,"'+self.config['versionName']+'".buildings;'
-            self.cur.execute(sql)
-        for counter,b in enumerate(buildings,1):
+            self.cur.execute(sql)      
+        sql=""
+        max_cid=getMaxIdSchema(self.cur,'customers',self.config['versionName'])
+        for counter,b in enumerate(buildings,max_cid):
             if len(b.geom.split(","))>2:
                 #insert into buildings
                 try:
-                    sql='INSERT INTO "'+self.config['versionName']+"""\".buildings(geom,b_id,z_id,submodel,z_bh_m,z_height_m) VALUES (ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter)+',1,1,0,'+b.height+");"
-                    #print(sql)
-                    self.cur.execute(sql)
+                    sql+='INSERT INTO "'+self.config['versionName']+"""\".buildings(id,geom,b_id,substation_id,z_id,submodel,z_bh_m,z_height_m) VALUES ("""+str(counter+1)+""",ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter+1)+','+str(counter+1)+',1,1,0,'+b.height+");"
                     
                     #insert customers
-                    sql='INSERT INTO "'+self.config['versionName']+"""".customers(template,geom) VALUES (1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"
-                    #print(sql)
-                    self.cur.execute(sql)  
+                    sql+='INSERT INTO "'+self.config['versionName']+"""\".customers(id,template,geom) VALUES ("""+str(counter+1)+""",1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"
                 except Exception as e:
                     self.signals.error.emit(str(e))
             self.signals.progress.emit(int(49*counter/len(buildings)))
             
-        sql='UPDATE "{}".buildings b SET substation_id = c.id FROM (SELECT id,geom FROM {}.customers) c WHERE ST_dWithIn(c.geom,b.geom,0.01);'.format(self.config['versionName'],self.config['versionName'])
         #print(sql)
         self.cur.execute(sql) 
         
-        refreshMap()
-        zoomToLayer("customers")
-        
         self.signals.progress.emit(100)  
-        self.signals.finished.emit('Import buildings completed!')  
+        self.signals.finished.emit('customers')  
                  
     def readOSMBuildings(self,nodes):
         #print("read OSM buildings")
@@ -128,20 +122,17 @@ class WorkerOSMStreetsImport(QRunnable):
         self.signals.progress.emit(20)  
         streets=self.readOSMStreets(nodes)
         self.signals.progress.emit(50)  
-
+        sql=''
         if self.clearOldFeatures:
-            sql='TRUNCATE "'+self.config['versionName']+'".streets;'
-            self.cur.execute(sql)
+            sql+='TRUNCATE "'+self.config['versionName']+'".streets;'
+        
         for counter,street in enumerate(streets,1):
-            sql='INSERT INTO "'+self.config['versionName']+"""".streets(geom) VALUES (ST_Transform(ST_GeomFromText('"""+street.geom+"',4326),"+self.srid+"));"
-            #print(sql)
-            self.cur.execute(sql)
+            sql+='INSERT INTO "'+self.config['versionName']+"""".streets(geom) VALUES (ST_Transform(ST_GeomFromText('"""+street.geom+"',4326),"+self.srid+"));"
             self.signals.progress.emit(int(49*counter/len(streets)))
-                    
-        refreshMap()
-        zoomToLayer("streets")
+        if sql:
+            self.cur.execute(sql)
         self.signals.progress.emit(100)  
-        self.signals.finished.emit('Import streets completed!') 
+        self.signals.finished.emit('streets') 
 
     def readOSMStreets(self,nodes):
         #print("read OSM streets")

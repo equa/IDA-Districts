@@ -1,0 +1,7 @@
+{'customers': {'general':['id','template','network'],'physical_data':['load_w','gfa_m2'],'simulation_data': [],'meta_data':[]},
+	'energy_plants': {'general':['id','template','network'],'physical_data':[],'simulation_data': [],'meta_data':[]},
+	'lines': {'general':['type','pipe_bundle_type_id','network'],'physical_data':['length','zeta'],'simulation_data': [],'meta_data':[]},
+	'junctions': {'general':['type'],'physical_data':['n_connections','zeta'],'simulation_data': [],'meta_data':[]},
+	'buildings': {'general':['b_id','z_id','substation_id'],'physical_data':['z_bh_m','z_height_m'],'simulation_data': [],'meta_data':[]},
+	'streets': {'general':[],'physical_data':['length_m','costs_eur7m'],'simulation_data': [],'meta_data':[]}
+	}

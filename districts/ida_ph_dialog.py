@@ -5,7 +5,9 @@ from qgis.PyQt.QtWidgets import QDialog,QTreeView,QPushButton,QRadioButton, QHBo
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import Qt
 
+from .utility_functions.translations import *
 from .utility_functions.dialog import *
+from .utility_functions.utility import *
 from .utility_functions.files import *
 
 
@@ -21,7 +23,7 @@ class IDA_Districts_NameDialog(QDialog):
         label =QLabel(label_text)
         layout_label.addWidget(label)
         
-        label_description =QLabel('You can add a description:')
+        label_description =QLabel(tr('@default','add_description'))
         layout_label.addWidget(label_description)
         
         #input 
@@ -39,9 +41,9 @@ class IDA_Districts_NameDialog(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(tr('@default',"ok"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
@@ -55,31 +57,51 @@ class ExportProjectDialog(QDialog):
     def __init__(self):
         """Constructor ExportProjectDialog"""
         super().__init__()
-        self.setWindowTitle("Export project settings")    
+        self.setWindowTitle(tr('@default',"export_project_settings"))    
         
         #comboboxes
         layout_settings = QVBoxLayout()
         self.exportInvokedFeatures =QCheckBox("Invoked features") 
-        self.exportPrn =QCheckBox(".prn results") 
-        self.exportDBResults =QCheckBox("Database results") 
+        self.exportPrn =QCheckBox(tr('@default',"prn_results")) 
+        self.exportDBResults =QCheckBox(tr('@default',"db_results")) 
         layout_settings.addWidget(self.exportInvokedFeatures)
         layout_settings.addWidget(self.exportPrn)
         layout_settings.addWidget(self.exportDBResults)
         
-        #choose file
-        layout_file = QHBoxLayout()
-        self.filename=QLineEdit('')
-        self.btn_selectFile=QPushButton("...")
-        self.btn_selectFile.clicked.connect(self.fileDlg)
+        #choose dir
+        layout_file= QHBoxLayout()
         
-        layout_file.addWidget(self.filename)
-        layout_file.addWidget(self.btn_selectFile)
+        #label
+        layout_label= QVBoxLayout()
+        self.project_dir=QLabel(tr('@default',"select_directory"))
+        self.project_name=QLabel(tr('@default',"project_name"))
+        
+        layout_label.addWidget(self.project_dir)
+        layout_label.addWidget(self.project_name)
+
+        #values
+        layout_values= QVBoxLayout()
+        layout_dir= QHBoxLayout()
+        self.dirname=QLineEdit('')
+        self.btn_selectDir=QPushButton("...")
+        self.btn_selectDir.clicked.connect(self.dirDlg)
+        
+        layout_dir.addWidget(self.dirname)
+        layout_dir.addWidget(self.btn_selectDir)
+        layout_values.addLayout(layout_dir)
+        #file name
+        self.project_name_input=QLineEdit("")
+        
+        layout_values.addWidget(self.project_name_input)
+        
+        layout_file.addLayout(layout_label)
+        layout_file.addLayout(layout_values)
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Export")
+        self.btn_ok=QPushButton(tr('@default',"export"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #progress bar
@@ -101,20 +123,23 @@ class ExportProjectDialog(QDialog):
         # Show the error message in a messageBar
         iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
         
-    def fileDlg(self):
-        filename, _filter = QFileDialog.getSaveFileName(
-            self, "Export Districts project", '','*.ida')
-        self.filename.setText(filename.replace('/','\\'))
+    def dirDlg(self):
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            tr('@default',"select_folder"),
+            ''
+        )
+        self.dirname.setText(standardizePath(folder))
       
 class ProjectConfigDialog(QDialog):
     def __init__(self):
         """Constructor Project Configurations"""
         super().__init__()
-        self.setWindowTitle("Project Configuration Settings")    
+        self.setWindowTitle(tr('@default',"project_configuration_settings"))    
         
         #labels
         layout_labels = QVBoxLayout()
-        label_srid =QLabel("Coordinate system SRID")
+        label_srid =QLabel(tr('@default',"coordinate_system_srid"))
         layout_labels.addWidget(label_srid)   
         
         #values
@@ -128,9 +153,9 @@ class ProjectConfigDialog(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(tr('@default',"ok"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #set layout together       
@@ -150,9 +175,9 @@ class ApproveDialog(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(tr('@default',"ok"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
@@ -166,7 +191,7 @@ class NewProjectDlg(QDialog):
     def __init__(self,dlg_main):
         """Constructor NewProjectDlg"""
         super().__init__()
-        self.setWindowTitle("New Districts project")  
+        self.setWindowTitle(tr('@default',"new_districts_project"))  
         self.dlg_main=dlg_main
         self.process_running=False
 
@@ -174,7 +199,7 @@ class NewProjectDlg(QDialog):
         #project name 
         layout_project= QHBoxLayout() 
 
-        label_project_name =QLabel('Project name:')
+        label_project_name =QLabel(tr('@default',"project_name"))
         layout_project.addWidget(label_project_name)
         
         self.project_name=QLineEdit()
@@ -182,7 +207,13 @@ class NewProjectDlg(QDialog):
       
         #template 
         self.selectTemplate =QComboBox()
-        items={i.split('.ida')[0] : tr("@default",i.split('.ida')[0]) for i in getDirFiles(os.path.join(get_districts_plugin_dir(),'templates'),'.ida')}
+        templates_dir = os.path.join(get_districts_plugin_dir(), 'templates')
+
+        items = {
+            folder: tr("@default", folder)
+            for folder in os.listdir(templates_dir)
+            if os.path.isdir(os.path.join(templates_dir, folder))
+}
         
         # Add items to the combobox, storing the original key as user data
         for original_key, translated_text in items.items():
@@ -223,7 +254,7 @@ class NewProjectDlg(QDialog):
         layout_win = QVBoxLayout()
         layout_win.addLayout(layout_project)
         layout_win.addWidget(self.selectTemplate)
-        layout_win.addWidget(self.group_box_autsave)
+        #layout_win.addWidget(self.group_box_autsave)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
         

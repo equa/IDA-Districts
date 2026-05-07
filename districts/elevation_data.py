@@ -51,27 +51,73 @@ class WorkerImportElevationData(QRunnable):
             os.environ["PROJ_LIB"] = proj_lib
             os.environ['PGPASSWORD'] = self.password
 
+            schema = sanitize_pg_identifier(self.config['versionName'])
             if self.clearOldTerrain == True or not "True" in str(self.cur.fetchone()):
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.config['versionName']))
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))
                 self.signals.progress.emit(5)
-                cmd = ' "{}\\postgreSQL\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain | "{}\\postgreSQL\\psql" -h {} -d {} -U {} -p {}'.format(self.plugin_dir,self.filePath.replace('\\','/'), self.config['versionName'],self.plugin_dir, self.config['host'], self.config['projectName'], self.username, self.config['port'])
-                #print(cmd)
-                result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                #print("STDOUT:\n", result.stdout)
-                #print("STDERR:\n", result.stderr)
-                #print("Return code:", result.returncode)
+                
+                env = os.environ.copy()
+                env["PGPASSWORD"] = self.password
+
+
+                raster_cmd = [
+                    f"{self.config['pathPostgresql']}bin\\raster2pgsql",
+                    "-I", "-C", "-M",
+                    self.filePath.replace("\\", "/"),
+                    "-F",
+                    "-t", "auto",
+                    f"{schema}.terrain"
+                ]
+
+                psql_cmd = [
+                    f"{self.config['pathPostgresql']}bin\\psql",
+                    "-h", self.config['host'],
+                    "-d", self.config['projectName'],
+                    "-U", self.username,
+                    "-p", str(self.config['port'])
+                ]
+
+                raster_proc = subprocess.Popen(raster_cmd, stdout=subprocess.PIPE, env=env)
+                psql_proc = subprocess.run(psql_cmd, stdin=raster_proc.stdout, env=env, text=True)
+
+                raster_proc.stdout.close()
+                raster_proc.wait()
+                
                 self.signals.progress.emit(100)
             else:
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2;'.format(self.config['versionName'])) 
                 self.signals.progress.emit(5)
-                cmd = ' "{}\\postgreSQL\\raster2pgsql" -I -C -M "{}" -F -t auto "{}".terrain1 | "{}\\postgreSQL\\psql" -h {} -d {} -U {} -p {}'.format(self.plugin_dir,self.filePath.replace('\\','/'), self.config['versionName'],self.plugin_dir, self.config['host'], self.config['projectName'], self.username, self.config['port'])
-                #print(cmd)
-                result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                #print("STDOUT:\n", result.stdout)
-                #print("STDERR:\n", result.stderr)
-                #print("Return code:", result.returncode)
+                 
+                env = os.environ.copy()
+                env["PGPASSWORD"] = self.password
+
+                raster_cmd = [
+                    f"{self.config['pathPostgresql']}bin\\raster2pgsql",
+                    "-I",
+                    "-C",
+                    "-M",
+                    self.filePath.replace("\\", "/"),
+                    "-F",
+                    "-t", "auto",
+                    f"{schema}.terrain1"
+                ]
+
+                psql_cmd = [
+                    f"{self.config['pathPostgresql']}bin\\psql",
+                    "-h", self.config['host'],
+                    "-d", self.config['projectName'],
+                    "-U", self.username,
+                    "-p", str(self.config['port'])
+                ]
+
+                raster_proc = subprocess.Popen(raster_cmd, stdout=subprocess.PIPE, env=env)
+                result = subprocess.run(psql_cmd, stdin=raster_proc.stdout, env=env, text=True, capture_output=True)
+
+                raster_proc.stdout.close()
+                raster_proc.wait()
+
                 self.signals.progress.emit(50)
                 self.cur.execute('CREATE table "{}".terrain2 AS Select * FROM "{}".terrain;'.format(self.config['versionName'],self.config['versionName']))
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain'.format(self.config['versionName']))

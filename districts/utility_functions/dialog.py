@@ -403,17 +403,22 @@ class CheckableComboBox(QComboBox):
             item.setCheckState(uncheckState())
             
     def setAllItemsChecked(self,checked=False):
-        [self.setItemChecked(i,checked=checked) for i in range(self.count()) if not self.itemText(i)=='Check all items']
+        [self.setItemChecked(i,checked=checked) for i in range(self.count()) if not self.itemText(i)==tr('@default','check_all_items')]
         
-    def getItemsDict(self,exclude=['Check all items']):
+    def getItemsDict(self,exclude=[tr('@default','check_all_items')]):
         items = {i : self.itemText(i) for i in range(self.count()) if self.itemText(i) not in exclude}
         return items
 
-    def getItems(self,exclude=['Check all items']):
+    def getItems(self,exclude=[tr('@default','check_all_items')]):
         items = [self.itemText(i) for i in range(self.count()) if self.itemText(i) not in exclude]
+        return items
+
+    def getCheckItems(self,exclude=[tr('@default','check_all_items')]):
+        items = [self.itemText(i) for i in range(self.count()) if self.itemText(i) not in exclude and self.itemChecked(i)]
         return items
             
     def handleItemPressed(self, index):
+        self._changed=True
         item=self.model().itemFromIndex(index)
         if item.row()==0:
             for i in range(1,self.model().rowCount()):
@@ -424,8 +429,6 @@ class CheckableComboBox(QComboBox):
             else:
                 item.setCheckState(checkState())
                 
-        self._changed=True
-        
     def hidePopup(self):
         if not self._changed:
             super().hidePopup()

@@ -20,7 +20,7 @@ def getSourceVars(source):
         #print(os.listdir(source))
         vars=readFileToList(source+'/'+os.listdir(source)[0])[0].split()
         #print(vars)
-    return [var for var in vars if var not in ['#','time','order']]
+    return [var.lower() for var in vars if var not in ['#','time','order']]
         
 def dataSourceDialog(dlg,title,open_type):
     if open_type=='file':
@@ -46,29 +46,63 @@ def dataSourceDialog(dlg,title,open_type):
             chkBoxItem.setCheckState(uncheckState())  
 
             dlg.tableVars.setItem(counter,0,chkBoxItem)
-            comboBox = QComboBox()
-            items={i: tr('@default',i) for i in ['customer','energy_plant','line']}
-            #print(items)
-            # Add items to the combobox, storing the original key as user data
-            for original_key, translated_text in items.items():
-                comboBox.addItem(translated_text, original_key) # The second argument is the userData
-            dlg.tableVars.setCellWidget(counter, 1, comboBox)
+            dlg.tableVars.setItem(counter, 1, QTableWidgetItem(''))
             dlg.tableVars.setItem(counter, 2, QTableWidgetItem(''))
             dlg.tableVars.setItem(counter, 3, QTableWidgetItem(''))
-            dlg.tableVars.setItem(counter, 4, QTableWidgetItem(''))
     
+def checkImportData(dlg,source,cur,config,feature_type):
+    #check file names
+    if os.path.isfile(source):
+        files=[source]   
+    elif os.path.exists(source):
+        files=[source+'/'+i for i in os.listdir(source)]
+    else:
+        iface.messageBar().pushMessage("Info", "Please select a file or directory!", level=Qgis.Info)
+        return False
+    
+    ids=[]
+    for file in files:
+        id = os.path.splitext(os.path.basename(file))[0]
+        extension = os.path.splitext(os.path.basename(file))[1]
+        if not isNumber(id):
+            iface.messageBar().pushMessage("Info", "The file name ({}) must be an ID, which refers to the {} layer!".format(id,tr('@default',feature_type)), level=Qgis.Info)
+            return False
+        elif extension not in ['.prn','.PRN']:
+            iface.messageBar().pushMessage("Info", "The source file ({}) must be an .prn file!".format(file), level=Qgis.Info)
+            return False  
+        
+        #check if id exists in feature layer
+        sql="""SELECT id FROM {}.{} WHERE id={};""".format(config['versionName'],feature_type,id)
+        cur.execute(sql)
+        result=cur.fetchone()
+        if not result:
+            iface.messageBar().pushMessage("Info", "The ID ({}) is not present in the feature layer ({})!".format(id,tr('@default',feature_type)), level=Qgis.Info)
+            return False  
+    
+    
+    #check if at leat var is selected
+    if len([i for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == checkState()])==0:
+        iface.messageBar().pushMessage("Info", "Please select at least one variable!", level=Qgis.Info)
+        return False         
+        
+    return True
+
 def importMeasurementData(dlg,config,cur,plugin_dir,conn):
+    source=dlg.lineEditSourceName.text()
+    feature_type='customers' if dlg.rbtn_customers.isChecked() else ('energy_plants' if dlg.rbtn_plants.isChecked() else 'lines')
+    #print(feature_type)
+    if not checkImportData(dlg,source,cur,config,feature_type):
+        return False
+        
     var_dict=[{'var':dlg.tableVars.item(i,0).text(),
                 'colmn':i+2,
-                'feature':dlg.tableVars.cellWidget(i,1).currentData().replace(' ','_'),
-                'alias':(dlg.tableVars.item(i,2).text() if dlg.tableVars.item(i,2).text() else dlg.tableVars.item(i,0).text()),
-                'min': float(dlg.tableVars.item(i,3).text()) if dlg.tableVars.item(i,3).text().isnumeric() else False,
-                'max': float(dlg.tableVars.item(i,4).text()) if dlg.tableVars.item(i,4).text().isnumeric() else False} 
+                'alias':(dlg.tableVars.item(i,1).text() if dlg.tableVars.item(i,1).text() else dlg.tableVars.item(i,0).text()),
+                'min': float(dlg.tableVars.item(i,2).text()) if dlg.tableVars.item(i,2).text().isnumeric() else False,
+                'max': float(dlg.tableVars.item(i,3).text()) if dlg.tableVars.item(i,3).text().isnumeric() else False} 
                 for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == checkState()]
     #print(var_dict)
     
     srid=loadProjectConfig(config)['srid']
-    source=dlg.lineEditSourceName.text()
     if os.path.isfile(source):
         files=[source]
     elif os.path.exists(source):
@@ -82,7 +116,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
             #print(var)
             id=file.split('/')[-1].split('.')[0]
             #print(id)
-            table_name=var['feature']+'_m_'+var['alias']
+            table_name=feature_type[:-1]+'_m_'+var['alias']
             #print(table_name)
             #print(checkTableNameExists(cur,config,table_name))
             if not checkTableNameExists(cur,config,table_name):
@@ -93,7 +127,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
     time timestamp,
     geom geometry({},{}),
     "${}" numeric,
-    CONSTRAINT {}_pkey PRIMARY KEY (id));""".format(config['versionName'],table_name,'LineStringZ' if var['feature']=='Line' else 'PointZ', srid,var['alias'],table_name)
+    CONSTRAINT {}_pkey PRIMARY KEY (id));""".format(config['versionName'],table_name,'LineStringZ' if feature_type=='lines' else 'PointZ', srid,var['alias'],table_name)
                 #print(sql)
                 cur.execute(sql)
             elif dlg.delete_existing_data.checkState() == checkState() and counter==0:
@@ -168,7 +202,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
         for var in var_dict:
 
             key = var['colmn']
-            table_name = var['feature'] + '_m_' + var['alias']
+            table_name = feature_type[:-1] + '_m_' + var['alias']
 
             if dlg.checkbox_timestep.checkState() == checkState():
 
@@ -186,8 +220,8 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
             #print(time_out)
             #print(var_interp)
 
-            sql = 'SELECT geom FROM "{}".{}s WHERE id={};'.format(
-                config['versionName'], var['feature'], id
+            sql = 'SELECT geom FROM "{}".{} WHERE id={};'.format(
+                config['versionName'], feature_type, id
             )
             cur.execute(sql)
             fid_geom = cur.fetchone()
@@ -290,7 +324,7 @@ def deleteIDs(dlg):
         dlg.listWidget_ids.takeItem(dlg.listWidget_ids.row(item))
             
 def loadResults(dlg,main):
-    submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != 'Check all items' and dlg.combo_submodels.itemChecked(i)]
+    submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)]
     
     simulatedOutputs=loadSimulatedOutputs(main.config)
     if not simulatedOutputs:

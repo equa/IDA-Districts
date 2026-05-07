@@ -7,7 +7,7 @@ name=Districts Modeler
 qgisMinimumVersion=3.0
 qgisMaximumVersion=4.99
 description=This is the Districts Modeler plugin
-version=0.1
+version=0.9
 author=EQUA
 email=districts.support@equa.se
 supportsQt6=True
@@ -15,7 +15,7 @@ icon=icons/IDA_Districts_Icon_QGIS.png
 
 about=This is the Districts Modeler for network modelling.
 
-tracker=http://bugs
+tracker=https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_Info_center/Districts_Known-bugs/
 repository=http://repo
 # End of mandatory metadata
 
@@ -28,10 +28,10 @@ hasProcessingProvider=no
 # Tags are comma separated with spaces allowed
 tags=python,districts,thermal modeling
 
-homepage=
+homepage=https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_GS/Districts_Modeler_GS/
 category=Plugins
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False

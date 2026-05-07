@@ -54,8 +54,11 @@ def getNetworks(cur,config):
     
 def setDistrictsModelerVersion2DB(cur,config):
     getDistrictsModelerVersion(config)
-    sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config))
-    cur.execute(sql)  
+    try:
+        sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config))
+        cur.execute(sql)  
+    except:
+        pass
             
 def get_pgrouting_major_version(cur):
     """
@@ -194,11 +197,22 @@ def dbColumnIsNumeric(cur,version,table,col):
     
 def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password):
     """copy schema"""
-    os.environ['PGPASSWORD'] = password
+    env = os.environ.copy()
+    env["PGPASSWORD"] = password
+    
+    schema = sanitize_pg_identifier(baseName)
 
-    cmd=' "{}\\postgreSQL\\pg_dump" -U {} -h {} -p {} -d {} -n """{}""" > "{}\\dump_schema.sql" '.format(plugin_dir,username,config['host'],config['port'],config['projectName'],baseName,plugin_dir)
-    #print(cmd)
-    subprocess.call(cmd, shell=True)  
+    cmd = [
+        f"{plugin_dir}\\postgreSQL\\pg_dump",
+        "-U", username,
+        "-h", config['host'],
+        "-p", str(config['port']),
+        "-d", config['projectName'],
+        "-n", schema
+    ]
+
+    with open(os.path.join(plugin_dir, "dump_schema.sql"), "w", encoding="utf-8") as f:
+        subprocess.call(cmd, env=env, stdout=f)
     
     sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;'
     #print(sql)
@@ -208,9 +222,16 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
     #print(sql)
     cur.execute(sql)
     
-    cmd = ' "{}\\postgreSQL\\psql" -d {} -h {} -p {} -U {} < "{}\\dump_schema.sql"'.format(plugin_dir,config['projectName'],config['host'],config['port'], username,plugin_dir)
-    #print(cmd)
-    subprocess.call(cmd, shell=True)  
+    cmd = [
+        f"{plugin_dir}\\postgreSQL\\psql",
+        "-d", config['projectName'],
+        "-h", config['host'],
+        "-p", str(config['port']),
+        "-U", username,
+        "-f", f"{plugin_dir}\\dump_schema.sql"
+    ]
+
+    subprocess.call(cmd, env=env)
     
     sql="""CREATE EVENT TRIGGER prevent_column_alter
 ON ddl_command_start  -- Triggered before the DDL command is executed
@@ -996,6 +1017,16 @@ def getTableAttr(cur,config,feature,withoutID=False):
     sql="""SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name = '{}s' AND table_schema='{}';""".format(feature,config['versionName'])
+    #print(sql)
+    cur.execute(sql)
+    return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]
+
+
+def getTableNumericAttr(cur,config,feature,withoutID=False):
+    sql="""SELECT column_name 
+    FROM information_schema.columns 
+    WHERE table_name = '{}s' AND table_schema='{}' 
+        AND data_type IN ('integer','numeric','double precision','real','smallint','bigint');""".format(feature,config['versionName'])
     #print(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]

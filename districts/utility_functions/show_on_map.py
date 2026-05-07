@@ -648,7 +648,7 @@ ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['
     fid,geom AS geom,"${}" AS {},time
 FROM "{}".{}
 WHERE time >= '{}'
-ORDER BY fid{},time ASC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
+ORDER BY fid{},time ASC;""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
         elif var['var_function']=='specific dp':
             sql="""WITH length_per_fid AS (
     SELECT lid AS fid, st_length(geom) AS len, geom
@@ -668,6 +668,7 @@ JOIN length_per_fid lp
 WHERE a.time between '{}' and '{}'
 GROUP BY a.fid, lp.geom""".format(
                 self.config['versionName'],type,self.config['versionName'],var['table_name'],self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
+        #print(sql)
         return sql
 
             

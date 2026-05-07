@@ -71,24 +71,24 @@ def updateClimateMacro(data,dir,config):
             idm.append(comp)
     writePropertyListIDMToFile(idm,dir,fname,config)
 
-def openClimateMacro(dlg,main):
+def openClimateMacro(main):
     dir_project=main.config['pathProjects']+main.config['projectName']
     dir_climate=dir_project+'\\climate\\'
     dir_climateMacro=dir_climate+'climate\\'
-    writeClimateDataToDB(dlg,main)
-    data=getClimateData(main.cur,main.config,True)
-    #update climate template
-    updateClimateMacro(data,dir_climateMacro,main.config)
-    
-    #update customer and energy plant templates
-    for feature in ['customer','energy_plant']:
-        sql="""Select * from {}_templates;""".format(feature)
-        main.cur.execute(sql)
-        for template in main.cur.fetchall():
-            template_name=str(template['template'])+'_'+template['template_name']
-            target_dir=dir_project+'\\{}_templates\\'.format(feature)+template_name+'\\'
-            copyFile(dir_climateMacro+'climate-macro.idm',target_dir,target_dir+'climate-macro.idm')
-            copyFile(dir_climateMacro+'climate-macro.idc',target_dir,target_dir+'climate-macro.idc')
+    if main.config['versionName']:
+        data=getClimateData(main.cur,main.config,True)
+        #update climate template
+        updateClimateMacro(data,dir_climateMacro,main.config)
+        
+        #update customer and energy plant templates
+        for feature in ['customer','energy_plant']:
+            sql="""Select * from {}_templates;""".format(feature)
+            main.cur.execute(sql)
+            for template in main.cur.fetchall():
+                template_name=str(template['template'])+'_'+template['template_name']
+                target_dir=dir_project+'\\{}_templates\\'.format(feature)+template_name+'\\'
+                copyFile(dir_climateMacro+'climate-macro.idm',target_dir,target_dir+'climate-macro.idm')
+                copyFile(dir_climateMacro+'climate-macro.idc',target_dir,target_dir+'climate-macro.idc')
 
     
     main.worker_openClimate = WorkerOpenModelCmd(dir_climate+'climate.idm',main.config)

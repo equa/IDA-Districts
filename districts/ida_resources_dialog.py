@@ -18,9 +18,7 @@ class ClimateDialog(QDialog):
         self.lineEdit_filePath.setText(data['filename'])
         self.spinBox_timeZone.setValue(data['timezone'])
         self.lineEdit_elevationHeight.setText(str(data['height']))  
-        
-        self.btn_openClimate.setIcon(QIcon(":/images/themes/default/mActionFileOpen.svg"))
-        
+                
     def fileDialog(self):
         dir=os.path.dirname(self.lineEdit_filePath.text())
         filename, _filter = QFileDialog.getOpenFileName(

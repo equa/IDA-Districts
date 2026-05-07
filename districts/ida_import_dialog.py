@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import  QDialog, QTableWidgetItem,QButtonGroup,QComboBox,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QProgressBar, QCheckBox, QRadioButton, QListWidget
+from qgis.PyQt.QtWidgets import  QTextEdit,QDialog, QTableWidgetItem,QButtonGroup,QComboBox,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QProgressBar, QCheckBox, QRadioButton, QListWidget
 from qgis.PyQt import QtGui, QtCore
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 
@@ -209,73 +209,74 @@ class ImportNetworkTopologyFromLayer(QDialog):
         self.cur=self.conn.cursor()
         self.mappedAttributes={}
         
-        self.setWindowTitle("Import Network Topology From Layer")
+        self.setWindowTitle(tr('@default','import_network_topology_from_layer'))
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
         
+        self.description_importLineFeature=QTextEdit(tr('@default','description_importLineFeature'))
+
         #Select Layer
         layout_layer=QHBoxLayout()
-        label_layer =QLabel("Network layer:")
+        label_layer =QLabel(tr('@default','network_layer'))
         layout_layer.addWidget(label_layer) 
         
         self.selectLayer =ComboBox()
-        loadLayers(self,'line')
         self.selectLayer.setCurrentIndex(-1)
         self.selectLayer.popupAboutToBeShown.connect(lambda: loadLayers(self,'line'))
         layout_layer.addWidget(self.selectLayer)
         
         #Radio Buttons 
         layout_radio=QHBoxLayout()
-        self.rbtn_extend = QRadioButton('Extend topology')
+        self.rbtn_extend = QRadioButton(tr('@default','extend_topology'))
         self.rbtn_extend.setChecked(True)
         layout_radio.addWidget(self.rbtn_extend)
-        self.rbtn_truncate = QRadioButton('Truncate existing topology')
+        self.rbtn_truncate = QRadioButton(tr('@default','truncate_existing_topology'))
         layout_radio.addWidget(self.rbtn_truncate)
         
         ##list widgets for attributes
         layout_listWidget_attributes = QHBoxLayout()
         #list widget for layer attributes
         layout_listWidget_layerAttributes = QVBoxLayout()
-        label_listWidget_layerAttributes=QLabel("Layer fields")
+        label_listWidget_layerAttributes=QLabel(tr('@default','layer_fields'))
         layout_listWidget_layerAttributes.addWidget(label_listWidget_layerAttributes)
         self.listWidget_layerAttributes = QListWidget()
         layout_listWidget_layerAttributes.addWidget(self.listWidget_layerAttributes)
         layout_listWidget_attributes.addLayout(layout_listWidget_layerAttributes)
        
         #list widget for lines attributes
-        layout_listWidget_attributes = QVBoxLayout()
-        label_listWidget_attributes=QLabel("fields")
-        layout_listWidget_attributes.addWidget(label_listWidget_attributes)
+        layout_listWidget_FeatureAttributes = QVBoxLayout()
+        label_listWidget_attributes=QLabel(tr('@default','line_fields'))
+        layout_listWidget_FeatureAttributes.addWidget(label_listWidget_attributes)
         self.listWidget_attributes = QListWidget()
-        layout_listWidget_attributes.addWidget(self.listWidget_attributes)
-        layout_listWidget_attributes.addLayout(layout_listWidget_attributes)
+        layout_listWidget_FeatureAttributes.addWidget(self.listWidget_attributes)
+        layout_listWidget_attributes.addLayout(layout_listWidget_FeatureAttributes)
         
         #table for mapped attributes  
         self.tableWidget = QTableWidget(0,3)   
-        self.tableWidget.setHorizontalHeaderLabels(['Expression','','fields'])     
+        self.tableWidget.setHorizontalHeaderLabels([tr('@default','expression'),'',tr('@default','fields')])     
         self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
 
         #buttons
         #connection buttons
         layout_buttons_connect = QHBoxLayout()
         
-        btn_connect=QPushButton("Map layer fields")
+        btn_connect=QPushButton(tr('@default','map_layer_fields'))
         btn_connect.pressed.connect(lambda: mapAttributes(self))
         layout_buttons_connect.addWidget(btn_connect)
                
-        btn_disconnect=QPushButton("Disconnect")
+        btn_disconnect=QPushButton(tr('@default','disconnect'))
         btn_disconnect.pressed.connect(lambda: disconnectAttributes(self))
         layout_buttons_connect.addWidget(btn_disconnect)
         
-        self.btn_generate_pipe_bundles=QPushButton("Pipe bundle type editor")
+        self.btn_generate_pipe_bundles=QPushButton(tr('@default','pipe_bundle_type_editor'))
         layout_buttons_connect.addWidget(self.btn_generate_pipe_bundles)
         
         #connection buttons
         layout_buttons_import = QHBoxLayout()
-        self.btn_import=QPushButton("Import")
+        self.btn_import=QPushButton(tr('@default','import'))
         layout_buttons_import.addWidget(self.btn_import)
                
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_buttons_import.addWidget(self.btn_cancel)
         
         #set buttons layout together
@@ -285,6 +286,7 @@ class ImportNetworkTopologyFromLayer(QDialog):
         
         #set layouts together
         layout_win = QVBoxLayout()
+        layout_win.addWidget(self.description_importLineFeature)
         layout_win.addLayout(layout_layer)
         layout_win.addLayout(layout_radio)
         layout_win.addLayout(layout_listWidget_attributes)
@@ -305,7 +307,7 @@ def loadLayers(dlg,type):
     oldLayerNames=[dlg.selectLayer.itemText(i) for i in range(dlg.selectLayer.count())]
     layers=QgsProject.instance().mapLayers().values()
     layers=[i.name() for i in layers if i.name() not in getDHCLayerNames() and isinstance(i, QgsVectorLayer) and i.name() not in oldLayerNames
-        and i.isSpatial() and i.name() not in ['streets','buildings','subnetwork'] and i.geometryType() == line_check]
+        and i.isSpatial() and i.name() not in [tr('@default','streets'),tr('@default','buildings'),tr('@default','subnetwork'),tr('@default','lines'),tr('@default','customers'),tr('@default','energy_plants'),tr('@default','junctions')] and i.geometryType() == line_check]
     dlg.selectLayer.addItems(layers)
     
 def addExpressionToMappedAttributes(dlg,dropdown):
@@ -393,13 +395,15 @@ class ImportPointLayer(QDialog):
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.mappedAttributes={}
 
-        self.setWindowTitle("Import Plants or Customers From Layer")
+        self.setWindowTitle(tr('@default',"import_plants_or_customers_from_layer"))
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
         
+        self.description_importFeaturePoint=QTextEdit(tr('@default','description_importFeaturePoint'))
+        
         #Select Layer
         layout_layer=QHBoxLayout()
-        label_layer =QLabel("Point layer:")
+        label_layer =QLabel(tr('@default',"point_layer"))
         layout_layer.addWidget(label_layer) 
         
         self.selectLayer =ComboBox()
@@ -413,23 +417,23 @@ class ImportPointLayer(QDialog):
         self.btngroup_extend = QButtonGroup()
         #Radio Buttons type
         layout_radio_type=QHBoxLayout()
-        self.rbtn_plant = QRadioButton('Energy plant')
+        self.rbtn_plant = QRadioButton(tr('@default','energy_plant'))
         layout_radio_type.addWidget(self.rbtn_plant)
         self.btngroup_type.addButton(self.rbtn_plant)
         self.rbtn_plant.toggled.connect(lambda: setDHCLayerListAttributes(self,'point'))
         
-        self.rbtn_customer = QRadioButton('Customer')
+        self.rbtn_customer = QRadioButton(tr('@default','customer'))
         layout_radio_type.addWidget(self.rbtn_customer)
         self.btngroup_type.addButton(self.rbtn_customer)
         self.rbtn_customer.toggled.connect(lambda: setDHCLayerListAttributes(self,'point'))
         
         #Radio Buttons extend option
         layout_radio=QHBoxLayout()
-        self.rbtn_extend = QRadioButton('Extend layer')
+        self.rbtn_extend = QRadioButton(tr('@default','extend_layer'))
         self.rbtn_extend.setChecked(True)
         layout_radio.addWidget(self.rbtn_extend)
         self.btngroup_extend.addButton(self.rbtn_extend)
-        self.rbtn_truncate= QRadioButton('Truncate existing layer')
+        self.rbtn_truncate= QRadioButton(tr('@default','truncate_existing_layer'))
         layout_radio.addWidget(self.rbtn_truncate)
         self.btngroup_extend.addButton(self.rbtn_truncate)
         
@@ -437,43 +441,43 @@ class ImportPointLayer(QDialog):
         layout_listWidget_attributes = QHBoxLayout()
         #list widget for layer attributes
         layout_listWidget_layerAttributes = QVBoxLayout()
-        label_listWidget_layerAttributes=QLabel("Layer fields")
+        label_listWidget_layerAttributes=QLabel(tr('@default','layer_fields'))
         layout_listWidget_layerAttributes.addWidget(label_listWidget_layerAttributes)
         self.listWidget_layerAttributes = QListWidget()
         layout_listWidget_layerAttributes.addWidget(self.listWidget_layerAttributes)
         layout_listWidget_attributes.addLayout(layout_listWidget_layerAttributes)
        
         #list widget for lines attributes
-        layout_listWidget_attributes = QVBoxLayout()
-        label_listWidget_attributes=QLabel("Fields")
-        layout_listWidget_attributes.addWidget(label_listWidget_attributes)
+        layout_listWidget_FeatureAttributes = QVBoxLayout()
+        label_listWidget_attributes=QLabel(tr('@default','feature_fields'))
+        layout_listWidget_FeatureAttributes.addWidget(label_listWidget_attributes)
         self.listWidget_attributes = QListWidget()
-        layout_listWidget_attributes.addWidget(self.listWidget_attributes)
-        layout_listWidget_attributes.addLayout(layout_listWidget_attributes)
+        layout_listWidget_FeatureAttributes.addWidget(self.listWidget_attributes)
+        layout_listWidget_attributes.addLayout(layout_listWidget_FeatureAttributes)
         
         #table for mapped attributes  
         self.tableWidget = QTableWidget(0,3)   
-        self.tableWidget.setHorizontalHeaderLabels(['Expression','','Fields'])     
+        self.tableWidget.setHorizontalHeaderLabels([tr('@default','expression'),'',tr('@default','fields')])     
         self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
           
         #buttons
         #connection buttons
         layout_buttons_connect = QHBoxLayout()
         
-        btn_connect=QPushButton("Map to layer field")
+        btn_connect=QPushButton(tr('@default','map_layer_fields'))
         btn_connect.pressed.connect(lambda: mapAttributes(self))
         layout_buttons_connect.addWidget(btn_connect)
                
-        btn_disconnect=QPushButton("Disconnect")
+        btn_disconnect=QPushButton(tr('@default','disconnect'))
         btn_disconnect.pressed.connect(lambda: disconnectAttributes(self))
         layout_buttons_connect.addWidget(btn_disconnect)
         
         #connection buttons
         layout_buttons_import = QHBoxLayout()
-        self.btn_import=QPushButton("Import")
+        self.btn_import=QPushButton(tr('@default','import'))
         layout_buttons_import.addWidget(self.btn_import)
                
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_buttons_import.addWidget(self.btn_cancel)
         
         #set buttons layout together
@@ -483,6 +487,7 @@ class ImportPointLayer(QDialog):
         
         #set layouts together
         layout_win = QVBoxLayout()
+        layout_win.addWidget(self.description_importFeaturePoint)
         layout_win.addLayout(layout_layer)
         layout_win.addLayout(layout_radio_type)
         layout_win.addLayout(layout_radio)
@@ -617,8 +622,18 @@ class ImportGeoDataDlg(QDialog):
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
-    def update_finished(self,message,main_dlg):
-        #print(message)
-        main_dlg.statusMessage.setText(message)
+    def update_finished(self,feature,main_dlg):
+        #print(feature)
+        refreshMap()
+        if feature in ('customers','streets'):
+            zoomToLayer(tr('@default',feature))
+            
+        if feature=='streets':
+            layer = QgsProject.instance().mapLayersByName(tr('@default','streets'))
+            if layer:
+                node = QgsProject.instance().layerTreeRoot().findLayer(layer[0].id())
+                if node:
+                    node.setItemVisibilityChecked(True)
+        main_dlg.statusMessage.setText('Import {} completed!'.format(feature))
         self.process_running=False
  

@@ -1,0 +1,6 @@
+;IDA 5.21801 Form UTF-8
+(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 140.0) 
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)
+ 
+(TEXT-OBJECT :VALUE (ENGLISH "<meta name=\"sensor-description\"><b>Sensor descriptions:</b><br><br>") :AT ((8 380) (694 400)) :STYLE NOTE :MARKUP HTML)
+ 

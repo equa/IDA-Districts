@@ -401,28 +401,28 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
 				--customer; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
                         FROM  sensor_source s,{}.customers f
-                        WHERE s.measure=5
+                        WHERE s.measure=5 AND s.type=1
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				UNION
 				--plant; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
                         FROM  sensor_source s,{}.energy_plants f
-                        WHERE s.measure=5
+                        WHERE s.measure=5 AND s.type=2
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				--supervisory ctrl source ;customer target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
                         FROM sensor_source s, sensor_target t,target_template t_t, {}.customers f
-                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template
+                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=1
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
 				--supervisory ctrl source ;energy_plants target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
                         FROM sensor_source s, sensor_target t,target_template t_t, {}.energy_plants f
-                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template
+                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=2
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
 			)

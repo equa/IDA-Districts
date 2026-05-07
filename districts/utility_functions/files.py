@@ -3,7 +3,31 @@ import shutil
 from .utility import *
 from .ida_components import *
 from qgis.core import Qgis, QgsMessageLog
- 
+
+def collect_files_by_extension(root_folder: str, extension: str):
+    """
+    Recursively collect all files with a specific extension from a folder tree.
+
+    Args:
+        root_folder (str): Root directory to start searching from.
+        extension (str): File extension (e.g. '.txt' or 'txt').
+
+    Returns:
+        List[str]: List of full file paths matching the extension.
+    """
+    if not extension.startswith('.'):
+        extension = '.' + extension
+
+    matched_files = []
+
+    for dirpath, _, filenames in os.walk(root_folder):
+        for filename in filenames:
+            if filename.endswith(extension):
+                full_path = os.path.join(dirpath, filename)
+                matched_files.append(full_path)
+
+    return matched_files
+    
 def replace_in_files(folder_path, filename, replace_string, new_string):
     for root, dirs, files in os.walk(folder_path):
         for file in files:
@@ -315,9 +339,9 @@ def writePropertyListIDCToFile(plist,dir,file,config):
             for comp in plist:
                 myfile.write(pListToCompString(comp,0)+'\n')
                 
-def readFileToString(file):
+def readFileToString(file,skipFirstLine=True):
     data=''
-    i=0
+    i=0 if skipFirstLine else 1
     if os.path.exists(file):
         with open(file, "r") as myfile:
             for line in myfile:

@@ -164,11 +164,36 @@ def _register_translation_keys():
     #buttons
     tr("set_load_attribute")
     tr("customer_data_sheet")
+    tr("disconnect")
+    tr("import")
+    tr("cancel")
     
     #templates
     tr("empty_project")
     tr("heating_network")
     tr("db_default_values")
+    
+    #descriptions
+    tr("description_importPRNData")
+    tr("description_importLineFeature")
+    tr("description_importFeaturePoint")
+    
+    #import dialogs
+    tr("import_plants_or_customers_from_layer")
+    tr("import_network_topology_from_layer")
+    tr("network_layer")
+    tr("point_layer")
+    tr("extend_topology")
+    tr("truncate_existing_topology")
+    tr("layer_fields")
+    tr("line_fields")
+    tr("feature_fields")
+    tr("expression")
+    tr("fields")
+    tr("map_layer_fields")
+    tr("pipe_bundle_type_editor")
+    
+    
     
     
     

@@ -1,0 +1,9 @@
+﻿;IDA 5.21801 Data UTF-8
+(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :ETM 3857463573 :APP (DISTRICTS :VER 0.9)) 
+(:IREF :N "Int_Ref_Sensor_Target_1" :T OUT :F 224)
+((:EO :N "Sensor_Target_1" :T ADDER)
+ (:PAR :N N_IN :V 1)
+ (:PAR :N COEFF :DIM (1))
+ (:VAR :N OUTSIGNAL :V 1.0)
+ (:VAR :N INSIGNAL :DIM (1) :V #(1.0) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 . 1)))))
+(CONNECTIONS (("Sensor_Target_1" OUTSIGNALLINK) "Int_Ref_Sensor_Target_1" 0 0 NIL))
