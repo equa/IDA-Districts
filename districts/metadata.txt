@@ -10,7 +10,6 @@ description=This is the Districts Modeler plugin
 version=0.1.0
 author=EQUA
 email=districts.support@equa.se
-supportsQt6=True
 icon=icons/IDA_Districts_Icon_QGIS.png
 
 about=This is the Districts Modeler for network modelling.
