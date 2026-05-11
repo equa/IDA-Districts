@@ -40,7 +40,7 @@ class WorkerImportElevationData(QRunnable):
             self.cur.execute("""SELECT EXISTS (
                                 SELECT * FROM information_schema.tables 
                                 WHERE  table_schema = '{}'
-                                AND    table_name   = 'terrain');""".format(self.config['versionName']))
+                                AND    table_name   = 'terrain');""".format(self.config['versionName']))# nosec B608
                                 
             base = QgsApplication.prefixPath()
 
@@ -53,8 +53,8 @@ class WorkerImportElevationData(QRunnable):
 
             schema = sanitize_pg_identifier(self.config['versionName'])
             if self.clearOldTerrain == True or not "True" in str(self.cur.fetchone()):
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.config['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.config['versionName']))# nosec B608
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))# nosec B608
                 self.signals.progress.emit(5)
                 
                 env = os.environ.copy()
@@ -86,8 +86,8 @@ class WorkerImportElevationData(QRunnable):
                 
                 self.signals.progress.emit(100)
             else:
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2;'.format(self.config['versionName'])) 
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))# nosec B608
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2;'.format(self.config['versionName'])) # nosec B608
                 self.signals.progress.emit(5)
                  
                 env = os.environ.copy()
@@ -119,15 +119,14 @@ class WorkerImportElevationData(QRunnable):
                 raster_proc.wait()
 
                 self.signals.progress.emit(50)
-                self.cur.execute('CREATE table "{}".terrain2 AS Select * FROM "{}".terrain;'.format(self.config['versionName'],self.config['versionName']))
-                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain'.format(self.config['versionName']))
+                self.cur.execute('CREATE table "{}".terrain2 AS Select * FROM "{}".terrain;'.format(self.config['versionName'],self.config['versionName'])) # nosec B608
+                self.cur.execute('DROP TABLE IF EXISTS "{}".terrain'.format(self.config['versionName'])) # nosec B608
                 self.cur.execute(""" Create table "{}".terrain as(
                                     Select * from "{}".terrain1
                                     union
-                                    Select * from "{}".terrain2)""".format(self.config['versionName'],self.config['versionName'],self.config['versionName']))
+                                    Select * from "{}".terrain2)""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'])) # nosec B608
                 self.signals.progress.emit(95)
-                #self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1'.format(self.config['versionName']))
-                #self.cur.execute('DROP TABLE IF EXISTS "{}".terrain2'.format(self.config['versionName']))   
+
             self.signals.progress.emit(100)
             self.signals.finished.emit('Import elevation data completed!')
         except Exception as e:

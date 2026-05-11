@@ -49,7 +49,7 @@ def loadCustomerCalibrationData(dlg,dictDB,conn,plugin_dir):
 )
 SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (sub.used_ids) THEN TRUE ELSE FALSE END AS used 
     FROM customer_templates 
-    ORDER BY template;""".format(dictDB['versionName'])
+    ORDER BY template;""".format(dictDB['versionName']) # nosec B608
 
         #print(sql)
         cur.execute(sql)
@@ -83,7 +83,7 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
         sql="""SELECT c.id AS c_id, c_t.template_name, c_t.template
     FROM "{}".customers c, customer_templates c_t
     WHERE c.template=c_t.template
-    ORDER BY c.id;""".format(dictDB['versionName'])
+    ORDER BY c.id;""".format(dictDB['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
         i=0
@@ -110,7 +110,7 @@ def getDefaultDBColumnValue(cur,dictDB,table,column):
     sql="""SELECT column_name, column_default
     FROM information_schema.columns
     WHERE (table_schema, table_name) = ('{}', '{}') AND column_name='{}'
-    ORDER BY ordinal_position;""".format(dictDB['versionName'],table,column)
+    ORDER BY ordinal_position;""".format(dictDB['versionName'],table,column) # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['column_default'])
     

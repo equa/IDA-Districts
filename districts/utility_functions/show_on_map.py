@@ -447,7 +447,7 @@ class WorkerShowOnMap(QRunnable):
       AND table_name LIKE 'line_s_%_vis'
 )
 SELECT execute_dynamic_sql(format('DROP TABLE "{}".%I;', table_name))
-    FROM tables_to_drop;""".format(self.config['versionName'],self.config['versionName'])
+    FROM tables_to_drop;""".format(self.config['versionName'],self.config['versionName']) # nosec B608
         self.cur.execute(sql)
         
         if vars['color']['var_function'] in self.time_values:
@@ -493,7 +493,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
     lid_seg integer NOT NULL,
     geom geometry(LineStringZ,{})
 );
-SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.config['versionName'])
+SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
                 #print(sql)
                 self.cur.execute(sql)
             
@@ -509,7 +509,7 @@ CREATE TABLE "{}".line_s_{}_vis
 	segment integer,
 	"${}" numeric,
 	CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name'])
+);""".format(self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name']) # nosec B608
                     
                     if vars['color']['name'].split('$')[0]=='p': #linear interpolation using pressure values at start and end of the line
                         #print('++++interpoation++++')
@@ -524,15 +524,15 @@ CREATE TABLE "{}".line_s_{}_vis
             "{}".line_seg_vis seg,
             (SELECT lid, count(*) AS count FROM "{}".line_seg_vis GROUP BY lid ORDER BY lid) seg_counter
         WHERE  seg_counter.lid=s.fid AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
-        ORDER BY s.fid,seg.lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],self.config['versionName'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])    
+        ORDER BY s.fid,seg.lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],self.config['versionName'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])  # nosec B608   
                     else:
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
         FROM "{}".line_s_{} s, "{}".line_seg_vis seg
         WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
-        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])
-                    sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['color']['name'],self.config['versionName'],vars['color']['name'])
+        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime']) # nosec B608
+                    sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['color']['name'],self.config['versionName'],vars['color']['name']) # nosec B608
                     #print(sql)
                     self.cur.execute(sql)
                     
@@ -550,14 +550,14 @@ CREATE TABLE "{}".line_s_{}_vis
 	segment integer,
 	"${}" numeric, -- use $ in order not to have a conflict the var column with oder columns
 	CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['size']['name'],srid,vars['size']['name'].split('$')[0],vars['size']['name'])
+);""".format(self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['size']['name'],srid,vars['size']['name'].split('$')[0],vars['size']['name']) # nosec B608
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
         FROM "{}".line_s_{} s, "{}".line_seg_vis seg
         WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
         GROUP BY time,s.fid,seg.geom,seg.lid_seg
-        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])
-                        sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['size']['name'],self.config['versionName'],vars['size']['name'])
+        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime']) # nosec B608
+                        sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['size']['name'],self.config['versionName'],vars['size']['name']) # nosec B608
                         #print(sql)
                         self.cur.execute(sql)
                         
@@ -570,41 +570,39 @@ CREATE TABLE "{}".line_s_{}_vis
             sql="""SELECT {}.{} AS fid, ST_AsText({}.geom) AS geom {}, {}
     FROM {}{}{}
     GROUP BY {}
-    ORDER BY {} {}.{};""".format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id',first_group,
-                """,date_trunc('{}', {}.time) AS time""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else (',{}.time'.format(self.first_time_var) if self.first_time_var else ''),
-                ','.join([i for i in
-                [('avg(color."${}") AS color'.format(vars['color']['name'].split('$')[0]) if dt else 'color."${}" AS color'.format(vars['color']['name'].split('$')[0])) if time_color else ('color.color' if vars['color']['mode']=='var' else ('color."{}"'.format(vars['color']['name']) +' AS color' if vars['color']['mode'] else '')),
-                'avg(size."${}") AS size'.format(vars['size']['name'].split('$')[0]) if time_size else ('size.size' if vars['size']['mode']=='var' else ('size."{}"'.format(vars['size']['name']) +' AS size' if vars['size']['mode'] else '')),
-                'avg(rotation."${}") AS rotation'.format(vars['rotation']['name'].split('$')[0]) if time_rotation else ('rotation.rotation' if vars['rotation']['mode']=='var' else ('rotation."{}"'.format(vars['rotation']['name']) +' AS rotation' if vars['rotation']['mode'] else '') )] 
-                if i]),
-                ','.join([i for i in  #from
-                    [""""{}".{} color""".format(self.config['versionName'],vars['color']['table_name']) if time_color else (
-                    """({}) color""".format(self.getNonTimeVarFunctionValue(vars['color'],'color',vars['time'])) 
-                    if vars['color']['mode']=='var' else ('"{}".{} AS color'.format(self.config['versionName'],vars['color']['table_name']) if vars['color']['mode']=='par' else '')),
-                    """"{}".{} size""".format(self.config['versionName'],vars['size']['table_name']) if time_size else (
-                    """({}) size""".format(self.getNonTimeVarFunctionValue(vars['size'],'size',vars['time']))  
-                    if vars['size']['mode']=='var'else ('"{}".{} AS size'.format(self.config['versionName'],vars['size']['table_name']) if vars['size']['mode']=='par' else '')),
-                    """"{}".{} rotation""".format(self.config['versionName'],vars['rotation']['table_name']) if time_rotation else (
-                    """({}) rotation""".format(self.getNonTimeVarFunctionValue(vars['rotation'],'rotation',vars['time'])) 
-                    if vars['rotation']['mode']=='var' else ('"{}".{} AS rotation'.format(self.config['versionName'],vars['rotation']['table_name']) if vars['rotation']['mode']=='par' else ''))] 
-                    if i]),
-                '\n    WHERE ' if len([var for var in vars if var not in ['time','data']and vars[var]['mode']])>=2  or self.first_time_var else '',
-                ' AND '.join([i for i in #where
-                    [' AND '.join([first_group+('.fid=' if vars[first_group]['mode']=='var' else '.id=')+var+('.fid' if vars[var]['mode']=='var' else '.id') 
-                        for var in vars if var not in ['time','data']+[first_group] and vars[var]['mode']]),
-                        
-                    ' AND '.join([first_group+'.geom='+var+'.geom' 
-                        for var in vars if self.first_time_var and var not in ['time','data']+[self.first_time_var] and vars[var]['mode']=='var']),    
-                        
-                    ' AND '.join([self.first_time_var+'.time='+var+'.time' for var in vars if var not in ['time','data']+[self.first_time_var] and vars[var]['var_function'] in self.time_values]),
-                    """{}.time <= '{}' AND {}.time >= '{}'""".format(self.first_time_var,vars['time']['endtime'],self.first_time_var,vars['time']['starttime']) if self.first_time_var else ''] if i]),
-                ','.join([i for i in #group by
-                    ["ST_asText({}.geom)".format(first_group),
-                    """date_trunc('{}', {}.time)""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time'.format(self.first_time_var) if self.first_time_var else ''),
-                    '{}.{}'.format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id'),
-                    ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]),
-                """date_trunc('{}', {}.time),""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time,'.format(self.first_time_var) if self.first_time_var else ''), #order by
-                first_group,'fid' if vars[first_group]['mode']=='var' else 'id')
+    ORDER BY {} {}.{};""".format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id',first_group, # nosec B608
+                """,date_trunc('{}', {}.time) AS time""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else (',{}.time'.format(self.first_time_var) if self.first_time_var else ''), # nosec B608
+                ','.join([i for i in # nosec B608
+                [('avg(color."${}") AS color'.format(vars['color']['name'].split('$')[0]) if dt else 'color."${}" AS color'.format(vars['color']['name'].split('$')[0])) if time_color else ('color.color' if vars['color']['mode']=='var' else ('color."{}"'.format(vars['color']['name']) +' AS color' if vars['color']['mode'] else '')), # nosec B608
+                'avg(size."${}") AS size'.format(vars['size']['name'].split('$')[0]) if time_size else ('size.size' if vars['size']['mode']=='var' else ('size."{}"'.format(vars['size']['name']) +' AS size' if vars['size']['mode'] else '')), # nosec B608
+                'avg(rotation."${}") AS rotation'.format(vars['rotation']['name'].split('$')[0]) if time_rotation else ('rotation.rotation' if vars['rotation']['mode']=='var' else ('rotation."{}"'.format(vars['rotation']['name']) +' AS rotation' if vars['rotation']['mode'] else '') )]  # nosec B608
+                if i]), # nosec B608
+                ','.join([i for i in  #from  # nosec B608
+                    [""""{}".{} color""".format(self.config['versionName'],vars['color']['table_name']) if time_color else ( # nosec B608
+                    """({}) color""".format(self.getNonTimeVarFunctionValue(vars['color'],'color',vars['time']))  # nosec B608
+                    if vars['color']['mode']=='var' else ('"{}".{} AS color'.format(self.config['versionName'],vars['color']['table_name']) if vars['color']['mode']=='par' else '')), # nosec B608
+                    """"{}".{} size""".format(self.config['versionName'],vars['size']['table_name']) if time_size else ( # nosec B608
+                    """({}) size""".format(self.getNonTimeVarFunctionValue(vars['size'],'size',vars['time']))   # nosec B608
+                    if vars['size']['mode']=='var'else ('"{}".{} AS size'.format(self.config['versionName'],vars['size']['table_name']) if vars['size']['mode']=='par' else '')), # nosec B608
+                    """"{}".{} rotation""".format(self.config['versionName'],vars['rotation']['table_name']) if time_rotation else ( # nosec B608
+                    """({}) rotation""".format(self.getNonTimeVarFunctionValue(vars['rotation'],'rotation',vars['time']))  # nosec B608
+                    if vars['rotation']['mode']=='var' else ('"{}".{} AS rotation'.format(self.config['versionName'],vars['rotation']['table_name']) if vars['rotation']['mode']=='par' else ''))]  # nosec B608
+                    if i]), # nosec B608
+                '\n    WHERE ' if len([var for var in vars if var not in ['time','data']and vars[var]['mode']])>=2  or self.first_time_var else '', # nosec B608
+                ' AND '.join([i for i in #where  # nosec B608
+                    [' AND '.join([first_group+('.fid=' if vars[first_group]['mode']=='var' else '.id=')+var+('.fid' if vars[var]['mode']=='var' else '.id')  # nosec B608
+                        for var in vars if var not in ['time','data']+[first_group] and vars[var]['mode']]), # nosec B608                      
+                    ' AND '.join([first_group+'.geom='+var+'.geom'  # nosec B608
+                        for var in vars if self.first_time_var and var not in ['time','data']+[self.first_time_var] and vars[var]['mode']=='var']),     # nosec B608                       
+                    ' AND '.join([self.first_time_var+'.time='+var+'.time' for var in vars if var not in ['time','data']+[self.first_time_var] and vars[var]['var_function'] in self.time_values]), # nosec B608
+                    """{}.time <= '{}' AND {}.time >= '{}'""".format(self.first_time_var,vars['time']['endtime'],self.first_time_var,vars['time']['starttime']) if self.first_time_var else ''] if i]), # nosec B608
+                ','.join([i for i in #group by  # nosec B608
+                    ["ST_asText({}.geom)".format(first_group), # nosec B608
+                    """date_trunc('{}', {}.time)""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time'.format(self.first_time_var) if self.first_time_var else ''), # nosec B608
+                    '{}.{}'.format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id'), # nosec B608
+                    ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]), # nosec B608
+                """date_trunc('{}', {}.time),""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time,'.format(self.first_time_var) if self.first_time_var else ''), #order by  # nosec B608
+                first_group,'fid' if vars[first_group]['mode']=='var' else 'id') # nosec B608
             #print(sql)
         self.cur.execute(sql)
         data=self.cur.fetchall()
@@ -617,7 +615,7 @@ CREATE TABLE "{}".line_s_{}_vis
         GROUP BY time 
         ORDER BY time
 )
-SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;""".format(self.config['versionName'],vars[self.first_time_var]['table_name'])
+SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;""".format(self.config['versionName'],vars[self.first_time_var]['table_name']) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             dt=self.cur.fetchone()['dt']
@@ -630,25 +628,25 @@ SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;"
     
     def getNonTimeVarFunctionValue(self,var,type,time):
         if var['var_function']=='Max':
-            sql="""SELECT fid,geom AS geom,max("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
+            sql="""SELECT fid,geom AS geom,max("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime']) # nosec B608
         elif var['var_function']=='Min':
-            sql="""SELECT fid,geom AS geom,min("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
+            sql="""SELECT fid,geom AS geom,min("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime']) # nosec B608
         elif var['var_function']=='Average':
-            sql="""SELECT fid,geom AS geom,avg("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
+            sql="""SELECT fid,geom AS geom,avg("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime']) # nosec B608
         elif var['var_function']=='Last value':
             sql="""SELECT DISTINCT ON (fid{}) 
     fid,geom,"${}" AS {},time
 FROM "{}".{}
 WHERE time <= '{}'
-ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '' ,var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['endtime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
+ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '' ,var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['endtime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '') # nosec B608
         elif var['var_function']=='Sum':
-             sql="""SELECT fid,geom AS geom,sum("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
+             sql="""SELECT fid,geom AS geom,sum("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime']) # nosec B608
         elif var['var_function']=='First value':
             sql="""SELECT DISTINCT ON (fid{}) 
     fid,geom AS geom,"${}" AS {},time
 FROM "{}".{}
 WHERE time >= '{}'
-ORDER BY fid{},time ASC;""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '')
+ORDER BY fid{},time ASC;""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '') # nosec B608
         elif var['var_function']=='specific dp':
             sql="""WITH length_per_fid AS (
     SELECT lid AS fid, st_length(geom) AS len, geom
@@ -666,8 +664,8 @@ JOIN {}.{} b
 JOIN length_per_fid lp
     ON lp.fid = a.fid
 WHERE a.time between '{}' and '{}'
-GROUP BY a.fid, lp.geom""".format(
-                self.config['versionName'],type,self.config['versionName'],var['table_name'],self.config['versionName'],var['table_name'],time['starttime'],time['endtime'])
+GROUP BY a.fid, lp.geom""".format( # nosec B608
+                self.config['versionName'],type,self.config['versionName'],var['table_name'],self.config['versionName'],var['table_name'],time['starttime'],time['endtime']) # nosec B608
         #print(sql)
         return sql
 

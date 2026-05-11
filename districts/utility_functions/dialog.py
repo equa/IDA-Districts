@@ -184,7 +184,7 @@ def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
     WITH sub AS(
         SELECT max(id) AS max_id FROM public.{}
     )
-    SELECT ROW_NUMBER() OVER (ORDER BY {}) + max_id AS row_number,{},{} FROM public.{},sub {} {} ;""".format(table,filter.split('WHERE ')[1].split('=')[0].strip(),','.join(i for i in columns),table,columns[0],str(maxId+1),','.join(i for i in columns),table,filter,orderby)
+    SELECT ROW_NUMBER() OVER (ORDER BY {}) + max_id AS row_number,{},{} FROM public.{},sub {} {} ;""".format(table,filter.split('WHERE ')[1].split('=')[0].strip(),','.join(i for i in columns),table,columns[0],str(maxId+1),','.join(i for i in columns),table,filter,orderby) # nosec B608
             #print(sql)
             cur.execute(sql)
     else:

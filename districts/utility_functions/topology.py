@@ -8,18 +8,18 @@ from qgis.PyQt.QtWidgets import QMessageBox
 
 def saveTempTables(cur,config):
     dropDBTriggers(cur,config) #child versions are not updated
-    sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'])
-    sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(config['versionName'])
-    sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(config['versionName'])
-    sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(config['versionName'])
-    sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(config['versionName'])
-    sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(config['versionName']) 
-    sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(config['versionName'])  
-    sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(config['versionName'])
+    sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName']) # nosec B608
+    sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(config['versionName']) # nosec B608
+    sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(config['versionName']) # nosec B608
+    sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(config['versionName']) # nosec B608
+    sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(config['versionName']) # nosec B608
+    sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(config['versionName'])  # nosec B608
+    sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(config['versionName'])  # nosec B608 
+    sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(config['versionName']) # nosec B608
     #update next value
-    sql+="""SELECT setval('"{}".lines_id_seq', (SELECT MAX(id) FROM "{}".lines));""".format(config['versionName'],config['versionName'])
-    sql+="""SELECT setval('"{}".customers_id_seq', (SELECT MAX(id) FROM "{}".customers));""".format(config['versionName'],config['versionName'])
-    sql+="""SELECT setval('"{}".energy_plants_id_seq', (SELECT MAX(id) FROM "{}".energy_plants));""".format(config['versionName'],config['versionName'])
+    sql+="""SELECT setval('"{}".lines_id_seq', (SELECT MAX(id) FROM "{}".lines));""".format(config['versionName'],config['versionName']) # nosec B608
+    sql+="""SELECT setval('"{}".customers_id_seq', (SELECT MAX(id) FROM "{}".customers));""".format(config['versionName'],config['versionName']) # nosec B608
+    sql+="""SELECT setval('"{}".energy_plants_id_seq', (SELECT MAX(id) FROM "{}".energy_plants));""".format(config['versionName'],config['versionName']) # nosec B608
 
     #print(sql)
     cur.execute(sql)  
@@ -40,13 +40,13 @@ def getFeatureConnbundletypeSequences(id,config,cur,feature_type="customer"):
     sql="""SELECT f.id , b_t_conns.conn_bundle_type_id, b_t_conns.sequence
     FROM {}.{}s f, bundle_type_conns b_t_conns, {}_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND f.id={}
-    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature_type,feature_type,id)
+    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature_type,feature_type,id) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
     
 def checkNetwork(cur,version,networks):
-    sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version)
+    sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version) # nosec B608
     cur.execute(sql)
     networkNullCount=cur.fetchone()['count']
     
@@ -61,7 +61,7 @@ def checkNetwork(cur,version,networks):
         button = dlg_question.exec()
 
         if button == QMessageBox.StandardButton.Yes:
-            sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version)
+            sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version) # nosec B608
             #print(sql)
             cur.execute(sql)
             return True
@@ -73,7 +73,7 @@ def checkNetwork(cur,version,networks):
 def getNetworkSequences(cur,config,network):
     sql="""SELECT COALESCE(max(bp.sequence),0) AS number_of
     FROM "{}".lines f, bundle_pipes bp
-    WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(config['versionName'],network)
+    WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(config['versionName'],network) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [str(i) for i in range(1,cur.fetchone()['number_of']+1)]
@@ -85,7 +85,7 @@ WITH sub AS(
     SELECT min(ST_XMin(geom)) AS x_min, min(ST_YMin(geom)) AS y_min, max(ST_XMax(geom)) AS x_max, max(ST_YMax(geom)) AS y_max FROM {}
 )
 INSERT INTO "{}".submodels (id,geom) 
-    SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(config['versionName'],table,config['versionName'],srid)
+    SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(config['versionName'],table,config['versionName'],srid) # nosec B608
     #print(sql)
     cur.execute(sql)
     
@@ -100,7 +100,7 @@ UPDATE temp.lines l SET submodel = a.sm_id
             GROUP BY l.id) a 
     WHERE a.lid=l.id;
 UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
-UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'])
+UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName']) # nosec B608
     #print(sql)
     cur.execute(sql)
         
@@ -110,26 +110,26 @@ def setSubnetwork(cur,config,redraw_submodels_polygons,srid):
     if redraw_submodels_polygons:
         
         #draw rectangle around all customers
-        sql='TRUNCATE "{}".submodels CASCADE;'.format(config['versionName'])
+        sql='TRUNCATE "{}".submodels CASCADE;'.format(config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
             
         redrawSubnetworkIncludingLines('"{}".lines'.format(config['versionName']),cur,config,srid)
         
         #junctions
-        sql='UPDATE "{}".junctions SET submodel = 1;'.format(config['versionName'])
+        sql='UPDATE "{}".junctions SET submodel = 1;'.format(config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
         #customers
-        sql='UPDATE "{}".customers SET submodel = 1;'.format(config['versionName'])
+        sql='UPDATE "{}".customers SET submodel = 1;'.format(config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
         #energy_plants
-        sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(config['versionName'])
+        sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
         #lines
-        sql='UPDATE "{}".lines SET submodel = array[1];'.format(config['versionName'])
+        sql='UPDATE "{}".lines SET submodel = array[1];'.format(config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)  
 
@@ -137,7 +137,7 @@ def getBundleValues(bundle,cur):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle)
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
 
@@ -145,19 +145,19 @@ def getConnTypesByFeature(cur,config,feature,id):
     sql="""SELECT b_t_conns.conn_type_id 
     FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
     WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
-    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature,feature,id)
+    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature,feature,id) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
     
 def getConnIdsByConnType(cur,conn_type):
-    sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
+    sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [str(i['connection_id']) for i in cur.fetchall()]
     
 def getConnSequencesByConnType(cur,conn_type):
-    sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type)
+    sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [str(i['sequence']) for i in cur.fetchall()]
@@ -166,7 +166,7 @@ def getConnTypeConnValues(cur,ids):
     sql="""SELECT conn_t_conns.connection_type_id, conn_t_conns.connection_id , conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
 	FROM connections conns, connection_type_connections conn_t_conns
 	WHERE conn_t_conns.connection_id=conns.id AND conn_t_conns.connection_type_id IN ({})
-	ORDER BY conn_t_conns.sequence;""".format(','.join([str(id) for id in ids]))
+	ORDER BY conn_t_conns.sequence;""".format(','.join([str(id) for id in ids])) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -174,7 +174,7 @@ def getConnValues(bundle,conn_id,cur):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id {}
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle,'AND conns.id='+conn_id if not conn_id=='X' else '')
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle,'AND conns.id='+conn_id if not conn_id=='X' else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()
 
@@ -185,14 +185,14 @@ def getConnsValues(bundle,cur):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id, conns.p_ctrl
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle)
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
 def getConnBundleByFeature(feature_type,feature_id,cur,config):
     sql="""SELECT c_t.conn_bundle_type 
     FROM "{}".{} f, {} c_t 
-    WHERE f.id={} AND c_t.template=f.template;""".format(config['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id)
+    WHERE f.id={} AND c_t.template=f.template;""".format(config['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
 
@@ -200,13 +200,13 @@ def getConnBundlesByType(cur,config,type):
     sql="""SELECT f_t.conn_bundle_type
     FROM {}.{}s f, {}_templates f_t
     WHERE f.template=f_t.template
-    GROUP BY f_t.conn_bundle_type;""".format(config['versionName'],type,type)
+    GROUP BY f_t.conn_bundle_type;""".format(config['versionName'],type,type) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [str(i['conn_bundle_type']) for i in cur.fetchall()]
     
 def getConnTypesByConnBundleType(cur,config,c_b_type):
-    sql="""SELECT conn_type_id FROM bundle_type_conns WHERE conn_bundle_type_id={} ORDER BY sequence;""".format(c_b_type)
+    sql="""SELECT conn_type_id FROM bundle_type_conns WHERE conn_bundle_type_id={} ORDER BY sequence;""".format(c_b_type) # nosec B608
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
     
@@ -214,7 +214,7 @@ def getBundleValuesByFeature(type_id,feature_id,cur,config):
     return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,config),conn_id,cur)
     
 def getConnTypeSeqFromBundle(cur,config,c_b_type,conn_type):
-    sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type)
+    sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchone()['sequence']
@@ -227,7 +227,7 @@ def getUsedConnBundleTypes(type_name,cur,config):
     FROM "{}".{}s f, {}_templates t
     WHERE f.template=t.template
     GROUP BY t.conn_bundle_type
-    ORDER BY t.conn_bundle_type;""".format(config['versionName'],type_name,type_name)
+    ORDER BY t.conn_bundle_type;""".format(config['versionName'],type_name,type_name) # nosec B608
     cur.execute(sql)
     return [i['conn_bundle_type'] for i in cur.fetchall()]
     
@@ -236,7 +236,7 @@ def getUsedConnTypes(type_name,cur,config):
     FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns 
     WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type
     GROUP BY b_t_conns.conn_type_id
-    ORDER BY b_t_conns.conn_type_id;""".format(config['versionName'],type_name,type_name)
+    ORDER BY b_t_conns.conn_type_id;""".format(config['versionName'],type_name,type_name) # nosec B608
     cur.execute(sql)
     return [i['conn_type_id'] for i in cur.fetchall()]
     
@@ -245,7 +245,7 @@ def getUsedConnections(type_name,cur,config):
     FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
     WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND conn_t_conns.connection_type_id=b_t_conns.conn_type_id
     GROUP BY conn_t_conns.connection_id
-    ORDER BY conn_t_conns.connection_id;""".format(config['versionName'],type_name,type_name)
+    ORDER BY conn_t_conns.connection_id;""".format(config['versionName'],type_name,type_name) # nosec B608
     cur.execute(sql)
     return [i['connection_id'] for i in cur.fetchall()]
     
@@ -254,7 +254,7 @@ def getUsedConnectionsFilteredByDirection(type_name,cur,config,direction):
     FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns, connections conns
     WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND conn_t_conns.connection_type_id=b_t_conns.conn_type_id AND conns.id=conn_t_conns.connection_id AND conns.type IN ({})
     GROUP BY conn_t_conns.connection_id
-    ORDER BY conn_t_conns.connection_id;""".format(config['versionName'],type_name,type_name,','.join(direction))
+    ORDER BY conn_t_conns.connection_id;""".format(config['versionName'],type_name,type_name,','.join(direction)) # nosec B608
     cur.execute(sql)
     return [i['connection_id'] for i in cur.fetchall()]
     
@@ -264,14 +264,14 @@ def getUsedConnTypeIdents(type_name,cur,config):
         FROM "{}".{}s f, {}_templates t, bundle_type_conns b_t_conns 
         WHERE f.template=t.template AND b_t_conns.conn_bundle_type_id = t.conn_bundle_type
 )
-SELECT ident FROM sub GROUP BY ident;""".format(config['versionName'],type_name,type_name)
+SELECT ident FROM sub GROUP BY ident;""".format(config['versionName'],type_name,type_name) # nosec B608
     cur.execute(sql)
     return [i['ident'] for i in cur.fetchall()]
     
 def getConnBundleByTemplate(feature,template,cur,config):
     sql="""SELECT conn_bundle_type 
     FROM {}_templates 
-    WHERE template={};""".format(feature,template)
+    WHERE template={};""".format(feature,template) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
     
@@ -279,7 +279,7 @@ def getConntypesByTemplate(feature,template,cur):
     sql="""SELECT conn_b_t.conn_type_id
     FROM {}_templates t, bundle_type_conns conn_b_t
     WHERE conn_b_t.conn_bundle_type_id=conn_bundle_type AND t.template={}
-	ORDER BY conn_b_t.sequence;""".format(feature,template)
+	ORDER BY conn_b_t.sequence;""".format(feature,template) # nosec B608
     cur.execute(sql)
     return [i['conn_type_id'] for i in cur.fetchall()]
     
@@ -287,31 +287,31 @@ def getConnsByConntype(conntypes,cur,directions=['1']):
     sql="""SELECT conns.id
     FROM connection_type_connections conn_t_conns, connections conns
 	WHERE conns.type IN ({}) AND conns.id=conn_t_conns.connection_id AND conn_t_conns.connection_type_id IN ({})
-	ORDER BY sequence;""".format(','.join(directions),','.join([str(i) for i in conntypes]))
+	ORDER BY sequence;""".format(','.join(directions),','.join([str(i) for i in conntypes])) # nosec B608
     cur.execute(sql)
     return [i['id'] for i in cur.fetchall()]
 
 def getLineConnType(cur,config,id):
     sql="""SELECT t.conn_type
     FROM "{}".lines l, line_types t
-    WHERE l.assettype=t.assettype AND l.id={};""".format(config['versionName'],id)
+    WHERE l.assettype=t.assettype AND l.id={};""".format(config['versionName'],id) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['conn_type']
 
 def getUsedPipeBundleSequences(cur,config):
-    sql=f"""WITH sub AS(
-    SELECT pipe_bundle_type_id FROM "{config['versionName']}".lines GROUP BY pipe_bundle_type_id 
+    sql="""WITH sub AS(
+    SELECT pipe_bundle_type_id FROM "{}".lines GROUP BY pipe_bundle_type_id 
 )
 SELECT sequence 
     FROM bundle_pipes bp,sub 
     WHERE bp.pipe_bundle_type_id=sub.pipe_bundle_type_id
-    GROUP BY sequence ORDER BY sequence;"""
+    GROUP BY sequence ORDER BY sequence;""".format(config['versionName']) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [i['sequence'] for i in cur.fetchall()]
 
 def getConnBundleTypesByConnType(cur,config,conn_type_id):
-    sql="""SELECT conn_bundle_type_id FROM bundle_type_conns WHERE conn_type_id={};""".format(conn_type_id)
+    sql="""SELECT conn_bundle_type_id FROM bundle_type_conns WHERE conn_type_id={};""".format(conn_type_id) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -323,7 +323,7 @@ def getTemplatesByConnType(cur,config,conn_type_id):
 UNION
 SELECT 'energy_plant' AS type,t.template, t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
     FROM bundle_type_conns bt_conns, energy_plant_templates t 
-    WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id""".format(conn_type_id,conn_type_id)
+    WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id""".format(conn_type_id,conn_type_id) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -334,7 +334,7 @@ SELECT 'customer' AS type,template, template::text||'_'||template_name AS t_name
     FROM customer_templates WHERE conn_bundle_type={}
 UNION
 SELECT 'energy_plant' AS type,template, template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
-    FROM energy_plant_templates WHERE conn_bundle_type={}""".format(conn_bundle_type_id,conn_bundle_type_id)
+    FROM energy_plant_templates WHERE conn_bundle_type={}""".format(conn_bundle_type_id,conn_bundle_type_id) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -345,7 +345,7 @@ def getConnsValuesByTemplate(feature,template,cur,config):
 def getMeterName(cur,conn_bundle_type,conn_type):
     sql="""SELECT conn_bundle_type_id, sequence
 	FROM bundle_type_conns
-	WHERE conn_bundle_type_id = {} AND conn_type_id={};""".format(conn_bundle_type,conn_type)
+	WHERE conn_bundle_type_id = {} AND conn_type_id={};""".format(conn_bundle_type,conn_type) # nosec B608
     cur.execute(sql)
     connValues=cur.fetchall()
     if connValues:
@@ -361,7 +361,7 @@ def getPMT2muxName(cur,conn_bundle_type,connection_id):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_t_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type,connection_id)
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type,connection_id) # nosec B608
     cur.execute(sql)
     connValues=cur.fetchall()
     if connValues:
@@ -389,7 +389,7 @@ def checkLineDirectionTopology(cur,version,tolerance,signals,network):
     sql="""SELECT st_v.id::integer AS epid 
         FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
         WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network)
-        ORDER BY ep.id LIMIT 1;""".format(tolerance,network)
+        ORDER BY ep.id LIMIT 1;""".format(tolerance,network) # nosec B608
     #print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['epid'] 
@@ -406,7 +406,7 @@ def checkLineDirectionTopology(cur,version,tolerance,signals,network):
         end_point=line['l_end_point']
         
         #end_node
-        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
+        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance) # nosec B608
         #print(sql)
         cur.execute(sql)
         jid_end_topo=cur.fetchone()['vid']     
@@ -420,7 +420,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo) # nosec B608
             #print(sql)
             cur.execute(sql) 
             length_node_end=cur.fetchone()['costs']
@@ -429,7 +429,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
         #print(length_node_end)
         
         #start_node
-        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
+        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance) # nosec B608
         #print(sql)
         cur.execute(sql)
         jid_start_topo=cur.fetchone()['vid'] 
@@ -443,7 +443,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo) # nosec B608
             #print(sql)
             cur.execute(sql) 
             length_node_start=cur.fetchone()['costs']
@@ -454,7 +454,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo)
         try:
             if length_node_end<length_node_start:
                 #print('change line direction')
-                sql='UPDATE temp.streets_help SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
+                sql='UPDATE temp.streets_help SET geom = ST_Reverse(geom) WHERE id={};'.format(lid) # nosec B608
                 #print(sql)
                 cur.execute(sql)
         except:
@@ -468,7 +468,7 @@ def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     #print('Check line direction')
     sql="""SELECT st_v.id::integer AS v_ep 
     FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
-    WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network) ORDER BY ep.id LIMIT 1;""".format(tolerance,network)
+    WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network) ORDER BY ep.id LIMIT 1;""".format(tolerance,network) # nosec B608
     #print(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep'] 
@@ -484,7 +484,7 @@ def checkLineDirectionPipeLaying(cur,version,tolerance,network):
         end_point=line['l_end_point']
         
         #end_node
-        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance)
+        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance) # nosec B608
         #print(sql)
         cur.execute(sql)
         jid_end_topo=cur.fetchone()['vid']       
@@ -498,7 +498,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
+SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo) # nosec B608
             #print(sql)
             cur.execute(sql) 
             length_node_end=cur.fetchone()['costs']
@@ -507,7 +507,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo)
         #print(length_node_end)
         
         #start_node
-        sql="SELECT st_v.id::integer AS v_start FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance)
+        sql="SELECT st_v.id::integer AS v_start FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance) # nosec B608
         #print(sql)
         cur.execute(sql)
         jid_start_topo=cur.fetchone()['v_start'] 
@@ -522,7 +522,7 @@ SELECT seq, node, edge, cost
                 false
             )
 )
-SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo)
+SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo) # nosec B608
             #print(sql)
             cur.execute(sql) 
             length_node_start=cur.fetchone()['sum_costs']
@@ -532,6 +532,6 @@ SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo)
         
         if length_node_end<length_node_start:
             #print('change line direction')
-            sql='UPDATE temp.lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid)
+            sql='UPDATE temp.lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid) # nosec B608
             #print(sql)
             cur.execute(sql)

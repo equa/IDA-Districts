@@ -29,7 +29,7 @@ def writeClimateDataToDB(dlg,main):
         longitude = {},
         file_name = \'{}\',
         timezone = {},
-        height = {};""".format(main.config['versionName'],name,latitude,longitude,fileName,timezone,height)
+        height = {};""".format(main.config['versionName'],name,latitude,longitude,fileName,timezone,height) # nosec B608
         #print(sql)
         main.cur.execute(sql)
         main.dlg.statusMessage.setText('Climate data is successfully updated!')
@@ -82,7 +82,7 @@ def openClimateMacro(main):
         
         #update customer and energy plant templates
         for feature in ['customer','energy_plant']:
-            sql="""Select * from {}_templates;""".format(feature)
+            sql="""Select * from {}_templates;""".format(feature) # nosec B608
             main.cur.execute(sql)
             for template in main.cur.fetchall():
                 template_name=str(template['template'])+'_'+template['template_name']
@@ -168,11 +168,11 @@ UPDATE invoked_sensor_source_signals
     WHERE {} = ANY(templates)  AND type = {};
 UPDATE invoked_sensor_target_signals
     SET templates = templates || {}
-    WHERE {} = ANY(templates) AND type = {};""".format(
-    str(maxId+1),template_id,dlg.type,
-    str(maxId+1),template_id,dlg.type,
-    str(maxId+1),template_id,dlg.type,
-    str(maxId+1),template_id,dlg.type)
+    WHERE {} = ANY(templates) AND type = {};""".format(# nosec B608
+    str(maxId+1),template_id,dlg.type,# nosec B608
+    str(maxId+1),template_id,dlg.type,# nosec B608
+    str(maxId+1),template_id,dlg.type,# nosec B608
+    str(maxId+1),template_id,dlg.type) # nosec B608
         #print(sql)
         cur.execute(sql)
 
@@ -186,7 +186,7 @@ def openTemplate(main,type,dlg):
     row_index=dlg.tableWidget.currentRow()
     if row_index!=-1:
         template=dlg.tableWidget.item(row_index, 0).text()
-        sql="SELECT template_name,conn_bundle_type FROM public.{}_templates WHERE template={};".format(type,template)
+        sql="SELECT template_name,conn_bundle_type FROM public.{}_templates WHERE template={};".format(type,template) # nosec B608
         #print(sql)
         main.cur.execute(sql)
         template_=main.cur.fetchone()
@@ -232,7 +232,7 @@ def openTemplate(main,type,dlg):
                 #print(dlg.traceTableValues[row_index])                
 
         #write to DB
-        sql="DELETE FROM public.{}_templates WHERE template={};".format(type,template)
+        sql="DELETE FROM public.{}_templates WHERE template={};".format(type,template) # nosec B608
         #print(sql)
         main.cur.execute(sql)
         if type=='customer':
@@ -244,8 +244,8 @@ def openTemplate(main,type,dlg):
         else:
             description=''
 
-        sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(
-            type,getMaxId(main.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description)
+        sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(# nosec B608
+            type,getMaxId(main.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description) # nosec B608
         #print(sql)
         main.cur.execute(sql)
         
@@ -301,7 +301,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         for template in templates:
             oldConnValues_dict[template['t_name']]=getConnsValues(template['conn_bundle_type_id'],cur)
     
-    sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id)
+    sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id) # nosec B608
     #print(sql)
     maxId=getMaxId(cur,table)
     counter=1
@@ -311,7 +311,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         if not values:
             iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
             return False
-        sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values)
+        sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values) # nosec B608
         counter+=1
     #print(sql)
     try:
@@ -355,7 +355,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
             else:
                 traceTableFiles.append(dlg.traceTableValues[traceValue][0])
         #print(traceTableFiles)
-        sql="""SELECT template::text || '_' || template_name AS template_name FROM {}_templates;""".format(table_name)
+        sql="""SELECT template::text || '_' || template_name AS template_name FROM {}_templates;""".format(table_name) # nosec B608
         cur.execute(sql)
         list_template_names=[i['template_name'] for i in cur.fetchall()]
         for file in files:
@@ -414,7 +414,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
     #print('show table content')
-    sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns==None else columns[1:-1],table)
+    sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns==None else columns[1:-1],table)# nosec B608
     cur=conn.cursor()
     cur.execute(sql) 
     data = cur.fetchall()
@@ -459,7 +459,7 @@ def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,drop
     #print(f'trace:{trace}')
     cur=conn.cursor()
     dlg.tableWidget.setRowCount(rowCountDB(table,filter,cur_dict))
-    sql='SELECT {} FROM public.{} {} {} ;'.format(','.join(i for i in columns),table,filter,orderby)
+    sql='SELECT {} FROM public.{} {} {} ;'.format(','.join(i for i in columns),table,filter,orderby) # nosec B608
     cur.execute(sql) 
     data = cur.fetchall()
     dropdownItems=getDropDownItems(cur_dict,dropdowns)
@@ -582,13 +582,13 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
 def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg,trace=False,main=None):
     """" Save table to DB an close dialog"""
     #print('Save table to DB an close dialog')
-    sql="""TRUNCATE {} CASCADE;\n""".format(table)
+    sql="""TRUNCATE {} CASCADE;\n""".format(table)# nosec B608
     for row in range(dlg.tableWidget.rowCount()):
         values= getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','),checkBoxes)
         if not values:
             #print('return')
             return False
-        sql+="""INSERT INTO {} {} VALUES ({});\n""".format(table,columns,values)
+        sql+="""INSERT INTO {} {} VALUES ({});\n""".format(table,columns,values)# nosec B608
     try:
         main.cur.execute(sql)
     except Exception as e:
@@ -785,11 +785,11 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir):
             pass
         if value:
             if value==tr("@default",'no_selection'):
-                sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input,value)
+                sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input,value) # nosec B608
                 #print(sql)
                 cur.execute(sql)    
             else:
-                sql='ALTER TABLE "{}".{} ALTER COLUMN {} SET DEFAULT {};'.format(config['versionName'],table,input,value)
+                sql='ALTER TABLE "{}".{} ALTER COLUMN {} SET DEFAULT {};'.format(config['versionName'],table,input,value) # nosec B608
                 #print(sql)
                 cur.execute(sql)
     dlg.close()

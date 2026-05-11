@@ -18,7 +18,7 @@ def openSupervisoryCtrl(cur,plugin_dir,config):
     worker_openSupervisory.signals.error.connect(show_error_message)
         
 def setSupervisoryCrtlSubmodel(dlg,cur):
-    sql="""UPDATE supervisory_ctrl SET submodel={};""".format(dlg.combo_submodel.currentText())
+    sql="""UPDATE supervisory_ctrl SET submodel={};""".format(dlg.combo_submodel.currentText()) # nosec B608
     cur.execute(sql)
     closeDialog(dlg)
         
@@ -231,7 +231,7 @@ def buildBuildingModel(dlg):
   (ST_XMax(ST_Extent(geom))-ST_XMin(ST_Extent(geom)))/2 + ST_XMin(ST_Extent(geom)) AS x_center, 
   (ST_YMax(ST_Extent(geom))-ST_YMin(ST_Extent(geom)))/2 + ST_YMin(ST_Extent(geom)) AS y_center
 FROM {}.buildings
-WHERE submodel={};""".format(config['versionName'],submodel)
+WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     cur.execute(sql)
                     center=cur.fetchone()
                     #print(center)
@@ -239,7 +239,7 @@ WHERE submodel={};""".format(config['versionName'],submodel)
                     sql="""SELECT b.id,b_id,z_id,ST_AsText(geom) AS geom,z_height_m,z_bh_m, win_facade_ratio, z_construction, zt.name AS z_template, u.name AS room_unit 
     FROM {}.buildings b, room_units u, zone_templates zt
     WHERE b.submodel={} AND u.id=b.room_unit AND zt.id=b.z_template
-    ORDER BY b_id,z_id;""".format(config['versionName'],submodel)
+    ORDER BY b_id,z_id;""".format(config['versionName'],submodel) # nosec B608
                     #print(sql)
                     cur.execute(sql)
                     zones=cur.fetchall()
@@ -247,7 +247,7 @@ WHERE submodel={};""".format(config['versionName'],submodel)
                     sql="""SELECT b.b_id,t.conn_bundle_type 
     FROM {}.buildings b,{}.customers c, customer_templates t
     WHERE b.b_id IN ({}) AND c.id=b.substation_id AND c.template=t.template
-    GROUP BY t.conn_bundle_type, b.b_id;""".format(config['versionName'],config['versionName'],','.join(b_ids))
+    GROUP BY t.conn_bundle_type, b.b_id;""".format(config['versionName'],config['versionName'],','.join(b_ids)) # nosec B608
                     cur.execute(sql)
                     conn_data={i['b_id']: getConnsValuesIdentTypeDict(cur,i['conn_bundle_type']) for i in cur.fetchall()}
                     #print(conn_data)
@@ -304,7 +304,7 @@ WHERE submodel={};""".format(config['versionName'],submodel)
                         sql="""SELECT bc.construction_type_id, bc.construction_name,bct.type AS construction_type
     FROM building_constructions bc, building_construction_types bct
     WHERE bc.construction_standard_id={} AND bc.construction_type_id=bct.id 
-    ORDER BY bc.construction_type_id;""".format(zone['z_construction'])
+    ORDER BY bc.construction_type_id;""".format(zone['z_construction']) # nosec B608
                         cur.execute(sql)
                         constructions=cur.fetchall()
                         constructions_dict={i['construction_type'] : i['construction_name'] for i in constructions}

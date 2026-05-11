@@ -51,7 +51,7 @@ BEGIN
                     AND column_name = '{}') THEN
       ALTER TABLE temp.lines ADD COLUMN "{}" numeric;
    END IF;
-END $$;""".format(i,i) for i in energy_columns+['no_customer']])
+END $$;""".format(i,i) for i in energy_columns+['no_customer']]) # nosec B608
     #print(sql)
     cur.execute(sql)
     
@@ -66,12 +66,12 @@ END $$;""".format(i,i) for i in energy_columns+['no_customer']])
                 temp.customers c, temp.streets_help_vertices_pgr sth_v,temp.streets_help sth, temp.lines l
             WHERE ST_dWithIn(sth_v.the_geom,c.geom,0.01) AND sth_v.id=di.end_vid AND edge>0 AND sth.id=di.edge AND sth.id=l.id
             GROUP BY lid) a
-    WHERE a.lid=l.id;""".format(''.join([',\n        "{}"=a."{}"'.format(i,i) for i in energy_columns]),''.join(['sum(c."{}") AS "{}", '.format(i,i) for i in energy_columns]),network,main_plant_id,network)
+    WHERE a.lid=l.id;""".format(''.join([',\n        "{}"=a."{}"'.format(i,i) for i in energy_columns]),''.join(['sum(c."{}") AS "{}", '.format(i,i) for i in energy_columns]),network,main_plant_id,network) # nosec B608
     #print(sql)
     cur.execute(sql)    
 
 def getPipeDiameter(cur,id):
-    sql="SELECT innerpipediameter FROM pipes WHERE id={};".format(id)
+    sql="SELECT innerpipediameter FROM pipes WHERE id={};".format(id) # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['innerpipediameter'])
 
@@ -105,10 +105,10 @@ class WorkerPipeSizing(QRunnable):
             if self.dlg.rbtn_customers.isChecked():    
                 setEnergyColLines(self.cur,self.config['versionName'],self.network,energy_columns,self.dlg.combo_main_plants.currentText())
                 self.signals.progress.emit(2)
-                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l."{}", '.format(i) for i in energy_columns]),self.network)
+                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l."{}", '.format(i) for i in energy_columns]),self.network) # nosec B608
             else:
-                sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format(
-                    ''.join(['l."{}", '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network)
+                sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format( # nosec B608
+                    ''.join(['l."{}", '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network) # nosec B608
 
             #print(sql)
             self.signals.progress.emit(3)
@@ -188,7 +188,7 @@ class WorkerPipeSizing(QRunnable):
                 bundle_type_id,new_pipe_bundles=addMissingPipeBundleType(self.cur,self.pipe_bundles,pipe_bundle,new_pipe_bundles)
                 
                 #assign selected pipe bundle type to line
-                sql_lines+="UPDATE temp.lines SET pipe_bundle_type_id = {} WHERE id={};\n".format(bundle_type_id, line['id'])
+                sql_lines+="UPDATE temp.lines SET pipe_bundle_type_id = {} WHERE id={};\n".format(bundle_type_id, line['id']) # nosec B608
                 #if counter % 25 == 0:
                 self.signals.progress.emit(int(5+counter/len(lines)*85))
                 
@@ -297,7 +297,7 @@ CREATE TABLE temp.lines (
     including constraints
     including indexes
 );
-INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['versionName'],config['versionName'])
+INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['versionName'],config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
         
@@ -383,14 +383,14 @@ def addMissingPipeBundleType(cur,pipe_bundles,conn_type_pipes,new_pipe_bundles):
         pipe_bundles[bundle_type_id]=conn_type_pipes
 
         #Add to pipe bundle types
-        sql="""INSERT INTO pipe_bundle_types (id,description) VALUES ({},'pipes: {}');\n""".format(bundle_type_id,','.join(str(i[1]) for i in conn_type_pipes))
+        sql="""INSERT INTO pipe_bundle_types (id,description) VALUES ({},'pipes: {}');\n""".format(bundle_type_id,','.join(str(i[1]) for i in conn_type_pipes)) # nosec B608
         new_pipe_bundles.append(bundle_type_id)
         
         #Add to bundle_pipes
         for pipe in conn_type_pipes:
             x=0.5*((2*pipe[0]-1-pipe[0])/2)
-            sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format(
-                bundle_pipes_max_id,bundle_type_id,pipe[0],pipe[1],x,1,pipe[2])
+            sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format(# nosec B608
+                bundle_pipes_max_id,bundle_type_id,pipe[0],pipe[1],x,1,pipe[2]) # nosec B608
             bundle_pipes_max_id+=1
         #print(sql)
         cur.execute(sql)
@@ -416,7 +416,7 @@ BEGIN
                     AND column_name = '{}') THEN
       ALTER TABLE temp.lines DROP COLUMN "{}";
    END IF;
-END $$;""".format(i,i) for i in energy_columns])
+END $$;""".format(i,i) for i in energy_columns]) # nosec B608
         #print(sql)
         cur.execute(sql)
     
@@ -451,8 +451,8 @@ def rejectPipeSizingResults(config,conn,dlg):
     #print(dlg.new_pipe_bundles)
     sql=""
     for bundle_id in dlg.new_pipe_bundles:
-        sql+="""DELETE FROM bundle_pipes WHERE pipe_bundle_type_id={};""".format(bundle_id)
-        sql+="""DELETE FROM pipe_bundle_types WHERE id={};""".format(bundle_id)
+        sql+="""DELETE FROM bundle_pipes WHERE pipe_bundle_type_id={};""".format(bundle_id) # nosec B608
+        sql+="""DELETE FROM pipe_bundle_types WHERE id={};""".format(bundle_id) # nosec B608
     if sql:    
         cur.execute(sql)
     

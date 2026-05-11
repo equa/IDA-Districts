@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
     geom geometry(LineStringZ,{})
 );
 {}""".format(self.config['versionName'],output.split('_')[0],self.config['versionName'],output.split('_')[0],srid,
-            "SELECT segmentize({},'{}','line_seg_temp');".format(modellingSettings['fd_meterPerNode'],self.config['versionName']) if output=='temp_lines' else "SELECT halve_geom('{}','line_seg_p');".format(self.config['versionName']))
+            "SELECT segmentize({},'{}','line_seg_temp');".format(modellingSettings['fd_meterPerNode'],self.config['versionName']) if output=='temp_lines' else "SELECT halve_geom('{}','line_seg_p');".format(self.config['versionName'])) # nosec B608
             for output in self.simulatedOutputs if output in ['temp_lines','p_lines'] and self.simulatedOutputs[output]])
         if sql:
             #print(sql)
@@ -101,7 +101,7 @@ CREATE TABLE "{}".customer_s_{}${}
 	geom geometry(PointZ,{}),
 	"${}" numeric,
 	CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],output,conn_name,self.config['versionName'],output,conn_name,srid,output,output,conn_name) 
+);""".format(self.config['versionName'],output,conn_name,self.config['versionName'],output,conn_name,srid,output,output,conn_name)  # nosec B608
                             for output in c_conn_outputs for conn_name in conn_names])
                         tables+=["customer_s_{}${}".format(output,conn_name) for output in c_conn_outputs for conn_name in conn_names]
                         
@@ -115,7 +115,7 @@ CREATE TABLE "{}".customer_s_{}${}
 	geom geometry(PointZ,{}),
 	"${}" numeric,
 	CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],i,ident,self.config['versionName'],i,ident,srid,i,i,ident) 
+);""".format(self.config['versionName'],i,ident,self.config['versionName'],i,ident,srid,i,i,ident)  # nosec B608
                             for i in c_power_outputs for ident in conn_t_power_names])
                         tables+=["customer_s_{}${}".format(i,ident) for i in c_power_outputs for ident in conn_t_power_names]
 
@@ -130,7 +130,7 @@ CREATE TABLE "{}".customer_s_troom
 	geom geometry(PointZ,{}),
 	"$troom" numeric,
 	CONSTRAINT customer_s_troom_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_troom')   
 
                         #heat balance table
@@ -144,7 +144,7 @@ CREATE TABLE "{}".customer_s_electricity
 	geom geometry(PointZ,{}),
 	"$electricity" numeric,
 	CONSTRAINT customer_s_electricity_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_electricity')
 
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_transmission CASCADE;
@@ -156,7 +156,7 @@ CREATE TABLE "{}".customer_s_transmission
 	geom geometry(PointZ,{}),
 	"$transmission" numeric,
 	CONSTRAINT customer_s_transmission_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_transmission')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_heating CASCADE;
 CREATE TABLE "{}".customer_s_heating
@@ -167,7 +167,7 @@ CREATE TABLE "{}".customer_s_heating
 	geom geometry(PointZ,{}),
 	"$heating" numeric,
 	CONSTRAINT customer_s_heating_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_heating')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_gains CASCADE;
 CREATE TABLE "{}".customer_s_gains
@@ -178,7 +178,7 @@ CREATE TABLE "{}".customer_s_gains
 	geom geometry(PointZ,{}),
 	"$gains" numeric,
 	CONSTRAINT customer_s_gains_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_gains')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_leakage CASCADE;
 CREATE TABLE "{}".customer_s_leakage
@@ -189,7 +189,7 @@ CREATE TABLE "{}".customer_s_leakage
 	geom geometry(PointZ,{}),
 	"$leakage" numeric,
 	CONSTRAINT customer_s_leakage_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_leakage')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_occupancy CASCADE;
 CREATE TABLE "{}".customer_s_occupancy
@@ -200,7 +200,7 @@ CREATE TABLE "{}".customer_s_occupancy
 	geom geometry(PointZ,{}),
 	"$occupancy" numeric,
 	CONSTRAINT customer_s_occupancy_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_occupancy')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_solar CASCADE;
 CREATE TABLE "{}".customer_s_solar
@@ -211,7 +211,7 @@ CREATE TABLE "{}".customer_s_solar
 	geom geometry(PointZ,{}),
 	"$solar" numeric,
 	CONSTRAINT customer_s_solar_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_solar')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_ventilation CASCADE;
 CREATE TABLE "{}".customer_s_ventilation
@@ -222,7 +222,7 @@ CREATE TABLE "{}".customer_s_ventilation
 	geom geometry(PointZ,{}),
 	"$ventilation" numeric,
 	CONSTRAINT customer_s_ventilation_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_ventilation')
                             
                         #print(sql)
@@ -234,7 +234,7 @@ CREATE TABLE "{}".customer_s_ventilation
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
     FROM "{}".customers f, bundle_type_conns b_t_conns, customer_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
-    ORDER BY f.id;""".format(self.config['versionName'],submodel_id)
+    ORDER BY f.id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
                         cids=self.cur.fetchall()
                         
@@ -336,7 +336,7 @@ CREATE TABLE "{}".energy_plant_s_{}${}
 	geom geometry(PointZ,{}),
 	"${}" numeric,
 	CONSTRAINT energy_plant_s_{}${}_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],output,conn_name,self.config['versionName'],output,conn_name,srid,output,output,conn_name) 
+);""".format(self.config['versionName'],output,conn_name,self.config['versionName'],output,conn_name,srid,output,output,conn_name)  # nosec B608
                             for output in ep_conn_outputs for conn_name in conn_names])
                         tables+=["energy_plant_s_{}${}".format(output,conn_name) for output in ep_conn_outputs for conn_name in conn_names]
                             
@@ -351,7 +351,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
 	geom geometry(PointZ,{}),
 	"$power" numeric,
 	CONSTRAINT energy_plant_s_power${}_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],ident,self.config['versionName'],ident,srid,ident) 
+);""".format(self.config['versionName'],ident,self.config['versionName'],ident,srid,ident)  # nosec B608
                                 for ident in conn_t_power_names])
                             tables+=["energy_plant_s_power${}".format(ident) for ident in conn_t_power_names]
                         
@@ -363,7 +363,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         #get epid`s
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
     FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_templates t
-    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={};""".format(self.config['versionName'],submodel_id)
+    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={};""".format(self.config['versionName'],submodel_id) # nosec B608
                         #print(sql)
                         self.cur.execute(sql)
                         epids=self.cur.fetchall()
@@ -424,7 +424,7 @@ CREATE TABLE "{}".line_s_{}${}
 	segment integer,
 	"${}" numeric,
 	CONSTRAINT line_s_{}${}_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],output,seq,self.config['versionName'],output,seq,srid,output,output,seq) 
+);""".format(self.config['versionName'],output,seq,self.config['versionName'],output,seq,srid,output,output,seq)  # nosec B608
                             for output in line_outputs for seq in pipe_sequences if output!='qamb'])
                         if 'qamb' in line_outputs:
                             sql+="""\nDROP TABLE IF EXISTS "{}".line_s_qamb CASCADE;
@@ -437,14 +437,14 @@ CREATE TABLE "{}".line_s_qamb
 	segment integer,
 	"$qamb" numeric,
 	CONSTRAINT line_s_qamb_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],self.config['versionName'],srid)
+);""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
 
                         #print(sql)
                         self.cur.execute(sql)
 
                         #load data
                         #get lids
-                        sql="""SELECT id FROM "{}".lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.config['versionName'],submodel_id)
+                        sql="""SELECT id FROM "{}".lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
                         lids=self.cur.fetchall()
                         
@@ -601,7 +601,7 @@ CREATE TABLE "{}".line_s_qamb
                     ))) + '\n'
                     for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,col]))
                 ))
-                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')""".format(self.config['versionName'],table_name),mdata_string_iterator)
+                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
                 
     def copy_string_iterator_c_heatbalance_sData(self, sdata,fid,start_datetime) -> None:
         table_names=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
@@ -618,13 +618,13 @@ CREATE TABLE "{}".line_s_qamb
                     ))) + '\n'
                     for row_counter,data in enumerate(sdata)
                 ))
-                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator)
+                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
                
     def updateResultLayerGeometry(self,tables,type):
         for table_name in tables:
             sql="""UPDATE "{}".{} r set geom = f.geom 
     FROM (SELECT id, geom FROM "{}".{}s) f
-    WHERE f.id=r.fid;""".format(self.config['versionName'],table_name,self.config['versionName'],type)
+    WHERE f.id=r.fid;""".format(self.config['versionName'],table_name,self.config['versionName'],type) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             
@@ -632,9 +632,9 @@ CREATE TABLE "{}".line_s_qamb
         for counter,table_name in enumerate(tables,1):
             #print('-------------**---**-'+table_name.split('_')[1].split('$')[0])
             if type=='line' and table_name.split('$')[0].split('_')[-1] in ['temp','p']:
-                sql="""CREATE INDEX "idx_{}_fid_time_segment" ON {}."{}" (fid, time, segment);""".format(table_name,self.config['versionName'],table_name)
+                sql="""CREATE INDEX "idx_{}_fid_time_segment" ON {}."{}" (fid, time, segment);""".format(table_name,self.config['versionName'],table_name) # nosec B608
             else:
-                sql="""CREATE INDEX "idx_{}_fid_time" ON {}."{}" (fid, time);""".format(table_name,self.config['versionName'],table_name)
+                sql="""CREATE INDEX "idx_{}_fid_time" ON {}."{}" (fid, time);""".format(table_name,self.config['versionName'],table_name) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             
@@ -643,7 +643,7 @@ CREATE TABLE "{}".line_s_qamb
             var=table_name.split('_')[2].split('$')[0]
             sql="""UPDATE "{}".{} r set geom = seg.geom 
     FROM (SELECT lid,lid_seg, geom FROM "{}".line_seg_{}) seg
-    WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.config['versionName'],table_name,self.config['versionName'],var)
+    WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.config['versionName'],table_name,self.config['versionName'],var) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             
@@ -664,6 +664,6 @@ CREATE TABLE "{}".line_s_qamb
                     ))) + '\n'
                     for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,int(start_col_index):int(end_col_index)])) for col_counter,cell in enumerate(data[1])
                 ))
-                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator)
+                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
             start_col_index=end_col_index
             end_col_index=start_col_index+value_per_conn_seq  

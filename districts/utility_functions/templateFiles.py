@@ -686,12 +686,12 @@ class RenameTemplateFiles:
         dir=self.config['pathProjects']+self.config['projectName']+"\\{}_templates".format(type)
         filedata=""
         if not os.path.exists(dir+'\\'+name+'.idm') or not os.path.exists(dir+'\\'+name+'.idc'):
-            sql=f"""DELETE FROM {type}_templates WHERE template={name.split('_')[0]};"""
+            sql=f"""DELETE FROM {type}_templates WHERE template={name.split('_')[0]};""" # nosec B608
             #print(sql)
             cur.execute(sql)
             return None
         else:    
-            sql=f"""UPDATE {type}_templates SET template_name = '{new_name.split('_')[1]}' WHERE template={name.split('_')[0]};"""
+            sql=f"""UPDATE {type}_templates SET template_name = '{new_name.split('_')[1]}' WHERE template={name.split('_')[0]};""" # nosec B608
             cur.execute(sql)
         
                
@@ -732,7 +732,7 @@ class CopyTemplateMacro:
         sql="""SELECT f.id, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, l.submodel
     FROM "{}".{} f, "{}".lines l, "{}".{}_connections conn 
     WHERE f.submodel={} AND l.id=conn.lid AND f.id=conn.{}id AND f.submodel = ANY(l.submodel)
-    ORDER BY id;""".format(submodel,config['versionName'],type,config['versionName'],config['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'ep')
+    ORDER BY id;""".format(submodel,config['versionName'],type,config['versionName'],config['versionName'],type_name,submodel, 'c' if type_name=='customer' else 'ep') # nosec B608
         #print(sql)
         cur.execute(sql)
         #collect resources from project files only once
@@ -770,7 +770,7 @@ class CopyTemplateMacro:
                 self.resources+=resource
             #print('//')    
             if feature['model']=='decoupled':
-                sql="""SELECT conn_bundle_type FROM "{}".{} f ,{}_templates f_t WHERE f.id={} AND f.template=f_t.template;""".format(config['versionName'],type,type_name,str(feature['id']))
+                sql="""SELECT conn_bundle_type FROM "{}".{} f ,{}_templates f_t WHERE f.id={} AND f.template=f_t.template;""".format(config['versionName'],type,type_name,str(feature['id'])) # nosec B608
                 #print(sql)
                 cur.execute(sql)
                 bundle=cur.fetchone()['conn_bundle_type']

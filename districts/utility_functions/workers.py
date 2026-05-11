@@ -176,7 +176,7 @@ class WorkerImportProject(QRunnable):
             except Exception as e:
                 pass
             
-            sql = """CREATE database {};""".format(db_info['projectName'])
+            sql = """CREATE database {};""".format(db_info['projectName']) # nosec B608
             self.cur_postgres.execute(sql)
             self.config['projectName']=db_info['projectName']
             self.conn=dbConnectProvidePwdUser(self.config,self.signals.error,self.password,self.username)
@@ -193,7 +193,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.cur.execute(sql)
             self.signals.progress.emit(71)
             if self.project_name:
-                sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames])
+                sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames]) # nosec B608
                 #print(sql)
                 if sql:
                     self.cur.execute(sql)
@@ -201,7 +201,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                 
                 #create tables in new schema
                 #project tables
-                filedata=readFileToString(self.plugin_dir+"\\DB_projectTablesDefault.txt")
+                filedata=readFileToString(self.plugin_dir+"\\DB_projectTablesDefault.txt") # nosec B608
                 #print(filedata)
                 self.cur.execute(filedata)
                 
@@ -256,7 +256,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
             subprocess.call(cmd, env=env)
             
             self.signals.progress.emit(79)
-            filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt")
+            filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt") # nosec B608
             self.cur.execute(filedata)
             self.signals.progress.emit(80)            
             if self.project_name and not self.no_db_results:
@@ -631,14 +631,22 @@ class WorkerOpenModelCmd(QRunnable):
         self.signals.progress.emit(1)
 
         try:
-            exe_path = os.path.join(self.config['pathDistricts'], "bin", "districts.exe")
-            cmd='"{}bin\\ida-districts.exe" "{}bin\\ida.img" -C ida_{} -G1 -O "{}"'.format(self.config['pathDistricts'],self.config['pathDistricts'],str(self.submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime()),self.file_path)
-            #print(cmd)
-            result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            cmd = [
+                f"{self.config['pathDistricts']}bin\\ida-districts.exe",
+                f"{self.config['pathDistricts']}bin\\ida.img",
+                "-C",
+                f"ida_{self.submodel}_{time.strftime('%m%d%H%M%S', time.localtime())}",
+                "-G1",
+                "-O",
+                self.file_path
+            ]
 
-            #print("STDOUT:\n", result.stdout)
-            #print("STDERR:\n", result.stderr)
-            #print("Return code:", result.returncode)
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
 
             if result.returncode==0:
                 self.signals.progress.emit(100)

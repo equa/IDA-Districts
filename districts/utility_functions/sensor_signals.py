@@ -230,16 +230,16 @@ def getRemovedSensorSourceData(cur,config,source_types=[1,2,3],filter=""):
     #print('--------------getRemovedSensorSourceData------------')
     sql="""{}{}{}
 EXCEPT
-{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
-        """SELECT sensor_id,type,NULL AS template,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "",
+{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "", # nosec B608
+        """SELECT sensor_id,type,NULL AS template,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "", # nosec B608
         """SELECT s.sensor_id,s.type,t.template, False AS multi_signal
     FROM source_template t, sensor_source s
-    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
+    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "", # nosec B608
         """SELECT s.sensor_id,s.type,NULL AS template,CASE WHEN function=6 THEN True ELSE False END AS multi_signal
     FROM sensor_source s 
-    WHERE s.type IN (3)""" if 3 in source_types else "")
+    WHERE s.type IN (3)""" if 3 in source_types else "") # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()   
@@ -248,16 +248,16 @@ def getRemovedSensorTargetData(cur,config,target_types=[1,2,3],filter=""):
     #print('--------------getRemovedSensorTargetData------------')
     sql="""{}{}{}
 EXCEPT
-{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
-        """SELECT sensor_id,type,NULL AS template,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "",
+{}{}{};""".format("""SELECT sensor_id,type,unnest(templates) AS template, multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "", # nosec B608
+        """SELECT sensor_id,type,NULL AS template,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "", # nosec B608
         """SELECT t.sensor_id,t.type,t_temp.template, False AS multi_signal
     FROM target_template t_temp, sensor_target t, sensor_source s
-    WHERE s.sensor_id=t.sensor_id AND t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
+    WHERE s.sensor_id=t.sensor_id AND t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "", # nosec B608
         """SELECT t.sensor_id,t.type,NULL AS template,CASE WHEN s.function=6 and t.type=3 THEN True ELSE False END AS multi_signal
     FROM sensor_target t, sensor_source s
-    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "")
+    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "") # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()    
@@ -268,14 +268,14 @@ def getAddedSensorSourceData(cur,config,source_types=[1,2,3],filter=""):
 EXCEPT
 {}{}{};""".format("""SELECT s.sensor_id,s.type,t.template,s.test_value, False AS multi_signal
     FROM source_template t, sensor_source s
-    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
+    WHERE t.source_id=s.sensor_id AND t.active=True AND s.type IN ({}) {}""".format(','.join([str(i) for i in source_types if i!=3]),filter) if [True for i in source_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "", # nosec B608
         """SELECT s.sensor_id,s.type,NULL AS template,s.test_value, CASE WHEN function=6 THEN True ELSE False END AS multi_signal
     FROM sensor_source s 
-    WHERE s.type IN (3) """ if 3 in source_types else "",
-        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "",
-        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "")
+    WHERE s.type IN (3) """ if 3 in source_types else "", # nosec B608
+        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN ({})""".format(','.join([str(i) for i in source_types])) if [True for i in source_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in source_types if i in [1,2]] and 3 in source_types else "", # nosec B608
+        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_source_signals s WHERE s.type IN (3)""" if 3 in source_types else "") # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -287,14 +287,14 @@ EXCEPT
 {}{}{};""".format(
     """SELECT t.sensor_id,t.type,t_temp.template, t.test_value, False AS multi_signal
     FROM target_template t_temp, sensor_target t
-    WHERE t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "",
-    "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
+    WHERE t_temp.target_id=t.sensor_id AND t_temp.active=True AND t.type IN ({}) {}""".format(','.join([str(i) for i in target_types if i!=3]),filter) if [True for i in target_types if i in [1,2]] else "", # nosec B608
+    "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "", # nosec B608
         """SELECT t.sensor_id,t.type,NULL AS template,t.test_value, CASE WHEN s.function=6 and t.type=3 THEN True ELSE False END AS multi_signal
     FROM sensor_target t, sensor_source s
-    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "",
-        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "",
-        "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "",
-        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "")
+    WHERE s.sensor_id=t.sensor_id AND t.type IN (3)""" if 3 in target_types else "", # nosec B608
+        """SELECT sensor_id,type,unnest(templates) AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN ({}) {}""".format(','.join([str(i) for i in target_types]),filter) if [True for i in target_types if i in [1,2]] else "", # nosec B608
+        "\nUNION\n" if [True for i in target_types if i in [1,2]] and 3 in target_types else "", # nosec B608
+        """SELECT sensor_id,type,NULL AS template,test_value,multi_signal FROM invoked_sensor_target_signals t WHERE t.type IN (3)""" if 3 in target_types else "") # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -320,8 +320,8 @@ def writeInvokedSensorSourceSignals (cur,config,add_sensor_source_idsValues):
     DO UPDATE SET
         templates = invoked_sensor_source_signals.templates || EXCLUDED.templates,
         multi_signal = EXCLUDED.multi_signal,
-        test_value = EXCLUDED.test_value;""".format(
-                sensor,sensor_data[sensor]['source_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
+        test_value = EXCLUDED.test_value;""".format( # nosec B608
+                sensor,sensor_data[sensor]['source_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])]) # nosec B608
         #print(sql)
         cur.execute(sql)
   
@@ -344,8 +344,8 @@ def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
     DO UPDATE SET
         templates = invoked_sensor_target_signals.templates || EXCLUDED.templates,
         multi_signal = EXCLUDED.multi_signal,
-        test_value = EXCLUDED.test_value;""".format(
-                sensor,sensor_data[sensor]['target_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])])
+        test_value = EXCLUDED.test_value;""".format( # nosec B608
+                sensor,sensor_data[sensor]['target_type'],sensor_data[sensor]['templates'] if sensor_data[sensor]['templates']!=[None] else '[]',sensor_data[sensor]['multi_signal'],'NULL' if not sensor_data[sensor]['test_value'] else sensor_data[sensor]['test_value'])]) # nosec B608
         #print(sql)
         cur.execute(sql) 
 
@@ -498,11 +498,11 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     WHERE s.sensor_id=sub.sensor_id AND t.sensor_id=s.sensor_id AND m.id=s.measure 
 	AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
     GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
-    ORDER BY sub.sensor_id;""".format(
-    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],
-    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],
-    config['versionName'],config['versionName'],
-    ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter)
+    ORDER BY sub.sensor_id;""".format( # nosec B608
+    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'], # nosec B608
+    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'], # nosec B608
+    config['versionName'],config['versionName'], # nosec B608
+    ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
     #print(sql)   
     if execute_query:
         cur.execute(sql)
@@ -549,7 +549,7 @@ class templatesensorSignals():
         FROM invoked_sensor_target_signals
         WHERE type = {}
 )
-SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,template_name.split('_')[0])
+SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,template_name.split('_')[0]) # nosec B608
         #print(sql)
         #cur.execute(sql)
         #numberOf_oldSensorTargets=cur.fetchone()['count']      

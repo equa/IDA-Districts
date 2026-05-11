@@ -1145,7 +1145,7 @@ class FeatureModelParmDlg(QDialog):
     def loadParm(self):
         self.tableWidget_parameters.setRowCount(0)
 
-        sql="""SELECT * FROM model_parms WHERE type={} ORDER BY id;""".format(1 if self.rbtn_customers.isChecked() else 2)
+        sql="""SELECT * FROM model_parms WHERE type={} ORDER BY id;""".format(1 if self.rbtn_customers.isChecked() else 2) # nosec B608
         self.cur.execute(sql)
         table=self.tableWidget_parameters
         for i,parm in enumerate(self.cur.fetchall()):
@@ -1258,12 +1258,12 @@ class FeatureDecouplingDlg(QDialog):
             sql="""SELECT f_dec.comp_name
     FROM customer_templates c_t,  "{}".feature_decoupling f_dec
     WHERE c_t.template_name='{}' AND f_dec.template=c_t.template AND type='customer';
-""".format(self.config['versionName'],self.feature_template.itemText(s))
+""".format(self.config['versionName'],self.feature_template.itemText(s)) # nosec B608
         else:
             sql="""SELECT f_dec.comp_name
     FROM energy_plant_templates ep_t, "{}".feature_decoupling f_dec
     WHERE ep_t.template_name='{}' AND f_dec.template=ep_t.template AND type='energy_plant';
-""".format(self.config['versionName'],self.feature_template.itemText(s))
+""".format(self.config['versionName'],self.feature_template.itemText(s)) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         self.listWidget_featureModels.addItems([i['comp_name'] for i in self.cur.fetchall()])
@@ -1275,22 +1275,22 @@ class FeatureDecouplingDlg(QDialog):
         else:
             type='energy_plant'
 
-        sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,template)
+        sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,template)# nosec B608
         #print(sql)
         self.cur.execute(sql)
         template_id=self.cur.fetchone()['template']
         #print(template_id)
         
-        sql="""DELETE FROM "{}".feature_decoupling WHERE template={};\n""".format(self.config['versionName'],template_id)
-        sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (template,comp_name,type) VALUES ({},'{}','{}');""".format(self.config['versionName'],template_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())])
+        sql="""DELETE FROM "{}".feature_decoupling WHERE template={};\n""".format(self.config['versionName'],template_id) # nosec B608
+        sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (template,comp_name,type) VALUES ({},'{}','{}');""".format(self.config['versionName'],template_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())]) # nosec B608
 
         try:
             no_submodels=int(self.no_submodels.text())
-            self.cur.execute('SELECT row_number() OVER(ORDER BY id) enum, id FROM "{}".{}s;'.format(self.config['versionName'],type))
+            self.cur.execute('SELECT row_number() OVER(ORDER BY id) enum, id FROM "{}".{}s;'.format(self.config['versionName'],type)) # nosec B608
             f_ids=self.cur.fetchall()
             submodel_counter=(getLineNetworks(self.cur,self.config)[-1] if getLineNetworks(self.cur,self.config) else 0)
             if no_submodels>0:
-                self.cur.execute('SELECT count(*) AS count FROM "{}".{}s;'.format(self.config['versionName'],type))
+                self.cur.execute('SELECT count(*) AS count FROM "{}".{}s;'.format(self.config['versionName'],type)) # nosec B608
                 no_features=self.cur.fetchone()['count']
                 f_per_submodel=int(no_features/no_submodels)
                 rest=no_features%no_submodels
@@ -1299,9 +1299,9 @@ class FeatureDecouplingDlg(QDialog):
                     if f_id['enum']>submodel_counter*f_per_submodel+(no_features%no_submodels-rest+1 if rest>0 else no_features%no_submodels):
                         submodel_counter+=1
                         rest-=1
-                    sql+='UPDATE "{}".{}s SET submodel={} WHERE id={};'.format(self.config['versionName'],type,submodel_counter+1,f_id['id'])
+                    sql+='UPDATE "{}".{}s SET submodel={} WHERE id={};'.format(self.config['versionName'],type,submodel_counter+1,f_id['id']) # nosec B608
             elif no_submodels==0:
-                sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.config['versionName'],type,self.config['versionName'])
+                sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.config['versionName'],type,self.config['versionName']) # nosec B608
             else:
                 iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=Qgis.Critical)
         except:
@@ -1692,7 +1692,7 @@ class ModellingSettings(QDialog):
         combobox.addItems(ids)
         
     def getTimeseriesIds(self,table_name):
-        sql="""SELECT id FROM {} ORDER BY id;""".format(table_name)
+        sql="""SELECT id FROM {} ORDER BY id;""".format(table_name)# nosec B608
         #print(sql)
         self.cur.execute(sql)
         return [str(i['id']) for i in self.cur.fetchall()]

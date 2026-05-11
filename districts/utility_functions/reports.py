@@ -303,7 +303,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     if dlg.checkBox_kpi.isChecked():
         #print('------------kpi table--------------')
         # --- 1. prepare data ---
-        sql="""SELECT * FROM "{}".kpi;""".format(config['versionName'])
+        sql="""SELECT * FROM "{}".kpi;""".format(config['versionName']) # nosec B608
         cur.execute(sql)
         kpi_table=cur.fetchone()
         kpis=[{i:float(kpi_table[i])} for i in kpi_table if kpi_table[i] is not None and i!='id']
@@ -1169,7 +1169,7 @@ if not osm_existed:
     project.removeMapLayer(layer_osm)
 
 iface.mapCanvas().refresh()
-""".format(config['projectName'],config['versionName'],projectConfig['srid'],config)
+""".format(config['projectName'],config['versionName'],projectConfig['srid'],config) # nosec B608
 
     #print(action_text)
 

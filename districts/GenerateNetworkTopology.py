@@ -165,22 +165,22 @@ class WorkerGenerateNetworkTopology(QRunnable):
                     
     def delUnconnCust(self):
         """Delete unconnected customers """
-        sql="""DELETE FROM temp.customers WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.streets_help sth WHERE ST_dWithIn(c.geom,sth.geom,{}));""".format(self.tolerance)
+        sql="""DELETE FROM temp.customers WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.streets_help sth WHERE ST_dWithIn(c.geom,sth.geom,{}));"""
         #print(sql)
-        self.cur.execute(sql)
+        self.cur.execute(sql,(self.tolerance,))
         
     def delUnconnLines(self):
         """Delete unconnected lines """
         sql="""DELETE FROM temp.streets_help WHERE id NOT IN (
     SELECT sth1.id FROM temp.streets_help sth1, temp.streets_help sth2 
         WHERE ST_dWithIn(sth1.geom,sth2.geom,{}) AND sth1.id != sth2.id
-        GROUP BY sth1.id);""".format(self.tolerance)
+        GROUP BY sth1.id);"""
         #print(sql)
-        self.cur.execute(sql)
+        self.cur.execute(sql,(self.tolerance,))
         
     def insertLinesFromTopology(self,version,network):
         """ INSERT Lines from topology"""
-        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network,zeta) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{},zeta FROM temp.streets_help;".format(network)
+        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network,zeta) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{},zeta FROM temp.streets_help;".format(network) # nosec B608
         #print(sql)
         self.cur.execute(sql)
     
@@ -198,18 +198,18 @@ SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv
     WHERE sub.conn_counter=1 AND shv.id=sub.id AND sub.id NOT IN (
         SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,temp.energy_plants ep
             WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{}) AND {} = ANY(c.network)
-            GROUP BY shv.id);""".format(self.tolerance,self.tolerance,network)
+            GROUP BY shv.id);""".format(self.tolerance,self.tolerance,network)  # nosec B608
         #print(sql)
         self.cur.execute(sql)      
         vertex_ids=','.join([str(i['id']) for i in self.cur.fetchall()])
         #print(vertex_ids)
         if vertex_ids:
             #delete lines in street_help  
-            sql="""DELETE FROM temp.streets_help WHERE source IN ({}) OR target IN ({});""".format(vertex_ids,vertex_ids)
+            sql="""DELETE FROM temp.streets_help WHERE source IN ({}) OR target IN ({});""".format(vertex_ids,vertex_ids)  # nosec B608
             #print(sql)
             self.cur.execute(sql)
             #delete vertixes in streets_help_vertices_pgr
-            sql="""DELETE FROM temp.streets_help_vertices_pgr shv WHERE id IN ({});""".format(vertex_ids,vertex_ids)
+            sql="""DELETE FROM temp.streets_help_vertices_pgr shv WHERE id IN ({});""".format(vertex_ids,vertex_ids)  # nosec B608
             #print(sql)
             self.cur.execute(sql)     
 
@@ -227,7 +227,7 @@ INSERT INTO temp.customers(geom,template,network)
 		WHERE sub.conn=1 AND shv.id=sub.id AND sub.id NOT IN (
             SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,temp.energy_plants ep 
                 WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{})
-                GROUP BY shv.id);""".format(self.addCustomers_template_customers,network,self.tolerance,self.tolerance)
+                GROUP BY shv.id);""".format(self.addCustomers_template_customers,network,self.tolerance,self.tolerance)  # nosec B608
         #print(sql)
         self.cur.execute(sql)
         
@@ -266,7 +266,7 @@ INSERT INTO temp.customers(geom,template,network)
     FROM   information_schema.tables 
     WHERE  table_schema = '{}'
     AND    table_name = 'terrain'
-    ) AS exists;""".format(version)
+    ) AS exists;""".format(version)  # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         if self.cur.fetchone()['exists']==True:
@@ -287,7 +287,7 @@ INSERT INTO temp.customers(geom,template,network)
                 GROUP BY sub.id,height
                 ORDER BY sub.id
     ) a
-    WHERE f.id=a.id;""".format(f,version,f,version)
+    WHERE f.id=a.id;""".format(f,version,f,version)  # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)
             
@@ -306,7 +306,7 @@ INSERT INTO temp.customers(geom,template,network)
             GROUP BY a.id
 )
 UPDATE temp.lines l SET geom=sub.geom
-    FROM sub WHERE sub.id=l.id;""".format(srid,version,version)
+    FROM sub WHERE sub.id=l.id;""".format(srid,version,version)  # nosec B608
             #print(sql) 
             self.cur.execute(sql) 
         else:
@@ -314,25 +314,25 @@ UPDATE temp.lines l SET geom=sub.geom
             sql="""Update temp.lines temp 
     SET geom=l.geom
     FROM (SELECT geom FROM {}.lines) l
-    WHERE ST_Equals(ST_Force2D(l.geom),ST_Force2D(temp.geom));""".format(version)
+    WHERE ST_Equals(ST_Force2D(l.geom),ST_Force2D(temp.geom));""".format(version)  # nosec B608
             #print(sql) 
-            self.cur.execute(sql)
+            self.cur.execute(sql)  # nosec B608
             
     def insertJunctionConnections(self,network):
         "insert node connections into table junction_connections   "
-        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,{}) AND l.network={};""".format(self.tolerance,network)
+        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,{}) AND l.network={};""".format(self.tolerance,network) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
     def insertCustomerConnections(self,network):
         "insert customer connections into table customer_connections"
-        sql="""INSERT INTO temp.customer_connections (cid,c_seq,lid) SELECT c.id, {}, l.id FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,{}) AND l.network={};""".format(1,self.tolerance,network)
+        sql="""INSERT INTO temp.customer_connections (cid,c_seq,lid) SELECT c.id, {}, l.id FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,{}) AND l.network={};""".format(1,self.tolerance,network) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
     def insertPlantConnections(self,version,network):
         "insert energy_plant connections  into table energy_plant_connections"
-        sql="""INSERT INTO temp.energy_plant_connections (epid,ep_seq,lid) SELECT ep.id,{},l.id FROM temp.energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,{}) AND l.network={};""".format(1,self.tolerance,network)
+        sql="""INSERT INTO temp.energy_plant_connections (epid,ep_seq,lid) SELECT ep.id,{},l.id FROM temp.energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,{}) AND l.network={};""".format(1,self.tolerance,network) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
@@ -346,7 +346,7 @@ UPDATE temp.lines l SET geom=sub.geom
         self.cur.execute(sql)
         sql="""UPDATE temp.junctions SET type=2 WHERE n_connections=1;"""
         self.cur.execute(sql)
-        sql="""UPDATE temp.junctions a SET zeta=b.zeta FROM (SELECT zeta,geom FROM {}.junctions) b WHERE ST_dWithin(a.geom,b.geom,{});""".format(self.config['versionName'],self.tolerance)
+        sql="""UPDATE temp.junctions a SET zeta=b.zeta FROM (SELECT zeta,geom FROM {}.junctions) b WHERE ST_dWithin(a.geom,b.geom,{});""".format(self.config['versionName'],self.tolerance) # nosec B608
         self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):
@@ -375,7 +375,7 @@ UPDATE temp.lines l SET geom=sub.geom
         while flag==True:
             inserted_jids=','.join(str(j) for j in self.inserted_jids)
             if inserted_jids:
-                inserted_jids="AND j.id NOT IN (SELECT jt.id FROM a.junctions j, temp.junctions jt WHERE st_dwithin(j.geom,jt.geom,"+self.tolerance+") AND j.id IN ("+inserted_jids+")) "
+                inserted_jids="AND j.id NOT IN (SELECT jt.id FROM a.junctions j, temp.junctions jt WHERE st_dwithin(j.geom,jt.geom,"+self.tolerance+") AND j.id IN ("+inserted_jids+")) "  # nosec B608
             sql="""WITH sub AS(
     SELECT nc.jid, array_agg(nc.lid) AS a
         FROM temp.junctions j, temp.junction_connections nc
@@ -385,7 +385,7 @@ UPDATE temp.lines l SET geom=sub.geom
 )
 SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2 
     WHERE l1.id=sub.a[1] AND l2.id=sub.a[2] AND l1.pipe_bundle_type_id=l2.pipe_bundle_type_id AND l1.network={} AND l2.network={} {}
-    ORDER BY jid LIMIT 1;""".format(network, network, inserted_jids)
+    ORDER BY jid LIMIT 1;""".format(network, network, inserted_jids) # nosec B608
             #print(sql)
             self.cur.execute(sql) 
             junction_conn=self.cur.fetchall()
@@ -404,25 +404,25 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
         COALESCE(l1.zeta,0) + COALESCE(l2.zeta,0)
     FROM temp.lines l1, temp.lines l2
     WHERE l1.id={} and l2.id={}
-    ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom) DESC LIMIT 1;""".format(network,lid1,lid2)                                              
+    ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom) DESC LIMIT 1;""".format(network,lid1,lid2) # nosec B608                                       
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.junction_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
+                sql="UPDATE temp.junction_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.customer_connections SET lid="+str(i)+", c_seq=1 WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
+                sql="UPDATE temp.customer_connections SET lid="+str(i)+", c_seq=1 WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.energy_plant_connections SET lid="+str(i)+", ep_seq=1 WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
+                sql="UPDATE temp.energy_plant_connections SET lid="+str(i)+", ep_seq=1 WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.lines WHERE id IN ("+str(lid1)+","+str(lid2)+");"
+                sql="DELETE FROM temp.lines WHERE id IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.junctions WHERE id="+str(jid)+";"
+                sql="DELETE FROM temp.junctions WHERE id="+str(jid)+";" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";"
+                sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
 
@@ -439,7 +439,7 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                             UNION 
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
                             )
-                    GROUP BY v.id ORDER BY v.id;""".format(network,self.tolerance,self.tolerance,self.tolerance)
+                    GROUP BY v.id ORDER BY v.id;""".format(network,self.tolerance,self.tolerance,self.tolerance) # nosec B608
         #print(sql) 
         self.cur.execute(sql)         
     
@@ -458,7 +458,7 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
     source integer,
     target integer,
     CONSTRAINT network_help_pkey PRIMARY KEY (id)
-);""".format(srid))
+);""".format(srid)) # nosec B608
 
         self.cur.execute("""DROP TABLE IF EXISTS temp.junctions;
 DROP TABLE IF EXISTS temp.lines;
@@ -475,20 +475,20 @@ CREATE SEQUENCE temp.junctions_id_seq OWNED BY temp.junctions.id;
 ALTER TABLE temp.junctions ALTER COLUMN id SET DEFAULT nextval('temp.junctions_id_seq');
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING constraints);
 CREATE SEQUENCE temp.lines_id_seq OWNED BY temp.lines.id;
-ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');""".format(version,version,version,version,version,version))
+ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');""".format(version,version,version,version,version,version)) # nosec B608
         self.cur.execute("""TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
 
         if self.keepTemplates:
-            self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks]))) # nosec B608
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks]))) # nosec B608
         else:
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type,network , {}, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type,network , {}, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks]))) # nosec B608
             field_names=''.join([','+i for i in getLayerAttributesName(layerName=tr('@default','customers')) if i not in ['id','geom','template','network']])
-            self.cur.execute("""INSERT INTO temp.customers (id,geom,template,network{}) SELECT id,geom,{},network{} FROM "{}".customers WHERE network && ARRAY[{}]; """.format(field_names,self.overrideTemplates_customers,field_names,version,','.join([i for i in self.networks])))
-        self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks])))
+            self.cur.execute("""INSERT INTO temp.customers (id,geom,template,network{}) SELECT id,geom,{},network{} FROM "{}".customers WHERE network && ARRAY[{}]; """.format(field_names,self.overrideTemplates_customers,field_names,version,','.join([i for i in self.networks]))) # nosec B608
+        self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks]))) # nosec B608
         self.cur.execute("""SELECT setval('temp.customers_id_seq', (SELECT MAX(id) FROM temp.customers));""")
-        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version))
-        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_01;""".format(version))
+        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version)) # nosec B608
+        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_01;""".format(version)) # nosec B608
         
     def connectPlantsNetwork(self,version,network):            
         "insert energy plant connections into temp.network_help"  
@@ -498,27 +498,15 @@ ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');
         WHERE l.network={} AND {}=ANY(ep.network)
         GROUP BY ep.id
 )
-INSERT INTO temp.streets_help(geom,pipe_bundle_type_id) 
-    SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)),{}
-    FROM sub, "{}".lines l, temp.energy_plants ep
-    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist and sub.min_dist>0 AND l.network={} AND {}=ANY(ep.network);""".format(
-    version,network,network,self.connectPlants_template_pipeBundle,version,network,network)
-        sql="""With sub AS(
-    SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist 
-        FROM "{}".lines l, temp.energy_plants ep 
-        WHERE l.network={} AND {}=ANY(ep.network)
-        GROUP BY ep.id
-)
 SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)) as geom
     FROM sub, "{}".lines l, temp.energy_plants ep
-    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist and sub.min_dist>0 AND l.network={} AND {}=ANY(ep.network);""".format(
-    version,network,network,version,network,network)
+    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist and sub.min_dist>0 AND l.network={} AND {}=ANY(ep.network);""".format(version,network,network,version,network,network) # nosec B608
         #print("""insert energy plant connections: {}""".format(sql))
         self.cur.execute(sql)
         ep_lines=self.cur.fetchall()
         
         if ep_lines:
-            sql='\n'.join(["""INSERT INTO temp.streets_help(geom) VALUES ('{}');""".format(i['geom']) for i in ep_lines])
+            sql='\n'.join(["""INSERT INTO temp.streets_help(geom) VALUES ('{}');""".format(i['geom']) for i in ep_lines]) # nosec B608
             self.cur.execute(sql)
         
         if checkLoopInConnections(self.cur,self.config['versionName'],'temp.streets_help','energy_plant'):
@@ -534,25 +522,15 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geo
         WHERE l.network={} AND {} =ANY(c.network)
         GROUP BY c.id
 )
-INSERT INTO temp.streets_help(geom,pipe_bundle_type_id) 
-    SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)),{}
-    FROM sub, "{}".lines l, temp.customers c
-    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist AND sub.min_dist>0 AND l.network={} AND {} =ANY(c.network);""".format(version,network,network,self.connectCustomers_template_pipeBundle,version,network,network)
-        sql="""With sub AS(
-    SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist 
-        FROM "{}".lines l, temp.customers c 
-        WHERE l.network={} AND {} =ANY(c.network)
-        GROUP BY c.id
-)
 SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) as geom
     FROM sub, "{}".lines l, temp.customers c
-    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist AND sub.min_dist>0 AND l.network={} AND {} =ANY(c.network);""".format(version,network,network,version,network,network)
+    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist AND sub.min_dist>0 AND l.network={} AND {} =ANY(c.network);""".format(version,network,network,version,network,network) # nosec B608
         #print("""insert customers connections: {}""".format(sql))
         self.cur.execute(sql)
         customer_lines=self.cur.fetchall()
         
         if customer_lines:
-            sql='\n'.join(["""INSERT INTO temp.streets_help(geom) VALUES ('{}');""".format(i['geom']) for i in customer_lines])
+            sql='\n'.join(["""INSERT INTO temp.streets_help(geom) VALUES ('{}');""".format(i['geom']) for i in customer_lines]) # nosec B608
             self.cur.execute(sql)
 
         if checkLoopInConnections(self.cur,'temp','temp.streets_help','customer'):
@@ -564,7 +542,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
         """ST_split does not work (don`t know why) that`s why: Split the lines per feature: 1) get list of features; 2) loop over features """
         sql="""SELECT nh.id AS nh_id,f.id AS f_id
     FROM "{}".{} f,temp.network_help nh
-    WHERE ST_dWithIn(f.geom, nh.geom,{}) AND NOT ST_dWithIn(St_StartPoint(nh.geom), f.geom,{}) AND NOT ST_dWithIn(St_EndPoint(nh.geom), f.geom,{}) AND nh.network = ANY (f.network);""".format(version,mode,self.tolerance,self.tolerance,self.tolerance)
+    WHERE ST_dWithIn(f.geom, nh.geom,{}) AND NOT ST_dWithIn(St_StartPoint(nh.geom), f.geom,{}) AND NOT ST_dWithIn(St_EndPoint(nh.geom), f.geom,{}) AND nh.network = ANY (f.network);""".format(version,mode,self.tolerance,self.tolerance,self.tolerance) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()
@@ -581,7 +559,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
     )
     SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,type, network ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
 )
-INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id'])
+INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id']) # nosec B608
             #print(sql)
             self.cur.execute(sql)
     
@@ -595,7 +573,7 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
         WHERE ST_dWithIn(nh.geom,ST_Force2D(l.geom),{}) 
             AND nh.id NOT IN (SELECT nh.id FROM temp.network_help nh, "{}".lines l WHERE nh.geom=ST_Force2D(l.geom) AND l.network != {}) 
             AND l.network= {} 
-            GROUP BY nh.geom;""".format(self.config['versionName'],self.tolerance,self.config['versionName'],network,network)   
+            GROUP BY nh.geom;""".format(self.config['versionName'],self.tolerance,self.config['versionName'],network,network) # nosec B608
         #print(sql)
         self.cur.execute(sql) 
 
@@ -613,7 +591,7 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
         sql="TRUNCATE topology.topology CASCADE;"
         self.cur.execute(sql)    
         #print(sql)
-        sql="""SELECT topology.CreateTopology('streets_help_topo', {},{});""".format(srid,self.tolerance)
+        sql="""SELECT topology.CreateTopology('streets_help_topo', {},{});""".format(srid,self.tolerance) # nosec B608
         self.cur.execute(sql)    
         #print(sql) 
         sql="ALTER TABLE temp.streets_help DROP COLUMN IF EXISTS topo_geom;"
@@ -622,13 +600,13 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
         sql="SELECT topology.AddTopoGeometryColumn('streets_help_topo','temp','streets_help','topo_geom','LINESTRING');"
         self.cur.execute(sql)    
         #print(sql)
-        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance)
+        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance) # nosec B608
         self.cur.execute(sql) 
 
         sql="TRUNCATE temp.streets_help;"
         #print(sql)
         self.cur.execute(sql)    
-        sql="INSERT INTO temp.streets_help (geom,type) SELECT geom,{} FROM streets_help_topo.edge_data;".format(0)
+        sql="INSERT INTO temp.streets_help (geom,type) SELECT geom,{} FROM streets_help_topo.edge_data;".format(0) # nosec B608
         #print(sql)  
         self.cur.execute(sql) 
         
@@ -636,7 +614,7 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
             sql="""UPDATE temp.streets_help a 
     SET pipe_bundle_type_id={}
     FROM (SELECT * FROM (VALUES {}) AS temp(geom)) b
-    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectCustomers_template_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in customer_lines]),self.tolerance)
+    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectCustomers_template_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in customer_lines]),self.tolerance) # nosec B608
             #print(sql)
             self.cur.execute(sql) 
         
@@ -644,14 +622,14 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
             sql="""UPDATE temp.streets_help a 
     SET pipe_bundle_type_id={}
     FROM (SELECT * FROM (VALUES {}) AS temp(geom)) b
-    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectPlants_template_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in ep_lines]),self.tolerance)
+    WHERE st_dwithin(ST_LineSubstring(a.geom,0.1,0.9),b.geom::geometry,{});""".format(self.connectPlants_template_pipeBundle,','.join(["('"+str(i['geom'])+"')" for i in ep_lines]),self.tolerance) # nosec B608
             #print(sql)
             self.cur.execute(sql) 
             
         sql="""UPDATE temp.streets_help a 
     SET type=b.type,pipe_bundle_type_id=b.pipe_bundle_type_id,zeta=b.zeta
     FROM (SELECT id,geom,type,pipe_bundle_type_id,zeta FROM temp.network_help) b 
-    WHERE St_dWithIn(b.geom,ST_LineSubstring (a.geom,0.1,0.9),{});""".format(self.tolerance)
+    WHERE St_dWithIn(b.geom,ST_LineSubstring (a.geom,0.1,0.9),{});""".format(self.tolerance) # nosec B608
         #print(sql)
         self.cur.execute(sql) 
         
@@ -669,7 +647,7 @@ UPDATE temp.streets_help a SET id = sub.new_id
         sql="DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;"
         self.cur.execute(sql)    
         
-        sql="SELECT pgr_createTopology('temp.streets_help',{},'geom','id',clean:='true');".format(self.tolerance)
+        sql="SELECT pgr_createTopology('temp.streets_help',{},'geom','id',clean:='true');".format(self.tolerance) # nosec B608
         #print(sql)                 
         self.cur.execute(sql)    
         
@@ -678,14 +656,14 @@ UPDATE temp.streets_help a SET id = sub.new_id
         #print(sql)
         self.cur.execute(sql)
         
-        sql="""SELECT sh.id FROM temp.streets_help_vertices_pgr v,temp.streets_help sh WHERE v.chk!=0 AND (v.id=sh.source OR v.id=sh.target);""".format(self.tolerance)
+        sql="""SELECT sh.id FROM temp.streets_help_vertices_pgr v,temp.streets_help sh WHERE v.chk!=0 AND (v.id=sh.source OR v.id=sh.target);""".format(self.tolerance) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         sh_ids=self.cur.fetchall()
         #print(sh_ids)
         
         if sh_ids:
-            sql="""DELETE FROM temp.streets_help WHERE id IN ({});""".format(",".join([str(i['id']) for i in sh_ids]))
+            sql="""DELETE FROM temp.streets_help WHERE id IN ({});""".format(",".join([str(i['id']) for i in sh_ids])) # nosec B608
             #print(sql)
             self.cur.execute(sql)
         
@@ -702,12 +680,12 @@ UPDATE temp.streets_help a SET id = sub.new_id
         self.cur.execute(sql)    
         #print(sql)                     
         #create network topology
-        sql="SELECT pgr_createTopology('temp.streets_help',{},'geom','id',clean:='true');".format(str(0.000000000000001))
+        sql="SELECT pgr_createTopology('temp.streets_help',{},'geom','id',clean:='true');".format(str(0.000000000000001)) # nosec B608
         self.cur.execute(sql)    
         #print(sql)  
         
        #graph analyze for short intersections
-        sql="""SELECT pgr_analyzeGraph('temp.streets_help', {}, the_geom := 'geom', id := 'id');""".format(str(0.000000000000001))
+        sql="""SELECT pgr_analyzeGraph('temp.streets_help', {}, the_geom := 'geom', id := 'id');""".format(str(0.000000000000001)) # nosec B608
         #print(sql)
         self.cur.execute(sql)            
             
@@ -716,7 +694,7 @@ UPDATE temp.streets_help a SET id = sub.new_id
             SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,temp.energy_plants ep
                 WHERE ST_dWithIN(shv.the_geom,c.geom,1e-15) OR ST_dWithIN(shv.the_geom,ep.geom,1e-15))
         GROUP BY sh.id
-)""".format(self.tolerance)
+)""".format(self.tolerance) # nosec B608
         #print(sql)
         self.cur.execute(sql)     
         
@@ -725,7 +703,7 @@ UPDATE temp.streets_help a SET id = sub.new_id
         FROM temp.network_help nh, temp.streets_help sth, "{}".lines l
         WHERE ST_dWithIN(ST_LineSubString(sth.geom,0.45,0.55),nh.geom,{}) AND l.network={} AND ST_EQUALS(l.geom,nh.geom)
 )    
-UPDATE temp.streets_help sh SET type =sub.type, pipe_bundle_type_id=sub.pipe_bundle_type_id FROM sub WHERE sub.id =sh.id;""".format(self.config['versionName'],self.tolerance,network)
+UPDATE temp.streets_help sh SET type =sub.type, pipe_bundle_type_id=sub.pipe_bundle_type_id FROM sub WHERE sub.id =sh.id;""".format(self.config['versionName'],self.tolerance,network) # nosec B608
         #print(sql)
         self.cur.execute(sql) 
         

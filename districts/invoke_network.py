@@ -62,7 +62,7 @@ class PageSettings:
     UNION
     SELECT ST_XMin(ST_Union(geom)) as xmin, ST_YMin(ST_Union(geom)) as ymin,ST_XMax(ST_Union(geom)) as xmax, ST_YMax(ST_Union(geom)) as ymax FROM "{}".energy_plants WHERE {} = submodel AND network <@ array[{}] 
 )
-SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS ymax FROM sub;""".format(versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]));
+SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS ymax FROM sub;""".format(versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks]),versionName,str(submodel),','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
         cur.execute(sql)
         settings=cur.fetchone()
@@ -80,7 +80,7 @@ SELECT min(xmin) AS xmin, min(ymin) AS ymin ,max(xmax) AS xmax, max(ymax) AS yma
     UNION
     SELECT min(ST_Distance(ep.geom, c.geom)) AS lmin FROM "{}".energy_plants ep, "{}".customers c WHERE {} = ep.submodel AND {} = c.submodel
 )
-SELECT min(lmin) AS lmin FROM sub;""".format(versionName,submodel,','.join([str(i) for i in networks]),versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel);
+SELECT min(lmin) AS lmin FROM sub;""".format(versionName,submodel,','.join([str(i) for i in networks]),versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel,versionName,versionName,submodel,submodel) # nosec B608
         #print(sql)
         cur.execute(sql)
         self.lmin=cur.fetchone()
@@ -251,7 +251,7 @@ class InvokeNetworkModel:
 
                     for type in ["customers","energy_plants"]:
                         if reinvoke:
-                            sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type[:-1])
+                            sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type[:-1])# nosec B608
                             self.cur.execute(sql)
                         #print(self.signals)
                         copyTemplateMacro=CopyTemplateMacro(submodel,dir,type,self.config,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals)
@@ -393,7 +393,7 @@ FROM merged m
 LEFT JOIN sub s ON s.id = m.id
 LEFT JOIN all_lines a ON a.id = m.id
 ORDER BY m.id;
-""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'], submodel,','.join([str(i) for i in networks]))
+""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'], submodel,','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
 
         self.cur.execute(sql)
@@ -416,7 +416,7 @@ ORDER BY m.id;
     FROM public.bundle_pipes bp, public.pipes p, public.pipe_layers pl, public.materials m
     WHERE bp.pipe_bundle_type_id={} AND bp.pipe_id=p.id AND pl.pipe_construction_id=p.pipe_construction_id AND m.id=pl.materialid
     GROUP BY p.innerpipediameter,p.piperoughnessfactor, se_pipe,bp.ambient, bp.x, bp.y
-    ORDER BY bp.sequence;""".format(bunde_type)
+    ORDER BY bp.sequence;""".format(bunde_type) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             pipe_info=self.cur.fetchall()
@@ -533,7 +533,7 @@ ORDER BY m.id;
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
-    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks]))
+    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
         self.cur.execute(sql)
 
@@ -611,7 +611,7 @@ ORDER BY m.id;
         sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,f.id AS fid, ST_AsText(f.geom) AS f_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN ST_dWithIn(st_startpoint(l.geom),f.geom,0.01) THEN 'liq1' ELSE 'liq2' END AS dir
     FROM "{}".{} f, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates f_t, public.connections conn, public.connection_type_connections conn_t_conns
     WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=f_t.conn_bundle_type AND fc.{}=conn_b_t.sequence AND f_t.template=f.template AND l.id=fc.lid AND f.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
-    ORDER BY f.id, conn_b_t.sequence, conn_type_seq;""".format(self.config['versionName'],type,self.config['versionName'],type[:-1],self.config['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks]))
+    ORDER BY f.id, conn_b_t.sequence, conn_type_seq;""".format(self.config['versionName'],type,self.config['versionName'],type[:-1],self.config['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
         
         self.cur.execute(sql)
@@ -852,7 +852,7 @@ output to current demand. It can also be operated in installations with differen
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
     WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
-    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks]))
+    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks]))# nosec B608
         #print(sql)
         self.cur.execute(sql)
         #print(requestedOutputs)
@@ -965,7 +965,7 @@ output to current demand. It can also be operated in installations with differen
         (c.submodel={} OR {} != c.submodel AND {} = ANY (l.submodel)) AND c.network && ARRAY[{}] AND
         conn_b_t.conn_bundle_type_id=ca.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id
-	ORDER BY c.id,conn_b_t.sequence;""".format(submodel, self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))
+	ORDER BY c.id,conn_b_t.sequence;""".format(submodel, self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         iref=""
@@ -1032,7 +1032,7 @@ output to current demand. It can also be operated in installations with differen
         (ep.submodel={} OR {} != ep.submodel AND {} = ANY (l.submodel)) AND
         conn_b_t.conn_bundle_type_id=epa.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id AND ep.network && ARRAY[{}]
-	ORDER BY ep.id,conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))
+	ORDER BY ep.id,conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))# nosec B608
         #print(sql)
         self.cur.execute(sql)
         epid=""

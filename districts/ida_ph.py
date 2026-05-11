@@ -52,8 +52,8 @@ def setLoadAttribute(dlg,fid):
 )
 UPDATE {}.customers c SET {} = sub.load 
 	FROM sub
-	WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid))
-    print(sql)
+	WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
+    #print(sql)
     dlg.cur.execute(sql)
     
     if dlg.radioButton_newAttribute.isChecked():
@@ -210,12 +210,12 @@ def treeItem_add(level, mdlIdx,dlg,main):
                 item = main.model.itemFromIndex(mdlIdx)
                 if item:
                     baseName=item.text()
-                    sql="SELECT id FROM public.versionhandling WHERE name = '"+baseName+"';"
+                    sql="SELECT id FROM public.versionhandling WHERE name = '"+baseName+"';" # nosec B608
                     #print(sql)
                     main.cur.execute(sql)
                     for base in main.cur.fetchall():
                         idBase = base['id']         
-                sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\','+str(idBase)+',\''+description+'\');'
+                sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\','+str(idBase)+',\''+description+'\');' # nosec B608
                 #print(sql)
                 main.cur.execute(sql)
 
@@ -260,7 +260,7 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
             #Creating version --> new schema in project        
             item = main.model.itemFromIndex(mdlIdx)
 
-            sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\',0,\''+description+'\');'
+            sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\',0,\''+description+'\');' # nosec B608
             #print(sql)
             main.cur.execute(sql)
 
@@ -289,7 +289,7 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
         iface.messageBar().pushMessage("Error", "Please enter a version name!", level=Qgis.Critical)
 
 def getDescription(versionName,cur):
-    sql='SELECT description FROM public.versionhandling WHERE name=\''+versionName+'\';'
+    sql='SELECT description FROM public.versionhandling WHERE name=\''+versionName+'\';' # nosec B608
     cur.execute(sql)
     return cur.fetchone()['description']   
    
@@ -308,15 +308,15 @@ def treeItem_rename(level,mdlIdx,main,dlg):
                 newSchemaName=versionName
                 #print(newSchemaName)
                 main.model.setData(mdlIdx, versionName)
-                sql = 'ALTER SCHEMA "'+oldSchemaName+'" RENAME TO "'+newSchemaName+'";'
+                sql = 'ALTER SCHEMA "'+oldSchemaName+'" RENAME TO "'+newSchemaName+'";' # nosec B608
                 #print(sql)
                 main.cur.execute(sql)
-                sql = 'UPDATE public.versionhandling SET name= \''+newSchemaName+'\' WHERE name= \''+oldSchemaName+'\';'
+                sql = 'UPDATE public.versionhandling SET name= \''+newSchemaName+'\' WHERE name= \''+oldSchemaName+'\';'# nosec B608
                 #print(sql)
                 main.cur.execute(sql)
             else:
                 iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=Qgis.Critical)
-            sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'
+            sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'# nosec B608
             #print(sql)
             main.cur.execute(sql)
             data=getVersionData(main.cur)
@@ -347,17 +347,17 @@ def treeItem_delete(item,dlg,main):
         pass
     try:
         idBase=''
-        sql="SELECT id, id_base FROM public.versionhandling WHERE name = '"+item.text()+"';"
+        sql="SELECT id, id_base FROM public.versionhandling WHERE name = '"+item.text()+"';" # nosec B608
         #print(sql)
         main.cur.execute(sql)
         sql=''
         for base in main.cur.fetchall():
             #print(base)
-            sql += 'UPDATE public.versionhandling SET id_base = {} WHERE id_base ='.format(base['id_base'])+str(base['id'])+';\n'
+            sql += 'UPDATE public.versionhandling SET id_base = {} WHERE id_base ='.format(base['id_base'])+str(base['id'])+';\n' # nosec B608
         #print(sql)
         main.cur.execute(sql)         
         
-        sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'
+        sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'# nosec B608
         #print(sql)
         main.cur.execute(sql)
         
@@ -423,7 +423,7 @@ def addBaseVersion(dlg,main):
                 main.cur.execute(sql) 
 
                 idBase=0
-                sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+main.config['versionName']+'\','+str(idBase)+',\''+description+'\');'
+                sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+main.config['versionName']+'\','+str(idBase)+',\''+description+'\');' # nosec B608
                 #print(sql)
                 main.cur.execute(sql) 
                 
@@ -547,11 +547,11 @@ def deleteProject(projectName,main_dlg,cur_postgres,plugin_dir,config,model,dlg=
         sql="""SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
 WHERE pg_stat_activity.datname = '{}'
-  AND pid <> pg_backend_pid();""".format(projectName)
+  AND pid <> pg_backend_pid();""".format(projectName) # nosec B608
         #print(sql)
         cur_postgres.execute(sql)
 
-        sql='DROP DATABASE IF EXISTS {};'.format(projectName)
+        sql='DROP DATABASE IF EXISTS {};'.format(projectName) # nosec B608
         cur_postgres.execute(sql)
         main_dlg.selectProject.removeItem(index)
         

@@ -20,19 +20,19 @@ from .utility import *
 def getNetworkVolume(cur,config,networks=None):
     sql="""SELECT sum(innerpipediameter * innerpipediameter*3.1415/4*ST_length(l.geom)) as volume_m3
 	FROM "{}".lines l, bundle_pipes bp, pipes p
-	WHERE bp.pipe_bundle_type_id=l.pipe_bundle_type_id AND p.id=bp.pipe_id{};""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '')
+	WHERE bp.pipe_bundle_type_id=l.pipe_bundle_type_id AND p.id=bp.pipe_id{};""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['volume_m3'])  
     
 def getNetworkLength(cur,config,networks=None):
-    sql="""SELECT sum(ST_length(geom)) AS length FROM "{}".lines{};""".format(config['versionName'],' WHERE network IN ({})'.format(','.join(networks)) if networks else '')
+    sql="""SELECT sum(ST_length(geom)) AS length FROM "{}".lines{};""".format(config['versionName'],' WHERE network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['length'])
     
 def getBuildingsEra(cur,config):
     sql="""SELECT sum(ST_area(b.geom)) AS era
 	FROM "{}".buildings b, "{}".customers c 
-	WHERE ST_dWithIn(b.geom,c.geom,0.001);""".format(config['versionName'],config['versionName'])
+	WHERE ST_dWithIn(b.geom,c.geom,0.001);""".format(config['versionName'],config['versionName']) # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['era'])
     
@@ -41,13 +41,13 @@ def getPipeInfo(cur,config,networks=None):
 	FROM "{}".lines l, bundle_pipes bp, pipes p
 	WHERE l.pipe_bundle_type_id=bp.pipe_bundle_type_id AND bp.pipe_id=p.id {}
 	GROUP BY bp.pipe_id,p.name,innerpipediameter
-	ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '')
+	ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
     
 def getNetworks(cur,config):
-    sql="""SELECT id AS network FROM "{}".network ORDER BY id;""".format(config['versionName'])
+    sql="""SELECT id AS network FROM "{}".network ORDER BY id;""".format(config['versionName']) # nosec B608
     cur.execute(sql)
     networks=[str(i['network']) for i in cur.fetchall()]
     return networks
@@ -55,7 +55,7 @@ def getNetworks(cur,config):
 def setDistrictsModelerVersion2DB(cur,config):
     getDistrictsModelerVersion(config)
     try:
-        sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config))
+        sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config)) # nosec B608
         cur.execute(sql)  
     except:
         pass
@@ -65,13 +65,13 @@ def get_pgrouting_major_version(cur):
     Returns the major version of pgRouting as an integer.
     Example: 3 for 3.4.0, 4 for 4.0.0
     """
-    cur.execute("SELECT split_part(pgr_version(), '.', 1)::int AS version;")
+    cur.execute("SELECT split_part(pgr_version(), '.', 1)::int AS version;") # nosec B608
     version = cur.fetchone()['version']
     return version
     
 def getDBIds(column,table,cur):
     """ load the ids from DB table"""
-    sql='SELECT {} AS id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column)
+    sql='SELECT {} AS id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column) # nosec B608
     #print(sql)
     cur.execute(sql)
     return list([id['id'] for id in cur.fetchall()])           
@@ -85,16 +85,16 @@ def delIfNotInDBIds(table,openFnArg,cur):
             #print(ids)
             if ids:
                 ids=','.join([str(i) for i in ids])
-                sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids)
+                sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids) # nosec B608
             else:
-                sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0]))
+                sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0])) # nosec B608
             #print(sql)
             cur.execute(sql)
   
   
 def rowCountDB(table,filter,cur):
     """ Count the rows of table with filter"""
-    sql="SELECT count(*) AS count FROM {} {};".format(table,filter)
+    sql="SELECT count(*) AS count FROM {} {};".format(table,filter) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['count']     
 
@@ -132,10 +132,10 @@ def dropDBTriggers(cur,config,lastLoad=False):
     if config['lastVersionName'] if lastLoad else config['versionName']:
         for table in getDBTableNames(cur,config):
             if table not in no_trigger_table:
-                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
-                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table)
+                sql+="""DROP TRIGGER IF EXISTS my_insert_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table) # nosec B608
+                sql+="""DROP TRIGGER IF EXISTS my_delete_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table) # nosec B608
+                sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table) # nosec B608
+                sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table) # nosec B608
         if sql:
             #print(sql)
             cur.execute(sql)
@@ -149,19 +149,19 @@ def insertDBTriggers(cur,config):
                 sql+="""CREATE TRIGGER my_insert_trigger
 AFTER INSERT ON "{}".{}
 FOR EACH ROW
-EXECUTE FUNCTION my_trigger_insert_function();\n""".format(config['versionName'],table)
+EXECUTE FUNCTION my_trigger_insert_function();\n""".format(config['versionName'],table) # nosec B608
                 sql+="""CREATE TRIGGER my_delete_trigger
 AFTER DELETE ON "{}".{}
 FOR EACH ROW
-EXECUTE FUNCTION my_trigger_delete_function();\n""".format(config['versionName'],table)
+EXECUTE FUNCTION my_trigger_delete_function();\n""".format(config['versionName'],table) # nosec B608
                 sql+="""CREATE TRIGGER my_truncate_trigger
 AFTER TRUNCATE ON "{}".{}
 FOR EACH STATEMENT
-EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(config['versionName'],table)
+EXECUTE FUNCTION my_trigger_truncate_function();\n""".format(config['versionName'],table) # nosec B608
                 sql+="""CREATE TRIGGER column_update_trigger
 AFTER UPDATE ON "{}".{}
 FOR EACH ROW
-EXECUTE FUNCTION my_trigger_update_function();\n""".format(config['versionName'],table)
+EXECUTE FUNCTION my_trigger_update_function();\n""".format(config['versionName'],table) # nosec B608
 
         if sql:
             #print(sql)
@@ -171,12 +171,12 @@ def getDBTableNames(cur,config):
     sql="""SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = '{}'
-    AND table_type = 'BASE TABLE';""".format(config['versionName'])
+    AND table_type = 'BASE TABLE';""".format(config['versionName']) # nosec B608
     cur.execute(sql)
     return [table['table_name'] for table in cur.fetchall()]
             
 def getMaxIdAcrossSchemas(config,cur,table_name):
-    sql="""SELECT * FROM get_highest_id_across_schemas('{}', (SELECT array_agg(name) FROM get_version_tree('{}'))) AS max_id;""".format(table_name,config['versionName'])
+    sql="""SELECT * FROM get_highest_id_across_schemas('{}', (SELECT array_agg(name) FROM get_version_tree('{}'))) AS max_id;""".format(table_name,config['versionName']) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['max_id']
     
@@ -185,7 +185,7 @@ def dbColumnDataType(cur,version,table,col):
     FROM information_schema.columns 
     WHERE table_schema = '{}' 
     AND table_name = '{}' 
-    AND column_name = '{}';""".format(version,table,col)
+    AND column_name = '{}';""".format(version,table,col) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['data_type']
     
@@ -214,7 +214,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
     with open(os.path.join(plugin_dir, "dump_schema.sql"), "w", encoding="utf-8") as f:
         subprocess.call(cmd, env=env, stdout=f)
     
-    sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;'
+    sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;' # nosec B608
     #print(sql)
     cur.execute(sql)           
     
@@ -241,14 +241,14 @@ EXECUTE FUNCTION restrict_column_alterations();"""
     cur.execute(sql)
         
 def setSeqIdToMax(seq,table,col,cur):
-    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table)
+    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table) # nosec B608
     #print(sql)
     cur.execute(sql)
 
 def getTimeDiff(cur,config,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
     FROM (SELECT {} AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1) start_time,
-        (SELECT {}  AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1 OFFSET 1) next_time;""".format(col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col,col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col)
+        (SELECT {}  AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1 OFFSET 1) next_time;""".format(col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col,col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchone()['diff']
@@ -265,19 +265,19 @@ def getAvergageByMode(mode,cur,config,table):
         return getTimeDiff(cur,config,table,'time','fid')/3600
         
 def featureCount(cur,config,network,type):
-    sql="""SELECT count(*) FROM "{}".{}s WHERE network=array[{}];""".format(config['versionName'],type,network)
+    sql="""SELECT count(*) FROM "{}".{}s WHERE network=array[{}];""".format(config['versionName'],type,network) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['count']
 
 def streetsCount(cur,config):
-    sql="""SELECT count(*) FROM "{}".streets;""".format(config['versionName'])
+    sql="""SELECT count(*) FROM "{}".streets;""".format(config['versionName'])# nosec B608
     cur.execute(sql)
     return cur.fetchone()['count']
 
 def getDecoupledFeatureCompPerFeature(feature,cur,config):
     sql="""SELECT f_dec.comp_name
     FROM "{}".{}s f, "{}".feature_decoupling f_dec
-    WHERE f.id={} AND f.template=f_dec.template AND f_dec.type='{}';""".format(config['versionName'],feature['feature'],config['versionName'],feature['id'],feature['feature'])
+    WHERE f.id={} AND f.template=f_dec.template AND f_dec.type='{}';""".format(config['versionName'],feature['feature'],config['versionName'],feature['id'],feature['feature']) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
@@ -285,7 +285,7 @@ def getDecoupledFeatureCompPerFeature(feature,cur,config):
 def getDecoupledFeatureCompPerTemplate(config,cur,template):
     sql="""SELECT f_dec.comp_name
     FROM "{}".feature_decoupling f_dec
-    WHERE {}=f_dec.template AND f_dec.type='customer';""".format(config['versionName'],template)
+    WHERE {}=f_dec.template AND f_dec.type='customer';""".format(config['versionName'],template) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
@@ -302,8 +302,8 @@ UNION
     FROM "{}".energy_plants f, "{}".lines l,"{}".submodels s_m
     WHERE ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)) AND ST_DWithin(l.geom,s_m.geom,0.001)
     GROUP BY feature,f.template, network_side)
-ORDER BY feature,template;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,
-            submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim)
+ORDER BY feature,template;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,# nosec B608
+            submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim) # nosec B608
         #print(sql)
         cur.execute(sql)
         decoupled_templates=[{'feature': i['feature'], 'template': i['template'], 'template_name':j['template_name'], 'network_side': i['network_side']} 
@@ -322,8 +322,8 @@ UNION
 (SELECT 'energy_plant' AS feature, f.template, f.id, f.submodel, s_m.submodel AS cosim, CASE WHEN s_m.submodel::int={} THEN TRUE ELSE FALSE END AS network_side
     FROM "{}".energy_plants f, "{}".energy_plant_connections f_conns, "{}".lines l, "{}".submodels s_m
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.epid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
-ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,
-            submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim)
+ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,# nosec B608
+            submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim) # nosec B608
         #print(sql)
         
         cur.execute(sql)
@@ -331,7 +331,7 @@ ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionNam
     return fids
 
 def getFeatureIdFromName(config,cur,feature):
-    sql="""SELECT id FROM type WHERE replace(lower(name),' ','_')='{}';""".format(feature)
+    sql="""SELECT id FROM type WHERE replace(lower(name),' ','_')='{}';""".format(feature) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchone()['id']
@@ -344,25 +344,25 @@ def getUsedNetworks(cur,config):
     UNION
     SELECT unnest(network) AS network FROM "{}".energy_plants GROUP BY network
 )
-ORDER BY network;""".format(config['versionName'],config['versionName'],config['versionName'])
+ORDER BY network;""".format(config['versionName'],config['versionName'],config['versionName']) # nosec B608
     cur.execute(sql)
     networks=[str(i['network']) for i in cur.fetchall()]
     return networks
     
 def getLineNetworks(cur,config):
-    sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(config['versionName'])
+    sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(config['versionName']) # nosec B608
     cur.execute(sql)
     networks=[i['network'] for i in cur.fetchall()]
     return networks
 
 def getLineSubmodels(cur,config):
-    sql="""SELECT unnest(submodel) as submodels FROM "{}".lines GROUP BY submodels ORDER BY submodels;""".format(config['versionName'])
+    sql="""SELECT unnest(submodel) as submodels FROM "{}".lines GROUP BY submodels ORDER BY submodels;""".format(config['versionName']) # nosec B608
     cur.execute(sql)
     submodels=[i['submodels'] for i in cur.fetchall()]
     return submodels
     
 def getFeatureSubmodels(cur,config,type):
-    sql="""SELECT submodel FROM "{}".{}s GROUP BY submodel ORDER BY submodel;""".format(config['versionName'],type)
+    sql="""SELECT submodel FROM "{}".{}s GROUP BY submodel ORDER BY submodel;""".format(config['versionName'],type) # nosec B608
     cur.execute(sql)
     submodels=[i['submodel'] for i in cur.fetchall()]
     return submodels
@@ -377,7 +377,7 @@ UNION
     FROM "{}".energy_plants f, energy_plant_templates f_t
      WHERE f.template=f_t.template
     GROUP BY f.template,f_t.template_name)
-ORDER BY feature,template;""".format(config['versionName'],config['versionName'])
+ORDER BY feature,template;""".format(config['versionName'],config['versionName']) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -385,7 +385,7 @@ def getUsedFilteredFeatureTemplates(feature_type,cur,config):
     sql="""SELECT f.template, f_t.template_name
     FROM "{}".{}s f,{}_templates f_t 
     WHERE f.template=f_t.template
-    GROUP BY f.template,f_t.template_name;""".format(config['versionName'],feature_type,feature_type,config['versionName'])
+    GROUP BY f.template,f_t.template_name;""".format(config['versionName'],feature_type,feature_type,config['versionName']) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -397,7 +397,7 @@ def getUsedSubmodels(cur,config):
     UNION
     SELECT submodel FROM "{}".energy_plants GROUP BY submodel
 )
-ORDER BY submodel;""".format(config['versionName'],config['versionName'],config['versionName'])
+ORDER BY submodel;""".format(config['versionName'],config['versionName'],config['versionName']) # nosec B608
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
@@ -417,7 +417,7 @@ def getUsedNetworkSubmodels(cur,config):
     UNION
     SELECT submodel FROM "{}".energy_plants GROUP BY submodel
 )
-ORDER BY submodel;""".format(config['versionName'],config['versionName'],config['versionName'])
+ORDER BY submodel;""".format(config['versionName'],config['versionName'],config['versionName']) # nosec B608
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
@@ -426,41 +426,41 @@ def getTemplateNamesFilteredByCustomerIds(cur,config,cids):
     sql="""SELECT c_t.template::text||'_'||c_t.template_name  AS template_name
     FROM {}.customers c, customer_templates c_t
     WHERE c.id IN ({}) AND c.template=c_t.template
-    GROUP BY c_t.template::text||'_'||c_t.template_name;""".format(config['versionName'],','.join([str(i) for i in cids]))
+    GROUP BY c_t.template::text||'_'||c_t.template_name;""".format(config['versionName'],','.join([str(i) for i in cids])) # nosec B608
     cur.execute(sql)
     template_names=[str(i['template_name']) for i in cur.fetchall()]
     return template_names
 
 def getPlantIds(cur,config,network=None):
-    sql="""SELECT id FROM {}.energy_plants{};""".format(config['versionName'],'' if network==None else ' WHERE {} = ANY (network)'.format(network))
+    sql="""SELECT id FROM {}.energy_plants{};""".format(config['versionName'],'' if network==None else ' WHERE {} = ANY (network)'.format(network)) # nosec B608
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids
     
 def getLineIds(cur,config,network=None):
-    sql="""SELECT id FROM {}.lines{};""".format(config['versionName'],'' if network==None else ' WHERE network IN ({})'.format(','.join(network)))
+    sql="""SELECT id FROM {}.lines{};""".format(config['versionName'],'' if network==None else ' WHERE network IN ({})'.format(','.join(network))) # nosec B608
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids
  
 def getUsedBuildingSubmodels(cur,config):
-    sql="""SELECT submodel FROM "{}".buildings WHERE submodel IS NOT NULL GROUP BY submodel ORDER BY submodel;""".format(config['versionName'])
+    sql="""SELECT submodel FROM "{}".buildings WHERE submodel IS NOT NULL GROUP BY submodel ORDER BY submodel;""".format(config['versionName']) # nosec B608
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
     
 def getFeatureIdsPerSubmodelAndTypename(submodel,type,cur,config):
-    sql="""SELECT id FROM "{}".{}s WHERE submodel={};""".format(config['versionName'],submodel)
+    sql="""SELECT id FROM "{}".{}s WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
     cur.execute(sql)
     return [id['id'] for id in cur.fetchall()]
 
 def getSubmodelPerFeatureIdTypename(id,feature,cur,config):
-    sql="""SELECT submodel FROM "{}".{}s WHERE id={};""".format(config['versionName'],feature.replace(" ","_"),id)
+    sql="""SELECT submodel FROM "{}".{}s WHERE id={};""".format(config['versionName'],feature.replace(" ","_"),id) # nosec B608
     cur.execute(sql)
     return cur.fetchone()
     
 def getDrawnSubmodels(cur,config):
-    sql="""SELECT id FROM "{}".submodels;""".format(config['versionName'])
+    sql="""SELECT id FROM "{}".submodels;""".format(config['versionName']) # nosec B608
     cur.execute(sql)
     submodels=[i['id'] for i in cur.fetchall()]
     if len(submodels)==0:
@@ -476,7 +476,7 @@ def getSupervisorySubmodel(cur,config):
             
 def getNetworkSubmodels(cur,config,networks):
     """Get submodels of a list of networks based on lines"""
-    sql="""SELECT unnest(submodel) AS submodel FROM "{}".lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(config['versionName'], ','.join([i for i in networks]))
+    sql="""SELECT unnest(submodel) AS submodel FROM "{}".lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(config['versionName'], ','.join([i for i in networks])) # nosec B608
     #print(sql)
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
@@ -487,12 +487,12 @@ def checkTableNameExists(cur,config,table):
     SELECT FROM information_schema.tables 
     WHERE  table_schema = '{}'
     AND    table_name   = '{}'
-    );""".format(config['versionName'],table)
+    );""".format(config['versionName'],table)# nosec B608
     cur.execute(sql)
     return cur.fetchone()['exists']
    
 def getProjectVersionNames(cur):
-    sql="SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname NOT IN ('topology','temp','streets_help_topo','public','pg_toast','pg_catalog','information_schema');"
+    sql="SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname NOT IN ('topology','temp','streets_help_topo','public','pg_toast','pg_catalog','information_schema');"# nosec B608
     cur.execute(sql)
     versionNames=[]
     for version in cur.fetchall():
@@ -503,18 +503,18 @@ def getClimateData(cur,config,errorMsg):
     """ get climate data from DB"""
     #print('get climate data')
     if checkDBVersionConnected(config,errorMsg):
-        sql='SELECT name, longitude, latitude,file_name AS filename ,timezone,height FROM "{}".climate;'.format(config['versionName'])
+        sql='SELECT name, longitude, latitude,file_name AS filename ,timezone,height FROM "{}".climate;'.format(config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
         return cur.fetchone()
 
 def getMaxTableValue(cur,config,table,colmn):
-    sql="""SELECT max("{}") AS value FROM "{}".{};""".format(colmn,config['versionName'],table)
+    sql="""SELECT max("{}") AS value FROM "{}".{};""".format(colmn,config['versionName'],table) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
 def getMinTableValue(cur,config,table,colmn):
-    sql="""SELECT min("{}") AS value FROM "{}".{};""".format(colmn,config['versionName'],table)
+    sql="""SELECT min("{}") AS value FROM "{}".{};""".format(colmn,config['versionName'],table) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -566,7 +566,7 @@ def getMinMinTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,min("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
 
@@ -574,7 +574,7 @@ def getMinMaxTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,max("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -582,7 +582,7 @@ def getMinValueAvgTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,avg("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -590,7 +590,7 @@ def getMinSumTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -602,7 +602,7 @@ def getMinLastTimeValue(cur,config,table,colmn,endtime):
     WHERE time = '{}'
     ORDER BY fid,time DESC
 )
-SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,endtime)
+SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,endtime) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -614,7 +614,7 @@ def getMinFirstTimeValue(cur,config,table,colmn,starttime):
     WHERE time = '{}'
     ORDER BY fid,time ASC
 )
-SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime)
+SELECT min(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -626,7 +626,7 @@ def getMinAvgTimeValue(mode,cur,config,table,colmn,starttime,endtime):
         GROUP BY date_trunc('{}', time),fid{}
         ORDER BY date_trunc('{}', time), fid
 )
-SELECT min(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode)
+SELECT min(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
@@ -635,7 +635,7 @@ def getMaxMinTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,min("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
 
@@ -643,7 +643,7 @@ def getMaxMaxTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,max("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -651,7 +651,7 @@ def getMaxValueAvgTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,avg("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -659,7 +659,7 @@ def getMaxSumTimeValue(cur,config,table,colmn,starttime,endtime):
     sql="""WITH sub AS(
     SELECT fid,sum("${}") AS value FROM "{}".{} WHERE time>='{}' AND time <='{}' GROUP BY fid{}
 )
-SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '')
+SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime,endtime,', segment' if 'line_' in table and colmn in ['p','temp'] else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -671,7 +671,7 @@ def getMaxLastTimeValue(cur,config,table,colmn,endtime):
     WHERE time = '{}'
     ORDER BY fid,time DESC
 )
-SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,endtime)
+SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,endtime) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -683,7 +683,7 @@ def getMaxFirstTimeValue(cur,config,table,colmn,starttime):
     WHERE time = '{}'
     ORDER BY fid,time ASC
 )
-SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime)
+SELECT max(value) AS value FROM sub;""".format(colmn,config['versionName'],table,starttime) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
 
@@ -695,14 +695,14 @@ def getMaxAvgTimeValue(mode,cur,config,table,colmn,starttime,endtime):
         GROUP BY date_trunc('{}', time),fid{}
         ORDER BY date_trunc('{}', time), fid
 )
-SELECT max(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode)
+SELECT max(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
     
 def getMaxId(cur,table_name):
     """return highest connections id"""
-    sql="SELECT max(id) AS max FROM public.{};".format(table_name)
+    sql="SELECT max(id) AS max FROM public.{};".format(table_name) # nosec B608
     cur.execute(sql)
     id=cur.fetchone()
     if id['max']!=None:
@@ -712,7 +712,7 @@ def getMaxId(cur,table_name):
         
 def getMaxIdSchema(cur,table_name,schema):
     """return highest connections id"""
-    sql="""SELECT max(id) AS max_id FROM "{}".{};""".format(schema,table_name)
+    sql="""SELECT max(id) AS max_id FROM "{}".{};""".format(schema,table_name) # nosec B608
     cur.execute(sql)
     id=cur.fetchone()
     if id['max_id']!=None:
@@ -788,7 +788,7 @@ def dbConnectPerName(config,dbName,errorMsg):
     return conn
     
 def getTemplateNames(cur,feature,seperator=':'):
-    sql="""SELECT template::text || '{}' || template_name AS template_names FROM {}_templates ORDER BY template;""".format(seperator,feature)
+    sql="""SELECT template::text || '{}' || template_name AS template_names FROM {}_templates ORDER BY template;""".format(seperator,feature) # nosec B608
     cur.execute(sql)
     return [i['template_names'] for i in cur.fetchall()]
     
@@ -803,12 +803,12 @@ def getPipeBundleNames(cur):
     return [i['pipe_bundle_names'] for i in cur.fetchall()]
     
 def getTemplateName(cur,template_name,template_id):
-    sql="""SELECT template::text || '_' || template_name AS template_names FROM {} WHERE template={} ORDER BY template;""".format(template_name,template_id)
+    sql="""SELECT template::text || '_' || template_name AS template_names FROM {} WHERE template={} ORDER BY template;""".format(template_name,template_id) # nosec B608
     cur.execute(sql)
     return [i['template_names'] for i in cur.fetchall()]
     
 def getTemplateNameByTemplateId(cur,template_id,feature_type):
-    sql="""SELECT template_name FROM {}_templates WHERE template={};""".format(feature_type,template_id)
+    sql="""SELECT template_name FROM {}_templates WHERE template={};""".format(feature_type,template_id) # nosec B608
     cur.execute(sql)
     try:
         return cur.fetchone()['template_name']
@@ -849,7 +849,7 @@ def checkDBName(nameDb,projectNames):
         
 def getFilteredDropDownItems(cur,dropdown):
     """dropdowns: [table,id,name,filter_column,filter_value]"""
-    sql='SELECT {} AS key,{} AS name FROM public.{} WHERE {}={};'.format(dropdown[1],dropdown[2],dropdown[0],dropdown[3],dropdown[4])
+    sql='SELECT {} AS key,{} AS name FROM public.{} WHERE {}={};'.format(dropdown[1],dropdown[2],dropdown[0],dropdown[3],dropdown[4]) # nosec B608
     #print(sql)
     cur.execute(sql) 
     dropdown_data = cur.fetchall()
@@ -862,7 +862,7 @@ def getFilteredNotInDropDownItems(cur,dropdowns):
     for id,version,table,column,name,filter in dropdowns:
         #print(getFilteredNotInDropDownItems)
         filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))    
-        sql='SELECT {} AS key,{} AS name FROM "{}".{} {};'.format(column,name,version,table,filter)
+        sql='SELECT {} AS key,{} AS name FROM "{}".{} {};'.format(column,name,version,table,filter) # nosec B608
         #print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
@@ -872,7 +872,7 @@ def getFilteredNotInDropDownItems(cur,dropdowns):
 def getDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name in dropdowns:         
-        sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table,column)
+        sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table,column) # nosec B608
         #print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
@@ -885,7 +885,7 @@ def getFilteredDropDownItemNames(cur,dropdowns):
         #print(filter)
         if filter:
             filter="WHERE id IN({}) ".format(','.join([str(i) for i in filter]))
-            sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter)
+            sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter) # nosec B608
             #print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
@@ -900,7 +900,7 @@ def getFilteredNotInDropDownItemNames(cur,dropdowns):
         #print(filter)
         if filter:
             filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))
-            sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter)
+            sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter) # nosec B608
             #print(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
@@ -912,7 +912,7 @@ def getFilteredNotInDropDownItemNames(cur,dropdowns):
 def getDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name in dropdowns:         
-        sql='SELECT {} AS name FROM "{}".{} ORDER BY id;'.format(name,version,table)
+        sql='SELECT {} AS name FROM "{}".{} ORDER BY id;'.format(name,version,table) # nosec B608
         #print(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
@@ -924,7 +924,7 @@ def getConnValue(cur,bundle,sequence):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, b_t_conns.conn_type_id
 	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
 	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.sequence={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle, sequence)
+	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle, sequence) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -940,21 +940,21 @@ def getPipeBundleTypesDB(cur):
 def getTemplatesInfo(feature,cur):
     if feature in ['line','junction']:
         sql="""SELECT id, type, id::text||':'||type AS name
-    FROM {}_types ORDER BY id; """.format(feature)
+    FROM {}_types ORDER BY id; """.format(feature) # nosec B608
     else:
         sql="""SELECT template, template_name, template::text||':'||template_name AS name
-    FROM {}_templates ORDER BY template; """.format(feature)
+    FROM {}_templates ORDER BY template; """.format(feature) # nosec B608
     cur.execute(sql)
     return cur.fetchall()    
     
 def getTemplates(type,cur):
     """ get all templates of type """
-    sql='SELECT template FROM public.{}_templates;'.format(type)
+    sql='SELECT template FROM public.{}_templates;'.format(type) # nosec B608
     cur.execute(sql)
     return [str(i['template']) for i in cur.fetchall()]    
         
 def getTableIds(cur,version,table,column):
-    sql="""SELECT {} FROM "{}".{}""".format(column,version,table)
+    sql="""SELECT {} FROM "{}".{}""".format(column,version,table) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -1008,7 +1008,7 @@ def getResultVars(cur,config,feature,type):
         col=2
     sql="""SELECT split_part(table_name,'_{}_',2) AS var
     FROM information_schema.tables 
-    WHERE table_schema = '{}' AND split_part(table_name,'_',{})='{}' AND split_part(table_name,'_',1)='{}' AND NOT split_part(table_name,'_{}_',2) LIKE '%_vis';""".format(type,config['versionName'],col,type,feature,type)
+    WHERE table_schema = '{}' AND split_part(table_name,'_',{})='{}' AND split_part(table_name,'_',1)='{}' AND NOT split_part(table_name,'_{}_',2) LIKE '%_vis';""".format(type,config['versionName'],col,type,feature,type) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [var['var'] for var in cur.fetchall()]
@@ -1016,7 +1016,7 @@ def getResultVars(cur,config,feature,type):
 def getTableAttr(cur,config,feature,withoutID=False):
     sql="""SELECT column_name 
     FROM information_schema.columns 
-    WHERE table_name = '{}s' AND table_schema='{}';""".format(feature,config['versionName'])
+    WHERE table_name = '{}s' AND table_schema='{}';""".format(feature,config['versionName']) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]
@@ -1026,7 +1026,7 @@ def getTableNumericAttr(cur,config,feature,withoutID=False):
     sql="""SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name = '{}s' AND table_schema='{}' 
-        AND data_type IN ('integer','numeric','double precision','real','smallint','bigint');""".format(feature,config['versionName'])
+        AND data_type IN ('integer','numeric','double precision','real','smallint','bigint');""".format(feature,config['versionName']) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]

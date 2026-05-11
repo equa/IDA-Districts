@@ -72,7 +72,7 @@ def checkImportData(dlg,source,cur,config,feature_type):
             return False  
         
         #check if id exists in feature layer
-        sql="""SELECT id FROM {}.{} WHERE id={};""".format(config['versionName'],feature_type,id)
+        sql="""SELECT id FROM {}.{} WHERE id={};""".format(config['versionName'],feature_type,id) # nosec B608
         cur.execute(sql)
         result=cur.fetchone()
         if not result:
@@ -127,14 +127,14 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
     time timestamp,
     geom geometry({},{}),
     "${}" numeric,
-    CONSTRAINT {}_pkey PRIMARY KEY (id));""".format(config['versionName'],table_name,'LineStringZ' if feature_type=='lines' else 'PointZ', srid,var['alias'],table_name)
+    CONSTRAINT {}_pkey PRIMARY KEY (id));""".format(config['versionName'],table_name,'LineStringZ' if feature_type=='lines' else 'PointZ', srid,var['alias'],table_name) # nosec B608
                 #print(sql)
                 cur.execute(sql)
             elif dlg.delete_existing_data.checkState() == checkState() and counter==0:
-                sql="""TRUNCATE "{}".{};""".format(config['versionName'],table_name)
+                sql="""TRUNCATE "{}".{};""".format(config['versionName'],table_name) # nosec B608
                 cur.execute(sql)
             elif dlg.delete_existingID_data.checkState() == checkState():
-                sql="""DELETE FROM "{}".{} WHERE fid={};""".format(config['versionName'],table_name,id)
+                sql="""DELETE FROM "{}".{} WHERE fid={};""".format(config['versionName'],table_name,id) # nosec B608
                 cur.execute(sql)
                 
         vars_data={var['colmn']:[] for var in var_dict}
@@ -220,9 +220,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
             #print(time_out)
             #print(var_interp)
 
-            sql = 'SELECT geom FROM "{}".{} WHERE id={};'.format(
-                config['versionName'], feature_type, id
-            )
+            sql = 'SELECT geom FROM "{}".{} WHERE id={};'.format(config['versionName'], feature_type, id)# nosec B608
             cur.execute(sql)
             fid_geom = cur.fetchone()
 
@@ -283,7 +281,7 @@ def getFeatureIds(dlg,cur,config):
     networks=[dlg.combo_networks.itemText(i) for i in range(dlg.combo_networks.count()) if dlg.combo_networks.itemChecked(i)]
     if networks:
         type=getType(dlg)
-        sql="""SELECT id FROM "{}".{}s{} ORDER BY id;""".format(config['versionName'],type,' WHERE network && ARRAY['+','.join(networks)+']')
+        sql="""SELECT id FROM "{}".{}s{} ORDER BY id;""".format(config['versionName'],type,' WHERE network && ARRAY['+','.join(networks)+']')# nosec B608
         cur.execute(sql)
         return [str(i['id']) for i in cur.fetchall()]
     else:

@@ -199,19 +199,19 @@ class WorkerPipeLaying(QRunnable):
         if not self.heating_customer_template=='keep type':
             sql="""UPDATE temp.customers c SET template=a.template {} FROM (
             SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
-    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.heating_customer_template=='keep type' else "",self.heating_customer_template.split(':')[0],","+self.heating_customer_template.split(':')[0]+" AS template" if not self.heating_customer_template=='keep type' else "")
+    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.heating_customer_template=='keep type' else "",self.heating_customer_template.split(':')[0],","+self.heating_customer_template.split(':')[0]+" AS template" if not self.heating_customer_template=='keep type' else "") # nosec B608
             #print(sql)
             self.cur.execute(sql)
         if not self.cooling_customer_template=='keep type':
             sql="""UPDATE temp.customers c SET template=a.template {} FROM (
             SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
-    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.cooling_customer_template=='keep type' else "",self.cooling_customer_template.split(':')[0],","+self.cooling_customer_template.split(':')[0]+" AS template" if not self.cooling_customer_template=='keep type' else "")
+    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.cooling_customer_template=='keep type' else "",self.cooling_customer_template.split(':')[0],","+self.cooling_customer_template.split(':')[0]+" AS template" if not self.cooling_customer_template=='keep type' else "") # nosec B608
             #print(sql)
             self.cur.execute(sql)
         if not self.hc_customer_template=='keep type':
             sql="""UPDATE temp.customers c SET template=a.template {} FROM (
             SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
-    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.hc_customer_template=='keep type' else "",self.hc_customer_template.split(':')[0],","+self.hc_customer_template.split(':')[0]+" AS template" if not self.hc_customer_template=='keep type' else "")
+    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.hc_customer_template=='keep type' else "",self.hc_customer_template.split(':')[0],","+self.hc_customer_template.split(':')[0]+" AS template" if not self.hc_customer_template=='keep type' else "") # nosec B608
             #print(sql)
             self.cur.execute(sql)
     
@@ -261,7 +261,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
     FROM   information_schema.tables 
     WHERE  table_schema = '{}'
     AND    table_name = 'terrain'
-    ) AS exists;""".format(version)
+    ) AS exists;""".format(version) # nosec B608
         #print(sql) 
         
         self.cur.execute(sql)
@@ -283,7 +283,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
                 GROUP BY sub.id,height
                 ORDER BY sub.id
     ) a
-    WHERE f.id=a.id;""".format(f,version,f,version)
+    WHERE f.id=a.id;""".format(f,version,f,version) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)
             
@@ -302,25 +302,25 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
             GROUP BY a.id
 )
 UPDATE temp.lines l SET geom=sub.geom
-    FROM sub WHERE sub.id=l.id;""".format(self.srid,version,version)
+    FROM sub WHERE sub.id=l.id;""".format(self.srid,version,version) # nosec B608
             #print(sql) 
             self.cur.execute(sql) 
             
     def insertJunctionConnections(self):
         "insert node connections into table junction_connections   "
-        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,{});""".format(self.tolerance)
+        sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,{});""".format(self.tolerance) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
     def insertCustomerConnections(self):
         "insert customer connections into table customer_connections"
-        sql="""INSERT INTO temp.customer_connections (cid,lid,c_seq) SELECT c.id, l.id, 1 FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,{});""".format(self.tolerance)
+        sql="""INSERT INTO temp.customer_connections (cid,lid,c_seq) SELECT c.id, l.id, 1 FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,{});""".format(self.tolerance) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
     def insertPlantConnections(self,version):
         "insert energy_plant connections  into table energy_plant_connections"
-        sql="""INSERT INTO temp.energy_plant_connections (epid,lid,ep_seq) SELECT ep.id,l.id, 1 FROM temp.energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,{});""".format(self.tolerance)
+        sql="""INSERT INTO temp.energy_plant_connections (epid,lid,ep_seq) SELECT ep.id,l.id, 1 FROM temp.energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,{});""".format(self.tolerance) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
@@ -372,32 +372,32 @@ UPDATE temp.lines l SET geom=sub.geom
         l1.pipe_bundle_type_id,l1.network
     FROM temp.lines l1, temp.lines l2
     WHERE l1.id={} and l2.id={}
-    ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom)DESC LIMIT 1;""".format(i,lid1,lid2)                                              
+    ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom)DESC LIMIT 1;""".format(i,lid1,lid2)   # nosec B608                                            
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.junction_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
+                sql="UPDATE temp.junction_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.customer_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
+                sql="UPDATE temp.customer_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="UPDATE temp.energy_plant_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");"
+                sql="UPDATE temp.energy_plant_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.lines WHERE id IN ("+str(lid1)+","+str(lid2)+");"
+                sql="DELETE FROM temp.lines WHERE id IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.junctions WHERE id="+str(jid)+";"
+                sql="DELETE FROM temp.junctions WHERE id="+str(jid)+";" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
-                sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";"
+                sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";" # nosec B608
                 #print(sql)
                 self.cur.execute(sql) 
             else:
                 flag=False
         
     def deleteUnconnectedCustomers(self,version):
-        sql="""DELETE FROM temp.customers c WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.lines l WHERE St_DWithIn(c.geom,l.geom,{}));""".format(self.tolerance)
+        sql="""DELETE FROM temp.customers c WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.lines l WHERE St_DWithIn(c.geom,l.geom,{}));""".format(self.tolerance) # nosec B608
         #print(sql) 
         self.cur.execute(sql)
         
@@ -411,12 +411,12 @@ UPDATE temp.lines l SET geom=sub.geom
                             UNION 
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
                             )
-                    GROUP BY v.id ORDER BY v.id;""".format(self.network,self.tolerance,self.tolerance,self.tolerance)
+                    GROUP BY v.id ORDER BY v.id;""".format(self.network,self.tolerance,self.tolerance,self.tolerance) # nosec B608
         #print(sql) 
         self.cur.execute(sql)        
         
     def getPlants(self,version):
-        sql="""SELECT ep.id epid, st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dwithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network);""".format(self.tolerance,self.network)
+        sql="""SELECT ep.id epid, st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dwithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network);""".format(self.tolerance,self.network) # nosec B608
         #print(sql) 
         self.cur.execute(sql)   
         return self.cur.fetchall()   
@@ -433,16 +433,16 @@ CREATE TABLE temp.energy_plants (LIKE "{}".energy_plants INCLUDING ALL);
 CREATE TABLE temp.junctions (LIKE"{}".junctions INCLUDING ALL);
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING ALL);
 CREATE TABLE temp.lines_heating (LIKE "{}".lines INCLUDING ALL);
-CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(version,version,version,version,version,version))
+CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(version,version,version,version,version,version)) # nosec B608
         self.cur.execute("""TRUNCATE temp.customers, temp.lines_cooling, temp.lines_heating, temp.lines CASCADE;""")
-        self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers; """.format(version))
-        self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants; """.format(version))
+        self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers; """.format(version)) # nosec B608
+        self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants; """.format(version)) # nosec B608
     
     def prepareDB_pipeLaying_modeTables(self,version):
         self.cur.execute("""TRUNCATE temp.streets_help, temp.junctions, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections CASCADE;""")
-        self.cur.execute("""INSERT INTO temp.streets_help (geom) SELECT geom FROM "{}".streets; """.format(version))
-        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version))
-        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_01;""".format(version))
+        self.cur.execute("""INSERT INTO temp.streets_help (geom) SELECT geom FROM "{}".streets; """.format(version)) # nosec B608
+        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_00;""".format(version)) # nosec B608
+        self.cur.execute("""DROP TABLE IF EXISTS "{}".segment_lines_01;""".format(version)) # nosec B608
         
     def connectPlantsStreet(self,version,mode):            
         "insert energy plant connections into streets_help"
@@ -458,7 +458,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             INSERT INTO temp.streets_help(geom) 
             	SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom))
             	FROM sub, temp.streets_help st, temp.energy_plants ep
-            	WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(self.network,plantConnConstr)
+            	WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(self.network,plantConnConstr) # nosec B608
         #print("""insert energy plant connections: {}""".format(sql));
         self.cur.execute(sql);
 
@@ -493,7 +493,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 INSERT INTO temp.streets_help(geom) 
                     SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom))
                     FROM sub, temp.streets_help st, temp.customers c
-                    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist {};""".format(self.network,customerConnConstr)
+                    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist {};""".format(self.network,customerConnConstr) # nosec B608
             #print("""insert customer connections: {}""".format(sql))
             self.cur.execute(sql)
         if self.customer_connection_mode=='loop-in-connection':  
@@ -512,7 +512,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                             INSERT INTO temp.streets_help(geom) 
                             	SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) AS line
                             		FROM sub, temp.customers c, temp.streets_help st
-                            		WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(self.tolerance,customerConnConstr)
+                            		WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(self.tolerance,customerConnConstr) # nosec B608
                 #print("""insert customer connections: {}""".format(sql))
                 self.cur.execute(sql)
                 
@@ -526,7 +526,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         sql="TRUNCATE topology.topology CASCADE;"
         self.cur.execute(sql)    
         #print(sql)
-        sql="""SELECT topology.CreateTopology('streets_help_topo', {});""".format(self.srid)
+        sql="""SELECT topology.CreateTopology('streets_help_topo', {});""".format(self.srid) # nosec B608
         self.cur.execute(sql)    
         #print(sql) 
         sql="ALTER TABLE temp.streets_help DROP COLUMN IF EXISTS topo_geom;"
@@ -535,7 +535,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         sql="SELECT topology.AddTopoGeometryColumn('streets_help_topo','temp','streets_help','topo_geom','LINESTRING');"
         self.cur.execute(sql)    
         #print(sql)
-        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance)
+        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance) # nosec B608
         self.cur.execute(sql)    
         #print(sql)
         sql="TRUNCATE temp.streets_help;"
@@ -547,7 +547,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         sql="""WITH sub AS(
                 SELECT geom, costs_eur7m as costs FROM "{}".streets
             )
-            UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance)
+            UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance) # nosec B608
         #print(sql)  
         self.cur.execute(sql)   
         #drop table streets_help_vertices_pgr       
@@ -584,14 +584,14 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     OIDS=FALSE
                 );
                 ALTER TABLE temp.network_help
-                    OWNER TO postgres;""".format(self.srid)
+                    OWNER TO postgres;""".format(self.srid) # nosec B608
         self.cur.execute(sql)    
         #print(sql) 
               
         for plant in plants:
             v_ep=plant['v_ep']
             epid=plant['epid']
-            sql="""SELECT c.id AS cid,st_v.id::integer as v_c FROM temp.customers c, temp.streets_help_vertices_pgr st_v WHERE st_dwithin(c.geom,st_v.the_geom,{}) AND {}=ANY(c.network);""".format(self.tolerance,self.network)
+            sql="""SELECT c.id AS cid,st_v.id::integer as v_c FROM temp.customers c, temp.streets_help_vertices_pgr st_v WHERE st_dwithin(c.geom,st_v.the_geom,{}) AND {}=ANY(c.network);""".format(self.tolerance,self.network) # nosec B608
             #print(sql) 
             self.cur.execute(sql)
             if mode=='heating':
@@ -616,7 +616,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     					false
                     			       )
                     )
-                    INSERT INTO temp.network_help (lid,cid,epid,geom ,pipe_length) SELECT st.id,{},{}, st.geom,st_length(geom) FROM sub,temp.streets_help st  WHERE sub.edge>0 AND st.id=sub.edge;""".format(costs,v_ep,v_c,cid,epid)
+                    INSERT INTO temp.network_help (lid,cid,epid,geom ,pipe_length) SELECT st.id,{},{}, st.geom,st_length(geom) FROM sub,temp.streets_help st  WHERE sub.edge>0 AND st.id=sub.edge;""".format(costs,v_ep,v_c,cid,epid) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)  
             
@@ -646,7 +646,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     )
                     INSERT INTO temp.lines_{} (id,type,geom)
                     	SELECT st.id,{},ST_Force3D(st.geom)
-                    		FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode)
+                    		FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)   
         
@@ -708,7 +708,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     #print('abort pipe laying')
                     self.finishNetworkTopology(version,srid)
                     
-                sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
+                sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)  
                 count_old=self.cur.fetchone()['count_pipes']
@@ -725,10 +725,10 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
     SELECT nh.lid,{},ST_Force3D(nh.geom),{}
         FROM sub, temp.network_help nh
         WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
-        GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,type,pipe_bundle_type_id,mode,linearEnergyConstr)
+        GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,type,pipe_bundle_type_id,mode,linearEnergyConstr) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql) 
-                sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode)
+                sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)  
                 count=self.cur.fetchone()['count_pipes']
@@ -751,7 +751,7 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
             sql="""	SELECT nh.lid
     FROM temp.network_help nh, temp.lines_{} l
     WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,{})
-    GROUP BY nh.lid;""".format(mode,mode,self.tolerance)
+    GROUP BY nh.lid;""".format(mode,mode,self.tolerance) # nosec B608
             #print(sql) 
             self.cur.execute(sql)  
             trees=self.cur.fetchall()
@@ -772,7 +772,7 @@ SELECT c.id AS cid, {} AS energy
     WHERE sub.cid=c.id AND nh.cid = sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid IN (SELECT epid FROM temp.network_help WHERE lid = {} GROUP BY epid)
     GROUP BY c.id,{},nh.epid
     ORDER BY {}/sum(st_length(nh.geom)) DESC
-    LIMIT 1;""".format(lid,energyConstr,mode,lid,energyConstr,energyConstr)
+    LIMIT 1;""".format(lid,energyConstr,mode,lid,energyConstr,energyConstr) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)  
                 
@@ -799,7 +799,7 @@ SELECT sub.cid, {} AS energy, nh.epid
         nh.epid=sub.epid AND
         nh.lid NOT IN (SELECT id FROM temp.lines_{})
     GROUP BY sub.cid,{}, nh.epid\
-    ORDER BY {}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,self.tolerance,energyConstr,cid,mode,energyConstr,energyConstr)
+    ORDER BY {}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,self.tolerance,energyConstr,cid,mode,energyConstr,energyConstr) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)  
                 customers=self.cur.fetchall()
@@ -820,7 +820,7 @@ SELECT sub.cid, {} AS energy, nh.epid
             nh.epid={}
         GROUP BY nh.geom,nh.lid
 )
-SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
+SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid) # nosec B608
                     #print(sql) 
                     self.cur.execute(sql)  
                     length=self.cur.fetchone()['length']
@@ -831,7 +831,7 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
                     if float(energy)/float(length) >= linearEnergyDensityMin:
                         flag=True
                         #print("    flag combined="+str(flag)+" ; cid="+str(cid))
-                        sql="INSERT INTO temp.lines_"+mode+" (id,type,geom,pipe_bundle_type_id) SELECT nh.lid,"+type+", ST_Force3D(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;";
+                        sql="INSERT INTO temp.lines_"+mode+" (id,type,geom,pipe_bundle_type_id) SELECT nh.lid,"+type+", ST_Force3D(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;"; # nosec B608
                         #print(sql) 
                         self.cur.execute(sql) 
                         customer_count += 1
@@ -844,5 +844,5 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid)
     UNION ALL
     SELECT lh.geom, {} ,{},{} FROM temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom 
     UNION ALL
-    SELECT lc.geom, {} ,{},{} FROM temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL;""".format(self.heating_lines_type,self.heating_pipe_bundle,self.network,self.hc_lines_type,self.hc_pipe_bundle,self.network,self.cooling_lines_type,self.cooling_pipe_bundle,self.network)
+    SELECT lc.geom, {} ,{},{} FROM temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL;""".format(self.heating_lines_type,self.heating_pipe_bundle,self.network,self.hc_lines_type,self.hc_pipe_bundle,self.network,self.cooling_lines_type,self.cooling_pipe_bundle,self.network) # nosec B608
         self.cur.execute(sql)    

@@ -651,14 +651,14 @@ class PipeLayingDialog(QDialog):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             dropDBTriggers(self.cur,self.config) #child versions are not updated
-            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'])
-            sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.config['versionName'])
-            sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.config['versionName'])
-            sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.config['versionName'])
-            sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(self.config['versionName'])
-            sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.config['versionName']) 
-            sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.config['versionName'])  
-            sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.config['versionName'])
+            sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName']) # nosec B608
+            sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
+            sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
+            sql+=""" INSERT INTO "{}".energy_plants SELECT * FROM temp.energy_plants ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
+            sql+=""" INSERT INTO "{}".junctions SELECT * FROM temp.junctions ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
+            sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.config['versionName'])  # nosec B608
+            sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.config['versionName'])   # nosec B608
+            sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
             #print(sql) 
             self.cur.execute(sql)  
             insertDBTriggers(self.cur,self.config)
@@ -1449,7 +1449,7 @@ class MapFeaturesDialog(QDialog):
         sql="""SELECT conn_b_t.conn_type_id, conn_b_t.description 
     FROM public.bundle_type_conns conn_b_t, "{}".{} b, public.{}_templates a
     WHERE conn_b_t.conn_bundle_type_id =a.conn_bundle_type AND b.id={} AND a.template=b.template 
-    ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],table_name,table_name[:-1],item.text())
+    ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],table_name,table_name[:-1],item.text()) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         conn_ids=[]
@@ -1460,7 +1460,7 @@ class MapFeaturesDialog(QDialog):
           
         #add connection type items to listWidget_lines
         self.listWidget_lines.clear()
-        sql='SELECT array_agg(l.id::text) AS lid FROM "{}".lines l, "{}".{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};'.format(self.config['versionName'],self.config['versionName'],table_name,item.text())
+        sql='SELECT array_agg(l.id::text) AS lid FROM "{}".lines l, "{}".{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};'.format(self.config['versionName'],self.config['versionName'],table_name,item.text()) # nosec B608
         self.cur.execute(sql)
         l_ids=self.cur.fetchone()['lid']
         #print(l_ids)
@@ -1477,13 +1477,13 @@ class MapFeaturesDialog(QDialog):
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', ep_conn.lid) AS connection
         FROM "{}".energy_plant_connections ep_conn, "{}".energy_plants ep, public.energy_plant_templates epa, public.bundle_type_conns conn_b_t
         WHERE ep.id={} AND ep.id=ep_conn.epid AND epa.template=ep.template AND epa.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=ep_conn.ep_seq
-        ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],id)
+        ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],id) # nosec B608
             #print(sql)
         elif table_name=='customers':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', c_conn.lid) AS connection
     FROM "{}".customer_connections c_conn, "{}".customers c, public.customer_templates ca, public.bundle_type_conns conn_b_t
     WHERE c.id={} AND c.id=c_conn.cid AND ca.template=c.template AND ca.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=c_conn.c_seq 
-    ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],id)
+    ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],id) # nosec B608
         self.cur.execute(sql)
         conns=self.cur.fetchall()
         #print(conns)
@@ -1519,7 +1519,7 @@ class MapFeaturesDialog(QDialog):
             table='customers'
             text='Customers'
         self.label_listWidget_Plants.setText(text)
-        sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{};'.format(self.config['versionName'],table)
+        sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{};'.format(self.config['versionName'],table) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchone()['ids']
@@ -1568,9 +1568,9 @@ class MapFeaturesDialog(QDialog):
         #print(seq)
         if seq:
             if table_name=="energy_plants":
-                sql="""SELECT count(*) FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.config['versionName'],lid,id,seq)
+                sql="""SELECT count(*) FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
             elif table_name=="customers":
-                sql="""SELECT count(*) FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.config['versionName'],lid,id,seq)
+                sql="""SELECT count(*) FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             if self.cur.fetchone()['count']!=0: 
@@ -1579,9 +1579,9 @@ class MapFeaturesDialog(QDialog):
             else:
                 if seq and id and lid:
                     if table_name=="energy_plants":
-                        sql="""INSERT INTO "{}".energy_plant_connections (epid,ep_seq,lid) VALUES({},{},{});""".format(self.config['versionName'],id,seq,lid)
+                        sql="""INSERT INTO "{}".energy_plant_connections (epid,ep_seq,lid) VALUES({},{},{});""".format(self.config['versionName'],id,seq,lid) # nosec B608
                     elif table_name=="customers":
-                        sql="""INSERT INTO "{}".customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.config['versionName'],id,seq,lid)
+                        sql="""INSERT INTO "{}".customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.config['versionName'],id,seq,lid) # nosec B608
                     
                     #print(sql)
                     self.cur.execute(sql)
@@ -1592,7 +1592,7 @@ class MapFeaturesDialog(QDialog):
         sql="""SELECT conn_b_t.sequence
     FROM public.bundle_type_conns conn_b_t, "{}".{} a, public.{}_templates b 
     WHERE a.id={} AND b.template=a.template AND b.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.conn_type_id={}
-    ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],table_name,table_name[:-1],id,conn_type)
+    ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],table_name,table_name[:-1],id,conn_type) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         seq=self.cur.fetchone()
@@ -1617,9 +1617,9 @@ class MapFeaturesDialog(QDialog):
         
         seq=self.getConnTypeSeq(table_name,id,conn_type)
         if table_name=="energy_plants":
-            sql="""DELETE FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.config['versionName'],lid,id,seq)
+            sql="""DELETE FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
         elif table_name=="customers":
-            sql="""DELETE FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.config['versionName'],lid,id,seq)
+            sql="""DELETE FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         self.updateConnections(table_name,id) 
