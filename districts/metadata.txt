@@ -38,7 +38,7 @@ tags=python,districts,thermal modeling
 homepage=https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_GS/Districts_Modeler_GS/
 category=Plugins
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False

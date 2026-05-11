@@ -203,7 +203,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
     schema = sanitize_pg_identifier(baseName)
 
     cmd = [
-        f"{plugin_dir}\\postgreSQL\\pg_dump",
+        f"{config['pathPostgresql']}bin\\pg_dump",
         "-U", username,
         "-h", config['host'],
         "-p", str(config['port']),
@@ -223,7 +223,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
     cur.execute(sql)
     
     cmd = [
-        f"{plugin_dir}\\postgreSQL\\psql",
+        f"{config['pathPostgresql']}bin\\psql",
         "-d", config['projectName'],
         "-h", config['host'],
         "-p", str(config['port']),
