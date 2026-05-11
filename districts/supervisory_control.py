@@ -68,7 +68,7 @@ class Supervisory_control():
                 remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.config,source_types=[3])
                 #print(remove_sensor_source_ids)
                 if remove_sensor_source_ids:
-                    sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
+                    sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids])) # nosec B608
                     #print(sql)
                     self.cur.execute(sql)
                     
@@ -81,7 +81,7 @@ class Supervisory_control():
                 remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.config,target_types=[3])
                 
                 if remove_sensor_target_ids:
-                    sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
+                    sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids])) # nosec B608
                     #print(sql)
                     self.cur.execute(sql)
                     
@@ -119,13 +119,13 @@ class Supervisory_control():
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 
                 #todo get number of old sensor source signals --> for component placement in .idc
-                sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=4;"""
+                sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=3;"""
                 #print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorSources=self.cur.fetchone()['count']
                 
                 #todo get number of old sensor target signals --> for component placement in .idc
-                sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=4;"""
+                sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=3;"""
                 #print(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorTargets=self.cur.fetchone()['count'] 

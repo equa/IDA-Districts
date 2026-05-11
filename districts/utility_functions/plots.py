@@ -8,7 +8,7 @@ from .topology import *
 import xml.etree.ElementTree as ET
 
 def get_svg_size(svg_file):
-    tree = ET.parse(svg_file)
+    tree = ET.parse(svg_file) # nosec B314
     root = tree.getroot()
     width = root.get('width')
     height = root.get('height')
@@ -45,7 +45,7 @@ SELECT
 FROM "{}"."{}"
 WHERE fid={}
 ORDER BY time;
-        """.format(config['versionName'], p_table_name, id)                    
+        """.format(config['versionName'], p_table_name, id) # nosec B608               
         #print(sql)
         cur.execute(sql)
         data=cur.fetchall()

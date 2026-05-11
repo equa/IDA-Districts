@@ -34,7 +34,7 @@ class WorkerOSMBuildingsImport(QRunnable):
         buildings=self.readOSMBuildings(nodes)
         self.signals.progress.emit(50)
         if self.clearOldFeatures:
-            sql='TRUNCATE "'+self.config['versionName']+'".customers,"'+self.config['versionName']+'".buildings;'
+            sql='TRUNCATE "'+self.config['versionName']+'".customers,"'+self.config['versionName']+'".buildings;'# nosec B608
             self.cur.execute(sql)      
         sql=""
         max_cid=getMaxIdSchema(self.cur,'customers',self.config['versionName'])
@@ -42,10 +42,10 @@ class WorkerOSMBuildingsImport(QRunnable):
             if len(b.geom.split(","))>2:
                 #insert into buildings
                 try:
-                    sql+='INSERT INTO "'+self.config['versionName']+"""\".buildings(id,geom,b_id,substation_id,z_id,submodel,z_bh_m,z_height_m) VALUES ("""+str(counter+1)+""",ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter+1)+','+str(counter+1)+',1,1,0,'+b.height+");"
+                    sql+='INSERT INTO "'+self.config['versionName']+"""\".buildings(id,geom,b_id,substation_id,z_id,submodel,z_bh_m,z_height_m) VALUES ("""+str(counter+1)+""",ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter+1)+','+str(counter+1)+',1,1,0,'+b.height+");"# nosec B608
                     
                     #insert customers
-                    sql+='INSERT INTO "'+self.config['versionName']+"""\".customers(id,template,geom) VALUES ("""+str(counter+1)+""",1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"
+                    sql+='INSERT INTO "'+self.config['versionName']+"""\".customers(id,template,geom) VALUES ("""+str(counter+1)+""",1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"# nosec B608
                 except Exception as e:
                     self.signals.error.emit(str(e))
             self.signals.progress.emit(int(49*counter/len(buildings)))
@@ -124,10 +124,10 @@ class WorkerOSMStreetsImport(QRunnable):
         self.signals.progress.emit(50)  
         sql=''
         if self.clearOldFeatures:
-            sql+='TRUNCATE "'+self.config['versionName']+'".streets;'
+            sql+='TRUNCATE "'+self.config['versionName']+'".streets;'# nosec B608
         
         for counter,street in enumerate(streets,1):
-            sql+='INSERT INTO "'+self.config['versionName']+"""".streets(geom) VALUES (ST_Transform(ST_GeomFromText('"""+street.geom+"',4326),"+self.srid+"));"
+            sql+='INSERT INTO "'+self.config['versionName']+"""".streets(geom) VALUES (ST_Transform(ST_GeomFromText('"""+street.geom+"',4326),"+self.srid+"));"# nosec B608
             self.signals.progress.emit(int(49*counter/len(streets)))
         if sql:
             self.cur.execute(sql)

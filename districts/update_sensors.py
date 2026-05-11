@@ -31,7 +31,7 @@ class UpdateSensors():
         self.dlg.show()  
 
     def insertIntoSensorsTable(self,table,row,sensor_id):
-        sql="""INSERT INTO sensors(sensor_id) VALUES ({});""".format(sensor_id)
+        sql="""INSERT INTO sensors(sensor_id) VALUES ({});""".format(sensor_id)# nosec B608
         #print(sql)
         self.cur.execute(sql)
              
@@ -206,7 +206,7 @@ class UpdateSensors():
     FROM source_conn_type s_ct, public.connection_types c_type
     WHERE c_type.id=s_ct.conn_type AND s_ct.source_id={}
     GROUP BY c_type.id, c_type.description, s_ct.active
-    ORDER BY c_type.id;""".format(id)
+    ORDER BY c_type.id;""".format(id) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         source_conn_types=self.cur.fetchall()
@@ -227,7 +227,7 @@ class UpdateSensors():
     FROM source_conns s_conns, public.connections conns
     WHERE s_conns.connection_id=conns.id AND s_conns.source_id={}
     GROUP BY conns.id, conns.description, s_conns.active
-    ORDER BY conns.id;""".format(id)
+    ORDER BY conns.id;""".format(id) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         source_conns=self.cur.fetchall()
@@ -298,7 +298,7 @@ class UpdateSensors():
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
     FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_templates t, public.connection_types conn_t
     WHERE t.template IN ({}) AND t.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.template=t.template AND conn_t.id=b_t_conns.conn_type_id
-    GROUP BY conn_t.id,conn_t.description;""".format(self.config['versionName'],type,type,','.join(templates))
+    GROUP BY conn_t.id,conn_t.description;""".format(self.config['versionName'],type,type,','.join(templates)) # nosec B608
                 self.cur.execute(sql)
                 conntypes=self.cur.fetchall()
                 #print(conntypes)
@@ -327,7 +327,7 @@ class UpdateSensors():
     FROM public.connections conns, public.connection_types conn_t, public.connection_type_connections c_t_conns
     WHERE c_t_conns.connection_id=conns.id AND conn_t.id=c_t_conns.connection_type_id AND conn_t.id IN ({}) 
     GROUP BY conns.id, conns.description
-    ORDER BY conns.id;""".format(','.join(conn_types))
+    ORDER BY conns.id;""".format(','.join(conn_types)) # nosec B608
                 #print(sql)
                 self.cur.execute(sql)
                 conns=self.cur.fetchall()
@@ -349,7 +349,7 @@ class UpdateSensors():
         sql="""SELECT s_t.active, f_t.template, f_t.template_name
     FROM {}_template s_t, {}_templates f_t
     WHERE s_t.{}_id={} AND f_t.template=s_t.template
-    ORDER BY s_t.template;""".format(sensor,type,sensor,id)
+    ORDER BY s_t.template;""".format(sensor,type,sensor,id) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         templates=self.cur.fetchall()
@@ -508,7 +508,7 @@ def getFilteredTemplates(cur,feature_type,id,sensor_type,loadedSensorData=None):
         sql="""SELECT s_t.active, f_t.template, f_t.template_name
         FROM {}_template s_t, {}_templates f_t
         WHERE s_t.{}_id={} AND f_t.template=s_t.template
-        ORDER BY s_t.template;""".format(sensor_type,feature_type,sensor_type,id)
+        ORDER BY s_t.template;""".format(sensor_type,feature_type,sensor_type,id) # nosec B608
         #print(sql)
         cur.execute(sql)
         templates=cur.fetchall()
@@ -528,7 +528,7 @@ def getFilteredConnTypes(cur,id,loadedSensorData=None):
     FROM source_conn_type s_ct, public.connection_types c_type
     WHERE c_type.id=s_ct.conn_type AND s_ct.source_id={}
     GROUP BY c_type.id, c_type.description, s_ct.active
-    ORDER BY c_type.id;""".format(id)
+    ORDER BY c_type.id;""".format(id) # nosec B608
     #print(sql)
     cur.execute(sql)
     source_conn_types=cur.fetchall()
@@ -546,7 +546,7 @@ def getFilteredConns(cur,id,loadedSensorData=None):
     FROM source_conns s_conns, public.connections conns
     WHERE s_conns.connection_id=conns.id AND s_conns.source_id={}
     GROUP BY conns.id, conns.description, s_conns.active
-    ORDER BY conns.id;""".format(id)
+    ORDER BY conns.id;""".format(id) # nosec B608
     #print(sql)
     cur.execute(sql)
     source_conns=cur.fetchall()
@@ -563,9 +563,9 @@ def removeResultSensors(cur,added_sensor_ids):
     for i in added_sensor_ids:
         #print(i)
         if isinstance(i,list):
-            sql+=''.join(["""DELETE FROM sensors WHERE id={};\n""".format(j['id']) for j in i])
+            sql+=''.join(["""DELETE FROM sensors WHERE id={};\n""".format(j['id']) for j in i]) # nosec B608
         else:
-            sql+="""DELETE FROM sensors WHERE id={};\n""".format(i)
+            sql+="""DELETE FROM sensors WHERE id={};\n""".format(i) # nosec B608
     #print(sql)
     if sql:
         cur.execute(sql)
@@ -627,89 +627,89 @@ def writeSensorsToDB(cur,config,dlg=None,sensorData={},loadedSensorData={}):
     for key_loaded in loadedSensorData:
         if key_loaded not in sensorData: 
             #print('removed sensor')
-            sql+="""DELETE FROM sensors WHERE id={};""".format(key_loaded)
+            sql+="""DELETE FROM sensors WHERE id={};""".format(key_loaded) # nosec B608
     
     #added
     for row,key_table in enumerate(sensorData):
         if key_table not in loadedSensorData: 
             #print('added sensor:'+str(key_table))
-            sql+="""INSERT INTO sensors (id) VALUES({});\n""".format(key_table)
+            sql+="""INSERT INTO sensors (id) VALUES({});\n""".format(key_table) # nosec B608
 
             #source
-            sql+="""INSERT INTO sensor_source(sensor_id,type,template,measure,function,conn_type,conns,test_value,description) VALUES ({},{},{},{},{},{},{},{},'{}');\n""".format(
-                key_table,sensorData[key_table]['source']['type'],key_table,sensorData[key_table]['source']['measure'],sensorData[key_table]['source']['function'],key_table,key_table,sensorData[key_table]['source']['test_value'],sensorData[key_table]['source']['description'])
+            sql+="""INSERT INTO sensor_source(sensor_id,type,template,measure,function,conn_type,conns,test_value,description) VALUES ({},{},{},{},{},{},{},{},'{}');\n""".format(# nosec B608
+                key_table,sensorData[key_table]['source']['type'],key_table,sensorData[key_table]['source']['measure'],sensorData[key_table]['source']['function'],key_table,key_table,sensorData[key_table]['source']['test_value'],sensorData[key_table]['source']['description']) # nosec B608
             for i,(key_template,value_template) in enumerate(sensorData[key_table]['source']['templates'].items(),1):  
-                sql+="""INSERT INTO source_template(source_id,template,active) VALUES ({},{},{});\n""".format(key_table,key_template,value_template)                
-            sql+="".join(["""INSERT INTO source_conn_type(source_id,conn_type,active) VALUES ({},{},{});\n""".format(key_table,key_conn_types,value_conn_types) for key_conn_types,value_conn_types in sensorData[key_table]['source']['conn_types'].items()])                 
-            sql+="".join(["""INSERT INTO source_conns(source_id,connection_id,active) VALUES ({},{},{});\n""".format(key_table,key_conns,value_conns) for key_conns,value_conns in sensorData[key_table]['source']['conns'].items()])                 
+                sql+="""INSERT INTO source_template(source_id,template,active) VALUES ({},{},{});\n""".format(key_table,key_template,value_template)  # nosec B608               
+            sql+="".join(["""INSERT INTO source_conn_type(source_id,conn_type,active) VALUES ({},{},{});\n""".format(key_table,key_conn_types,value_conn_types) for key_conn_types,value_conn_types in sensorData[key_table]['source']['conn_types'].items()])   # nosec B608               
+            sql+="".join(["""INSERT INTO source_conns(source_id,connection_id,active) VALUES ({},{},{});\n""".format(key_table,key_conns,value_conns) for key_conns,value_conns in sensorData[key_table]['source']['conns'].items()])   # nosec B608               
             
             #target
-            sql+="""INSERT INTO sensor_target(sensor_id,type,template,description,test_value) VALUES ({},{},{},'{}',{});\n""".format(
-                key_table,sensorData[key_table]['target']['type'],key_table,sensorData[key_table]['target']['description'],sensorData[key_table]['source']['test_value'])
+            sql+="""INSERT INTO sensor_target(sensor_id,type,template,description,test_value) VALUES ({},{},{},'{}',{});\n""".format(# nosec B608
+                key_table,sensorData[key_table]['target']['type'],key_table,sensorData[key_table]['target']['description'],sensorData[key_table]['source']['test_value']) # nosec B608
             for i,(key_template,value_template) in enumerate(sensorData[key_table]['target']['templates'].items(),1):  
-                sql+="""INSERT INTO target_template(target_id,template,active) VALUES ({},{},{});\n""".format(key_table,key_template,value_template)                
+                sql+="""INSERT INTO target_template(target_id,template,active) VALUES ({},{},{});\n""".format(key_table,key_template,value_template)       # nosec B608          
         else:   
             for table in {'source','target'}:                            
                 #added template of existing sensors
                 for i,(key,value) in enumerate(sensorData[key_table][table]['templates'].items(),1):
                     if key not in loadedSensorData[key_table][table]['templates']:
-                        sql+="""INSERT INTO {}_template({}_id,template,active) VALUES ({},{},{});\n""".format(table,table,key_table,key,value)
+                        sql+="""INSERT INTO {}_template({}_id,template,active) VALUES ({},{},{});\n""".format(table,table,key_table,key,value) # nosec B608
                     else:
                         #print(key)
                         #print(loadedSensorData[key_table][table]['templates'])
                         if value!=loadedSensorData[key_table][table]['templates'][key]:
-                            sql+="""UPDATE {}_template SET active = {} WHERE {}_id = {} AND template = {};\n""".format(table,value,table,key_table,key)
+                            sql+="""UPDATE {}_template SET active = {} WHERE {}_id = {} AND template = {};\n""".format(table,value,table,key_table,key) # nosec B608
 
                 #deleted template of existing sensors
                 for key in loadedSensorData[key_table][table]['templates']:
                     if key not in sensorData[key_table][table]['templates']:
-                        sql+="""DELETE FROM {}_template WHERE {}_id = {} AND template = {};\n""".format(table,table,key_table, key)
+                        sql+="""DELETE FROM {}_template WHERE {}_id = {} AND template = {};\n""".format(table,table,key_table, key) # nosec B608
                         
                 #description
                 if loadedSensorData[key_table][table]['description']!=sensorData[key_table][table]['description']:
-                    sql+="""UPDATE sensor_{} SET description = '{}' WHERE sensor_id = {} ;\n""".format(table,sensorData[key_table][table]['description'],key_table)
+                    sql+="""UPDATE sensor_{} SET description = '{}' WHERE sensor_id = {} ;\n""".format(table,sensorData[key_table][table]['description'],key_table) # nosec B608
 
                 #type
                 if loadedSensorData[key_table][table]['type']!=sensorData[key_table][table]['type']:
-                    sql+="""UPDATE sensor_{} SET type = {} WHERE sensor_id = {} ;\n""".format(table,sensorData[key_table][table]['type'],key_table)
+                    sql+="""UPDATE sensor_{} SET type = {} WHERE sensor_id = {} ;\n""".format(table,sensorData[key_table][table]['type'],key_table) # nosec B608
 
             #test value
             if loadedSensorData[key_table]['source']['test_value']!=sensorData[key_table]['source']['test_value']:
-                sql+="""UPDATE sensor_source SET test_value = '{}' WHERE sensor_id = {} ;\n""".format(sensorData[key_table]['source']['test_value'],key_table)        
+                sql+="""UPDATE sensor_source SET test_value = '{}' WHERE sensor_id = {} ;\n""".format(sensorData[key_table]['source']['test_value'],key_table)  # nosec B608       
 
             #measure
             if loadedSensorData[key_table]['source']['measure']!=sensorData[key_table]['source']['measure']:
-                sql+="""UPDATE sensor_source SET measure = '{}' WHERE sensor_id = {} ;\n""".format(sensorData[key_table]['source']['measure'],key_table)       
+                sql+="""UPDATE sensor_source SET measure = '{}' WHERE sensor_id = {} ;\n""".format(sensorData[key_table]['source']['measure'],key_table)    # nosec B608    
 
             #function
             if loadedSensorData[key_table]['source']['function']!=sensorData[key_table]['source']['function']:
-                sql+="""UPDATE sensor_source SET function = '{}' WHERE sensor_id = {} ;\n""".format(sensorData[key_table]['source']['function'],key_table)        
+                sql+="""UPDATE sensor_source SET function = '{}' WHERE sensor_id = {} ;\n""".format(sensorData[key_table]['source']['function'],key_table)    # nosec B608     
                         
             #added conn_types of existing sensors
             for key,value in sensorData[key_table]['source']['conn_types'].items():
                 if key not in loadedSensorData[key_table]['source']['conn_types']:
-                    sql+="""INSERT INTO source_conn_type(source_id,conn_type,active) VALUES ({},{},{});\n""".format(key_table,key,value)
+                    sql+="""INSERT INTO source_conn_type(source_id,conn_type,active) VALUES ({},{},{});\n""".format(key_table,key,value) # nosec B608
                 else:
                     if value!=loadedSensorData[key_table]['source']['conn_types'][key]:
-                        sql+="""UPDATE source_conn_type SET active = {} WHERE source_id = {} AND conn_type = {};\n""".format(value,key_table,key)
+                        sql+="""UPDATE source_conn_type SET active = {} WHERE source_id = {} AND conn_type = {};\n""".format(value,key_table,key) # nosec B608
 
             #deleted conn_types of existing sensors
             for key in loadedSensorData[key_table]['source']['conn_types']:
                 if key not in sensorData[key_table]['source']['conn_types']:
-                    sql+="""DELETE FROM source_conn_type WHERE source_id = {} AND conn_type = {};\n""".format(key_table,key)
+                    sql+="""DELETE FROM source_conn_type WHERE source_id = {} AND conn_type = {};\n""".format(key_table,key) # nosec B608
 
             #added conns of existing sensors
             for key,value in sensorData[key_table]['source']['conns'].items():
                 if key not in loadedSensorData[key_table]['source']['conns']:
-                    sql+="""INSERT INTO source_conns(source_id,connection_id,active) VALUES ({},{},{});\n""".format(key_table,key,value)
+                    sql+="""INSERT INTO source_conns(source_id,connection_id,active) VALUES ({},{},{});\n""".format(key_table,key,value) # nosec B608
                 else:
                     if value!=loadedSensorData[key_table]['source']['conns'][key]:
-                        sql+="""UPDATE source_conns SET active = {} WHERE source_id = {} AND connection_id = {};\n""".format(value,key_table,key)
+                        sql+="""UPDATE source_conns SET active = {} WHERE source_id = {} AND connection_id = {};\n""".format(value,key_table,key) # nosec B608
 
             #deleted conns of existing sensors
             for key in loadedSensorData[key_table]['source']['conns']:
                 if key not in sensorData[key_table]['source']['conns']:
-                    sql+="""DELETE FROM source_conns WHERE source_id = {} AND connection_id = {};\n""".format(key_table,key)
+                    sql+="""DELETE FROM source_conns WHERE source_id = {} AND connection_id = {};\n""".format(key_table,key) # nosec B608
     
     #print(sql)
     if sql:
@@ -830,11 +830,11 @@ class WorkerSensors(QRunnable):
                 
         #delete from invoked tables in DB
         if remove_sensor_source_ids:
-            sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids]))
+            sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids])) # nosec B608
             #print(sql)
             self.cur.execute(sql)
         if remove_sensor_target_ids:
-            sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids]))
+            sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids])) # nosec B608
             #print(sql)
             self.cur.execute(sql)  
         

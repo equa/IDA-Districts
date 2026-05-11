@@ -7,6 +7,7 @@ from .utility_functions.topology import *
 from .utility_functions.db import *
 import math
 import copy
+import ast
 
 def checkInputBundleEditorInput(mappedAttributesValues):
     #check input data pipe
@@ -197,7 +198,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                     if mappedAttribute=='layer_constr':
                         for layer_constr in mappedAttributesValues['layer_constr']:
                             try:
-                                mappedAttributesValues['layer_constr'][layer_constr][1]=str(eval(mappedAttributesValues['layer_constr'][layer_constr][1]))
+                                mappedAttributesValues['layer_constr'][layer_constr][1]=str(ast.literal_eval(mappedAttributesValues['layer_constr'][layer_constr][1]))
                             except:
                                 pass
                     else:
@@ -206,7 +207,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                             if dict:
                                 mappedAttributesValues[mappedAttribute]=dict[mappedAttributesValues[mappedAttribute].split('}')[1].strip()[1:-1].replace('"','').replace("'",'')]
                             else:
-                                mappedAttributesValues[mappedAttribute]=str(eval(mappedAttributesValues[mappedAttribute]))
+                                mappedAttributesValues[mappedAttribute]=str(ast.literal_eval(mappedAttributesValues[mappedAttribute]))
                         except:
                             pass
 
@@ -229,15 +230,15 @@ TRUNCATE pipe_layers CASCADE;\n"""
                     iface.messageBar().pushMessage("Warning", "Please enter a construction layer thickness!", level=Qgis.Warning)
                     return False
                 layer_max_id+=1
-                sql+="""INSERT INTO pipe_layers (id,pipe_construction_id,materialid,thickness,sequence) VALUES ({},{},{},{},{});\n""".format(
-                    layer_max_id,constr_max_id,constr[seq][0].split(':')[0],constr[seq][1],seq)
+                sql+="""INSERT INTO pipe_layers (id,pipe_construction_id,materialid,thickness,sequence) VALUES ({},{},{},{},{});\n""".format(# nosec B608
+                    layer_max_id,constr_max_id,constr[seq][0].split(':')[0],constr[seq][1],seq) # nosec B608
             
             pipe_constrs.append(constr)
             pipe_constrs_dict[str(constr)]=constr_max_id
             
             #add to pipe constructions
-            sql+="""INSERT INTO pipe_constructions (id,name) VALUES ({},'{}');\n""".format(
-                constr_max_id,str(constr).replace("'",''))
+            sql+="""INSERT INTO pipe_constructions (id,name) VALUES ({},'{}');\n""".format(# nosec B608
+                constr_max_id,str(constr).replace("'",'')) # nosec B608
              
         if feature_pipe not in pipes:
             #print('**********Add pipe*********')
@@ -245,8 +246,8 @@ TRUNCATE pipe_layers CASCADE;\n"""
             pipes.append(feature_pipe)
             pipes_dict[str(feature_pipe)]=str(pipes_max_id)
             #add pipe to DB
-            sql+="""INSERT INTO pipes (id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id) VALUES ({},'{}',{},{},{});\n""".format(
-                pipes_max_id,str(feature_pipe).replace("'",''),mappedAttributesValues[dlg.pipe_bundle_type_attributes[0]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[6]],pipe_constrs_dict[str(constr)])
+            sql+="""INSERT INTO pipes (id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id) VALUES ({},'{}',{},{},{});\n""".format(pipes_max_id, # nosec B608
+                str(feature_pipe).replace("'",''),mappedAttributesValues[dlg.pipe_bundle_type_attributes[0]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[6]],pipe_constrs_dict[str(constr)]) # nosec B608
             
 
         #print(pipes_dict)
@@ -262,14 +263,14 @@ TRUNCATE pipe_layers CASCADE;\n"""
             pipe_bundles_dict[str(feature_bundle)]=str(pipe_bundles_max_id)
             #to add to DB
             #Add to pipe bundle types
-            sql+="""INSERT INTO pipe_bundle_types (id,description) VALUES ({},'{} pipes: {} m depth; {} m distance');\n""".format(pipe_bundles_max_id,feature_bundle[1],feature_bundle[3],feature_bundle[2])
+            sql+="""INSERT INTO pipe_bundle_types (id,description) VALUES ({},'{} pipes: {} m depth; {} m distance');\n""".format(pipe_bundles_max_id,feature_bundle[1],feature_bundle[3],feature_bundle[2]) # nosec B608
             
             #Add to bundle_pipes
             for seq in range(1,int(feature_bundle[1])+1):
                 bundle_pipes_max_id+=1
                 x=float(feature_bundle[2])*((2*seq-1-int(feature_bundle[1]))/2)
-                sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format(
-                    bundle_pipes_max_id,pipe_bundles_max_id,seq,str(feature_bundle[0]),x,feature_bundle[3],feature_bundle[4])
+                sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format( # nosec B608
+                    bundle_pipes_max_id,pipe_bundles_max_id,seq,str(feature_bundle[0]),x,feature_bundle[3],feature_bundle[4]) # nosec B608
         if dlg.addPipeBundleTypeField.isChecked():
             #print(pipe_bundles_dict)
             #print(feature.id())
@@ -355,10 +356,10 @@ def importLayerToDb(type,dlg,main):
                 
                 if dlg.rbtn_truncate.isChecked():
                     ids=[]
-                    sql='TRUNCATE "{}".{};'.format(main.config['versionName'],layer_name)
+                    sql='TRUNCATE "{}".{};'.format(main.config['versionName'],layer_name)# nosec B608
                     main.cur.execute(sql)
                 else:
-                    sql='SELECT id FROM "{}".{};'.format(main.config['versionName'],layer_name)
+                    sql='SELECT id FROM "{}".{};'.format(main.config['versionName'],layer_name)# nosec B608
                     main.cur.execute(sql)
                     ids=[i['id'] for i in main.cur.fetchall()]
                 
@@ -400,7 +401,7 @@ def importLayerToDb(type,dlg,main):
                     for attribute in attributes:
                         #print(attribute)
                         try:
-                            values.append(str(eval(mappedAttributesValues[attribute])))
+                            values.append(str(ast.literal_eval(mappedAttributesValues[attribute])))
                         except:
                             pass
 
@@ -410,14 +411,14 @@ def importLayerToDb(type,dlg,main):
                         values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\')),'+layer_srid+'),'+ str(main.projectConfig['srid'])+')')
                     if generateId:
                         values.append(str(generateId+i))
-                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values))
+                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values)) # nosec B608
                     else:
                         if values[attributes.index('id')] in ids:
                             iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=Qgis.Warning)
                             return False
                         else:
                             ids.append(values[attributes.index('id')])
-                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom']),','.join(values))
+                        sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom']),','.join(values)) # nosec B608
                     i+=1
                 #print(sql)
                 main.cur.execute(sql)

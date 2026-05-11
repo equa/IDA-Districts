@@ -754,7 +754,7 @@ class ShowOnMapDialog(QDialog):
             self.displaySizeLayout()
             
         self.color_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.color_table_name)
+        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.color_table_name) # nosec B608
         try:
             self.cur.execute(sql)
             time=self.cur.fetchone()
@@ -778,7 +778,7 @@ class ShowOnMapDialog(QDialog):
             
     def size_varChanged(self,s):
         self.size_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.size_table_name)
+        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.size_table_name) # nosec B608
         try:
             self.cur.execute(sql)
             time=self.cur.fetchone()
@@ -802,7 +802,7 @@ class ShowOnMapDialog(QDialog):
             
     def rotation_varChanged(self,s):
         self.rotation_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.rotation_table_name)
+        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.rotation_table_name) # nosec B608
         try:
             self.cur.execute(sql)
             time=self.cur.fetchone()

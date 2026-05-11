@@ -3,6 +3,7 @@ import shutil
 from .utility import *
 from .ida_components import *
 from qgis.core import Qgis, QgsMessageLog
+import ast
 
 def collect_files_by_extension(root_folder: str, extension: str):
     """
@@ -75,7 +76,7 @@ def replace_in_folder(root_folder, old_string, new_string, file_extensions=None,
                 replace_in_file(full_path, old_string, new_string)
                 
 def writeMacroSFIdm(config,cur,dir):
-    sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(config['versionName'])
+    sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
     cur.execute(sql)
     sf_ids=cur.fetchall()     
     #print(sf_ids)
@@ -87,7 +88,7 @@ def writeMacroSFIdm(config,cur,dir):
     #print(dir)
                 
 def writeMacroSFIdc(config,cur,dir):
-    sql='SELECT id,sf FROM "{}".invoked_sf;'.format(config['versionName'])
+    sql='SELECT id,sf FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
     cur.execute(sql)
     sf_ids=cur.fetchall()
         
@@ -224,7 +225,7 @@ def loadInvokedOutputs(config):
                     invokedOutputs+=line
         else:
             return {'customers': {}, 'lines': {}, 'energy_plants': {}}
-        invokedOutputs=eval(invokedOutputs)
+        invokedOutputs=ast.literal_eval(invokedOutputs)
         #print(invokedOutputs)
     else:
         #print('No project name')

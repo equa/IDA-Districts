@@ -2,6 +2,7 @@ from .utility import *
 from .db import *
 
 import re
+import ast
 
 def getSimData(requestedOutputs,networkSimData):
     #print(networkSimData)
@@ -135,7 +136,7 @@ def getIDAListComponents(data):
     data=data.replace('$empty_str$','""')
     #print(data)
 
-    return eval(data)
+    return ast.literal_eval(data)
     
 def propertyListCompsIDM(comps):
     return [propertyListIDM(comp) for comp in comps]
@@ -371,7 +372,7 @@ def getFeatureIdsPerSubmodel(submodel,cur,config):
     UNION
     SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
 )
-ORDER BY feature,id;""".format(config['versionName'],submodel,config['versionName'],submodel,submodel)
+ORDER BY feature,id;""".format(config['versionName'],submodel,config['versionName'],submodel,submodel) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     

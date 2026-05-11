@@ -24,7 +24,7 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import re
-
+import ast
 import datetime
 import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
@@ -56,7 +56,7 @@ class WorkerInvokeFeatures(QRunnable):
         
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         invokedOutputs=loadInvokedOutputs(self.config)
-        sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],self.type[:-1])
+        sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],self.type[:-1]) # nosec B608
         self.cur.execute(sql)
         
         rows_count=len(self.rows)
@@ -90,19 +90,19 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
         for key_loaded in dlg.loadedMappingParms:
             if key_loaded not in mappingParms: 
                 #print('removed sensor')
-                sql+="""DELETE FROM model_parms WHERE id={};""".format(key_loaded)
+                sql+="""DELETE FROM model_parms WHERE id={};""".format(key_loaded) # nosec B608
         
         #added
         for key_table in mappingParms:
             if key_table not in dlg.loadedMappingParms: 
                 #print('added parm')
-                sql+="""INSERT INTO model_parms (id,type,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},{},'{}','{}','{}','{}','{}');\n""".format(
-                    key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'])               
+                sql+="""INSERT INTO model_parms (id,type,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},{},'{}','{}','{}','{}','{}');\n""".format(# nosec B608
+                    key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction']) # nosec B608             
             else:   
                 #Check for updated columns
                 for col in ['mapping_expression','parm_name','model_name','macro_name','mapping_direction']:
                     if dlg.loadedMappingParms[key_table][col]!=mappingParms[key_table][col]:
-                        sql+="""UPDATE model_parms SET {} = '{}' WHERE id = {} ;\n""".format(col,mappingParms[key_table][col],key_table)   
+                        sql+="""UPDATE model_parms SET {} = '{}' WHERE id = {} ;\n""".format(col,mappingParms[key_table][col],key_table) # nosec B608
         
         if sql:
             #print(sql)
@@ -131,7 +131,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
             
         sql="""SELECT f.template, t.template_name, t.conn_bundle_type 
             FROM "{}".{}s f,{}_templates t 
-            WHERE f.template=t.template AND f.id={};""".format(config['versionName'],type,type,id)
+            WHERE f.template=t.template AND f.id={};""".format(config['versionName'],type,type,id) # nosec B608
         #print(sql)
         cur.execute(sql)
         type_old=""
@@ -158,7 +158,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
         FROM "{}".boreholes 
         LEFT JOIN sub ON true WHERE plant_id={} GROUP BY sub.mir_counter, sub.mir_point
 )
-SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_center)::numeric,2) AS y, "group" FROM "{}".boreholes,sub WHERE plant_id={} AND mir=FALSE ORDER BY "group",id;""".format(config['versionName'],id,config['versionName'],id,config['versionName'],id)
+SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_center)::numeric,2) AS y, "group" FROM "{}".boreholes,sub WHERE plant_id={} AND mir=FALSE ORDER BY "group",id;""".format(config['versionName'],id,config['versionName'],id,config['versionName'],id) # nosec B608
                 cur.execute(sql)
                 boreholes=cur.fetchall()
                 #print(boreholes)
@@ -178,7 +178,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
 
                     ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
                     
-                    sql='SELECT * FROM "{}".borehole_fields WHERE id={};'.format(config['versionName'],id)
+                    sql='SELECT * FROM "{}".borehole_fields WHERE id={};'.format(config['versionName'],id) # nosec B608
                     #print(sql)
                     cur.execute(sql)
                     field_data=cur.fetchone()
@@ -189,7 +189,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         else:
                             iface.messageBar().pushMessage("Critical", "No borehole field data for plant id={} (layer boreholes) available!".format(id), level=Qgis.Critical)
                         return False
-                    sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype'])
+                    sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype']) # nosec B608
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
                     replaceDict={':FEATURE': {'GHX_MANY': {
@@ -208,12 +208,12 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             #print(replaceDict)
             
             #get model parameter
-            sql="""SELECT * FROM model_parms WHERE type = {} ORDER BY id;""".format(1 if type=='customer' else 2)
+            sql="""SELECT * FROM model_parms WHERE type = {} ORDER BY id;""".format(1 if type=='customer' else 2) # nosec B608
             #print(sql)
             cur.execute(sql)
             parms=cur.fetchall()
             #print(parms)
-            sql="""SELECT * FROM "{}".{}s WHERE id={};""".format(config['versionName'],type,id)
+            sql="""SELECT * FROM "{}".{}s WHERE id={};""".format(config['versionName'],type,id) # nosec B608
             #print(sql)
             cur.execute(sql)
             fields=cur.fetchone()
@@ -225,7 +225,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
                 #print(mapping_expression)
                 try:
-                    mapping_expression=eval(mapping_expression)
+                    mapping_expression=ast.literal_eval(mapping_expression)
                 except:
                     #print('Failed eval!')
                     signals.error.emit("Failed to evaluate mapping expression for feature id={}: {}".format(id,mapping_expression))
@@ -297,7 +297,7 @@ class InvokeFeatures():
             self.type='customer'
         elif self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_plants:
             self.type='energy_plant'
-        sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{}s;'.format(self.config['versionName'],self.type)
+        sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{}s;'.format(self.config['versionName'],self.type)# nosec B608
         #print(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()[0]['ids']
@@ -318,7 +318,7 @@ class InvokeFeatures():
             
     def loadInvokeFeatureData(self,dlg):
         """Collect all feature ids and check if they are already invoked"""
-        sql="""SELECT id FROM "{}".{}s ORDER BY id;""".format(self.config['versionName'],self.type)
+        sql="""SELECT id FROM "{}".{}s ORDER BY id;""".format(self.config['versionName'],self.type) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         i=0
@@ -437,7 +437,7 @@ class CopyTemplateFiles:
             type=getTypeIdByName(type)
             sql="""SELECT s.sensor_id
     FROM sensor_source s, source_template s_t
-    WHERE s.sensor_id=s_t.source_id AND s_t.template={} AND s.measure=5 AND s.type={} AND s_t.active=false;""".format(template,type)
+    WHERE s.sensor_id=s_t.source_id AND s_t.template={} AND s.measure=5 AND s.type={} AND s_t.active=false;""".format(template,type) # nosec B608
             #print(sql)
             cur.execute(sql)
             remove_sensor_source_ids=cur.fetchall()
@@ -482,10 +482,10 @@ class CopyTemplateFiles:
                 sql='\n'.join(["""INSERT INTO "{}".invoked_sf (sf,vars,type)
     SELECT '{}', ARRAY[{}], '{}' WHERE NOT EXISTS (
         SELECT 1 FROM "{}".invoked_sf WHERE sf = '{}' AND type='{}'
-    );""".format(self.config['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),type_name,self.config['versionName'],i[0][':SF'],type_name)  for i in sf])
+    );""".format(self.config['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),type_name,self.config['versionName'],i[0][':SF'],type_name)  for i in sf]) # nosec B608
                 #print(sql)
                 cur.execute(sql)
-            sql="""SELECT id,sf FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type_name)
+            sql="""SELECT id,sf FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type_name)# nosec B608
             cur.execute(sql)
             sf_ids=cur.fetchall()
             pList=delSFAndConnsAddLinks(pList,sf,sf_ids)

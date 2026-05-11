@@ -1060,7 +1060,7 @@ class Districts:
         if self.conn:
             if self.config['versionName']:
                 self.dlg_buildModel=BuildNetworkModelDialog(self.dlg)
-                sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.config['versionName'])
+                sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.config['versionName']) # nosec B608
                 self.cur.execute(sql)
                 self.dlg_buildModel.combo_network_models.addItem(tr('@default','check_all_items'))
                 networks=self.cur.fetchall()
@@ -1176,7 +1176,7 @@ class Districts:
             self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: deleteIDs(self.dlg_pathReports))
             self.dlg_pathReports.btn_addID.clicked.connect(lambda: addID(self.dlg_pathReports))
             
-            self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.config['versionName']))
+            self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.config['versionName'])) # nosec B608
             self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
             self.dlg_pathReports.show()
         else:

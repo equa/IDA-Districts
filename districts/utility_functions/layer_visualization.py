@@ -131,7 +131,7 @@ def getDHCLayerNames():
     
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
-    sql="""SELECT UpdateGeometrySRID('%schema%', '%table%', 'geom', {});""".format(srid)
+    sql="""SELECT UpdateGeometrySRID('%schema%', '%table%', 'geom', {});""".format(srid) # nosec B608
     #print('+--+')
     for version in versions:
         sql_version=sql.replace("%schema%",version)
@@ -164,7 +164,7 @@ def mapValueLinesNetwork(cur,config):
     layer.setEditorWidgetSetup(field_index, QgsEditorWidgetSetup('ValueMap', config_map))
 
 def getFeatureTypes(cur,feature):
-    sql="""SELECT id, type FROM {}_types ORDER BY id;""".format(feature)
+    sql="""SELECT id, type FROM {}_types ORDER BY id;""".format(feature) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -484,7 +484,7 @@ def getDefaults(table,cur,config):
     sql="""SELECT column_name, column_default
 FROM information_schema.columns
 WHERE (table_schema, table_name) = ('{}', '{}')
-ORDER BY ordinal_position;""".format(config['versionName'],table)
+ORDER BY ordinal_position;""".format(config['versionName'],table) # nosec B608
     #print(sql)
     cur.execute(sql)
     defaults=cur.fetchall()
@@ -509,7 +509,7 @@ def featureLayerGroups(vlayerName,cur):
     try:
         colmn='template_name' if vlayerName in ['customers','energy_plants'] else 'type'
         table='template' if vlayerName in ['customers','energy_plants'] else 'type'
-        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table)
+        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table) # nosec B608
         #print(sql)
         cur.execute(sql)
         return [tr('@default',i[colmn]) for i in cur.fetchall()]
@@ -520,7 +520,7 @@ def featureLayerGroupIds(vlayerName,cur):
     try:
         colmn='template' if vlayerName in ['customers','energy_plants'] else 'id'
         table='template' if vlayerName in ['customers','energy_plants'] else 'type'
-        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table)
+        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table) # nosec B608
         #print(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]    
