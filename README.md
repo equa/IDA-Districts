@@ -23,7 +23,7 @@ In addition, when configured with **IDA Districts**, the plugin enables advanced
 
 When connected to **IDA Districts**, the plugin supports advanced dynamic simulation of district energy systems.
 
-:contentReference https://equa.se/en/ is a simulation environment for engineers, utilities and research institutions for the planning and analysis of thermal networks and district energy systems. The software enables dynamic, physics-based simulation of buildings, energy sources, networks and their control strategies within one integrated system, creating reliable decision support for planning, dimensioning and operation.
+IDA Districts https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/ is a simulation environment for engineers, utilities and research institutions for the planning and analysis of thermal networks and district energy systems. The software enables dynamic, physics-based simulation of buildings, energy sources, networks and their control strategies within one integrated system, creating reliable decision support for planning, dimensioning and operation.
 
 ### With IDA Districts integration, this plugin enables:
 
@@ -71,7 +71,7 @@ C:\Users<User>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins
 - QGIS >= 3.28
 - Python 3.x (bundled with QGIS)
 - Optional: PostgreSQL/PostGIS (for database features)
-- Optional: IDA Districts https://equa.se/en/ for simulation features
+- Optional: IDA Districts https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/ for simulation features
 
 ---
 
