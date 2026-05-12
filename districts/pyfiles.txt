@@ -61,6 +61,7 @@
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\utility_functions\workers.py" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_climate_dialog.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_dialog_base.ui" 
+"C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_setGFAAttribute.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_setLoadAttribute.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_settings_dialog.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\network_report.ui" 

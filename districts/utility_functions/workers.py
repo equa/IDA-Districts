@@ -96,9 +96,6 @@ class WorkerImportProject(QRunnable):
         #print(self.config)
         #print(name)
         
-        #if os.path.exists(src_dir):
-        #    rmtree_long_path(src_dir)
-        
         self.signals.progress.emit(15)            
 
         #get project name
@@ -323,7 +320,7 @@ class WorkerExportProject(QRunnable):
 
         # Check if the folder exists and delete it
         if os.path.exists(dir) and os.path.isdir(dir):
-            shutil.rmtree(dir)  
+            rmtree_long_path(dir) 
                     
         # Ensure the directory exists, create it if necessary
         sql_path = dir+f"\\{name}.sql"

@@ -29,6 +29,14 @@ class ShowLoadAttributeDialog:
         self.dlg.btn_ok.clicked.connect(lambda: setLoadAttribute(self.dlg,fid))
         self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
         self.dlg.show()
+        
+class ShowGFAAttributeDialog:
+    def __init__(self,fid):
+        self.dlg=GFAAttributeDialog()
+
+        self.dlg.btn_ok.clicked.connect(lambda: setGFAAttribute(self.dlg,fid))
+        self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
+        self.dlg.show()
     
 def setLoadAttribute(dlg,fid):
     sql=""
@@ -36,7 +44,7 @@ def setLoadAttribute(dlg,fid):
         attribute_name=dlg.comboBox_attribute.currentData()
     else:
         attribute_name=dlg.lineEdit_newAttribute.text()
-        sql+="""ALTER TABLE {}.customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)
+        sql+="""ALTER TABLE {}.customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)# nosec B608
         
         layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
@@ -61,6 +69,37 @@ UPDATE {}.customers c SET {} = sub.load
     
     closeDialog(dlg)
     
+def setGFAAttribute(dlg,fid):
+    sql=""
+    if dlg.radioButton_existingAttribute.isChecked():
+        attribute_name=dlg.comboBox_attribute.currentData()
+    else:
+        attribute_name=dlg.lineEdit_newAttribute.text()
+        sql+="""ALTER TABLE {}.customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)# nosec B608
+        
+        layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
+        layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
+        if layer:
+            data = extract_group_fields(layer[0])
+            data[tr('@default','physical_data')].append(attribute_name)
+            #print(data)
+            layersConfig[layer[0].name()]=data
+            writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
+        
+    sql+="""WITH sub AS(
+	SELECT b_id,substation_id,sum(ST_Area(geom)) AS gfa FROM {}.buildings GROUP BY b_id,substation_id
+)
+UPDATE {}.customers c SET {} = sub.gfa 
+	FROM sub
+	WHERE c.id=sub.substation_id{};""".format(dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
+    #print(sql)
+    dlg.cur.execute(sql)
+    
+    if dlg.radioButton_newAttribute.isChecked():
+        setupFeatureLayerDialog('customers',dlg.cur,dlg.config,get_districts_plugin_dir())
+    
+    closeDialog(dlg)
+    
 class LoadAttributeDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -74,6 +113,46 @@ class LoadAttributeDialog(QDialog):
         ui_path = os.path.join(os.path.dirname(__file__), "districts_setLoadAttribute.ui")
         uic.loadUi(ui_path, self)
         self.lineEdit_specificLoad.setText('30')
+        self.group_attribute=QButtonGroup(self)
+        self.group_attribute.addButton(self.radioButton_existingAttribute) 
+        self.radioButton_existingAttribute.setChecked(True)
+        self.label_newAttribute.setHidden(True)
+        self.lineEdit_newAttribute.setHidden(True)
+        self.group_attribute.addButton(self.radioButton_newAttribute) 
+        self.group_attribute.buttonClicked.connect(self.attributeChanged)
+        
+
+        existing_attributes=getTableAttr(self.cur,self.config,'customer',withoutID=True)
+        items={attribute : tr("@default",attribute) for attribute in existing_attributes}
+        
+        # Add items to the combobox, storing the original key as user data
+        for original_key, translated_text in items.items():
+            self.comboBox_attribute.addItem(translated_text, original_key) # The second argument is the userData
+                    
+        self.comboBox_attribute
+
+    def attributeChanged(self,radioButton):
+        if self.radioButton_existingAttribute.isChecked():
+            showExistingAttribute=True
+        else:
+            showExistingAttribute=False
+        self.label_attribute.setHidden(not showExistingAttribute)
+        self.comboBox_attribute.setHidden(not showExistingAttribute)
+        self.label_newAttribute.setHidden(showExistingAttribute)
+        self.lineEdit_newAttribute.setHidden(showExistingAttribute)
+        
+class GFAAttributeDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.config=load_plugin_settings()
+        self.conn=dbConnect(self.config,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "districts_setGFAAttribute.ui")
+        uic.loadUi(ui_path, self)
         self.group_attribute=QButtonGroup(self)
         self.group_attribute.addButton(self.radioButton_existingAttribute) 
         self.radioButton_existingAttribute.setChecked(True)
@@ -632,6 +711,7 @@ def loadVersionLayers(config,cur,plugin_dir):
     setupVersionForm(cur,plugin_dir,config)
     setupCustomerDataSheet(config,plugin_dir,loadProjectConfig(config))
     setupCustomerLoadValue(config,plugin_dir,loadProjectConfig(config))
+    setupCustomerGFAValue(config,plugin_dir,loadProjectConfig(config))
       
     valueRelationPipeBundleType()    
     zoomToLayer('customers')

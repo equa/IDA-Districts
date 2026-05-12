@@ -149,8 +149,8 @@ class WorkerPipeSizing(QRunnable):
                 #print('line id: '+str(line['id']))
                 pipe_bundle=[]
                 Re=100000
-                if self.dlg.checkBoxSimultaneity.isChecked():
-                    simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
+                if self.dlg.checkBoxSimultaneity.isChecked() and line['no_customer']:
+                        simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
                 else:
                     simulaneity=1
                 #print(simulaneity)
@@ -158,30 +158,33 @@ class WorkerPipeSizing(QRunnable):
 
                 i=1
                 for pipe_boundary in pipe_boundary_dict:
-                    #print(pipe_boundary)
-                    #print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
-                    mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
-                    #print(mdot_pipe)
+                    try:
+                        #print(pipe_boundary)
+                        #print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
+                        mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
+                        #print(mdot_pipe)
 
-                    if not self.kin_viscosity:
-                        self.kin_viscosity=sum([1/((0.1*(273.15+i[2])**2-34.335*(273.15+i[2])+2472)*self.rho) for i in pipe_boundary_dict[pipe_boundary]])/len(pipe_boundary_dict[pipe_boundary])
-                        #print(self.kin_viscosity)
-                    Re_old=0
-                    while abs(Re-Re_old)>100:
-                        z = fsolve(lambda zGuess: solvePipeSize(zGuess,self.dp,self.epsilon,self.rho,Re,mdot_pipe),zGuess) #z[0]--> f; z[1]--> di; z[2]--> vel 
-                        Re_old=Re
-                        Re=z[2]*z[1]/self.kin_viscosity
-                        zGuess = np.array([z[0],z[1],z[2]])
-                        
-                    #print(z)
-                    #take next bigger inner pipe diamater of DB (pipes)
-                    pipe=[pipe for pipe in seq_pipes_dict[int(pipe_boundary)] if  pipe[1] > z[1]]
-                    if pipe:
-                        pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
-                    else:
-                        self.signals.error.emit("No proper pipe available for line ID = {} with inner diameter: ".format(line['id'])+str(z[1]))
-                        return False
-                    i+=1
+                        if not self.kin_viscosity:
+                            self.kin_viscosity=sum([1/((0.1*(273.15+i[2])**2-34.335*(273.15+i[2])+2472)*self.rho) for i in pipe_boundary_dict[pipe_boundary]])/len(pipe_boundary_dict[pipe_boundary])
+                            #print(self.kin_viscosity)
+                        Re_old=0
+                        while abs(Re-Re_old)>100:
+                            z = fsolve(lambda zGuess: solvePipeSize(zGuess,self.dp,self.epsilon,self.rho,Re,mdot_pipe),zGuess) #z[0]--> f; z[1]--> di; z[2]--> vel 
+                            Re_old=Re
+                            Re=z[2]*z[1]/self.kin_viscosity
+                            zGuess = np.array([z[0],z[1],z[2]])
+                            
+                        #print(z)
+                        #take next bigger inner pipe diamater of DB (pipes)
+                        pipe=[pipe for pipe in seq_pipes_dict[int(pipe_boundary)] if  pipe[1] > z[1]]
+                        if pipe:
+                            pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
+                        else:
+                            self.signals.error.emit("No proper pipe available for line ID = {} with inner diameter: ".format(line['id'])+str(z[1]))
+                            return False
+                        i+=1
+                    except:
+                        self.signals.error.emit("Load value is not set for line ID = {} and is therefore omitted in sizing process.".format(line['id']))
                 #print(pipe_bundle)  
                 
                 #check if pipe bundle type already exists in DB otherwise add to DB

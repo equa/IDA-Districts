@@ -6,9 +6,7 @@ from qgis.core import  QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFie
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
 
-def setupCustomerLoadValue(config,plugin_dir,projectConfig):
-    """Setup of the customer data sheet (RMB project) including button which generates a print layout and exports a pdf"""
-    
+def setupCustomerLoadValue(config,plugin_dir,projectConfig):    
     feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
     #print(feature_layer)
     
@@ -27,6 +25,25 @@ ShowLoadAttributeDialog([%id%])"""
 
     feature_layer.setEditFormConfig(form_config)
     
+def setupCustomerGFAValue(config,plugin_dir,projectConfig):    
+    feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
+    #print(feature_layer)
+    
+    action_text="""from districts.ida_ph import *
+ShowGFAAttributeDialog([%id%])"""
+
+    helpAction = QgsAction(Qgis.AttributeActionType.GenericPython, tr('@default','set_gfa_attribute'), action_text, None, capture=False, shortTitle=tr('@default','set_gfa_attribute'), actionScopes={'Feature'})
+    feature_layer.actions().addAction(helpAction)
+
+    form_config = feature_layer.editFormConfig()
+
+    rootContainer = form_config.invisibleRootContainer()
+    #print(rootContainer)
+    editorAction = QgsAttributeEditorAction(helpAction, rootContainer)
+    rootContainer.addChildElement(editorAction)
+
+    feature_layer.setEditFormConfig(form_config)
+    
 def setupFeatureLayerDialog(layer_name,cur,config,plugin_dir):
     removeLayer(layer_name)
     loadFeatureLayer(config['versionName'],config,plugin_dir,layer_name,cur)
@@ -34,6 +51,7 @@ def setupFeatureLayerDialog(layer_name,cur,config,plugin_dir):
     versionLayersAliasNames()
     setupCustomerDataSheet(config,plugin_dir,loadProjectConfig(config))
     setupCustomerLoadValue(config,plugin_dir,loadProjectConfig(config))
+    setupCustomerGFAValue(config,plugin_dir,loadProjectConfig(config))
     if layer_name=='lines':
         valueRelationPipeBundleType() 
         

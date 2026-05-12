@@ -149,12 +149,12 @@
         <translation type="unfinished">Check all items</translation>
     </message>
     <message>
-        <location filename="../utility_functions/utility.py" line="451"/>
+        <location filename="../utility_functions/utility.py" line="452"/>
         <source>@default</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="416"/>
+        <location filename="../utility_functions/dialog.py" line="417"/>
         <source>@default</source>
         <comment>check_all_items</comment>
         <translation type="unfinished"></translation>
@@ -575,13 +575,13 @@
         <translation type="unfinished">No. connections</translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="339"/>
+        <location filename="../utility_functions/layer_visualization.py" line="357"/>
         <source>@default</source>
         <comment>streets</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="349"/>
+        <location filename="../utility_functions/layer_visualization.py" line="367"/>
         <source>@default</source>
         <comment>junctions</comment>
         <translation type="unfinished"></translation>
@@ -620,7 +620,7 @@
         <translation type="unfinished">Streets</translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="339"/>
+        <location filename="../utility_functions/layer_visualization.py" line="357"/>
         <source>@default</source>
         <comment>buildings</comment>
         <translation type="unfinished"></translation>
@@ -798,13 +798,13 @@
         <translation type="obsolete">(no Selection)</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="45"/>
+        <location filename="../ida_ph.py" line="84"/>
         <source>@default</source>
         <comment>physical_data</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="18"/>
+        <location filename="../utility_functions/layer_visualization.py" line="16"/>
         <source>@default</source>
         <comment>set_load_attribute</comment>
         <translation type="unfinished"></translation>
@@ -812,7 +812,7 @@
     <message>
         <location filename="../utility_functions/translations.py" line="165"/>
         <source>set_load_attribute</source>
-        <translation type="unfinished">Set load attribute</translation>
+        <translation type="unfinished">Set load field</translation>
     </message>
     <message>
         <location filename="../utility_functions/reports.py" line="1176"/>
@@ -821,22 +821,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="166"/>
+        <location filename="../utility_functions/translations.py" line="167"/>
         <source>customer_data_sheet</source>
         <translation type="unfinished">Customer Data Sheet</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="172"/>
+        <location filename="../utility_functions/translations.py" line="173"/>
         <source>empty_project</source>
         <translation type="unfinished">Empty project</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="173"/>
+        <location filename="../utility_functions/translations.py" line="174"/>
         <source>heating_network</source>
         <translation type="unfinished">Heating network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="174"/>
+        <location filename="../utility_functions/translations.py" line="175"/>
         <source>db_default_values</source>
         <translation type="unfinished">DB default values</translation>
     </message>
@@ -919,7 +919,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_import_dialog.py" line="480"/>
+        <location filename="../ida_ph_dialog.py" line="180"/>
         <source>@default</source>
         <comment>cancel</comment>
         <translation type="unfinished"></translation>
@@ -973,17 +973,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="168"/>
+        <location filename="../utility_functions/translations.py" line="169"/>
         <source>import</source>
         <translation type="unfinished">Import</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="169"/>
+        <location filename="../utility_functions/translations.py" line="170"/>
         <source>cancel</source>
         <translation type="unfinished">Cancel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="177"/>
+        <location filename="../utility_functions/translations.py" line="178"/>
         <source>description_importPRNData</source>
         <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
   &lt;p&gt;
@@ -1001,7 +1001,7 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="178"/>
+        <location filename="../utility_functions/translations.py" line="179"/>
         <source>description_importLineFeature</source>
         <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
   &lt;p&gt;
@@ -1027,7 +1027,7 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="179"/>
+        <location filename="../utility_functions/translations.py" line="180"/>
         <source>description_importFeaturePoint</source>
         <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
   &lt;p&gt;
@@ -1047,74 +1047,163 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="182"/>
+        <location filename="../utility_functions/translations.py" line="183"/>
         <source>import_plants_or_customers_from_layer</source>
         <translation type="unfinished">Import plants or customers from layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="183"/>
+        <location filename="../utility_functions/translations.py" line="184"/>
         <source>import_network_topology_from_layer</source>
         <translation type="unfinished">Import network topology from layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="184"/>
+        <location filename="../utility_functions/translations.py" line="185"/>
         <source>network_layer</source>
         <translation type="unfinished">Network layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="185"/>
+        <location filename="../utility_functions/translations.py" line="186"/>
         <source>point_layer</source>
         <translation type="unfinished">Point layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="186"/>
+        <location filename="../utility_functions/translations.py" line="187"/>
         <source>extend_topology</source>
         <translation type="unfinished">Extend topology</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="187"/>
+        <location filename="../utility_functions/translations.py" line="188"/>
         <source>truncate_existing_topology</source>
         <translation type="unfinished">Truncate existing topology</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="188"/>
+        <location filename="../utility_functions/translations.py" line="189"/>
         <source>layer_fields</source>
         <translation type="unfinished">Layer fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="189"/>
+        <location filename="../utility_functions/translations.py" line="190"/>
         <source>line_fields</source>
         <translation type="unfinished">Line fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="190"/>
+        <location filename="../utility_functions/translations.py" line="191"/>
         <source>feature_fields</source>
         <translation type="unfinished">Feature fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="191"/>
+        <location filename="../utility_functions/translations.py" line="192"/>
         <source>expression</source>
         <translation type="unfinished">Expression</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="192"/>
+        <location filename="../utility_functions/translations.py" line="193"/>
         <source>fields</source>
         <translation type="unfinished">Fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="193"/>
+        <location filename="../utility_functions/translations.py" line="194"/>
         <source>map_layer_fields</source>
         <translation type="unfinished">Map layer fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="194"/>
+        <location filename="../utility_functions/translations.py" line="195"/>
         <source>pipe_bundle_type_editor</source>
         <translation type="unfinished">Pipe bundle type editor</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="167"/>
+        <location filename="../utility_functions/translations.py" line="168"/>
         <source>disconnect</source>
         <translation type="unfinished">Disconnect</translation>
+    </message>
+    <message>
+        <location filename="../districts.py" line="581"/>
+        <source>@default</source>
+        <comment>import_districts_project_directory</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="26"/>
+        <source>@default</source>
+        <comment>add_description</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="178"/>
+        <source>@default</source>
+        <comment>ok</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="60"/>
+        <source>@default</source>
+        <comment>export_project_settings</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="65"/>
+        <source>@default</source>
+        <comment>prn_results</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="66"/>
+        <source>@default</source>
+        <comment>db_results</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="76"/>
+        <source>@default</source>
+        <comment>select_directory</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="202"/>
+        <source>@default</source>
+        <comment>project_name</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="102"/>
+        <source>@default</source>
+        <comment>export</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="127"/>
+        <source>@default</source>
+        <comment>select_folder</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="138"/>
+        <source>@default</source>
+        <comment>project_configuration_settings</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="142"/>
+        <source>@default</source>
+        <comment>coordinate_system_srid</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="194"/>
+        <source>@default</source>
+        <comment>new_districts_project</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/layer_visualization.py" line="35"/>
+        <source>@default</source>
+        <comment>set_gfa_attribute</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="166"/>
+        <source>set_gfa_attribute</source>
+        <translation type="unfinished">Set gross floor area field</translation>
     </message>
 </context>
 <context>
@@ -1242,7 +1331,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="unfinished">IDA Districts configurations</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="54"/>
+        <location filename="../districts_settings_dialog.ui" line="61"/>
         <source>IDA_API_delay</source>
         <translation type="unfinished">IDA API delay, s</translation>
     </message>
@@ -1252,62 +1341,62 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">PostgreSQL path</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="90"/>
+        <location filename="../districts_settings_dialog.ui" line="133"/>
         <source>python_console_debug_mode</source>
         <translation type="unfinished">Python console debug mode</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="97"/>
+        <location filename="../districts_settings_dialog.ui" line="140"/>
         <source>autosave</source>
         <translation type="unfinished">Autosave</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="108"/>
+        <location filename="../districts_settings_dialog.ui" line="151"/>
         <source>time_interval</source>
         <translation type="unfinished">Time interval, min</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="124"/>
+        <location filename="../districts_settings_dialog.ui" line="167"/>
         <source>invoked_features</source>
         <translation type="unfinished">Built features</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="131"/>
+        <location filename="../districts_settings_dialog.ui" line="174"/>
         <source>.prn_results</source>
         <translation type="unfinished">.prn results</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="138"/>
+        <location filename="../districts_settings_dialog.ui" line="181"/>
         <source>DB_results</source>
         <translation type="unfinished">DB results</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="148"/>
+        <location filename="../districts_settings_dialog.ui" line="191"/>
         <source>DB_connection_settings</source>
         <translation type="unfinished">DB connection settings</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="159"/>
+        <location filename="../districts_settings_dialog.ui" line="202"/>
         <source>host</source>
         <translation type="unfinished">Host</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="166"/>
+        <location filename="../districts_settings_dialog.ui" line="209"/>
         <source>port</source>
         <translation type="unfinished">Port</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="173"/>
+        <location filename="../districts_settings_dialog.ui" line="216"/>
         <source>authentication_ID</source>
         <translation type="unfinished">Authentication ID</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="207"/>
+        <location filename="../districts_settings_dialog.ui" line="250"/>
         <source>save</source>
         <translation type="unfinished">Save</translation>
     </message>
     <message>
-        <location filename="../districts_settings_dialog.ui" line="214"/>
+        <location filename="../districts_settings_dialog.ui" line="257"/>
         <source>cancel</source>
         <translation type="unfinished">Cancel</translation>
     </message>
@@ -1320,6 +1409,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <location filename="../districts_settings_dialog.ui" line="40"/>
         <source>projects_path</source>
         <translation type="unfinished">Project path</translation>
+    </message>
+    <message>
+        <location filename="../districts_settings_dialog.ui" line="54"/>
+        <source>postgresql_path</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../districts_settings_dialog.ui" line="113"/>
+        <source>...</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2904,11 +3003,75 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>SetGFAAttributeDialog</name>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="14"/>
+        <source>set_gfa_attribute</source>
+        <translation type="unfinished">Set Gross floor area field</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="35"/>
+        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;info_setGFAAtttribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt; 
+  &lt;p&gt;
+    The &lt;strong&gt;gross floor area&lt;/strong&gt; is set using the &lt;strong&gt;building area&lt;/strong&gt; specified in the &lt;strong&gt;&quot;Buildings&quot;&lt;/strong&gt; layer.
+  &lt;/p&gt;
+&lt;/div&gt;</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="49"/>
+        <source>update_all_customers</source>
+        <translation type="unfinished">Update all customers</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="58"/>
+        <source>existing_attribute</source>
+        <translation type="unfinished">Existing field</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="65"/>
+        <source>new_attribute</source>
+        <translation type="unfinished">New field</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="78"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_attribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Layer field&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="81"/>
+        <source>attribute</source>
+        <translation type="unfinished">Field</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="88"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_newAttribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New layer field&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="114"/>
+        <source>ok</source>
+        <translation type="unfinished">Ok</translation>
+    </message>
+    <message>
+        <location filename="../districts_setGFAAttribute.ui" line="121"/>
+        <source>cancel</source>
+        <translation type="unfinished">Cancel</translation>
+    </message>
+</context>
+<context>
     <name>SetLoadAttributeDialog</name>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="14"/>
         <source>set_load_attribute</source>
-        <translation type="unfinished">Load attribute</translation>
+        <translation type="unfinished">Load field</translation>
     </message>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="35"/>
@@ -2931,17 +3094,17 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="55"/>
         <source>existing_attribute</source>
-        <translation type="unfinished">Existing attributes</translation>
+        <translation type="unfinished">Existing field</translation>
     </message>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="62"/>
         <source>new_attribute</source>
-        <translation type="unfinished">Add new attribute</translation>
+        <translation type="unfinished">Add new field</translation>
     </message>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="78"/>
         <source>attribute</source>
-        <translation type="unfinished">Attribute</translation>
+        <translation type="unfinished">Field</translation>
     </message>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="95"/>
@@ -2961,12 +3124,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="75"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_attribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Layer attribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Layer field&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="85"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_newAttribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New layer attribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New layer field&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../districts_setLoadAttribute.ui" line="92"/>

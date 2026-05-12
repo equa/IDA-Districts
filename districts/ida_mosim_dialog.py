@@ -1158,7 +1158,8 @@ class FeatureModelParmDlg(QDialog):
             table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
                         
             comboBox = QComboBox()
-            comboBox.addItems(['<-->','<--','-->'])
+            #comboBox.addItems(['<-->','<--','-->'])
+            comboBox.addItems(['-->'])
             comboBox.setCurrentText(parm['mapping_direction'])
             table.setCellWidget(i, 2, comboBox)  
             

@@ -689,7 +689,7 @@ def getResourcesFromFileDataList(file_data):
     i=0
     ressources=[]
     while i < len(file_data):
-        if "(SCHEDULE-DATA :N" in file_data[i] and file_data[i] not in ressources: #or ":T PLINSEGM" in file_data[i]: #todo check for more ressources 
+        if "(SCHEDULE-DATA :N" in file_data[i] and file_data[i] not in ressources or "((DB-RESOURCE :N" in file_data[i] and file_data[i] not in ressources: #or ":T PLINSEGM" in file_data[i]: #todo check for more ressources 
             #print('ressource exists: '+file_data[i])
             ressource=[file_data[i].replace('\n','')]
             openCloseBracktesCounter=file_data[i].count('(')-file_data[i].count(')')

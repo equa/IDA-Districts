@@ -163,6 +163,7 @@ def _register_translation_keys():
     
     #buttons
     tr("set_load_attribute")
+    tr("set_gfa_attribute")
     tr("customer_data_sheet")
     tr("disconnect")
     tr("import")
