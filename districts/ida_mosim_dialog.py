@@ -1060,16 +1060,16 @@ class FeatureModelParmDlg(QDialog):
     def __init__(self,cur,config):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Feature model parameter mapping") 
+        self.setWindowTitle(tr('@default',"title_feature_model_parameter_mapping")) 
         self.loadedMappingParms={}
         self.cur=cur
         self.config=config
         
         #radio buttons
         layout_rbtn = QHBoxLayout()
-        self.rbtn_customers = QRadioButton('Customers')
+        self.rbtn_customers = QRadioButton(tr('@default','customers'))
         self.rbtn_customers.setChecked(True)
-        self.rbtn_plants = QRadioButton('Energy plants')
+        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
         self.rbtn_customers.toggled.connect(self.onClickedRadio)
         self.rbtn_plants.toggled.connect(self.onClickedRadio)
         
@@ -1079,13 +1079,13 @@ class FeatureModelParmDlg(QDialog):
         layout_list=QHBoxLayout()
         #list widget for layer attributes
         layout_listWidget_featureFields = QVBoxLayout()
-        label_listWidget_featureFields=QLabel("Fields")
+        label_listWidget_featureFields=QLabel(tr('@default',"fields"))
         layout_listWidget_featureFields.addWidget(label_listWidget_featureFields)
         self.listWidget_featureFields = QListWidget()
         layout_listWidget_featureFields.addWidget(self.listWidget_featureFields)
         self.listWidget_featureFields.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
         
-        label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected mapping expression.\nYou can use also dictionaries in the form: {key: entry}[value/attribute]')
+        label_list_helptext=QLabel(tr('@default','info_feature_parm_mapping'))
         layout_list.addLayout(layout_listWidget_featureFields)
         layout_list.addWidget(label_list_helptext)
        
@@ -1101,14 +1101,14 @@ class FeatureModelParmDlg(QDialog):
         layout_buttons_conns.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
 
         #table for mapped attributes  
-        self.tableWidget_parameters = QTableWidget(0,6)   
-        self.tableWidget_parameters.setHorizontalHeaderLabels(['Id','Mapping expression','Mapping direction','Parameter name','Model name','Macro name'])
+        self.tableWidget_parameters = QTableWidget(0,7)   
+        self.tableWidget_parameters.setHorizontalHeaderLabels([tr('@default','id'),tr('@default','mapping_expression'),tr('@default','mapping_direction'),tr('@default','parameter_name'),tr('@default','model_name'),tr('@default','macro_name'),tr('@default','description')])
         
         #---------------ok/cancel buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Save")
+        self.btn_ok=QPushButton(tr('@default',"ok"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
@@ -1149,7 +1149,7 @@ class FeatureModelParmDlg(QDialog):
         self.cur.execute(sql)
         table=self.tableWidget_parameters
         for i,parm in enumerate(self.cur.fetchall()):
-            self.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction']}
+            self.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction'],'description' : parm['description']}
             table.insertRow(i)
             item = QTableWidgetItem(str(parm['id']))
             item.setFlags(item.flags() & ~qt_item_flag("ItemIsEditable"))
@@ -1166,6 +1166,7 @@ class FeatureModelParmDlg(QDialog):
             table.setItem(i,3,QTableWidgetItem(parm['parm_name']))
             table.setItem(i,4,QTableWidgetItem(parm['model_name']))
             table.setItem(i,5,QTableWidgetItem(parm['macro_name'])) 
+            table.setItem(i,6,QTableWidgetItem(parm['description'])) 
 
 class FeatureDecouplingDlg(QDialog):
     def __init__(self,plugin_dir,cur,config):

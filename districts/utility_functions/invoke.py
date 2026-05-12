@@ -80,7 +80,7 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
         mappingParms={}
         
         for row in range(table.rowCount()):
-            mappingParms[int(table.item(row, 0).text())]={'parm_name' : table.item(row, 3).text(),'model_name' : table.item(row, 4).text(),'mapping_expression' : table.item(row, 1).text().replace("'","''"),'macro_name' : table.item(row, 5).text() ,'mapping_direction' : table.cellWidget(row, 2).currentText()}
+            mappingParms[int(table.item(row, 0).text())]={'parm_name' : table.item(row, 3).text(),'model_name' : table.item(row, 4).text(),'mapping_expression' : table.item(row, 1).text().replace("'","''"),'macro_name' : table.item(row, 5).text() ,'mapping_direction' : table.cellWidget(row, 2).currentText(), 'description' : table.item(row, 6).text()}
 
         #print(dlg.loadedMappingParms)
         #print(mappingParms)
@@ -96,11 +96,11 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
         for key_table in mappingParms:
             if key_table not in dlg.loadedMappingParms: 
                 #print('added parm')
-                sql+="""INSERT INTO model_parms (id,type,mapping_expression,parm_name,model_name,macro_name,mapping_direction) VALUES({},{},'{}','{}','{}','{}','{}');\n""".format(# nosec B608
-                    key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction']) # nosec B608             
+                sql+="""INSERT INTO model_parms (id, type, mapping_expression, parm_name, model_name, macro_name, mapping_direction, description) VALUES({},{},'{}','{}','{}','{}','{}','{}');\n""".format(# nosec B608
+                    key_table,1 if dlg.rbtn_customers.isChecked() else 2,mappingParms[key_table]['mapping_expression'], mappingParms[key_table]['parm_name'],mappingParms[key_table]['model_name'],mappingParms[key_table]['macro_name'],mappingParms[key_table]['mapping_direction'],mappingParms[key_table]['description']) # nosec B608             
             else:   
                 #Check for updated columns
-                for col in ['mapping_expression','parm_name','model_name','macro_name','mapping_direction']:
+                for col in ['mapping_expression','parm_name','model_name','macro_name','mapping_direction','description']:
                     if dlg.loadedMappingParms[key_table][col]!=mappingParms[key_table][col]:
                         sql+="""UPDATE model_parms SET {} = '{}' WHERE id = {} ;\n""".format(col,mappingParms[key_table][col],key_table) # nosec B608
         

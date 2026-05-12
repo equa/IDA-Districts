@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS public.model_parms
     mapping_expression text,
     macro_name text,
     mapping_direction text DEFAULT 'ToIDA',
+    description text,
     CONSTRAINT model_parms_pkey PRIMARY KEY (id)
 );
 

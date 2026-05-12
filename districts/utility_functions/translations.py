@@ -4,6 +4,9 @@ def tr(context,key):
     return QCoreApplication.translate(context, key)
     
 def _register_translation_keys():
+    #general
+    tr("description")
+    
     #project
     tr("project")
     tr("version")
@@ -193,6 +196,16 @@ def _register_translation_keys():
     tr("fields")
     tr("map_layer_fields")
     tr("pipe_bundle_type_editor")
+    
+    #feature mapping dialog
+    tr("title_feature_model_parameter_mapping")
+    tr('info_feature_parm_mapping')
+    tr('mapping_expression')
+    tr('mapping_direction')
+    tr('parameter_name')
+    tr('model_name')
+    tr('macro_name')
+
     
     
     

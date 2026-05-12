@@ -160,6 +160,7 @@ def addParmTableRow(dlg,cur,config):
     dlg.tableWidget_parameters.setItem(0 , 3, QTableWidgetItem(''))
     dlg.tableWidget_parameters.setItem(0 , 4, QTableWidgetItem(''))        
     dlg.tableWidget_parameters.setItem(0 , 5, QTableWidgetItem(''))        
+    dlg.tableWidget_parameters.setItem(0 , 6, QTableWidgetItem(''))        
   
 def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
     #print('copyTableRow')
