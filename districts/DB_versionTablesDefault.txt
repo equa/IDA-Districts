@@ -86,7 +86,7 @@ DROP TABLE IF EXISTS "$versionName$".climate CASCADE;
 CREATE TABLE "$versionName$".climate
 (
   id serial,
-  name text DEFAULT 'Graz',
+  name text DEFAULT 'Solna',
   file_name text DEFAULT '$districts_path$climate\BROMMA.PRN',
   latitude numeric DEFAULT 59.366,
   longitude numeric DEFAULT -17.9999,

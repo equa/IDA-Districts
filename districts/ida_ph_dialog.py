@@ -23,7 +23,7 @@ class IDA_Districts_NameDialog(QDialog):
         label =QLabel(label_text)
         layout_label.addWidget(label)
         
-        label_description =QLabel(tr('@default','add_description'))
+        label_description =QLabel(tr('@default','description'))
         layout_label.addWidget(label_description)
         
         #input 
@@ -188,11 +188,12 @@ class ApproveDialog(QDialog):
         self.setLayout(layout_win)
 
 class NewProjectDlg(QDialog):
-    def __init__(self,dlg_main):
+    def __init__(self,dlg_main,config):
         """Constructor NewProjectDlg"""
         super().__init__()
         self.setWindowTitle(tr('@default',"new_districts_project"))  
         self.dlg_main=dlg_main
+        self.config=config
         self.process_running=False
 
 
@@ -207,12 +208,14 @@ class NewProjectDlg(QDialog):
       
         #template 
         self.selectTemplate =QComboBox()
-        templates_dir = os.path.join(get_districts_plugin_dir(), 'templates')
+        templates_plugin_dir = os.path.join(get_districts_plugin_dir(), 'templates')
+        templates_plugin =[folder for folder in os.listdir(templates_plugin_dir) if os.path.isdir(os.path.join(templates_plugin_dir, folder))]
+        templates_ida_dir = os.path.join(self.config['pathDistricts'], 'Samples')
+        templates_ida =[folder for folder in os.listdir(templates_ida_dir) if os.path.isdir(os.path.join(templates_ida_dir, folder))]
 
         items = {
             folder: tr("@default", folder)
-            for folder in os.listdir(templates_dir)
-            if os.path.isdir(os.path.join(templates_dir, folder))
+            for folder in templates_plugin + templates_ida
 }
         
         # Add items to the combobox, storing the original key as user data
@@ -242,9 +245,9 @@ class NewProjectDlg(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Create")
+        self.btn_ok=QPushButton(tr('@default',"create"))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         self.progress=QProgressBar()

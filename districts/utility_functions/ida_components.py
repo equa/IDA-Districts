@@ -136,7 +136,7 @@ def getIDAListComponents(data):
     data=data.replace('$empty_str$','""')
     #print(data)
 
-    return ast.literal_eval(data)
+    return safe_eval(data)
     
 def propertyListCompsIDM(comps):
     return [propertyListIDM(comp) for comp in comps]

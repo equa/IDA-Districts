@@ -249,14 +249,12 @@ def openTemplate(main,type,dlg):
         #print(sql)
         main.cur.execute(sql)
         
-        # Open the building with the IDA Districts Python API
-        #print('**********************************')
         #print(file)
-        main.worker_openClimate = WorkerOpenModelCmd(file,main.config)
-        QThreadPool.globalInstance().start(main.worker_openClimate) 
-        main.worker_openClimate.signals.error.connect(show_error_message)
-        main.worker_openClimate.signals.progress.connect(main.dlg.update_progress)  
-        main.worker_openClimate.signals.finished.connect(main.dlg.modelOpeningFinished)  
+        main.worker_openTemplate = WorkerOpenModelCmd(file,main.config)
+        QThreadPool.globalInstance().start(main.worker_openTemplate) 
+        main.worker_openTemplate.signals.error.connect(show_error_message)
+        main.worker_openTemplate.signals.progress.connect(main.dlg.update_progress)  
+        main.worker_openTemplate.signals.finished.connect(main.dlg.modelOpeningFinished)  
         
         #print('finished open template')
     else:
@@ -373,6 +371,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
  
         uri = QgsDataSourceUri()
         uri.setConnection(config['host'], config['port'], config['projectName'], auth_cfg.config("username"), auth_cfg.config("password"))
+        removeLayers()
         loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
     dlg.close()
 
@@ -743,11 +742,11 @@ def showConnectionsContent(dlg,dropdowns,conn,cur_dict):
 def showDefaults(dlg,defaults,template_name,cur,config):
     """show the default values of a table in the GUI"""
     #print('--showDefaults--')
-    #print(defaults)
+    print(defaults)
     for default in defaults:
         if default['column_name'] in ['template','pipe_bundle_type_id','network','type']:
             if default['column_name'] =='template':
-                dropdownItems=getDropDownItems(cur,[[0,'public','{}_templates'.format(template_name),'id','template_name']])
+                dropdownItems=getDropDownItems(cur,[[0,'public','{}_templates'.format(template_name),'template','template_name']])
             elif default['column_name'] =='type':
                 dropdownItems=getDropDownItems(cur,[[0,'public','{}_types'.format(template_name),'id','type']])
             elif default['column_name'] =='pipe_bundle_type_id':

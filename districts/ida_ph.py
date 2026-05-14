@@ -823,8 +823,13 @@ def createNewProject(dlg,main):
                 versionNames=['base1']
             #print(main.plugin_dir)
             project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
-            filename=main.plugin_dir+'\\templates\\'+project_name+'.ida'
-            filename=filename.replace('/','\\')
+            if dlg.selectTemplate.currentData() in ['db_default_values','empty_project','heating_network']:
+                filename=main.plugin_dir+'\\templates\\'+project_name
+                filename=filename.replace('/','\\')
+            else:
+                filename=main.config['pathDistricts']+'Samples\\'+project_name
+                filename=filename.replace('/','\\')
+                print(filename)
 
             if dlg.checkbox_DBResults.isChecked():
                 no_db_results=False

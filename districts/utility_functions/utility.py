@@ -16,6 +16,82 @@ import json
 import re
 import ntpath
 
+import ast
+import operator as op
+
+operators = {
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.Pow: op.pow,
+    ast.USub: op.neg,
+}
+
+safe_functions = {
+    "str": str,
+    "int": int,
+    "float": float,
+    "round": round,
+}
+
+def safe_eval(expr):
+
+    def _eval(node):
+
+        # constants
+        if isinstance(node, ast.Constant):
+            return node.value
+
+        # binary operations
+        elif isinstance(node, ast.BinOp):
+            return operators[type(node.op)](
+                _eval(node.left),
+                _eval(node.right)
+            )
+
+        # unary operations
+        elif isinstance(node, ast.UnaryOp):
+            return operators[type(node.op)](
+                _eval(node.operand)
+            )
+
+        # function calls
+        elif isinstance(node, ast.Call):
+
+            if not isinstance(node.func, ast.Name):
+                raise TypeError("Only simple functions allowed")
+
+            func_name = node.func.id
+
+            if func_name not in safe_functions:
+                raise TypeError(f"Function not allowed: {func_name}")
+
+            args = [_eval(arg) for arg in node.args]
+
+            return safe_functions[func_name](*args)
+
+        # lists
+        elif isinstance(node, ast.List):
+            return [_eval(e) for e in node.elts]
+
+        # tuples
+        elif isinstance(node, ast.Tuple):
+            return tuple(_eval(e) for e in node.elts)
+
+        # dictionaries
+        elif isinstance(node, ast.Dict):
+            return {
+                _eval(k): _eval(v)
+                for k, v in zip(node.keys, node.values)
+            }
+
+        else:
+            raise TypeError(f"Unsupported node: {type(node).__name__}")
+
+    parsed = ast.parse(expr, mode='eval')
+    return _eval(parsed.body)
+    
 def sanitize_pg_identifier(name: str) -> str:
     """
     Macht PostgreSQL-Identifier sicher:

@@ -3,7 +3,6 @@ import shutil
 from .utility import *
 from .ida_components import *
 from qgis.core import Qgis, QgsMessageLog
-import ast
 
 def collect_files_by_extension(root_folder: str, extension: str):
     """
@@ -225,7 +224,7 @@ def loadInvokedOutputs(config):
                     invokedOutputs+=line
         else:
             return {'customers': {}, 'lines': {}, 'energy_plants': {}}
-        invokedOutputs=ast.literal_eval(invokedOutputs)
+        invokedOutputs=safe_eval(invokedOutputs)
         #print(invokedOutputs)
     else:
         #print('No project name')

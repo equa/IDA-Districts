@@ -140,7 +140,8 @@ def setFieldDefaultValues(getDefaultValueDict):
             for col in getDefaultValueDict[layer_name]:
                 field_index = layer.fields().indexOf(col)
                 #print(field_index)
-                default_val = QgsDefaultValue(getDefaultValueDict[layer_name][col], True)
+                default_val = QgsDefaultValue(getDefaultValueDict[layer_name][col], False)
+
                 layer.setDefaultValueDefinition(field_index, default_val)
 
             
@@ -195,17 +196,18 @@ def mapValueFeatureType(layer,feature,cur,config):
         
     default_val = QgsDefaultValue("0", False)
     layer.setDefaultValueDefinition(field_index, default_val)
-    
+  
 def mapValueFeatureTemplate(layer,layer_name,cur,config):
     field_index = layer.fields().indexOf('template')
     templates=getTemplatesInfo(layer_name,cur)
+
     val_map = { "\u200B" * i + tr('@default',template['template_name']) : template['template'] for i,template in enumerate(templates)}
     config_map = {'map': val_map}
     layer.setEditorWidgetSetup(field_index, QgsEditorWidgetSetup('ValueMap', config_map))
-        
+
     default_val = QgsDefaultValue("0", False)
     layer.setDefaultValueDefinition(field_index, default_val)
-    
+ 
 def valueRelationPipeBundleType():
     """value relation pipe bundle types in lines"""
     config = {'AllowMulti': False,

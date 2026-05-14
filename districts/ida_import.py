@@ -5,6 +5,7 @@ from qgis.PyQt.QtCore import QVariant
 from .utility_functions.dialog import *
 from .utility_functions.topology import *
 from .utility_functions.db import *
+from .utility_functions.utility import *
 import math
 import copy
 import ast
@@ -198,7 +199,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                     if mappedAttribute=='layer_constr':
                         for layer_constr in mappedAttributesValues['layer_constr']:
                             try:
-                                mappedAttributesValues['layer_constr'][layer_constr][1]=str(ast.literal_eval(mappedAttributesValues['layer_constr'][layer_constr][1]))
+                                mappedAttributesValues['layer_constr'][layer_constr][1]=str(safe_eval(mappedAttributesValues['layer_constr'][layer_constr][1]))
                             except:
                                 pass
                     else:
@@ -207,7 +208,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                             if dict:
                                 mappedAttributesValues[mappedAttribute]=dict[mappedAttributesValues[mappedAttribute].split('}')[1].strip()[1:-1].replace('"','').replace("'",'')]
                             else:
-                                mappedAttributesValues[mappedAttribute]=str(ast.literal_eval(mappedAttributesValues[mappedAttribute]))
+                                mappedAttributesValues[mappedAttribute]=str(safe_eval(mappedAttributesValues[mappedAttribute]))
                         except:
                             pass
 
@@ -401,7 +402,7 @@ def importLayerToDb(type,dlg,main):
                     for attribute in attributes:
                         #print(attribute)
                         try:
-                            values.append(str(ast.literal_eval(mappedAttributesValues[attribute])))
+                            values.append(str(safe_eval(mappedAttributesValues[attribute])))
                         except:
                             pass
 

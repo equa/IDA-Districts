@@ -149,7 +149,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/utility.py" line="452"/>
+        <location filename="../utility_functions/utility.py" line="528"/>
         <source>@default</source>
         <translation type="unfinished"></translation>
     </message>
@@ -636,31 +636,31 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pipe_sizing.py" line="331"/>
+        <location filename="../pipe_sizing.py" line="332"/>
         <source>@default</source>
         <comment>unkown</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pipe_sizing.py" line="331"/>
+        <location filename="../pipe_sizing.py" line="332"/>
         <source>@default</source>
         <comment>distribution_pipe</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pipe_sizing.py" line="331"/>
+        <location filename="../pipe_sizing.py" line="332"/>
         <source>@default</source>
         <comment>transmission_pipe</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pipe_sizing.py" line="331"/>
+        <location filename="../pipe_sizing.py" line="332"/>
         <source>@default</source>
         <comment>station_pipe</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pipe_sizing.py" line="331"/>
+        <location filename="../pipe_sizing.py" line="332"/>
         <source>@default</source>
         <comment>customer_pipe</comment>
         <translation type="unfinished"></translation>
@@ -721,7 +721,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pipe_sizing.py" line="331"/>
+        <location filename="../pipe_sizing.py" line="332"/>
         <source>@default</source>
         <comment>service_pipe</comment>
         <translation type="unfinished"></translation>
@@ -801,17 +801,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="176"/>
+        <location filename="../utility_functions/translations.py" line="178"/>
         <source>empty_project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="177"/>
+        <location filename="../utility_functions/translations.py" line="179"/>
         <source>heating_network</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="178"/>
+        <location filename="../utility_functions/translations.py" line="180"/>
         <source>db_default_values</source>
         <translation type="unfinished"></translation>
     </message>
@@ -894,7 +894,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_ph_dialog.py" line="180"/>
+        <location filename="../ida_ph_dialog.py" line="250"/>
         <source>@default</source>
         <comment>cancel</comment>
         <translation type="unfinished"></translation>
@@ -958,82 +958,82 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="181"/>
+        <location filename="../utility_functions/translations.py" line="184"/>
         <source>description_importPRNData</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="182"/>
+        <location filename="../utility_functions/translations.py" line="185"/>
         <source>description_importLineFeature</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="183"/>
+        <location filename="../utility_functions/translations.py" line="186"/>
         <source>description_importFeaturePoint</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="186"/>
+        <location filename="../utility_functions/translations.py" line="189"/>
         <source>import_plants_or_customers_from_layer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="187"/>
+        <location filename="../utility_functions/translations.py" line="190"/>
         <source>import_network_topology_from_layer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="188"/>
+        <location filename="../utility_functions/translations.py" line="191"/>
         <source>network_layer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="189"/>
+        <location filename="../utility_functions/translations.py" line="192"/>
         <source>point_layer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="190"/>
+        <location filename="../utility_functions/translations.py" line="193"/>
         <source>extend_topology</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="191"/>
+        <location filename="../utility_functions/translations.py" line="194"/>
         <source>truncate_existing_topology</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="192"/>
+        <location filename="../utility_functions/translations.py" line="195"/>
         <source>layer_fields</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="193"/>
+        <location filename="../utility_functions/translations.py" line="196"/>
         <source>line_fields</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="194"/>
+        <location filename="../utility_functions/translations.py" line="197"/>
         <source>feature_fields</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="195"/>
+        <location filename="../utility_functions/translations.py" line="198"/>
         <source>expression</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="196"/>
+        <location filename="../utility_functions/translations.py" line="199"/>
         <source>fields</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="197"/>
+        <location filename="../utility_functions/translations.py" line="200"/>
         <source>map_layer_fields</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="198"/>
+        <location filename="../utility_functions/translations.py" line="201"/>
         <source>pipe_bundle_type_editor</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1046,12 +1046,6 @@
         <location filename="../districts.py" line="581"/>
         <source>@default</source>
         <comment>import_districts_project_directory</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../ida_ph_dialog.py" line="26"/>
-        <source>@default</source>
-        <comment>add_description</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1085,7 +1079,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_ph_dialog.py" line="202"/>
+        <location filename="../ida_ph_dialog.py" line="203"/>
         <source>@default</source>
         <comment>project_name</comment>
         <translation type="unfinished"></translation>
@@ -1180,7 +1174,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1105"/>
+        <location filename="../ida_ph_dialog.py" line="26"/>
         <source>@default</source>
         <comment>description</comment>
         <translation type="unfinished"></translation>
@@ -1191,38 +1185,69 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="201"/>
+        <location filename="../utility_functions/translations.py" line="204"/>
         <source>title_feature_model_parameter_mapping</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="202"/>
+        <location filename="../utility_functions/translations.py" line="205"/>
         <source>info_feature_parm_mapping</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="203"/>
+        <location filename="../utility_functions/translations.py" line="206"/>
         <source>mapping_expression</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="204"/>
+        <location filename="../utility_functions/translations.py" line="207"/>
         <source>mapping_direction</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="205"/>
+        <location filename="../utility_functions/translations.py" line="208"/>
         <source>parameter_name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="206"/>
+        <location filename="../utility_functions/translations.py" line="209"/>
         <source>model_name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="207"/>
+        <location filename="../utility_functions/translations.py" line="210"/>
         <source>macro_name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="213"/>
+        <source>new_districts_project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="214"/>
+        <source>project_name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="181"/>
+        <source>low_temperature_network</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ida_ph_dialog.py" line="248"/>
+        <source>@default</source>
+        <comment>create</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="174"/>
+        <source>create</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="175"/>
+        <source>ok</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

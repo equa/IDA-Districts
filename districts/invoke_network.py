@@ -681,7 +681,7 @@ ORDER BY m.id;
         #print(networkSimData)
         simulation_data=getSimData(requestedOutputs,networkSimData)
         data=""";IDA {} Data UTF-8
-(DOCUMENT-HEADER :TYPE |districts| :N \"network_{}\" :PARENT DISTRICTS :APP (DISTRICTS :VER 0.9))
+(DOCUMENT-HEADER :TYPE |districts| :N \"network_{}\" :PARENT DISTRICTS :APP (DISTRICTS :VER {}))
 ((SCHEDULE-DATA :N "Shading" :T SCHEDULE-DATA :QT GENERIC)
  (SCHEDULE-RULE :N "rule-2" :D "rule-2" :START-DATE (NIL 5 1) :END-DATE (NIL 9 30) :VALUE ((24.0 0.86)))
  (SCHEDULE-RULE :N "default" :VALUE ((24 1)) :INDEX 1))
@@ -699,7 +699,7 @@ ORDER BY m.id;
 ((MACRO-OBJECT :N "Climate-macro" :T DISTRICTS-MACRO))
 ((MACRO-OBJECT :N "sf-macro" :T DISTRICTS-MACRO))
 ((MACRO-OBJECT :N "Results-macro" :T DISTRICTS-MACRO){})
-((MACRO-OBJECT :N "Co-simulation-macro" :T DISTRICTS-MACRO))""".format(getIDAVersion(self.config),submodel,simulation_data,
+((MACRO-OBJECT :N "Co-simulation-macro" :T DISTRICTS-MACRO))""".format(getIDAVersion(self.config),submodel,getIDADistrictsVersion(self.config),simulation_data,
     ''.join(["""\n(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
                         for i in sensor_dec_data  if i['target_type'] ==4 
                         for j in i['irefs_target']]))

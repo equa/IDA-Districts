@@ -171,11 +171,14 @@ def _register_translation_keys():
     tr("disconnect")
     tr("import")
     tr("cancel")
+    tr("create")
+    tr("ok")
     
     #templates
     tr("empty_project")
     tr("heating_network")
     tr("db_default_values")
+    tr("low_temperature_network")
     
     #descriptions
     tr("description_importPRNData")
@@ -205,6 +208,11 @@ def _register_translation_keys():
     tr('parameter_name')
     tr('model_name')
     tr('macro_name')
+    
+    #create new project dialog
+    tr('new_districts_project')
+    tr('project_name')
+    
 
     
     

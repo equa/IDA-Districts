@@ -52,7 +52,7 @@ BEGIN
       ALTER TABLE temp.lines ADD COLUMN "{}" numeric;
    END IF;
 END $$;""".format(i,i) for i in energy_columns+['no_customer']]) # nosec B608
-    #print(sql)
+    print(sql)
     cur.execute(sql)
     
     sql="""UPDATE temp.lines l 
@@ -62,7 +62,8 @@ END $$;""".format(i,i) for i in energy_columns+['no_customer']]) # nosec B608
             FROM pgr_dijkstra(
                 'SELECT id,source, target, length_m*costs_eur7m AS cost FROM temp.streets_help',
                 (SELECT sth_v.id FROM temp.streets_help_vertices_pgr sth_v, temp.energy_plants ep WHERE {} = ANY(ep.network) AND ep.id={} AND ST_dWithIn(sth_v.the_geom,ep.geom,0.01)), 
-                (SELECT ARRAY_AGG(sth_v.id) FROM temp.streets_help_vertices_pgr sth_v, temp.customers c WHERE {} = ANY(c.network) AND ST_dWithIn(sth_v.the_geom,c.geom,0.01))) di,
+                (SELECT ARRAY_AGG(sth_v.id) FROM temp.streets_help_vertices_pgr sth_v, temp.customers c WHERE {} = ANY(c.network) AND ST_dWithIn(sth_v.the_geom,c.geom,0.01)),
+                directed := false) di,
                 temp.customers c, temp.streets_help_vertices_pgr sth_v,temp.streets_help sth, temp.lines l
             WHERE ST_dWithIn(sth_v.the_geom,c.geom,0.01) AND sth_v.id=di.end_vid AND edge>0 AND sth.id=di.edge AND sth.id=l.id
             GROUP BY lid) a
@@ -110,7 +111,6 @@ class WorkerPipeSizing(QRunnable):
                 sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format( # nosec B608
                     ''.join(['l."{}", '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network) # nosec B608
 
-            #print(sql)
             self.signals.progress.emit(3)
             self.cur.execute(sql)
             lines=self.cur.fetchall()
@@ -147,6 +147,7 @@ class WorkerPipeSizing(QRunnable):
             self.signals.progress.emit(5)        
             for counter,line in enumerate(lines,1):
                 #print('line id: '+str(line['id']))
+                #print(line)
                 pipe_bundle=[]
                 Re=100000
                 if self.dlg.checkBoxSimultaneity.isChecked() and line['no_customer']:
@@ -159,7 +160,7 @@ class WorkerPipeSizing(QRunnable):
                 i=1
                 for pipe_boundary in pipe_boundary_dict:
                     try:
-                        #print(pipe_boundary)
+                        print(pipe_boundary)
                         #print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
                         mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
                         #print(mdot_pipe)

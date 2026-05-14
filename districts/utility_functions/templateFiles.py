@@ -944,10 +944,10 @@ class WriteTemplateFiles:
  (:VAR :N TSUP :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})))
  (:VAR :N FLOW_RET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})))
  (:VAR :N TRET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))""".format(meter['name'],meter['n_sup'],meter['n_ret'],meter['n_sup'],sup_m_conn,meter['n_sup'],sup_t_conn,meter['n_ret'],ret_m_conn,meter['n_ret'],ret_t_conn)
-        data+="\n(CONNECTIONS "   
+        data+="\n(CONNECTIONS"   
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            data+="""\n(("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)""".format(name_pmtmux,name_pmtmux)
+            data+="""\n (("PMT2mux_{}" |term_b|) "{}" 0 0 NIL)""".format(name_pmtmux,name_pmtmux)
         data+=")" 
         writeToFile(data,dir,dir+"""\\{}\\{}.idm""".format(name,name))  
         return meters

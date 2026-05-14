@@ -24,7 +24,6 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import re
-import ast
 import datetime
 import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
@@ -205,7 +204,6 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         'LCASING':field_data['lcasting'],'LAMBDA':field_data['lambda'],'RHOSURFLAY':field_data['rhosurface'],'CPSURFLAY':field_data['cpsurface'],
                         'LIQTYPE':liqtype,'TFREEZE':field_data['tfreeze'],'LAMBLIQ':field_data['lambliq'],
                         'TMEAN':field_data['tmean'],'GEOTGRAD':field_data['geotgrad']}}}
-            #print(replaceDict)
             
             #get model parameter
             sql="""SELECT * FROM model_parms WHERE type = {} ORDER BY id;""".format(1 if type=='customer' else 2) # nosec B608
@@ -225,7 +223,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
                 #print(mapping_expression)
                 try:
-                    mapping_expression=ast.literal_eval(mapping_expression)
+                    mapping_expression=safe_eval(mapping_expression)
                 except:
                     #print('Failed eval!')
                     signals.error.emit("Failed to evaluate mapping expression for feature id={}: {}".format(id,mapping_expression))
@@ -466,7 +464,6 @@ class CopyTemplateFiles:
             shutil.rmtree(target_dir+'\\'+target_name)
         createDir(target_dir,target_name)
         dir_macro=target_dir+'\\'+target_name
-        #print(source_dir+'\\'+source_name+'\\'+source_name+'.idm')
         
         #feature
         #make subset of replaceDict based on macro name
@@ -477,14 +474,16 @@ class CopyTemplateFiles:
         if update_sf:
             #print('**************************sf********************')        
             sf=getSFList(pList,[])
-
             if sf:
                 sql='\n'.join(["""INSERT INTO "{}".invoked_sf (sf,vars,type)
     SELECT '{}', ARRAY[{}], '{}' WHERE NOT EXISTS (
         SELECT 1 FROM "{}".invoked_sf WHERE sf = '{}' AND type='{}'
     );""".format(self.config['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),type_name,self.config['versionName'],i[0][':SF'],type_name)  for i in sf]) # nosec B608
                 #print(sql)
-                cur.execute(sql)
+                try:
+                    cur.execute(sql)
+                except:
+                    pass
             sql="""SELECT id,sf FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type_name)# nosec B608
             cur.execute(sql)
             sf_ids=cur.fetchall()
@@ -510,8 +509,11 @@ class CopyTemplateFiles:
         filedata=[""";IDA {} Data UTF-8
 (DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {})) """.format(getIDAVersion(self.config),getIDADistrictsVersion(self.config))]
         for i in sf:
-            i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
-            filedata+=["""\n{}""".format(pListToCompString(i,0))]
+            try:
+                i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
+                filedata+=["""\n{}""".format(pListToCompString(i,0))]
+            except:
+                pass
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idm')
 
         #sf-macro.idc

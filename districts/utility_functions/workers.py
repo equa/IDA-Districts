@@ -10,6 +10,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.utils import iface
 import subprocess
 import time
+from qgis.core import QgsProcessingUtils
 
 
     
@@ -107,7 +108,7 @@ class WorkerImportProject(QRunnable):
             db_info=strToDict(db_info)
         else:
             db_info={'projectName': self.project_name}                
-        #print(db_info)
+        print(db_info)
         
         #check if project already exists
         if db_info['projectName'] not in self.projectNames:
@@ -222,7 +223,8 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
             self.signals.progress.emit(76)
                 
             sql_dir=(src_dir+'\\'+name if self.project_name else src_dir)+'\\'
-            
+            temp_dir = QgsProcessingUtils.tempFolder()+'\\'
+            print(temp_dir)
             #create tables in new schema
             filedata=""
             if os.path.exists(sql_dir+('db_tables.sql' if self.project_name else name+'.sql')):
@@ -232,7 +234,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 newdata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
                 newdata = filedata.replace("$districts_path$", os.path.normpath(self.config['pathDistricts']).replace('\\','\\\\'))
                 
-                with open(sql_dir+('db_tables_.sql' if self.project_name else name+'_.sql'),'w') as myfile:
+                with open(temp_dir+('db_tables_.sql' if self.project_name else name+'_.sql'),'w') as myfile:
                     myfile.write(newdata)   
             
             #print(sql_dir)
@@ -246,7 +248,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 f"{self.config['pathPostgresql']}bin\\psql",
                 f"--dbname=postgresql://{self.username}@{self.config['host']}:{self.config['port']}/{dbname}",
                 "-f",
-                sql_dir + ('db_tables_.sql' if self.project_name else name + '_.sql')
+                temp_dir + ('db_tables_.sql' if self.project_name else name + '_.sql')
             ]
 
             print(cmd)
@@ -261,7 +263,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                     f"{self.config['pathPostgresql']}bin\\psql",
                     f"--dbname=postgresql://{self.username}@{self.config['host']}:{self.config['port']}/{dbname}",
                     "-f",
-                    sql_dir + "db_results.sql"
+                    temp_dir + "db_results.sql"
                 ]
 
                 #print(cmd)  # optional zum Debuggen

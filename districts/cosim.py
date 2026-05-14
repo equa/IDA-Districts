@@ -12,7 +12,7 @@ def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode=
     --> collect pmt2 signals
     --> collect sensor signals"""
     data=[""";IDA {} Data UTF-8
-(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER 0.9)) \n""".format(getIDAVersion(config))]
+(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {})) \n""".format(getIDAVersion(config),getIDADistrictsVersion(config))]
 
     submodels=getUsedSubmodels(cur,config)
     submodels.remove(str(submodel))

@@ -661,7 +661,7 @@ class Districts:
     def showCreateNewProject(self):
         """Creates a new Project"""
         
-        self.dlg_createNewProject=NewProjectDlg(self.dlg)
+        self.dlg_createNewProject=NewProjectDlg(self.dlg,self.config)
         self.dlg_createNewProject.btn_ok.clicked.connect(lambda: createNewProject(self.dlg_createNewProject,self))
         self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
         self.dlg_createNewProject.show()   
@@ -1317,8 +1317,8 @@ class Districts:
             self.dlg.signals.close.connect(self.closeDlg)
             
             #import connections
-            self.dlg.btn_importStreetsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path=self.plugin_dir+"/samples/OSM/map_1.osm",title='Streets from OSM',ok_fn=self.importStreetsFromOSM,extensions='*.osm'))
-            self.dlg.btn_importBuildingsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path=self.plugin_dir+"/samples/OSM/map_1.osm",title='Buildings from OSM',ok_fn=self.importBuildingsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importStreetsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path="",title='Streets from OSM',ok_fn=self.importStreetsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importBuildingsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path="",title='Buildings from OSM',ok_fn=self.importBuildingsFromOSM,extensions='*.osm'))
             self.dlg.btn_importElevationData.clicked.connect(lambda: self.openImportDlg(default_path="",title='Elevation data',ok_fn=self.importElevationData,extensions='*.hgt;*.tif;*.tiff'))
             self.dlg.btn_importPointLayer.clicked.connect(self.importPointLayer)
             self.dlg.btn_importNetworkTopologyFromLayer.clicked.connect(self.importNetworkTopologyFromLayer)

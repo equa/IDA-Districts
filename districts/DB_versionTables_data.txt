@@ -1,2 +1,2 @@
-INSERT INTO "base1".climate (id) VALUES (1);
-INSERT INTO "base1".network (id,description) VALUES (1,'This is the main network.');
+INSERT INTO "a".climate (id) VALUES (1);
+INSERT INTO "a".network (id,description) VALUES (1,'This is the main network.');
