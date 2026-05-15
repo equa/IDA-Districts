@@ -190,7 +190,7 @@ def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
             #print(sql)
             cur.execute(sql)
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
     
 def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
     """Insert table row"""
@@ -252,7 +252,7 @@ def deleteTableRowTrace (dlg,trace):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
             
     #delete row to dlg.traceTableValues in order to trace the changed values         
     if trace:
@@ -270,7 +270,7 @@ def deleteTableRow (dlg):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
             
 class TableDialog(QDialog):
     def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type=''):
@@ -318,9 +318,9 @@ class TableDialog(QDialog):
 
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(tr('@default','ok'))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
@@ -506,4 +506,4 @@ def deleteSelectedTableRow (table):
     if row_index!=-1:
         table.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)

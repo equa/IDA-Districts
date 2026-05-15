@@ -282,29 +282,31 @@ def setupVersionForm(cur,plugin_dir,config):
     layersConfig=loadLayersConfig(config,plugin_dir,config['projectName'])
     #print(layersConfig)
     for vlayerName in layersConfig:
-        vlayer=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))[0] 
-        fields=vlayer.fields()
-        fc = vlayer.editFormConfig()
-        fc.clearTabs()
-        fc.setLayout(QgsEditFormConfig.TabLayout)
+        vlayer=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))
+        if vlayer:
+            vlayer=vlayer[0] 
+            fields=vlayer.fields()
+            fc = vlayer.editFormConfig()
+            fc.clearTabs()
+            fc.setLayout(QgsEditFormConfig.TabLayout)
 
-        for tab, attrNamesTab in layersConfig[vlayerName].items():
-            c = QgsAttributeEditorContainer(tr('@default',tab), fc.invisibleRootContainer())
-            # Instead of setIsGroupBox, we directly use the container for tabs
-            for attrName in attrNamesTab:
-                if isinstance(attrName, list):
-                    c1 = QgsAttributeEditorContainer("Modelparameter", c)  # Set parent as 'c'
-                    # Adding child elements as part of a new container
-                    for param_name in attrName:
-                        field_idx = fields.indexOf(param_name)
-                        c1.addChildElement(QgsAttributeEditorField(param_name, field_idx, c1))
-                    c.addChildElement(c1)  # Add the container to the tab
-                else:
-                    field_idx = fields.indexOf(attrName)
-                    c.addChildElement(QgsAttributeEditorField(attrName, field_idx, c))
-            fc.addTab(c)  # Add the tab to the form configuration
-        
-        vlayer.setEditFormConfig(fc)
+            for tab, attrNamesTab in layersConfig[vlayerName].items():
+                c = QgsAttributeEditorContainer(tr('@default',tab), fc.invisibleRootContainer())
+                # Instead of setIsGroupBox, we directly use the container for tabs
+                for attrName in attrNamesTab:
+                    if isinstance(attrName, list):
+                        c1 = QgsAttributeEditorContainer("Modelparameter", c)  # Set parent as 'c'
+                        # Adding child elements as part of a new container
+                        for param_name in attrName:
+                            field_idx = fields.indexOf(param_name)
+                            c1.addChildElement(QgsAttributeEditorField(param_name, field_idx, c1))
+                        c.addChildElement(c1)  # Add the container to the tab
+                    else:
+                        field_idx = fields.indexOf(attrName)
+                        c.addChildElement(QgsAttributeEditorField(attrName, field_idx, c))
+                fc.addTab(c)  # Add the tab to the form configuration
+            
+            vlayer.setEditFormConfig(fc)
             
 def versionLayersAliasNames():
     """ alias names for version layers"""
@@ -476,7 +478,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
                         symbol.setSize(2)
                     svgStyle = {}
                     dir_icon=plugin_dir+'/icons/{}/'.format(vlayerName)
-                    svg_fname=dir_icon+ category+'.svg'
+                    svg_fname=dir_icon+ categories[category]+'.svg'
                     if os.path.exists(svg_fname):
                         svgStyle['name'] = svg_fname
                     else:
@@ -532,9 +534,9 @@ def featureLayerGroups(vlayerName,cur):
         sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table) # nosec B608
         #print(sql)
         cur.execute(sql)
-        return [tr('@default',i[colmn]) for i in cur.fetchall()]
+        return {tr('@default',i[colmn]):i[colmn] for i in cur.fetchall()}
     except:
-        return []
+        return {}
     
 def featureLayerGroupIds(vlayerName,cur):
     try:

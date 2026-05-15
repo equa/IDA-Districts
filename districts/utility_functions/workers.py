@@ -108,7 +108,7 @@ class WorkerImportProject(QRunnable):
             db_info=strToDict(db_info)
         else:
             db_info={'projectName': self.project_name}                
-        print(db_info)
+        #print(db_info)
         
         #check if project already exists
         if db_info['projectName'] not in self.projectNames:
@@ -224,7 +224,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 
             sql_dir=(src_dir+'\\'+name if self.project_name else src_dir)+'\\'
             temp_dir = QgsProcessingUtils.tempFolder()+'\\'
-            print(temp_dir)
+            #print(temp_dir)
             #create tables in new schema
             filedata=""
             if os.path.exists(sql_dir+('db_tables.sql' if self.project_name else name+'.sql')):
@@ -251,7 +251,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 temp_dir + ('db_tables_.sql' if self.project_name else name + '_.sql')
             ]
 
-            print(cmd)
+            #print(cmd)
             subprocess.call(cmd, env=env)
             
             self.signals.progress.emit(79)
@@ -381,9 +381,10 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print(args)
+        #print('--WorkerPlotInvokedFeatureLoad--')
         self.signals=APIPlotinvokedFeatureSignals()
         self.config=kwargs['config']
+        #print(self.config)
         self.dlg=kwargs['dlg']
         self.type=kwargs['type']
         self.conn=""
@@ -393,73 +394,91 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
+    #dublicate code
+    def getConnBundleByFeature(self,feature_type,feature_id,cur,config):
+        sql="""SELECT c_t.conn_bundle_type 
+        FROM "{}".{} f, {} c_t 
+        WHERE f.id={} AND c_t.template=f.template;""".format(config['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id) # nosec B608
+        #print(sql)
+        cur.execute(sql)
+        return cur.fetchone()['conn_bundle_type']
+        
+    #dublicate code
+    def getConnsValues(self,bundle,cur):
+        sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id, conns.p_ctrl
+        FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+        WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+        ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
+        cur.execute(sql)
+        return cur.fetchall()
+            
     @pyqtSlot()
     def run(self):
-        #print('Generate network topology')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
-       
-        count=0
-        for idx in self.rows:
-            id=self.dlg.tableWidget_customer.item(idx,0).text()
-            connValues=getConnsValues(getConnBundleByFeature(self.type,id,self.cur,self.config),self.cur)
-            #print(connValues)
-            conn_type_seq=set([x['conn_type_seq'] for x in connValues])
-            #print(conn_type_seq)
-            for seq in conn_type_seq:
-                file_path=self.config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
-                #print(file_path)
-                if os.path.exists(file_path):
-                    legend=self.type.capitalize()+':'+id
-
+        try:
+            count=0
+            for idx in self.rows:
+                id=self.dlg.tableWidget_customer.item(idx,0).text()
+                connValues=self.getConnsValues(self.getConnBundleByFeature(self.type,id,self.cur,self.config),self.cur)
+                conn_type_seq=set([x['conn_type_seq'] for x in connValues])
+                for seq in conn_type_seq:
+                    file_path=self.config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}\\{}_{}\\Connection type sequence_{}.prn".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),id,self.type,id,seq)  
                     #print(file_path)
-                    filedata=readFileToList(file_path)
+                    if os.path.exists(file_path):
+                        legend=self.type.capitalize()+':'+id
 
-                    #print(filedata)
-                    i=0
-                    time=[]
-                    power=[]
-                    try:
-                        for line in filedata:
-                            data=line.strip().split()
-                            if i==0:
-                                power_col=data.index('power')-1
-                            else:
-                                power.append([float(data[0]),float(data[power_col])])
-                                if i==1:
-                                    energy=[[float(data[0]),0]]
-                                else:
-                                    energy.append([float(data[0]),energy[-1][1]+(float(data[0])-energy[-1][0])*float(data[power_col])/1000]) #kWh
-                            i+=1    
-                    except Exception as e:
-                        #print(f'error: {e}')
-                        self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
-                    
-                    power=np.array(power)  
-                    energy=np.array(energy)  
-                    time=np.arange(0,power[-1,0],0.1)
+                        #print(file_path)
+                        filedata=readFileToList(file_path)
 
-
-                    #linear interpolation
-                    valuesPowerInt = np.interp(time, power[:,0], power[:,1])
-                    valuesEnergyInt = np.interp(time, power[:,0], energy[:,1])
-                    
-                    if count==0:
-                        power_sum=valuesPowerInt
-                        energy_sum=valuesEnergyInt
-                    else:
+                        #print(filedata)
+                        i=0
+                        time=[]
+                        power=[]
                         try:
-                            power_sum=np.add(power_sum,valuesPowerInt)
-                            energy_sum=np.add(energy_sum,valuesEnergyInt)
-                        except:
-                            self.signals.error.emit("Different simulation periods are used!")
+                            for line in filedata:
+                                data=line.strip().split()
+                                if i==0:
+                                    power_col=data.index('power')-1
+                                else:
+                                    power.append([float(data[0]),float(data[power_col])])
+                                    if i==1:
+                                        energy=[[float(data[0]),0]]
+                                    else:
+                                        energy.append([float(data[0]),energy[-1][1]+(float(data[0])-energy[-1][0])*float(data[power_col])/1000]) #kWh
+                                i+=1    
+                        except Exception as e:
+                            #print(f'error: {e}')
+                            self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
+                        
+                        power=np.array(power)  
+                        energy=np.array(energy)  
+                        time=np.arange(0,power[-1,0],0.1)
 
-                    #plotting
-                    self.signals.dataProcessed.emit([{'time':time,'data':valuesPowerInt,'label':'Customer ID='+str(id)},{'time':time,'data':valuesEnergyInt,'label':'Customer ID='+str(id)}])
-                    count+=1
-                    
-                    self.progress_value=int(count/len(self.rows)*98)
-                    self.signals.progress.emit(self.progress_value)
+
+                        #linear interpolation
+                        valuesPowerInt = np.interp(time, power[:,0], power[:,1])
+                        valuesEnergyInt = np.interp(time, power[:,0], energy[:,1])
+                        
+                        if count==0:
+                            power_sum=valuesPowerInt
+                            energy_sum=valuesEnergyInt
+                        else:
+                            try:
+                                power_sum=np.add(power_sum,valuesPowerInt)
+                                energy_sum=np.add(energy_sum,valuesEnergyInt)
+                            except:
+                                self.signals.error.emit("Different simulation periods are used!")
+
+                        #plotting
+                        self.signals.dataProcessed.emit([{'time':time,'data':valuesPowerInt,'label':'Customer ID='+str(id)},{'time':time,'data':valuesEnergyInt,'label':'Customer ID='+str(id)}])
+                        count+=1
+                        
+                        self.progress_value=int(count/len(self.rows)*98)
+                        self.signals.progress.emit(self.progress_value)
+        except Exception as e:
+            #print(e)
+            pass
                            
         self.signals.plot.emit(True) 
         if count>1:
@@ -494,12 +513,12 @@ class WorkerSimulateFilesAPI(QRunnable):
                     #open file
                     #print('+++++++++opening+++++++++++')
                     building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
-                    print('+++++++++opened+++++++++++')
+                    #print('+++++++++opened+++++++++++')
                     #run sim
                     script="""((RUN-SIMULATION [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
 (close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
-                    print(script)
+                    #print(script)
                     self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
                     #print('save doc')
                     #self.util.call_ida_api_function(self.util.ida_lib.saveDocument, building, file_path.encode('utf-8'), 1)   

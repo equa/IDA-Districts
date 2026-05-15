@@ -34,9 +34,9 @@ class ConnectionsDialog(QDialog):
         
         #table buttons     
         layout_buttons_table = QHBoxLayout()
-        self.btn_add=QPushButton("Add")
+        self.btn_add=QPushButton(tr('@default','add_btn'))
         layout_buttons_table.addWidget(self.btn_add)
-        self.btn_delete=QPushButton("Delete")
+        self.btn_delete=QPushButton(tr('@default','delete'))
         layout_buttons_table.addWidget(self.btn_delete)
         
         #Table
@@ -50,9 +50,9 @@ class ConnectionsDialog(QDialog):
 
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Save")
+        self.btn_ok=QPushButton(tr('@default','save'))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
@@ -142,8 +142,8 @@ class DefaultsDialog(QDialog):
         self.tab_general = QWidget()
         self.tab_physical = QWidget()
         # Add tabs
-        self.tabs.addTab(self.tab_general,"General")
-        self.tabs.addTab(self.tab_physical,"Physical Data")
+        self.tabs.addTab(self.tab_general,tr('@default',"general"))
+        self.tabs.addTab(self.tab_physical,tr('@default',"physical_data"))
         
         self.tab_general.layout = QVBoxLayout(self)
         self.tab_physical.layout = QVBoxLayout(self)
@@ -191,9 +191,9 @@ class DefaultsDialog(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(tr('@default','ok'))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------

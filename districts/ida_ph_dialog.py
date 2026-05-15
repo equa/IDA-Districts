@@ -61,7 +61,7 @@ class ExportProjectDialog(QDialog):
         
         #comboboxes
         layout_settings = QVBoxLayout()
-        self.exportInvokedFeatures =QCheckBox("Invoked features") 
+        self.exportInvokedFeatures =QCheckBox(tr('@default',"invoked_features"))
         self.exportPrn =QCheckBox(tr('@default',"prn_results")) 
         self.exportDBResults =QCheckBox(tr('@default',"db_results")) 
         layout_settings.addWidget(self.exportInvokedFeatures)
@@ -126,7 +126,7 @@ class ExportProjectDialog(QDialog):
     def dirDlg(self):
         folder = QFileDialog.getExistingDirectory(
             self,
-            tr('@default',"select_folder"),
+            tr('@default',"select_directory"),
             ''
         )
         self.dirname.setText(standardizePath(folder))

@@ -399,7 +399,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
             else:
                 iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
-            iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)  
+            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
     else:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
 

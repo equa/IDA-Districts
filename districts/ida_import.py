@@ -427,8 +427,8 @@ def importLayerToDb(type,dlg,main):
                 main.dlg.statusMessage.setText(f'Import {type} layer compleded!')
                 closeDialog(dlg)
             else:
-                iface.messageBar().pushMessage("Info", "No Layer is selected!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=Qgis.Info)
         else:
-            iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
     else:
-        iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)

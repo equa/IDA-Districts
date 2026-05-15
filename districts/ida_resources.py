@@ -177,7 +177,7 @@ UPDATE invoked_sensor_target_signals
         cur.execute(sql)
 
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
 
 
 def openTemplate(main,type,dlg):
@@ -258,19 +258,19 @@ def openTemplate(main,type,dlg):
         
         #print('finished open template')
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
         
 def show_templateDialog(main=False,type=False):
     #print('Open current row dialog started: ')
     columns=['template','template_name','conn_bundle_type','description']
-    headers=['Id', 'Template name','Connection bundle type', 'Description']
+    headers=[tr('@default','id'), tr('@default','template'),tr('@default','connection_bundles'), tr('@default','description')]
     filter=''
     orderby='ORDER BY template'
     dropdowns=[[2,'public','conn_bundle_types','id','description']]
     trace=True
     save_as=True
     deactivated=[0]
-    title=type+' templates'
+    title=tr('@default','templates')+': '+tr('@default',type)
     table='{}_templates'.format(type)
     
     dlg = TableDialog(title,headers,True,False,save_as,trace,type=getTypeIdByName(type))    
@@ -388,7 +388,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
     deactivated=openFnArg[10]
     if id!=-1:
         id=dlg.tableWidget.item(id, 0).text()
-        title=openFnArg[0]+': ' + id
+        title=tr('@default',openFnArg[0])+': ' + id
         dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace,type=getTypeIdByName(openFnArg[7]))           
         if openFnArg[6]:
             dlg.btn_open.clicked.connect(lambda: openFnArg[6](openFnArg[7],dlg,id))
@@ -408,7 +408,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)
         dlg.show() 
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
 
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
@@ -621,7 +621,8 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
                             os.rename(file_src, file_tar)
                             os.rename(templates_dir+'{}'.format(dlg.traceTableValues[row][1][0]), templates_dir+'{}'.format(dlg.traceTableValues[row][1][1]))
                         except:
-                            iface.messageBar().pushMessage("Error", "File bot found: {}!".format(file_src), level=Qgis.Critical)     
+                            iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=Qgis.Critical)     
+    main.dlg.statusMessage.setText(tr('@default','data_saved_successfully'))
     dlg.close()
         
 def saveConnectionsTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes,main):
@@ -631,7 +632,7 @@ def saveConnectionsTable(dlg,table,columns,dropdowns,openFnArg,checkBoxes,main):
     if checkConnsInputValues(dlg):
         updateTemplateBoundaryValues(dlg,main.config,main.cur)
         saveTable(main.config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,False,False,main=main)
-        main.dlg.statusMessage.setText('Connections saved successfully!')
+        main.dlg.statusMessage.setText(tr('@default','connections_saved_successfully'))
         
 def checkConnsInputValues(dlg):
     """is value (p,m,T)"""
@@ -639,7 +640,7 @@ def checkConnsInputValues(dlg):
         if (dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,5).text()) or #m
             not dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,4).text()) or #p
             not isNumber(dlg.tableWidget.item(row,3).text())): #T
-                iface.messageBar().pushMessage("Error", "Please enter a number as input in table row: {}!".format(row), level=Qgis.Critical)
+                iface.messageBar().pushMessage("Error", tr('@default','please_enter_number_table_row').format(row), level=Qgis.Critical)
                 return False
     return True
          
@@ -742,7 +743,7 @@ def showConnectionsContent(dlg,dropdowns,conn,cur_dict):
 def showDefaults(dlg,defaults,template_name,cur,config):
     """show the default values of a table in the GUI"""
     #print('--showDefaults--')
-    print(defaults)
+    #print(defaults)
     for default in defaults:
         if default['column_name'] in ['template','pipe_bundle_type_id','network','type']:
             if default['column_name'] =='template':
@@ -769,7 +770,7 @@ def showDefaults(dlg,defaults,template_name,cur,config):
             except:
                 pass
 
-def writeDefaultsToDB(dlg,table,cur,config,plugin_dir):
+def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
     """Write default values to DB """
     for input in dlg.input:
         value=""
@@ -794,3 +795,5 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir):
     dlg.close()
 
     setupFeatureLayerDialog(table,cur,config,plugin_dir)
+    main.dlg.statusMessage.setText(tr('@default','data_saved_successfully'))
+

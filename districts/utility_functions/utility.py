@@ -181,7 +181,7 @@ def getAuthNames():
 def write_plugin_settings(config):
     config['ida_version']='5.21801'
     config['ida_districts_version']='1.0.0.0'
-    config['districts_modeler_version']='0.9.0.0'
+    config['districts_modeler_version']='1.0.0.0'
     settings = QSettings()        
     settings.beginGroup("districts")
     for key,value in config.items():

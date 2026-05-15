@@ -16,7 +16,7 @@ class ImportMeasuremntsDialog(QDialog):
     def __init__(self):     
         """Initialize GUI for plotting load profiles"""
         super().__init__()
-        self.setWindowTitle("Import measurement data into DB")   
+        self.setWindowTitle(tr('@default','import_measurement_data_into_DB'))   
         
         self.label_description=QTextEdit(tr('@default','description_importPRNData'))
         
@@ -32,22 +32,22 @@ class ImportMeasuremntsDialog(QDialog):
         layout_rbtn_feature.addWidget(self.rbtn_lines)
         
         layout_data_source=QHBoxLayout()
-        label_source =QLabel("Data source")
+        label_source =QLabel(tr('@default','data_source'))
         layout_data_source.addWidget(label_source) 
         
         self.lineEditSourceName =QLineEdit("")
         layout_data_source.addWidget(self.lineEditSourceName)
-        self.btn_file_source=QPushButton("Select a file")
+        self.btn_file_source=QPushButton(tr('@default','select_file'))
         layout_data_source.addWidget(self.btn_file_source)
-        self.btn_dir_source=QPushButton("Select a directory")
+        self.btn_dir_source=QPushButton(tr('@default','select_directory'))
         layout_data_source.addWidget(self.btn_dir_source)
         
         self.tableVars = QTableWidget(0,4)  
-        self.tableVars.setHorizontalHeaderLabels(['Variables','Alias','min','max'])     
+        self.tableVars.setHorizontalHeaderLabels([tr('@default','variables'),tr('@default','alias'),tr('@default','min'),tr('@default','max')])     
         
         #interpolate timestep
         layout_interpolation=QVBoxLayout()
-        self.checkbox_timestep=QCheckBox('data interpolation, s')
+        self.checkbox_timestep=QCheckBox(tr('@default','data_interpolation_s'))
         self.checkbox_timestep.stateChanged.connect(self.interpolation_dt_state)
         layout_interpolation.addWidget(self.checkbox_timestep)
         self.interpolation_dt=QLineEdit('')
@@ -55,13 +55,13 @@ class ImportMeasuremntsDialog(QDialog):
         layout_interpolation.addWidget(self.interpolation_dt)
 
         #delete existing data
-        self.delete_existing_data=QCheckBox('Delete data of selected variables')
-        self.delete_existingID_data=QCheckBox('Delete data of selected variables with present feature ID')
+        self.delete_existing_data=QCheckBox(tr('@default','delete_data_selected_variables'))
+        self.delete_existingID_data=QCheckBox(tr('@default','delete_data_selected_variables_present_feature_id'))
         
         #buttons     
         layout_btn=QHBoxLayout()
-        self.btn_import=QPushButton("Import")
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_import=QPushButton(tr('@default','import'))
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_btn.addWidget(self.btn_import)
         layout_btn.addWidget(self.btn_cancel)
         
@@ -102,27 +102,27 @@ class NetworkReportDialog(QDialog):
             self.data = [i for i in self.data if i.get("name") != self.tableWidget_diagrams.item(row_index,0).text()]
             self.tableWidget_diagrams.removeRow(row_index)
         else:
-            self.iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
         
 
 class PlotLoadProfilesDialog(QDialog):
     def __init__(self):     
         """Initialize GUI for plotting load profiles"""
         super().__init__()
-        self.setWindowTitle("Plot features load profiles")   
+        self.setWindowTitle(self.tr("plot_features_load_profiles"))   
         
         #Select network with checkable combobox
         layout_network=QHBoxLayout()
-        label_network =QLabel("Network")
+        label_network =QLabel(tr('@default','network'))
         layout_network.addWidget(label_network)
         self.combo_networks = CheckableComboBox()
         layout_network.addWidget(self.combo_networks)       
         
         #Select feature type by radio button 
         layout_rbtn_feature_type = QHBoxLayout()
-        self.rbtn_customer = QRadioButton('Customers')
+        self.rbtn_customer = QRadioButton(tr('@default','customers'))
         self.rbtn_customer.setChecked(True)
-        self.rbtn_energy_plant = QRadioButton('Energy plants')
+        self.rbtn_energy_plant = QRadioButton(tr('@default','energy_plants'))
            
         layout_rbtn_feature_type.addWidget(self.rbtn_customer)
         layout_rbtn_feature_type.addWidget(self.rbtn_energy_plant)
@@ -133,8 +133,8 @@ class PlotLoadProfilesDialog(QDialog):
         
         #buttons     
         layout_btn=QHBoxLayout()
-        self.btn_plot=QPushButton("Plot selected features data")
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_plot=QPushButton(self.tr("plot_selected_features_data"))
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_btn.addWidget(self.btn_plot)
         layout_btn.addWidget(self.btn_cancel)
         
@@ -175,14 +175,14 @@ class ShowOnMapDialog(QDialog):
         self.process_running=False
         self.networkReportDlg=networkReportDlg
         
-        self.setWindowTitle("Show data on map")   
+        self.setWindowTitle(self.tr("show_data_on_map"))   
 
         #radio buttons Measurement data/Simulation data
         layout_rbtn_dataGroup = QHBoxLayout()
         self.group_dataGroup=QButtonGroup(self)
-        self.rbtn_simData = QRadioButton('Simulation data')
+        self.rbtn_simData = QRadioButton(self.tr('simulation_data'))
         self.rbtn_simData.setChecked(True)
-        self.rbtn_mDatap = QRadioButton('Measurement data')
+        self.rbtn_mDatap = QRadioButton(self.tr('measurement_data'))
         #self.rbtn_mDatap.toggled.connect(self.dataGroupChanged)
         self.group_dataGroup.buttonClicked.connect(self.dataGroupChanged)
 
@@ -194,10 +194,10 @@ class ShowOnMapDialog(QDialog):
         #radio buttons features
         layout_rbtn_feature = QHBoxLayout()
         self.group_feature=QButtonGroup(self)
-        self.rbtn_customers = QRadioButton('Customers')
+        self.rbtn_customers = QRadioButton(tr('@default','customers'))
         self.rbtn_customers.setChecked(True)
-        self.rbtn_plants = QRadioButton('Energy plants')
-        self.rbtn_lines = QRadioButton('Lines')
+        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
+        self.rbtn_lines = QRadioButton(tr('@default','lines'))
            
         layout_rbtn_feature.addWidget(self.rbtn_customers)
         layout_rbtn_feature.addWidget(self.rbtn_plants)  
@@ -208,7 +208,7 @@ class ShowOnMapDialog(QDialog):
         self.group_feature.buttonClicked.connect(self.featureGroupChanged)
         
         layout_lineSegVis = QHBoxLayout()
-        self.label_lineSegVis=QLabel('Line segment length for visualization, m')
+        self.label_lineSegVis=QLabel(self.tr('line_segment_length_for_visualization'))
         self.label_lineSegVis.setHidden(True)
         self.lineSegVis=QSpinBox()
         self.lineSegVis.setHidden(True)
@@ -221,7 +221,7 @@ class ShowOnMapDialog(QDialog):
         
         #----Use Color ramp for GraduatedSymbolRenderer----
         layout_varColor = QVBoxLayout()
-        self.checkbox_varColor=QCheckBox('Color')
+        self.checkbox_varColor=QCheckBox(self.tr('color'))
         self.checkbox_varColor.stateChanged.connect(self.colorStateChanged)
         layout_varColor.addWidget(self.checkbox_varColor)
         
@@ -229,7 +229,7 @@ class ShowOnMapDialog(QDialog):
         #--var--
         layout_colorVarSelection = QHBoxLayout()
         self.group_colorVarSelection=QButtonGroup(self)
-        self.rbtn_colorVar = QRadioButton('Variable')
+        self.rbtn_colorVar = QRadioButton(self.tr('variable'))
         self.rbtn_colorVar.setChecked(True)
         self.rbtn_colorVar.setStyleSheet("padding-left: 30")
         self.rbtn_colorVar.setHidden(True)
@@ -246,7 +246,7 @@ class ShowOnMapDialog(QDialog):
         self.color_function.setHidden(True)
         
         #--par--
-        self.rbtn_colorPar = QRadioButton('Parameter')
+        self.rbtn_colorPar = QRadioButton(self.tr('parameter'))
         self.rbtn_colorPar.setHidden(True)
         #parameter selection
         self.color_par = QComboBox()
@@ -266,16 +266,16 @@ class ShowOnMapDialog(QDialog):
         layout_additional_colorSettings=QHBoxLayout()
 
         layout_label_additional_colorSettings=QVBoxLayout()
-        self.label_colorramp =QLabel('Color ramp')
+        self.label_colorramp =QLabel(self.tr('color_ramp'))
         self.label_colorramp.setHidden(True)
         self.label_colorramp.setStyleSheet("padding-left: 30")
-        self.label_color_classes =QLabel('Classes')
+        self.label_color_classes =QLabel(self.tr('classes'))
         self.label_color_classes.setStyleSheet("padding-left: 30")
         self.label_color_classes.setHidden(True)
-        self.label_color_mode =QLabel('Mode')
+        self.label_color_mode =QLabel(self.tr('mode'))
         self.label_color_mode.setStyleSheet("padding-left: 30")
         self.label_color_mode.setHidden(True)
-        self.label_color_label =QLabel('Label')
+        self.label_color_label =QLabel(self.tr('label'))
         self.label_color_label.setStyleSheet("padding-left: 30")
         self.label_color_label.setHidden(True)
         layout_label_additional_colorSettings.addWidget(self.label_colorramp)
@@ -307,7 +307,7 @@ class ShowOnMapDialog(QDialog):
 
         #----Use Size for GraduatedSymbolRenderer----
         layout_varSize = QVBoxLayout()
-        self.checkbox_varSize=QCheckBox('Size')
+        self.checkbox_varSize=QCheckBox(self.tr('size'))
         self.checkbox_varSize.stateChanged.connect(self.sizeStateChanged)
         layout_varSize.addWidget(self.checkbox_varSize)
         
@@ -315,7 +315,7 @@ class ShowOnMapDialog(QDialog):
         #--var--
         layout_sizeVarSelection = QHBoxLayout()
         self.group_sizeVarSelection=QButtonGroup(self)
-        self.rbtn_sizeVar = QRadioButton('Variable')
+        self.rbtn_sizeVar = QRadioButton(self.tr('variable'))
         self.rbtn_sizeVar.setChecked(True)
         self.rbtn_sizeVar.setStyleSheet("padding-left: 30")
         self.rbtn_sizeVar.setHidden(True)
@@ -333,7 +333,7 @@ class ShowOnMapDialog(QDialog):
 
         
         #--par--
-        self.rbtn_sizePar = QRadioButton('Parameter')
+        self.rbtn_sizePar = QRadioButton(self.tr('parameter'))
         self.rbtn_sizePar.setHidden(True)
         #parameter selection
         self.size_par = QComboBox()
@@ -353,10 +353,10 @@ class ShowOnMapDialog(QDialog):
         layout_additional_sizeSettings=QHBoxLayout()
 
         layout_label_additional_sizeSettings=QVBoxLayout()
-        self.label_size_symbolMax =QLabel('Symbol size max')
+        self.label_size_symbolMax =QLabel(self.tr('symbol_size_max'))
         self.label_size_symbolMax.setHidden(True)
         self.label_size_symbolMax.setStyleSheet("padding-left: 30")
-        self.label_size_symbolMin =QLabel('Symbol size min')
+        self.label_size_symbolMin =QLabel(self.tr('symbol_size_min'))
         self.label_size_symbolMin.setHidden(True)
         self.label_size_symbolMin.setStyleSheet("padding-left: 30")
 
@@ -378,7 +378,7 @@ class ShowOnMapDialog(QDialog):
 
         #----Use Rotation for GraduatedSymbolRenderer----
         layout_varRotation = QVBoxLayout()
-        self.checkbox_varRotation=QCheckBox('Rotation')
+        self.checkbox_varRotation=QCheckBox(self.tr('rotation'))
         self.checkbox_varRotation.stateChanged.connect(self.rotationStateChanged)
         layout_varRotation.addWidget(self.checkbox_varRotation)
         
@@ -386,7 +386,7 @@ class ShowOnMapDialog(QDialog):
         #--var--
         layout_rotationVarSelection = QHBoxLayout()
         self.group_rotationVarSelection=QButtonGroup(self)
-        self.rbtn_rotationVar = QRadioButton('Variable')
+        self.rbtn_rotationVar = QRadioButton(self.tr('variable'))
         self.rbtn_rotationVar.setChecked(True)
         self.rbtn_rotationVar.setStyleSheet("padding-left: 30")
         self.rbtn_rotationVar.setHidden(True)
@@ -403,7 +403,7 @@ class ShowOnMapDialog(QDialog):
 
         
         #--par--
-        self.rbtn_rotationPar = QRadioButton('Parameter')
+        self.rbtn_rotationPar = QRadioButton(self.tr('parameter'))
         self.rbtn_rotationPar.setHidden(True)
         #parameter selection
         self.rotation_par = QComboBox()
@@ -423,10 +423,10 @@ class ShowOnMapDialog(QDialog):
         layout_additional_rotationSettings=QHBoxLayout()
 
         layout_label_additional_rotationSettings=QVBoxLayout()
-        self.label_rotation_symbolMax =QLabel('Rotation at max value, °')
+        self.label_rotation_symbolMax =QLabel(self.tr('rotation_at_max_value'))
         self.label_rotation_symbolMax.setHidden(True)
         self.label_rotation_symbolMax.setStyleSheet("padding-left: 30")
-        self.label_rotation_symbolMin =QLabel('Rotation at min value, °')
+        self.label_rotation_symbolMin =QLabel(self.tr('rotation_at_min_value'))
         self.label_rotation_symbolMin.setHidden(True)
         self.label_rotation_symbolMin.setStyleSheet("padding-left: 30")
 
@@ -455,7 +455,7 @@ class ShowOnMapDialog(QDialog):
         
         #Layer name
         layout_layer_name=QHBoxLayout()
-        label_layer_name=QLabel('Layer name')
+        label_layer_name=QLabel(self.tr('layer_name'))
         layout_layer_name.addWidget(label_layer_name)
         self.layer_name=QLineEdit()
         layout_layer_name.addWidget(self.layer_name)
@@ -464,9 +464,9 @@ class ShowOnMapDialog(QDialog):
         layout_timeSettings=QHBoxLayout()
 
         layout_label_timeSettings=QVBoxLayout()
-        self.label_starttime =QLabel('Start date')
+        self.label_starttime =QLabel(self.tr('start_date'))
         self.label_starttime.setHidden(True)
-        self.label_endtime =QLabel('End date')
+        self.label_endtime =QLabel(self.tr('end_date'))
         self.label_endtime.setHidden(True)
         layout_label_timeSettings.addWidget(self.label_starttime)
         layout_label_timeSettings.addWidget(self.label_endtime)
@@ -485,8 +485,8 @@ class ShowOnMapDialog(QDialog):
         
         #buttons     
         layout_btn=QHBoxLayout()
-        self.btn_showOnMap=QPushButton("Show on map")
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_showOnMap=QPushButton(self.tr("show_on_map"))
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_btn.addWidget(self.btn_showOnMap)
         layout_btn.addWidget(self.btn_cancel)
         
@@ -880,7 +880,7 @@ class IDADistrictsPathReportsDialog(QDialog):
     def __init__(self,cur,config,dlg_main):     
         """Initialize GUI for path reports"""
         super().__init__()
-        self.setWindowTitle("Path reports")   
+        self.setWindowTitle(self.tr("path_reports"))   
         self.cur=cur
         self.config=config
         self.dlg_main=dlg_main
@@ -892,15 +892,15 @@ class IDADistrictsPathReportsDialog(QDialog):
 
         #set quantity 
         #title
-        label_titel =QLabel('Quantity')
+        label_titel =QLabel(self.tr('quantity'))
         font=label_titel.font()
         font.setPointSize(15)
         label_titel.setFont(font)
         #radio buttons Temp/pressure
         layout_rbtn_quantity = QHBoxLayout()
         group_quantity=QButtonGroup(self)
-        self.rbtn_pathTemp = QRadioButton('Temperature')
-        self.rbtn_pathPressure = QRadioButton('Pressure')
+        self.rbtn_pathTemp = QRadioButton(self.tr('Temperature'))
+        self.rbtn_pathPressure = QRadioButton(self.tr('Pressure'))
         self.rbtn_pathPressure.setChecked(True)
            
         layout_rbtn_quantity.addWidget(self.rbtn_pathPressure)  
@@ -908,7 +908,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         group_quantity.addButton(self.rbtn_pathTemp)      
         group_quantity.addButton(self.rbtn_pathPressure)      
         
-        quantity_info=QLabel('Info: Please select Pressure distribution/temperature in nodes, Substation pressure/Substation connection temperatures and Plant pressure/Plant connection temperatures before simulation in order to generate path reports.')
+        quantity_info=QLabel(self.tr('info_pathreport'))
         
         layout_quantity = QVBoxLayout()
         layout_quantity.addWidget(label_titel)
@@ -917,15 +917,15 @@ class IDADistrictsPathReportsDialog(QDialog):
         
         #Date 
         #title
-        label_titel =QLabel('Date')
+        label_titel =QLabel(self.tr('date'))
         font=label_titel.font()
         font.setPointSize(15)
         label_titel.setFont(font)
         #radio buttons Date/Max value
         layout_rbtn_date = QHBoxLayout()
-        self.rbtn_maxValue = QRadioButton('Max value')
+        self.rbtn_maxValue = QRadioButton(self.tr('max_value'))
         self.rbtn_maxValue.setChecked(True)
-        self.rbtn_Date = QRadioButton('Date (yyyy-MM-dd HH:mm:ss)')
+        self.rbtn_Date = QRadioButton(self.tr('date_format_pathreport'))
            
         layout_rbtn_date.addWidget(self.rbtn_maxValue)
         layout_rbtn_date.addWidget(self.rbtn_Date) 
@@ -948,11 +948,11 @@ class IDADistrictsPathReportsDialog(QDialog):
         label_titel.setFont(font)
         #radio buttons Line ID/Weak point
         layout_rbtn_path = QHBoxLayout()
-        self.rbtn_weakPoint = QRadioButton('Weak point (customers)')
+        self.rbtn_weakPoint = QRadioButton(self.tr('weak_point_customers'))
         self.rbtn_weakPoint.setChecked(True)
-        self.rbtn_lineIds = QRadioButton('Line ID`s')
-        self.rbtn_customer = QRadioButton('Customer ID`s')
-        self.rbtn_energy_plant = QRadioButton('Energy plant ID`s')
+        self.rbtn_lineIds = QRadioButton(self.tr('line_ids'))
+        self.rbtn_customer = QRadioButton(self.tr('customer_ids'))
+        self.rbtn_energy_plant = QRadioButton(self.tr('energy_plant_ids'))
            
         layout_rbtn_path.addWidget(self.rbtn_weakPoint) 
         layout_rbtn_path.addWidget(self.rbtn_lineIds)
@@ -973,21 +973,21 @@ class IDADistrictsPathReportsDialog(QDialog):
         layout_network_settings=QHBoxLayout()
         #labels
         layout_network_settings_labels=QVBoxLayout()
-        label_network =QLabel('Network')
+        label_network =QLabel(tr('@default','network'))
         layout_network_settings_labels.addWidget(label_network)
-        label_main_plant =QLabel('Plant')
+        label_main_plant =QLabel(tr('@default','energy_plant'))
         layout_network_settings_labels.addWidget(label_main_plant)
-        label_conntype =QLabel('Connection type')
+        label_conntype =QLabel(tr('@default','connection_types'))
         layout_network_settings_labels.addWidget(label_conntype)
-        label_sup_sequences =QLabel('Supply sequence')
+        label_sup_sequences =QLabel(self.tr('supply_sequence'))
         layout_network_settings_labels.addWidget(label_sup_sequences)
-        label_ret_sequences =QLabel('Return sequence')
+        label_ret_sequences =QLabel(self.tr('return_sequence'))
         layout_network_settings_labels.addWidget(label_ret_sequences)
-        label_conntype =QLabel('Feature connection bundle type')
+        label_conntype =QLabel(self.tr('feature_connection_bundle_type'))
         layout_network_settings_labels.addWidget(label_conntype)
-        label_conntype =QLabel('Feature connection type')
+        label_conntype =QLabel(self.tr('feature_connection_type'))
         layout_network_settings_labels.addWidget(label_conntype)
-        self.dp_recalc =QCheckBox('Recalculate supply pressure value with dp min, bar')
+        self.dp_recalc =QCheckBox(self.tr('recalculate_supply_pressure_value_with_dp_min'))
         layout_network_settings_labels.addWidget(self.dp_recalc)
         
         #input
@@ -1018,9 +1018,9 @@ class IDADistrictsPathReportsDialog(QDialog):
         
         #buttons
         layout_btn_list = QHBoxLayout()
-        self.btn_addID=QPushButton("Add ID")
-        self.btn_addSelectedIDs=QPushButton("Add selected ID`s from map")
-        self.btn_deleteIDs=QPushButton("Delete ID`s")
+        self.btn_addID=QPushButton(self.tr("add_id"))
+        self.btn_addSelectedIDs=QPushButton(self.tr("add _elected_ids_from_map"))
+        self.btn_deleteIDs=QPushButton(self.tr("delete_ids"))
         layout_btn_list.addWidget(self.btn_addID)
         layout_btn_list.addWidget(self.btn_addSelectedIDs)
         layout_btn_list.addWidget(self.btn_deleteIDs)
@@ -1035,8 +1035,8 @@ class IDADistrictsPathReportsDialog(QDialog):
         
         #buttons     
         layout_btn=QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_ok=QPushButton(tr('@default','ok'))
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_btn.addWidget(self.btn_ok)
         layout_btn.addWidget(self.btn_cancel)
         
@@ -1187,13 +1187,13 @@ class LoadResultsDialog(QDialog):
     def __init__(self,dlg_main):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Load simulation results") 
+        self.setWindowTitle(self.tr("load_simulation_results")) 
         self.dlg_main=dlg_main
         self.process_running=False
         
         #submodels
         layout_submodels=QVBoxLayout()
-        label_submodels =QLabel("Submodels")
+        label_submodels =QLabel(self.tr("submodels"))
         font=label_submodels.font()
         font.setPointSize(12)
         label_submodels.setFont(font)
@@ -1203,7 +1203,7 @@ class LoadResultsDialog(QDialog):
         
         #interpolate timestep
         layout_interpolation=QVBoxLayout()
-        self.checkbox_timestep=QCheckBox('data interpolation, s')
+        self.checkbox_timestep=QCheckBox(tr('@default','data_interpolation_s'))
         self.checkbox_timestep.stateChanged.connect(self.interpolation_dt_state)
         layout_interpolation.addWidget(self.checkbox_timestep)
         self.interpolation_dt=QLineEdit('')
@@ -1212,9 +1212,9 @@ class LoadResultsDialog(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_loadResults=QPushButton("Load results")
+        self.btn_loadResults=QPushButton(self.tr("load_results"))
         layout_buttons.addWidget(self.btn_loadResults)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #progress bar

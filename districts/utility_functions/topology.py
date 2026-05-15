@@ -193,6 +193,7 @@ def getConnBundleByFeature(feature_type,feature_id,cur,config):
     sql="""SELECT c_t.conn_bundle_type 
     FROM "{}".{} f, {} c_t 
     WHERE f.id={} AND c_t.template=f.template;""".format(config['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id) # nosec B608
+    #print(sql)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
 

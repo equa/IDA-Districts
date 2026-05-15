@@ -535,13 +535,13 @@ class BuildNetworkModelDialog(QDialog):
     def __init__(self,dlg_main):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Build network model") 
+        self.setWindowTitle(self.tr("build_network_model")) 
         self.process_running=False
         self.dlg_main=dlg_main
         
         #networks
         layout_networks=QVBoxLayout()
-        label_networks =QLabel("Networks")
+        label_networks =QLabel(tr('@default',"networks"))
         font=label_networks.font()
         font.setPointSize(15)
         label_networks.setFont(font)
@@ -563,14 +563,14 @@ class BuildNetworkModelDialog(QDialog):
         #layout_networks.addWidget(self.combo_submodels)
         
         #reinvoke feature templates
-        self.checkbox_reinvokeFeatures = QCheckBox("Reinvoke feature templates")
+        self.checkbox_reinvokeFeatures = QCheckBox(self.tr("reinvoke_feature_templates"))
         self.checkbox_reinvokeFeatures.setChecked(True)
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_buildNetworkModel=QPushButton("Build network model")
+        self.btn_buildNetworkModel=QPushButton(self.tr("build_network_model"))
         layout_buttons.addWidget(self.btn_buildNetworkModel)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         #progress bar
@@ -681,70 +681,13 @@ class OpenModelDialog(QDialog):
         
     def update_finished(self,message):
         #self.process_running=False
-        self.dlg_main.statusMessage.setText(message)
-            
-class LoadResultsDialog(QDialog):
-    def __init__(self,dlg_main):
-        """Constructor."""
-        super().__init__()
-        self.setWindowTitle("Load simulation results") 
-        self.process_running=False
-        self.dlg_main=dlg_main
-        
-        #submodels
-        layout_submodels=QVBoxLayout()
-        label_submodels =QLabel("Submodels")
-        font=label_submodels.font()
-        font.setPointSize(12)
-        label_submodels.setFont(font)
-        self.combo_submodels = CheckableComboBox()
-        layout_submodels.addWidget(label_submodels)
-        layout_submodels.addWidget(self.combo_submodels)
-        
-        #interpolate timestep
-        layout_interpolation=QVBoxLayout()
-        self.checkbox_timestep=QCheckBox('data interpolation, s')
-        self.checkbox_timestep.stateChanged.connect(self.interpolation_dt_state)
-        layout_interpolation.addWidget(self.checkbox_timestep)
-        self.interpolation_dt=QLineEdit('')
-        self.interpolation_dt.setHidden(True)
-        layout_interpolation.addWidget(self.interpolation_dt)
-        
-        #buttons     
-        layout_buttons = QHBoxLayout()
-        self.btn_loadResults=QPushButton("Load results")
-        layout_buttons.addWidget(self.btn_loadResults)
-        self.btn_cancel=QPushButton("Cancel")
-        layout_buttons.addWidget(self.btn_cancel)
-        
-        #progress bar
-        self.progress=QProgressBar()
-        
-        #---------------set layouts together-------------------
-        layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_submodels)
-        layout_win.addLayout(layout_interpolation)
-        layout_win.addLayout(layout_buttons)
-        layout_win.addWidget(self.progress)
-        
-        self.setLayout(layout_win)
-        
-    def interpolation_dt_state(self,s):
-        self.interpolation_dt.setHidden(s != checkState())
-    
-    def update_progress(self,progress):
-        self.progress.setValue(progress)
-
-    def update_finished(self,message):
-        self.process_running=False
-        self.dlg_main.statusMessage.setText(message)
-
+        self.dlg_main.statusMessage.setText(message)          
         
 class RunNetworkModelDialog(QDialog):
     def __init__(self,plugin_dir,config):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Run network model") 
+        self.setWindowTitle(self.tr("run_network_model")) 
         self.networkSimData=loadNetworkSimData(plugin_dir,config)
         #print(self.networkSimData)
         self.finished_sims=0
@@ -762,7 +705,7 @@ class RunNetworkModelDialog(QDialog):
         
         #------simulation------------
         layout_simtime=QVBoxLayout()
-        label_simtime =QLabel("Simulation")
+        label_simtime =QLabel(self.tr("simulation"))
         font=label_simtime.font()
         font.setPointSize(12)
         label_simtime.setFont(font)      
@@ -770,8 +713,8 @@ class RunNetworkModelDialog(QDialog):
         #radio buttons calc type
         self.btngroup_calc_type = QButtonGroup()
         layout_rbtn_calc_type = QHBoxLayout()
-        self.rbtn_calc_type_periodic = QRadioButton('Periodic')
-        self.rbtn_calc_type_dynamic = QRadioButton('Dynamic')
+        self.rbtn_calc_type_periodic = QRadioButton(self.tr('periodic'))
+        self.rbtn_calc_type_dynamic = QRadioButton(self.tr('dynamic'))
         self.btngroup_calc_type.addButton(self.rbtn_calc_type_periodic)
         self.btngroup_calc_type.addButton(self.rbtn_calc_type_dynamic)
         layout_rbtn_calc_type.addWidget(self.rbtn_calc_type_periodic)
@@ -780,26 +723,26 @@ class RunNetworkModelDialog(QDialog):
         
         #maximal timestep
         layout_max_timestep = QHBoxLayout()
-        label_max_timestep =QLabel("Maximal timestep, h")
+        label_max_timestep =QLabel(self.tr("maximal_timestep"))
         layout_max_timestep.addWidget(label_max_timestep)
         self.max_timestep=QLineEdit(self.networkSimData['max_timestep'])
         layout_max_timestep.addWidget(self.max_timestep)
         
         #startup time
         layout_startup = QVBoxLayout()
-        self.label_startup =QLabel("Startup")
+        self.label_startup =QLabel(self.tr("startup"))
         font=self.label_startup.font()
         font.setPointSize(10)
         self.label_startup.setFont(font)
         layout_startupDate = QHBoxLayout()
-        self.label_calcStartupFrom =QLabel("From")
+        self.label_calcStartupFrom =QLabel(self.tr("from"))
         layout_startupDate.addWidget(self.label_calcStartupFrom)
         
         #radio buttons startup type
         self.btngroup_startup_type = QButtonGroup()
         layout_rbtn_startup_type = QHBoxLayout()
-        self.rbtn_startup_type_periodic = QRadioButton('Periodic')
-        self.rbtn_startup_type_dynamic = QRadioButton('Dynamic')
+        self.rbtn_startup_type_periodic = QRadioButton(self.tr('periodic'))
+        self.rbtn_startup_type_dynamic = QRadioButton(self.tr('dynamic'))
         self.btngroup_startup_type.addButton(self.rbtn_startup_type_periodic)
         self.btngroup_startup_type.addButton(self.rbtn_startup_type_dynamic)
         layout_rbtn_startup_type.addWidget(self.rbtn_startup_type_periodic)
@@ -814,7 +757,7 @@ class RunNetworkModelDialog(QDialog):
         self.dateedit_startupFrom.setDisplayFormat("yyyy-MM-dd hh:mm:ss")
         layout_startupDate.addWidget(self.dateedit_startupFrom)
 
-        self.label_calcStartupTo =QLabel("To")
+        self.label_calcStartupTo =QLabel(self.tr("to"))
         layout_startupDate.addWidget(self.label_calcStartupTo)
                 
         self.dateedit_startupTo = QtWidgets.QDateTimeEdit(calendarPopup=True)
@@ -832,7 +775,7 @@ class RunNetworkModelDialog(QDialog):
 
         #number of periods
         layout_numb_periods = QHBoxLayout()
-        self.label_numb_periods =QLabel("Number of periods")
+        self.label_numb_periods =QLabel(self.tr("no_periods"))
         layout_numb_periods.addWidget(self.label_numb_periods)    
         self.numb_periods =QSpinBox()
         self.numb_periods.setValue(int(self.networkSimData['numb_of_periods']))
@@ -841,13 +784,13 @@ class RunNetworkModelDialog(QDialog):
 
         #simulation time
         layout_calctime = QVBoxLayout()
-        label_calctime =QLabel("Simulation time")
+        label_calctime =QLabel(self.tr("simulation_time"))
         font=label_calctime.font()
         font.setPointSize(12)
         label_calctime.setFont(font)
         
         layout_calcdate = QHBoxLayout()
-        label_calcFrom =QLabel("From")
+        label_calcFrom =QLabel(self.tr("from"))
         layout_calcdate.addWidget(label_calcFrom)
                 
         self.dateedit_calcFrom = QtWidgets.QDateTimeEdit(calendarPopup=True)
@@ -860,7 +803,7 @@ class RunNetworkModelDialog(QDialog):
         self.dateedit_calcFrom.setDisplayFormat("yyyy-MM-dd hh:mm:ss")
         layout_calcdate.addWidget(self.dateedit_calcFrom)
 
-        label_calcTo =QLabel("To")
+        label_calcTo =QLabel(self.tr("to"))
         layout_calcdate.addWidget(label_calcTo)
                 
         self.dateedit_calcTo = QtWidgets.QDateTimeEdit(calendarPopup=True)
@@ -897,9 +840,9 @@ class RunNetworkModelDialog(QDialog):
         
         #buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_runModel=QPushButton("Run network submodels")
+        self.btn_runModel=QPushButton(self.tr("run_network"))
         layout_buttons.addWidget(self.btn_runModel)
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
         layout_buttons.addWidget(self.btn_cancel)
         
         #---------------set layouts together-------------------
@@ -1325,7 +1268,7 @@ class InvokeFeaturesDlg(QDialog):
     def __init__(self):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Invoke feature models from template")
+        self.setWindowTitle(self.tr("invoke_feature_models_from_template"))
         self.type=""        
         
         #-------------Invoke---------------
@@ -1333,34 +1276,34 @@ class InvokeFeaturesDlg(QDialog):
         #invoke buttons       
         layout_invoke_btn = QHBoxLayout()      
         
-        self.btn_invokeOne=QPushButton("Invoke selected feature")
+        self.btn_invokeOne=QPushButton(self.tr("invoke_selected_feature"))
         layout_invoke_btn.addWidget(self.btn_invokeOne)
         
-        self.btn_invokeAll=QPushButton("Invoke all features")
+        self.btn_invokeAll=QPushButton(self.tr("invoke_all_features"))
         layout_invoke_btn.addWidget(self.btn_invokeAll)
         
         #radio buttons
         layout_rbtn = QHBoxLayout()
-        self.rbtn_customers = QRadioButton('Customers')
+        self.rbtn_customers = QRadioButton(tr('@default','customer'))
         self.rbtn_customers.setChecked(True)
-        self.rbtn_plants = QRadioButton('Energy plants')
+        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
            
         layout_rbtn.addWidget(self.rbtn_customers)
         layout_rbtn.addWidget(self.rbtn_plants)
         
         #table
         self.tableWidget_customer = QTableWidget(0,2)   
-        self.tableWidget_customer.setHorizontalHeaderLabels(["  ID    ","Feature is invoked"])      
+        self.tableWidget_customer.setHorizontalHeaderLabels([tr('@default','id'),self.tr("feature_is_invoked")])      
 
         #---------------ok/Open buttons     
         layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
+        self.btn_ok=QPushButton(tr('@default','ok'))
         layout_buttons.addWidget(self.btn_ok)
-        self.btn_openInvoked=QPushButton("Open invoked feature")
+        self.btn_openInvoked=QPushButton(self.tr("open_invoked_feature"))
         layout_buttons.addWidget(self.btn_openInvoked)      
-        self.btn_simulateInvoked=QPushButton("Simulate invoked features")
+        self.btn_simulateInvoked=QPushButton(self.tr("simulate_invoked_features"))
         layout_buttons.addWidget(self.btn_simulateInvoked)      
-        self.btn_showFeatureLoad=QPushButton("Plot selected features load/energy")
+        self.btn_showFeatureLoad=QPushButton(self.tr("plot_selected_features_load_energy"))
         layout_buttons.addWidget(self.btn_showFeatureLoad)    
 
         #progress bar
@@ -1436,12 +1379,12 @@ class ModellingSettings(QDialog):
     def __init__(self,plugin_dir,modellingSettings,cur):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Modelling settings")    
+        self.setWindowTitle(self.tr("modelling_settings"))    
         self.plugin_dir=plugin_dir
         self.cur=cur
         #-------------Settings FD pipe ---------------
         #titel
-        label_fd_pipe_title =QLabel("Finite difference pipe model")
+        label_fd_pipe_title =QLabel(self.tr("finite_difference_pipe_model"))
         font=label_fd_pipe_title.font()
         font.setPointSize(15)
         label_fd_pipe_title.setFont(font)
@@ -1449,7 +1392,7 @@ class ModellingSettings(QDialog):
         #labels
         layout_fd_pipe_label = QVBoxLayout()
         
-        label_fd_pipe_discretization =QLabel("Meter per node ")
+        label_fd_pipe_discretization =QLabel(self.tr("meter_per_node"))
         layout_fd_pipe_label.addWidget(label_fd_pipe_discretization)
         
         #values
@@ -1465,7 +1408,7 @@ class ModellingSettings(QDialog):
 
         #-------------Settings node model---------------
         #titel
-        label_node_title =QLabel("Node model")
+        label_node_title =QLabel(self.tr("node_model"))
         font=label_node_title.font()
         font.setPointSize(15)
         label_node_title.setFont(font)
@@ -1473,7 +1416,7 @@ class ModellingSettings(QDialog):
         #labels
         layout_node_label = QVBoxLayout()
         
-        label_node_vol =QLabel("Node volume, m3 ")
+        label_node_vol =QLabel(self.tr("node_volume"))
         layout_node_label.addWidget(label_node_vol)
         
         #values
@@ -1489,7 +1432,7 @@ class ModellingSettings(QDialog):
         
         #-------------Ambient settings---------------
         #titel
-        label_ambient_title =QLabel("Ambient temperatur settings")
+        label_ambient_title =QLabel(self.tr("ambient_temperatur_settings"))
         font=label_ambient_title.font()
         font.setPointSize(15)
         label_ambient_title.setFont(font)
@@ -1503,40 +1446,40 @@ class ModellingSettings(QDialog):
         #labels
         layout_ground_label = QVBoxLayout()
         
-        label_ground_conductivity =QLabel("Thermal conductivity of the soil/trench, W/(m*K):")
+        label_ground_conductivity =QLabel(self.tr('ground_thermal_conductivity'))
         layout_ground_label.addWidget(label_ground_conductivity)
 
-        label_ground_model =QLabel("Ground surface layer temperature model:")
+        label_ground_model =QLabel(self.tr("ground_surface_layer_temperature_model"))
         layout_ground_label.addWidget(label_ground_model)
         
         
-        self.label_amb_kusuda_tsurfmean =QLabel("Annual mean temperature, °C:")
+        self.label_amb_kusuda_tsurfmean =QLabel(self.tr("annual_mean_temperature"))
         layout_ground_label.addWidget(self.label_amb_kusuda_tsurfmean)
         
-        self.label_amb_kusuda_tsurfampl =QLabel("Daily mean temperature amplitude, K:")
+        self.label_amb_kusuda_tsurfampl =QLabel(self.tr("daily_mean_temperature_amplitude"))
         layout_ground_label.addWidget(self.label_amb_kusuda_tsurfampl)
         
-        self.label_amb_kusuda_theta =QLabel("Phase shift of monthly minimum temperatur, days:")
+        self.label_amb_kusuda_theta =QLabel(self.tr("phase_shift_of_monthly_minimum_temperatur"))
         layout_ground_label.addWidget(self.label_amb_kusuda_theta)
         
-        self.label_amb_kusuda_rho =QLabel("Surface layer density, kg/m3:")
+        self.label_amb_kusuda_rho =QLabel(self.tr("surface_layer_density"))
         layout_ground_label.addWidget(self.label_amb_kusuda_rho)
         
-        self.label_amb_kusuda_cp =QLabel("Specific heat capacity of the surface layer, J/(kg*K):")
+        self.label_amb_kusuda_cp =QLabel(self.tr("specific_heat_capacity_surface_layer"))
         layout_ground_label.addWidget(self.label_amb_kusuda_cp)
         
-        self.label_amb_kusuda_lambda =QLabel("Thermal conductivity of the surface layer, W/(m*K):")
+        self.label_amb_kusuda_lambda =QLabel(self.tr("thermal_conductivity_surface_layer"))
         layout_ground_label.addWidget(self.label_amb_kusuda_lambda)
         
-        self.label_amb_kusuda_depth =QLabel("Surface layer depth, m:")
+        self.label_amb_kusuda_depth =QLabel(self.tr("surface_layer_depth"))
         layout_ground_label.addWidget(self.label_amb_kusuda_depth)
         
         
-        self.label_amb_ground_profile =QLabel("Ground temperatur timeseries:")
+        self.label_amb_ground_profile =QLabel(self.tr("ground_temperatur_timeseries"))
         layout_ground_label.addWidget(self.label_amb_ground_profile)
         
         
-        self.label_amb_ground_temp =QLabel("Constant ground temperatur:")
+        self.label_amb_ground_temp =QLabel(self.tr("constant_ground_temperatur"))
         layout_ground_label.addWidget(self.label_amb_ground_temp)
         
         #values
@@ -1595,13 +1538,13 @@ class ModellingSettings(QDialog):
         #labels
         layout_duct_label = QVBoxLayout()
         
-        label_duct_model =QLabel("Duct model:")
+        label_duct_model =QLabel(self.tr("duct_model"))
         layout_duct_label.addWidget(label_duct_model)            
         
-        self.label_amb_duct_profile =QLabel("Duct temperatur timeseries:")
+        self.label_amb_duct_profile =QLabel(self.tr("duct_temperatur_timeseries"))
         layout_duct_label.addWidget(self.label_amb_duct_profile)
         
-        self.label_amb_duct_temp =QLabel("Constant duct temperatur:")
+        self.label_amb_duct_temp =QLabel(self.tr("constant_duct_temperatur"))
         layout_duct_label.addWidget(self.label_amb_duct_temp)
         
         #values
@@ -1625,7 +1568,7 @@ class ModellingSettings(QDialog):
         layout_duct.addLayout(layout_duct_value)   
         
         #titel
-        label_air_title =QLabel("Ambient air temperatur")
+        label_air_title =QLabel(self.tr("ambient_air_temperatur"))
         font=label_air_title.font()
         font.setPointSize(12)
         label_air_title.setFont(font)
@@ -1633,7 +1576,7 @@ class ModellingSettings(QDialog):
         #labels
         layout_air_label = QVBoxLayout()
         
-        label_amb_ambient_air_model =QLabel("Ambient air model:")
+        label_amb_ambient_air_model =QLabel(self.tr("ambient_air_model"))
         layout_air_label.addWidget(label_amb_ambient_air_model)            
         
         #values

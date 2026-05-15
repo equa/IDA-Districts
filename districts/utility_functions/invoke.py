@@ -254,7 +254,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
             type_old=type
             template_old=feature['template']
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
 
 class InvokeFeatures():
     def __init__(self,plugin_dir,config):
@@ -350,7 +350,7 @@ class InvokeFeatures():
             else:
                 iface.messageBar().pushMessage("Info", "Feature not yet invoked!", level=Qgis.Info)
         else:
-            iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
 
     def simulateInvokedFeatures(self,dlg,config):
         """Simulate the invoked features in IDA."""  
@@ -366,12 +366,12 @@ class InvokeFeatures():
             self.worker_simInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
             self.worker_simInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
         else:
-            iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
         #print('simulation finished')
 
     def showFeatureLoad(self,dlg):
         """Show feature load"""  
-        idxs=[index.row() for index in dlg.tableWidget_customer.selectedIndexes()]
+        idxs=set([index.row() for index in dlg.tableWidget_customer.selectedIndexes()])
         #print(idxs)
         count=0
         if idxs:

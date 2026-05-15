@@ -729,7 +729,7 @@ def checkDBVersionConnected(config,errorMsg):
     else:
         #print('not connected to version!')
         if errorMsg:
-            iface.messageBar().pushMessage("WARNING", "Not connected to DB!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("WARNING", tr('@default','no_db_connection'), level=Qgis.Warning)
         return False
         
 def dbConnect(config,errorMsg):

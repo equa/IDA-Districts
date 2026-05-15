@@ -38,15 +38,15 @@ class PipeLayingDialog(QDialog):
         self.config=config
         self.conn=dbConnect(self.config,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        self.setWindowTitle("Pipe laying algorithm")      
+        self.setWindowTitle(tr('@default',"pipe_laying_algorithm"))      
         columns=getTableAttr(self.cur,self.config,'customer')
         self.process_running=False
         
         #heating network
-        self.check_heating_network =QCheckBox("Generate heating network")
+        self.check_heating_network =QCheckBox(tr('@default',"generate_heating_network"))
         self.check_heating_network.stateChanged.connect(self.heating_network_generation_state)
         
-        self.group_box_heating_constr = QGroupBox("Constraints")
+        self.group_box_heating_constr = QGroupBox(tr('@default',"constraints"))
         self.group_box_heating_constr.setStyleSheet("""QGroupBox {font-weight: bold;}""")
         
         #connection constraints: maximum supply temperature,
@@ -54,16 +54,16 @@ class PipeLayingDialog(QDialog):
         
         #checkboxes
         layout_constr_heating_checkbox = QVBoxLayout()
-        self.checkbox_tsup_max =QCheckBox("Maximum supply temperature, °C")
+        self.checkbox_tsup_max =QCheckBox(tr('@default',"maximum_supply_temperature"))
         layout_constr_heating_checkbox.addWidget(self.checkbox_tsup_max)                   
                
-        self.checkbox_linearHeatDensity_min =QCheckBox("Minimum linear heat density, kWh/m trench/a")
+        self.checkbox_linearHeatDensity_min =QCheckBox(tr('@default',"minimum_linear_heat_density"))
         layout_constr_heating_checkbox.addWidget(self.checkbox_linearHeatDensity_min)
 
-        self.checkbox_heat_demand_min =QCheckBox("Minimum heat demand, kWh/a")
+        self.checkbox_heat_demand_min =QCheckBox(tr('@default',"minimum_heat_demand"))
         layout_constr_heating_checkbox.addWidget(self.checkbox_heat_demand_min)
         
-        self.checkbox_heating_load_min =QCheckBox("Minimum heating load, kW")
+        self.checkbox_heating_load_min =QCheckBox(tr('@default',"minimum_heating_load"))
         layout_constr_heating_checkbox.addWidget(self.checkbox_heating_load_min)
         
         #values
@@ -99,18 +99,18 @@ class PipeLayingDialog(QDialog):
         layout_constr_heating_col.addWidget(self.heating_load_min_col)    
 
         #Heating type seetings
-        self.group_box_heating_type_settings = QGroupBox("Type settings")
+        self.group_box_heating_type_settings = QGroupBox(tr('@default',"type_settings"))
         self.group_box_heating_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""") 
 
         #labels
         layout_settings_heating_label = QVBoxLayout()
-        self.label_heating_template_customer =QLabel("Customer template")
+        self.label_heating_template_customer =QLabel(tr('@default',"customer_template"))
         layout_settings_heating_label.addWidget(self.label_heating_template_customer)
         
-        self.label_heating_type_lines =QLabel("Lines type")
+        self.label_heating_type_lines =QLabel(tr('@default',"line_type"))
         layout_settings_heating_label.addWidget(self.label_heating_type_lines)
                 
-        self.label_heating_pipe_bundle =QLabel("Pipe bundle")
+        self.label_heating_pipe_bundle =QLabel(tr('@default',"pipe_bundle"))
         layout_settings_heating_label.addWidget(self.label_heating_pipe_bundle)    
         
         #values
@@ -146,19 +146,19 @@ class PipeLayingDialog(QDialog):
         #costs
         self.group_box_heating_costs = QGroupBox("")
         #labels
-        self.check_heating_network_costs =QCheckBox("consider trench and pipe costs")
+        self.check_heating_network_costs =QCheckBox(tr('@default','consider_trench_and_pipe_costs'))
         self.check_heating_network_costs.stateChanged.connect(self.heating_network_costs_state)
         self.check_heating_network_costs.setHidden(True)
         
         layout_constr_heating_costs_label = QVBoxLayout()
         layout_constr_heating_costs_label.setContentsMargins(30, 0, 0, 0)  # (left, top, right, bottom) 
-        self.label_heat_loss =QLabel("Heat loss, kWh/m trench/a")
+        self.label_heat_loss =QLabel(tr('@default',"heat_loss"))
         layout_constr_heating_costs_label.addWidget(self.label_heat_loss) 
         
-        self.label_heat_costs =QLabel("Heat costs, €/kWh")
+        self.label_heat_costs =QLabel(tr('@default',"heat_costs"))
         layout_constr_heating_costs_label.addWidget(self.label_heat_costs) 
 
-        self.label_amortization_period_heat =QLabel("Amortization period, a")
+        self.label_amortization_period_heat =QLabel(tr('@default','amortization_period'))
         layout_constr_heating_costs_label.addWidget(self.label_amortization_period_heat) 
         
         #values
@@ -176,24 +176,24 @@ class PipeLayingDialog(QDialog):
         #cooling network
         #connection constraints: minimum supply temperature,
         #constraints for algoritmn: minimum linear cold density,
-        self.check_cooling_network =QCheckBox("Generate cooling network")
+        self.check_cooling_network =QCheckBox(tr('@default',"generate_cooling_network"))
         self.check_cooling_network.stateChanged.connect(self.cooling_network_generation_state)
         
-        self.group_box_cooling_constr = QGroupBox("Constraints")
+        self.group_box_cooling_constr = QGroupBox(tr('@default',"constraints"))
         self.group_box_cooling_constr.setStyleSheet("""QGroupBox {font-weight: bold;}""")
   
         #checkbox
         layout_constr_cooling_checkbox = QVBoxLayout()
-        self.checkbox_tsup_min =QCheckBox("Minimum supply temperature, °C")
+        self.checkbox_tsup_min =QCheckBox(tr('@default',"minimum_supply_temperature"))
         layout_constr_cooling_checkbox.addWidget(self.checkbox_tsup_min)                   
                
-        self.checkbox_linearColdDensity_min =QCheckBox("Minimum linear cold density, kWh/m trench/a")
+        self.checkbox_linearColdDensity_min =QCheckBox(tr('@default',"minimum_linear_cold_density"))
         layout_constr_cooling_checkbox.addWidget(self.checkbox_linearColdDensity_min)
 
-        self.checkbox_cold_demand_min =QCheckBox("Minimum cold demand, kWh/a")
+        self.checkbox_cold_demand_min =QCheckBox(tr('@default',"minimum_cold_demand"))
         layout_constr_cooling_checkbox.addWidget(self.checkbox_cold_demand_min)
         
-        self.checkbox_cooling_load_min =QCheckBox("Minimum cooling load, kW")
+        self.checkbox_cooling_load_min =QCheckBox(tr('@default',"minimum_cooling_load"))
         layout_constr_cooling_checkbox.addWidget(self.checkbox_cooling_load_min)
         
         #values
@@ -233,13 +233,13 @@ class PipeLayingDialog(QDialog):
 
         #labels
         layout_settings_cooling_label = QVBoxLayout()
-        self.label_cooling_template_customer =QLabel("Customer template")
+        self.label_cooling_template_customer =QLabel(tr('@default',"customer_template"))
         layout_settings_cooling_label.addWidget(self.label_cooling_template_customer)
 
-        self.label_cooling_type_lines =QLabel("Line type")
+        self.label_cooling_type_lines =QLabel(tr('@default',"line_type"))
         layout_settings_cooling_label.addWidget(self.label_cooling_type_lines)
         
-        self.label_cooling_pipe_bundle =QLabel("Pipe bundle")
+        self.label_cooling_pipe_bundle =QLabel(tr('@default',"pipe_bundle"))
         layout_settings_cooling_label.addWidget(self.label_cooling_pipe_bundle)    
         
         #values
@@ -274,19 +274,19 @@ class PipeLayingDialog(QDialog):
         #costs
         self.group_box_cooling_costs = QGroupBox("")
         #labels
-        self.check_cooling_network_costs =QCheckBox("consider trench and pipe costs")
+        self.check_cooling_network_costs =QCheckBox(tr('@default',"consider_trench_and_pipe_costs"))
         self.check_cooling_network_costs.stateChanged.connect(self.cooling_network_costs_state)
         self.check_cooling_network_costs.setHidden(True)
         
         layout_constr_cooling_costs_label = QVBoxLayout()
         layout_constr_cooling_costs_label.setContentsMargins(30, 0, 0, 0)  # (left, top, right, bottom) 
-        self.label_cold_loss =QLabel("Cold loss, kWh/m trench/a")
+        self.label_cold_loss =QLabel(tr('@default',"Cold_loss"))
         layout_constr_cooling_costs_label.addWidget(self.label_cold_loss) 
         
-        self.label_cold_costs =QLabel("Cold costs, €/kWh")
+        self.label_cold_costs =QLabel(tr('@default',"cold_costs"))
         layout_constr_cooling_costs_label.addWidget(self.label_cold_costs) 
 
-        self.label_amortization_period_cold =QLabel("Amortization period, a")
+        self.label_amortization_period_cold =QLabel(tr('@default',"amortization_period"))
         layout_constr_cooling_costs_label.addWidget(self.label_amortization_period_cold) 
         
         #values
@@ -302,14 +302,14 @@ class PipeLayingDialog(QDialog):
         layout_constr_cooling_costs_input.addWidget(self.amortization_period_cold) 
 
         #extend network ?
-        self.check_extend_network =QCheckBox("Extend an existing network")
+        self.check_extend_network =QCheckBox(tr('@default',"extend_existing_network"))
         
         #keep unconnected customers?
-        self.keep_unconnected_customers =QCheckBox("Keep unconnected customers")
+        self.keep_unconnected_customers =QCheckBox(tr('@default',"keep_unconnected_customers"))
         self.keep_unconnected_customers.setChecked(True)
 
         #redraw submodel polygon including all streets
-        self.redraw_submodels_polygons =QCheckBox("Redraw submodel polygon including all features and lines")
+        self.redraw_submodels_polygons =QCheckBox(tr('@default',"redraw_submodel_polygon"))
         self.redraw_submodels_polygons.setChecked(True)
         
         #customer connection mode
@@ -319,14 +319,14 @@ class PipeLayingDialog(QDialog):
         
         #tolerance
         layout_tolerance=QHBoxLayout()
-        label=QLabel('Snapping tolerance, m: ')
+        label=QLabel(tr('@default','snapping_tolerance'))
         layout_tolerance.addWidget(label)
         self.tolerance=QLineEdit('0.01')
         layout_tolerance.addWidget(self.tolerance)
         
         #networks
         layout_networks=QHBoxLayout()
-        label_network =QLabel("Network")
+        label_network =QLabel(tr('@default',"network"))
         networks=getNetworks(self.cur,self.config)
         #print(networks)
         self.combo_network = QComboBox()
@@ -336,18 +336,18 @@ class PipeLayingDialog(QDialog):
 
 
         #Heating/Cooling type settings
-        self.group_box_hc_type_settings = QGroupBox("Type settings for heating and cooling")
+        self.group_box_hc_type_settings = QGroupBox(tr('@default',"type_settings_for_heating_and_cooling"))
         self.group_box_hc_type_settings.setStyleSheet("""QGroupBox {font-weight: bold;}""")
 
         #labels right
         layout_settings_hc_label = QVBoxLayout()
-        self.label_hc_template_customer =QLabel("Customer template")
+        self.label_hc_template_customer =QLabel(tr('@default',"customer_template"))
         layout_settings_hc_label.addWidget(self.label_hc_template_customer)
         
-        self.label_type_lines =QLabel("Lines template")
+        self.label_type_lines =QLabel(tr('@default',"lines_template"))
         layout_settings_hc_label.addWidget(self.label_type_lines)
         
-        self.label_hc_pipe_bundle =QLabel("Pipe bundle")
+        self.label_hc_pipe_bundle =QLabel(tr('@default',"pipe_bundle"))
         layout_settings_hc_label.addWidget(self.label_hc_pipe_bundle)    
         
         #values right
@@ -381,14 +381,14 @@ class PipeLayingDialog(QDialog):
         #action buttons
         layout_actionButtons = QHBoxLayout()
         
-        btn_start=QPushButton("Start")
+        btn_start=QPushButton(tr('@default',"start"))
         btn_start.pressed.connect(self.execute)
         layout_actionButtons.addWidget(btn_start)
         
-        self.btn_stop=QPushButton("Stop")
+        self.btn_stop=QPushButton(tr('@default',"stop"))
         layout_actionButtons.addWidget(self.btn_stop)
         
-        self.btn_pause=QPushButton("Pause/Resume")
+        self.btn_pause=QPushButton(tr('@default',"pause_resume"))
         layout_actionButtons.addWidget(self.btn_pause)
         
         #progress bar
@@ -396,11 +396,11 @@ class PipeLayingDialog(QDialog):
         
         #save reject buttons
         layout_saveButtons = QHBoxLayout()
-        btn_save=QPushButton("Save")
+        btn_save=QPushButton(tr('@default',"save"))
         btn_save.pressed.connect(self.saveResults)
         layout_saveButtons.addWidget(btn_save)
         
-        btn_reject=QPushButton("Reject")
+        btn_reject=QPushButton(tr('@default',"reject"))
         btn_reject.pressed.connect(self.rejectResults)
         layout_saveButtons.addWidget(btn_reject)
         
@@ -487,7 +487,7 @@ class PipeLayingDialog(QDialog):
         layout_win.addWidget(self.group_box_hc_type_settings)
         layout_win.addWidget(self.check_extend_network)
         layout_win.addWidget(self.keep_unconnected_customers)
-        layout_win.addWidget(self.redraw_submodels_polygons)
+        #layout_win.addWidget(self.redraw_submodels_polygons)
         layout_win.addWidget(self.customer_connection_mode)
         layout_win.addLayout(layout_tolerance)
         layout_win.addLayout(layout_networks)
@@ -699,15 +699,15 @@ class NetworkTopologyDialog(QDialog):
         self.config=config
         self.conn=dbConnect(self.config,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        self.setWindowTitle("Generate Topology")
+        self.setWindowTitle(tr('@default',"generate_topology"))
         #todo get values from data center
         customer_templates=getTemplateNames(self.cur,'customer')
         pipeBundleTypes=getPipeBundleNames(self.cur)
 
         #templates
-        self.rbtn_keep_templates = QRadioButton('Keep templates')
+        self.rbtn_keep_templates = QRadioButton(tr('@default','keep_templates'))
         self.rbtn_keep_templates.setChecked(True)
-        self.rbtn_override_templates = QRadioButton('Override templates')
+        self.rbtn_override_templates = QRadioButton(tr('@default','override_templates'))
         
         self.rbtn_keep_templates.toggled.connect(self.keep_template_state)
         self.rbtn_override_templates.toggled.connect(self.override_template_state)        
@@ -715,12 +715,12 @@ class NetworkTopologyDialog(QDialog):
         #labels
         layout_overrideTemplate_label = QVBoxLayout()
         
-        self.label_overrideTemplate_customer =QLabel("Customer template")
+        self.label_overrideTemplate_customer =QLabel(tr('@default',"customer_template"))
         self.label_overrideTemplate_customer.setHidden(True)
         self.label_overrideTemplate_customer.setStyleSheet("padding-left: 30")
         layout_overrideTemplate_label.addWidget(self.label_overrideTemplate_customer)
         
-        self.label_overrideTemplate_pipeBundle =QLabel("Pipe bundle type")
+        self.label_overrideTemplate_pipeBundle =QLabel(tr('@default',"pipe_bundle"))
         self.label_overrideTemplate_pipeBundle.setHidden(True)
         self.label_overrideTemplate_pipeBundle.setStyleSheet("padding-left: 30")
         layout_overrideTemplate_label.addWidget(self.label_overrideTemplate_pipeBundle)
@@ -745,15 +745,15 @@ class NetworkTopologyDialog(QDialog):
         #additional options
         layout_additional_options = QVBoxLayout()
         #delete unconnected network ends
-        self.check_del_network_ends =QCheckBox("Delete unconnected network ends")
+        self.check_del_network_ends =QCheckBox(tr('@default',"delete_unconnected_network_ends"))
         
         #add customers unconnected network ends
-        self.check_add_customers_network_ends =QCheckBox("Add customers to unconnected network ends")
+        self.check_add_customers_network_ends =QCheckBox(tr('@default',"add_customers_to_unconnected_network_ends"))
         self.check_add_customers_network_ends.stateChanged.connect(self.addCustomers_network_ends_state)
         #labels
         layout_addCustomers_template_label = QVBoxLayout()
         
-        self.label_addCustomers_template_customers =QLabel("Customer template")
+        self.label_addCustomers_template_customers =QLabel(tr('@default',"customer_template"))
         self.label_addCustomers_template_customers.setHidden(True)
         self.label_addCustomers_template_customers.setStyleSheet("padding-left: 30")
         layout_addCustomers_template_label.addWidget(self.label_addCustomers_template_customers)
@@ -769,12 +769,12 @@ class NetworkTopologyDialog(QDialog):
         layout_addCustomers_template_input.addWidget(self.addCustomers_template_customers)  
         
         #connect unconnected customers to network
-        self.check_connectCustomers =QCheckBox("Connect unconnected customers to network")
+        self.check_connectCustomers =QCheckBox(tr('@default',"connect_unconnected_customers_to_network"))
         self.check_connectCustomers.stateChanged.connect(self.connectCustomers_state)
         #labels
         layout_connectCustomers_template_label = QVBoxLayout()
                 
-        self.label_connectCustomers_template_pipeBundle =QLabel("Pipe bundle type")
+        self.label_connectCustomers_template_pipeBundle =QLabel(tr('@default',"pipe_bundle"))
         self.label_connectCustomers_template_pipeBundle.setHidden(True)
         self.label_connectCustomers_template_pipeBundle.setStyleSheet("padding-left: 30")
         layout_connectCustomers_template_label.addWidget(self.label_connectCustomers_template_pipeBundle)
@@ -790,12 +790,12 @@ class NetworkTopologyDialog(QDialog):
         layout_connectCustomers_template_input.addWidget(self.connectCustomers_template_pipeBundle)          
         
         #connect unconnected plants to network
-        self.check_connectPlants =QCheckBox("Connect unconnected plants to network")
+        self.check_connectPlants =QCheckBox(tr('@default',"connect_unconnected_plants_to_network"))
         self.check_connectPlants.stateChanged.connect(self.connectPlants_state)
         #labels
         layout_connectPlants_template_label = QVBoxLayout()
         
-        self.label_connectPlants_template_pipeBundle =QLabel("Pipe bundle type")
+        self.label_connectPlants_template_pipeBundle =QLabel(tr('@default','pipe_bundle'))
         self.label_connectPlants_template_pipeBundle.setHidden(True)
         self.label_connectPlants_template_pipeBundle.setStyleSheet("padding-left: 30")
         layout_connectPlants_template_label.addWidget(self.label_connectPlants_template_pipeBundle)
@@ -811,18 +811,18 @@ class NetworkTopologyDialog(QDialog):
         layout_connectPlants_template_input.addWidget(self.connectPlants_template_pipeBundle)          
 
         #delete unconnected customers
-        self.check_deleteUnconnectedCustomers =QCheckBox("Delete unconnected customers")
+        self.check_deleteUnconnectedCustomers =QCheckBox(tr('@default',"delete_unconnected_customers"))
         
         #delete unconnected network lines
-        self.check_deleteUnconnectedLines =QCheckBox("Delete unconnected lines")
+        self.check_deleteUnconnectedLines =QCheckBox(tr('@default',"delete_unconnected_lines"))
         
         #redraw submodel polygon including all streets
-        self.redraw_submodels_polygons =QCheckBox("Redraw submodel polygon including all features and lines and set submodel to 1")
+        self.redraw_submodels_polygons =QCheckBox(tr('@default','redraw_submodel_polygon'))
         self.redraw_submodels_polygons.setChecked(True)
         
         #tolerance
         layout_tolerance=QHBoxLayout()
-        label=QLabel('Snapping tolerance, m: ')
+        label=QLabel(tr('@default','snapping_tolerance'))
         layout_tolerance.addWidget(label)
         self.tolerance=QLineEdit('0.01')
         layout_tolerance.addWidget(self.tolerance)
@@ -842,15 +842,15 @@ class NetworkTopologyDialog(QDialog):
         #buttons
         layout_buttons = QHBoxLayout()
         
-        btn_start=QPushButton("Start")
+        btn_start=QPushButton(tr('@default',"start"))
         btn_start.pressed.connect(self.execute)
         layout_buttons.addWidget(btn_start)
                
-        btn_save=QPushButton("Save")
+        btn_save=QPushButton(tr('@default',"save"))
         btn_save.pressed.connect(self.saveResults)
         layout_buttons.addWidget(btn_save)
         
-        btn_reject=QPushButton("Reject")
+        btn_reject=QPushButton(tr('@default',"reject"))
         btn_reject.pressed.connect(self.rejectResults)
         layout_buttons.addWidget(btn_reject)
         
@@ -883,7 +883,7 @@ class NetworkTopologyDialog(QDialog):
         layout_additional_options.addLayout(layout_connectCustomers_template)
         layout_additional_options.addWidget(self.check_deleteUnconnectedCustomers)
         layout_additional_options.addWidget(self.check_deleteUnconnectedLines)
-        layout_additional_options.addWidget(self.redraw_submodels_polygons)
+        #layout_additional_options.addWidget(self.redraw_submodels_polygons)
         
         layout_win = QVBoxLayout()
         layout_win.addWidget(self.rbtn_keep_templates)
@@ -1043,33 +1043,33 @@ class PipeSizingDlg(QDialog):
         self.used_sequences=[]
         
         
-        self.setWindowTitle("Pipe sizing")
+        self.setWindowTitle(tr('@default',"pipe_sizing"))
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)               
         
         #labels
         layout_label = QVBoxLayout()
-        self.label_dp =QLabel("Specific pressure drop, m pipe")
+        self.label_dp =QLabel(tr('@default','dp_specific'))
         layout_label.addWidget(self.label_dp)                 
 
-        self.label_epsilon =QLabel("Absolute roughness, m")
+        self.label_epsilon =QLabel(tr('@default',"absolute_roughness"))
         layout_label.addWidget(self.label_epsilon)    
 
-        self.label_rho =QLabel("Density, kg/m3")
+        self.label_rho =QLabel(tr('@default',"density"))
         layout_label.addWidget(self.label_rho)      
 
-        self.label_cp =QLabel("Specific heat, J/(kg*K)")
+        self.label_cp =QLabel(tr('@default',"specific_heat"))
         layout_label.addWidget(self.label_cp)   
 
-        self.label_ambient =QLabel("Pipe ambient (1-->Ambient; 2-->Ground; 3-->Duct)")
+        self.label_ambient =QLabel(tr('@default',"ambient_mapping"))
         layout_label.addWidget(self.label_ambient)          
         
-        self.label_kin_viscosity =QLabel("Kinematic viscosity, m2/s")
+        self.label_kin_viscosity =QLabel(tr('@default',"kinematic_viscosity"))
         layout_label.addWidget(self.label_kin_viscosity)  
 
-        layout_label.addWidget(QLabel("Network"))
+        layout_label.addWidget(QLabel(tr('@default',"network")))
         
-        self.label_main_plant = QLabel("Main energy plant")
+        self.label_main_plant = QLabel(tr('@default',"main_energy_plant"))
         layout_label.addWidget(self.label_main_plant)
         
         
@@ -1108,9 +1108,9 @@ class PipeSizingDlg(QDialog):
         layout_inputs.addLayout(layout_values)
         
         #radio sizing option
-        self.rbtn_customers = QRadioButton('Sizing according to customer`s energy demand and shortest path from customer to main energy plant')
+        self.rbtn_customers = QRadioButton(tr('@default','sizing_according_to_customers_energy_demand_and_shortest_path_from_customer_to_main_energy_plant'))
         self.rbtn_customers.setChecked(True)
-        self.rbtn_lines = QRadioButton('Line`s energy demand')
+        self.rbtn_lines = QRadioButton(tr('@default','lines_energy_demand'))
         
         self.rbtn_customers.toggled.connect(self.updateSizingOption)
         
@@ -1119,7 +1119,7 @@ class PipeSizingDlg(QDialog):
         layout_sizing_options.addWidget(self.rbtn_lines)
         
         #simultaneity
-        self.checkBoxSimultaneity=QCheckBox("Consider the simultaneity of energy consumption")
+        self.checkBoxSimultaneity=QCheckBox(tr('@default',"consider_the_simultaneity_of_energy_consumption"))
         self.checkBoxSimultaneity.setChecked(True) 
         self.checkBoxSimultaneity.stateChanged.connect(lambda: self.updateSimultaneity())
         self.combo_simultaneity=QComboBox(self)
@@ -1129,7 +1129,7 @@ class PipeSizingDlg(QDialog):
         
         #------liquid circuits----
         #label water circuits
-        self.label_circuits =QLabel("Liquid circuits")
+        self.label_circuits =QLabel(tr('@default',"liquid_circuits"))
         font=self.label_circuits.font()
         font.setPointSize(15)
         self.label_circuits.setFont(font)
@@ -1151,30 +1151,30 @@ class PipeSizingDlg(QDialog):
         #table
         #table for circuits mapping 
         self.table_circuits = QTableWidget(0,6)   
-        self.table_circuits.setHorizontalHeaderLabels(['Supply','T supply, °C','','Return','T return, °C','Load column, W'])     
+        self.table_circuits.setHorizontalHeaderLabels([tr('@default','supply'),tr('@default','supply_temperature'),'',tr('@default','return'),tr('@default','return_temperature'),tr('@default','load_column')])     
         #self.tableWidget.itemChanged.connect(lambda: addExpressionToMappedAttributes(self,False))
         
         #label select pipes
-        self.label_sequences =QLabel("Select considerable pipes per sequence")
+        self.label_sequences =QLabel(tr('@default',"select_considerable_pipes_per_sequence"))
         font=self.label_sequences.font()
         font.setPointSize(15)
         self.label_sequences.setFont(font)
         
         #table in order to chack selectable pipes per sequence 
         self.table_sequences = QTableWidget(0,2)   
-        self.table_sequences.setHorizontalHeaderLabels(['Sequence','Select considered pipes'])   
+        self.table_sequences.setHorizontalHeaderLabels([tr('@default','sequence'),tr('@default','select_considered_pipes')])   
           
         #buttons       
         #save reject buttons
         layout_buttons = QHBoxLayout()
         
-        self.btn_start=QPushButton("Start")
+        self.btn_start=QPushButton(tr('@default',"start"))
         layout_buttons.addWidget(self.btn_start)
         
-        self.btn_save=QPushButton("Save")
+        self.btn_save=QPushButton(tr('@default',"save"))
         layout_buttons.addWidget(self.btn_save)
         
-        self.btn_reject=QPushButton("Reject")
+        self.btn_reject=QPushButton(tr('@default',"reject"))
         layout_buttons.addWidget(self.btn_reject)
         
         #progress bar
@@ -1349,14 +1349,14 @@ class MapFeaturesDialog(QDialog):
         self.config=config
         self.conn=dbConnect(self.config,True)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        self.setWindowTitle("Map energy plants/customers connection types to lines")
+        self.setWindowTitle(self.tr("map_energy_plants_customers_connection_types_to_lines"))
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
 
         #radio buttons
         layout_rbtn = QHBoxLayout()
-        self.rbtn_plants = QRadioButton('Energy plants')
-        self.rbtn_customers = QRadioButton('Customers')
+        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
+        self.rbtn_customers = QRadioButton(tr('@default','customers'))
         
         self.rbtn_plants.toggled.connect(self.updatePlantsCustomersLists)        
         self.rbtn_customers.toggled.connect(self.updatePlantsCustomersLists)        
@@ -1367,14 +1367,14 @@ class MapFeaturesDialog(QDialog):
         #list widgets input
         #lists plants
         layout_plants = QVBoxLayout()
-        self.label_listWidget_Plants=QLabel("Plants/Customers")
+        self.label_listWidget_Plants=QLabel(self.tr("switch_plants_customers"))
         self.label_listWidget_Plants.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label_listWidget_Plants.setFont(myBoldFont)
         layout_plants.addWidget(self.label_listWidget_Plants)
         layout_listWidget_plants = QHBoxLayout()
         #list widget for plants
         listWidget_plants_connTypes_ids = QVBoxLayout()
-        label_listWidget_Plants_ids=QLabel("Id`s")
+        label_listWidget_Plants_ids=QLabel(tr('@default','ids'))
         listWidget_plants_connTypes_ids.addWidget(label_listWidget_Plants_ids)
         self.listWidget_plants_ids = QListWidget()
         self.listWidget_plants_ids.itemClicked.connect(self.clickedPlantsId)
@@ -1383,7 +1383,7 @@ class MapFeaturesDialog(QDialog):
         
         #list widget for plants
         listWidget_plants_connTypes_connTypes = QVBoxLayout()
-        label_listWidget_Plants_connTypes=QLabel("Connection types")
+        label_listWidget_Plants_connTypes=QLabel(tr('@default',"connection_types"))
         listWidget_plants_connTypes_connTypes.addWidget(label_listWidget_Plants_connTypes)
         self.listWidget_plants_connTypes = QListWidget()
         listWidget_plants_connTypes_connTypes.addWidget(self.listWidget_plants_connTypes)
@@ -1393,9 +1393,9 @@ class MapFeaturesDialog(QDialog):
         
         #list widget for plants               
         layout_listWidget_lines = QVBoxLayout()
-        label_listWidget_lines=QLabel("Lines")
+        label_listWidget_lines=QLabel(tr('@default','lines'))
         label_listWidget_lines.setFont(myBoldFont)
-        label_listWidget_lines_ids=QLabel("Id`s")
+        label_listWidget_lines_ids=QLabel(tr('@default','ids'))
         layout_listWidget_lines.addWidget(label_listWidget_lines)
         layout_listWidget_lines.addWidget(label_listWidget_lines_ids)
         self.listWidget_lines = QListWidget()
@@ -1407,18 +1407,18 @@ class MapFeaturesDialog(QDialog):
         label_tableWidget_connections.setFont(myBoldFont)
         layout_table_connections.addWidget(label_tableWidget_connections)
         self.tableWidget = QTableWidget(0,2)
-        self.tableWidget.setHorizontalHeaderLabels(['Sequence','Connection'])   
+        self.tableWidget.setHorizontalHeaderLabels([tr('@default','sequence'),tr('@default','connections')])   
         
         layout_table_connections.addWidget(self.tableWidget)
         
         #buttons
         layout_buttons = QHBoxLayout()
         
-        btn_connect=QPushButton("Connect")
+        btn_connect=QPushButton(tr('@default','connect'))
         btn_connect.pressed.connect(self.connect)
         layout_buttons.addWidget(btn_connect)
                
-        btn_disconnect=QPushButton("Disconnect")
+        btn_disconnect=QPushButton(tr('@default','disconnect'))
         btn_disconnect.pressed.connect(self.disconnect)
         layout_buttons.addWidget(btn_disconnect)
         

@@ -5,6 +5,7 @@ from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 from .utility_functions.db import *
 from .utility_functions.dialog import *
 from .utility_functions.layer_visualization import *
+from .utility_functions.translations import *
 
 class ComboBox(QComboBox):
     popupAboutToBeShown = QtCore.pyqtSignal()
@@ -27,21 +28,21 @@ class PipeBundleEditor(QDialog):
         #print(layer)
         #print(layer_attributes)
         
-        self.setWindowTitle("Pipe bundle type editor")
+        self.setWindowTitle(tr('@default','pipe_bundle_editor'))
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)      
         
         #Radio Buttons extend option
         layout_radio=QHBoxLayout()
-        self.rbtn_extend = QRadioButton('Extend pipe bundle types')
+        self.rbtn_extend = QRadioButton(tr('@default','extend_pipe_bundles'))
         self.rbtn_extend.setChecked(True)
         layout_radio.addWidget(self.rbtn_extend)
-        self.rbtn_truncate= QRadioButton('Truncate existing pipe bundle types, pipes and their constructions')
+        self.rbtn_truncate= QRadioButton(tr('@default','truncate_existing_pipe_bundles_and_their_constructions'))
         layout_radio.addWidget(self.rbtn_truncate)
         
         #CheckBox add pipe bundle type field 
         layout_addField=QVBoxLayout()
-        self.addPipeBundleTypeField=QCheckBox("Add Pipe bundle type field to layer: {}".format(layer.name()))
+        self.addPipeBundleTypeField=QCheckBox(tr('@default','add_pipe_bundle_field_to_layer').format(layer.name()))
         self.addPipeBundleTypeField.setChecked(True)
         layout_addField.addWidget(self.addPipeBundleTypeField)
         self.newFieldName=QLineEdit('')
@@ -51,7 +52,7 @@ class PipeBundleEditor(QDialog):
         layout_list=QHBoxLayout()
         #list widget for layer attributes
         layout_listWidget_layerAttributes = QVBoxLayout()
-        label_listWidget_layerAttributes=QLabel("Fields of {} with name:".format(layer.name()))
+        label_listWidget_layerAttributes=QLabel(tr('@default','fields_of_layer').format(layer.name()))
         layout_listWidget_layerAttributes.addWidget(label_listWidget_layerAttributes)
         self.listWidget_layerAttributes = QListWidget()
         self.listWidget_layerAttributes.addItems(layer_attributes)
@@ -59,15 +60,15 @@ class PipeBundleEditor(QDialog):
         self.listWidget_layerAttributes.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
 
         
-        label_list_helptext=QLabel('Info: Double click on the \nfield in order to map it to \nthe selected field item.\nYou can use also dictionaries in the form: {key: entry}[value/attribute]')
+        label_list_helptext=QLabel(tr('@default','description_pipe_bundle_editor'))
         layout_list.addLayout(layout_listWidget_layerAttributes)
         layout_list.addWidget(label_list_helptext)
 
        
         #table for mapped attributes  
         self.tableWidget = QTableWidget(0,3)   
-        self.tableWidget.setHorizontalHeaderLabels(['Expression','','Pipe Bundle type attributes'])
-        self.pipe_bundle_type_attributes=['Pipe inner diameter, m','Number of construction layer sequences','Horizontal distance, m','Depth, m','Number of parallel pipes','Pipe ambient (1-->Ambient; 2-->Ground; 3-->Duct)','Roughness, m']
+        self.tableWidget.setHorizontalHeaderLabels([tr('@default','expression'),'',tr('@default','pipe_bundle_attributes')])
+        self.pipe_bundle_type_attributes=[tr('@default','inner_diameter'),tr('@default','no_layers'),tr('@default','horizontal_distance'),tr('@default','depth'),tr('@default','no_parallel_pipes'),tr('@default','ambient_mapping'),tr('@default','absolute_roughness')]
         self.mappedAttributes=dict([(i,'') for i in self.pipe_bundle_type_attributes])
         self.mappedAttributes['layer_constr']={}
         self.setPipeBundleTypeAttributes()
@@ -76,13 +77,13 @@ class PipeBundleEditor(QDialog):
         
         #table Pipe constructions  
         layout_pipe_constr=QVBoxLayout()
-        label_pipe_constr_title=QLabel('Pipe constructions')
+        label_pipe_constr_title=QLabel(tr('@default','pipe_constructions'))
         font=label_pipe_constr_title.font()
         font.setPointSize(12)
         label_pipe_constr_title.setFont(font)
         layout_pipe_constr.addWidget(label_pipe_constr_title)
         self.tableWidget_pipe = QTableWidget(0,3)   
-        self.tableWidget_pipe.setHorizontalHeaderLabels(['Layer sequence','Material','Layer thickness, m'])
+        self.tableWidget_pipe.setHorizontalHeaderLabels([tr('@default','sequence'),tr('@default','material'),tr('@default','thickness')])
         layout_pipe_constr.addWidget(self.tableWidget_pipe)
         self.tableWidget_pipe.itemClicked.connect(lambda: self.setActiveTable('pipe'))
         self.tableWidget_pipe.itemChanged.connect(self.constrTableTextChanged)
@@ -91,10 +92,10 @@ class PipeBundleEditor(QDialog):
         #buttons       
         #connection buttons
         layout_buttons = QHBoxLayout()
-        self.btn_generate=QPushButton("Generate pipe bundle types")
+        self.btn_generate=QPushButton(tr('@default',"generate_pipe_bundles"))
         layout_buttons.addWidget(self.btn_generate)
                
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_buttons.addWidget(self.btn_cancel)
         
         
@@ -497,91 +498,6 @@ class ImportPointLayer(QDialog):
         
         self.setLayout(layout_win)
         
-class IDA_Districts_InputsDialog(QDialog):
-    def __init__(self,title,inputs,newConnBundleType,newConnType):
-        """Constructor."""
-        super().__init__()
-        self.setWindowTitle(title)     
-        
-        #input 
-        i=0
-        layout_label = QVBoxLayout() 
-        layout_input = QVBoxLayout() 
-        self.input=[]
-        for input in inputs:
-            #label 
-            label =QLabel(input['label'])
-            layout_label.addWidget(label)
-            
-            #input          
-            self.input.append(QLineEdit(input['text']))
-            layout_input.addWidget(self.input[i])
-            i+=1    
-
-        #connection type
-        if newConnBundleType:
-            #label 
-            label =QLabel('Connection type:')
-            layout_label.addWidget(label)
-            
-            #dropdown
-            layout_input_conntype=QHBoxLayout()
-            self.ConnectionType =QComboBox()
-            layout_input_conntype.addWidget(self.ConnectionType)
-            
-            #add new connection type
-            self.btn_add_conntype =QPushButton("Add")
-            layout_input_conntype.addWidget(self.btn_add_conntype)
-            
-            layout_input.addLayout(layout_input_conntype)
-            
-        #new connection type
-        if newConnType:
-            #label 
-            label =QLabel('Inlet type:')
-            layout_label.addWidget(label)
-            
-            label =QLabel('Outlet type:')
-            layout_label.addWidget(label)
-            
-            #dropdown
-            layout_input_conntype=QVBoxLayout()
-            self.inletConnectionType =QComboBox()
-            layout_input_conntype.addWidget(self.inletConnectionType)
-            
-            self.outletConnectionType =QComboBox()
-            layout_input_conntype.addWidget(self.outletConnectionType)
-            
-            #add button for new inlet connection type
-            self.btn_add_conntype =QPushButton("Add")
-            
-            #set connection type settings together
-            layout_input_conntype_settings=QHBoxLayout()
-            layout_input_conntype_settings.addLayout(layout_input_conntype)
-            layout_input_conntype_settings.addWidget(self.btn_add_conntype)
-            
-            layout_input.addLayout(layout_input_conntype_settings)
-                 
-        #set name settings together
-        layout_name = QHBoxLayout() 
-        layout_name.addLayout(layout_label)
-        layout_name.addLayout(layout_input)
-        
-        #buttons     
-        layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton("Ok")
-        layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton("Cancel")
-        layout_buttons.addWidget(self.btn_cancel)
-        
-        #---------------set layouts together-------------------
-        layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_name)
-        layout_win.addLayout(layout_buttons)
-        layout_win.addStretch()
-        
-        self.setLayout(layout_win)
-        
 class ImportGeoDataDlg(QDialog):
     def __init__(self,title='',default_path=''):        
         super().__init__()
@@ -599,12 +515,12 @@ class ImportGeoDataDlg(QDialog):
         
         
         #checkbox for drop old features
-        self.checkBoxClearOldFeatures=QCheckBox("drop old features")
+        self.checkBoxClearOldFeatures=QCheckBox(tr('@default',"drop_old_features"))
         
         #buttons     
         layout_btn=QHBoxLayout()
-        self.btn_import=QPushButton("Import")
-        self.btn_cancel=QPushButton("Cancel")
+        self.btn_import=QPushButton(tr('@default',"import"))
+        self.btn_cancel=QPushButton(tr('@default',"cancel"))
         layout_btn.addWidget(self.btn_import)
         layout_btn.addWidget(self.btn_cancel)
         

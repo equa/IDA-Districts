@@ -52,7 +52,7 @@ BEGIN
       ALTER TABLE temp.lines ADD COLUMN "{}" numeric;
    END IF;
 END $$;""".format(i,i) for i in energy_columns+['no_customer']]) # nosec B608
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     
     sql="""UPDATE temp.lines l 
@@ -160,7 +160,7 @@ class WorkerPipeSizing(QRunnable):
                 i=1
                 for pipe_boundary in pipe_boundary_dict:
                     try:
-                        print(pipe_boundary)
+                        #print(pipe_boundary)
                         #print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
                         mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
                         #print(mdot_pipe)

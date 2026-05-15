@@ -569,7 +569,7 @@ def showProjectConfigData(dlg,main):
         else:
             iface.messageBar().pushMessage("Warning", "Project config not found!", level=Qgis.Info)        
     else:
-        iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)        
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)        
 
 def saveProjectConfigSettings(dlg,main):
     """ save project config data to file projectConfig.txt"""
@@ -779,7 +779,7 @@ def finishedLoadVersion(main):
     main.config=load_plugin_settings()
     main.dlg.labelActiveProject.setText(main.config['projectName'])
     main.dlg.label_activeVersion.setText(main.config['versionName'])
-    main.dlg.statusMessage.setText(f'Version "{main.config['versionName']}" is loaded!')
+    main.dlg.statusMessage.setText(tr('@default','version_loaded').format(main.config['versionName']))
 
 
 def loadVersion(main=None,item=None):
@@ -805,7 +805,7 @@ def loadVersion(main=None,item=None):
                     
         QThreadPool.globalInstance().start(worker_loadVersion)
     else:
-        iface.messageBar().pushMessage("Info", "You are not connected to the DB!", level=Qgis.Info)        
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)        
     
     
 def createNewProject(dlg,main):
@@ -829,7 +829,7 @@ def createNewProject(dlg,main):
             else:
                 filename=main.config['pathDistricts']+'Samples\\'+project_name
                 filename=filename.replace('/','\\')
-                print(filename)
+                #print(filename)
 
             if dlg.checkbox_DBResults.isChecked():
                 no_db_results=False
