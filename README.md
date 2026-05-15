@@ -78,6 +78,6 @@ C:\Users<User>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins
 ## 📦 Releases
 
 - `0.1.10.2` → Experimental preview release
-- `1.0.0.0` → Stable release (planned)
+- `1.0.0.0` → Stable release
 
 Each release is tagged and uploaded to the QGIS Plugin Repository separately.
