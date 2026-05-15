@@ -165,18 +165,18 @@ class WorkerGenerateNetworkTopology(QRunnable):
                     
     def delUnconnCust(self):
         """Delete unconnected customers """
-        sql="""DELETE FROM temp.customers WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.streets_help sth WHERE ST_dWithIn(c.geom,sth.geom,{}));"""
+        sql="""DELETE FROM temp.customers WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.streets_help sth WHERE ST_dWithIn(c.geom,sth.geom,{}));""".format(self.tolerance) # nosec B608
         #print(sql)
-        self.cur.execute(sql,(self.tolerance,))
+        self.cur.execute(sql)
         
     def delUnconnLines(self):
         """Delete unconnected lines """
         sql="""DELETE FROM temp.streets_help WHERE id NOT IN (
     SELECT sth1.id FROM temp.streets_help sth1, temp.streets_help sth2 
         WHERE ST_dWithIn(sth1.geom,sth2.geom,{}) AND sth1.id != sth2.id
-        GROUP BY sth1.id);"""
+        GROUP BY sth1.id);""".format(self.tolerance) # nosec B608
         #print(sql)
-        self.cur.execute(sql,(self.tolerance,))
+        self.cur.execute(sql)
         
     def insertLinesFromTopology(self,version,network):
         """ INSERT Lines from topology"""

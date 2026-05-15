@@ -655,7 +655,7 @@ WHERE pg_stat_activity.datname = '{}'
         except:
             pass
         main_dlg.update_progress(100)
-        main_dlg.statusMessage.setText(f'Project "{config['projectName']}" is deleted!')
+        main_dlg.statusMessage.setText(tr('@default','project_deleted').format(projectName))
 
             
 def loadVersionLayers(config,cur,plugin_dir):
@@ -824,10 +824,10 @@ def createNewProject(dlg,main):
             #print(main.plugin_dir)
             project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
             if dlg.selectTemplate.currentData() in ['db_default_values','empty_project','heating_network']:
-                filename=main.plugin_dir+'\\templates\\'+project_name
+                filename=main.plugin_dir+'\\templates\\'+dlg.selectTemplate.currentData()
                 filename=filename.replace('/','\\')
             else:
-                filename=main.config['pathDistricts']+'Samples\\'+project_name
+                filename=main.config['pathDistricts']+'Samples\\'+dlg.selectTemplate.currentData()
                 filename=filename.replace('/','\\')
                 #print(filename)
 

@@ -1,7 +1,7 @@
 ------------------------------ version tables ---------------------------------
 
--------------------table "a".kpi;----------------------------------------------------------
-CREATE TABLE IF NOT EXISTS "a".kpi
+-------------------table "base1".kpi;----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "base1".kpi
 (
     id serial,
     tsup_mean_ep numeric,
@@ -26,9 +26,9 @@ CREATE TABLE IF NOT EXISTS "a".kpi
     CONSTRAINT kpi_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".boreholes;----------------------------------------------------------
-DROP TABLE IF EXISTS "a".boreholes CASCADE;
-CREATE TABLE "a".boreholes(
+-------------------table "base1".boreholes;----------------------------------------------------------
+DROP TABLE IF EXISTS "base1".boreholes CASCADE;
+CREATE TABLE "base1".boreholes(
     id serial,
     geom GEOMETRY (POINTZ,25832),
     plant_id int DEFAULT 1,
@@ -37,9 +37,9 @@ CREATE TABLE "a".boreholes(
     CONSTRAINT boreholes_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".borehole_fields;----------------------------------------------------------
-DROP TABLE IF EXISTS "a".borehole_fields CASCADE;
-CREATE TABLE "a".borehole_fields(
+-------------------table "base1".borehole_fields;----------------------------------------------------------
+DROP TABLE IF EXISTS "base1".borehole_fields CASCADE;
+CREATE TABLE "base1".borehole_fields(
     id serial,
     ep_id integer,
     zhole numeric CHECK (zhole > 0),
@@ -81,9 +81,9 @@ CREATE TABLE "a".borehole_fields(
     CONSTRAINT borehole_fields_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".climate;------------------------------------
-DROP TABLE IF EXISTS "a".climate CASCADE;
-CREATE TABLE "a".climate
+-------------------table "base1".climate;------------------------------------
+DROP TABLE IF EXISTS "base1".climate CASCADE;
+CREATE TABLE "base1".climate
 (
   id serial,
   name text DEFAULT 'Solna',
@@ -95,9 +95,9 @@ CREATE TABLE "a".climate
   CONSTRAINT climate_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".submodels;------------------------------------
-DROP TABLE IF EXISTS "a".submodels CASCADE;
-CREATE TABLE "a".submodels
+-------------------table "base1".submodels;------------------------------------
+DROP TABLE IF EXISTS "base1".submodels CASCADE;
+CREATE TABLE "base1".submodels
 (
   id serial,
   submodel text,
@@ -105,18 +105,18 @@ CREATE TABLE "a".submodels
   CONSTRAINT submodel_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".network;------------------------------------
-DROP TABLE IF EXISTS "a".network CASCADE;
-CREATE TABLE "a".network
+-------------------table "base1".network;------------------------------------
+DROP TABLE IF EXISTS "base1".network CASCADE;
+CREATE TABLE "base1".network
 (
   id serial,
   description text,
   CONSTRAINT network_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".customers;------------------------------------
-DROP TABLE IF EXISTS "a".customers CASCADE;
-CREATE TABLE "a".customers
+-------------------table "base1".customers;------------------------------------
+DROP TABLE IF EXISTS "base1".customers CASCADE;
+CREATE TABLE "base1".customers
 (
 	id serial,
 	geom geometry(PointZ,25832),
@@ -127,9 +127,9 @@ CREATE TABLE "a".customers
 );
 
 
--------------------table "a".energy_plants;------------------------------------
-DROP TABLE IF EXISTS "a".energy_plants CASCADE;
-CREATE TABLE "a".energy_plants
+-------------------table "base1".energy_plants;------------------------------------
+DROP TABLE IF EXISTS "base1".energy_plants CASCADE;
+CREATE TABLE "base1".energy_plants
 (
 	id serial,
 	geom geometry(PointZ,25832),
@@ -140,9 +140,9 @@ CREATE TABLE "a".energy_plants
 );
 
 
--------------------table "a".lines;------------------------------------
-DROP TABLE IF EXISTS "a".lines CASCADE;
-CREATE TABLE "a".lines
+-------------------table "base1".lines;------------------------------------
+DROP TABLE IF EXISTS "base1".lines CASCADE;
+CREATE TABLE "base1".lines
 (
 	id serial,
 	geom geometry(LineStringZ,25832),
@@ -154,9 +154,9 @@ CREATE TABLE "a".lines
 	CONSTRAINT lines_pkey PRIMARY KEY (id)
 );
 
--------------------table "a".junctions------------------------------------
-DROP TABLE IF EXISTS "a".junctions CASCADE;
-CREATE TABLE "a".junctions
+-------------------table "base1".junctions------------------------------------
+DROP TABLE IF EXISTS "base1".junctions CASCADE;
+CREATE TABLE "base1".junctions
 (
 	id serial,
 	geom geometry(PointZ,25832),
@@ -168,9 +168,9 @@ CREATE TABLE "a".junctions
 	CONSTRAINT junctions_pkey PRIMARY KEY (id)
 );
 
--- Table: "a".buildings
--- DROP TABLE "a".buildings;
-CREATE TABLE "a".buildings
+-- Table: "base1".buildings
+-- DROP TABLE "base1".buildings;
+CREATE TABLE "base1".buildings
 (
   id serial,
   b_id integer,
@@ -183,9 +183,9 @@ CREATE TABLE "a".buildings
   CONSTRAINT buildings_pkey PRIMARY KEY (id)
 );
 
--- Table: "a".junction_connections
--- DROP TABLE "a".junction_connections;
-CREATE TABLE "a".junction_connections
+-- Table: "base1".junction_connections
+-- DROP TABLE "base1".junction_connections;
+CREATE TABLE "base1".junction_connections
 (
   id serial,
   jid integer,
@@ -193,9 +193,9 @@ CREATE TABLE "a".junction_connections
   CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
 );
 
--- Table: "a".customer_connections
--- DROP TABLE "a".customer_connections;
-CREATE TABLE "a".customer_connections
+-- Table: "base1".customer_connections
+-- DROP TABLE "base1".customer_connections;
+CREATE TABLE "base1".customer_connections
 (
   id serial,
   cid integer,
@@ -204,9 +204,9 @@ CREATE TABLE "a".customer_connections
   CONSTRAINT customer_connections_pkey PRIMARY KEY (id)
 );
   
--- Table: "a".energy_plant_connections
--- DROP TABLE "a".energy_plant_connections;
-CREATE TABLE "a".energy_plant_connections
+-- Table: "base1".energy_plant_connections
+-- DROP TABLE "base1".energy_plant_connections;
+CREATE TABLE "base1".energy_plant_connections
 (
   id serial,
   epid integer,
@@ -215,9 +215,9 @@ CREATE TABLE "a".energy_plant_connections
   CONSTRAINT energy_plant_connections_pkey PRIMARY KEY (id)
 );
 
--- Table: "a".pipes_model
--- DROP TABLE "a".pipes_model;
-CREATE TABLE "a".pipes_model
+-- Table: "base1".pipes_model
+-- DROP TABLE "base1".pipes_model;
+CREATE TABLE "base1".pipes_model
 (
   id serial,
   sim_model integer,
@@ -226,24 +226,24 @@ CREATE TABLE "a".pipes_model
   CONSTRAINT id_pkey PRIMARY KEY (id)
 );
 
--- Table: "a".segment_lines_00
--- DROP TABLE "a".segment_lines_00;
-CREATE TABLE "a".segment_lines_00
+-- Table: "base1".segment_lines_00
+-- DROP TABLE "base1".segment_lines_00;
+CREATE TABLE "base1".segment_lines_00
 (
   lines_id integer,
   rc_split_multi geometry
 );
 
--- Index: "a".segment_lines_00_rc_split_multi_idx
--- DROP INDEX "a".segment_lines_00_rc_split_multi_idx;
+-- Index: "base1".segment_lines_00_rc_split_multi_idx
+-- DROP INDEX "base1".segment_lines_00_rc_split_multi_idx;
 CREATE INDEX segment_lines_00_rc_split_multi_idx
-  ON "a".segment_lines_00
+  ON "base1".segment_lines_00
   USING gist
   (rc_split_multi);
 
--- Table: "a".streets
--- DROP TABLE "a".streets;
-CREATE TABLE "a".streets
+-- Table: "base1".streets
+-- DROP TABLE "base1".streets;
+CREATE TABLE "base1".streets
 (
   id serial,
   geom geometry(LineString,25832),
@@ -254,9 +254,9 @@ CREATE TABLE "a".streets
 );
 
 	
--- Table: "a".time_manager_tair
--- DROP TABLE "a".time_manager_tair;
-CREATE TABLE "a".time_manager_tair
+-- Table: "base1".time_manager_tair
+-- DROP TABLE "base1".time_manager_tair;
+CREATE TABLE "base1".time_manager_tair
 (
   id serial,
   b_id serial,
@@ -267,9 +267,9 @@ CREATE TABLE "a".time_manager_tair
   CONSTRAINT time_manager_tair_pkey PRIMARY KEY (id)
 );
 
--- Table: "a".invoked_sf
--- DROP TABLE IF EXISTS "a".invoked_sf;
-CREATE TABLE IF NOT EXISTS "a".invoked_sf
+-- Table: "base1".invoked_sf
+-- DROP TABLE IF EXISTS "base1".invoked_sf;
+CREATE TABLE IF NOT EXISTS "base1".invoked_sf
 (
     id serial,
     sf text,

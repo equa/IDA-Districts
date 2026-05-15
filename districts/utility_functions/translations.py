@@ -18,6 +18,7 @@ def _register_translation_keys():
     tr("networks")
     tr("templates")
     tr("ids")
+    tr("simulation_results")
     
     #project
     tr("project")
@@ -424,6 +425,7 @@ def _register_translation_keys():
     #status
     tr('version_loaded')
     tr('project_loaded')
+    tr('project_deleted')
     tr('db_connected')
     tr('db_disconnected')
     tr('settings_saved')

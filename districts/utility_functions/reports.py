@@ -745,6 +745,7 @@ from qgis.core import (
 from districts.utility_functions.plots import *
 from districts.utility_functions.db import *
 from districts.utility_functions.files import *
+from districts.utility_functions.translations import *
 
 
 import subprocess
@@ -794,7 +795,7 @@ font_table = QFont("Arial", 10)
 
 # Add header project label
 label_project = QgsLayoutItemLabel(layout)
-label_project.setText("Project: ")
+label_project.setText(tr('@default',"project")+': ')
 label_project.setFont(font_header_label)
 label_project.adjustSizeToText()
 label_project.attemptMove(QgsLayoutPoint(20, 10, QgsUnitTypes.LayoutMillimeters))
@@ -1110,7 +1111,7 @@ if filenames:
     
     # Add title simulation results
     label_simulation_results = QgsLayoutItemLabel(layout)
-    label_simulation_results.setText("Simulation results")
+    label_simulation_results.setText(tr('@default',"simulation_results"))
     label_simulation_results.setFont(font_header_label)
     label_simulation_results.adjustSizeToText()
     label_simulation_results.attemptMove(QgsLayoutPoint(20, needed_table_height+157, QgsUnitTypes.LayoutMillimeters))

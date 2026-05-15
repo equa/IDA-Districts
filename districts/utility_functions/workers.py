@@ -91,7 +91,7 @@ class WorkerImportProject(QRunnable):
         #print(self.project_name)
         self.signals.progress.emit(1)            
         src_dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
-        name=self.filename.split('\\')[-1].split('.')[0]
+        name=self.filename.split('\\')[-1]
         src_dir=src_dir+name
         #print(src_dir)
         #print(self.config)
@@ -204,7 +204,6 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                 self.cur.execute(filedata)
                 
                 if self.versionNames:
-                    
                     #version tables
                     self.projectConfig=loadProjectConfig(self.config,project_name=self.project_name,signals=self.signals)  
                     filedata=readFileToString(self.plugin_dir+"\\DB_versionTablesDefault.txt")
@@ -212,6 +211,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                     filedata = filedata.replace("$plugins_path$", self.plugin_dir)
                     for version in self.versionNames:
                         newdata = filedata.replace("$versionName$", self.config['versionName'])   
+                        #print(newdata)
                         self.cur.execute(newdata)
             
             self.signals.progress.emit(75)

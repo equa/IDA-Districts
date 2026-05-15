@@ -18,7 +18,7 @@ class IDA_Districts_NameDialog(QDialog):
         self.setWindowTitle(title)     
         
         #label
-        #print(label_text)
+        print(label_text)
         layout_label = QVBoxLayout() 
         label =QLabel(label_text)
         layout_label.addWidget(label)
