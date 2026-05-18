@@ -827,7 +827,7 @@ def createNewProject(dlg,main):
                 filename=main.plugin_dir+'\\templates\\'+dlg.selectTemplate.currentData()
                 filename=filename.replace('/','\\')
             else:
-                filename=main.config['pathDistricts']+'Samples\\'+dlg.selectTemplate.currentData()
+                filename=main.config['pathDistricts']+'samples\\districts\\'+dlg.selectTemplate.currentData()
                 filename=filename.replace('/','\\')
                 #print(filename)
 

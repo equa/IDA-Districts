@@ -100,7 +100,7 @@ def openClimateMacro(main):
     
 
     
-def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name):
+def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir):
     #print('--writeRenameExchangeConntype--')
     #print(table_name)
     wroteTemplate=False
@@ -109,7 +109,7 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name):
             #print(dlg.traceTableValues[traceValue])
             if not dlg.traceTableValues[traceValue][0]:
                 if dlg.traceTableValues[traceValue][3]:
-                    WriteTemplateFiles(config,dlg.traceTableValues[traceValue][1],table_name,cur,dlg.traceTableValues[traceValue][3])
+                    WriteTemplateFiles(config,dlg.traceTableValues[traceValue][1],table_name,cur,dlg.traceTableValues[traceValue][3],plugin_dir)
                 else:
                     iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
                     return False
@@ -217,7 +217,7 @@ def openTemplate(main,type,dlg):
                 
         wroteTemplate=False
         if not os.path.exists(file): 
-            WriteTemplateFiles(main.config,name,type,main.cur,conn_bundle_type)
+            WriteTemplateFiles(main.config,name,type,main.cur,conn_bundle_type,main.plugin_dir)
             dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
             dlg.traceTableValues[row_index][1]=''
             wroteTemplate=True
@@ -336,7 +336,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     elif trace:
         #print(dlg.traceTableValues)
         for traceValue in dlg.traceTableValues:
-            writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name)
+            writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
         
         #delete templates in directory if they are not in dlg.traceTableValues[traceValue][0]
         dir=config['pathProjects']+config['projectName']+"\\{}_templates".format(table_name)

@@ -18,7 +18,7 @@ class IDA_Districts_NameDialog(QDialog):
         self.setWindowTitle(title)     
         
         #label
-        print(label_text)
+        #print(label_text)
         layout_label = QVBoxLayout() 
         label =QLabel(label_text)
         layout_label.addWidget(label)
@@ -210,7 +210,7 @@ class NewProjectDlg(QDialog):
         self.selectTemplate =QComboBox()
         templates_plugin_dir = os.path.join(get_districts_plugin_dir(), 'templates')
         templates_plugin =[folder for folder in os.listdir(templates_plugin_dir) if os.path.isdir(os.path.join(templates_plugin_dir, folder))]
-        templates_ida_dir = os.path.join(self.config['pathDistricts'], 'Samples')
+        templates_ida_dir = os.path.join(self.config['pathDistricts'], 'Samples','districts')
         templates_ida =[folder for folder in os.listdir(templates_ida_dir) if os.path.isdir(os.path.join(templates_ida_dir, folder))]
 
         items = {

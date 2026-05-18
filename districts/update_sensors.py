@@ -152,7 +152,7 @@ class UpdateSensors():
             self.dlg.tableWidget_target.setItem(i , 0, item)
             self.setTableDropDown(self.dlg.tableWidget_target,getFilteredDropDownItemNames(self.cur,[[1,'public','type','name',[1,2,3]]]),sensor_data['target_type_name'],1,i,self.targetTypeChanged) #dropdown type
             if sensor_data['target_type']==3:
-                for col in range(2,4):
+                for col in range(2,3):
                     self.setCheckableDropDownItemsTable(self.dlg.tableWidget_target,[],i,col,[]) 
             else:
                 self.setFilteredTemplateDropdownItems(self.dlg.tableWidget_target,sensor_data['target_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'target')
@@ -218,7 +218,7 @@ class UpdateSensors():
 
         for i in range(len(source_conn_types)):
             comboBoxCheckable.setItemChecked(i+1,source_conn_types[i]['active'])
-        if self.dlg.tableWidget_source.cellWidget(row,5).currentText()!='Power':
+        if self.dlg.tableWidget_source.cellWidget(row,5).currentData()!='power':
             comboBoxCheckable.activated.connect(lambda signal, column=4,row=row: self.setDropDownConns(self.dlg.tableWidget_source,column,row,type))
         self.dlg.tableWidget_source.setCellWidget(row, 3, comboBoxCheckable) 
         
@@ -293,7 +293,7 @@ class UpdateSensors():
                 if dropDown.itemChecked(i):
                     templates.append(dropDown.itemText(i).split(':')[0])
             #print(templates)
-            if templates and table.cellWidget(row, 5).currentText()!='custom':
+            if templates and table.cellWidget(row, 5).currentData()!='custom':
                 #print('!=custom')
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
     FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_templates t, public.connection_types conn_t
@@ -334,7 +334,7 @@ class UpdateSensors():
                 #print(conns)
                 dropdownItems=[str(i['conn_id']) + ':' + str(i['description']) for i in conns]
                 #print(dropdownItems)
-                if table.cellWidget(row,5).currentText() in ['power','custom']:
+                if table.cellWidget(row,5).currentData() in ['power','custom']:
                     #print('deactivated dropdown conns')
                     self.setCheckableDropDownItemsTable(table,[],row,4,[])
                 else:
@@ -482,8 +482,8 @@ def getStoredSensorTableValues(cur):
     cur.execute(sql)
     loadedSensorData={}
     for sensor_data in cur.fetchall():
-        loadedSensorData[sensor_data['sensor_id']]={'source' : {'type' : sensor_data['source_type'],'templates' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure_id'],'function' : sensor_data['function_id'],'test_value' : float(sensor_data['test_value']),'description' : sensor_data['description_source']}, 
-            'target': {'type' : sensor_data['target_type'],'templates' : [],'description' : ''}}
+        loadedSensorData[sensor_data['sensor_id']]={'source' : {'type' : sensor_data['source_type'],'templates' : {},'conn_types' : [],'conns' : [],'measure' : sensor_data['measure_id'],'function' : sensor_data['function_id'],'test_value' : float(sensor_data['test_value']),'description' : sensor_data['description_source']}, 
+            'target': {'type' : sensor_data['target_type'],'templates' : {},'description' : ''}}
         loadedSensorData=getFilteredTemplates(cur,sensor_data['source_type_name'],sensor_data['sensor_id'],'source',loadedSensorData=loadedSensorData)
         loadedSensorData=getFilteredConnTypes(cur,sensor_data['sensor_id'],loadedSensorData=loadedSensorData)
         loadedSensorData=getFilteredConns(cur,sensor_data['sensor_id'],loadedSensorData=loadedSensorData)        
@@ -492,6 +492,7 @@ def getStoredSensorTableValues(cur):
     FROM sensor_target s_t, public.type
     WHERE s_t.type=type.id
     ORDER BY s_t.sensor_id;"""
+    #print(sql)
     cur.execute(sql)
     for sensor_data in cur.fetchall():
         try:
@@ -520,7 +521,7 @@ def getFilteredTemplates(cur,feature_type,id,sensor_type,loadedSensorData=None):
         else:
             return templates
     else:
-        return []
+        return loadedSensorData
 
 
 def getFilteredConnTypes(cur,id,loadedSensorData=None):
@@ -606,7 +607,9 @@ def writeSensorsToDB(cur,config,dlg=None,sensorData={},loadedSensorData={}):
     
     #get sensorData
     if dlg:
+        print(dlg)
         for row in range(dlg.tableWidget_source.rowCount()):
+            print(row)
             sensor_id=dlg.tableWidget_source.item(row,0).text()
             sensorData[int(sensor_id)]={'source' : {'type' : None,'templates' : [],'conn_types' : [],'conns' : [],'measure' : None,'function' : None,'test_value' : None,'description' : None}, 
                 'target': {'type' : None,'templates' : [],'description' : ''}}
@@ -619,20 +622,20 @@ def writeSensorsToDB(cur,config,dlg=None,sensorData={},loadedSensorData={}):
             #target
             sensorData=collectSensorTargetTableData(sensorData,dlg.tableWidget_target,row,sensor_id)
             sensorData[int(sensor_id)]['target']['templates']=collectCheckableDropdownTableData(dlg.tableWidget_target,row,sensor_id,2)
-
+    #print('--')
     sql=""
     #deleted
     #print(loadedSensorData)
     #print(sensorData)
     for key_loaded in loadedSensorData:
         if key_loaded not in sensorData: 
-            #print('removed sensor')
+            print('removed sensor')
             sql+="""DELETE FROM sensors WHERE id={};""".format(key_loaded) # nosec B608
     
     #added
     for row,key_table in enumerate(sensorData):
         if key_table not in loadedSensorData: 
-            #print('added sensor:'+str(key_table))
+            print('added sensor:'+str(key_table))
             sql+="""INSERT INTO sensors (id) VALUES({});\n""".format(key_table) # nosec B608
 
             #source

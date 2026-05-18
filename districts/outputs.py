@@ -482,7 +482,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     writeToFileFromList(filedata,dir,dir+'\\Results-macro.idc')
 
 def addRequestedOutputsSensors(cur,config,requestedOutputs):
-    #print('-------------')
+    #print('--addRequestedOutputsSensors--')
     loadedSensorData=getStoredSensorTableValues(cur)
     #print(loadedSensorData)
     if loadedSensorData:
@@ -503,7 +503,6 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
     ep_conns_sup={i : True for i in getUsedConnectionsFilteredByDirection('energy_plant',cur,config,['1'])}
     ep_conns_ret={i : True for i in getUsedConnectionsFilteredByDirection('energy_plant',cur,config,['2'])}
     
-    #print('--add sensors--')
 
     #---------customers-------------
     #Tsup
