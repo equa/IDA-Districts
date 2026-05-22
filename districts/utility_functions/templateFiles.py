@@ -861,7 +861,7 @@ class CopyTemplateMacro:
 class WriteTemplateFiles:
     """ writes the .idm and .idc to the plugin folder and adds a macro to define and test templates """
     def __init__(self,config,name,type,cur,bundle,plugin_dir):
-        print('write template {}'.format(type))
+        #print('write template {}'.format(type))
         #print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------')
         self.cur=cur
         self.config=config

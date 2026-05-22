@@ -5,6 +5,8 @@ from .reports import *
 from qgis.core import  QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
+from itertools import cycle
+
 
 def setupCustomerLoadValue(config,plugin_dir,projectConfig):    
     feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
@@ -439,9 +441,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
             #print('------')
             #print(vlayerName)
             categories=featureLayerGroups(vlayerName,cur)
-            #print(categories)
             ids=featureLayerGroupIds(vlayerName,cur)
-            #print(ids)
 
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
@@ -468,7 +468,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
                 "#ff7f00",  # orange
                 "#6a3d9a"   # magenta/purple
             ]
-            for category,id,color in zip(categories,ids,colors):      
+            for category,id,color in zip(categories,ids, cycle(colors)):    
                 symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
                 if vlayerName in ['lines']:
                     symbol.setWidth(0.75) 

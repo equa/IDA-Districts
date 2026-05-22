@@ -607,9 +607,9 @@ def writeSensorsToDB(cur,config,dlg=None,sensorData={},loadedSensorData={}):
     
     #get sensorData
     if dlg:
-        print(dlg)
+        #print(dlg)
         for row in range(dlg.tableWidget_source.rowCount()):
-            print(row)
+            #print(row)
             sensor_id=dlg.tableWidget_source.item(row,0).text()
             sensorData[int(sensor_id)]={'source' : {'type' : None,'templates' : [],'conn_types' : [],'conns' : [],'measure' : None,'function' : None,'test_value' : None,'description' : None}, 
                 'target': {'type' : None,'templates' : [],'description' : ''}}
@@ -629,13 +629,13 @@ def writeSensorsToDB(cur,config,dlg=None,sensorData={},loadedSensorData={}):
     #print(sensorData)
     for key_loaded in loadedSensorData:
         if key_loaded not in sensorData: 
-            print('removed sensor')
+            #print('removed sensor')
             sql+="""DELETE FROM sensors WHERE id={};""".format(key_loaded) # nosec B608
     
     #added
     for row,key_table in enumerate(sensorData):
         if key_table not in loadedSensorData: 
-            print('added sensor:'+str(key_table))
+            #print('added sensor:'+str(key_table))
             sql+="""INSERT INTO sensors (id) VALUES({});\n""".format(key_table) # nosec B608
 
             #source

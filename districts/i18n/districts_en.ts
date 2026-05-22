@@ -770,7 +770,7 @@
     <message>
         <location filename="../utility_functions/translations.py" line="172"/>
         <source>simplified_consumer_2sup_1ret</source>
-        <translation type="unfinished">Simplified consumer 2sup/2ret</translation>
+        <translation type="unfinished">Simplified consumer 2sup/1ret</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="173"/>

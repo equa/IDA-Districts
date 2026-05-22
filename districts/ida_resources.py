@@ -345,7 +345,6 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
             # check only .idm files
             if file.split('.')[0] not in files:
                 files.append(file.split('.')[0])
-        #print(files)
         traceTableFiles=[]
         for traceValue in dlg.traceTableValues: 
             if dlg.traceTableValues[traceValue][1]:
@@ -358,7 +357,6 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         list_template_names=[i['template_name'] for i in cur.fetchall()]
         for file in files:
             if file not in traceTableFiles and file not in list_template_names:
-                #print(file)
                 if os.path.exists(dir+'\\'+file+'.idm'):
                     os.remove(dir+'\\'+file+'.idm')
                 if os.path.exists(dir+'\\'+file+'.idc'):
@@ -459,8 +457,10 @@ def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,drop
     cur=conn.cursor()
     dlg.tableWidget.setRowCount(rowCountDB(table,filter,cur_dict))
     sql='SELECT {} FROM public.{} {} {} ;'.format(','.join(i for i in columns),table,filter,orderby) # nosec B608
+    #print(sql)
     cur.execute(sql) 
     data = cur.fetchall()
+    #print(data)
     dropdownItems=getDropDownItems(cur_dict,dropdowns)
     rowCount=0
     table_trace={}
@@ -491,6 +491,8 @@ def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,drop
                 dlg.tableWidget.setCellWidget(rowCount, col, comboBox)   
             else:
                 item=QTableWidgetItem()
+                #print(str(row[col]))
+                #print(tr('@default',str(row[col])))
                 item.setText(tr('@default',str(row[col])))
                 item.setData(Qt.ItemDataRole.UserRole ,str(row[col]))
                 if col in deactivated:
