@@ -829,7 +829,7 @@ def createNewProject(dlg,main):
             else:
                 filename=main.config['pathDistricts']+'samples\\districts\\'+dlg.selectTemplate.currentData()
                 filename=filename.replace('/','\\')
-                #print(filename)
+            #print(filename)
 
             if dlg.checkbox_DBResults.isChecked():
                 no_db_results=False

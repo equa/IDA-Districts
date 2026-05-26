@@ -578,21 +578,23 @@ class Districts:
         """ import a project from a sql file and write the data center and modelling files to the folders"""
         #print("--importProject--")
         if self.cur_postgres:
-            project_folder = QFileDialog.getExistingDirectory(
+            zip_file, _ = QFileDialog.getOpenFileName(
                 self.dlg,
-                tr('@default',"import_districts_project_directory"),
-                ''
+                tr('@default', "import_districts_project_zip"),
+                '',
+                "ZIP Files (*.zip)"
             )
-            project_folder=project_folder.replace('/','\\')
 
-            if project_folder:
+            zip_file = zip_file.replace('/', '\\')
+
+            if zip_file:
                 auth_cfg = QgsAuthMethodConfig()
                 QgsApplication.authManager().loadAuthenticationConfig(self.config["auth_id"], auth_cfg, True)  
  
-                self.worker_import = WorkerImportProject(versionNames=[],projectNames=self.dlg.projectNames,project_name=False,filename=project_folder,config=self.config,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False,password=auth_cfg.config("password"),username=auth_cfg.config("username"))
+                self.worker_import = WorkerImportProject(versionNames=[],projectNames=self.dlg.projectNames,project_name=False,filename=zip_file,config=self.config,plugin_dir=self.plugin_dir,cur=self.cur_postgres,dlg=self.dlg,filter_extensions=[],filter_folders=[],no_db_results=False,password=auth_cfg.config("password"),username=auth_cfg.config("username"))
                 self.worker_import.signals.progress.connect(self.dlg.update_progress)
                 self.worker_import.signals.error.connect(self.dlg.show_error_message)   
-                self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=project_folder.split('\\')[-1].split('.')[0]))                  
+                self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=zip_file.split('\\')[-1].split('.')[0]))                  
                 QThreadPool.globalInstance().start(self.worker_import)    
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)

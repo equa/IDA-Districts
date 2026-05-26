@@ -11,6 +11,10 @@ from qgis.utils import iface
 import subprocess
 import time
 from qgis.core import QgsProcessingUtils
+import tempfile
+import zipfile
+from pathlib import Path
+
 
 
     
@@ -90,9 +94,34 @@ class WorkerImportProject(QRunnable):
         #print('Import project')
         #print(self.project_name)
         self.signals.progress.emit(1)            
-        src_dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
-        name=self.filename.split('\\')[-1]
-        src_dir=src_dir+name
+
+        if zipfile.is_zipfile(self.filename):
+            #print("Valid ZIP file")
+            name = Path(self.filename).stem
+            #unzip
+            temp_folder=tempfile.gettempdir()+'\\'
+            createDir(temp_folder,'ida_districts')
+            temp_folder+='ida_districts\\'
+            src_dir=temp_folder
+            if os.path.exists(temp_folder+name):
+                rmtree_long_path(temp_folder+name)
+            createDir(temp_folder,name)
+            temp_folder+=name+'\\'
+            
+            with zipfile.ZipFile(self.filename, 'r') as zip_ref:
+                zip_ref.extractall(temp_folder)
+        elif self.filename.split('\\')[-1]=='low_temperature_network' and os.path.exists(self.config['pathDistricts']+'Samples\districts\low_temperature_network\low_temperature_network'):
+            #print("Not a ZIP file")
+            name=self.filename.split('\\')[-1]
+            src_dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
+            src_dir=src_dir+name+'\\'+name+'\\'
+        else:
+            #print("Not a ZIP file")
+            name=self.filename.split('\\')[-1]
+            src_dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
+
+        src_dir=src_dir+name+'\\' 
+
         #print(src_dir)
         #print(self.config)
         #print(name)
@@ -112,21 +141,18 @@ class WorkerImportProject(QRunnable):
         
         #check if project already exists
         if db_info['projectName'] not in self.projectNames:
-            #print('project does not exist')
-                
-            src_project_dir=src_dir+'\\'+name+'\\'+name+'\\'
+            #print('project does not exist') 
 
-            #print(src_project_dir)
             target_dir=self.config['pathProjects']+(self.project_name if self.project_name else name)
             #print(target_dir)
             os.makedirs(target_dir, exist_ok=True)
 
             self.signals.progress.emit(20)
             try:
-                copy_tree_filter_extensions_and_folders(src_project_dir+'customer_templates',target_dir+'\\customer_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
-                copy_tree_filter_extensions_and_folders(src_project_dir+'energy_plant_templates',target_dir+'\\energy_plant_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
-                copy_tree_filter_extensions_and_folders(src_project_dir+'climate',target_dir+'\\climate',signals=self.signals,exclude_extensions=self.filter_extensions)
-                copy_tree_filter_extensions_and_folders(src_project_dir+'supervisory_control',target_dir+'\\supervisory_control',signals=self.signals,exclude_extensions=self.filter_extensions)
+                copy_tree_filter_extensions_and_folders(src_dir+'customer_templates',target_dir+'\\customer_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
+                copy_tree_filter_extensions_and_folders(src_dir+'energy_plant_templates',target_dir+'\\energy_plant_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
+                copy_tree_filter_extensions_and_folders(src_dir+'climate',target_dir+'\\climate',signals=self.signals,exclude_extensions=self.filter_extensions)
+                copy_tree_filter_extensions_and_folders(src_dir+'supervisory_control',target_dir+'\\supervisory_control',signals=self.signals,exclude_extensions=self.filter_extensions)
 
                 replace_in_folder(
                     root_folder=target_dir,
@@ -150,8 +176,8 @@ class WorkerImportProject(QRunnable):
                 return False
             try:
                 #print('--versions directory--')
-                if os.path.exists(src_project_dir+'versions'):
-                    copy_tree_filter_extensions_and_folders(src_project_dir+'versions',target_dir+'\\versions\\',signals=self.signals,exclude_extensions=self.filter_extensions,exclude_folders=self.filter_folders)
+                if os.path.exists(src_dir+'versions'):
+                    copy_tree_filter_extensions_and_folders(src_dir+'versions',target_dir+'\\versions\\',signals=self.signals,exclude_extensions=self.filter_extensions,exclude_folders=self.filter_folders)
                 self.signals.progress.emit(50)
             except Exception as e:
                 #print(f'error: {e}')
@@ -162,15 +188,15 @@ class WorkerImportProject(QRunnable):
                 createDir(target_dir,'versions')
                 
             try:
-                copyFile(src_project_dir+'configProject.txt',target_dir,target_dir+'\\configProject.txt')
-                copyFile(src_project_dir+'requestedOutputs.txt',target_dir,target_dir+'\\requestedOutputs.txt')
+                copyFile(src_dir+'configProject.txt',target_dir,target_dir+'\\configProject.txt')
+                copyFile(src_dir+'requestedOutputs.txt',target_dir,target_dir+'\\requestedOutputs.txt')
                 self.signals.progress.emit(70)
             except Exception as e:
                 #print(f'error: {e}')
                 self.signals.error.emit("Copying data failed!")
                 return False
             try:
-                copyFile(src_project_dir+'layersConfig.txt',target_dir,target_dir+'\\layersConfig.txt')
+                copyFile(src_dir+'layersConfig.txt',target_dir,target_dir+'\\layersConfig.txt')
             except Exception as e:
                 pass
             
@@ -222,13 +248,13 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 self.cur.execute(sql)
             self.signals.progress.emit(76)
                 
-            sql_dir=(src_dir+'\\'+name if self.project_name else src_dir)+'\\'
             temp_dir = QgsProcessingUtils.tempFolder()+'\\'
-            #print(temp_dir)
             #create tables in new schema
+            if name=='low_temperature_network' and os.path.exists(self.config['pathDistricts']+'Samples\districts\low_temperature_network\low_temperature_network'):
+                src_dir='\\'.join([i for i in src_dir.split('\\') if i][:-1])+'\\'
             filedata=""
-            if os.path.exists(sql_dir+('db_tables.sql' if self.project_name else name+'.sql')):
-                with open(sql_dir+('db_tables.sql' if self.project_name else name+'.sql'), "r") as myfile:
+            if os.path.exists(src_dir+('db_tables.sql' if self.project_name else name+'.sql')):
+                with open(src_dir+('db_tables.sql' if self.project_name else name+'.sql'), "r") as myfile:
                     for line in myfile:
                         filedata=filedata+line
                 newdata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
@@ -237,7 +263,6 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 with open(temp_dir+('db_tables_.sql' if self.project_name else name+'_.sql'),'w') as myfile:
                     myfile.write(newdata)   
             
-            #print(sql_dir)
             self.signals.progress.emit(77)
             env = os.environ.copy()
             env["PGPASSWORD"] = self.password
@@ -278,7 +303,6 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
             
         try:
             pass
-            #shutil.rmtree(src_dir)  
         except Exception as e:
             pass
             #print(e)
@@ -300,6 +324,8 @@ class WorkerExportProject(QRunnable):
         self.filename=kwargs['filename']
         self.filter_folders=kwargs['filter_folders']
         self.filter_extensions=kwargs['filter_extensions']
+        #print(self.filter_extensions)
+        #print(self.filter_folders)
         self.no_db_results=kwargs['no_db_results']
         self.conn=""
         self.cur=""
@@ -311,7 +337,7 @@ class WorkerExportProject(QRunnable):
     def run(self):
         #print('Export project worker')
         self.signals.progress.emit(1)
-         
+        
         #print(self.filename)
         dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
         name=self.filename.split('\\')[-1].split('.')[0]
@@ -320,12 +346,15 @@ class WorkerExportProject(QRunnable):
         createDir(dir,name)
         dir=dir+name
 
-        # Check if the folder exists and delete it
-        if os.path.exists(dir) and os.path.isdir(dir):
-            rmtree_long_path(dir) 
+        temp_folder = tempfile.gettempdir()+'\\'
+        createDir(temp_folder,'ida_districts')
+        temp_folder+='ida_districts\\'
+        createDir(temp_folder,name,delete=True)
+        temp_folder+=name+'\\'
+        #print(temp_folder)
                     
         # Ensure the directory exists, create it if necessary
-        sql_path = dir+f"\\{name}.sql"
+        sql_path = temp_folder+f"\\{name}.sql"
 
         os.makedirs(os.path.dirname(sql_path), exist_ok=True)
 
@@ -348,29 +377,27 @@ class WorkerExportProject(QRunnable):
         self.signals.progress.emit(25)
 
         try:
-            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+'customer_templates\\'+self.config['projectName'], dir+'\\'+name+'\\customer_templates\\'+name,self.signals,self.filter_extensions,self.filter_folders)
-            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+'energy_plant_templates\\'+self.config['projectName'], dir+'\\'+name+'\\energy_plant_templates\\'+name,self.signals,self.filter_extensions,self.filter_folders)
-        except Exception as e:
-            #print(f'error: {e}')
-            self.signals.error.emit("Data center files export failed!")
-        self.signals.progress.emit(40)    
-        try:
-            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+self.config['projectName'], dir+'\\'+name+'\\'+name,self.signals,self.filter_extensions,self.filter_folders)
+            copy_tree_filter_extensions_and_folders(self.config['pathProjects']+self.config['projectName'], temp_folder,self.signals,self.filter_extensions,self.filter_folders)
         except Exception as e:
             #print(f'error: {e}')
             self.signals.error.emit("Project handling files export failed!") 
-        self.signals.progress.emit(55)  
-        if os.path.exists(self.config['pathProjects']+self.config['projectName']+'\\model\\'):
-            try:
-                copy_tree_filter_extensions_and_folders(self.config['pathProjects']+self.config['projectName']+'\\model\\', dir+'\\'+name+'\\model\\'+name,self.signals,self.filter_extensions,self.filter_folders)
-            except Exception as e:
-                #print(f'error: {e}')
-                self.signals.error.emit("Modelling files export failed!") 
-        self.signals.progress.emit(70)  
+        self.signals.progress.emit(50)  
+
         db_info={'projectName': name}
-        if os.path.exists(dir):
-            with open(dir+'\\DB_info.txt', "w") as myfile:   
+        if os.path.exists(temp_folder):
+            with open(temp_folder+'\\DB_info.txt', "w") as myfile:   
                 myfile.write(str(db_info))
+                
+        # Check if the folder exists and delete it
+        if os.path.exists(dir) and os.path.isdir(dir):
+            rmtree_long_path(dir) 
+            
+        #write zip to target folder
+        shutil.make_archive(
+            dir,            # source folder without .zip
+            "zip",          # format
+            temp_folder     # source folder
+        )
 
         self.signals.progress.emit(100)
         self.signals.finished.emit(self.filename)

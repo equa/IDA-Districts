@@ -11,9 +11,11 @@ import io
 import subprocess
 import os
 from pathlib import Path
+import tempfile
 
 from .files import *
 from .utility import *
+
 #from .dialog import *
 #from .layer_visualization import *
 
@@ -211,7 +213,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
         "-n", schema
     ]
 
-    with open(os.path.join(plugin_dir, "dump_schema.sql"), "w", encoding="utf-8") as f:
+    with open(os.path.join(tempfile.gettempdir(), "dump_schema.sql"), "w", encoding="utf-8") as f:
         subprocess.call(cmd, env=env, stdout=f)
     
     sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;' # nosec B608
@@ -228,7 +230,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
         "-h", config['host'],
         "-p", str(config['port']),
         "-U", username,
-        "-f", f"{plugin_dir}\\dump_schema.sql"
+        "-f", f"{tempfile.gettempdir()}\\dump_schema.sql"
     ]
 
     subprocess.call(cmd, env=env)

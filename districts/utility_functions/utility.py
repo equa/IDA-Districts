@@ -228,48 +228,6 @@ def rmtree_long_path(dir):
         if os.name == 'nt':
             dir='\\\\?\\'+dir
         shutil.rmtree(dir)
-        
-def copy_tree_filter_extensions_and_folders2(src, dst, signals=None,exclude_extensions=None, exclude_folders=None):
-    # Set default values if no extensions or folders are provided
-    if exclude_extensions is None:
-        exclude_extensions = []
-    if exclude_folders is None:
-        exclude_folders = []
-    if exclude_folders is None:
-        signals = False
-
-    # Ensure the extensions and folder names are in lowercase for case-insensitive comparison
-    exclude_extensions = [ext.lower() for ext in exclude_extensions]
-    exclude_folders = [folder.lower() for folder in exclude_folders]
-
-    # Walk through the source directory
-    for root, dirs, files in os.walk(src):
-        # Filter out files with the specified extensions
-        files_to_copy = [f for f in files if not any(f.lower().endswith(ext) for ext in exclude_extensions)]
-        
-        # Copy each file to the destination, skipping excluded extensions
-        for file in files_to_copy:
-            full_file_path = os.path.join(root, file)
-            relative_path = os.path.relpath(full_file_path, src)
-            destination_file_path = os.path.join(dst, relative_path)
-            try:
-                if os.name == 'nt' and '\\\\?\\' not in destination_file_path:  # Windows OS
-                    destination_file_path = '\\\\?\\' + os.path.abspath(destination_file_path)
-                if os.name == 'nt' and '\\\\?\\' not in full_file_path:  # Windows OS
-                    full_file_path = '\\\\?\\' + os.path.abspath(full_file_path)
-                # Make sure the destination directory exists
-                os.makedirs(os.path.dirname(destination_file_path), exist_ok=True)
-                
-                # Copy the file to the destination
-                shutil.copy2(full_file_path, destination_file_path)
-            except:
-                if signals:
-                    signals.error.emit("Failed to copy file (file path probably to long):"+destination_file_path)
-        
-        # Prevent os.walk from traversing excluded directories
-        for dir_name in dirs[:]:
-            if dir_name.lower() in exclude_folders:
-                dirs.remove(dir_name)  # Remove directory from traversal list
 
 def copy_tree_filter_extensions_and_folders(src, dst, signals=None, exclude_extensions=None, exclude_folders=None):
     # Set defaults

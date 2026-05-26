@@ -291,12 +291,15 @@ def loadNetworkSimData(plugin_dir,config):
         pass
     return networkSimData    
         
-def createDir(dir,name):
+def createDir(dir,name,delete=False):
     """ makes a new folder if it does not exists"""
     if os.path.exists(dir):
         dir = os.path.join(dir,name)
         if not os.path.exists(dir):
             os.mkdir(dir)  
+        elif os.path.exists(dir) and delete:
+            rmtree_long_path(dir)
+            os.mkdir(dir)             
 
 def getDirFiles(dir,extension):
     return [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and os.path.join(dir, f).endswith(extension)]
