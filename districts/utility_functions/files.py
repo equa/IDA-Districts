@@ -3,6 +3,12 @@ import shutil
 from .utility import *
 from .ida_components import *
 from qgis.core import Qgis, QgsMessageLog
+import tempfile
+
+def districtsModelerTempDir():
+    temp_folder = tempfile.gettempdir().replace('/',"\\")+'\\'
+    createDir(temp_folder,'ida_districts')
+    return temp_folder + 'ida_districts\\'
 
 def collect_files_by_extension(root_folder: str, extension: str):
     """

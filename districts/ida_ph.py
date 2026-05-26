@@ -9,6 +9,7 @@ from .utility_functions.dialog import *
 from .utility_functions.workers import *
 from .utility_functions.layer_visualization import *
 from .utility_functions.reports import *
+from .utility_functions.files import *
 
 import datetime
 import tempfile
@@ -508,6 +509,7 @@ def addBaseVersion(dlg,main):
                 
                 #create tables in new schema
                 filedata=""
+                temp_folder = districtsModelerTempDir()
                 if os.path.exists(main.plugin_dir+"\\DB_versionTablesDefault.txt"):
                     with open(main.plugin_dir+"\\DB_versionTablesDefault.txt", "r") as myfile:
                         for line in myfile:
@@ -517,7 +519,7 @@ def addBaseVersion(dlg,main):
                     newdata = newdata.replace("$plugins_path$", main.plugin_dir)
                     newdata = newdata.replace("$districts_path$", main.config['pathDistricts'])
                     
-                    with open(main.plugin_dir+"\\DB_versionTables.txt",'w') as myfile:
+                    with open(temp_folder+"DB_versionTables.txt",'w') as myfile:
                         myfile.write(newdata)   
                     #print(newdata)
                     main.cur.execute(newdata)
@@ -531,7 +533,7 @@ def addBaseVersion(dlg,main):
                     newdata = filedata.replace("$versionName$", main.config['versionName'])
                     newdata = newdata.replace("$plugins_path$", main.plugin_dir)
                     
-                    with open(main.plugin_dir+"\\DB_versionTables_data.txt",'w') as myfile:
+                    with open(temp_folder+"DB_versionTables_data.txt",'w') as myfile:
                         myfile.write(newdata)     
                     main.cur.execute(newdata)
                     

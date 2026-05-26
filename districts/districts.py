@@ -55,8 +55,8 @@ from .update_sensors import *
 from .utility_functions.dialog import *
 from .utility_functions.db import *
 from .utility_functions.invoke import *
+from .utility_functions.files import *
 import os.path
-import tempfile
 import webbrowser
 
 class Districts:
@@ -940,11 +940,7 @@ class Districts:
             
             #timer if autosave
             if self.config['autosave']:
-                temp_folder = tempfile.gettempdir()+'\\'
-                name='ida_districts'
-                createDir(temp_folder,name)
-                
-                #print(temp_folder)
+                districtsModelerTempDir()
                 try:
                     self.timer.stop()
                 except:
@@ -1278,10 +1274,10 @@ class Districts:
             job.start()
             job.waitForFinished()
             img = job.renderedImage()
-            img.save(self.plugin_dir+"\icons\osm_snapshot.png")
+            img.save(districtsModelerTempDir()+"osm_snapshot.png")
             #print("Snapshot saved!")
             
-            load_image(self.plugin_dir+"\icons\osm_snapshot.png",self.dlg.labelOsmPreview,scale=True)
+            load_image(districtsModelerTempDir()+"osm_snapshot.png",self.dlg.labelOsmPreview,scale=True)
             #self.svg_osm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
             

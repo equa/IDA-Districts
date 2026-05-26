@@ -692,10 +692,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             maps[counter].setLayers(map_layers)
     
     #pdf
-    temp_folder = tempfile.gettempdir()+'\\'
-    createDir(temp_folder,'ida_districts')
-    export_path=temp_folder+'ida_districts\\'
-    export_path=export_path.replace('/',"\\")
+    export_path=districtsModelerTempDir()
     #print(export_path)
     if os.path.exists(export_path):
         export_path+='network_report.pdf'
@@ -1150,10 +1147,7 @@ for filename in filenames:
     #Add picture to layout
     layout.addLayoutItem(picture)
 
-temp_folder = tempfile.gettempdir()+'\\\\'
-createDir(temp_folder,'ida_districts')
-export_path=temp_folder+'ida_districts\\\\'
-export_path=export_path.replace('/',"\\\\")
+export_path=districtsModelerTempDir()
 #print(export_path)
 if os.path.exists(export_path):
     export_path+='customer_'+str([%id%])+'_report.pdf'

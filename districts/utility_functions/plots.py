@@ -4,6 +4,7 @@ import matplotlib.dates as mdates
 import tempfile
 
 from .topology import *
+from .files import *
 
 import xml.etree.ElementTree as ET
 
@@ -108,11 +109,9 @@ ORDER BY time;
             plt.show()
         
         if save_plot:
-            temp_folder = tempfile.gettempdir()+'\\'
-            createDir(temp_folder,'ida_districts')
-            filename=temp_folder+'ida_districts\\'+p_table_name
+            filename=districtsModelerTempDir()+p_table_name
             fig.savefig(filename, format='svg')
-            #print(f"Plot saved to {filename}")
+            print(f"Plot saved to {filename}")
             filenames.append(filename)
         #except Exception as e:
         #    #print(e)   

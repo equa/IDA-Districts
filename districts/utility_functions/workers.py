@@ -99,9 +99,7 @@ class WorkerImportProject(QRunnable):
             #print("Valid ZIP file")
             name = Path(self.filename).stem
             #unzip
-            temp_folder=tempfile.gettempdir()+'\\'
-            createDir(temp_folder,'ida_districts')
-            temp_folder+='ida_districts\\'
+            temp_folder=districtsModelerTempDir()
             src_dir=temp_folder
             if os.path.exists(temp_folder+name):
                 rmtree_long_path(temp_folder+name)
@@ -346,9 +344,7 @@ class WorkerExportProject(QRunnable):
         createDir(dir,name)
         dir=dir+name
 
-        temp_folder = tempfile.gettempdir()+'\\'
-        createDir(temp_folder,'ida_districts')
-        temp_folder+='ida_districts\\'
+        temp_folder=districtsModelerTempDir()
         createDir(temp_folder,name,delete=True)
         temp_folder+=name+'\\'
         #print(temp_folder)
