@@ -19,6 +19,15 @@ from .utility import *
 #from .dialog import *
 #from .layer_visualization import *
 
+def cleanupResultsSensors(cur):
+    sql="""DELETE FROM sensors
+	WHERE id IN (
+	    SELECT sensor_id
+	    FROM sensor_target
+	    WHERE type = 4
+	);"""
+    cur.execute(sql)
+    
 def getNetworkVolume(cur,config,networks=None):
     sql="""SELECT sum(innerpipediameter * innerpipediameter*3.1415/4*ST_length(l.geom)) as volume_m3
 	FROM "{}".lines l, bundle_pipes bp, pipes p

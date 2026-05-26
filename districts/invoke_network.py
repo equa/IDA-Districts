@@ -150,6 +150,7 @@ class InvokeNetworkModel:
                 feature_dec_irefs=[]
                 resources=[]
                 
+                cleanupResultsSensors(self.cur)
                 added_sensor_info=addRequestedOutputsSensors(self.cur,self.config,requestedOutputs)
                 #print('---added-----')
                 filter=''

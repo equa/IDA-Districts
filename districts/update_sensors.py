@@ -100,6 +100,9 @@ class UpdateSensors():
         
     def loadSensorTableValues(self):
         """Load the sensor table values """
+        
+        cleanupResultsSensors(self.cur)
+
         sql="""SELECT s_s.sensor_id, s_s.type AS source_type, type.name AS source_type_name, s_s.template AS source, m.measure, m.id AS measure_id, f.function, f.id AS function_id, s_s.test_value, s_s.description AS description_source, s_t.type AS target_type
     FROM sensor_source s_s, public.type, public.measure m, public.signal_function f, sensor_target s_t
     WHERE s_s.type=type.id AND s_s.measure=m.id AND s_s.function=f.id AND s_t.sensor_id=s_s.sensor_id
