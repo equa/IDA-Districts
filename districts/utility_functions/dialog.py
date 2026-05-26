@@ -375,6 +375,10 @@ class TableDialog(QDialog):
                 self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
             except:
                 pass
+            item.setData(
+                Qt.ItemDataRole.UserRole,
+                item.text()
+            )
         #print(self.traceTableValues)
         
     

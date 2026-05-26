@@ -245,7 +245,7 @@ def openTemplate(main,type,dlg):
             description=''
 
         sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(# nosec B608
-            type,getMaxId(main.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description) # nosec B608
+            type,getMaxId(main.cur,type+'_templates')+1,template,dlg.tableWidget.item(row_index, 1).text(),dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description) # nosec B608
         #print(sql)
         main.cur.execute(sql)
         
@@ -292,6 +292,7 @@ def show_templateDialog(main=False,type=False):
 def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trace):
     """" Save table to DB an close dialog"""
     #print('Save table content to DB an close dialog')
+    #print(trace)
     table_name="_".join(table.split('_')[0:-1])
     if trace in ['conn_type_trace','bt_conns_trace']:
         oldConnValues_dict={}
@@ -355,12 +356,15 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         sql="""SELECT template::text || '_' || template_name AS template_name FROM {}_templates;""".format(table_name) # nosec B608
         cur.execute(sql)
         list_template_names=[i['template_name'] for i in cur.fetchall()]
+        #print(list_template_names)
         for file in files:
             if file not in traceTableFiles and file not in list_template_names:
                 if os.path.exists(dir+'\\'+file+'.idm'):
                     os.remove(dir+'\\'+file+'.idm')
                 if os.path.exists(dir+'\\'+file+'.idc'):
                     os.remove(dir+'\\'+file+'.idc')
+                if os.path.exists(dir+'\\'+file+'.#f.idc'):
+                    os.remove(dir+'\\'+file+'.#f.idc')
                 if os.path.exists(dir+'\\'+file):
                     shutil.rmtree(dir+'\\'+file)
         
