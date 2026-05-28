@@ -212,7 +212,7 @@ def load_plugin_settings():
         "lastVersionName": settings.value("lastVersionName",""),      
         #versions
         "ida_version": '5.21801',
-        "ida_districts_version": '5.21801',
+        "ida_districts_version": '1.0.0.0',
         "districts_modeler_version": '1.0.0.0'
     }
 
