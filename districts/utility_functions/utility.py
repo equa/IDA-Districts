@@ -179,9 +179,6 @@ def getAuthNames():
     return auth_dict
 
 def write_plugin_settings(config):
-    config['ida_version']='5.21801'
-    config['ida_districts_version']='1.0.0.0'
-    config['districts_modeler_version']='1.0.0.0'
     settings = QSettings()        
     settings.beginGroup("districts")
     for key,value in config.items():
@@ -197,7 +194,7 @@ def load_plugin_settings():
         "pathProjects": settings.value("pathProjects","C:\\projects\\"),
         "pathDistricts": settings.value("pathDistricts","C:\\Program Files (x86)\\IDA Districts\\"),
         "pathPostgresql": settings.value("pathPostgresql","C:\\Program Files\\PostgreSQL\\18\\"),
-        "districts_api_delay": settings.value("districts_api_delay","20"),
+        "districts_api_delay": settings.value("districts_api_delay","10"),
         "debug": settings.value("debug",False, type=bool),
         "autosave": settings.value("autosave", True, type=bool),
         "autosave_dt": settings.value("autosave_dt", "120"),
@@ -214,9 +211,9 @@ def load_plugin_settings():
         "versionName": settings.value("versionName",""),        
         "lastVersionName": settings.value("lastVersionName",""),      
         #versions
-        "ida_version": settings.value("ida_version",""),
-        "ida_districts_version": settings.value("ida_districts_version",""),
-        "districts_modeler_version": settings.value("districts_modeler_version","")
+        "ida_version": '5.21801',
+        "ida_districts_version": '5.21801',
+        "districts_modeler_version": '1.0.0.0'
     }
 
     settings.endGroup()
