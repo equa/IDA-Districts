@@ -214,6 +214,11 @@ def openTemplate(main,type,dlg):
                 dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
                 dlg.traceTableValues[row_index][1]=''
                 file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])
+                template_name=dlg.traceTableValues[row_index][1]
+            else:
+                template_name=template_name
+        else:
+            template_name=template_name
                 
         wroteTemplate=False
         if not os.path.exists(file): 
@@ -245,7 +250,7 @@ def openTemplate(main,type,dlg):
             description=''
 
         sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(# nosec B608
-            type,getMaxId(main.cur,type+'_templates')+1,template,dlg.tableWidget.item(row_index, 1).text(),dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description) # nosec B608
+            type,getMaxId(main.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description) # nosec B608
         #print(sql)
         main.cur.execute(sql)
         

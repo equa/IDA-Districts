@@ -90,7 +90,7 @@ def updateTemplateBoundaryValues(dlg,config,cur):
             inverse=True
         else:
             inverse=False
-        if inverse or dlg.traceTableValues[b_value][3] and dlg.traceTableValues[b_value][2]!=dlg.traceTableValues[b_value][3]:
+        if inverse and (dlg.traceTableValues[b_value][2] or dlg.traceTableValues[b_value][3]) or dlg.traceTableValues[b_value][3] and dlg.traceTableValues[b_value][2]!=dlg.traceTableValues[b_value][3]:
             #print(inverse)
             inverse_value=-1 if dlg.traceTableValues[b_value][9]=='1' and dlg.traceTableValues[b_value][1]!='1' else 1
             if dlg.traceTableValues[b_value][3]:

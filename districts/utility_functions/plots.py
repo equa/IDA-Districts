@@ -111,7 +111,7 @@ ORDER BY time;
         if save_plot:
             filename=districtsModelerTempDir()+p_table_name
             fig.savefig(filename, format='svg')
-            print(f"Plot saved to {filename}")
+            #print(f"Plot saved to {filename}")
             filenames.append(filename)
         #except Exception as e:
         #    #print(e)   
