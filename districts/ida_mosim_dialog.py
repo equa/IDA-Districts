@@ -866,7 +866,7 @@ class RunNetworkModelDialog(QDialog):
             self.rbtn_startup_type_periodic.setChecked(True)
         else:
             self.rbtn_startup_type_dynamic.setChecked(True)
-        
+                    
     def onClickedRadioCalcType(self,s):
         #print(s)
         
@@ -895,17 +895,18 @@ class RunNetworkModelDialog(QDialog):
 
     def onClickedRadioStartupType(self,s):
         #print(s)
-        if self.rbtn_startup_type_dynamic.isChecked():
-            self.label_calcStartupFrom.setHidden(False)
-            self.dateedit_startupFrom.setHidden(False)
-            self.label_calcStartupTo.setHidden(False)
-            self.dateedit_startupTo.setHidden(False)
-            if self.rbtn_calc_type_dynamic.isChecked():
-                self.label_numb_periods.setHidden(True)
-                self.numb_periods.setHidden(True)
-        else:
-            self.label_numb_periods.setHidden(False)
-            self.numb_periods.setHidden(False)
+        if self.rbtn_calc_type_dynamic.isChecked():
+            if self.rbtn_startup_type_dynamic.isChecked():
+                self.label_calcStartupFrom.setHidden(False)
+                self.dateedit_startupFrom.setHidden(False)
+                self.label_calcStartupTo.setHidden(False)
+                self.dateedit_startupTo.setHidden(False)
+                if self.rbtn_calc_type_dynamic.isChecked():
+                    self.label_numb_periods.setHidden(True)
+                    self.numb_periods.setHidden(True)
+            else:
+                self.label_numb_periods.setHidden(False)
+                self.numb_periods.setHidden(False)
             
     def updateStatusBar(self,message):
         #print(f"signal:{message}")
