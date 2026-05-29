@@ -109,7 +109,7 @@ def sanitize_pg_identifier(name: str) -> str:
     # sonst: doppelte Quotes setzen (PostgreSQL-Style)
     name = name.replace('"', '""')  # escape existing quotes
     return f'"{name}"'
-    
+        
 def get_districts_plugin_dir():
     """
     Returns the path to the QGIS districts directory

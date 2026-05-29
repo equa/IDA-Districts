@@ -183,6 +183,9 @@ UPDATE invoked_sensor_target_signals
 def openTemplate(main,type,dlg):
     """ Open an template macro in IDA; copy the template from the installation folder"""
     #print('Open Template')
+    if not checkIDADistrictsInstallation(main.config):
+        return
+        
     row_index=dlg.tableWidget.currentRow()
     if row_index!=-1:
         template=dlg.tableWidget.item(row_index, 0).text()

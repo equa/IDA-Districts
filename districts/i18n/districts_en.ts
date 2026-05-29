@@ -149,12 +149,12 @@
         <translation type="unfinished">Check all items</translation>
     </message>
     <message>
-        <location filename="../utility_functions/utility.py" line="528"/>
+        <location filename="../utility_functions/utility.py" line="483"/>
         <source>@default</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="418"/>
+        <location filename="../utility_functions/dialog.py" line="494"/>
         <source>@default</source>
         <comment>check_all_items</comment>
         <translation type="unfinished"></translation>
@@ -575,13 +575,13 @@
         <translation type="unfinished">No. connections</translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="361"/>
+        <location filename="../utility_functions/layer_visualization.py" line="363"/>
         <source>@default</source>
         <comment>streets</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="371"/>
+        <location filename="../utility_functions/layer_visualization.py" line="373"/>
         <source>@default</source>
         <comment>junctions</comment>
         <translation type="unfinished"></translation>
@@ -599,7 +599,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/reports.py" line="725"/>
+        <location filename="../utility_functions/reports.py" line="722"/>
         <source>@default</source>
         <comment>customers</comment>
         <translation type="unfinished"></translation>
@@ -620,7 +620,7 @@
         <translation type="unfinished">Streets</translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="361"/>
+        <location filename="../utility_functions/layer_visualization.py" line="363"/>
         <source>@default</source>
         <comment>buildings</comment>
         <translation type="unfinished"></translation>
@@ -757,7 +757,7 @@
         <translation type="unfinished">Ideal heat source</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="787"/>
+        <location filename="../ida_resources.py" line="805"/>
         <source>@default</source>
         <comment>no_selection</comment>
         <translation type="unfinished"></translation>
@@ -804,7 +804,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="16"/>
+        <location filename="../utility_functions/layer_visualization.py" line="18"/>
         <source>@default</source>
         <comment>set_load_attribute</comment>
         <translation type="unfinished"></translation>
@@ -815,7 +815,7 @@
         <translation type="unfinished">Set load attribute</translation>
     </message>
     <message>
-        <location filename="../utility_functions/reports.py" line="1177"/>
+        <location filename="../utility_functions/reports.py" line="1171"/>
         <source>@default</source>
         <comment>customer_data_sheet</comment>
         <translation type="unfinished"></translation>
@@ -919,7 +919,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="323"/>
+        <location filename="../utility_functions/dialog.py" line="395"/>
         <source>@default</source>
         <comment>cancel</comment>
         <translation type="unfinished"></translation>
@@ -1117,13 +1117,7 @@
         <translation type="unfinished">Disconnect</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="581"/>
-        <source>@default</source>
-        <comment>import_districts_project_directory</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../utility_functions/dialog.py" line="321"/>
+        <location filename="../utility_functions/dialog.py" line="393"/>
         <source>@default</source>
         <comment>ok</comment>
         <translation type="unfinished"></translation>
@@ -1183,7 +1177,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="35"/>
+        <location filename="../utility_functions/layer_visualization.py" line="37"/>
         <source>@default</source>
         <comment>set_gfa_attribute</comment>
         <translation type="unfinished"></translation>
@@ -1206,7 +1200,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="266"/>
+        <location filename="../ida_resources.py" line="278"/>
         <source>@default</source>
         <comment>id</comment>
         <translation type="unfinished"></translation>
@@ -1242,7 +1236,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="266"/>
+        <location filename="../ida_resources.py" line="278"/>
         <source>@default</source>
         <comment>description</comment>
         <translation type="unfinished"></translation>
@@ -1303,7 +1297,7 @@
         <translation type="unfinished">Low temperature network</translation>
     </message>
     <message>
-        <location filename="../ida_ph_dialog.py" line="248"/>
+        <location filename="../ida_ph_dialog.py" line="251"/>
         <source>@default</source>
         <comment>create</comment>
         <translation type="unfinished"></translation>
@@ -1319,13 +1313,13 @@
         <translation type="unfinished">Ok</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="607"/>
+        <location filename="../districts.py" line="609"/>
         <source>@default</source>
         <comment>delete_project</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="608"/>
+        <location filename="../districts.py" line="610"/>
         <source>@default</source>
         <comment>ask_delete_project</comment>
         <translation type="unfinished"></translation>
@@ -1356,7 +1350,7 @@
         <translation type="unfinished">No version selected!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/db.py" line="732"/>
+        <location filename="../utility_functions/db.py" line="743"/>
         <source>@default</source>
         <comment>no_db_connection</comment>
         <translation type="unfinished"></translation>
@@ -1368,7 +1362,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="614"/>
+        <location filename="../districts.py" line="616"/>
         <source>@default</source>
         <comment>no_project_selected</comment>
         <translation type="unfinished"></translation>
@@ -1390,19 +1384,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="959"/>
+        <location filename="../districts.py" line="957"/>
         <source>@default</source>
         <comment>project_loaded</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="989"/>
+        <location filename="../districts.py" line="987"/>
         <source>@default</source>
         <comment>db_connected</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="993"/>
+        <location filename="../districts.py" line="991"/>
         <source>@default</source>
         <comment>db_disconnected</comment>
         <translation type="unfinished"></translation>
@@ -1523,7 +1517,7 @@
         <translation type="unfinished">Export</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="914"/>
+        <location filename="../districts.py" line="916"/>
         <source>@default</source>
         <comment>settings_saved</comment>
         <translation type="unfinished"></translation>
@@ -1539,19 +1533,19 @@
         <translation type="unfinished">Version &quot;{}&quot; deleted successfully!</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1320"/>
+        <location filename="../districts.py" line="1318"/>
         <source>@default</source>
         <comment>osm_streets</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1321"/>
+        <location filename="../districts.py" line="1319"/>
         <source>@default</source>
         <comment>osm_buildings</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1322"/>
+        <location filename="../districts.py" line="1320"/>
         <source>@default</source>
         <comment>elevation_data</comment>
         <translation type="unfinished"></translation>
@@ -1688,37 +1682,37 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="758"/>
+        <location filename="../districts.py" line="760"/>
         <source>@default</source>
         <comment>connection_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="762"/>
+        <location filename="../districts.py" line="764"/>
         <source>@default</source>
         <comment>type</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="737"/>
+        <location filename="../districts.py" line="739"/>
         <source>@default</source>
         <comment>massflow_set_asboundary_condition</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="737"/>
+        <location filename="../districts.py" line="739"/>
         <source>@default</source>
         <comment>design_temperature</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="737"/>
+        <location filename="../districts.py" line="739"/>
         <source>@default</source>
         <comment>design_pressure</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="737"/>
+        <location filename="../districts.py" line="739"/>
         <source>@default</source>
         <comment>design_massflow</comment>
         <translation type="unfinished"></translation>
@@ -1793,7 +1787,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="758"/>
+        <location filename="../districts.py" line="760"/>
         <source>@default</source>
         <comment>connection_type_id</comment>
         <translation type="unfinished"></translation>
@@ -1805,67 +1799,67 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="266"/>
+        <location filename="../ida_resources.py" line="278"/>
         <source>@default</source>
         <comment>connection_bundles</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="762"/>
+        <location filename="../districts.py" line="764"/>
         <source>@default</source>
         <comment>connection_bundle_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>pipe_bundle_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>investment_costs</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>operating_costs</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>x_coord</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>y_coord</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>ambient</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="770"/>
+        <location filename="../districts.py" line="772"/>
         <source>@default</source>
         <comment>materials</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="778"/>
+        <location filename="../districts.py" line="780"/>
         <source>@default</source>
         <comment>name</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="770"/>
+        <location filename="../districts.py" line="772"/>
         <source>@default</source>
         <comment>thermal_conductivity</comment>
         <translation type="unfinished"></translation>
@@ -1883,7 +1877,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="774"/>
+        <location filename="../districts.py" line="776"/>
         <source>@default</source>
         <comment>construction_id</comment>
         <translation type="unfinished"></translation>
@@ -1901,7 +1895,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="778"/>
+        <location filename="../districts.py" line="780"/>
         <source>@default</source>
         <comment>pipes</comment>
         <translation type="unfinished"></translation>
@@ -1919,13 +1913,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="778"/>
+        <location filename="../districts.py" line="780"/>
         <source>@default</source>
         <comment>pipe_construction_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="778"/>
+        <location filename="../districts.py" line="780"/>
         <source>@default</source>
         <comment>pipe_costs</comment>
         <translation type="unfinished"></translation>
@@ -2058,13 +2052,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="766"/>
+        <location filename="../districts.py" line="768"/>
         <source>@default</source>
         <comment>pipe_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="774"/>
+        <location filename="../districts.py" line="776"/>
         <source>@default</source>
         <comment>constructions</comment>
         <translation type="unfinished"></translation>
@@ -2100,25 +2094,25 @@
         <translation type="unfinished">Constructions</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="704"/>
+        <location filename="../districts.py" line="706"/>
         <source>@default</source>
         <comment>defaults_layer_lines</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="715"/>
+        <location filename="../districts.py" line="717"/>
         <source>@default</source>
         <comment>defaults_layer_customers</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="266"/>
+        <location filename="../ida_resources.py" line="278"/>
         <source>@default</source>
         <comment>template</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="725"/>
+        <location filename="../districts.py" line="727"/>
         <source>@default</source>
         <comment>defaults_layer_energy_plants</comment>
         <translation type="unfinished"></translation>
@@ -2139,7 +2133,7 @@
         <translation type="unfinished">Defaults for layer: &quot;Energy plants&quot;</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="273"/>
+        <location filename="../ida_resources.py" line="285"/>
         <source>@default</source>
         <comment>templates</comment>
         <translation type="unfinished"></translation>
@@ -2156,13 +2150,13 @@
         <translation type="unfinished">Templates</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="624"/>
+        <location filename="../ida_resources.py" line="642"/>
         <source>@default</source>
         <comment>file_not_found!</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="643"/>
+        <location filename="../ida_resources.py" line="661"/>
         <source>@default</source>
         <comment>please_enter_number_table_row</comment>
         <translation type="unfinished"></translation>
@@ -2218,13 +2212,13 @@
         <translation type="unfinished">Data saved successfully!</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="798"/>
+        <location filename="../ida_resources.py" line="816"/>
         <source>@default</source>
         <comment>data_saved_successfully</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="635"/>
+        <location filename="../ida_resources.py" line="653"/>
         <source>@default</source>
         <comment>connections_saved_successfully</comment>
         <translation type="unfinished"></translation>
@@ -3098,7 +3092,7 @@
         <translation type="unfinished">Connect</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="782"/>
+        <location filename="../ida_ph.py" line="784"/>
         <source>@default</source>
         <comment>version_loaded</comment>
         <translation type="unfinished"></translation>
@@ -3109,7 +3103,7 @@
         <translation type="unfinished">Simulation results</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="658"/>
+        <location filename="../ida_ph.py" line="660"/>
         <source>@default</source>
         <comment>project_deleted</comment>
         <translation type="unfinished"></translation>
@@ -3118,6 +3112,12 @@
         <location filename="../utility_functions/translations.py" line="428"/>
         <source>project_deleted</source>
         <translation type="unfinished">Project &quot;{}&quot; is deleted!</translation>
+    </message>
+    <message>
+        <location filename="../districts.py" line="581"/>
+        <source>@default</source>
+        <comment>import_districts_project_zip</comment>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4554,6 +4554,39 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>IDADistrictsPleaseContactDialog</name>
+    <message>
+        <location filename="../utility_functions/dialog.py" line="65"/>
+        <source>ida_districts_not_available</source>
+        <translation type="unfinished">IDA Districts not available</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/dialog.py" line="81"/>
+        <source>ida_districts_is_not_installed</source>
+        <translation type="unfinished">IDA Districts is not installed</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/dialog.py" line="95"/>
+        <source>this_functionality_cannot_currently_be_used_because_ida_districts_is_not_installed</source>
+        <translation type="unfinished">This functionality cannot currently be used because IDA Districts is not installed.</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/dialog.py" line="95"/>
+        <source>please_contact_equa_or_install_ida_districts_to_use_this_functionality</source>
+        <translation type="unfinished">Please contact EQUA or install IDA Districts to use this functionality.</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/dialog.py" line="95"/>
+        <source>more_information</source>
+        <translation type="unfinished">More information</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/dialog.py" line="113"/>
+        <source>close</source>
+        <translation type="unfinished">Close</translation>
+    </message>
+</context>
+<context>
     <name>InvokeFeaturesDlg</name>
     <message>
         <location filename="../ida_mosim_dialog.py" line="1271"/>
@@ -5352,7 +5385,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 <context>
     <name>SetLoadAttributeDialog</name>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="14"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="14"/>
         <source>set_load_attribute</source>
         <translation type="unfinished">Load field</translation>
     </message>
@@ -5370,54 +5403,66 @@ p, li { white-space: pre-wrap; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="46"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="49"/>
         <source>update_all_customers</source>
         <translation type="unfinished">Update all features</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="55"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="58"/>
         <source>existing_attribute</source>
         <translation type="unfinished">Existing field</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="62"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="65"/>
         <source>new_attribute</source>
         <translation type="unfinished">Add new field</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="78"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="81"/>
         <source>attribute</source>
         <translation type="unfinished">Field</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="95"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="98"/>
         <source>specific_load</source>
         <translation type="unfinished">Specific heating load, W/m2</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="128"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="131"/>
         <source>ok</source>
         <translation type="unfinished">Ok</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="135"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="138"/>
         <source>cancel</source>
         <translation type="unfinished">Cancel</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="75"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="78"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_attribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Layer field&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="85"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="88"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_newAttribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New layer field&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_setLoadAttribute.ui" line="92"/>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="95"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_specific_load&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specific load in W/m2.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../IDADistrictsPleaseContactDialog.ui" line="35"/>
+        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;info_setLoadAtttribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

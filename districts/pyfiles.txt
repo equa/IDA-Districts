@@ -64,4 +64,5 @@
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_setGFAAttribute.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_setLoadAttribute.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\districts_settings_dialog.ui" 
+"C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\IDADistrictsPleaseContactDialog.ui" 
 "C:\Users\peter.nageler\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\districts\network_report.ui" 

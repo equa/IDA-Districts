@@ -1,14 +1,25 @@
 from qgis.PyQt.QtCore import QObject,pyqtSignal,Qt
 from qgis.PyQt import uic, QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import QDialog,QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
+from qgis.PyQt.QtWidgets import QTextBrowser,QDialog,QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
 from qgis.utils import iface
 from qgis.core import Qgis
 from qgis.PyQt.QtGui import QIcon,QPixmap
 
 from .db import *
+from .utility import *
 
 import copy
-    
+
+def checkIDADistrictsInstallation(config):
+    if not os.path.exists(f"{config['pathDistricts']}bin\\ida-districts.exe"):
+        print('--IDA Districts does not exists--')
+        dialog=IDADistrictsPleaseContactDialog()
+        # Wait for user response
+        result = dialog.exec()
+        return False
+    else:
+        return True
+        
 def get_item_flag(name):
     try:
         # Qt6 style
@@ -49,7 +60,78 @@ def uncheckState():
         # Qt5
         checked = Qt.Unchecked
     return checked
-    
+
+class IDADistrictsPleaseContactDialog(QDialog):
+    """
+    Dialog informing the user that the requested functionality
+    cannot be used because IDA Districts is not installed.
+    The user is asked to contact EQUA or install IDA Districts.
+    Compatible with PyQt6 and Qt5/QGIS environments.
+    """
+
+    def __init__(self,parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle(
+            self.tr("ida_districts_not_available")
+        )
+
+        self.setMinimumWidth(500)
+        self.setModal(True)
+
+        icon_path=os.path.join(get_districts_plugin_dir(),'icons','IDA_Districts_Icon_QGIS.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
+        self._build_ui()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+
+        title_label = QLabel(
+            self.tr("ida_districts_is_not_installed")
+        )
+
+        title_label.setStyleSheet(
+            "font-size: 16px; font-weight: bold; margin-bottom: 10px;"
+        )
+
+        # Qt5 + Qt6 compatible
+        try:
+            title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        except AttributeError:
+            title_label.setAlignment(Qt.AlignLeft)
+
+        message_label = QLabel(
+            self.tr("this_functionality_cannot_currently_be_used_because_ida_districts_is_not_installed")
+            + "<br><br>"
+            + self.tr("please_contact_equa_or_install_ida_districts_to_use_this_functionality")
+            + "<br><br>"
+            + self.tr("more_information")
+            + ":<br>"
+            + '<a href="https://equa.se/software/ida-districts">'
+              "https://equa.se/software/ida-districts"
+              "</a>"
+        )
+
+        message_label.setOpenExternalLinks(True)
+        message_label.setWordWrap(True)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        close_button = QPushButton(
+            self.tr("close")
+        )
+
+        close_button.clicked.connect(self.accept)
+
+        button_layout.addWidget(close_button)
+
+        layout.addWidget(title_label)
+        layout.addWidget(message_label)
+        layout.addLayout(button_layout)
+        
 class SvgLabel(QLabel):
     """
     QLabel subclass to display an SVG at high quality, scaled proportionally

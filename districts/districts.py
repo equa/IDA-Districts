@@ -546,6 +546,8 @@ class Districts:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)     
         
     def show_manageClimateTemplate(self):
+        if not checkIDADistrictsInstallation(self.config):
+            return
         openClimateMacro(self)
 
     def show_setClimateVersionDialog(self):
@@ -872,6 +874,7 @@ class Districts:
         pathPostgresql=standardizePath(dlg.lineEdit_pathPostgresql.text())
         if not os.path.exists(pathDistricts):
             self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=Qgis.Info)
+            checkIDADistrictsInstallation(self.config)
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
         settings.setValue("districts_api_delay", dlg.lineEdit_districts_api_delay.text())
@@ -1021,6 +1024,8 @@ class Districts:
     def showParmMapping(self):
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.dlg_featureParm=FeatureModelParmDlg(self.cur,self.config)
                 self.dlg_featureParm.btn_add.clicked.connect(lambda: addParmTableRow(self.dlg_featureParm,self.cur,self.config))
                 self.dlg_featureParm.btn_remove.clicked.connect(lambda: deleteSelectedTableRow(self.dlg_featureParm.tableWidget_parameters))
@@ -1046,6 +1051,8 @@ class Districts:
     def showFeatureModels(self):
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.invoke_features=InvokeFeatures(self.plugin_dir,self.config)
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
@@ -1057,6 +1064,8 @@ class Districts:
         #print('Build IDA model')
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.dlg_buildModel=BuildNetworkModelDialog(self.dlg)
                 sql="""SELECT network FROM "{}".lines GROUP BY network ORDER BY network;""".format(self.config['versionName']) # nosec B608
                 self.cur.execute(sql)
@@ -1088,6 +1097,8 @@ class Districts:
         #print('Show IDA model')
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 dir=self.config['pathProjects']+'{}\\versions\\{}'.format(self.config['projectName'],self.config['versionName'])
                 submodels=getNetworkFileSubmodels(dir) if mode=='network' else getBuildingFileSubmodels(dir) 
                 if submodels:
@@ -1126,6 +1137,8 @@ class Districts:
         #print('Run IDA model')
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.dlg_runModel=RunNetworkModelDialog(self.plugin_dir,self.config)
                 self.dlg_runModel.combo_submodels.addItem(tr('@default','check_all_items'))
                 dir=self.config['pathProjects']+'{}\\versions\\{}'.format(self.config['projectName'],self.config['versionName'])
@@ -1149,6 +1162,8 @@ class Districts:
         #print('load results')
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
                 self.dlg_loadResults=LoadResultsDialog(self.dlg)
                 self.dlg_loadResults.combo_submodels.addItem(tr('@default','check_all_items'))
@@ -1167,6 +1182,8 @@ class Districts:
 
     def showPathReports(self):                  
         if self.conn:
+            if not checkIDADistrictsInstallation(self.config):
+                return
             self.dlg_pathReports=IDADistrictsPathReportsDialog(self.cur,self.config,self.dlg)
             self.dlg_pathReports.btn_ok.clicked.connect(lambda: runPathReports(self.dlg_pathReports,self))
             self.dlg_pathReports.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_pathReports))
@@ -1182,6 +1199,8 @@ class Districts:
 
     def loadProfiles(self):                   
         if self.conn:
+            if not checkIDADistrictsInstallation(self.config):
+                return
             self.dlg_plotLoads=PlotLoadProfilesDialog()
             self.dlg_plotLoads.btn_plot.clicked.connect(lambda: plotLoadProfiles(self.dlg_plotLoads,self.plugin_dir,self.config,self.cur))
             self.dlg_plotLoads.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_plotLoads))
@@ -1202,6 +1221,8 @@ class Districts:
     def showSupervisoryCtrl(self):
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 openSupervisoryCtrl(self.cur,self.plugin_dir,self.config)
                 """
                 self.dlg_supervisoryCrtl=SupervisoryCtrlDlg(self.cur,self.config)
