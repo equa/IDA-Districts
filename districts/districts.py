@@ -1064,7 +1064,7 @@ class Districts:
                 networks=self.cur.fetchall()
                 self.dlg_buildModel.combo_network_models.addItems([str(i['network']) for i in networks])
                 for i in range(len(networks)):
-                    self.dlg_buildModel.combo_network_models.setItemChecked(i+1,False)
+                    self.dlg_buildModel.combo_network_models.setItemChecked(i+1,True if len(networks)==1 else False)
                 
                 self.dlg_buildModel.combo_submodels.addItem(tr('@default','check_all_items'))
                 submodels=getUsedNetworkSubmodels(self.cur,self.config)
