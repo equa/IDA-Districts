@@ -29,7 +29,23 @@ repository=https://github.com/equa/IDA-Districts
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=*Fixed simulation dialog toggle between Periodic and Dynamic modes.
+ *Added Qt5 compatibility improvements.
+ *Added warning dialog when IDA Districts is not installed.
+ *Automatically select the network in the Build Network dialog when only one network exists.
+ *Fixed Create New Project dialog when no IDA Districts path is configured.
+ *Corrected IDA Districts version detection.
+ *Moved version information (IDA, IDA Districts, Districts Modeler) from Settings to the plugin.
+ *Fixed adding connections with return type.
+ *Store temporary icons, SQL files, and images in the system temporary directory.
+ *Improved cleanup of sensor data used by the Results Macro.
+ *Fixed template renaming in tables.
+ *Simplified project template folder structure and switched import/export to ZIP format.
+ *Fixed layer categorization for projects with more than six customer or energy plant categories.
+ *Fixed translation issue for "Simplified consumer 2sup/1ret".
+ *Fixed climate macro and sensor-related issues.
+ *Added output files to newly created Customer and Energy Plant templates.
+ *Improved main dialog window layout and sizing.
 
 # Tags are comma separated with spaces allowed
 tags=python,districts,thermal modeling
