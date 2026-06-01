@@ -12,7 +12,7 @@ import copy
 
 def checkIDADistrictsInstallation(config):
     if not os.path.exists(f"{config['pathDistricts']}bin\\ida-districts.exe"):
-        print('--IDA Districts does not exists--')
+        #print('--IDA Districts does not exists--')
         dialog=IDADistrictsPleaseContactDialog()
         # Wait for user response
         result = dialog.exec()
