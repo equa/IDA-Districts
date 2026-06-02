@@ -873,6 +873,7 @@ class Districts:
         pathDistricts=standardizePath(dlg.lineEdit_pathDistricts.text())
         pathPostgresql=standardizePath(dlg.lineEdit_pathPostgresql.text())
         if not os.path.exists(pathDistricts):
+            self.config['pathDistricts']=pathDistricts
             self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=Qgis.Info)
             checkIDADistrictsInstallation(self.config)
         settings.setValue("pathDistricts", pathDistricts)
