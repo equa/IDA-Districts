@@ -855,7 +855,7 @@ def createNewProject(dlg,main):
             main.worker_newProject.signals.finished.connect(lambda: finishedImportProject(dlg=dlg,main=main))                
             QThreadPool.globalInstance().start(main.worker_newProject)    
             
-def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=None,exportInvokedFeatures=None,exportDBResults=None,main_dlg=None):
+def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=None,exportInvokedFeatures=None,exportDBResults=None,main_dlg=None,autosave=None):
     """Export the DB to a sql file and write the data center and modelling files to the folders + dDB description file --> zip"""
     #print("Export project")
     #print(filename)
@@ -884,7 +884,7 @@ def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=N
         if filename:
             auth_cfg = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
-            worker_export = WorkerExportProject(plugin_dir=plugin_dir, filename=filename,config=config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+            worker_export = WorkerExportProject(plugin_dir=plugin_dir, filename=filename,config=config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results,autosave=autosave)
             if dlg:
                 worker_export.signals.progress.connect(dlg.update_progress)
                 worker_export.signals.error.connect(dlg.show_error_message)      

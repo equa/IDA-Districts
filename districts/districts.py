@@ -950,7 +950,7 @@ class Districts:
                 except:
                     pass
                 self.timer = QTimer()
-                self.timer.timeout.connect(lambda: exportProject(config=self.config,exportPrn=self.config['exportPrn'],exportInvokedFeatures=self.config['exportInvokedFeatures'],exportDBResults=self.config['exportDbResults'],plugin_dir=self.plugin_dir))
+                self.timer.timeout.connect(lambda: exportProject(config=self.config,exportPrn=self.config['exportPrn'],exportInvokedFeatures=self.config['exportInvokedFeatures'],exportDBResults=self.config['exportDbResults'],plugin_dir=self.plugin_dir,autosave=True))
                 self.timer.start(int(float(self.config['autosave_dt'])*60*1000))
                 
         try:

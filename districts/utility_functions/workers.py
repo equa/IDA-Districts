@@ -322,6 +322,7 @@ class WorkerExportProject(QRunnable):
         self.filename=kwargs['filename']
         self.filter_folders=kwargs['filter_folders']
         self.filter_extensions=kwargs['filter_extensions']
+        self.autosave=kwargs['autosave']
         #print(self.filter_extensions)
         #print(self.filter_folders)
         self.no_db_results=kwargs['no_db_results']
@@ -339,12 +340,16 @@ class WorkerExportProject(QRunnable):
         #print(self.filename)
         dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
         name=self.filename.split('\\')[-1].split('.')[0]
-        #print(dir)
         #print(name)
+        if self.autosave:
+            temp_folder=dir
+            createDir(dir,'autosave')
+            dir+='autosave\\'
+        else:
+            temp_folder=districtsModelerTempDir()
         createDir(dir,name)
         dir=dir+name
-
-        temp_folder=districtsModelerTempDir()
+        #print(dir)
         createDir(temp_folder,name,delete=True)
         temp_folder+=name+'\\'
         #print(temp_folder)
@@ -387,13 +392,18 @@ class WorkerExportProject(QRunnable):
         # Check if the folder exists and delete it
         if os.path.exists(dir) and os.path.isdir(dir):
             rmtree_long_path(dir) 
+
             
         #write zip to target folder
         shutil.make_archive(
-            dir,            # source folder without .zip
+            dir,            # target folder without .zip
             "zip",          # format
             temp_folder     # source folder
         )
+        
+        # remove temp folder
+        if os.path.exists(temp_folder) and os.path.isdir(temp_folder):
+            rmtree_long_path(temp_folder) 
 
         self.signals.progress.emit(100)
         self.signals.finished.emit(self.filename)
