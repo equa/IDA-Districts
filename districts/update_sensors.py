@@ -145,6 +145,7 @@ class UpdateSensors():
     FROM sensor_target s_t, public.type
     WHERE s_t.type=type.id
     ORDER BY s_t.sensor_id;"""
+        #print(sql)
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():
             self.loadedSensorData[sensor_data['sensor_id']]['target']['description']=sensor_data['description_target']
@@ -356,7 +357,6 @@ class UpdateSensors():
         #print(sql)
         self.cur.execute(sql)
         templates=self.cur.fetchall()
-        #print(templates)
         
         #print(sensor)
         #print(self.loadedSensorData)
@@ -370,7 +370,10 @@ class UpdateSensors():
                     
         self.loadedSensorData[id][sensor]['templates']={i['template'] : i['active'] for i in templates}
         for i in range(len(templates)):
-            comboBoxCheckable.setItemChecked(i+1,templates[i]['active'] if checkActive else False)
+            try:
+                comboBoxCheckable.setItemChecked(i+1,templates[i]['active'] if checkActive else False)
+            except:
+                pass
         comboBoxCheckable.activated.connect(lambda signal, column=3,row=row: self.setDropDownConntypes(table,column,row,type))
         table.setCellWidget(row, 2, comboBoxCheckable) 
     
