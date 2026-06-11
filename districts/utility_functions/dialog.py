@@ -226,7 +226,7 @@ def load_image(path,label,scale=False,size=False):
         
 def addParmTableRow(dlg,cur,config):
     
-    maxId=max([int(dlg.tableWidget_parameters.item(i,0).text())+1 for i in range(dlg.tableWidget_parameters.rowCount())],default=0)
+    maxId=getMaxId(cur,'model_parms')+1
     dlg.tableWidget_parameters.insertRow(0)
         
     item = QTableWidgetItem(str(maxId))
