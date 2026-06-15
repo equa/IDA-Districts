@@ -219,7 +219,7 @@ class InvokeNetworkModel:
                     self.cur.execute(sql)
                     if submodel==str(self.cur.fetchone()['submodel']):
                         #print("""*-*-*-*-copy supervisory*-*-*-*-""")
-                        if not os.path.exists(self.config['pathProjects']+self.config['projectName']+'\\supervisory_control\\supervisory_control.idm'):
+                        if not os.path.exists(self.config['pathProjects']+self.config['projectName']+'\\versions\\{}\\supervisory_control\\supervisory_control.idm'.format(self.config['versionName'])):
                             Supervisory_control(self.plugin_dir,self.config)                     
                         resources.extend(CopySupervisoryControl(self.config['pathProjects']+self.config['projectName'],self.config,self.cur,submodel).resources)
                     self.signals.progress.emit(int(2+10*(submodels.index(submodel)+1)/len(submodels)*97))

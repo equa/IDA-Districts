@@ -397,6 +397,7 @@ def getUsedFilteredFeatureTemplates(feature_type,cur,config):
     FROM "{}".{}s f,{}_templates f_t 
     WHERE f.template=f_t.template
     GROUP BY f.template,f_t.template_name;""".format(config['versionName'],feature_type,feature_type,config['versionName']) # nosec B608
+    #print(sql)
     cur.execute(sql)
     return cur.fetchall()
     

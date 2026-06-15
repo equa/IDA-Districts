@@ -150,7 +150,6 @@ class WorkerImportProject(QRunnable):
                 copy_tree_filter_extensions_and_folders(src_dir+'customer_templates',target_dir+'\\customer_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
                 copy_tree_filter_extensions_and_folders(src_dir+'energy_plant_templates',target_dir+'\\energy_plant_templates',signals=self.signals,exclude_extensions=self.filter_extensions)
                 copy_tree_filter_extensions_and_folders(src_dir+'climate',target_dir+'\\climate',signals=self.signals,exclude_extensions=self.filter_extensions)
-                copy_tree_filter_extensions_and_folders(src_dir+'supervisory_control',target_dir+'\\supervisory_control',signals=self.signals,exclude_extensions=self.filter_extensions)
 
                 replace_in_folder(
                     root_folder=target_dir,

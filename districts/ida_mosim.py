@@ -11,7 +11,7 @@ from .invoke_network import WorkerBuildNetworkModel
 def openSupervisoryCtrl(cur,plugin_dir,config):
     Supervisory_control(plugin_dir,config)
     #setSupervisoryCrtlSubmodel(dlg,cur)
-    file = config['pathProjects']+'{}\\supervisory_control\\supervisory_control.idm'.format(config['projectName'])
+    file = config['pathProjects']+'{}\\versions\\{}\\supervisory_control\\supervisory_control.idm'.format(config['projectName'],config['versionName'])
     #print(file)
     worker_openSupervisory = WorkerOpenModelCmd(file,config)
     QThreadPool.globalInstance().start(worker_openSupervisory)

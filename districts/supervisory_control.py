@@ -12,7 +12,7 @@ class CopySupervisoryControl:
         #print('copy supervisory control')
         
         target_dir=dir+'\\versions\\'+config['versionName']+"\\network_"+str(submodel)
-        source_dir=dir+'\\supervisory_control'
+        source_dir=dir+'\\versions\\'+config['versionName']+'\\supervisory_control'
 
         f_idc_target=target_dir+'\\Supervisory_control.idc'
         f_idm_target=target_dir+'\\Supervisory_control.idm'
@@ -47,7 +47,7 @@ class Supervisory_control():
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
-            dir=config['pathProjects']+config['projectName']+"\\"
+            dir=config['pathProjects']+config['projectName']+"\\versions\\"+config['versionName']+'\\'
             createDir(dir,'supervisory_control')
             dir+='supervisory_control'
             #print(dir)

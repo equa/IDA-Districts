@@ -26,9 +26,154 @@ class UpdateSensors():
         self.dlg.btn_del.clicked.connect(self.delSensor)
         self.dlg.tableWidget_source.currentCellChanged.connect(self.dlg.tableWidget_target.selectRow)
         self.dlg.tableWidget_target.currentCellChanged.connect(self.dlg.tableWidget_source.selectRow)
+        self.updateSensorDBData()
         self.loadSensorTableValues()
         #print(self.loadedSensorData)
         self.dlg.show()  
+
+    def updateSensorDBData(self):
+        """Update the sensor data in order to add newly created customer and energy plant templates. Also update on removed templates. Update sources: templates, connection types and connections. Update targets: templates"""
+        
+        for type_id,type_name in ((1,'customer'),(2,'energy_plant')): 
+            #Update source templates
+            sql="""INSERT INTO source_template (source_id, template, active)
+SELECT
+    s.source_id,
+    ft.template,
+    FALSE
+FROM (
+    SELECT DISTINCT source_id
+    FROM source_template, sensor_source WHERE type={} AND sensor_id=source_id
+) s
+CROSS JOIN {}_templates ft
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM source_template st
+    WHERE st.source_id = s.source_id
+      AND st.template = ft.template
+);
+DELETE FROM source_template st
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM {}_templates ft
+    WHERE ft.template = st.template
+)
+AND EXISTS (
+    SELECT 1
+    FROM sensor_source ss
+    WHERE ss.sensor_id = st.source_id
+      AND ss.type = {}
+);""".format(type_id,type_name,type_name,type_id)
+            #print(sql)
+            self.cur.execute(sql)
+        
+            #Update source connection types
+            sql="""INSERT INTO source_conn_type (source_id, conn_type, active)
+SELECT
+    ss.sensor_id,
+    c.conn_type_id,
+    FALSE
+FROM sensor_source ss
+CROSS JOIN (
+    SELECT DISTINCT b_t_conns.conn_type_id,st.source_id
+    	FROM {}_templates ft, source_template st, bundle_type_conns b_t_conns 
+		WHERE ft.template=st.template AND st.active
+      	AND b_t_conns.conn_bundle_type_id = ft.conn_bundle_type
+) c
+WHERE ss.type = {} AND ss.sensor_id=c.source_id
+  AND NOT EXISTS (
+      SELECT 1
+      FROM source_conn_type sct
+      WHERE sct.source_id = ss.sensor_id
+        AND sct.conn_type = c.conn_type_id
+  );
+DELETE FROM source_conn_type sct
+WHERE EXISTS (
+    SELECT 1
+    FROM sensor_source ss
+    WHERE ss.sensor_id = sct.source_id
+      AND ss.type = {}
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM {}_templates ft, bundle_type_conns b_t_conns, source_template st
+  	WHERE b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND b_t_conns.conn_type_id = sct.conn_type AND ft.template=st.template AND st.active AND st.source_id = sct.source_id
+);""".format(type_name,type_id,type_id,type_name)
+            #print(sql)
+            self.cur.execute(sql)
+            
+            #Update source connections
+            sql="""INSERT INTO source_conns (source_id, connection_id, active)
+SELECT
+    ss.sensor_id,
+    c.connection_id,
+    FALSE
+FROM sensor_source ss
+CROSS JOIN (
+    SELECT DISTINCT conn_type_conns.connection_id
+    FROM {}_templates ft
+    JOIN bundle_type_conns b_t_conns
+      ON b_t_conns.conn_bundle_type_id = ft.conn_bundle_type
+    JOIN connection_type_connections conn_type_conns
+      ON conn_type_conns.connection_type_id = b_t_conns.conn_type_id
+) c
+WHERE ss.type = {} 
+  AND NOT EXISTS (
+      SELECT 1
+      FROM source_conns sc
+      WHERE sc.source_id = ss.sensor_id
+        AND sc.connection_id = c.connection_id
+  );
+
+DELETE FROM source_conns sc
+WHERE EXISTS (
+    SELECT 1
+    FROM sensor_source ss
+    WHERE ss.sensor_id = sc.source_id
+      AND ss.type = {}
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM {}_templates ft, bundle_type_conns b_t_conns, connection_type_connections conn_type_conns, source_conn_type sct
+    WHERE conn_type_conns.connection_id = sc.connection_id AND b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND conn_type_conns.connection_type_id = b_t_conns.conn_type_id 
+		AND sct.active AND sct.source_id = sc.source_id AND b_t_conns.conn_type_id =sct.conn_type
+);""".format(type_name,type_id,type_id,type_name)
+            #print(sql)
+            self.cur.execute(sql)
+            
+        for type_id,type_name in ((1,'customer'),(2,'energy_plant')): 
+            sql="""INSERT INTO target_template (target_id, template, active)
+SELECT
+    s.target_id,
+    ft.template,
+    FALSE
+FROM (
+    SELECT DISTINCT target_id
+    FROM target_template, sensor_source WHERE type={} AND sensor_id=target_id
+) s
+CROSS JOIN {}_templates ft
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM target_template st
+    WHERE st.target_id = s.target_id
+      AND st.template = ft.template
+);
+
+DELETE FROM target_template st
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM {}_templates ft
+    WHERE ft.template = st.template
+)
+AND EXISTS (
+    SELECT 1
+    FROM sensor_target s
+    WHERE s.sensor_id = st.target_id
+      AND s.type = {}
+);""".format(type_id,type_name,type_name,type_id)
+            #print(sql)
+            self.cur.execute(sql)
+            
 
     def insertIntoSensorsTable(self,table,row,sensor_id):
         sql="""INSERT INTO sensors(sensor_id) VALUES ({});""".format(sensor_id)# nosec B608
@@ -300,9 +445,10 @@ class UpdateSensors():
             if templates and table.cellWidget(row, 5).currentData()!='custom':
                 #print('!=custom')
                 sql="""SELECT conn_t.id AS conn_type_id, conn_t.description
-    FROM public.bundle_type_conns b_t_conns, "{}".{}s f, public.{}_templates t, public.connection_types conn_t
-    WHERE t.template IN ({}) AND t.conn_bundle_type=b_t_conns.conn_bundle_type_id AND f.template=t.template AND conn_t.id=b_t_conns.conn_type_id
-    GROUP BY conn_t.id,conn_t.description;""".format(self.config['versionName'],type,type,','.join(templates)) # nosec B608
+    FROM public.bundle_type_conns b_t_conns, public.{}_templates t, public.connection_types conn_t
+    WHERE t.template IN ({}) AND t.conn_bundle_type=b_t_conns.conn_bundle_type_id AND conn_t.id=b_t_conns.conn_type_id
+    GROUP BY conn_t.id,conn_t.description;""".format(type,','.join(templates)) # nosec B608
+                #print(sql)
                 self.cur.execute(sql)
                 conntypes=self.cur.fetchall()
                 #print(conntypes)
