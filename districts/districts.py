@@ -707,7 +707,7 @@ class Districts:
             #print(defaults)
             self.dlg_defaultsLines=DefaultsDialog('line',tr('@default','defaults_layer_lines'),[{'label': tr('@default','type'),'value': ['type',0,'general']},{'label': tr('@default','pipe_bundle'),'value': ['pipe_bundle_type_id',0,'general']},{'label': tr('@default','network'),'value': ['network',0,'general']}],self.cur)
             self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: writeDefaultsToDB(self.dlg_defaultsLines,'lines',self.cur,self.config,self.plugin_dir,self))
-            self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsLines,'',['',[],[],'','',[]]))
+            self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_defaultsLines))
             showDefaults(self.dlg_defaultsLines,defaults,'line',self.cur,self.config)
             self.dlg_defaultsLines.show()
         
@@ -718,7 +718,7 @@ class Districts:
             #print(defaults)
             self.dlg_defaultsCustomers=DefaultsDialog('customer',tr('@default','defaults_layer_customers'),[{'label': tr('@default','template'),'value': ['template',0,'general']}],self.cur)
             self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: writeDefaultsToDB(self.dlg_defaultsCustomers,'customers',self.cur,self.config,self.plugin_dir,self))
-            self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsCustomers,'',['',[],[],'','',[]]))
+            self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_defaultsCustomers))
             showDefaults(self.dlg_defaultsCustomers,defaults,'customer',self.cur,self.config)
             self.dlg_defaultsCustomers.show()
         
@@ -728,7 +728,7 @@ class Districts:
             defaults=getDefaults("energy_plants",self.cur,self.config)
             self.dlg_defaultsPlants=DefaultsDialog('energy_plant',tr('@default','defaults_layer_energy_plants'),[{'label': tr('@default','template'),'value': ['template',0,'general']}],self.cur)
             self.dlg_defaultsPlants.btn_ok.clicked.connect(lambda: writeDefaultsToDB(self.dlg_defaultsPlants,'energy_plants',self.cur,self.config,self.plugin_dir,self))
-            self.dlg_defaultsPlants.btn_cancel.clicked.connect(lambda: self.closeDialog(self.dlg_defaultsPlants,'',['',[],[],'','',[]]))
+            self.dlg_defaultsPlants.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_defaultsPlants))
             showDefaults(self.dlg_defaultsPlants,defaults,'energy_plant',self.cur,self.config)
             self.dlg_defaultsPlants.show()
 
