@@ -1399,6 +1399,7 @@ class MapFeaturesDialog(QDialog):
         layout_listWidget_lines.addWidget(label_listWidget_lines)
         layout_listWidget_lines.addWidget(label_listWidget_lines_ids)
         self.listWidget_lines = QListWidget()
+        self.listWidget_lines.itemClicked.connect(self.clickedLinesId)
         layout_listWidget_lines.addWidget(self.listWidget_lines)
         
         #list widgets connections
@@ -1440,6 +1441,11 @@ class MapFeaturesDialog(QDialog):
         
         self.setLayout(layout_win)
         
+    def clickedLinesId(self, item):
+        lines_layer=QgsProject.instance().mapLayersByName(tr('@default','lines'))
+        if lines_layer:
+            lines_layer[0].selectByExpression("id = {}".format(item.text()))
+
     def clickedPlantsId(self, item):
         #print(item.text())
         table_name=self.getTypeTableName()
@@ -1467,6 +1473,16 @@ class MapFeaturesDialog(QDialog):
         if l_ids:
             self.listWidget_lines.addItems(l_ids)
             
+        layer_ep=QgsProject.instance().mapLayersByName(tr('@default','energy_plants'))
+        layer_c=QgsProject.instance().mapLayersByName(tr('@default','customers'))
+        if layer_ep and layer_c:
+            if table_name=='energy_plants':
+                layer_ep[0].selectByExpression("id = {}".format(item.text()))
+                layer_c[0].selectByExpression("")
+            else:
+                layer_c[0].selectByExpression("id = {}".format(item.text()))
+                layer_ep[0].selectByExpression("")
+                
         #add connections to self.tableWidget
         self.updateConnections(table_name,item.text())
             
