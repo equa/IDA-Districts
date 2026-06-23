@@ -4,6 +4,7 @@ from qgis.core import QgsDataSourceUri,QgsAuthMethodConfig
 from qgis.utils import iface
 
 from .update_boundaries import *
+from .ida_mosim import *
 from .utility_functions.db import *
 from .utility_functions.dialog import *
 from .utility_functions.templateFiles import ExchangeConntypeFiles,WriteTemplateFiles, RenameTemplateFiles
@@ -32,6 +33,15 @@ def writeClimateDataToDB(dlg,main):
         height = {};""".format(main.config['versionName'],name,latitude,longitude,fileName,timezone,height) # nosec B608
         #print(sql)
         main.cur.execute(sql)
+        
+        #update climate template
+        dir_project=main.config['pathProjects']+main.config['projectName']
+        dir_climate=dir_project+'\\climate\\'
+        dir_climateMacro=dir_climate+'climate\\'
+        data=getClimateData(main.cur,main.config,True)
+        modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
+        modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
+        updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
         main.dlg.statusMessage.setText('Climate data is successfully updated!')
         main.dlg.update_progress(100)
         closeDialog(dlg)
@@ -39,10 +49,12 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.statusMessage.setText('Climate data update failed: '+str(e))
         main.dlg.update_progress(0)
         
-def updateClimateMacro(data,dir,config):
+def updateClimateMacro(data,dir,config,modellingSettings):
     fname=dir+'climate-macro.idm'
     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
     idm=[]
+    #print(data)
+    #print(modellingSettings)
     for comp in components_idm:
         #print(getCompTemplate(comp))
         if getCompTemplate(comp)=='ENVIRONMENT':
@@ -67,6 +79,26 @@ def updateClimateMacro(data,dir,config):
                     i[':SF']='"'+data['filename'].replace('\\','\\\\')+'"'
                 new_comp.append(i)
             idm.append(new_comp)
+        elif getCompTemplate(comp)=='|kusuda|':
+            #print(comp)
+            new_comp=[]
+            for i in comp:
+                if getCompName(i)=='|TSurfMean|':
+                    i=setCompValue(i,modellingSettings['TSurfMean'])
+                elif getCompName(i)=='|TSurfAmpl|':
+                    i=setCompValue(i,modellingSettings['TSurfAmpl'])
+                elif getCompName(i)=='|Theta|':
+                    i=setCompValue(i,modellingSettings['Theta'])
+                elif getCompName(i)=='|cp|':
+                    i=setCompValue(i,modellingSettings['kusuda_cp'])
+                elif getCompName(i)=='|Rho|':
+                    i=setCompValue(i,modellingSettings['kusuda_rho'])
+                elif getCompName(i)=='|lambda|':
+                    i=setCompValue(i,modellingSettings['kusuda_lambda'])
+                elif getCompName(i)=='|Depth|':
+                    i=setCompValue(i,modellingSettings['kusuda_depth'])
+                new_comp.append(i)
+            idm.append(new_comp)
         else:
             idm.append(comp)
     writePropertyListIDMToFile(idm,dir,fname,config)
@@ -75,11 +107,7 @@ def openClimateMacro(main):
     dir_project=main.config['pathProjects']+main.config['projectName']
     dir_climate=dir_project+'\\climate\\'
     dir_climateMacro=dir_climate+'climate\\'
-    if main.config['versionName']:
-        data=getClimateData(main.cur,main.config,True)
-        #update climate template
-        updateClimateMacro(data,dir_climateMacro,main.config)
-        
+    if main.config['versionName']:      
         #update customer and energy plant templates
         for feature in ['customer','energy_plant']:
             sql="""Select * from {}_templates;""".format(feature) # nosec B608

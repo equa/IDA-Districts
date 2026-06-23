@@ -1454,15 +1454,6 @@ class ModellingSettings(QDialog):
         layout_ground_label.addWidget(label_ground_model)
         
         
-        self.label_amb_kusuda_tsurfmean =QLabel(self.tr("annual_mean_temperature"))
-        layout_ground_label.addWidget(self.label_amb_kusuda_tsurfmean)
-        
-        self.label_amb_kusuda_tsurfampl =QLabel(self.tr("daily_mean_temperature_amplitude"))
-        layout_ground_label.addWidget(self.label_amb_kusuda_tsurfampl)
-        
-        self.label_amb_kusuda_theta =QLabel(self.tr("phase_shift_of_monthly_minimum_temperatur"))
-        layout_ground_label.addWidget(self.label_amb_kusuda_theta)
-        
         self.label_amb_kusuda_rho =QLabel(self.tr("surface_layer_density"))
         layout_ground_label.addWidget(self.label_amb_kusuda_rho)
         
@@ -1493,16 +1484,7 @@ class ModellingSettings(QDialog):
         #self.amb_ground_model.addItems(['Kusuda','Timeseries','Constant'])
         self.amb_ground_model.addItems(['Kusuda','Constant'])
         self.amb_ground_model.setCurrentText(modellingSettings['ground_model'])
-        layout_ground_value.addWidget(self.amb_ground_model) 
-        
-        self.amb_kusuda_tsurfmean = QLineEdit(modellingSettings['kusuda_tsurfmean'])
-        layout_ground_value.addWidget(self.amb_kusuda_tsurfmean) 
-        
-        self.amb_kusuda_tsurfampl = QLineEdit(modellingSettings['kusuda_tsurfampl'])
-        layout_ground_value.addWidget(self.amb_kusuda_tsurfampl) 
-        
-        self.amb_kusuda_theta = QLineEdit(modellingSettings['kusuda_theta'])
-        layout_ground_value.addWidget(self.amb_kusuda_theta) 
+        layout_ground_value.addWidget(self.amb_ground_model)      
         
         self.amb_kusuda_rho = QLineEdit(modellingSettings['kusuda_rho'])
         layout_ground_value.addWidget(self.amb_kusuda_rho) 
@@ -1661,16 +1643,10 @@ class ModellingSettings(QDialog):
     def showGroundModelParameter(self,s):
         #print(s)
         if s=='Kusuda':
-            self.amb_kusuda_tsurfmean.setHidden(False)
-            self.amb_kusuda_tsurfampl.setHidden(False)
-            self.amb_kusuda_theta.setHidden(False)
             self.amb_kusuda_rho.setHidden(False)
             self.amb_kusuda_cp.setHidden(False)
             self.amb_kusuda_lambda.setHidden(False)
             self.amb_kusuda_depth.setHidden(False)
-            self.label_amb_kusuda_tsurfmean.setHidden(False)
-            self.label_amb_kusuda_tsurfampl.setHidden(False)
-            self.label_amb_kusuda_theta.setHidden(False)
             self.label_amb_kusuda_rho.setHidden(False)
             self.label_amb_kusuda_cp.setHidden(False)
             self.label_amb_kusuda_lambda.setHidden(False)
@@ -1684,16 +1660,10 @@ class ModellingSettings(QDialog):
             self.amb_ground_profile.setHidden(False)
             self.label_amb_ground_profile.setHidden(False)
             
-            self.amb_kusuda_tsurfmean.setHidden(True)
-            self.amb_kusuda_tsurfampl.setHidden(True)
-            self.amb_kusuda_theta.setHidden(True)
             self.amb_kusuda_rho.setHidden(True)
             self.amb_kusuda_cp.setHidden(True)
             self.amb_kusuda_lambda.setHidden(True)
             self.amb_kusuda_depth.setHidden(True)
-            self.label_amb_kusuda_tsurfmean.setHidden(True)
-            self.label_amb_kusuda_tsurfampl.setHidden(True)
-            self.label_amb_kusuda_theta.setHidden(True)
             self.label_amb_kusuda_rho.setHidden(True)
             self.label_amb_kusuda_cp.setHidden(True)
             self.label_amb_kusuda_lambda.setHidden(True)
@@ -1705,17 +1675,11 @@ class ModellingSettings(QDialog):
             self.label_amb_ground_temp.setHidden(False)
 
             self.amb_ground_profile.setHidden(True)
-            self.amb_kusuda_tsurfmean.setHidden(True)
-            self.amb_kusuda_tsurfampl.setHidden(True)
-            self.amb_kusuda_theta.setHidden(True)
             self.amb_kusuda_rho.setHidden(True)
             self.amb_kusuda_cp.setHidden(True)
             self.amb_kusuda_lambda.setHidden(True)
             self.amb_kusuda_depth.setHidden(True)
             self.label_amb_ground_profile.setHidden(True)
-            self.label_amb_kusuda_tsurfmean.setHidden(True)
-            self.label_amb_kusuda_tsurfampl.setHidden(True)
-            self.label_amb_kusuda_theta.setHidden(True)
             self.label_amb_kusuda_rho.setHidden(True)
             self.label_amb_kusuda_cp.setHidden(True)
             self.label_amb_kusuda_lambda.setHidden(True)
