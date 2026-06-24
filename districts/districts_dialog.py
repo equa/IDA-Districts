@@ -123,14 +123,14 @@ class DistrictsDialog(QtWidgets.QDialog):
         
         #resource icons
         btn_size=30
-        self.btn_manageEnergyPlantTemplates.setIcon(QIcon(os.path.join(plugin_dir, "icons/Plant.svg")))
+        self.btn_manageEnergyPlantTemplates.setIcon(QIcon(os.path.join(plugin_dir, "icons/Plant.png")))
         self.btn_manageEnergyPlantTemplates.setIconSize(QSize(btn_size, btn_size))
-        self.btn_manageCustomerTemplates.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_manageCustomerTemplates.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.png")))
         self.btn_manageCustomerTemplates.setIconSize(QSize(btn_size, btn_size))
 
-        self.btn_defaults_plants.setIcon(QIcon(os.path.join(plugin_dir, "icons/Plant.svg")))
+        self.btn_defaults_plants.setIcon(QIcon(os.path.join(plugin_dir, "icons/Plant.png")))
         self.btn_defaults_plants.setIconSize(QSize(btn_size, btn_size))
-        self.btn_defaults_customers.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_defaults_customers.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.png")))
         self.btn_defaults_customers.setIconSize(QSize(btn_size, btn_size))
         self.btn_defaults_lines.setIcon(QIcon(":/images/themes/default/mIconLineLayer.svg"))
         self.btn_defaults_lines.setIconSize(QSize(btn_size, btn_size))
@@ -153,7 +153,7 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_pipes.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipe_bundle_types.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipebundle.png")))
         self.btn_pipe_bundle_types.setIconSize(QSize(btn_size, btn_size))
-        self.btn_climateTemplate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.svg")))  
+        self.btn_climateTemplate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.png")))  
         self.btn_climateTemplate.setIconSize(QSize(btn_size, btn_size))
 
 
@@ -171,21 +171,21 @@ class DistrictsDialog(QtWidgets.QDialog):
         
         self.btn_importStreetsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/streets.png")))
         self.btn_importStreetsFromOSM.setIconSize(QSize(btn_size, btn_size))
-        self.btn_importBuildingsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.svg")))
+        self.btn_importBuildingsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.png")))
         self.btn_importBuildingsFromOSM.setIconSize(QSize(btn_size, btn_size))
 
         #preprocessing
-        self.btn_manageNetworks.setIcon(QIcon(os.path.join(plugin_dir, "icons/Manage Networks_v2.svg")))
+        self.btn_manageNetworks.setIcon(QIcon(os.path.join(plugin_dir, "icons/Manage Networks.png")))
         self.btn_manageNetworks.setIconSize(QSize(200, 200))          
         
         btn_size=150
-        self.btn_pipeLayingAlgorithm.setIcon(QIcon(os.path.join(plugin_dir, "icons/Pipe_Laying_Algo__.svg")))
+        self.btn_pipeLayingAlgorithm.setIcon(QIcon(os.path.join(plugin_dir, "icons/Pipe_Laying_Algorithmn.png")))
         self.btn_pipeLayingAlgorithm.setIconSize(QSize(btn_size, btn_size))
-        self.btn_mapFeatures.setIcon(QIcon(os.path.join(plugin_dir, "icons/LineMapping.svg")))
+        self.btn_mapFeatures.setIcon(QIcon(os.path.join(plugin_dir, "icons/LineMapping.png")))
         self.btn_mapFeatures.setIconSize(QSize(btn_size, btn_size))   
-        self.btn_generateTopology.setIcon(QIcon(os.path.join(plugin_dir, "icons/Generate_Topology_v2.svg")))
+        self.btn_generateTopology.setIcon(QIcon(os.path.join(plugin_dir, "icons/Generate_Topology.png")))
         self.btn_generateTopology.setIconSize(QSize(btn_size, btn_size))
-        self.btn_pipeSizing.setIcon(QIcon(os.path.join(plugin_dir, "icons/Pipe_sizing.svg")))
+        self.btn_pipeSizing.setIcon(QIcon(os.path.join(plugin_dir, "icons/Pipe_sizing.png")))
         self.btn_pipeSizing.setIconSize(QSize(btn_size, btn_size))        
 
         #modeling & simulation
@@ -201,8 +201,10 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_sensorSignals.setIconSize(QSize(btn_size, btn_size))   
         self.btn_supervisory.setIcon(QIcon(os.path.join(plugin_dir, "icons/SupervisoryCTRL.png")))
         self.btn_supervisory.setIconSize(QSize(btn_size, btn_size))   
-        self.btn_climateVersionData.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.svg")))  
+        self.btn_climateVersionData.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.png")))  
         self.btn_climateVersionData.setIconSize(QSize(btn_size, btn_size))
+        self.btn_boreholeFieldSettings.setIcon(QIcon(os.path.join(plugin_dir, "icons/boreholefield.png")))  
+        self.btn_boreholeFieldSettings.setIconSize(QSize(btn_size, btn_size))
         
         self.btn_buildModel.setIcon(QIcon(os.path.join(plugin_dir, "icons/BuildModel.png")))
         self.btn_buildModel.setIconSize(QSize(btn_size, btn_size))   

@@ -1257,7 +1257,35 @@ class Districts:
             self.dlg_networkReport.show()
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
-            
+
+    def showBoreholeFieldSettings(self):
+        self.dictDB=getDBConnectionData(self.plugin_dir)
+        self.conn=dbConnect(self.dictDB,False)
+        if self.conn:
+            if self.dictDB['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                headers=["Id","Plant ID","Drilling (Borehole) Depth, m","Drilling (Borehole) Radius, m", "Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances",
+                    "Heat resistance between pipe and inner grout, (m2 K)/W","Heat resistance between pipe and earth, (m2 K)/W", "Heat resistance between inner and outer grout, (m2 K)/W","Heat resistance between grout and earth, (m2 K)/W","Heat resistance between groutring and earth, (m2 K)/W",
+                    "Heat capacity of ground, J/(kg K)","Heat transfer coefficient of ground, W/(m K)","Density of ground, kg/m3",
+                    "Heat capacity of grout, J/(kg K)","Heat transfer coefficient of grout, W/(m K)","Density of grout, kg/m3",
+                    "Radius of pipe, m","Thickness of Pipwe wall, m","Heat capacity of pipe, J/(kg K)","Heat transfer coefficient of pipe, W/(m K)",
+                    "Type of liquid","Freezing point of liquid, °C","Heat transfer coefficient of liquid, W/(m K)",
+                    "Lenght of surface casting, m","Heat transfer coefficient of surface layer, W/(m K)","Density of surface layer, kg/m3", "Heat capacity of surface layer, J/(kg K)",
+                    "MIR","Distance from the borehole to the boundary of the calculation region","Number of earth rings around borehole","Number of nodes in borehole","Total number of nodes in extended domain in z-direction",
+                    "Number of points in direction 1 of rectangulat result plane","Number of points in direction 2 of rectangulat result plane","Number of points in direction 3 of cubes","Timestep for output of temp field",
+                    "Yearly mean temperature, °C","Temperature gradient in ground, K"]
+                self.dlg_boreholeFieldSettings=TableDialog("Borehole field settings",headers,False,False,False,False)
+                self.dlg_boreholeFieldSettings.btn_ok.clicked.connect(lambda: self.setBoreholeFieldSettings(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_add.clicked.connect(lambda: self.addTableRow(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_boreholeFieldSettings))
+                self.loadedBoreholefieldsData=self.showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings)
+                self.dlg_boreholeFieldSettings.show()  
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info) 
+        
     def on_tab_changed(self,index):
         widget = self.dlg.tabWidget.widget(index)           # get the QWidget for the tab
         if widget.objectName() == "tab_import":  # compare with object name
@@ -1372,6 +1400,7 @@ class Districts:
             self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)
             self.dlg.btn_supervisory.clicked.connect(self.showSupervisoryCtrl)
             self.dlg.btn_climateVersionData.clicked.connect(self.show_setClimateVersionDialog)
+            self.dlg.btn_boreholeFieldSettings.clicked.connect(self.showBoreholeFieldSettings)
             self.dlg.btn_featureModels.clicked.connect(self.showFeatureModels)
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
