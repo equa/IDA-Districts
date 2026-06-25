@@ -72,7 +72,7 @@ def checkImportData(dlg,source,cur,config,feature_type):
             return False  
         
         #check if id exists in feature layer
-        sql="""SELECT id FROM {}.{} WHERE id={};""".format(config['versionName'],feature_type,id) # nosec B608
+        sql="""SELECT id FROM "{}".{} WHERE id={};""".format(config['versionName'],feature_type,id) # nosec B608
         cur.execute(sql)
         result=cur.fetchone()
         if not result:

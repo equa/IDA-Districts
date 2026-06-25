@@ -355,14 +355,14 @@ def buildBuildingModel(dlg):
                     sql="""SELECT 
   (ST_XMax(ST_Extent(geom))-ST_XMin(ST_Extent(geom)))/2 + ST_XMin(ST_Extent(geom)) AS x_center, 
   (ST_YMax(ST_Extent(geom))-ST_YMin(ST_Extent(geom)))/2 + ST_YMin(ST_Extent(geom)) AS y_center
-FROM {}.buildings
+FROM "{}".buildings
 WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     cur.execute(sql)
                     center=cur.fetchone()
                     #print(center)
                     
                     sql="""SELECT b.id,b_id,z_id,ST_AsText(geom) AS geom,z_height_m,z_bh_m, win_facade_ratio, z_construction, zt.name AS z_template, u.name AS room_unit 
-    FROM {}.buildings b, room_units u, zone_templates zt
+    FROM "{}".buildings b, room_units u, zone_templates zt
     WHERE b.submodel={} AND u.id=b.room_unit AND zt.id=b.z_template
     ORDER BY b_id,z_id;""".format(config['versionName'],submodel) # nosec B608
                     #print(sql)
@@ -370,7 +370,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     zones=cur.fetchall()
                     b_ids=set(str(zone["b_id"]) for zone in zones)
                     sql="""SELECT b.b_id,t.conn_bundle_type 
-    FROM {}.buildings b,{}.customers c, customer_templates t
+    FROM "{}".buildings b,"{}".customers c, customer_templates t
     WHERE b.b_id IN ({}) AND c.id=b.substation_id AND c.template=t.template
     GROUP BY t.conn_bundle_type, b.b_id;""".format(config['versionName'],config['versionName'],','.join(b_ids)) # nosec B608
                     cur.execute(sql)

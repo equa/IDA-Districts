@@ -158,14 +158,14 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             
             if self.dlg.rbtn_maxValue.isChecked():
                 sql="""WITH sub AS(
-    SELECT var_f.fid,max(var_ep."${}"-var_f."${}") as dvar FROM {}.{}_s_{}${} var_f, {}.energy_plant_s_{}${} var_ep 
+    SELECT var_f.fid,max(var_ep."${}"-var_f."${}") as dvar FROM {}.{}_s_{}${} var_f, "{}".energy_plant_s_{}${} var_ep 
         WHERE var_f.time=var_ep.time AND var_ep.fid={}{}
         GROUP BY var_f.fid
         ORDER BY dvar DESC
         LIMIT 1
 )
 SELECT sub.fid, sub.dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
-    FROM sub, {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, {}.energy_plant_s_{}${} var_ep1, {}.energy_plant_s_{}${} var_ep2
+    FROM sub, {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2
     WHERE var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_ep1."${}"-var_f1."${}" = sub.dvar AND sub.fid=var_f1.fid AND sub.fid=var_f2.fid{};""".format( # nosec B608
         quantity_var,quantity_var,self.config['versionName'],f_type,quantity_var,p_f_sup_ident,self.config['versionName'],quantity_var,p_ep_sup_ident,# nosec B608
         self.dlg.main_plant.currentText(),' AND var_f.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '', # nosec B608
@@ -174,7 +174,7 @@ SELECT sub.fid, sub.dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as re
         self.dlg.main_plant.currentText(), quantity_var, quantity_var, ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
             else:
                 sql="""SELECT var_f1.fid, var_ep1."${}" - var_f1."${}" AS dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
-    FROM {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, {}.energy_plant_s_{}${} var_ep1, {}.energy_plant_s_{}${} var_ep2
+    FROM {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2
     WHERE var_f1.time='{}' AND var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.fid = var_f2.fid {}
     ORDER BY dvar DESC
     LIMIT 1;""".format(quantity_var,quantity_var,quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
