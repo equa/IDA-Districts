@@ -1,6 +1,6 @@
 from qgis.PyQt.QtCore import QObject,pyqtSignal,Qt
 from qgis.PyQt import uic, QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import QTextBrowser,QDialog,QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
+from qgis.PyQt.QtWidgets import QTextEdit,QTextBrowser,QDialog,QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
 from qgis.utils import iface
 from qgis.core import Qgis
 from qgis.PyQt.QtGui import QIcon,QPixmap
@@ -355,7 +355,7 @@ def deleteTableRow (dlg):
         self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
             
 class TableDialog(QDialog):
-    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type=''):
+    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type='',info=False):
         """Constructor"""
         super().__init__()
         self.setWindowTitle(title)   
@@ -386,6 +386,12 @@ class TableDialog(QDialog):
             self.btn_saveAs.setIcon(QIcon(":/images/themes/default/mActionEditCopy.svg"))
             layout_buttons_table.addWidget(self.btn_saveAs)
             
+        #info
+        layout_info = QHBoxLayout()
+        if info:
+            self.textEdit=QTextEdit(tr('@default',info))
+            layout_info.addWidget(self.textEdit)
+            
         layout_buttons_table.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
         #Table
         layout_table = QHBoxLayout() 
@@ -407,6 +413,7 @@ class TableDialog(QDialog):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_info)
         layout_win.addLayout(layout_buttons_table)
         layout_win.addLayout(layout_table)
         layout_win.addLayout(layout_buttons)

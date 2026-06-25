@@ -11,21 +11,26 @@ from .invoke_network import WorkerBuildNetworkModel
 import pandas as pd
 import numpy as np
 
-def addTableRow(self,dlg):
+def addBoreholefieldTableRow(dlg,main):
     """Insert table row"""
     print('-------insert row---------------')
     dropdowns=[[20,'public','liquids','id','liquid']]
 
-    maxId=max([getMaxIdAcrossSchemas(self.dictDB,self.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
+    maxId=max([getMaxIdAcrossSchemas(main.config,main.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
     dlg.tableWidget.insertRow(0)
-    dropdownItems=getDropDownItems(self.cur,dropdowns)
+    dropdownItems=getDropDownItems(main.cur,dropdowns)
 
     item = QTableWidgetItem(str(maxId))
-    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+    try:
+        item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
+    except AttributeError:
+        item_is_editable = Qt.ItemIsEditable           # Qt5
+
+    item.setFlags(item.flags() & ~item_is_editable)
     dlg.tableWidget.setItem(0 , 0, item)
     
     comboBox = QComboBox()
-    comboBox.addItems([str(i['id']) for i in getTableIds(self.cur,self.dictDB['versionName'],'energy_plants','id')])
+    comboBox.addItems([str(i['id']) for i in getTableIds(main.cur,main.config['versionName'],'energy_plants','id')])
     dlg.tableWidget.setCellWidget(0, 1, comboBox) #plant id
     dlg.tableWidget.setItem(0,2,QTableWidgetItem('190')) #zhole
     dlg.tableWidget.setItem(0,3,QTableWidgetItem('0.0575')) #rhole
@@ -46,7 +51,13 @@ def addTableRow(self,dlg):
     dlg.tableWidget.setItem(0,18,QTableWidgetItem('2200')) #cppipe
     dlg.tableWidget.setItem(0,19,QTableWidgetItem('0.42')) #lambpipe
     comboBox = QComboBox()
-    comboBox.addItems(dropdownItems[20])
+    try:
+        items={dropdownItems[20][i].split(':')[0] : tr("@default",dropdownItems[20][i].split(':')[1]) for i in dropdownItems[20]}
+        # Add items to the comboBox, storing the original key as user data
+        for original_key, translated_text in items.items():
+            comboBox.addItem(translated_text, original_key) # The second argument is the userData
+    except:
+        comboBox.addItems(dropdownItems)
     dlg.tableWidget.setCellWidget(0, 20, comboBox) #liquid
     dlg.tableWidget.setItem(0,21,QTableWidgetItem('0')) #Tfreeze
     dlg.tableWidget.setItem(0,22,QTableWidgetItem('0.42')) #lambliq
@@ -66,7 +77,7 @@ def addTableRow(self,dlg):
     dlg.tableWidget.setItem(0,36,QTableWidgetItem('5')) #tmean
     dlg.tableWidget.setItem(0,37,QTableWidgetItem('0')) #geotgrad
 
-def setBoreholeFieldSettings(self,dlg):
+def setBoreholeFieldSettings(dlg):
     table=dlg.tableWidget
     boreholefieldsData={}
     
@@ -119,10 +130,10 @@ def setBoreholeFieldSettings(self,dlg):
     except Exception as e:
         self.iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
 
-def showBoreholeFieldSettingsData(self,dlg):
-    sql="""SELECT * FROM "{}".borehole_fields;""".format(self.dictDB['versionName'])
-    self.cur.execute(sql)
-    boreholes_data=self.cur.fetchall()
+def showBoreholeFieldSettingsData(dlg,main):
+    sql="""SELECT * FROM "{}".borehole_fields;""".format(main.config['versionName'])
+    main.cur.execute(sql)
+    boreholes_data=main.cur.fetchall()
     dropdowns=[[20,'public','liquids','id','liquid']]
     dlg.tableWidget.setRowCount(len(boreholes_data))
     boreholefieldsData={}
@@ -135,13 +146,13 @@ def showBoreholeFieldSettingsData(self,dlg):
             'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
             'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'mir': str(i['mir']),'rmax': str(i['rmax']),
             'nring': str(i['nring']),'nzhole': str(i['nzhole']),'nlayt': str(i['nlayt']),'n1': str(i['n1']),'n2': str(i['n2']),'n3': str(i['n3']),'toutput': str(i['toutput']),'tmean': str(i['tmean']),'geotgrad': str(i['geotgrad'])}
-        dropdownItems=getDropDownItems(self.cur,dropdowns)
+        dropdownItems=getDropDownItems(main.cur,dropdowns)
         
         item = QTableWidgetItem(str(i['id'])) #id
         item.setFlags(item.flags() & ~Qt.ItemIsEditable)
         dlg.tableWidget.setItem(counter,0,item)
         comboBox = QComboBox()
-        comboBox.addItems([str(ids['id']) for ids in getTableIds(self.cur,self.dictDB['versionName'],'energy_plants','id')])
+        comboBox.addItems([str(ids['id']) for ids in getTableIds(main.cur,main.config['versionName'],'energy_plants','id')])
         comboBox.setCurrentText(str(i['id']))
         dlg.tableWidget.setCellWidget(counter, 1, comboBox) #plant id
         dlg.tableWidget.setItem(counter,2,QTableWidgetItem(str(i['zhole']))) #zhole
@@ -165,8 +176,8 @@ def showBoreholeFieldSettingsData(self,dlg):
         comboBox = QComboBox()
         comboBox.addItems(dropdownItems[20])
         sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype'])
-        self.cur.execute(sql)
-        comboBox.setCurrentText(str(i['liqtype'])+':'+self.cur.fetchone()['liquid'])
+        main.cur.execute(sql)
+        comboBox.setCurrentText(str(i['liqtype'])+':'+main.cur.fetchone()['liquid'])
         dlg.tableWidget.setCellWidget(counter, 20, comboBox) #liquid
         dlg.tableWidget.setItem(counter,21,QTableWidgetItem(str(i['tfreeze']))) #tfreeze
         dlg.tableWidget.setItem(counter,22,QTableWidgetItem(str(i['lambliq']))) #lambliq
