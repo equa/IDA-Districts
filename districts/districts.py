@@ -488,7 +488,7 @@ class Districts:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
                 self.dlg_import=ImportGeoDataDlg(title=title,default_path=default_path)
                 self.dlg_import.btn_import.clicked.connect(lambda: ok_fn(self.dlg_import))
-                self.dlg_import.btn_cancel.clicked.connect(lambda: ok_fn(lambda: closeDialog(self.dlg_import)))
+                self.dlg_import.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_import))
                 
                 self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
                 self.dlg_import.show()

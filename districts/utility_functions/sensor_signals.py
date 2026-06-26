@@ -356,7 +356,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
 			WITH sub AS(
 			     --customer (type:1); temp,mass,p(measure:1,2,3) 
                 (SELECT s.sensor_id, f.id::text  AS feature_id, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM {}.customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
+                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
                             (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
@@ -369,7 +369,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
 				UNION
                 --plant (type:2); temp,mass,p(measure:1,2,3) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM {}.energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
+                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
                             (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
@@ -382,7 +382,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                 UNION
 				--customer (type:1); power(measure:4) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM {}.customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
+                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=1
@@ -391,7 +391,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
 				UNION
                 --plant (type:2); power(measure:4) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM {}.energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
+                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=2
@@ -400,28 +400,28 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                 UNION
 				--customer; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
-                        FROM  sensor_source s,{}.customers f
+                        FROM  sensor_source s,"{}".customers f
                         WHERE s.measure=5 AND s.type=1
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				UNION
 				--plant; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
-                        FROM  sensor_source s,{}.energy_plants f
+                        FROM  sensor_source s,"{}".energy_plants f
                         WHERE s.measure=5 AND s.type=2
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				--supervisory ctrl source ;customer target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
-                        FROM sensor_source s, sensor_target t,target_template t_t, {}.customers f
+                        FROM sensor_source s, sensor_target t,target_template t_t, "{}".customers f
                         WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=1
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
 				--supervisory ctrl source ;energy_plants target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
-                        FROM sensor_source s, sensor_target t,target_template t_t, {}.energy_plants f
+                        FROM sensor_source s, sensor_target t,target_template t_t, "{}".energy_plants f
                         WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=2
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
@@ -438,9 +438,9 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                                             (SELECT 1 AS type,template,'1'||':'||template::text||'_'||template_name AS template_name FROM customer_templates
                                             UNION
                                             SELECT 2 AS type,template,'2'||':'||template::text||'_'||template_name AS template_name FROM energy_plant_templates) at,
-                                            (SELECT 1 AS type,id::text AS feature_id,template FROM {}.customers
+                                            (SELECT 1 AS type,id::text AS feature_id,template FROM "{}".customers
                                             UNION
-                                            SELECT 2 AS type,id::text AS feature_id,template FROM {}.energy_plants) f
+                                            SELECT 2 AS type,id::text AS feature_id,template FROM "{}".energy_plants) f
                                         WHERE at.type=f.type AND at.template=f.template) at_names
             GROUP BY at_names.type,at_names.feature_id,at_names.template_name,sub.type,sub.sensor_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')) 
 	)
@@ -448,13 +448,13 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
         FROM sub,
             (--Customer target irefs
                 SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
-                FROM sensor_target t, {}.customers f
+                FROM sensor_target t, "{}".customers f
                 WHERE  t.type =1
                 GROUP BY t.sensor_id,t.type
             UNION
             --Energy plants target irefs
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
-                FROM sensor_target t, {}.energy_plants f
+                FROM sensor_target t, "{}".energy_plants f
                 WHERE  t.type =2
                 GROUP BY t.sensor_id,t.type
             UNION

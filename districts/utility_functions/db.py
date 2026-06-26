@@ -436,7 +436,7 @@ ORDER BY submodel;""".format(config['versionName'],config['versionName'],config[
 
 def getTemplateNamesFilteredByCustomerIds(cur,config,cids):
     sql="""SELECT c_t.template::text||'_'||c_t.template_name  AS template_name
-    FROM {}.customers c, customer_templates c_t
+    FROM "{}".customers c, customer_templates c_t
     WHERE c.id IN ({}) AND c.template=c_t.template
     GROUP BY c_t.template::text||'_'||c_t.template_name;""".format(config['versionName'],','.join([str(i) for i in cids])) # nosec B608
     cur.execute(sql)
@@ -444,13 +444,13 @@ def getTemplateNamesFilteredByCustomerIds(cur,config,cids):
     return template_names
 
 def getPlantIds(cur,config,network=None):
-    sql="""SELECT id FROM {}.energy_plants{};""".format(config['versionName'],'' if network==None else ' WHERE {} = ANY (network)'.format(network)) # nosec B608
+    sql="""SELECT id FROM "{}".energy_plants{};""".format(config['versionName'],'' if network==None else ' WHERE {} = ANY (network)'.format(network)) # nosec B608
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids
     
 def getLineIds(cur,config,network=None):
-    sql="""SELECT id FROM {}.lines{};""".format(config['versionName'],'' if network==None else ' WHERE network IN ({})'.format(','.join(network))) # nosec B608
+    sql="""SELECT id FROM "{}".lines{};""".format(config['versionName'],'' if network==None else ' WHERE network IN ({})'.format(','.join(network))) # nosec B608
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids

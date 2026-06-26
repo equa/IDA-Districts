@@ -313,7 +313,7 @@ UPDATE temp.lines l SET geom=sub.geom
             #Keep network height of previous topology
             sql="""Update temp.lines temp 
     SET geom=l.geom
-    FROM (SELECT geom FROM {}.lines) l
+    FROM (SELECT geom FROM "{}".lines) l
     WHERE ST_Equals(ST_Force2D(l.geom),ST_Force2D(temp.geom));""".format(version)  # nosec B608
             #print(sql) 
             self.cur.execute(sql)  # nosec B608
@@ -346,7 +346,7 @@ UPDATE temp.lines l SET geom=sub.geom
         self.cur.execute(sql)
         sql="""UPDATE temp.junctions SET type=2 WHERE n_connections=1;"""
         self.cur.execute(sql)
-        sql="""UPDATE temp.junctions a SET zeta=b.zeta FROM (SELECT zeta,geom FROM {}.junctions) b WHERE ST_dWithin(a.geom,b.geom,{});""".format(self.config['versionName'],self.tolerance) # nosec B608
+        sql="""UPDATE temp.junctions a SET zeta=b.zeta FROM (SELECT zeta,geom FROM "{}".junctions) b WHERE ST_dWithin(a.geom,b.geom,{});""".format(self.config['versionName'],self.tolerance) # nosec B608
         self.cur.execute(sql)
     
     def getAndCheckConnType(self,conn_types):

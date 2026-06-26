@@ -45,7 +45,7 @@ def setLoadAttribute(dlg,fid):
         attribute_name=dlg.comboBox_attribute.currentData()
     else:
         attribute_name=dlg.lineEdit_newAttribute.text()
-        sql+="""ALTER TABLE {}.customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)# nosec B608
+        sql+="""ALTER TABLE "{}".customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)# nosec B608
         
         layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
@@ -57,9 +57,9 @@ def setLoadAttribute(dlg,fid):
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
     sql+="""WITH sub AS(
-	SELECT b_id,substation_id,sum(ST_Area(geom))*{} AS load FROM {}.buildings GROUP BY b_id,substation_id
+	SELECT b_id,substation_id,sum(ST_Area(geom))*{} AS load FROM "{}".buildings GROUP BY b_id,substation_id
 )
-UPDATE {}.customers c SET {} = sub.load 
+UPDATE "{}".customers c SET {} = sub.load 
 	FROM sub
 	WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
     #print(sql)
@@ -76,7 +76,7 @@ def setGFAAttribute(dlg,fid):
         attribute_name=dlg.comboBox_attribute.currentData()
     else:
         attribute_name=dlg.lineEdit_newAttribute.text()
-        sql+="""ALTER TABLE {}.customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)# nosec B608
+        sql+="""ALTER TABLE "{}".customers ADD COLUMN "{}" NUMERIC;\n""".format(dlg.config['versionName'],attribute_name)# nosec B608
         
         layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
@@ -88,9 +88,9 @@ def setGFAAttribute(dlg,fid):
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
     sql+="""WITH sub AS(
-	SELECT b_id,substation_id,sum(ST_Area(geom)) AS gfa FROM {}.buildings GROUP BY b_id,substation_id
+	SELECT b_id,substation_id,sum(ST_Area(geom)) AS gfa FROM "{}".buildings GROUP BY b_id,substation_id
 )
-UPDATE {}.customers c SET {} = sub.gfa 
+UPDATE "{}".customers c SET {} = sub.gfa 
 	FROM sub
 	WHERE c.id=sub.substation_id{};""".format(dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
     #print(sql)
@@ -288,13 +288,16 @@ def treeItem_add(level, mdlIdx,dlg,main):
                 #Creating version --> new schema in project        
                 idBase=0
                 item = main.model.itemFromIndex(mdlIdx)
+
                 if item:
                     baseName=item.text()
                     sql="SELECT id FROM public.versionhandling WHERE name = '"+baseName+"';" # nosec B608
                     #print(sql)
                     main.cur.execute(sql)
                     for base in main.cur.fetchall():
-                        idBase = base['id']         
+                        idBase = base['id']    
+                else:
+                    baseName=''
                 sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\','+str(idBase)+',\''+description+'\');' # nosec B608
                 #print(sql)
                 main.cur.execute(sql)
@@ -313,7 +316,7 @@ def treeItem_add(level, mdlIdx,dlg,main):
                 main.config['versionName']=versionName
                 write_plugin_settings(main.config)
                 
-                createNewVersionFiles(main.config,main.plugin_dir)
+                copyVersionFiles(main.config,main.plugin_dir,baseName,versionName)
                 
                 loadVersion(main=main)
                 item=get_item_by_text(versionName,main)
@@ -339,6 +342,7 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
         if newVersionName:
             #Creating version --> new schema in project        
             item = main.model.itemFromIndex(mdlIdx)
+            baseName=item.text()
 
             sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\',0,\''+description+'\');' # nosec B608
             #print(sql)
@@ -351,12 +355,14 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
             auth_cfg = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(main.config["auth_id"], auth_cfg, True)
 
-            copy_schema(item.text(),versionName,main.config,main.cur,main.plugin_dir,auth_cfg.config("username"), auth_cfg.config("password"))
+            copy_schema(baseName,versionName,main.config,main.cur,main.plugin_dir,auth_cfg.config("username"), auth_cfg.config("password"))
             data=getVersionData(main.cur)
             importData(main.model,data)
             
             highlight_item(get_item_by_text(main.config['versionName'],main),main.model.invisibleRootItem())
-        
+            
+            copyVersionFiles(main.config,main.plugin_dir,baseName,versionName)
+            
             main.dlg.treeViewVersions.expandAll()   
             main.dlg.statusMessage.setText('New base version created: '+versionName)
             main.dlg.update_progress(100)
@@ -394,6 +400,7 @@ def treeItem_rename(level,mdlIdx,main,dlg):
                 sql = 'UPDATE public.versionhandling SET name= \''+newSchemaName+'\' WHERE name= \''+oldSchemaName+'\';'# nosec B608
                 #print(sql)
                 main.cur.execute(sql)
+                os.rename(main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+oldSchemaName, main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+newSchemaName)
             else:
                 iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=Qgis.Critical)
             sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'# nosec B608
@@ -407,6 +414,7 @@ def treeItem_rename(level,mdlIdx,main,dlg):
                 loadVersion(main=main)
             highlight_item(get_item_by_text(main.config['versionName'],main),main.model.invisibleRootItem())            
             main.dlg.treeViewVersions.expandAll()
+            
             closeDialog(dlg)
             
             main.dlg.statusMessage.setText(f'Rename verion "{oldSchemaName}" to "{versionName}" completed!')
@@ -550,6 +558,10 @@ def addBaseVersion(dlg,main):
     else:
         iface.messageBar().pushMessage("Error", "Please enter a version name!", level=Qgis.Critical)
 
+def copyVersionFiles(config,plugin_dir,base_name,new_name):
+    versions_dir=config['pathProjects']+'{}\\versions\\'.format(config['projectName'])
+    copy_tree_filter_extensions_and_folders(versions_dir+base_name,versions_dir+new_name,exclude_extensions=['prn'])
+    
 def createNewVersionFiles(config,plugin_dir):
     versions_dir=config['pathProjects']+'{}\\versions'.format(config['projectName'])
     createDir(versions_dir,config['versionName'])             
