@@ -13,7 +13,7 @@ import numpy as np
 
 def addBoreholefieldTableRow(dlg,main):
     """Insert table row"""
-    print('-------insert row---------------')
+    #print('-------insert row---------------')
     dropdowns=[[20,'public','liquids','id','liquid']]
 
     maxId=max([getMaxIdAcrossSchemas(main.config,main.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
@@ -77,58 +77,47 @@ def addBoreholefieldTableRow(dlg,main):
     dlg.tableWidget.setItem(0,36,QTableWidgetItem('5')) #tmean
     dlg.tableWidget.setItem(0,37,QTableWidgetItem('0')) #geotgrad
 
-def setBoreholeFieldSettings(dlg):
+def setBoreholeFieldSettings(dlg,main):
     table=dlg.tableWidget
     boreholefieldsData={}
     
     sql=""
     for row in range(dlg.tableWidget.rowCount()):
+        #print(row)
         boreholefieldsData[int(table.item(row, 0).text())]={'ep_id': dlg.tableWidget.cellWidget(row, 1).currentText(),'zhole': table.item(row,2).text(),'rhole': table.item(row,3).text(),'rb': table.item(row,4).text(),
             'rpipegrout': table.item(row,5).text(),'rpipeearth': table.item(row,6).text(),'rgroutgrout': table.item(row,7).text(),'rgroutearth': table.item(row,8).text(), 'rringearth': table.item(row,9).text(),
             'cpgrd': table.item(row,10).text(),'lambgrd': table.item(row,11).text(),'rhogrd': table.item(row,12).text(),'cpgrout': table.item(row,13).text(),
             'lambgrout': table.item(row,14).text(),'rhogrout': table.item(row,15).text(),'rpipe': table.item(row,16).text(),'thickpipe': table.item(row,17).text(),
-            'cppipe': table.item(row,18).text(),'lambpipe': table.item(row,19).text(),'liqtype': table.cellWidget(row, 20).currentText().split(':')[0],'tfreeze': table.item(row,21).text(),
+            'cppipe': table.item(row,18).text(),'lambpipe': table.item(row,19).text(),'liqtype': table.cellWidget(row, 20).currentData(),'tfreeze': table.item(row,21).text(),
             'lambliq': table.item(row,22).text(),'lcasting': table.item(row,23).text(),'lambda': table.item(row,24).text(),'rhosurface': table.item(row,25).text(),
             'cpsurface': table.item(row,26).text(),'mir': table.item(row,27).text(),'rmax': table.item(row,28).text(),'nring': table.item(row,29).text(),
             'nzhole': table.item(row,30).text(),'nlayt': table.item(row,31).text(),'n1': table.item(row,32).text(),'n2': table.item(row,33).text(),
             'n3': table.item(row,34).text(),'toutput': table.item(row,35).text(),'tmean': table.item(row,36).text(),'geotgrad': table.item(row,37).text()}
     
-    print(self.loadedBoreholefieldsData)
-    print(boreholefieldsData)
+    #print(boreholefieldsData)
     
-    #deleted
-    for key_loaded in self.loadedBoreholefieldsData:
-        if key_loaded not in boreholefieldsData: 
-            print('removed sensor')
-            sql+="""DELETE FROM "{}".borehole_fields WHERE id={};""".format(self.dictDB['versionName'],key_loaded)
+    sql="""TRUNCATE "{}".borehole_fields;""".format(main.config['versionName'])
     
     #added
     for key_table in boreholefieldsData:
-        if key_table not in self.loadedBoreholefieldsData: 
-            print('added field data')
-            sql+="""INSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});\n""".format(
-                self.dictDB['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
-                boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
-                boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['mir'],boreholefieldsData[key_table]['rmax'],
-                boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'],
-                boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'],
-                boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'],
-                boreholefieldsData[key_table]['rhogrout'],boreholefieldsData[key_table]['rpipe'],boreholefieldsData[key_table]['thickpipe'],
-                boreholefieldsData[key_table]['cppipe'],boreholefieldsData[key_table]['lambpipe'],boreholefieldsData[key_table]['lcasting'],boreholefieldsData[key_table]['lambda'],               
-                boreholefieldsData[key_table]['rhosurface'],boreholefieldsData[key_table]['cpsurface'],boreholefieldsData[key_table]['liqtype'],boreholefieldsData[key_table]['tfreeze'],               
-                boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad'])               
-        else:   
-            #Check for updated columns
-            for col in ['ep_id','zhole','rhole','rb','rpipeearth','rpipegrout','rringearth','rgroutearth','rgroutgrout','mir','rmax','nring','nzhole','nlayt','n1','n2','n3','toutput','cpgrd','lambgrd','rhogrd','cpgrout','lambgrout','rhogrout','rpipe','thickpipe','cppipe','lambpipe','lcasting','lambda','rhosurface','cpsurface','liqtype','tfreeze','lambliq','tmean','geotgrad']:
-                if self.loadedBoreholefieldsData[key_table][col]!=boreholefieldsData[key_table][col]:
-                    sql+="""UPDATE "{}".borehole_fields SET {} = {} WHERE id = {} ;\n""".format(self.dictDB['versionName'],col,boreholefieldsData[key_table][col],key_table)   
+        sql+="""\nINSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});""".format(
+            main.config['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
+            boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
+            boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['mir'],boreholefieldsData[key_table]['rmax'],
+            boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'],
+            boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'],
+            boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'],
+            boreholefieldsData[key_table]['rhogrout'],boreholefieldsData[key_table]['rpipe'],boreholefieldsData[key_table]['thickpipe'],
+            boreholefieldsData[key_table]['cppipe'],boreholefieldsData[key_table]['lambpipe'],boreholefieldsData[key_table]['lcasting'],boreholefieldsData[key_table]['lambda'],               
+            boreholefieldsData[key_table]['rhosurface'],boreholefieldsData[key_table]['cpsurface'],boreholefieldsData[key_table]['liqtype'],boreholefieldsData[key_table]['tfreeze'],               
+            boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad'])               
     
     try:
-        print(sql)
-        self.cur.execute(sql)
+        #print(sql)
+        main.cur.execute(sql)
         closeDialog(dlg)
     except Exception as e:
-        self.iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
 
 def showBoreholeFieldSettingsData(dlg,main):
     sql="""SELECT * FROM "{}".borehole_fields;""".format(main.config['versionName'])
@@ -139,8 +128,6 @@ def showBoreholeFieldSettingsData(dlg,main):
     boreholefieldsData={}
 
     for counter,i in enumerate(boreholes_data):
-        print(counter)
-        print(i)
         boreholefieldsData[i['id']]={'ep_id': str(i['id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
             'rgroutgrout': str(i['rgroutgrout']),'rringearth': str(i['rringearth']),'cpgrd': str(i['cpgrd']),'lambgrd': str(i['lambgrd']),'rhogrd': str(i['rhogrd']),'cpgrout': str(i['cpgrout']),'lambgrout': str(i['lambgrout']),
             'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
@@ -149,8 +136,11 @@ def showBoreholeFieldSettingsData(dlg,main):
         dropdownItems=getDropDownItems(main.cur,dropdowns)
         
         item = QTableWidgetItem(str(i['id'])) #id
-        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-        dlg.tableWidget.setItem(counter,0,item)
+        try:
+            item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
+        except AttributeError:
+            item_is_editable = Qt.ItemIsEditable           # Qt5 
+        dlg.tableWidget.setItem(counter,0,item)            
         comboBox = QComboBox()
         comboBox.addItems([str(ids['id']) for ids in getTableIds(main.cur,main.config['versionName'],'energy_plants','id')])
         comboBox.setCurrentText(str(i['id']))
@@ -174,10 +164,19 @@ def showBoreholeFieldSettingsData(dlg,main):
         dlg.tableWidget.setItem(counter,18,QTableWidgetItem(str(i['cppipe']))) #cppipe
         dlg.tableWidget.setItem(counter,19,QTableWidgetItem(str(i['lambpipe']))) #lambpipe
         comboBox = QComboBox()
-        comboBox.addItems(dropdownItems[20])
+        
+        try:
+            items={i : dropdownItems[20][i].split(':')[1] for i in dropdownItems[20]}
+            # Add items to the comboBox, storing the original key as user data
+            for original_key, translated_text in items.items():
+                comboBox.addItem(translated_text, original_key) # The second argument is the userData
+        except:
+            comboBox.addItems(dropdownItems)
+            
         sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype'])
         main.cur.execute(sql)
-        comboBox.setCurrentText(str(i['liqtype'])+':'+main.cur.fetchone()['liquid'])
+        comboBox.setCurrentText(main.cur.fetchone()['liquid'])
+
         dlg.tableWidget.setCellWidget(counter, 20, comboBox) #liquid
         dlg.tableWidget.setItem(counter,21,QTableWidgetItem(str(i['tfreeze']))) #tfreeze
         dlg.tableWidget.setItem(counter,22,QTableWidgetItem(str(i['lambliq']))) #lambliq

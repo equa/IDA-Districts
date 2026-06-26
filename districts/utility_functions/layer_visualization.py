@@ -7,6 +7,7 @@ from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
 from itertools import cycle
 
+import hashlib
 
 def setupCustomerLoadValue(config,plugin_dir,projectConfig):    
     feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
@@ -312,7 +313,7 @@ def setupVersionForm(cur,plugin_dir,config):
             
 def versionLayersAliasNames():
     """ alias names for version layers"""
-    for vlayerName in ['lines','customers','energy_plants','junctions','buildings','streets']:
+    for vlayerName in ['lines','customers','energy_plants','junctions','buildings','streets','boreholes']:
         vlayer=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))[0] 
         fields=vlayer.fields()
         for field in fields:
@@ -324,13 +325,22 @@ def removeLayer(layer_name):
         layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))[0]
         QgsProject.instance().removeMapLayer(layer)
 
+def color_for_value(value):
+    h = hashlib.md5(str(value).encode()).hexdigest()
+
+    hue = int(h[:8], 16) % 360
+    saturation = 180
+    value_brightness = 220
+
+    return QColor.fromHsv(hue, saturation, value_brightness)
+    
 def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
-    vlayerName='boreholes'
-    uri.setDataSource(version, vlayerName, "geom")
+    vlayerName=(tr('@default','boreholes'))
+    uri.setDataSource(version, 'boreholes', "geom")
     vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
     QgsProject.instance().addMapLayer(vlayer)  
     target_layer = QgsProject.instance().mapLayersByName(tr('@default','energy_plants'))[0]
-    config = {'AllowMulti': False,
+    layer_config = {'AllowMulti': False,
               'AllowNull': True,
               'FilterExpression': '',
               'Key': 'id',
@@ -339,7 +349,7 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
               'OrderByValue': False,
               'UseCompleter': False,
               'Value': 'id'}
-    widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
+    widget_setup = QgsEditorWidgetSetup('ValueRelation',layer_config)
     fields=vlayer.fields()
     field_idx = fields.indexOf('plant_id')
     vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
@@ -351,6 +361,30 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
 
     # Step 3: Set the widget for the field on the layer
     vlayer.setEditorWidgetSetup(field_idx, widget_setup)
+    
+    #categorization
+    if config['versionName']:
+        categories_list=getPlantIds(cur,config)
+        
+        field_name = "plant_id"
+
+        categories = []
+
+        for value in sorted(categories_list):
+            symbol = QgsSymbol.defaultSymbol(vlayer.geometryType())
+            symbol.setColor(color_for_value(value))
+
+            categories.append(
+                QgsRendererCategory(
+                    value,
+                    symbol,
+                    str(value)
+                )
+            )
+
+        renderer = QgsCategorizedSymbolRenderer(field_name, categories)
+
+        vlayer.setRenderer(renderer)
 
     # Step 3: Refresh the layer and form view
     vlayer.triggerRepaint()  # Refresh the layer to apply the changes
@@ -361,7 +395,7 @@ def removeLayers():
         if layer.name() in ['pipe_bundle_types','submodels',tr('@default','energy_plants'),tr('@default','customers'),'customer_templates','energy_plant_templates',
             'junction_types','junction_templates',tr('@default','junctions'),
             tr('@default','streets'), tr('@default','buildings'),'network','cosim',
-            tr('@default','lines'),'line_types','boreholes','borehole_fields',
+            tr('@default','lines'),'line_types',tr('@default','boreholes'),'borehole_fields',
             'pipematerial','lines_results_supply_temperature','customer_results_load']:
             QgsProject.instance().removeMapLayer(layer)
     iface.mapCanvas().refresh()

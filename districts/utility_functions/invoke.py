@@ -160,7 +160,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
 SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_center)::numeric,2) AS y, "group" FROM "{}".boreholes,sub WHERE plant_id={} AND mir=FALSE ORDER BY "group",id;""".format(config['versionName'],id,config['versionName'],id,config['versionName'],id) # nosec B608
                 cur.execute(sql)
                 boreholes=cur.fetchall()
-                #print(boreholes)
+                print(boreholes)
                 if boreholes:
                     x="#("+" ".join([str(i['x']) for i in boreholes])+")"
                     x_source="(:DEFAULT #S (MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ("+" ".join(['('+str(counter)+')' for counter,i in enumerate(boreholes,1)])+")) 2)"
@@ -191,7 +191,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype']) # nosec B608
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
-                    replaceDict={':FEATURE': {'GHX_MANY': {
+                    replaceDict={':FEATURE': {'Ghx_Many': {
                         #'X': {':V' : x, ':S': x_source},
                         'X': x,
                         'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,

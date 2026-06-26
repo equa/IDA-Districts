@@ -565,13 +565,13 @@
         <translation type="unfinished">Anz. Anschlüsse</translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="363"/>
+        <location filename="../utility_functions/layer_visualization.py" line="399"/>
         <source>@default</source>
         <comment>streets</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="373"/>
+        <location filename="../utility_functions/layer_visualization.py" line="409"/>
         <source>@default</source>
         <comment>junctions</comment>
         <translation type="unfinished"></translation>
@@ -610,7 +610,7 @@
         <translation type="unfinished">Straßen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="363"/>
+        <location filename="../utility_functions/layer_visualization.py" line="399"/>
         <source>@default</source>
         <comment>buildings</comment>
         <translation type="unfinished"></translation>
@@ -779,7 +779,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="18"/>
+        <location filename="../utility_functions/layer_visualization.py" line="19"/>
         <source>@default</source>
         <comment>set_load_attribute</comment>
         <translation type="unfinished"></translation>
@@ -1022,67 +1022,67 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="334"/>
+        <location filename="../utility_functions/translations.py" line="352"/>
         <source>import_plants_or_customers_from_layer</source>
         <translation type="unfinished">Anlagen oder Abnehmer aus Layer importieren</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="335"/>
+        <location filename="../utility_functions/translations.py" line="353"/>
         <source>import_network_topology_from_layer</source>
         <translation type="unfinished">Netztopologie aus Layer importieren</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="336"/>
+        <location filename="../utility_functions/translations.py" line="354"/>
         <source>network_layer</source>
         <translation type="unfinished">Netzlayer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="337"/>
+        <location filename="../utility_functions/translations.py" line="355"/>
         <source>point_layer</source>
         <translation type="unfinished">Punktlayer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="338"/>
+        <location filename="../utility_functions/translations.py" line="356"/>
         <source>extend_topology</source>
         <translation type="unfinished">Topologie erweitern</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="339"/>
+        <location filename="../utility_functions/translations.py" line="357"/>
         <source>truncate_existing_topology</source>
         <translation type="unfinished">Vorhandene Topologie löschen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="340"/>
+        <location filename="../utility_functions/translations.py" line="358"/>
         <source>layer_fields</source>
         <translation type="unfinished">Felder des Layers</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="341"/>
+        <location filename="../utility_functions/translations.py" line="359"/>
         <source>line_fields</source>
         <translation type="unfinished">Felder der Trasse</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="342"/>
+        <location filename="../utility_functions/translations.py" line="360"/>
         <source>feature_fields</source>
         <translation type="unfinished">Feature-Felder</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="343"/>
+        <location filename="../utility_functions/translations.py" line="361"/>
         <source>expression</source>
         <translation type="unfinished">Ausdruck</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="344"/>
+        <location filename="../utility_functions/translations.py" line="362"/>
         <source>fields</source>
         <translation type="unfinished">Felder</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="345"/>
+        <location filename="../utility_functions/translations.py" line="363"/>
         <source>map_layer_fields</source>
         <translation type="unfinished">Layer-Felder mappen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="346"/>
+        <location filename="../utility_functions/translations.py" line="364"/>
         <source>pipe_bundle_type_editor</source>
         <translation type="unfinished">Rohrbündel Editor</translation>
     </message>
@@ -1152,7 +1152,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/layer_visualization.py" line="37"/>
+        <location filename="../utility_functions/layer_visualization.py" line="38"/>
         <source>@default</source>
         <comment>set_gfa_attribute</comment>
         <translation type="unfinished"></translation>
@@ -1222,47 +1222,47 @@
         <translation type="unfinished">Beschreibung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="351"/>
+        <location filename="../utility_functions/translations.py" line="369"/>
         <source>title_feature_model_parameter_mapping</source>
         <translation type="unfinished">Feature-Modell-Parameterzuordnung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="352"/>
+        <location filename="../utility_functions/translations.py" line="370"/>
         <source>info_feature_parm_mapping</source>
         <translation type="unfinished">Info: Doppelklicken Sie auf das Feld, um es dem ausgewählten Mapping-Ausdruck zuzuordnen. Zulässige Operatoren sind: +, -, *, / und **. Zulässige Funktionen sind: str(), int(), float() und round().</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="353"/>
+        <location filename="../utility_functions/translations.py" line="371"/>
         <source>mapping_expression</source>
         <translation type="unfinished">Mapping Ausdruck</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="354"/>
+        <location filename="../utility_functions/translations.py" line="372"/>
         <source>mapping_direction</source>
         <translation type="unfinished">Zuordnungsrichtung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="355"/>
+        <location filename="../utility_functions/translations.py" line="373"/>
         <source>parameter_name</source>
         <translation type="unfinished">Parameter Name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="356"/>
+        <location filename="../utility_functions/translations.py" line="374"/>
         <source>model_name</source>
         <translation type="unfinished">Modell Name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="357"/>
+        <location filename="../utility_functions/translations.py" line="375"/>
         <source>macro_name</source>
         <translation type="unfinished">Macro Name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="379"/>
+        <location filename="../utility_functions/translations.py" line="397"/>
         <source>new_districts_project</source>
         <translation type="unfinished">Neues Districts Projekt</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="380"/>
+        <location filename="../utility_functions/translations.py" line="398"/>
         <source>project_name</source>
         <translation type="unfinished">Projekt Name</translation>
     </message>
@@ -1294,12 +1294,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="375"/>
+        <location filename="../utility_functions/translations.py" line="393"/>
         <source>delete_project</source>
         <translation type="unfinished">Projekt löschen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="376"/>
+        <location filename="../utility_functions/translations.py" line="394"/>
         <source>ask_delete_project</source>
         <translation type="unfinished">Soll das Projekt &quot;{}&quot; wirklich gelsöscht werden?</translation>
     </message>
@@ -1310,17 +1310,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="457"/>
+        <location filename="../utility_functions/translations.py" line="475"/>
         <source>no_db_connection</source>
         <translation type="unfinished">Keine Verbindung zur Datenbank!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="458"/>
+        <location filename="../utility_functions/translations.py" line="476"/>
         <source>no_project_selected</source>
         <translation type="unfinished">Es ist kein Projekt ausgewählt!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="459"/>
+        <location filename="../utility_functions/translations.py" line="477"/>
         <source>no_version_selected</source>
         <translation type="unfinished">Es ist keine Version ausgewählt!</translation>
     </message>
@@ -1343,12 +1343,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="460"/>
+        <location filename="../utility_functions/translations.py" line="478"/>
         <source>no_version_loaded</source>
         <translation type="unfinished">Bitte lade zuerst eine Projekt Version!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="461"/>
+        <location filename="../utility_functions/translations.py" line="479"/>
         <source>no_layer_selected</source>
         <translation type="unfinished">Bitte wähle zuerst einen Layer aus!</translation>
     </message>
@@ -1377,32 +1377,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="467"/>
+        <location filename="../utility_functions/translations.py" line="485"/>
         <source>version_loaded</source>
         <translation type="unfinished">Version &quot;{}&quot; wurde erfolgreich geladen!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="468"/>
+        <location filename="../utility_functions/translations.py" line="486"/>
         <source>project_loaded</source>
         <translation type="unfinished">Projekt &quot;{}&quot; wurde erfolgreich geladen!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="470"/>
+        <location filename="../utility_functions/translations.py" line="488"/>
         <source>db_connected</source>
         <translation type="unfinished">Verbunden mit DB</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="471"/>
+        <location filename="../utility_functions/translations.py" line="489"/>
         <source>db_disconnected</source>
         <translation type="unfinished">NIcht verbunden mit DB</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="383"/>
+        <location filename="../utility_functions/translations.py" line="401"/>
         <source>coordinate_system_srid</source>
         <translation type="unfinished">Koordinatensystem (SRID)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="384"/>
+        <location filename="../utility_functions/translations.py" line="402"/>
         <source>project_configuration_settings</source>
         <translation type="unfinished">Projektkonfigurationseinstellungen</translation>
     </message>
@@ -1431,22 +1431,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="360"/>
+        <location filename="../utility_functions/translations.py" line="378"/>
         <source>delete_version</source>
         <translation type="unfinished">Projekt Version löschen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="372"/>
+        <location filename="../utility_functions/translations.py" line="390"/>
         <source>ask_delete_version</source>
         <translation type="unfinished">Soll die Projekt Version &quot;{}&quot; wirklich gelöscht werden?</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="371"/>
+        <location filename="../utility_functions/translations.py" line="389"/>
         <source>add_base_version</source>
         <translation type="unfinished">Basisversion hinzufügen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="462"/>
+        <location filename="../utility_functions/translations.py" line="480"/>
         <source>no_item_selected</source>
         <translation type="unfinished">Bitte wähle ein Element aus!</translation>
     </message>
@@ -1477,17 +1477,17 @@
         <translation type="unfinished">Verzeichnis auswählen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="364"/>
+        <location filename="../utility_functions/translations.py" line="382"/>
         <source>import_districts_project_directory</source>
         <translation type="unfinished">Districts Projektverzeichnis wählen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="367"/>
+        <location filename="../utility_functions/translations.py" line="385"/>
         <source>export_project_settings</source>
         <translation type="unfinished">Projekt Exporteinstellungen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="368"/>
+        <location filename="../utility_functions/translations.py" line="386"/>
         <source>export</source>
         <translation type="unfinished">Export</translation>
     </message>
@@ -1498,12 +1498,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="472"/>
+        <location filename="../utility_functions/translations.py" line="490"/>
         <source>settings_saved</source>
         <translation type="unfinished">Einstellungen wurden erfolgreich aktualisiert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="473"/>
+        <location filename="../utility_functions/translations.py" line="491"/>
         <source>version_deleted</source>
         <translation type="unfinished">Version &quot;{}&quot; wurde erfolgreich gelöscht!</translation>
     </message>
@@ -1526,27 +1526,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="387"/>
+        <location filename="../utility_functions/translations.py" line="405"/>
         <source>drop_old_features</source>
         <translation type="unfinished">Alte Features verwerfen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="388"/>
+        <location filename="../utility_functions/translations.py" line="406"/>
         <source>osm_streets</source>
         <translation type="unfinished">Straßen von OSM</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="389"/>
+        <location filename="../utility_functions/translations.py" line="407"/>
         <source>osm_buildings</source>
         <translation type="unfinished">Gebäude von OSM</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="474"/>
+        <location filename="../utility_functions/translations.py" line="492"/>
         <source>import_completed</source>
         <translation type="unfinished">Import {} erfolgreich abgeschlossen!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="439"/>
+        <location filename="../utility_functions/translations.py" line="457"/>
         <source>elevation_data</source>
         <translation type="unfinished">Höhendaten</translation>
     </message>
@@ -1620,22 +1620,22 @@
         <translation type="unfinished">Alias</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="450"/>
+        <location filename="../utility_functions/translations.py" line="468"/>
         <source>import_measurement_data_into_DB</source>
         <translation type="unfinished">Messdaten in die Datenbank importieren</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="451"/>
+        <location filename="../utility_functions/translations.py" line="469"/>
         <source>data_interpolation_s</source>
         <translation type="unfinished">Dateninterpolation, s</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="452"/>
+        <location filename="../utility_functions/translations.py" line="470"/>
         <source>delete_data_selected_variables</source>
         <translation type="unfinished">Daten der ausgewählten Variablen löschen</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="453"/>
+        <location filename="../utility_functions/translations.py" line="471"/>
         <source>delete_data_selected_variables_present_feature_id</source>
         <translation type="unfinished">Daten der ausgewählten Variablen mit vorhandener Feature-ID löschen</translation>
     </message>
@@ -1646,7 +1646,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="454"/>
+        <location filename="../utility_functions/translations.py" line="472"/>
         <source>data_source</source>
         <translation type="unfinished">Datenquelle</translation>
     </message>
@@ -1705,32 +1705,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="442"/>
+        <location filename="../utility_functions/translations.py" line="460"/>
         <source>connections</source>
         <translation type="unfinished">Anschlüsse</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="443"/>
+        <location filename="../utility_functions/translations.py" line="461"/>
         <source>connection_id</source>
         <translation type="unfinished">Anschluss ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="444"/>
+        <location filename="../utility_functions/translations.py" line="462"/>
         <source>massflow_set_asboundary_condition</source>
         <translation type="unfinished">Massenstrom als Randbedingung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="445"/>
+        <location filename="../utility_functions/translations.py" line="463"/>
         <source>design_temperature</source>
         <translation type="unfinished">Auslegungstemperatur, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="446"/>
+        <location filename="../utility_functions/translations.py" line="464"/>
         <source>design_pressure</source>
         <translation type="unfinished">Auslegungsdruck, Pa</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="447"/>
+        <location filename="../utility_functions/translations.py" line="465"/>
         <source>design_massflow</source>
         <translation type="unfinished">Auslegungsmassenstrom, kg/s</translation>
     </message>
@@ -1921,102 +1921,102 @@
         <translation type="unfinished">Netze</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="392"/>
+        <location filename="../utility_functions/translations.py" line="410"/>
         <source>connection_types</source>
         <translation type="unfinished">Anschlusstyp</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="393"/>
+        <location filename="../utility_functions/translations.py" line="411"/>
         <source>connection_type_id</source>
         <translation type="unfinished">Anschlusstyp ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="397"/>
+        <location filename="../utility_functions/translations.py" line="415"/>
         <source>connection_bundles</source>
         <translation type="unfinished">Anschlussbündel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="398"/>
+        <location filename="../utility_functions/translations.py" line="416"/>
         <source>connection_bundle_id</source>
         <translation type="unfinished">Anschlussbündel ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="401"/>
+        <location filename="../utility_functions/translations.py" line="419"/>
         <source>pipe_bundle</source>
         <translation type="unfinished">Rohrbündel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="402"/>
+        <location filename="../utility_functions/translations.py" line="420"/>
         <source>pipe_bundle_id</source>
         <translation type="unfinished">Rohrbündel ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="403"/>
+        <location filename="../utility_functions/translations.py" line="421"/>
         <source>investment_costs</source>
         <translation type="unfinished">Investitionskosten, €/m Rohr</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="404"/>
+        <location filename="../utility_functions/translations.py" line="422"/>
         <source>operating_costs</source>
         <translation type="unfinished">Betriebskosten, €/(m Rohr * a)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="412"/>
+        <location filename="../utility_functions/translations.py" line="430"/>
         <source>pipes</source>
         <translation type="unfinished">Rohre</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="413"/>
+        <location filename="../utility_functions/translations.py" line="431"/>
         <source>pipe_id</source>
         <translation type="unfinished">Rohr ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="417"/>
+        <location filename="../utility_functions/translations.py" line="435"/>
         <source>pipe_costs</source>
         <translation type="unfinished">Kosten, €/m pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="415"/>
+        <location filename="../utility_functions/translations.py" line="433"/>
         <source>absolute_roughness</source>
         <translation type="unfinished">Absolute Rohrrauhigkeit, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="432"/>
+        <location filename="../utility_functions/translations.py" line="450"/>
         <source>materials</source>
         <translation type="unfinished">Materialien</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="433"/>
+        <location filename="../utility_functions/translations.py" line="451"/>
         <source>material_id</source>
         <translation type="unfinished">Material ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="434"/>
+        <location filename="../utility_functions/translations.py" line="452"/>
         <source>thermal_conductivity</source>
         <translation type="unfinished">Thermische Leitfähigkeit, W/(m*K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="435"/>
+        <location filename="../utility_functions/translations.py" line="453"/>
         <source>specific_heat</source>
         <translation type="unfinished">Spezifische Wärmekapazität, J/(kg*K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="436"/>
+        <location filename="../utility_functions/translations.py" line="454"/>
         <source>density</source>
         <translation type="unfinished">Dichte, kg/m3</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="425"/>
+        <location filename="../utility_functions/translations.py" line="443"/>
         <source>constructions</source>
         <translation type="unfinished">Konstruktion</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="426"/>
+        <location filename="../utility_functions/translations.py" line="444"/>
         <source>construction_id</source>
         <translation type="unfinished">Konstruktions ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="427"/>
+        <location filename="../utility_functions/translations.py" line="445"/>
         <source>thickness</source>
         <translation type="unfinished">Dicke, m</translation>
     </message>
@@ -2039,7 +2039,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="394"/>
+        <location filename="../utility_functions/translations.py" line="412"/>
         <source>connection_type_connections</source>
         <translation type="unfinished">Anschlusstyp</translation>
     </message>
@@ -2049,32 +2049,32 @@
         <translation type="obsolete">Anschlussbündel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="405"/>
+        <location filename="../utility_functions/translations.py" line="423"/>
         <source>x_coord</source>
         <translation type="unfinished">x, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="406"/>
+        <location filename="../utility_functions/translations.py" line="424"/>
         <source>y_coord</source>
         <translation type="unfinished">y, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="407"/>
+        <location filename="../utility_functions/translations.py" line="425"/>
         <source>ambient</source>
         <translation type="unfinished">Umgebung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="408"/>
+        <location filename="../utility_functions/translations.py" line="426"/>
         <source>bundle_type_conns</source>
         <translation type="unfinished">Anschlussbündel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="409"/>
+        <location filename="../utility_functions/translations.py" line="427"/>
         <source>bundle_pipes</source>
         <translation type="unfinished">Rohrbündel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="428"/>
+        <location filename="../utility_functions/translations.py" line="446"/>
         <source>pipe_layers</source>
         <translation type="unfinished">Konstruktion</translation>
     </message>
@@ -2103,17 +2103,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="420"/>
+        <location filename="../utility_functions/translations.py" line="438"/>
         <source>defaults_layer_lines</source>
         <translation type="unfinished">Vorgabewerte für Layer: &quot;Trasse&quot;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="421"/>
+        <location filename="../utility_functions/translations.py" line="439"/>
         <source>defaults_layer_customers</source>
         <translation type="unfinished">Vorgabewerte für Layer: &quot;Abnehmer&quot;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="422"/>
+        <location filename="../utility_functions/translations.py" line="440"/>
         <source>defaults_layer_energy_plants</source>
         <translation type="unfinished">Vorgabewerte für Layer: &quot;Energiezentralen&quot;</translation>
     </message>
@@ -2147,52 +2147,52 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="463"/>
+        <location filename="../utility_functions/translations.py" line="481"/>
         <source>please_enter_number_table_row</source>
         <translation type="unfinished">In Tabellenzeile {} muss eine Zahl eingegeben werden!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="464"/>
+        <location filename="../utility_functions/translations.py" line="482"/>
         <source>file_not_found</source>
         <translation type="unfinished">Die Datei &quot;{}&quot; konnte nicht gefunden werden!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="475"/>
+        <location filename="../utility_functions/translations.py" line="493"/>
         <source>connections_saved_successfully</source>
         <translation type="unfinished">Anschlüsse wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="476"/>
+        <location filename="../utility_functions/translations.py" line="494"/>
         <source>connection_types_saved_successfully</source>
         <translation type="unfinished">Anschlusstypen wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="477"/>
+        <location filename="../utility_functions/translations.py" line="495"/>
         <source>connection_bundles_saved_successfully</source>
         <translation type="unfinished">Anschlussbündel wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="478"/>
+        <location filename="../utility_functions/translations.py" line="496"/>
         <source>materials_saved_successfully</source>
         <translation type="unfinished">Materialien wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="479"/>
+        <location filename="../utility_functions/translations.py" line="497"/>
         <source>constructions_saved_successfully</source>
         <translation type="unfinished">Konstruktionen wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="480"/>
+        <location filename="../utility_functions/translations.py" line="498"/>
         <source>pipes_saved_successfully</source>
         <translation type="unfinished">Rohre wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="481"/>
+        <location filename="../utility_functions/translations.py" line="499"/>
         <source>pipe_bundles_saved_successfully</source>
         <translation type="unfinished">Rohrbündel wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="482"/>
+        <location filename="../utility_functions/translations.py" line="500"/>
         <source>data_saved_successfully</source>
         <translation type="unfinished">Daten wurden erfolgreich gespeichert!</translation>
     </message>
@@ -2215,27 +2215,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="414"/>
+        <location filename="../utility_functions/translations.py" line="432"/>
         <source>pipe_construction_id</source>
         <translation type="unfinished">Konstruktion ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="416"/>
+        <location filename="../utility_functions/translations.py" line="434"/>
         <source>inner_diameter</source>
         <translation type="unfinished">Rohrinnendurchmesser, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="347"/>
+        <location filename="../utility_functions/translations.py" line="365"/>
         <source>truncate_existing_layer</source>
         <translation type="unfinished">Layer leeren</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="348"/>
+        <location filename="../utility_functions/translations.py" line="366"/>
         <source>extend_layer</source>
         <translation type="unfinished">Layer erweitern</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="431"/>
+        <location filename="../utility_functions/translations.py" line="449"/>
         <source>material</source>
         <translation type="unfinished">Material</translation>
     </message>
@@ -3089,7 +3089,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="469"/>
+        <location filename="../utility_functions/translations.py" line="487"/>
         <source>project_deleted</source>
         <translation type="unfinished">Projekt &quot;{}&quot; wurde erfolgreich gelöscht!</translation>
     </message>
@@ -3322,187 +3322,187 @@
         <translation type="unfinished">Temperaturgradient im Erdreich, K</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="295"/>
+        <location filename="../utility_functions/translations.py" line="313"/>
         <source>epid</source>
         <translation type="unfinished">Energeizentrale ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="296"/>
+        <location filename="../utility_functions/translations.py" line="314"/>
         <source>drilling_depth</source>
         <translation type="unfinished">Bohrtiefe (Bohrloch), m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="297"/>
+        <location filename="../utility_functions/translations.py" line="315"/>
         <source>drilling_radius</source>
         <translation type="unfinished">Bohrradius (Bohrloch), m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="298"/>
+        <location filename="../utility_functions/translations.py" line="316"/>
         <source>borehole_heat_resistance</source>
         <translation type="unfinished">Wärmedurchlasswiderstand des Bohrlochs (RB). Wenn RB auf Null gesetzt ist, geben Sie detaillierte Wärmedurchlasswiderstände an.</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="299"/>
+        <location filename="../utility_functions/translations.py" line="317"/>
         <source>heat_resistance_between_pipe_innergrout</source>
         <translation type="unfinished">Wärmewiderstand zwischen Rohr und Innenmörtel, (m² K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="300"/>
+        <location filename="../utility_functions/translations.py" line="318"/>
         <source>heat_resistance_between_pipe_earth</source>
         <translation type="unfinished">Wärmewiderstand zwischen Rohr und Erde, (m² K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="301"/>
+        <location filename="../utility_functions/translations.py" line="319"/>
         <source>heat_resistance_between_innergrout_outergrout</source>
         <translation type="unfinished">Wärmewiderstand zwischen innerem und äußerem Mörtel, (m² K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="302"/>
+        <location filename="../utility_functions/translations.py" line="320"/>
         <source>heat_resistance_between_grout_earth</source>
         <translation type="unfinished">Wärmewiderstand zwischen Fugenmörtel und Erde, (m² K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="303"/>
+        <location filename="../utility_functions/translations.py" line="321"/>
         <source>heat_resistance_between_grouting_earth</source>
         <translation type="unfinished">Wärmewiderstand zwischen Fugenmörtel und Erde, (m² K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="304"/>
+        <location filename="../utility_functions/translations.py" line="322"/>
         <source>heat_capacity_ground</source>
         <translation type="unfinished">Wärmekapazität des Erdreichs, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="305"/>
+        <location filename="../utility_functions/translations.py" line="323"/>
         <source>heat_transfer_coefficient_ground</source>
         <translation type="unfinished">Wärmeübergangskoeffizient des Bodens, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="306"/>
+        <location filename="../utility_functions/translations.py" line="324"/>
         <source>density_ground</source>
         <translation type="unfinished">Dichte des Bodens, kg/m³</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="307"/>
+        <location filename="../utility_functions/translations.py" line="325"/>
         <source>heat_capacity_grout</source>
         <translation type="unfinished">Wärmekapazität von Fugenmörtel, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="308"/>
+        <location filename="../utility_functions/translations.py" line="326"/>
         <source>heat_transfer_coefficient_grout</source>
         <translation type="unfinished">Wärmeübergangskoeffizient von Fugenmörtel, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="309"/>
+        <location filename="../utility_functions/translations.py" line="327"/>
         <source>density_grout</source>
         <translation type="unfinished">Dichte des Mörtels, kg/m³</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="310"/>
+        <location filename="../utility_functions/translations.py" line="328"/>
         <source>radius_pipe</source>
         <translation type="unfinished">Rohrradius, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="311"/>
+        <location filename="../utility_functions/translations.py" line="329"/>
         <source>thickness_pipe_wall</source>
         <translation type="unfinished">Dicke der Rohrwand, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="312"/>
+        <location filename="../utility_functions/translations.py" line="330"/>
         <source>heat_capacity_pipe_wall</source>
         <translation type="unfinished">Wärmekapazität des Rohrs, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="313"/>
+        <location filename="../utility_functions/translations.py" line="331"/>
         <source>heat_transfer_coefficient_pipe</source>
         <translation type="unfinished">Wärmeübergangskoeffizient des Rohrs, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="314"/>
+        <location filename="../utility_functions/translations.py" line="332"/>
         <source>liquid_type</source>
         <translation type="unfinished">Art der Flüssigkeit</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="315"/>
+        <location filename="../utility_functions/translations.py" line="333"/>
         <source>liquid_freezing_point</source>
         <translation type="unfinished">Gefrierpunkt der Flüssigkeit, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="316"/>
+        <location filename="../utility_functions/translations.py" line="334"/>
         <source>heat_transfer_coefficient_liquid</source>
         <translation type="unfinished">Wärmeübergangskoeffizient von Flüssigkeiten, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="317"/>
+        <location filename="../utility_functions/translations.py" line="335"/>
         <source>length_surface_casting</source>
         <translation type="unfinished">Dicke der Oberflächenschicht, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="318"/>
+        <location filename="../utility_functions/translations.py" line="336"/>
         <source>heat_transfer_coefficient_surface</source>
         <translation type="unfinished">Wärmeübergangskoeffizient der Oberflächenschicht, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="319"/>
+        <location filename="../utility_functions/translations.py" line="337"/>
         <source>density_surface</source>
         <translation type="unfinished">Dichte der Oberflächenschicht, kg/m³</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="320"/>
+        <location filename="../utility_functions/translations.py" line="338"/>
         <source>heat_capacity_surface</source>
         <translation type="unfinished">Wärmekapazität der Oberflächenschicht, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="321"/>
+        <location filename="../utility_functions/translations.py" line="339"/>
         <source>mir</source>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="322"/>
+        <location filename="../utility_functions/translations.py" line="340"/>
         <source>distance_borehole_boundary</source>
         <translation type="unfinished">Abstand vom Bohrloch bis zur Grenze des Berechnungsgebiets</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="323"/>
+        <location filename="../utility_functions/translations.py" line="341"/>
         <source>no_earthrings</source>
         <translation type="unfinished">Anzahl der Erdungsringe um das Bohrloch</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="324"/>
+        <location filename="../utility_functions/translations.py" line="342"/>
         <source>no_borehole_nodes</source>
         <translation type="unfinished">Anzahl der Knoten im Bohrloch</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="325"/>
+        <location filename="../utility_functions/translations.py" line="343"/>
         <source>total_no_nodes_z</source>
         <translation type="unfinished">Gesamtzahl der Knoten in der erweiterten Domäne in z-Richtung</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="326"/>
+        <location filename="../utility_functions/translations.py" line="344"/>
         <source>no_points_direction1</source>
         <translation type="unfinished">Anzahl der Punkte in Richtung 1 der Würfel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="327"/>
+        <location filename="../utility_functions/translations.py" line="345"/>
         <source>no_points_direction2</source>
         <translation type="unfinished">Anzahl der Punkte in Richtung 2 der Würfel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="328"/>
+        <location filename="../utility_functions/translations.py" line="346"/>
         <source>no_points_direction3</source>
         <translation type="unfinished">Anzahl der Punkte in Richtung 3 der Würfel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="329"/>
+        <location filename="../utility_functions/translations.py" line="347"/>
         <source>timestep_outputs</source>
         <translation type="unfinished">Zeitschritt für die Ausgabe des Temperaturfeldes, hr</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="330"/>
+        <location filename="../utility_functions/translations.py" line="348"/>
         <source>yearly_mean_temp</source>
         <translation type="unfinished">Jahresdurchschnittstemperatur, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="331"/>
+        <location filename="../utility_functions/translations.py" line="349"/>
         <source>temp_gradient_ground</source>
         <translation type="unfinished">Temperaturgradient im Erdreich, K</translation>
     </message>
@@ -3513,7 +3513,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="294"/>
+        <location filename="../utility_functions/translations.py" line="312"/>
         <source>boreholefield_settings</source>
         <translation type="unfinished">Erdsondenfeld Parameterzuordnung</translation>
     </message>
@@ -3524,9 +3524,95 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="293"/>
+        <location filename="../utility_functions/translations.py" line="311"/>
         <source>info_boreholefield</source>
-        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt; &lt;p&gt;Pro &lt;strong&gt;Anlagenvorlage&lt;/strong&gt; kann maximal ein &lt;strong&gt;Erdsondenfeldmodell (ghx_many)&lt;/strong&gt; verwendet werden.&lt;/p&gt; &lt;p&gt;Die Koordinaten der einzelnen &lt;strong&gt;Erdsonden&lt;/strong&gt; können in dem Layer &lt;strong&gt;„Erdsonden“&lt;/strong&gt; festgelegt werden. Die Sonden lassen sich zu einem bestimmten &lt;strong&gt;Erdsondenfeld&lt;/strong&gt; gruppieren, wodurch die Geometrie und die zugehörigen Feldparameter automatisch mit der ausgewählten &lt;strong&gt;Energieanlage&lt;/strong&gt; verknüpft werden.&lt;/p&gt; &lt;/div&gt;</translation>
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt; &lt;p&gt;Pro &lt;strong&gt;Anlagenvorlage&lt;/strong&gt; kann maximal ein &lt;strong&gt;Erdsondenfeldmodell (&quot;Ghx_Many&quot;)&lt;/strong&gt; verwendet werden.&lt;/p&gt; &lt;p&gt;Die Koordinaten der einzelnen &lt;strong&gt;Erdsonden&lt;/strong&gt; können in dem Layer &lt;strong&gt;„Erdsonden“&lt;/strong&gt; festgelegt werden. Die Sonden lassen sich zu einem bestimmten &lt;strong&gt;Erdsondenfeld&lt;/strong&gt; gruppieren, wodurch die Geometrie und die zugehörigen Feldparameter automatisch mit der ausgewählten &lt;strong&gt;Energieanlage&lt;/strong&gt; verknüpft werden.&lt;/p&gt; &lt;/div&gt;</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/layer_visualization.py" line="400"/>
+        <source>@default</source>
+        <comment>boreholes</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="310"/>
+        <source>boreholes</source>
+        <translation type="unfinished">Erdsondenfelder</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="308"/>
+        <source>group</source>
+        <translation type="unfinished">Gruppe</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="309"/>
+        <source>plant_id</source>
+        <translation type="unfinished">Energiezentrale ID</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="293"/>
+        <source>Water</source>
+        <translation type="unfinished">Wasser</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="294"/>
+        <source>Freezium</source>
+        <translation type="unfinished">Freezium</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="295"/>
+        <source>Ethylene_Glycol</source>
+        <translation type="unfinished">Ethylenglykol</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="296"/>
+        <source>Propylene_Glycol</source>
+        <translation type="unfinished">Propylenglykol</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="297"/>
+        <source>Ethanol</source>
+        <translation type="unfinished">Ethanol</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="298"/>
+        <source>Methanol</source>
+        <translation type="unfinished">Methanol</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="299"/>
+        <source>Glycerol</source>
+        <translation type="unfinished">Glycerin</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="300"/>
+        <source>Ammonia</source>
+        <translation type="unfinished">Ammoniak</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="301"/>
+        <source>Potassium_Carbonate</source>
+        <translation type="unfinished">Kaliumcarbonat</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="302"/>
+        <source>Calcium_Chloride</source>
+        <translation type="unfinished">Kalziumchlorid</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="303"/>
+        <source>Magnesium_Chloride</source>
+        <translation type="unfinished">Magnesium Chloride</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="304"/>
+        <source>Sodium_Chloride</source>
+        <translation type="unfinished">Natriumchlorid</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="305"/>
+        <source>Potassium_Acetate</source>
+        <translation type="unfinished">Kaliumacetat</translation>
     </message>
 </context>
 <context>

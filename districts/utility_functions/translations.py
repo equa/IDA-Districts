@@ -289,7 +289,25 @@ def _register_translation_keys():
     tr("save_project_version_as")
     tr("project_version_name")
     
+    #liquids
+    tr("Water")
+    tr("Freezium")
+    tr("Ethylene_Glycol")
+    tr("Propylene_Glycol")
+    tr("Ethanol")
+    tr("Methanol")
+    tr("Glycerol")
+    tr("Ammonia")
+    tr("Potassium_Carbonate")
+    tr("Calcium_Chloride")
+    tr("Magnesium_Chloride")
+    tr("Sodium_Chloride")
+    tr("Potassium_Acetate")
+    
     #boreholefield dialog
+    tr("group")
+    tr("plant_id")
+    tr("boreholes")
     tr("info_boreholefield")
     tr("boreholefield_settings")
     tr("epid")

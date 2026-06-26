@@ -1274,7 +1274,7 @@ class Districts:
                     tr('@default',"yearly_mean_temp"),tr('@default',"temp_gradient_ground")]
                 info_boreholes=tr('@default',"info_boreholefield")
                 self.dlg_boreholeFieldSettings=TableDialog(tr('@default',"boreholefield_settings"),headers,False,False,False,False,info=info_boreholes)
-                self.dlg_boreholeFieldSettings.btn_ok.clicked.connect(lambda: setBoreholeFieldSettings(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_ok.clicked.connect(lambda: setBoreholeFieldSettings(self.dlg_boreholeFieldSettings,self))
                 self.dlg_boreholeFieldSettings.btn_add.clicked.connect(lambda: addBoreholefieldTableRow(self.dlg_boreholeFieldSettings,self))
                 self.dlg_boreholeFieldSettings.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_boreholeFieldSettings))
                 self.dlg_boreholeFieldSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_boreholeFieldSettings))
