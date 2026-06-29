@@ -4,6 +4,7 @@ from .topology import *
 from .files import *
 from .utility import *
 from .db import *
+from ..upgrade import *
 import os
 import numpy as np
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
@@ -48,17 +49,20 @@ class WorkerLoadVersion(QRunnable):
             self.signals.progress.emit(10)  
             #print(self.config['versionName'])
             
-            #version handling            
+            #version handling           
             
             #update triggers: delete last loaded versions triggers if exists and create new triggers
             dropDBTriggers(self.cur,self.config,lastLoad=True)
             dropDBTriggers(self.cur,self.config)
+            
+            upgradeVersionDB(self.cur,self.config)
+            
             insertDBTriggers(self.cur,self.config)
   
             self.config['lastVersionName']=self.config['versionName']            
             self.signals.progress.emit(100)            
         except Exception as e:
-            #print(f'error: {e}')
+            print(f'error: {e}')
             self.signals.error.emit("Loading version failed!") 
         finally:
             write_plugin_settings(self.config)

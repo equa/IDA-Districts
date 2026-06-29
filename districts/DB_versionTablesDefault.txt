@@ -111,6 +111,9 @@ CREATE TABLE "$versionName$".network
 (
   id serial,
   description text,
+  liq_type integer DEFAULT 1,
+  t_freeze numeric DEFAULT 0,
+  t_ref numeric DEFAULT 60,
   CONSTRAINT network_pkey PRIMARY KEY (id)
 );
 

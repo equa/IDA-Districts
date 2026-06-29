@@ -989,6 +989,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         layout_network_settings_labels.addWidget(label_conntype)
         self.dp_recalc =QCheckBox(self.tr('recalculate_supply_pressure_value_with_dp_min'))
         layout_network_settings_labels.addWidget(self.dp_recalc)
+
         
         #input
         layout_network_settings_values=QVBoxLayout()
@@ -1016,6 +1017,9 @@ class IDADistrictsPathReportsDialog(QDialog):
         layout_network_settings.addLayout(layout_network_settings_labels)
         layout_network_settings.addLayout(layout_network_settings_values)
         
+        self.geothetic_p =QCheckBox(self.tr('show_geothetic_pressure'))
+        self.geothetic_p.setChecked(True)
+        
         #buttons
         layout_btn_list = QHBoxLayout()
         self.btn_addID=QPushButton(self.tr("add_id"))
@@ -1030,6 +1034,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         layout_path.addLayout(layout_rbtn_path)  
         layout_path.addWidget(self.listWidget_ids)
         layout_path.addLayout(layout_network_settings)
+        layout_path.addWidget(self.geothetic_p)
         layout_path.addLayout(layout_btn_list)
 
         

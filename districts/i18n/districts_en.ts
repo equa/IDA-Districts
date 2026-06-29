@@ -154,7 +154,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="494"/>
+        <location filename="../utility_functions/dialog.py" line="504"/>
         <source>@default</source>
         <comment>check_all_items</comment>
         <translation type="unfinished"></translation>
@@ -757,7 +757,7 @@
         <translation type="unfinished">Ideal heat source</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="805"/>
+        <location filename="../ida_resources.py" line="829"/>
         <source>@default</source>
         <comment>no_selection</comment>
         <translation type="unfinished"></translation>
@@ -889,7 +889,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1025"/>
+        <location filename="../ida_mosim_dialog.py" line="1026"/>
         <source>@default</source>
         <comment>fields</comment>
         <translation type="unfinished"></translation>
@@ -901,7 +901,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_pp_dialog.py" line="1421"/>
+        <location filename="../ida_pp_dialog.py" line="1422"/>
         <source>@default</source>
         <comment>disconnect</comment>
         <translation type="unfinished"></translation>
@@ -919,7 +919,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="395"/>
+        <location filename="../utility_functions/dialog.py" line="405"/>
         <source>@default</source>
         <comment>cancel</comment>
         <translation type="unfinished"></translation>
@@ -1117,7 +1117,7 @@
         <translation type="unfinished">Disconnect</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="393"/>
+        <location filename="../utility_functions/dialog.py" line="403"/>
         <source>@default</source>
         <comment>ok</comment>
         <translation type="unfinished"></translation>
@@ -1188,55 +1188,55 @@
         <translation type="unfinished">Set gross floor area field</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1006"/>
+        <location filename="../ida_mosim_dialog.py" line="1007"/>
         <source>@default</source>
         <comment>title_feature_model_parameter_mapping</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1031"/>
+        <location filename="../ida_mosim_dialog.py" line="1032"/>
         <source>@default</source>
         <comment>info_feature_parm_mapping</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="278"/>
+        <location filename="../ida_resources.py" line="302"/>
         <source>@default</source>
         <comment>id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1048"/>
+        <location filename="../ida_mosim_dialog.py" line="1049"/>
         <source>@default</source>
         <comment>mapping_expression</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1048"/>
+        <location filename="../ida_mosim_dialog.py" line="1049"/>
         <source>@default</source>
         <comment>mapping_direction</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1048"/>
+        <location filename="../ida_mosim_dialog.py" line="1049"/>
         <source>@default</source>
         <comment>parameter_name</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1048"/>
+        <location filename="../ida_mosim_dialog.py" line="1049"/>
         <source>@default</source>
         <comment>model_name</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1048"/>
+        <location filename="../ida_mosim_dialog.py" line="1049"/>
         <source>@default</source>
         <comment>macro_name</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="278"/>
+        <location filename="../ida_resources.py" line="302"/>
         <source>@default</source>
         <comment>description</comment>
         <translation type="unfinished"></translation>
@@ -1313,13 +1313,13 @@
         <translation type="unfinished">Ok</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="609"/>
+        <location filename="../districts.py" line="611"/>
         <source>@default</source>
         <comment>delete_project</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="610"/>
+        <location filename="../districts.py" line="612"/>
         <source>@default</source>
         <comment>ask_delete_project</comment>
         <translation type="unfinished"></translation>
@@ -1350,7 +1350,7 @@
         <translation type="unfinished">No version selected!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/db.py" line="743"/>
+        <location filename="../utility_functions/db.py" line="744"/>
         <source>@default</source>
         <comment>no_db_connection</comment>
         <translation type="unfinished"></translation>
@@ -1362,7 +1362,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="616"/>
+        <location filename="../districts.py" line="618"/>
         <source>@default</source>
         <comment>no_project_selected</comment>
         <translation type="unfinished"></translation>
@@ -1384,19 +1384,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="957"/>
+        <location filename="../districts.py" line="961"/>
         <source>@default</source>
         <comment>project_loaded</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="987"/>
+        <location filename="../districts.py" line="991"/>
         <source>@default</source>
         <comment>db_connected</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="991"/>
+        <location filename="../districts.py" line="995"/>
         <source>@default</source>
         <comment>db_disconnected</comment>
         <translation type="unfinished"></translation>
@@ -1517,7 +1517,7 @@
         <translation type="unfinished">Export</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="916"/>
+        <location filename="../districts.py" line="920"/>
         <source>@default</source>
         <comment>settings_saved</comment>
         <translation type="unfinished"></translation>
@@ -1533,19 +1533,19 @@
         <translation type="unfinished">Version &quot;{}&quot; deleted successfully!</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1318"/>
+        <location filename="../districts.py" line="1340"/>
         <source>@default</source>
         <comment>osm_streets</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1319"/>
+        <location filename="../districts.py" line="1341"/>
         <source>@default</source>
         <comment>osm_buildings</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1320"/>
+        <location filename="../districts.py" line="1342"/>
         <source>@default</source>
         <comment>elevation_data</comment>
         <translation type="unfinished"></translation>
@@ -1617,7 +1617,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1206"/>
+        <location filename="../ida_rv_dialog.py" line="1211"/>
         <source>@default</source>
         <comment>data_interpolation_s</comment>
         <translation type="unfinished"></translation>
@@ -1676,43 +1676,43 @@
         <translation type="unfinished">Data source</translation>
     </message>
     <message>
-        <location filename="../ida_pp_dialog.py" line="1410"/>
+        <location filename="../ida_pp_dialog.py" line="1411"/>
         <source>@default</source>
         <comment>connections</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="760"/>
+        <location filename="../districts.py" line="762"/>
         <source>@default</source>
         <comment>connection_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="764"/>
+        <location filename="../districts.py" line="766"/>
         <source>@default</source>
         <comment>type</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="739"/>
+        <location filename="../districts.py" line="741"/>
         <source>@default</source>
         <comment>massflow_set_asboundary_condition</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="739"/>
+        <location filename="../districts.py" line="741"/>
         <source>@default</source>
         <comment>design_temperature</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="739"/>
+        <location filename="../districts.py" line="741"/>
         <source>@default</source>
         <comment>design_pressure</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="739"/>
+        <location filename="../districts.py" line="741"/>
         <source>@default</source>
         <comment>design_massflow</comment>
         <translation type="unfinished"></translation>
@@ -1787,79 +1787,79 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="760"/>
+        <location filename="../districts.py" line="762"/>
         <source>@default</source>
         <comment>connection_type_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_pp_dialog.py" line="1410"/>
+        <location filename="../ida_pp_dialog.py" line="1411"/>
         <source>@default</source>
         <comment>sequence</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="278"/>
+        <location filename="../ida_resources.py" line="302"/>
         <source>@default</source>
         <comment>connection_bundles</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="764"/>
+        <location filename="../districts.py" line="766"/>
         <source>@default</source>
         <comment>connection_bundle_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>pipe_bundle_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>investment_costs</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>operating_costs</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>x_coord</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>y_coord</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>ambient</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="772"/>
+        <location filename="../districts.py" line="774"/>
         <source>@default</source>
         <comment>materials</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="780"/>
+        <location filename="../districts.py" line="782"/>
         <source>@default</source>
         <comment>name</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="772"/>
+        <location filename="../districts.py" line="774"/>
         <source>@default</source>
         <comment>thermal_conductivity</comment>
         <translation type="unfinished"></translation>
@@ -1877,7 +1877,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="776"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>construction_id</comment>
         <translation type="unfinished"></translation>
@@ -1895,7 +1895,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="780"/>
+        <location filename="../districts.py" line="782"/>
         <source>@default</source>
         <comment>pipes</comment>
         <translation type="unfinished"></translation>
@@ -1913,13 +1913,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="780"/>
+        <location filename="../districts.py" line="782"/>
         <source>@default</source>
         <comment>pipe_construction_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="780"/>
+        <location filename="../districts.py" line="782"/>
         <source>@default</source>
         <comment>pipe_costs</comment>
         <translation type="unfinished"></translation>
@@ -2052,13 +2052,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="768"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>pipe_id</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="776"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>constructions</comment>
         <translation type="unfinished"></translation>
@@ -2094,25 +2094,25 @@
         <translation type="unfinished">Constructions</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="706"/>
+        <location filename="../districts.py" line="708"/>
         <source>@default</source>
         <comment>defaults_layer_lines</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="717"/>
+        <location filename="../districts.py" line="719"/>
         <source>@default</source>
         <comment>defaults_layer_customers</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="278"/>
+        <location filename="../ida_resources.py" line="302"/>
         <source>@default</source>
         <comment>template</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="727"/>
+        <location filename="../districts.py" line="729"/>
         <source>@default</source>
         <comment>defaults_layer_energy_plants</comment>
         <translation type="unfinished"></translation>
@@ -2133,7 +2133,7 @@
         <translation type="unfinished">Defaults for layer: &quot;Energy plants&quot;</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="285"/>
+        <location filename="../ida_resources.py" line="309"/>
         <source>@default</source>
         <comment>templates</comment>
         <translation type="unfinished"></translation>
@@ -2150,13 +2150,13 @@
         <translation type="unfinished">Templates</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="642"/>
+        <location filename="../ida_resources.py" line="666"/>
         <source>@default</source>
         <comment>file_not_found!</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="661"/>
+        <location filename="../ida_resources.py" line="685"/>
         <source>@default</source>
         <comment>please_enter_number_table_row</comment>
         <translation type="unfinished"></translation>
@@ -2212,13 +2212,13 @@
         <translation type="unfinished">Data saved successfully!</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="816"/>
+        <location filename="../ida_resources.py" line="840"/>
         <source>@default</source>
         <comment>data_saved_successfully</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="653"/>
+        <location filename="../ida_resources.py" line="677"/>
         <source>@default</source>
         <comment>connections_saved_successfully</comment>
         <translation type="unfinished"></translation>
@@ -3076,7 +3076,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ida_pp_dialog.py" line="1417"/>
+        <location filename="../ida_pp_dialog.py" line="1418"/>
         <source>@default</source>
         <comment>connect</comment>
         <translation type="unfinished"></translation>
@@ -3092,7 +3092,7 @@
         <translation type="unfinished">Connect</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="784"/>
+        <location filename="../ida_ph.py" line="796"/>
         <source>@default</source>
         <comment>version_loaded</comment>
         <translation type="unfinished"></translation>
@@ -3103,7 +3103,7 @@
         <translation type="unfinished">Simulation results</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="660"/>
+        <location filename="../ida_ph.py" line="672"/>
         <source>@default</source>
         <comment>project_deleted</comment>
         <translation type="unfinished"></translation>
@@ -3114,7 +3114,7 @@
         <translation type="unfinished">Project &quot;{}&quot; is deleted!</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="581"/>
+        <location filename="../districts.py" line="583"/>
         <source>@default</source>
         <comment>import_districts_project_zip</comment>
         <translation type="unfinished"></translation>
@@ -4538,50 +4538,55 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">Recalculate supply pressure value with dp min, bar</translation>
     </message>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1021"/>
+        <location filename="../ida_rv_dialog.py" line="1025"/>
         <source>add_id</source>
         <translation type="unfinished">Add ID</translation>
     </message>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1022"/>
+        <location filename="../ida_rv_dialog.py" line="1026"/>
         <source>add _elected_ids_from_map</source>
         <translation type="unfinished">Add selected ID`s from map</translation>
     </message>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1023"/>
+        <location filename="../ida_rv_dialog.py" line="1027"/>
         <source>delete_ids</source>
         <translation type="unfinished">Delete ID`s</translation>
+    </message>
+    <message>
+        <location filename="../ida_rv_dialog.py" line="1020"/>
+        <source>show_geothetic_pressure</source>
+        <translation type="unfinished">Geothetic pressure</translation>
     </message>
 </context>
 <context>
     <name>IDADistrictsPleaseContactDialog</name>
     <message>
-        <location filename="../utility_functions/dialog.py" line="65"/>
+        <location filename="../utility_functions/dialog.py" line="75"/>
         <source>ida_districts_not_available</source>
         <translation type="unfinished">IDA Districts not available</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="81"/>
+        <location filename="../utility_functions/dialog.py" line="91"/>
         <source>ida_districts_is_not_installed</source>
         <translation type="unfinished">IDA Districts is not installed</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="95"/>
+        <location filename="../utility_functions/dialog.py" line="105"/>
         <source>this_functionality_cannot_currently_be_used_because_ida_districts_is_not_installed</source>
         <translation type="unfinished">This functionality cannot currently be used because IDA Districts is not installed.</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="95"/>
+        <location filename="../utility_functions/dialog.py" line="105"/>
         <source>please_contact_equa_or_install_ida_districts_to_use_this_functionality</source>
         <translation type="unfinished">Please contact EQUA or install IDA Districts to use this functionality.</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="95"/>
+        <location filename="../utility_functions/dialog.py" line="105"/>
         <source>more_information</source>
         <translation type="unfinished">More information</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="113"/>
+        <location filename="../utility_functions/dialog.py" line="123"/>
         <source>close</source>
         <translation type="unfinished">Close</translation>
     </message>
@@ -4589,37 +4594,37 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>InvokeFeaturesDlg</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1271"/>
+        <location filename="../ida_mosim_dialog.py" line="1272"/>
         <source>invoke_feature_models_from_template</source>
         <translation type="unfinished">Invoke feature models from template</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1279"/>
+        <location filename="../ida_mosim_dialog.py" line="1280"/>
         <source>invoke_selected_feature</source>
         <translation type="unfinished">Invoke selected feature</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1282"/>
+        <location filename="../ida_mosim_dialog.py" line="1283"/>
         <source>invoke_all_features</source>
         <translation type="unfinished">Invoke all features</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1296"/>
+        <location filename="../ida_mosim_dialog.py" line="1297"/>
         <source>feature_is_invoked</source>
         <translation type="unfinished">Feature is invoked</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1302"/>
+        <location filename="../ida_mosim_dialog.py" line="1303"/>
         <source>open_invoked_feature</source>
         <translation type="unfinished">Open invoked feature</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1304"/>
+        <location filename="../ida_mosim_dialog.py" line="1305"/>
         <source>simulate_invoked_features</source>
         <translation type="unfinished">Simulate invoked features</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1306"/>
+        <location filename="../ida_mosim_dialog.py" line="1307"/>
         <source>plot_selected_features_load_energy</source>
         <translation type="unfinished">Plot selected features load and energy</translation>
     </message>
@@ -4627,17 +4632,17 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>LoadResultsDialog</name>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1190"/>
+        <location filename="../ida_rv_dialog.py" line="1195"/>
         <source>load_simulation_results</source>
         <translation type="unfinished">Load simulation results</translation>
     </message>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1215"/>
+        <location filename="../ida_rv_dialog.py" line="1220"/>
         <source>load_results</source>
         <translation type="unfinished">Load results</translation>
     </message>
     <message>
-        <location filename="../ida_rv_dialog.py" line="1196"/>
+        <location filename="../ida_rv_dialog.py" line="1201"/>
         <source>submodels</source>
         <translation type="unfinished">Model</translation>
     </message>
@@ -4658,114 +4663,114 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>ModellingSettings</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1382"/>
+        <location filename="../ida_mosim_dialog.py" line="1383"/>
         <source>modelling_settings</source>
         <translation type="unfinished">Modeling settings</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1387"/>
+        <location filename="../ida_mosim_dialog.py" line="1388"/>
         <source>finite_difference_pipe_model</source>
         <translation type="unfinished">Finite difference pipe model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1395"/>
+        <location filename="../ida_mosim_dialog.py" line="1396"/>
         <source>meter_per_node</source>
         <translation type="unfinished">Meter per node, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1419"/>
+        <location filename="../ida_mosim_dialog.py" line="1420"/>
         <source>node_volume</source>
         <translation type="unfinished">Junction, volume, m3</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1435"/>
+        <location filename="../ida_mosim_dialog.py" line="1436"/>
         <source>ambient_temperatur_settings</source>
         <translation type="unfinished">Ambient temperatur settings</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1449"/>
+        <location filename="../ida_mosim_dialog.py" line="1450"/>
         <source>ground_thermal_conductivity</source>
         <translation type="unfinished">Thermal conductivity of the soil/trench, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1452"/>
+        <location filename="../ida_mosim_dialog.py" line="1453"/>
         <source>ground_surface_layer_temperature_model</source>
         <translation type="unfinished">Ground surface layer temperature model</translation>
     </message>
     <message>
         <location filename="../ida_mosim_dialog.py" line="1456"/>
         <source>annual_mean_temperature</source>
-        <translation type="unfinished">Annual mean temperature, °C</translation>
+        <translation type="obsolete">Annual mean temperature, °C</translation>
     </message>
     <message>
         <location filename="../ida_mosim_dialog.py" line="1462"/>
         <source>phase_shift_of_monthly_minimum_temperatur</source>
-        <translation type="unfinished">Phase shift of monthly minimum temperatur, days</translation>
+        <translation type="obsolete">Phase shift of monthly minimum temperatur, days</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1465"/>
+        <location filename="../ida_mosim_dialog.py" line="1457"/>
         <source>surface_layer_density</source>
         <translation type="unfinished">Surface layer density, kg/m3</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1468"/>
+        <location filename="../ida_mosim_dialog.py" line="1460"/>
         <source>specific_heat_capacity_surface_layer</source>
         <translation type="unfinished">Specific heat capacity of the surface layer, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1471"/>
+        <location filename="../ida_mosim_dialog.py" line="1463"/>
         <source>thermal_conductivity_surface_layer</source>
         <translation type="unfinished">Thermal conductivity surface layer, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1474"/>
+        <location filename="../ida_mosim_dialog.py" line="1466"/>
         <source>surface_layer_depth</source>
         <translation type="unfinished">Surface layer thickness, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1478"/>
+        <location filename="../ida_mosim_dialog.py" line="1470"/>
         <source>ground_temperatur_timeseries</source>
         <translation type="unfinished">Ground temperatur timeseries</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1482"/>
+        <location filename="../ida_mosim_dialog.py" line="1474"/>
         <source>constant_ground_temperatur</source>
         <translation type="unfinished">Constant ground temperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1541"/>
+        <location filename="../ida_mosim_dialog.py" line="1524"/>
         <source>duct_model</source>
         <translation type="unfinished">Duct model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1544"/>
+        <location filename="../ida_mosim_dialog.py" line="1527"/>
         <source>duct_temperatur_timeseries</source>
         <translation type="unfinished">Duct temperatur timeseries</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1547"/>
+        <location filename="../ida_mosim_dialog.py" line="1530"/>
         <source>constant_duct_temperatur</source>
         <translation type="unfinished">Constant duct temperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1571"/>
+        <location filename="../ida_mosim_dialog.py" line="1554"/>
         <source>ambient_air_temperatur</source>
         <translation type="unfinished">AAmbient air temperature</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1579"/>
+        <location filename="../ida_mosim_dialog.py" line="1562"/>
         <source>ambient_air_model</source>
         <translation type="unfinished">Ambient air model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1411"/>
+        <location filename="../ida_mosim_dialog.py" line="1412"/>
         <source>node_model</source>
         <translation type="unfinished">Junction model</translation>
     </message>
     <message>
         <location filename="../ida_mosim_dialog.py" line="1459"/>
         <source>daily_mean_temperature_amplitude</source>
-        <translation type="unfinished">Daily mean temperature amplitude, K</translation>
+        <translation type="obsolete">Daily mean temperature amplitude, K</translation>
     </message>
 </context>
 <context>
