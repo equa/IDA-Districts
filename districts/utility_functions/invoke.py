@@ -158,9 +158,10 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
         LEFT JOIN sub ON true WHERE plant_id={} GROUP BY sub.mir_counter, sub.mir_point
 )
 SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_center)::numeric,2) AS y, "group" FROM "{}".boreholes,sub WHERE plant_id={} AND mir=FALSE ORDER BY "group",id;""".format(config['versionName'],id,config['versionName'],id,config['versionName'],id) # nosec B608
+                #print(sql)
                 cur.execute(sql)
                 boreholes=cur.fetchall()
-                print(boreholes)
+                #print(boreholes)
                 if boreholes:
                     x="#("+" ".join([str(i['x']) for i in boreholes])+")"
                     x_source="(:DEFAULT #S (MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ("+" ".join(['('+str(counter)+')' for counter,i in enumerate(boreholes,1)])+")) 2)"

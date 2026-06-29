@@ -133,17 +133,18 @@ def showBoreholeFieldSettingsData(dlg,main):
             'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
             'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'mir': str(i['mir']),'rmax': str(i['rmax']),
             'nring': str(i['nring']),'nzhole': str(i['nzhole']),'nlayt': str(i['nlayt']),'n1': str(i['n1']),'n2': str(i['n2']),'n3': str(i['n3']),'toutput': str(i['toutput']),'tmean': str(i['tmean']),'geotgrad': str(i['geotgrad'])}
-        dropdownItems=getDropDownItems(main.cur,dropdowns)
         
         item = QTableWidgetItem(str(i['id'])) #id
         try:
             item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
         except AttributeError:
             item_is_editable = Qt.ItemIsEditable           # Qt5 
+        item.setFlags(item.flags() & ~item_is_editable)
+
         dlg.tableWidget.setItem(counter,0,item)            
         comboBox = QComboBox()
         comboBox.addItems([str(ids['id']) for ids in getTableIds(main.cur,main.config['versionName'],'energy_plants','id')])
-        comboBox.setCurrentText(str(i['id']))
+        comboBox.setCurrentText(str(i['ep_id']))
         dlg.tableWidget.setCellWidget(counter, 1, comboBox) #plant id
         dlg.tableWidget.setItem(counter,2,QTableWidgetItem(str(i['zhole']))) #zhole
         dlg.tableWidget.setItem(counter,3,QTableWidgetItem(str(i['rhole']))) #rhole
@@ -163,8 +164,9 @@ def showBoreholeFieldSettingsData(dlg,main):
         dlg.tableWidget.setItem(counter,17,QTableWidgetItem(str(i['thickpipe']))) #thickpipe
         dlg.tableWidget.setItem(counter,18,QTableWidgetItem(str(i['cppipe']))) #cppipe
         dlg.tableWidget.setItem(counter,19,QTableWidgetItem(str(i['lambpipe']))) #lambpipe
-        comboBox = QComboBox()
         
+        comboBox = QComboBox()
+        dropdownItems=getDropDownItems(main.cur,dropdowns)
         try:
             items={i : dropdownItems[20][i].split(':')[1] for i in dropdownItems[20]}
             # Add items to the comboBox, storing the original key as user data
