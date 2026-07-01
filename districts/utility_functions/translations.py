@@ -288,6 +288,9 @@ def _register_translation_keys():
     #save as version dialogs
     tr("save_project_version_as")
     tr("project_version_name")
+
+    #network dialog
+    tr("t_ref")
     
     #liquids
     tr("Water")

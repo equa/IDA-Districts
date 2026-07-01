@@ -789,7 +789,7 @@ class Districts:
         if self.conn:
             headers=[tr('@default','id'),tr('@default','liquid_type'),tr('@default','liquid_freezing_point'),tr('@default','t_ref'),tr('@default','description')]
             columns='(id,liq_type,t_freeze,t_ref,description)'
-            show_TableDialog(main=self,title=tr('@default','networks'),table='"{}".network'.format(self.config['versionName']),headers=headers,columns=columns,ok_fn=updateNetworkDependingFields,ok_fn_arg=[self.cur,self.config],deactivated=[]) 
+            show_TableDialog(main=self,title=tr('@default','networks'),table='"{}".network'.format(self.config['versionName']),headers=headers,columns=columns,ok_fn=loadFeatureLayer,ok_fn_arg=[self.config['versionName'],self.config,self.plugin_dir,'lines',self.cur],deactivated=[],dropdowns=[[1,'public','liquids','id','liquid']]) 
 
     def pipeLayingAlgorithm(self):
         #print('--pipeLayingAlgorithm--')

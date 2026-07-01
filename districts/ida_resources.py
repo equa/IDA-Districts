@@ -563,6 +563,8 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
         dlg.btn_open.clicked.connect(lambda: openFn(main,table,columns,dropdowns,dlg,dlg.tableWidget.currentRow(),openFnArg,trace=trace))
     if importFn:
         dlg.btn_import.clicked.connect(lambda: importFn(dlg,table,openFnArg,dropdowns))
+    print(table)
+    print(ok_fn_arg)
     dlg.btn_ok.clicked.connect(lambda: saveTable(main.config,dlg,table,columns,dropdowns,openFnArg,[],ok_fn,ok_fn_arg,trace=trace,main=main))
     dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
     dlg.btn_delete.clicked.connect(lambda: deleteTableRowTrace(dlg,trace))
@@ -638,7 +640,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
     delIfNotInDBIds(table,openFnArg,main.cur)
     if ok_fn:
         #print('----ok-fn---')
-        ok_fn(ok_fn_arg[0],ok_fn_arg[1])
+        ok_fn(*ok_fn_arg)
         
     if trace =='building_template':
         #print(dlg.traceTableValues)

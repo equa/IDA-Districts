@@ -440,8 +440,10 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
         for vlayerName in ['energy_plants','customers','lines','junctions']:  
             #print('------')
             #print(vlayerName)
-            categories=featureLayerGroups(vlayerName,cur)
-            ids=featureLayerGroupIds(vlayerName,cur)
+            categories=featureLayerGroups(vlayerName,cur,config)
+            #print(categories)
+            ids=featureLayerGroupIds(vlayerName,cur,config)
+            #print(ids)
 
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
@@ -458,7 +460,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
 
 
             categorized_renderer = QgsCategorizedSymbolRenderer()            
-            cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else 'type'
+            cat_colmn_name='template' if vlayerName in ['energy_plants','customers'] else ('network' if vlayerName=='lines' else 'type')
             categorized_renderer.setClassAttribute(cat_colmn_name) 
             colors = [
                 "#e31a1c",  # red
@@ -478,7 +480,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
                         symbol.setSize(2)
                     svgStyle = {}
                     dir_icon=plugin_dir+'/icons/{}/'.format(vlayerName)
-                    svg_fname=dir_icon+ categories[category]+'.svg'
+                    svg_fname=dir_icon+ str(categories[category])+'.svg'
                     if os.path.exists(svg_fname):
                         svgStyle['name'] = svg_fname
                     else:
@@ -527,22 +529,24 @@ def updateNetworkDependingFields(cur,config):
     except:
         pass
     
-def featureLayerGroups(vlayerName,cur):
+def featureLayerGroups(vlayerName,cur,config):
     try:
-        colmn='template_name' if vlayerName in ['customers','energy_plants'] else 'type'
-        table='template' if vlayerName in ['customers','energy_plants'] else 'type'
-        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table) # nosec B608
-        #print(sql)
+        colmn='template_name' if vlayerName in ['customers','energy_plants'] else ('id' if vlayerName=='lines' else 'type')
+        table='{}_templates'.format(vlayerName[:-1]) if vlayerName in ['customers','energy_plants'] else ('"{}".network'.format(config['versionName']) if vlayerName=='lines' else 'junction_types')
+        sql="""SELECT {} FROM {} ORDER BY id;""".format(colmn,table) # nosec B608
         cur.execute(sql)
-        return {tr('@default',i[colmn]):i[colmn] for i in cur.fetchall()}
+        if vlayerName in ['customers','energy_plants','junctions']:
+            return {tr('@default',i[colmn]):i[colmn] for i in cur.fetchall()}
+        else:
+            return {tr('@default','network')+': '+str(i[colmn]) : i[colmn] for i in cur.fetchall()}
     except:
         return {}
     
-def featureLayerGroupIds(vlayerName,cur):
+def featureLayerGroupIds(vlayerName,cur,config):
     try:
         colmn='template' if vlayerName in ['customers','energy_plants'] else 'id'
-        table='template' if vlayerName in ['customers','energy_plants'] else 'type'
-        sql="""SELECT {} FROM {}_{}s ORDER BY id;""".format(colmn,vlayerName[:-1],table) # nosec B608
+        table='{}_templates'.format(vlayerName[:-1]) if vlayerName in ['customers','energy_plants'] else ('"{}".network'.format(config['versionName']) if vlayerName=='lines' else 'junction_types')
+        sql="""SELECT {} FROM {} ORDER BY id;""".format(colmn,table) # nosec B608
         #print(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]    
@@ -552,8 +556,9 @@ def featureLayerGroupIds(vlayerName,cur):
 def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
     #print('load feature layer')
     #print(vlayerName)
-    categories=featureLayerGroups(vlayerName,cur)
-    ids=featureLayerGroupIds(vlayerName,cur)
+    removeLayer(vlayerName)
+    categories=featureLayerGroups(vlayerName,cur,config)
+    ids=featureLayerGroupIds(vlayerName,cur,config)
     
     uri = QgsDataSourceUri()
     auth_cfg = QgsAuthMethodConfig()
