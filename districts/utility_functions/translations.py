@@ -19,6 +19,7 @@ def _register_translation_keys():
     tr("templates")
     tr("ids")
     tr("simulation_results")
+    tr("check_special_characters")
     
     #project
     tr("project")
@@ -288,6 +289,9 @@ def _register_translation_keys():
     #save as version dialogs
     tr("save_project_version_as")
     tr("project_version_name")
+
+    #network dialog
+    tr("t_ref")
     
     #liquids
     tr("Water")

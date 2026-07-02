@@ -1042,3 +1042,18 @@ def getTableNumericAttr(cur,config,feature,withoutID=False):
     #print(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]
+
+def getDBColumnInfo(cur,schema,table):
+    sql="""SELECT
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = '{}'
+  AND table_name = '{}'
+ORDER BY ordinal_position;""".format(schema,table)
+    #print(sql)
+    cur.execute(sql)
+    return {i['column_name']: {'data_type': i['data_type'],'column_default': i['column_default']} for i in cur.fetchall()}
+

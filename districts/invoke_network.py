@@ -345,11 +345,16 @@ class InvokeNetworkModel:
            c.counter, 
            ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,
            ST_AsText(ST_StartPoint(l.geom)) AS point_start,
-           ST_AsText(ST_EndPoint(l.geom)) AS point_end
+           ST_AsText(ST_EndPoint(l.geom)) AS point_end,
+           n.t_ref, n.t_freeze, liq.liquid
     FROM "{}".lines l
     JOIN (SELECT count(*) AS counter, pipe_bundle_type_id
           FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
       ON c.pipe_bundle_type_id = l.pipe_bundle_type_id
+    JOIN "{}".network n
+      ON l.network=n.id
+    JOIN liquids liq
+      ON n.liq_type=liq.id
     JOIN (SELECT l.id, sum(j.zeta/2) AS zeta_j
           FROM "{}".lines l
           JOIN "{}".junction_connections jc ON jc.lid = l.id
@@ -366,27 +371,32 @@ all_lines AS (
            ST_asText(ST_LineInterpolatePoint(l.geom,0.5)) AS point_pipe,
            ST_AsText(ST_StartPoint(l.geom)) AS point_start,
            ST_AsText(ST_EndPoint(l.geom)) AS point_end,
-           l.zeta
+           l.zeta,
+           n.t_ref, n.t_freeze, liq.liquid
     FROM "{}".lines l
     JOIN (SELECT count(*) AS counter, pipe_bundle_type_id
           FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c
       ON c.pipe_bundle_type_id = l.pipe_bundle_type_id
+    JOIN "{}".network n
+      ON l.network=n.id
+    JOIN liquids liq
+      ON n.liq_type=liq.id
     WHERE {} = ANY (l.submodel) AND l.network IN ({})
 ),
 merged AS (
     -- compare without zeta
-    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end
+    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end, t_ref, t_freeze, liquid
     FROM all_lines
     EXCEPT
-    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end
+    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end, t_ref, t_freeze, liquid
     FROM sub
     
     UNION
-    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end
+    SELECT id, length, height_diff, pipe_bundle_type_id, counter, point_pipe, point_start, point_end, t_ref, t_freeze, liquid
     FROM sub
 )
 -- finally, re-attach the correct zeta:
-SELECT m.id, m.length, m.height_diff,
+SELECT m.id, m.length, m.height_diff, m.t_ref,m.t_freeze,m.liquid,
        COALESCE(s.zeta, a.zeta, 0) AS zeta,
        m.pipe_bundle_type_id, m.counter,
        m.point_pipe, m.point_start, m.point_end
@@ -394,8 +404,8 @@ FROM merged m
 LEFT JOIN sub s ON s.id = m.id
 LEFT JOIN all_lines a ON a.id = m.id
 ORDER BY m.id;
-""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'], submodel,','.join([str(i) for i in networks])) # nosec B608
-        #print(sql)
+""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks])) # nosec B608
+        print(sql)
 
         self.cur.execute(sql)
         i=1
@@ -485,6 +495,9 @@ ORDER BY m.id;
  ((RECORD :N |pipen|)
   (:PAR :N |k| :V #2A({}))
   (:PAR :N |h| :V #({}))
+  (:PAR :N |liqType| :V #({}))
+  (:PAR :N |TFreeze| :V #({}))
+  (:PAR :N |TliqRef| :V #({}))
   (:PAR :N |dPipe| :V #({}))
   (:PAR :N |aPipe| :V #({}))
   (:PAR :N |cpPipe| :V #({}))
@@ -506,6 +519,9 @@ ORDER BY m.id;
                                                 1 if zeta else 0,
                                                 ' '.join(['('+str(zeta)+')' for i in dPipes if zeta]),
                                                 ' '.join([str(pipe_bundle['height_diff']) for i in dPipes]),
+                                                ' '.join(['|'+str(pipe_bundle['liquid'])+'|' for i in dPipes]),
+                                                ' '.join([str(pipe_bundle['t_freeze']) for i in dPipes]),
+                                                ' '.join([str(pipe_bundle['t_ref']) for i in dPipes]),
                                                 ' '.join([str(i) for i in dPipes]),
                                                 ' '.join([i['thickness'] for i in pipe]),
                                                 ' '.join([i['cp'] for i in pipe]),

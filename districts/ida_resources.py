@@ -329,6 +329,12 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     """" Save table to DB an close dialog"""
     #print('Save table content to DB an close dialog')
     #print(trace)
+    
+    for traceValue in dlg.traceTableValues:
+        if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
+            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=Qgis.Info)
+            return False
+                
     table_name="_".join(table.split('_')[0:-1])
     if trace in ['conn_type_trace','bt_conns_trace']:
         oldConnValues_dict={}
@@ -638,7 +644,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
     delIfNotInDBIds(table,openFnArg,main.cur)
     if ok_fn:
         #print('----ok-fn---')
-        ok_fn(ok_fn_arg[0],ok_fn_arg[1])
+        ok_fn(*ok_fn_arg)
         
     if trace =='building_template':
         #print(dlg.traceTableValues)
