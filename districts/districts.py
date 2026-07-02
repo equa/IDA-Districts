@@ -787,10 +787,15 @@ class Districts:
 
     def manageNetworks(self):
         if self.conn:
-            headers=[tr('@default','id'),tr('@default','liquid_type'),tr('@default','liquid_freezing_point'),tr('@default','t_ref'),tr('@default','description')]
-            columns='(id,liq_type,t_freeze,t_ref,description)'
-            show_TableDialog(main=self,title=tr('@default','networks'),table='"{}".network'.format(self.config['versionName']),headers=headers,columns=columns,ok_fn=loadFeatureLayer,ok_fn_arg=[self.config['versionName'],self.config,self.plugin_dir,'lines',self.cur],deactivated=[],dropdowns=[[1,'public','liquids','id','liquid']]) 
-
+            if self.config['versionName']:
+                headers=[tr('@default','id'),tr('@default','liquid_type'),tr('@default','liquid_freezing_point'),tr('@default','t_ref'),tr('@default','description')]
+                columns='(id,liq_type,t_freeze,t_ref,description)'
+                show_TableDialog(main=self,title=tr('@default','networks'),table='"{}".network'.format(self.config['versionName']),headers=headers,columns=columns,ok_fn=loadFeatureLayer,ok_fn_arg=[self.config['versionName'],self.config,self.plugin_dir,'lines',self.cur],deactivated=[],dropdowns=[[1,'public','liquids','id','liquid']]) 
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)   
+            
     def pipeLayingAlgorithm(self):
         #print('--pipeLayingAlgorithm--')
         if self.conn:
