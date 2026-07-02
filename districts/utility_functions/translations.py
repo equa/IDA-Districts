@@ -19,6 +19,7 @@ def _register_translation_keys():
     tr("templates")
     tr("ids")
     tr("simulation_results")
+    tr("check_special_characters")
     
     #project
     tr("project")

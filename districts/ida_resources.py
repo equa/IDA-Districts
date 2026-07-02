@@ -329,6 +329,12 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     """" Save table to DB an close dialog"""
     #print('Save table content to DB an close dialog')
     #print(trace)
+    
+    for traceValue in dlg.traceTableValues:
+        if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
+            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=Qgis.Info)
+            return False
+                
     table_name="_".join(table.split('_')[0:-1])
     if trace in ['conn_type_trace','bt_conns_trace']:
         oldConnValues_dict={}
@@ -563,8 +569,6 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
         dlg.btn_open.clicked.connect(lambda: openFn(main,table,columns,dropdowns,dlg,dlg.tableWidget.currentRow(),openFnArg,trace=trace))
     if importFn:
         dlg.btn_import.clicked.connect(lambda: importFn(dlg,table,openFnArg,dropdowns))
-    print(table)
-    print(ok_fn_arg)
     dlg.btn_ok.clicked.connect(lambda: saveTable(main.config,dlg,table,columns,dropdowns,openFnArg,[],ok_fn,ok_fn_arg,trace=trace,main=main))
     dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
     dlg.btn_delete.clicked.connect(lambda: deleteTableRowTrace(dlg,trace))

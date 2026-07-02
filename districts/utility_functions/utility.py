@@ -19,6 +19,14 @@ import ntpath
 import ast
 import operator as op
 
+def checkSpecialCharacters(s):
+    if re.search(r'[^a-zA-Z0-9\s()_]', s):
+        #print("Contains special characters")
+        return True
+    else:
+        #print("No special characters")
+        return False
+    
 operators = {
     ast.Add: op.add,
     ast.Sub: op.sub,
