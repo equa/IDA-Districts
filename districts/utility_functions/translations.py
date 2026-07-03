@@ -248,6 +248,11 @@ def _register_translation_keys():
     tr("maximum_supply_temperature")
     tr("keep_unconnected_customers")
 
+    #path_report
+    tr("simulation_time")
+    tr("dt_substation")
+    tr("pressure_loss")
+    
     #topology dialog
     tr("snapping_tolerance")
     tr("redraw_submodel_polygon")

@@ -63,6 +63,13 @@ def getNetworks(cur,config):
     networks=[str(i['network']) for i in cur.fetchall()]
     return networks
     
+def getNetworkInfo(cur,config,network):
+    sql="""SELECT n.id AS network, liq_type, liquid, t_freeze, t_ref 
+        FROM "{}".network n, liquids l
+        WHERE l.id=n.liq_type AND n.id={};""".format(config['versionName'],network) # nosec B608
+    cur.execute(sql)
+    return cur.fetchone()
+    
 def setDistrictsModelerVersion2DB(cur,config):
     getDistrictsModelerVersion(config)
     try:
@@ -502,6 +509,11 @@ def checkTableNameExists(cur,config,table):
     );""".format(config['versionName'],table)# nosec B608
     cur.execute(sql)
     return cur.fetchone()['exists']
+    
+def getNetworkFromLineId(cur,config,lid):
+    sql="""SELECT network FROM "{}".lines WHERE id={};""".format(config['versionName'],lid)# nosec B608
+    cur.execute(sql)
+    return cur.fetchone()['network']
    
 def getProjectVersionNames(cur):
     sql="SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname NOT IN ('topology','temp','streets_help_topo','public','pg_toast','pg_catalog','information_schema');"# nosec B608
