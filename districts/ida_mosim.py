@@ -65,17 +65,16 @@ def addBoreholefieldTableRow(dlg,main):
     dlg.tableWidget.setItem(0,24,QTableWidgetItem('0.1')) #lambda
     dlg.tableWidget.setItem(0,25,QTableWidgetItem('1000')) #rhosurface
     dlg.tableWidget.setItem(0,26,QTableWidgetItem('4180')) #cpsurface
-    dlg.tableWidget.setItem(0,27,QTableWidgetItem('0')) #mir
-    dlg.tableWidget.setItem(0,28,QTableWidgetItem('100')) #rmax
-    dlg.tableWidget.setItem(0,29,QTableWidgetItem('10')) #nring
-    dlg.tableWidget.setItem(0,30,QTableWidgetItem('10')) #nzhole
-    dlg.tableWidget.setItem(0,31,QTableWidgetItem('12')) #nlayt
-    dlg.tableWidget.setItem(0,32,QTableWidgetItem('0')) #n1
-    dlg.tableWidget.setItem(0,33,QTableWidgetItem('0')) #n2
-    dlg.tableWidget.setItem(0,34,QTableWidgetItem('0')) #n3
-    dlg.tableWidget.setItem(0,35,QTableWidgetItem('0')) #toutput
-    dlg.tableWidget.setItem(0,36,QTableWidgetItem('5')) #tmean
-    dlg.tableWidget.setItem(0,37,QTableWidgetItem('0')) #geotgrad
+    dlg.tableWidget.setItem(0,27,QTableWidgetItem('100')) #rmax
+    dlg.tableWidget.setItem(0,28,QTableWidgetItem('10')) #nring
+    dlg.tableWidget.setItem(0,29,QTableWidgetItem('10')) #nzhole
+    dlg.tableWidget.setItem(0,30,QTableWidgetItem('12')) #nlayt
+    dlg.tableWidget.setItem(0,31,QTableWidgetItem('0')) #n1
+    dlg.tableWidget.setItem(0,32,QTableWidgetItem('0')) #n2
+    dlg.tableWidget.setItem(0,33,QTableWidgetItem('0')) #n3
+    dlg.tableWidget.setItem(0,34,QTableWidgetItem('0')) #toutput
+    dlg.tableWidget.setItem(0,35,QTableWidgetItem('5')) #tmean
+    dlg.tableWidget.setItem(0,36,QTableWidgetItem('0')) #geotgrad
 
 def setBoreholeFieldSettings(dlg,main):
     table=dlg.tableWidget
@@ -90,9 +89,9 @@ def setBoreholeFieldSettings(dlg,main):
             'lambgrout': table.item(row,14).text(),'rhogrout': table.item(row,15).text(),'rpipe': table.item(row,16).text(),'thickpipe': table.item(row,17).text(),
             'cppipe': table.item(row,18).text(),'lambpipe': table.item(row,19).text(),'liqtype': table.cellWidget(row, 20).currentData(),'tfreeze': table.item(row,21).text(),
             'lambliq': table.item(row,22).text(),'lcasting': table.item(row,23).text(),'lambda': table.item(row,24).text(),'rhosurface': table.item(row,25).text(),
-            'cpsurface': table.item(row,26).text(),'mir': table.item(row,27).text(),'rmax': table.item(row,28).text(),'nring': table.item(row,29).text(),
-            'nzhole': table.item(row,30).text(),'nlayt': table.item(row,31).text(),'n1': table.item(row,32).text(),'n2': table.item(row,33).text(),
-            'n3': table.item(row,34).text(),'toutput': table.item(row,35).text(),'tmean': table.item(row,36).text(),'geotgrad': table.item(row,37).text()}
+            'cpsurface': table.item(row,26).text(),'rmax': table.item(row,27).text(),'nring': table.item(row,28).text(),
+            'nzhole': table.item(row,29).text(),'nlayt': table.item(row,30).text(),'n1': table.item(row,31).text(),'n2': table.item(row,32).text(),
+            'n3': table.item(row,33).text(),'toutput': table.item(row,34).text(),'tmean': table.item(row,35).text(),'geotgrad': table.item(row,36).text()}
     
     #print(boreholefieldsData)
     
@@ -100,10 +99,10 @@ def setBoreholeFieldSettings(dlg,main):
     
     #added
     for key_table in boreholefieldsData:
-        sql+="""\nINSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,mir,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});""".format(
+        sql+="""\nINSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});""".format(
             main.config['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
             boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
-            boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['mir'],boreholefieldsData[key_table]['rmax'],
+            boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['rmax'],
             boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'],
             boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'],
             boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'],
@@ -131,7 +130,7 @@ def showBoreholeFieldSettingsData(dlg,main):
         boreholefieldsData[i['id']]={'ep_id': str(i['id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
             'rgroutgrout': str(i['rgroutgrout']),'rringearth': str(i['rringearth']),'cpgrd': str(i['cpgrd']),'lambgrd': str(i['lambgrd']),'rhogrd': str(i['rhogrd']),'cpgrout': str(i['cpgrout']),'lambgrout': str(i['lambgrout']),
             'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
-            'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'mir': str(i['mir']),'rmax': str(i['rmax']),
+            'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'rmax': str(i['rmax']),
             'nring': str(i['nring']),'nzhole': str(i['nzhole']),'nlayt': str(i['nlayt']),'n1': str(i['n1']),'n2': str(i['n2']),'n3': str(i['n3']),'toutput': str(i['toutput']),'tmean': str(i['tmean']),'geotgrad': str(i['geotgrad'])}
         
         item = QTableWidgetItem(str(i['id'])) #id
@@ -186,17 +185,16 @@ def showBoreholeFieldSettingsData(dlg,main):
         dlg.tableWidget.setItem(counter,24,QTableWidgetItem(str(i['lambda']))) #lambda
         dlg.tableWidget.setItem(counter,25,QTableWidgetItem(str(i['rhosurface']))) #rhosurface
         dlg.tableWidget.setItem(counter,26,QTableWidgetItem(str(i['cpsurface']))) #cpsurface
-        dlg.tableWidget.setItem(counter,27,QTableWidgetItem(str(i['mir']))) #mir
-        dlg.tableWidget.setItem(counter,28,QTableWidgetItem(str(i['rmax']))) #rmax
-        dlg.tableWidget.setItem(counter,29,QTableWidgetItem(str(i['nring']))) #nring
-        dlg.tableWidget.setItem(counter,30,QTableWidgetItem(str(i['nzhole']))) #nzhole
-        dlg.tableWidget.setItem(counter,31,QTableWidgetItem(str(i['nlayt']))) #nlayt
-        dlg.tableWidget.setItem(counter,32,QTableWidgetItem(str(i['n1']))) #n1
-        dlg.tableWidget.setItem(counter,33,QTableWidgetItem(str(i['n2']))) #n2
-        dlg.tableWidget.setItem(counter,34,QTableWidgetItem(str(i['n3']))) #n3
-        dlg.tableWidget.setItem(counter,35,QTableWidgetItem(str(i['toutput']))) #toutput
-        dlg.tableWidget.setItem(counter,36,QTableWidgetItem(str(i['tmean']))) #tmean
-        dlg.tableWidget.setItem(counter,37,QTableWidgetItem(str(i['geotgrad']))) #geotgrad
+        dlg.tableWidget.setItem(counter,27,QTableWidgetItem(str(i['rmax']))) #rmax
+        dlg.tableWidget.setItem(counter,28,QTableWidgetItem(str(i['nring']))) #nring
+        dlg.tableWidget.setItem(counter,29,QTableWidgetItem(str(i['nzhole']))) #nzhole
+        dlg.tableWidget.setItem(counter,30,QTableWidgetItem(str(i['nlayt']))) #nlayt
+        dlg.tableWidget.setItem(counter,31,QTableWidgetItem(str(i['n1']))) #n1
+        dlg.tableWidget.setItem(counter,32,QTableWidgetItem(str(i['n2']))) #n2
+        dlg.tableWidget.setItem(counter,33,QTableWidgetItem(str(i['n3']))) #n3
+        dlg.tableWidget.setItem(counter,34,QTableWidgetItem(str(i['toutput']))) #toutput
+        dlg.tableWidget.setItem(counter,35,QTableWidgetItem(str(i['tmean']))) #tmean
+        dlg.tableWidget.setItem(counter,36,QTableWidgetItem(str(i['geotgrad']))) #geotgrad
     return boreholefieldsData  
             
 def openSupervisoryCtrl(cur,plugin_dir,config):

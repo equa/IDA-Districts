@@ -1276,7 +1276,7 @@ class Districts:
                     tr('@default',"radius_pipe"),tr('@default',"thickness_pipe_wall"),tr('@default',"heat_capacity_pipe_wall"),tr('@default',"heat_transfer_coefficient_pipe"),
                     tr('@default',"liquid_type"),tr('@default',"liquid_freezing_point"),tr('@default',"heat_transfer_coefficient_liquid"),
                     tr('@default',"length_surface_casting"),tr('@default',"heat_transfer_coefficient_surface"),tr('@default',"density_surface"), tr('@default',"heat_capacity_surface"),
-                    tr('@default',"mir"),tr('@default',"distance_borehole_boundary"),tr('@default',"no_earthrings"),tr('@default',"no_borehole_nodes"),tr('@default',"total_no_nodes_z"),
+                    tr('@default',"distance_borehole_boundary"),tr('@default',"no_earthrings"),tr('@default',"no_borehole_nodes"),tr('@default',"total_no_nodes_z"),
                     tr('@default',"no_points_direction1"),tr('@default',"no_points_direction2"),tr('@default',"no_points_direction3"),tr('@default',"timestep_outputs"),
                     tr('@default',"yearly_mean_temp"),tr('@default',"temp_gradient_ground")]
                 info_boreholes=tr('@default',"info_boreholefield")
