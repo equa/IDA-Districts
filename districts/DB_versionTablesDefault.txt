@@ -50,7 +50,6 @@ CREATE TABLE "$versionName$".borehole_fields(
     rringearth numeric CHECK (rringearth > 0), 
     rgroutearth numeric CHECK (rgroutearth > 0), 
     rgroutgrout numeric CHECK (rgroutgrout > 0), 
-    mir int,
     rmax numeric CHECK (rmax > 0),
     nring int CHECK (nring > 0),
     nzhole int CHECK (nzhole > 0),
