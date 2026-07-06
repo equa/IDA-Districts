@@ -6,6 +6,7 @@ from qgis.core import  QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFie
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
 from itertools import cycle
+import hashlib
 
 import hashlib
 
@@ -325,12 +326,16 @@ def removeLayer(layer_name):
         layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))[0]
         QgsProject.instance().removeMapLayer(layer)
 
-def color_for_value(value):
-    h = hashlib.md5(str(value).encode()).hexdigest()
-
-    hue = int(h[:8], 16) % 360
-    saturation = 180
-    value_brightness = 220
+def color_for_index(index, total_count):
+    if total_count <= 0:
+        total_count = 1
+        
+    # Perfectly space the hues across the 360-degree wheel
+    hue = int((index * 360) / total_count) % 360
+    
+    # Maximize saturation and contrast
+    saturation = 220
+    value_brightness = 230
 
     return QColor.fromHsv(hue, saturation, value_brightness)
     
@@ -339,55 +344,78 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
     uri.setDataSource(version, 'boreholes', "geom")
     vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
     QgsProject.instance().addMapLayer(vlayer)  
-    target_layer = QgsProject.instance().mapLayersByName(tr('@default','energy_plants'))[0]
-    layer_config = {'AllowMulti': False,
-              'AllowNull': True,
-              'FilterExpression': '',
-              'Key': 'id',
-              'Layer': target_layer.id(),
-              'NofColumns': 1,
-              'OrderByValue': False,
-              'UseCompleter': False,
-              'Value': 'id'}
-    widget_setup = QgsEditorWidgetSetup('ValueRelation',layer_config)
-    fields=vlayer.fields()
-    field_idx = fields.indexOf('plant_id')
-    vlayer.setEditorWidgetSetup(field_idx, widget_setup) 
+    # 1. Setup ValueRelation Widget
+    target_layer = QgsProject.instance().mapLayersByName(tr('@default', 'energy_plants'))[0] # Added [0] index safely
+    layer_config = {
+        'AllowMulti': False,
+        'AllowNull': True,
+        'FilterExpression': '',
+        'Key': 'id',
+        'Layer': target_layer.id(),
+        'NofColumns': 1,
+        'OrderByValue': False,
+        'UseCompleter': False,
+        'Value': 'id'
+    }
+    widget_setup = QgsEditorWidgetSetup('ValueRelation', layer_config)
     
-    form = vlayer.fields()
-    field_idx = fields.indexOf('mir')
-
-    widget_setup = QgsEditorWidgetSetup("CheckBox", {})  # Pass an empty dictionary for additional setup (optional)
-
-    # Step 3: Set the widget for the field on the layer
-    vlayer.setEditorWidgetSetup(field_idx, widget_setup)
+    # Target index directly from the layer structure
+    plant_idx = int(vlayer.fields().indexOf('plant_id'))
+    if plant_idx != -1:
+        vlayer.setEditorWidgetSetup(plant_idx, widget_setup) 
     
-    #categorization
+    # 2. Setup CheckBox Widget (Fixed Reference)
+    mir_idx = int(vlayer.fields().indexOf('mir'))
+    if mir_idx != -1:
+        cb_setup = QgsEditorWidgetSetup("CheckBox", {
+            "CheckedState": "1",
+            "UncheckedState": "0",
+            "UsesThreeState": False
+        })
+        vlayer.setEditorWidgetSetup(mir_idx, cb_setup)
+
+    # 3. Categorization & Symbology
     if config['versionName']:
-        categories_list=getPlantIds(cur,config)
-        
+        categories_list = sorted(getPlantIds(cur, config))  # Sort to keep colors deterministic
+        total_plants = len(categories_list)
         field_name = "plant_id"
-
         categories = []
 
-        for value in sorted(categories_list):
+        # Use enumerate to get a unique, sequential index for every ID
+        for index, value in enumerate(categories_list):
             symbol = QgsSymbol.defaultSymbol(vlayer.geometryType())
-            symbol.setColor(color_for_value(value))
+            
+            # Get a guaranteed distinct color based on position
+            color = color_for_index(index, total_plants)
+            symbol.setColor(color)
+
+            # Control base marker size based on "mir"
+            base_layer = symbol.symbolLayer(0)
+            base_layer.setDataDefinedProperty(
+                QgsSymbolLayer.PropertySize,
+                QgsProperty.fromExpression('CASE WHEN "mir" THEN 1 ELSE 2 END')
+            )
+            
+            # Add star marker layer for "mir" elements
+            star = QgsSimpleMarkerSymbolLayer.create({
+                "name": "star",
+                "color": color.name(),
+                "size": "0"
+            })
+            star.setDataDefinedProperty(
+                QgsSymbolLayer.PropertySize,
+                QgsProperty.fromExpression('CASE WHEN "mir" THEN 3 ELSE 0 END')
+            )
+            symbol.appendSymbolLayer(star)
 
             categories.append(
-                QgsRendererCategory(
-                    value,
-                    symbol,
-                    str(value)
-                )
+                QgsRendererCategory(str(value), symbol, str(value))
             )
 
         renderer = QgsCategorizedSymbolRenderer(field_name, categories)
-
         vlayer.setRenderer(renderer)
 
-    # Step 3: Refresh the layer and form view
-    vlayer.triggerRepaint()  # Refresh the layer to apply the changes
+    vlayer.triggerRepaint()
     
 def removeLayers():
     layers = QgsProject.instance().mapLayers().values()
