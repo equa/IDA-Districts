@@ -62,7 +62,7 @@ class WorkerLoadVersion(QRunnable):
             self.config['lastVersionName']=self.config['versionName']            
             self.signals.progress.emit(100)            
         except Exception as e:
-            print(f'error: {e}')
+            #print(f'error: {e}')
             self.signals.error.emit("Loading version failed!") 
         finally:
             write_plugin_settings(self.config)

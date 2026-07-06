@@ -249,13 +249,11 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
 
             if self.dlg.rbtn_pathTemp.isChecked():
                 dt=self.dlg.weak_point['sup_f'] - self.dlg.weak_point['ret_f']
-                self.dlg.title='Simulationszeit='+str(self.dlg.weak_point['time'])+' h ; Kunden ID='+str(self.dlg.weak_point['fid'])+ ' ; Temperaturdifferenz Übergabestation: ' +str(round(dt,2))+' °C'
+                self.dlg.title=tr('@default','simulation_time')+'='+str(self.dlg.weak_point['time'])+' h; ID='+str(self.dlg.weak_point['fid'])+ '; '+ tr('@default','dt_substation')+': ' +str(round(dt,2))+' °C'
                 #print(self.dlg.title)
-                #title='Weakpoint; Time='+str(data_j[0])+'h ; '+weak_point_id[2].capitalize().replace('_',' ')+' ID='+weak_point_id[0]+'; Main energy plant ID='+epid[0]+'; Line Ids='+','.join([str(lid[0]) for lid in lids])
             elif self.dlg.rbtn_pathPressure.isChecked(): 
                 dp=self.dlg.weak_point['dvar']*2
-                self.dlg.title='Netzschlechtpunkt; Simulationszeit='+str(self.dlg.weak_point['time'])+'; Kunden ID='+str(self.dlg.weak_point['fid'])+ ' ; Druckverlust: ' +str(dp)+' Pa'
-                #title='Simulationszeit='+str(data_j[0])+' h ; Kunden ID='+weak_point_id[0]+ ' ; Druckdifferenz: ' +str(dp)+' Pa'
+                self.dlg.title=tr('@default','simulation_time')+'='+str(self.dlg.weak_point['time'])+' h; ID='+str(self.dlg.weak_point['fid'])+ ' ; '+tr('@default','pressure_loss')+': ' +str(dp)+' Pa'
             
             return True
         

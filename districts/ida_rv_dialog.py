@@ -6,11 +6,14 @@ from .utility_functions.dialog import *
 from .utility_functions.translations import *
 from .utility_functions.topology import *
 from .utility_functions.show_on_map import *
+from .utility_functions.thermal_properties import *
 
 from decimal import Decimal
 from qgis.PyQt.QtGui import QFont, QColor
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.path import Path
 
 class ImportMeasuremntsDialog(QDialog):
     def __init__(self):     
@@ -911,9 +914,9 @@ class IDADistrictsPathReportsDialog(QDialog):
         quantity_info=QLabel(self.tr('info_pathreport'))
         
         layout_quantity = QVBoxLayout()
+        layout_quantity.addWidget(quantity_info)
         layout_quantity.addWidget(label_titel)
         layout_quantity.addLayout(layout_rbtn_quantity)
-        layout_quantity.addWidget(quantity_info)
         
         #Date 
         #title
@@ -1017,8 +1020,8 @@ class IDADistrictsPathReportsDialog(QDialog):
         layout_network_settings.addLayout(layout_network_settings_labels)
         layout_network_settings.addLayout(layout_network_settings_values)
         
-        self.geothetic_p =QCheckBox(self.tr('show_geothetic_pressure'))
-        self.geothetic_p.setChecked(True)
+        self.geodetic_p =QCheckBox(self.tr('show_geodetic_pressure'))
+        self.geodetic_p.setChecked(True)
         
         #buttons
         layout_btn_list = QHBoxLayout()
@@ -1034,7 +1037,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         layout_path.addLayout(layout_rbtn_path)  
         layout_path.addWidget(self.listWidget_ids)
         layout_path.addLayout(layout_network_settings)
-        layout_path.addWidget(self.geothetic_p)
+        layout_path.addWidget(self.geodetic_p)
         layout_path.addLayout(layout_btn_list)
 
         
@@ -1143,45 +1146,179 @@ class IDADistrictsPathReportsDialog(QDialog):
         quantity_data_sup=[self.weak_point['sup_ep']-ddp]+[lid['var1']-ddp for lid in self.line_data]+[self.weak_point['sup_f']-ddp]
         quantity_data_ret=[self.weak_point['ret_ep']]+[lid['var2'] for lid in self.line_data]+[self.weak_point['ret_f']]
         height=[self.weak_point['height_ep']]+[lid['height_j'] for lid in self.line_data]+[self.weak_point['height_f']]
+        
+        if not self.geodetic_p.isChecked() and self.rbtn_pathPressure.isChecked():
+            network_info=getNetworkInfo(self.cur,self.config,self.network.currentText())
+            #print(network_info)
+            estimator = MelinderFluidEstimator()
+            res = estimator.solve_properties(network_info['liquid'], float(network_info['t_ref']), float(network_info['t_freeze']))
+            #print(res)
+            DENSITY=Decimal(res['density'])
+            GRAVITY = Decimal('9.80665')         # g in m/s^2
 
+            # Set the first height element as the reference height
+            h0 = Decimal(str(height[0]))
+
+            # Lists to store corrected data
+            sup_corrected = []
+            ret_corrected = []
+
+            # Process supply and return pressures
+            for h, p_sup, p_ret in zip(height, quantity_data_sup, quantity_data_ret):
+                # Calculate elevation delta relative to the first point
+                delta_h = Decimal(str(h)) - h0
+                
+                # Calculate geodetic pressure component
+                p_geodetic = DENSITY * GRAVITY * delta_h
+                
+                # Exclude geodetic pressure by adding it back to the measured value
+                sup_corrected.append(p_sup + p_geodetic)
+                ret_corrected.append(p_ret + p_geodetic)
+
+            # Output results
+            #print("Corrected Supply Pressure:", sup_corrected)
+            #print("Corrected Return Pressure:", ret_corrected)
+            quantity_data_sup=sup_corrected
+            quantity_data_ret=ret_corrected
+        
+        if self.rbtn_pathPressure.isChecked():
+            #show values in bar
+            quantity_data_sup[:] = [x / 100000 for x in quantity_data_sup]
+            quantity_data_ret[:] = [x / 100000 for x in quantity_data_ret]
+        
         #print(height)
         #print(quantity_data_sup)
         #print(quantity_data_ret)
-        #print(self.path)
+        #print(self.path)      
+        
+        # 1. Convert only the Y Decimals to floats
+        y_float = [float(quantity_data_ret[0]), float(quantity_data_sup[0])]
+        
+        center_x = 0.0
+        center_y = (y_float[0] + y_float[1]) / 2  # ~2.985
+
+        # Calculate differential pressure (dp) at the end of the pipeline
+        dp = quantity_data_sup[-1] - quantity_data_ret[-1]
+
+        # --- SEPARATED MARKERS FOR HOLLOW CIRCLE + FILLED TRIANGLE ---
+        # Marker 1: Perfect Outer Circle
+        angles = np.linspace(0, 2 * np.pi, 25)
+        circle_verts = [(np.cos(a), np.sin(a)) for a in angles]
+        circle_codes = [Path.MOVETO] + [Path.LINETO] * (len(angles) - 2) + [Path.CLOSEPOLY]
+        circle_marker = Path(circle_verts, circle_codes)
+
+        # Marker 2: Internal Triangle (90° CCW / Pointing UP)
+        top_v = (0.0, 1.0)
+        bot_l = (-np.cos(np.radians(30)), -np.sin(np.radians(30)))
+        bot_r = (np.cos(np.radians(30)), -np.sin(np.radians(30)))
+        
+        tri_verts = [top_v, bot_l, bot_r, top_v]
+        tri_codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY]
+        triangle_marker = Path(tri_verts, tri_codes)
+
+        # --- VALVE MARKER SETUP (Vertical Hourglass) ---
+        show_valve = float(dp) > 0.0
+        if show_valve:
+            # Center the valve vertically between the last data points
+            y_float_end = [float(quantity_data_ret[-1]), float(quantity_data_sup[-1])]
+            valve_x = self.path[-1]
+            valve_y = (y_float_end[0] + y_float_end[1]) / 2
+
+            # Two triangles touching at the center point (0.0, 0.0)
+            valve_verts = [
+                (0.0, 0.0), (-0.8, 1.0), (0.8, 1.0), (0.0, 0.0),   # Top triangle
+                (0.0, 0.0), (-0.8, -1.0), (0.8, -1.0), (0.0, 0.0)  # Bottom triangle
+            ]
+            valve_codes = [
+                Path.MOVETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY,
+                Path.MOVETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY
+            ]
+            valve_marker = Path(valve_verts, valve_codes)
+        # -------------------------------------------------------------
         
         SMALL_SIZE = 15
         MEDIUM_SIZE = 20
         BIGGER_SIZE = 25
 
-        plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-        plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-        plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
-        plt.rc('figure', figsize=(30.0, 20.0))  # fontsize of the figure title
+        plt.rc('font', size=SMALL_SIZE)          
+        plt.rc('axes', titlesize=SMALL_SIZE)     
+        plt.rc('axes', labelsize=MEDIUM_SIZE)    
+        plt.rc('xtick', labelsize=SMALL_SIZE)    
+        plt.rc('ytick', labelsize=SMALL_SIZE)    
+        plt.rc('legend', fontsize=SMALL_SIZE)    
+        plt.rc('figure', titlesize=MEDIUM_SIZE)  
+        plt.rc('figure', figsize=(30.0, 20.0))  
         
-        fig, (ax1, ax2) = plt.subplots(2, 1)
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
         fig.suptitle(self.title)
+        
         ax1.plot(self.path, quantity_data_sup, linewidth=4.0)
         ax1.plot(self.path, quantity_data_ret, linewidth=4.0)
+        ax1.plot([0, 0], y_float, linewidth=4.0, color='gray', linestyle='--', label='Pipeline Data')
+        ax1.plot([self.path[-1], self.path[-1]], [quantity_data_sup[-1],quantity_data_ret[-1]], linewidth=4.0, color='gray', linestyle='--', label='Pipeline Data')
+        
+        # Layer the pump components cleanly on the left side
+        ax1.plot(center_x, center_y, marker=circle_marker, markersize=40, 
+                 markeredgecolor='black', markerfacecolor='white', markeredgewidth=2, zorder=4)
+        ax1.plot(center_x, center_y, marker=triangle_marker, markersize=40, 
+                 markeredgecolor='black', markerfacecolor='black', markeredgewidth=1, zorder=5)
+
+        # Conditional placement of the valve on the right side
+        if show_valve:
+            ax1.plot(valve_x, valve_y, marker=valve_marker, markersize=35,
+                     markeredgecolor='black', markerfacecolor='white', markeredgewidth=2, zorder=4)
+
+        # 5. Set View Limits dynamically based on data ranges
+        x_span = max(self.path) - min(self.path)
+        if x_span == 0:
+            x_span = 1.0 
+            
+        # 5% margin on both sides keeps icons completely visible inside plot bounds
+        left_padding = x_span * 0.05
+        right_padding = x_span * 0.05
+        
+        ax1.set_xlim(min(self.path) - left_padding, max(self.path) + right_padding)
+        
+        # --- FIX: DYNAMIC Y-LIMITS BASED ON ALL DATA ---
+        # Convert the full datasets to floats to find the true min and max peaks
+        all_sup_floats = [float(y) for y in quantity_data_sup]
+        all_ret_floats = [float(y) for y in quantity_data_ret]
+        
+        # Combine them to find the absolute highest and lowest values on the whole graph
+        absolute_min_y = min(min(all_sup_floats), min(all_ret_floats))
+        absolute_max_y = max(max(all_sup_floats), max(all_ret_floats))
+        
+        # Calculate a vertical span to add a 10% breathing buffer at the top and bottom
+        y_span = absolute_max_y - absolute_min_y
+        if y_span == 0:
+            y_span = 1.0  # Fallback if lines are perfectly flat
+            
+        y_padding = y_span * 0.10  # 10% margin
+        
+        # Apply the new dynamically scaled vertical limits
+        ax1.set_ylim(absolute_min_y - y_padding, absolute_max_y + y_padding)
+
         ax1.grid(True)
         
-        #ax1.set_xlabel('Length, m')
-        ax1.set_xlabel('Trasse, m')
         if self.rbtn_pathPressure.isChecked():
-            #ax1.set_ylabel('Pressure, Pa')
-            ax1.set_ylabel('Druck, Pa')
+            ax1.set_ylabel(self.tr("pressure_bar"))
         else:
-            #ax1.set_ylabel('Temperature, °C')
-            ax1.set_ylabel('Temperatur, °C')
+            ax1.set_ylabel(self.tr('Temperature')+', °C')
             
-        ax2.plot(self.path, height,linewidth=3.0)    
-        #ax2.set_xlabel('Length, m')
-        ax2.set_xlabel('Trasse, m')
-        #ax2.set_ylabel('Height level, m')
-        ax2.set_ylabel('Höhenprofil, m')
+        ax2.plot(self.path, height, linewidth=3.0)    
+        ax2.set_xlabel(self.tr("trench_m"))
+        ax2.set_ylabel(self.tr("elevation_level_m"))
+        ax2.grid(True)
+        
+        # Label x-axis only on the bottom-most subplot since they now share axes
+        if self.rbtn_pathPressure.isChecked():
+            ax1.set_ylabel(self.tr("pressure_bar"))
+        else:
+            ax1.set_ylabel(self.tr('Temperature')+', °C')
+            
+        ax2.plot(self.path, height, linewidth=3.0)    
+        ax2.set_xlabel(self.tr("trench_m"))
+        ax2.set_ylabel(self.tr("elevation_level_m"))
         ax2.grid(True)
         
         manager = plt.get_current_fig_manager()

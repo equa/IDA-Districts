@@ -405,7 +405,7 @@ LEFT JOIN sub s ON s.id = m.id
 LEFT JOIN all_lines a ON a.id = m.id
 ORDER BY m.id;
 """.format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks])) # nosec B608
-        print(sql)
+        #print(sql)
 
         self.cur.execute(sql)
         i=1
