@@ -359,7 +359,7 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
             for item in dlg.listWidget_ids.selectedItems():
                 id=item.text()
                 #print(id)
-                matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False)
+                matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.checkState())
         else:
             iface.messageBar().pushMessage("Info", "Please select an item in the list!!", level=Qgis.Info)    
     else:

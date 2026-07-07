@@ -126,13 +126,20 @@ class PlotLoadProfilesDialog(QDialog):
         self.rbtn_customer = QRadioButton(tr('@default','customers'))
         self.rbtn_customer.setChecked(True)
         self.rbtn_energy_plant = QRadioButton(tr('@default','energy_plants'))
+        self.rbtn_energy_balance = QRadioButton(tr('@default','energy_balance'))
+        self.rbtn_mass_balance = QRadioButton(tr('@default','mass_balance'))
            
         layout_rbtn_feature_type.addWidget(self.rbtn_customer)
         layout_rbtn_feature_type.addWidget(self.rbtn_energy_plant)
+        layout_rbtn_feature_type.addWidget(self.rbtn_energy_balance)
+        layout_rbtn_feature_type.addWidget(self.rbtn_mass_balance)
         
         #Feature ID`s list
         self.listWidget_ids= QListWidget()
         self.listWidget_ids.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        
+        #synchronization with temporal controler checkbox
+        self.sync_temporalControler=QCheckBox(tr('@default','sync_temporal_controler'))
         
         #buttons     
         layout_btn=QHBoxLayout()
@@ -146,6 +153,7 @@ class PlotLoadProfilesDialog(QDialog):
         layout.addLayout(layout_network)
         layout.addLayout(layout_rbtn_feature_type)
         layout.addWidget(self.listWidget_ids)
+        layout.addWidget(self.sync_temporalControler)
         layout.addLayout(layout_btn)
         layout.addStretch()
         
