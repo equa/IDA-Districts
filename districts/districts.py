@@ -339,9 +339,10 @@ class Districts:
         """Function to add right click menu to treeview item"""
         indexes = self.dlg.treeViewVersions.selectedIndexes()
         mdlIdx = self.dlg.treeViewVersions.indexAt(position)
+
         if not mdlIdx.isValid():
             return
-        item = self.model.itemFromIndex(mdlIdx)
+        item = self.model.itemFromIndex(mdlIdx.siblingAtColumn(0))
         if len(indexes) > 0:
             level = 0
             index = indexes[0]
