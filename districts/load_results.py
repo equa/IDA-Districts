@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                     #-----------create tables----------------
                     #customer tables: customer_s_troom, customer_s_balance, customer_s_conntype_[conn type seq]
                     c_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output]]
-                    if c_outputs:
+                    if not c_outputs:
                         used_b_types=getUsedConnBundleTypes('customer',self.cur,self.config)
                         c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power','qsup']]
                         c_power_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] in ['power']]
@@ -318,7 +318,7 @@ CREATE TABLE "{}".customer_s_ventilation
                         
                     #energy plant tables: customer_s_conntype_[conn type seq]
                     ep_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output]]
-                    if ep_outputs:
+                    if not ep_outputs:
                         used_b_types=getUsedConnBundleTypes('energy_plant',self.cur,self.config)
                         ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
@@ -413,7 +413,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                     self.signals.progress.emit(66)
                     #lines
                     line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
-                    if line_outputs:
+                    if not line_outputs:
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_s_{}${} CASCADE;
 CREATE TABLE "{}".line_s_{}${}
 (
@@ -500,7 +500,7 @@ CREATE TABLE "{}".line_s_qamb
                                         table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                                     #print(table_names)
                                     self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
-                                self.signals.progress.emit(int(66+counter_l / len(lids)*32/len(line_outputs)+counter_of/len(line_outputs)*32))
+                                self.signals.progress.emit(int(66+counter_l / len(lids)*30/len(line_outputs)+counter_of/len(line_outputs)*30))
                             
                             self.createResultLayerIndex(table_names,'line')
 
@@ -573,15 +573,94 @@ CREATE TABLE "{}".line_s_qamb
                             except:
                                 pass
                     #print(kpis)
-                    sql="""TRUNCATE "{}".kpi;\n""".format(self.config['versionName'])
-                    sql+="""INSERT INTO "{}".kpi ({}) SELECT {};""".format(self.config['versionName'],
-                        "id"+''.join([",{}".format(kpi) for kpi in kpis]),
-                        "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))
+                    sql="""TRUNCATE "{}".kpi;\n""".format(self.config['versionName'])  # nosec B608
+                    sql+="""INSERT INTO "{}".kpi ({}) SELECT {};""".format(self.config['versionName'],  # nosec B608
+                        "id"+''.join([",{}".format(kpi) for kpi in kpis]),  # nosec B608
+                        "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))  # nosec B608
                     #print(sql)
                     self.cur.execute(sql)
+                    
+                    self.signals.progress.emit(97)
+                    
+                    #--------heat balance------
+                    if self.simulatedOutputs['tsup_mean_ep_kpi']: 
+                        print('------heat balance----------')
+
+                        fname=dir_path+'results-macro\heatbalance_outputfile.prn'
+                        #print(fname)
+
+                        if os.path.exists(fname):
+                            #get output headers
+                            print(dir_path+'results-macro.idm')
+                            components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(dir_path+'results-macro.idm')))
+                            for comp in components_idm:
+                                if getCompName(comp)=='"heatbalance_outputfile"': 
+                                    as_dict={}
+                                    for subcomp in comp:
+                                        if getCompClass(subcomp)=='OUTPUT-FILE':                     
+                                            print(subcomp[':DF'])
+                                            names = re.findall(r'([A-Z_]+)\s+#S', subcomp[':DF'])
+                                            print(names)
+                                            as_dict={name.lower() : '' for name in names}
+                                            print(as_dict)
+                                            
+                                        elif getCompClass(subcomp)==':VAR':   
+                                            print(subcomp)
+                                            as_dict[subcomp[':N'].lower()]=tr('@default',subcomp[':D'].replace('"',''))
+                                
+                            print(as_dict)
+                            
+                            col_dict={}
+                            with open(fname, "r") as myfile:
+                                for line in myfile:
+                                    if line[0]=='#':
+                                        line=line[1:]
+                                    print(line)
+                                    col_dict={counter: as_dict[col.lower()] for counter,col in enumerate(line.split(),0) if counter>1}
+                                    print(col_dict)
+                                    break
+
+                            file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+                            
+                            start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                    
+                            if self.dlg.checkbox_timestep.checkState() == checkState():
+                                #linear interpolation
+                                #print(self.dlg.interpolation_dt.text())
+                                file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
+                                    
+                            print(file_data)
+                            
+                            sql="""\nDROP TABLE IF EXISTS "{}".heatbalance_s CASCADE;
+CREATE TABLE "{}".heatbalance_s
+(
+	id serial,
+    time timestamp,{}
+	CONSTRAINT heatbalance_s_pkey PRIMARY KEY (id)
+);""".format(self.config['versionName'],self.config['versionName'],''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()])) # nosec B608
+                            print(sql)
+                            self.cur.execute(sql)
+                        
+                            self.copy_string_iterator_system_heatbalance_sData(file_data,start_datetime,col_dict.values())
+                        
+                    self.signals.progress.emit(98)
+                        
+                        
                 except Exception as e:
                     self.signals.error.emit(str(e))
                         
+    def copy_string_iterator_system_heatbalance_sData(self, sdata,start_datetime,table_names) -> None:
+        with self.conn.cursor() as cursor:
+            max_id=getMaxIdSchema(self.cur,'heatbalance_s',self.config['versionName'])+1
+            mdata_string_iterator = StringIteratorIO((
+                '|'.join(map(clean_csv_value, (
+                    int(row_counter+max_id),
+                    start_datetime+datetime.timedelta(hours=float(data[0])),
+                    * [data[col] for col,table_name in enumerate(table_names,2)]
+                ))) + '\n'
+                for row_counter,data in enumerate(sdata)
+            ))
+            cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],'heatbalance_s'),mdata_string_iterator) # nosec B608
 
     def copy_string_iterator_feature_c_t_seq_sData(self,sdata,fid,col_dict,start_datetime) -> None:
         for col in col_dict:

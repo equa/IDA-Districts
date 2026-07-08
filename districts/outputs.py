@@ -268,6 +268,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 
     #----------system-----------
     #heat balance
+    print(added_sensor_info['heatbalance_system'])
     if requestedOutputs['heatbalance_system']:
         filedata.append("""(OUTPUT-FILE :N "heatbalance_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
         for i in added_sensor_info['heatbalance_system']:

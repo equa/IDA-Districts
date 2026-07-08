@@ -1178,8 +1178,8 @@ class Districts:
                 dir=self.config['pathProjects']+'{}\\versions\\{}'.format(self.config['projectName'],self.config['versionName'])
                 submodels=getNetworkFileSubmodels(dir)
                 self.dlg_loadResults.combo_submodels.addItems(submodels)
-                for i in range(len(submodels)):
-                   self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,False)
+                for count,i in enumerate(range(len(submodels)),1):
+                    self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,True if count==1 else False)
                 self.dlg_loadResults.show()
                 self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
                 self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: loadResults(self.dlg_loadResults,self))

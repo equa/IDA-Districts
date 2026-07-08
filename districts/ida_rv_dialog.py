@@ -1372,7 +1372,7 @@ class LoadResultsDialog(QDialog):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_submodels)
+        #layout_win.addLayout(layout_submodels)
         layout_win.addLayout(layout_interpolation)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)

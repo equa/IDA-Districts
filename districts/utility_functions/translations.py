@@ -227,6 +227,7 @@ def _register_translation_keys():
     tr("sync_temporal_controler")
     tr("energy_balance")
     tr("mass_balance")
+    tr("Qamb")
     
     #pipe laying algroithm dialog
     tr("pipe_laying_algorithm")
