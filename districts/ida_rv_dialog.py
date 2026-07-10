@@ -126,13 +126,13 @@ class PlotLoadProfilesDialog(QDialog):
         self.rbtn_customer = QRadioButton(tr('@default','customers'))
         self.rbtn_customer.setChecked(True)
         self.rbtn_energy_plant = QRadioButton(tr('@default','energy_plants'))
-        self.rbtn_energy_balance = QRadioButton(tr('@default','energy_balance'))
-        self.rbtn_mass_balance = QRadioButton(tr('@default','mass_balance'))
+        self.rbtn_heatbalance = QRadioButton(tr('@default','heat_balance'))
+        self.rbtn_massbalance = QRadioButton(tr('@default','mass_balance'))
            
         layout_rbtn_feature_type.addWidget(self.rbtn_customer)
         layout_rbtn_feature_type.addWidget(self.rbtn_energy_plant)
-        layout_rbtn_feature_type.addWidget(self.rbtn_energy_balance)
-        layout_rbtn_feature_type.addWidget(self.rbtn_mass_balance)
+        layout_rbtn_feature_type.addWidget(self.rbtn_heatbalance)
+        layout_rbtn_feature_type.addWidget(self.rbtn_massbalance)
         
         #Feature ID`s list
         self.listWidget_ids= QListWidget()

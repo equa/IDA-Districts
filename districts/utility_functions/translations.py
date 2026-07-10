@@ -225,9 +225,11 @@ def _register_translation_keys():
 
     #plot dialogs
     tr("sync_temporal_controler")
-    tr("energy_balance")
+    tr("heat_balance")
     tr("mass_balance")
     tr("Qamb")
+    tr("time")
+    tr("energy")
     
     #pipe laying algroithm dialog
     tr("pipe_laying_algorithm")

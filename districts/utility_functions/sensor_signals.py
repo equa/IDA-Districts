@@ -510,6 +510,120 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     else:
         return sql
 
+def getResultSensorData(cur,config,execute_query=True,source_types=[1,2],network=1):
+    sql="""WITH sub AS(
+	WITH sub AS(
+		WITH sub AS(
+			WITH sub AS(
+			     --customer (type:1); temp,mass,p(measure:1,2,3) 
+                (SELECT s.sensor_id, f.id::text  AS feature_id, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
+                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s, "{}".customer_connections fc, "{}".lines l,bundle_pipes bp,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM source_conns 
+                                WHERE active=True  
+                                GROUP BY source_id,connection_id)  s_c
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id 
+                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=1 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.c_seq=bp.sequence AND b_t_conns.sequence=fc.c_seq
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
+                        ORDER BY s.sensor_id, f.id)
+				UNION
+                --plant (type:2); temp,mass,p(measure:1,2,3) 
+                (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
+                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s, "{}".energy_plant_connections fc, "{}".lines l,bundle_pipes bp,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
+                            (SELECT source_id, connection_id FROM source_conns 
+                                WHERE active=True  
+                                GROUP BY source_id,connection_id)  s_c
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id AND s.sensor_id=s.sensor_id
+                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.ep_seq=bp.sequence AND b_t_conns.sequence=fc.ep_seq
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
+                        ORDER BY s.sensor_id, f.id)
+                UNION
+				--customer (type:1); power(measure:4) 
+                (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
+                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s, "{}".customer_connections fc, "{}".lines l,bundle_pipes bp,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=1 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.c_seq=bp.sequence AND b_t_conns.sequence=fc.c_seq
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
+                        ORDER BY s.sensor_id, f.id)
+				UNION
+                --plant (type:2); power(measure:4) 
+                (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
+                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s, "{}".energy_plant_connections fc, "{}".lines l,bundle_pipes bp,
+                            (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=2 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.ep_seq=bp.sequence AND b_t_conns.sequence=fc.ep_seq
+                        GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
+                        ORDER BY s.sensor_id, f.id)
+			)
+            SELECT sub.sensor_id, s.function, s.type, sub.feature_id,
+                replace(replace(ARRAY_AGG(sub.sensor_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id||'_{}')::text,'{{',''),'}}','') AS irefs_source 
+                FROM sub, sensor_source s WHERE s.sensor_id=sub.sensor_id GROUP BY s.function,sub.sensor_id,sub.feature_id,conn_type_id, s.type
+
+		)		        
+		SELECT sub.sensor_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.template_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
+            FROM sub,
+                (SELECT at.type, f.feature_id, at.template_name 
+                                        FROM
+                                            (SELECT 1 AS type,template,'1'||':'||template::text||'_'||template_name AS template_name FROM customer_templates
+                                            UNION
+                                            SELECT 2 AS type,template,'2'||':'||template::text||'_'||template_name AS template_name FROM energy_plant_templates) at,
+                                            (SELECT 1 AS type,id::text AS feature_id,template FROM "{}".customers
+                                            UNION
+                                            SELECT 2 AS type,id::text AS feature_id,template FROM "{}".energy_plants) f
+                                        WHERE at.type=f.type AND at.template=f.template) at_names
+            GROUP BY at_names.type,at_names.feature_id,at_names.template_name,sub.type,sub.sensor_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')) 
+	)
+	SELECT b.sensor_id, sub.type,b.function, a.irefs_target, b.irefs_source, c.source_template_name, d.target_template_name
+        FROM sub,
+            (SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_X_X_X_{}'::text ORDER BY t.sensor_id) AS irefs_target, t.type AS target_type
+                FROM sensor_target t
+                WHERE t.type IN (4)  
+                GROUP BY t.sensor_id,t.type
+            ) a,
+            (WITH sub AS (SELECT sub.sensor_id, sub.function, sub.irefs_source FROM sub GROUP BY sub.sensor_id, sub.function, sub.irefs_source)
+            SELECT  sub.sensor_id, sub.function, ARRAY_AGG(sub.irefs_source ORDER BY CASE WHEN split_part(irefs_source,'_',1) ~ '^[0-9\.]+$' THEN split_part(irefs_source,'_',1)::integer ELSE 0 END) AS irefs_source FROM sub GROUP BY sub.sensor_id, sub.function) b,
+            (WITH sub2 AS(WITH sub1 AS (SELECT sub.sensor_id, sub.function, sub.feature_id,sub.type,sub.template_name FROM sub 
+                                        WHERE (sub.at_names_type=sub.type AND sub.at_names_feature_id=sub.feature_id) OR sub.type=3
+                                        GROUP BY sub.template_name,sub.type,sub.sensor_id, sub.function,sub.feature_id)
+                            SELECT sub1.sensor_id, sub1.function,sub1.template_name AS source_template_name FROM sub1
+                                GROUP BY sub1.sensor_id, sub1.function,sub1.type,sub1.template_name)
+            SELECT sub2.sensor_id, sub2.function,ARRAY_AGG(sub2.source_template_name) AS source_template_name FROM sub2 GROUP BY sub2.sensor_id, sub2.function) c,    
+            (WITH sub AS(SELECT t.sensor_id, 'results' AS target_template_name
+                    FROM sub, sensor_target t
+                    WHERE t.type =4 AND t.sensor_id=sub.sensor_id
+                    GROUP BY t.sensor_id
+                )
+            SELECT sub.sensor_id,ARRAY_AGG(sub.target_template_name::text) AS target_template_name FROM sub GROUP BY sub.sensor_id) d   
+        WHERE c.sensor_id=d.sensor_id AND c.sensor_id=a.sensor_id AND a.sensor_id=b.sensor_id AND sub.sensor_id=a.sensor_id
+        GROUP BY sub.type,c.source_template_name, d.target_template_name, b.sensor_id, b.function, a.irefs_target,b.irefs_source,sub.function, target_type
+)
+SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_type_name, sub.source_template_name AS source_template_names, t.type AS target_type, type1.name AS target_type_name, sub.target_template_name AS target_template_names,
+    sub.function, s_f.function AS function_name, s.measure, m.measure AS measure_name, 
+    sub.irefs_source,sub.irefs_target, s.test_value,s.description AS description_source, t.description AS description_target
+    FROM sub, sensor_source s, sensor_target t, signal_function s_f, measure m, type type1, type type2
+    WHERE s.sensor_id=sub.sensor_id AND t.sensor_id=s.sensor_id AND m.id=s.measure 
+	AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN (4) 
+    GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
+    ORDER BY sub.sensor_id;""".format( # nosec B608
+    config['versionName'],config['versionName'],config['versionName'],network,network, # nosec B608
+    config['versionName'],config['versionName'],config['versionName'],network,network, # nosec B608
+    config['versionName'],config['versionName'],config['versionName'],network,network, # nosec B608
+    config['versionName'],config['versionName'],config['versionName'],network,network, # nosec B608
+    network, # nosec B608
+    config['versionName'],config['versionName'], # nosec B608
+    network, # nosec B608
+    ','.join([str(i) for i in source_types])) # nosec B608
+    #print(sql)   
+    if execute_query:
+        cur.execute(sql)
+        return cur.fetchall()  
+    else:
+        return sql
+        
 def delSensorDescription(file_data):
     data=[]
     for line in file_data:

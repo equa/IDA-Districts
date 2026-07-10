@@ -5,6 +5,7 @@ from .utility_functions.topology import *
 import psycopg2.extras
 
 def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,config,dir,import_counter):
+    #print(sensor_dec_data)
     #----------------------sensor idm macro file------------------------
     file=dir+"""\\Sensor-macro.idm"""
     data=[""";IDA {} Data UTF-8\n""".format(getIDAVersion(config)),"""(DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n""".format(getIDADistrictsVersion(config))]
@@ -34,15 +35,15 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     #print('***************************')
 
     
-    #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2)
-    data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER_CONT)
+    #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2)        
+    data.append("".join(["""((:EO :N "Sensor_{}{}" :T ADDER_CONT)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
  (:PAR :N COEFF :DIM ({}) :V #({}{}))
- (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']),
+ (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']), '_{}'.format(i['irefs_target'][0]['iref'].split('_')[-1]) if i['target_type']==4 else '',
                         " ".join(["""({} :SYSTEM "{}" "{}" {})""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getPMT2muxName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][0].split('_')[3]), returnVarName(i['measure'])) 
                             for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)] for j in i['irefs_source']],1) if i['measure'] in (1,2,3)]),
-                        " ".join(["""({} :SYSTEM "{}" "{}" P)""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getMeterName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][1]['conn_type_id'])) 
-                            for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)] for j in i['irefs_source']],1) if i['measure']==4]),
+                        " ".join(["""({} :SYSTEM "{}" "{}" P)""".format(counter, getMacroTypeName(i['source_type'])+'_'+conn[0].split('_')[1], getMeterName(cur,conn[1],conn[0].split('_')[2])) 
+                            for counter,conn in enumerate([[j['iref'],getConnBundleByFeature(i['source_type'],j['iref'].split('_')[1],cur,config)] for j in i['irefs_source']],1) if i['measure']==4]),
                         str(max(1,len([j for j in i['irefs_source']]))),
                         ' '.join(['1' for j in range(max(1,len([j for j in i['irefs_source']]))) if i['function']==4]),
                         ' '.join([str(round(1/max(1,len([j for j in i['irefs_source']])),5)) for z in range(max(1,len([j for j in i['irefs_source']]))) if i['function']==3]),
@@ -72,14 +73,14 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
 
     #print('-------------')
     #add Min/Max comp for function Min(1) or Max(2) if measure in (1,2,3,4) and source type in (1,2)                    
-    data.append("".join(["""((:EO :N "Sensor_{}" :T MINMAXD_CONT)
+    data.append("".join(["""((:EO :N "Sensor_{}{}" :T MINMAXD_CONT)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
  (:PAR :N SELECTOR :V {}{})
- (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']),
+ (:PAR :N N_IN :V {}))\n""".format(str(i['sensor_id']), '_{}'.format(i['irefs_target'][0]['iref'].split('_')[-1]) if i['target_type']==4 else '',
                         " ".join(["""({} :SYSTEM "{}" "{}" {})""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getPMT2muxName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][0].split('_')[3]), returnVarName(i['measure'])) 
                             for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)] for j in i['irefs_source']],1) if i['measure'] in (1,2,3)]),
-                        " ".join(["""({} :SYSTEM "{}" "{}" P)""".format(conn[0], getMacroTypeName(i['source_type'])+'_'+conn[1][0].split('_')[1], getMeterName(cur,conn[1][1]['conn_bundle_type_id'],conn[1][1]['conn_type_id'])) 
-                            for conn in enumerate([[j['iref'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)] for j in i['irefs_source']],1) if i['measure']==4]),
+                        " ".join(["""({} :SYSTEM "{}" "{}" P)""".format(counter, getMacroTypeName(i['source_type'])+'_'+conn[0].split('_')[1], getMeterName(cur,conn[1],conn[0].split('_')[2])) 
+                            for counter,conn in enumerate([[j['iref'],getConnBundleByFeature(i['source_type'],j['iref'].split('_')[1],cur,config)] for j in i['irefs_source']],1) if i['measure']==4]),
                         "".join([j for j in ['1'] if i['function']==2]),"".join([j for j in ['0'] if i['function']==1]),
                         str(max(1,len([j for j in i['irefs_source']])))) 
                         for i in sensor_dec_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)]))  
@@ -111,7 +112,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
  (:PAR :N COEFF :DIM (1) :V #(1))
  (:PAR :N N_IN :V 1))\n""".format(j['iref'],
                         " ".join(["""(1 :SYSTEM "{}" "{}" {})""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getPMT2muxName(cur,getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)['conn_bundle_type_id'],j['iref'].split('_')[3]), returnVarName(i['measure']))]),
-                        " ".join(["""(1 :SYSTEM "{}" "{}" P)""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getMeterName(cur,getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)['conn_bundle_type_id'],getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)['conn_type_id']))])) 
+                        " ".join(["""(1 :SYSTEM "{}" "{}" P)""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getMeterName(cur,getConnBundleByFeature(i['source_type'],j['iref'].split('_')[1],cur,config),j['iref'].split('_')[1],j['iref'].split('_')[2]))])) 
                         for i in sensor_dec_data if i['function'] ==6 and i['measure'] in (1,2,3,4) for j in i['irefs_source']]))
     #print('add Adder comp for function  Individual signals for each target (6) if measure in (1,2,3,4) finished')
                         
@@ -185,7 +186,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
             if j[1]['submodel']==submodel and not j[1]['network_side'] or j[1]['cosim']==submodel and j[1]['network_side']]))
         
     #Target connections if not (function == Individual signals for each target (6) and meaure==custom(5) and target==Custom (1)
-    data.append(''.join([""" (("Sensor_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)\n""".format(str(i['sensor_id']) if i['function'] in (1,2,3,4,5) else j['iref'] ,j['iref']) 
+    data.append(''.join([""" (("Sensor_{}" OUTSIGNALLINK) "Int_Ref_Sensor_Target_{}" 0 0 NIL)\n""".format("{}{}".format(str(i['sensor_id']), '_{}'.format(i['irefs_target'][0]['iref'].split('_')[-1]) if i['target_type']==4 else '') if i['function'] in (1,2,3,4,5) else j['iref'] ,j['iref']) 
         for i in sensor_dec_data  if not (i['function']==6 and i['measure']==5) for j in i['irefs_target'] if submodel==j['submodel'] and not j['network_side'] or submodel==j['cosim'] and j['network_side']]))      
 
     #Target connections if target type == supervisory and function ==Individual signals for each target (6) and meaure==custom(5) and target==Custom (1) for decoupling mode at network side
@@ -206,7 +207,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
 def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,cur,config,dir,plugin_dir):
     #---------------------------sensor idc macro file--------------------------------
     file=dir+"""\\Sensor-macro.idc"""
-    data=[""";IDA {} Form UTF-8\n""".format(getIDAVersion(config)),"""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97)\n""","""(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n"""]
+    data=[""";IDA {} Form UTF-8\n""".format(getIDAVersion(config))]
     count_sensors=0                                      
 
     #add Adder comp if function  Individual signals for each target (6) and target=Custom(1) and source type in (3) for decoupling option
@@ -242,21 +243,21 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                                 for j in i['irefs_source'] if supervisory_submodel==submodel and submodel!=j['submodel'] and not j['network_side']])
 
     #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
-        str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id']) 
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}{}") :NAME "Sensor_{}{}" :PADDING 3 :DATA :EO)\n""".format(
+        str(50+35*i[0]),i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '', i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '') 
         for i in enumerate([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)],1+count_sensors)]))
-    data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
-        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1].split('_')[0],j[1]) 
+    data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
+        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1].split('_')[0], '_{}'.format(j[1].split('_')[-1]) if i[1]['target_type']==4 else '',j[1]) 
         for i in enumerate([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)],1+count_sensors) for j in enumerate(i[1]['irefs_target'],0)]))
     count_sensors+=len([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)])
 
     #print('add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2)')   
     #add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:minmaxd.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
-        str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id']) 
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:minmaxd.ids" :SLOT ("Sensor_{}{}") :NAME "Sensor_{}{}" :PADDING 3 :DATA :EO)\n""".format(
+        str(50+35*i[0]),i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '',i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '') 
         for i in enumerate([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)],1+count_sensors)]))
-    data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
-        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1].split('_')[0],j[1]) 
+    data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
+        str(50+35*i[0]),str(50+35*i[0]+j[0]),str(50+35*i[0]+j[0]),j[1].split('_')[0], '_{}'.format(j[1].split('_')[-1]) if i[1]['target_type']==4 else '',j[1]) 
         for i in enumerate([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)],1+count_sensors) for j in enumerate(i[1]['irefs_target'],0)]))
     count_sensors+=len([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)])
     #print('add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2) finished')       
@@ -335,15 +336,18 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
         for i in enumerate([i for i in sensor_dec_data if i['function']==5 and i['source_type']==3 and
         ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim']] or [True for j in i['irefs_target'] if submodel==j['submodel'] or submodel==j['cosim']])],1+count_sensors) 
         for j in i[1]['irefs_source'] if submodel==j['submodel']]))
-    count_sensors+=len([i for i in sensor_data if i['function']==5 and i['source_type']==3])          
+    count_sensors+=len([i for i in sensor_data if i['function']==5 and i['source_type']==3])     
+
+    data.insert(1,"""(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT {})\n""".format(50+9*count_sensors))
+    data.insert(2,"""(SELF-FRAME :AT ((352 {})) :R (342 {}) :SLOT (:SELF) :DATA MACRO-OBJECT)\n""".format(50+19*count_sensors,30+19*count_sensors))   
 
     writeToFileFromList(data,dir,file)
     
 def sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn):
     #------------------idm project--------------------------
     #target connections from Sensor to feature if target==Custom (1) and not (function == Individual signals for each target (6) and measure==custom (5))
-    idm_conn+=''.join(["""\n (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("{}{}" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(
-        j['iref'],getMacroTypeName(i['target_type']),'_'+j['iref'].split('_')[1] if i['target_type'] in (1,2) else '',j['iref'].split('_')[0] if i['target_type'] in (1,2) else j['iref']) 
+    idm_conn+=''.join(["""\n (("Sensor-macro" "Int_Ref_Sensor_Target_{}") ("{}{}{}" "Int_Ref_Sensor_Target_{}") 0 0 NIL)""".format(
+        j['iref'],getMacroTypeName(i['target_type']),'_'+j['iref'].split('_')[1] if i['target_type'] in (1,2) else '', '_{}'.format(j['iref'].split('_')[-1]) if i['target_type']==4 else '',j['iref'].split('_')[0] if i['target_type'] in (1,2) else j['iref']) 
         for i in sensor_dec_data if not (i['function']==6 and i['measure']==5) for j in i['irefs_target'] if submodel==j['submodel'] and not j['network_side'] or submodel==j['cosim'] and j['network_side']])
         
     #source connections from Sensor to feature if not (function == Individual signals for each target (6) and target ==custom (1))

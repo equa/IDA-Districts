@@ -154,7 +154,9 @@ class InvokeNetworkModel:
                 added_sensor_info=addRequestedOutputsSensors(self.cur,self.config,requestedOutputs)
                 #print('---added-----')
                 filter=''
-                sensor_data=getSensorData(self.cur,self.config,target_types=[1,2,3,4],filter=filter)               
+                sensor_data=getSensorData(self.cur,self.config,target_types=[1,2,3],filter=filter)     
+                for network in networks:
+                    sensor_data+=getResultSensorData(self.cur,self.config,network=network)
                 #print('---sensor-data-----')
                 #print(sensor_data)
                 
@@ -181,7 +183,7 @@ class InvokeNetworkModel:
 
                 for submodel in submodels: 
                     self.pageSettings=PageSettings(self.cur,submodel,self.config['versionName'],networks).getPageSettings()
-                    idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData,sensor_dec_data)
+                    idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData,sensor_dec_data,networks)
                     dec_templates=CopyDecoupledTemplateMacro(submodel,dir,self.config,self.cur,sensor_data)
                    
                     self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
@@ -269,8 +271,9 @@ class InvokeNetworkModel:
                     self.signals.progress.emit(int(2+16*(submodels.index(submodel)+1)/len(submodels)*97))
 
                     #results-macro
-                    writeMacroResultsIdm(self.config,self.cur,dir_network,requestedOutputs,sensor_dec_data,added_sensor_info)
-                    writeMacroResultsIdc(self.config,self.cur,dir_network,requestedOutputs,sensor_dec_data,added_sensor_info)
+                    for network in networks:
+                        writeMacroResultsIdm(self.config,self.cur,dir_network,requestedOutputs,sensor_dec_data,added_sensor_info,network)
+                        writeMacroResultsIdc(self.config,self.cur,dir_network,requestedOutputs,added_sensor_info,network)
                     self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
                     
                     # Define the path to the building idm file
@@ -692,7 +695,7 @@ ORDER BY m.id;
             #print('not connected!')
             return False
  
-    def writeNetworkTemplateIdm(self,submodel,dir,requestedOutputs,networkSimData,sensor_dec_data):    
+    def writeNetworkTemplateIdm(self,submodel,dir,requestedOutputs,networkSimData,sensor_dec_data,networks):    
         """ write idm file with """
         #print('write idm network model')
         #print(networkSimData)
@@ -714,12 +717,14 @@ ORDER BY m.id;
  (:VAR :N TAIR :T TEMP :D "Tair" :U |Deg-C| :IV NIL :B (1 "Climate-macro" "climate_processor" TAIR))
  (:VAR :N VELOCITY :T GENERIC :D "velocity" :U || :IV NIL :B (1 "Climate-macro" "vel" |y_var|)))
 ((MACRO-OBJECT :N "Climate-macro" :T DISTRICTS-MACRO))
-((MACRO-OBJECT :N "sf-macro" :T DISTRICTS-MACRO))
-((MACRO-OBJECT :N "Results-macro" :T DISTRICTS-MACRO){})
+((MACRO-OBJECT :N "sf-macro" :T DISTRICTS-MACRO)){}
 ((MACRO-OBJECT :N "Co-simulation-macro" :T DISTRICTS-MACRO))""".format(getIDAVersion(self.config),submodel,getIDADistrictsVersion(self.config),simulation_data,
-    ''.join(["""\n(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
-                        for i in sensor_dec_data  if i['target_type'] ==4 
-                        for j in i['irefs_target']]))
+    ''.join(["""\n((MACRO-OBJECT :N "Results-macro_{}" :T DISTRICTS-MACRO){})""".format(network,
+        ''.join(["""\n(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(j['iref']) 
+                            for i in sensor_dec_data  if i['target_type'] ==4 
+                            for j in i['irefs_target'] if j['iref'].split('_')[-1]==network]))
+        for network in networks])
+        )
         return data
             
     def writeNetworkTemplateIdc(self,submodel,dir,networks,supervisory_submodel):    
@@ -728,8 +733,7 @@ ORDER BY m.id;
         pageSettings=PageSettings(self.cur,submodel,self.config['versionName'],networks).getPageSettings()
         #print(pageSettings)
         data=""";IDA {} Form UTF-8
-(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {})
-(EQUATION-FRAME :AT ((218 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Results-macro") :NAME "Results-macro" :DATA MACRO-OBJECT) 
+(DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH {} :PAGE-HEIGHT {}){} 
 (EQUATION-FRAME :AT ((265 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("sf-macro") :NAME "sf-macro" :DATA MACRO-OBJECT) 
 (EQUATION-FRAME :AT ((26 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Climate-macro") :NAME "Climate-macro" :DATA MACRO-OBJECT)  
 (EQUATION-FRAME :AT ((170 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Co-simulation-macro") :NAME "Co-simulation-macro" :DATA MACRO-OBJECT)  
@@ -741,7 +745,9 @@ ORDER BY m.id;
 (LABEL-TEXT :VALUE \"Description:\" :FONT (:SWISS :ARIAL 11 1) :VERTICAL :CENTER :WRAP-P NIL :AT ((13 33) (96 53))) 
 (FIELD :AT ((96 32) (496 100)) :SLOT (DESCRIPTION) :TEXT-COLOR #S(RGB RED 0 GREEN 0 BLUE 0)) 
 (LINE :AT ((6 112) (743 112))){}
-""".format(getIDAVersion(self.config),self.pageSettings['pageWidth'],self.pageSettings['pageHeight'],"""\n(EQUATION-FRAME :AT ((120 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Supervisory_control") :NAME "Supervisory_control" :DATA MACRO-OBJECT)""" if submodel==supervisory_submodel else '')
+""".format(getIDAVersion(self.config),self.pageSettings['pageWidth'],self.pageSettings['pageHeight'],
+    ''.join(["""\n(EQUATION-FRAME :AT ((218 {})) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Results-macro_{}") :NAME "Results-macro_{}" :DATA MACRO-OBJECT)""".format(144+counter*50,network,network) for counter,network in enumerate(networks)]),
+    """\n(EQUATION-FRAME :AT ((120 144)) :R (20 20) :ICON "sys:eo.ids" :SLOT ("Supervisory_control") :NAME "Supervisory_control" :DATA MACRO-OBJECT)""" if submodel==supervisory_submodel else '')
         return data
         #writeToFile(data,dir,dir+"""\\network_{}.idc""".format(submodel))
         

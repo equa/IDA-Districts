@@ -385,17 +385,18 @@ def getFeatureSubmodels(cur,config,type):
     submodels=[i['submodel'] for i in cur.fetchall()]
     return submodels
 
-def getUsedFeatureTemplates(cur,config):
+def getUsedFeatureTemplates(cur,config,network=None):
+    network_filter= " AND {} = ANY(f.network)".format(network) if network else ""  
     sql="""(SELECT 'customer' AS feature, f.template, f_t.template_name
     FROM "{}".customers f,customer_templates f_t 
-    WHERE f.template=f_t.template
+    WHERE f.template=f_t.template{}
     GROUP BY f.template,f_t.template_name)
 UNION
 (SELECT 'energy_plant' AS feature,f.template,f_t.template_name
     FROM "{}".energy_plants f, energy_plant_templates f_t
-     WHERE f.template=f_t.template
+    WHERE f.template=f_t.template{}
     GROUP BY f.template,f_t.template_name)
-ORDER BY feature,template;""".format(config['versionName'],config['versionName']) # nosec B608
+ORDER BY feature,template;""".format(config['versionName'],network_filter,config['versionName'],network_filter) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -500,7 +501,13 @@ def getNetworkSubmodels(cur,config,networks):
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
-      
+
+def getNetworkBySubmodel(cur,config,submodel):
+    sql="""SELECT network from "{}".lines WHERE {} = ANY (submodel) GROUP BY network;""".format(config['versionName'],submodel)
+    #print(sql)
+    cur.execute(sql)
+    return [str(i['network']) for i in cur.fetchall()] 
+    
 def checkTableNameExists(cur,config,table):
     sql="""SELECT EXISTS (
     SELECT FROM information_schema.tables 
