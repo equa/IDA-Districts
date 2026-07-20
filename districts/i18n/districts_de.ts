@@ -4651,7 +4651,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     <message>
         <location filename="../districts_dialog_base.ui" line="1584"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_plot_feature_load_profile&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished">Feature-Lasten darstellen</translation>
+        <translation type="unfinished">Feature-Lasten sowie Massen- und Wärmebilanzen von ausgewählten Netzen in Diagrammen darstellen.</translation>
     </message>
     <message>
         <location filename="../districts_dialog_base.ui" line="1637"/>
@@ -4696,7 +4696,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;description_diagrams&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">&lt;p&gt;Die &lt;strong&gt;Simulationsergebnisse&lt;/strong&gt; können mithilfe &lt;strong&gt;interaktiver Diagramme&lt;/strong&gt; visualisiert werden.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Lasten&lt;/strong&gt; können für jedes Feature dargestellt werden, beispielsweise für &lt;strong&gt;Kunden&lt;/strong&gt; oder &lt;strong&gt;Energieanlagen&lt;/strong&gt;, sowie für die &lt;strong&gt;aggregierte (kumulierte) Last&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Lasten&lt;/strong&gt; können für &lt;strong&gt;Kunden&lt;/strong&gt; oder &lt;strong&gt;Energieanlagen&lt;/strong&gt; sowie &lt;strong&gt;Wärme-&lt;/strong&gt; und &lt;strong&gt;Massenbilanzen&lt;/strong&gt; selektierter Netze in Charts visualisiert werden.&lt;/p&gt;
 &lt;p&gt;Zusätzlich können &lt;strong&gt;Druck-&lt;/strong&gt; und &lt;strong&gt;Temperaturprofile&lt;/strong&gt; entlang der &lt;strong&gt;Höhendaten&lt;/strong&gt; für einen ausgewählten Pfad dargestellt werden, beispielsweise von einem bestimmten &lt;strong&gt;Kunden&lt;/strong&gt; oder einem &lt;strong&gt;Netzschwachpunkt&lt;/strong&gt; zu einer &lt;strong&gt;Energieanlage&lt;/strong&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
