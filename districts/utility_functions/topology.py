@@ -351,12 +351,9 @@ def getMeterName(cur,conn_bundle_type,conn_type):
     connValues=cur.fetchall()
     if connValues:
         connValues=connValues[0]
-        return "{}_{}_Flowmeter2".format(str(connValues['conn_bundle_type_id']),str(connValues['sequence']))
+        return "{}_{}_Flowmeter2".format(connValues['conn_bundle_type_id'],connValues['sequence'])
     else:
         return ""
-
-def getMeterNameByFeature(cur,feature_id,conn_type):
-    return getMeterName(cur,getConnBundleByFeature(feature_id,cur))
         
 def getPMT2muxName(cur,conn_bundle_type,connection_id):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_t_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp

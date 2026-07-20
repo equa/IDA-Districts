@@ -223,6 +223,14 @@ def _register_translation_keys():
     tr("liquid_circuits")
     tr("select_considerable_pipes_per_sequence")
 
+    #plot dialogs
+    tr("sync_temporal_controler")
+    tr("heat_balance")
+    tr("mass_balance")
+    tr("Qamb")
+    tr("time")
+    tr("energy")
+    
     #pipe laying algroithm dialog
     tr("pipe_laying_algorithm")
     tr("generate_heating_network")

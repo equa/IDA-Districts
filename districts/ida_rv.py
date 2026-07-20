@@ -275,12 +275,14 @@ def getType(dlg):
         type='customer'
     elif dlg.rbtn_energy_plant.isChecked():
         type='energy_plant'
+    else:
+        type=False
     return type
 
 def getFeatureIds(dlg,cur,config):
     networks=[dlg.combo_networks.itemText(i) for i in range(dlg.combo_networks.count()) if dlg.combo_networks.itemChecked(i)]
-    if networks:
-        type=getType(dlg)
+    type=getType(dlg)
+    if networks and type:
         sql="""SELECT id FROM "{}".{}s{} ORDER BY id;""".format(config['versionName'],type,' WHERE network && ARRAY['+','.join(networks)+']')# nosec B608
         cur.execute(sql)
         return [str(i['id']) for i in cur.fetchall()]
@@ -353,16 +355,36 @@ def runPathReports(dlg,main):
                     
 def plotLoadProfiles(dlg,plugin_dir,config,cur):
     simulatedOutputs=loadSimulatedOutputs(config)
-    if simulatedOutputs['power_c']==True:
-        selected_items=dlg.listWidget_ids.selectedItems()
-        if selected_items:
-            for item in dlg.listWidget_ids.selectedItems():
-                id=item.text()
-                #print(id)
-                matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False)
+    
+    if dlg.rbtn_customer.isChecked() or dlg.rbtn_energy_plant.isChecked():
+        if simulatedOutputs['power_c']==True:
+            selected_items=dlg.listWidget_ids.selectedItems()
+            if selected_items:
+                for item in dlg.listWidget_ids.selectedItems():
+                    id=item.text()
+                    #print(id)
+                    matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
+            else:
+                iface.messageBar().pushMessage("Info", "Please select an item in the list!!", level=Qgis.Info)    
         else:
-            iface.messageBar().pushMessage("Info", "Please select an item in the list!!", level=Qgis.Info)    
+            iface.messageBar().pushMessage("Info", "The customer`s load is not yet simulated in the current project version!", level=Qgis.Info)
+        
+    networks=[dlg.combo_networks.itemText(i) for i in range(dlg.combo_networks.count()) if dlg.combo_networks.itemChecked(i)]               
+    if simulatedOutputs['heatbalance_system']==True:
+        if dlg.rbtn_heatbalance.isChecked():
+            if networks:
+                matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='heatbalance',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
+            else:
+                iface.messageBar().pushMessage("Info", "No network is selected!", level=Qgis.Info)
     else:
-        iface.messageBar().pushMessage("Info", "The customer`s load is not yet simulated in the current project version!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "The heat balance is not yet simulated in the current project version!", level=Qgis.Info)
+    if simulatedOutputs['massbalance_system']==True:
+        if dlg.rbtn_massbalance.isChecked():
+            if networks:
+                matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='massbalance',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
+            else:
+                iface.messageBar().pushMessage("Info", "No network is selected!", level=Qgis.Info)
+    else:
+        iface.messageBar().pushMessage("Info", "The mass balance is not yet simulated in the current project version!", level=Qgis.Info)
         
         

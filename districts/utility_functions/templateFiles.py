@@ -384,9 +384,11 @@ class CopyDecoupledTemplateMacro:
         
 class ExchangeConntypeFiles:
     """ Exchanges connection types: 1) Removes the old connection type; 2) add the new connection type !!!!To do!!!!"""
-    def __init__(self,config,name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=[]):
+    def __init__(self,config,name,type,b_conn_t,b_conn_t_old,cur,oldConnValues=[],plugin_dir=False):
         #print('*********ExchangeConntypeFiles********')
         self.config=config
+        self.plugin_dir=plugin_dir
+        self.type=type
         dir=self.config['pathProjects']+self.config['projectName']+"\\{}_templates".format(type)
         
         if not oldConnValues:
@@ -527,10 +529,15 @@ class ExchangeConntypeFiles:
         i=0
         p_old=True
         p_old_old=True
+        requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
             filedata.insert(2,"""(:IREF :N "{}" :F 192)\n""".format(name_pmtmux))
-            filedata.insert(2,"""(MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x)\n""".format(name_pmtmux))
+            if requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer':
+                pmt_l='\n(:VAR :N |P_var| :L "Connection type sequence_{}" :AS "p_{}")'.format(value['conn_type_seq'],value['conn_seq'])
+            else:
+                pmt_l={}
+            filedata.insert(2,"""((MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x){})\n""".format(name_pmtmux,pmt_l))
             if value['mdot']!=None:
                 meter['p']=False
             if value['type'] in [1,3,5,7,9]:
@@ -557,18 +564,40 @@ class ExchangeConntypeFiles:
             meter_name_old_old=meter_name_old
         meters.append(meter)   
         #print(meters)
+
         for meter in meters:
+            if requestedOutputs['mdot_c'] and self.type=='customer' or requestedOutputs['mdot_ep'] and self.type=='energy_plant':
+                flow_output='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
+                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[0])+')' for i in enumerate(meter['sup_conn'],1)])))
+            else:
+                flow_output=''
+            #print(flow_output)
+            if requestedOutputs['temp_c'] and self.type=='customer' or requestedOutputs['temp_ep'] and self.type=='energy_plant':
+                temp_output='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
+                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[0])+')' for i in enumerate(meter['sup_conn'],1)])))
+            else:
+                temp_output=''
+            #print(temp_output)
+
+            if requestedOutputs['power_c'] and self.type=='customer' or requestedOutputs['power_ep'] and self.type=='energy_plant':
+                power_output="""\n (:VAR :N P :V 2665 :L "Connection type sequence_{}" :AS "power")""".format(meter['name'].split('_')[1])
+            else:
+                power_output=''
+            if power_output or temp_output or flow_output or requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer':
+                filedata.insert(2,"""\n(OUTPUT-FILE :N "Connection type sequence_{}" :T OUTPUT-FILE)""".format(meter['name'].split('_')[1]))
+                
             sup_m_conn=' '.join(['('+str(meter['sup_conn'].index(i)+1)+' :MACRO "'+i+'" |M_var|)' for i in meter['sup_conn']])
             sup_t_conn=sup_m_conn.replace('|M_var|','|T_var|')
             ret_m_conn=' '.join(['('+str(meter['ret_conn'].index(i)+1)+' :MACRO "'+i+'" |M_var|)' for i in meter['ret_conn']])
             ret_t_conn=ret_m_conn.replace('|M_var|','|T_var|')
-            filedata.insert(2,"""((:EO :N "{}_Flowmeter2" :T FLOWMETER2)
+            filedata.insert(2,"""((:EO :N "{}_Flowmeter2" :T FLOWMETER2){}
  (:PAR :N N_SUP :V {})
  (:PAR :N N_RET :V {})
- (:VAR :N FLOW_SUP :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})))
- (:VAR :N TSUP :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})))
- (:VAR :N FLOW_RET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})))
- (:VAR :N TRET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))\n""".format(meter['name'],meter['n_sup'],meter['n_ret'],meter['n_sup'],sup_m_conn,meter['n_sup'],sup_t_conn,meter['n_ret'],ret_m_conn,meter['n_ret'],ret_t_conn))
+ (:VAR :N FLOW_SUP :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){})
+ (:VAR :N TSUP :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){})
+ (:VAR :N FLOW_RET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){})
+ (:VAR :N TRET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){}))""".format(
+                meter['name'],power_output,meter['n_sup'],meter['n_ret'],meter['n_sup'],sup_m_conn,flow_output,meter['n_sup'],sup_t_conn,temp_output,meter['n_ret'],ret_m_conn,flow_output,meter['n_ret'],ret_t_conn,temp_output))
         
         data=[]
         connections=False
@@ -619,8 +648,7 @@ class ExchangeConntypeFiles:
                 
         counter_emeter=0
         for meter in meters:
-            x=29+counter_emeter*35
-            filedata.append("""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(x,meter['name'],meter['name']))    
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(300+counter_emeter*35,meter['name'],meter['name']))    
             counter_emeter+=1                
         writeToFileFromList(filedata,dir,dir+'\\'+name+'.idc') 
         #print('exchange conn bundle type finished')
@@ -655,6 +683,7 @@ class ExchangeConntypeFiles:
                 ["""SOURCE-CONSTANT :N "{}_{}_{}_{}_P\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(MODEL :N "{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
                 ["""(MODEL :N "PMT2mux_{}_{}_{}_{}\"""".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']) for conn in oldConnValues]+
+                ["""OUTPUT-FILE :N "Connection type sequence_{}\"""".format(conn['conn_type_seq']) for conn in oldConnValues]+
                 ["""(:EO :N "{}_{}_Flowmeter2" :T FLOWMETER2)""".format(conn['conn_bundle_type_id'],conn['conn_type_seq']) for conn in oldConnValues]
                 if conn in file_data[counter]]:
                 #print(data)
@@ -692,6 +721,7 @@ class RenameTemplateFiles:
             return None
         else:    
             sql=f"""UPDATE {type}_templates SET template_name = '{new_name.split('_')[1]}' WHERE template={name.split('_')[0]};""" # nosec B608
+            #print(sql)
             cur.execute(sql)
         
                
@@ -862,6 +892,7 @@ class WriteTemplateFiles:
     """ writes the .idm and .idc to the plugin folder and adds a macro to define and test templates """
     def __init__(self,config,name,type,cur,bundle,plugin_dir):
         #print('write template {}'.format(type))
+        #print(name)
         #print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------')
         self.cur=cur
         self.config=config
@@ -985,7 +1016,8 @@ class WriteTemplateFiles:
     def writeMacroIdc(self,dir,name,connValues,meters):
         data=""";IDA {} Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
-(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """.format(getIDAVersion(self.config))
+(SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)
+(LIST-FIELD :AT ((12 284) (271 364)) :SLOT (:RESULTS) :TEXT-COLOR #S(RGB RED 0 GREEN 0 BLUE 0)) """.format(getIDAVersion(self.config))
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         counter_p=0
         counter_mdot=0
@@ -1005,14 +1037,7 @@ class WriteTemplateFiles:
                 counter_mdot+=1
         counter_emeter=0
         for meter in meters:
-            if (requestedOutputs['power_c'] and self.type=='customer' or requestedOutputs['power_ep'] and self.type=='energy_plant' or 
-                requestedOutputs['temp_c'] and self.type=='customer' or requestedOutputs['temp_ep'] and self.type=='energy_plant' or
-                requestedOutputs['mdotc'] and self.type=='customer' or requestedOutputs['mdot_ep'] and self.type=='energy_plant' or
-                requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer'):
-                data+="""\n(EQUATION-FRAME :AT ((64 346)) :R (13.5 13.5) :ICON "sys:eo.ids" :SLOT ("Connection type sequence_{}") :NAME "Connection type sequence_{}" :DATA OUTPUT-FILE) """.format(meter['name'].split('_')[0],meter['name'].split('_')[0])
-
-            x=29+counter_emeter*35
-            data+="""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(x,meter['name'],meter['name'])    
+            data+="""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(300+counter_emeter*35,meter['name'],meter['name'])    
             counter_emeter+=1
         writeToFile(data,dir,dir+"""\\{}\\{}.idc""".format(name,name))         
     

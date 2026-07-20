@@ -339,9 +339,10 @@ class Districts:
         """Function to add right click menu to treeview item"""
         indexes = self.dlg.treeViewVersions.selectedIndexes()
         mdlIdx = self.dlg.treeViewVersions.indexAt(position)
+
         if not mdlIdx.isValid():
             return
-        item = self.model.itemFromIndex(mdlIdx)
+        item = self.model.itemFromIndex(mdlIdx.siblingAtColumn(0))
         if len(indexes) > 0:
             level = 0
             index = indexes[0]
@@ -1178,8 +1179,8 @@ class Districts:
                 dir=self.config['pathProjects']+'{}\\versions\\{}'.format(self.config['projectName'],self.config['versionName'])
                 submodels=getNetworkFileSubmodels(dir)
                 self.dlg_loadResults.combo_submodels.addItems(submodels)
-                for i in range(len(submodels)):
-                   self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,False)
+                for count,i in enumerate(range(len(submodels)),1):
+                    self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,True if count==1 else False)
                 self.dlg_loadResults.show()
                 self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
                 self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: loadResults(self.dlg_loadResults,self))
@@ -1190,39 +1191,45 @@ class Districts:
 
     def showPathReports(self):                  
         if self.conn:
-            if not checkIDADistrictsInstallation(self.config):
-                return
-            self.dlg_pathReports=IDADistrictsPathReportsDialog(self.cur,self.config,self.dlg)
-            self.dlg_pathReports.btn_ok.clicked.connect(lambda: runPathReports(self.dlg_pathReports,self))
-            self.dlg_pathReports.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_pathReports))
-            self.dlg_pathReports.btn_addSelectedIDs.clicked.connect(lambda: addSelectedIDs(self.dlg_pathReports))
-            self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: deleteIDs(self.dlg_pathReports))
-            self.dlg_pathReports.btn_addID.clicked.connect(lambda: addID(self.dlg_pathReports))
-            
-            self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.config['versionName'])) # nosec B608
-            self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
-            self.dlg_pathReports.show()
+            if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
+                self.dlg_pathReports=IDADistrictsPathReportsDialog(self.cur,self.config,self.dlg)
+                self.dlg_pathReports.btn_ok.clicked.connect(lambda: runPathReports(self.dlg_pathReports,self))
+                self.dlg_pathReports.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_pathReports))
+                self.dlg_pathReports.btn_addSelectedIDs.clicked.connect(lambda: addSelectedIDs(self.dlg_pathReports))
+                self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: deleteIDs(self.dlg_pathReports))
+                self.dlg_pathReports.btn_addID.clicked.connect(lambda: addID(self.dlg_pathReports))
+                
+                self.cur.execute('SELECT network FROM "{}".lines GROUP BY network;'.format(self.config['versionName'])) # nosec B608
+                self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
+                self.dlg_pathReports.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def loadProfiles(self):                   
         if self.conn:
-            if not checkIDADistrictsInstallation(self.config):
-                return
-            self.dlg_plotLoads=PlotLoadProfilesDialog()
-            self.dlg_plotLoads.btn_plot.clicked.connect(lambda: plotLoadProfiles(self.dlg_plotLoads,self.plugin_dir,self.config,self.cur))
-            self.dlg_plotLoads.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_plotLoads))
-            self.dlg_plotLoads.rbtn_customer.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
-            self.dlg_plotLoads.rbtn_energy_plant.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
-            
-            self.dlg_plotLoads.combo_networks.addItem(tr('@default','check_all_items'))
-            networks=getNetworks(self.cur,self.config)
-            self.dlg_plotLoads.combo_networks.addItems([str(i) for i in networks])
-            for i in range(len(networks)):
-                self.dlg_plotLoads.combo_networks.setItemChecked(i+1,False)
-            self.dlg_plotLoads.combo_networks.activated.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
-            loadFeatureIds(self.dlg_plotLoads,self.cur,self.config)
-            self.dlg_plotLoads.show()
+            if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
+                self.dlg_plotLoads=PlotLoadProfilesDialog()
+                self.dlg_plotLoads.btn_plot.clicked.connect(lambda: plotLoadProfiles(self.dlg_plotLoads,self.plugin_dir,self.config,self.cur))
+                self.dlg_plotLoads.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_plotLoads))
+                self.dlg_plotLoads.rbtn_customer.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
+                self.dlg_plotLoads.rbtn_energy_plant.toggled.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
+                
+                self.dlg_plotLoads.combo_networks.addItem(tr('@default','check_all_items'))
+                networks=getNetworks(self.cur,self.config)
+                self.dlg_plotLoads.combo_networks.addItems([str(i) for i in networks])
+                for i in range(len(networks)):
+                    self.dlg_plotLoads.combo_networks.setItemChecked(i+1,False)
+                self.dlg_plotLoads.combo_networks.activated.connect(lambda: loadFeatureIds(self.dlg_plotLoads,self.cur,self.config))
+                loadFeatureIds(self.dlg_plotLoads,self.cur,self.config)
+                self.dlg_plotLoads.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
@@ -1246,22 +1253,28 @@ class Districts:
             
     def showDataOnMap(self,networkReportDlg=None,function_items=None,time_values=None):                      
         if self.conn:
-            self.dlg_showOnMap=ShowOnMapDialog(self.cur,self.config,self.plugin_dir,self.dlg,networkReportDlg=networkReportDlg,function_items=function_items,time_values=time_values)
-            self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: showOnMap(self.dlg_showOnMap,self,networkReportDlg=networkReportDlg))
-            self.dlg_showOnMap.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showOnMap))
-            self.dlg_showOnMap.featureGroupChanged(False)
-            self.dlg_showOnMap.show()
+            if self.config['versionName']:
+                self.dlg_showOnMap=ShowOnMapDialog(self.cur,self.config,self.plugin_dir,self.dlg,networkReportDlg=networkReportDlg,function_items=function_items,time_values=time_values)
+                self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: showOnMap(self.dlg_showOnMap,self,networkReportDlg=networkReportDlg))
+                self.dlg_showOnMap.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showOnMap))
+                self.dlg_showOnMap.featureGroupChanged(False)
+                self.dlg_showOnMap.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info) 
             
     def showNetworkReport(self):                      
         if self.conn:
-            self.dlg_networkReport=NetworkReportDialog(self.plugin_dir)
-            self.dlg_networkReport.btn_addPlot.clicked.connect(lambda: self.showDataOnMap(networkReportDlg=self.dlg_networkReport,function_items=['Max','Min','Average','Sum','Last value','First value'],time_values=[]))
-            self.dlg_networkReport.btn_deletePlot.clicked.connect(self.dlg_networkReport.deleteTableRow)
-            self.dlg_networkReport.btn_ok.clicked.connect(lambda: networkReport(self.dlg_networkReport,self.plugin_dir,self.cur,self.config,self.dlg))
-            self.dlg_networkReport.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_networkReport))
-            self.dlg_networkReport.show()
+            if self.config['versionName']:
+                self.dlg_networkReport=NetworkReportDialog(self.plugin_dir)
+                self.dlg_networkReport.btn_addPlot.clicked.connect(lambda: self.showDataOnMap(networkReportDlg=self.dlg_networkReport,function_items=['Max','Min','Average','Sum','Last value','First value'],time_values=[]))
+                self.dlg_networkReport.btn_deletePlot.clicked.connect(self.dlg_networkReport.deleteTableRow)
+                self.dlg_networkReport.btn_ok.clicked.connect(lambda: networkReport(self.dlg_networkReport,self.plugin_dir,self.cur,self.config,self.dlg))
+                self.dlg_networkReport.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_networkReport))
+                self.dlg_networkReport.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 

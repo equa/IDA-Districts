@@ -299,184 +299,172 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
 
     map.setLayers([layer_customer_mem,layer_ep_mem,layer_network_mem,layer_osm])
     
-    #------------kpi table--------------
-    if dlg.checkBox_kpi.isChecked():
-        #print('------------kpi table--------------')
-        # --- 1. prepare data ---
-        sql="""SELECT * FROM "{}".kpi;""".format(config['versionName']) # nosec B608
-        cur.execute(sql)
-        kpi_table=cur.fetchone()
-        kpis=[{i:float(kpi_table[i])} for i in kpi_table if kpi_table[i] is not None and i!='id']
-        #print(kpis)
-        requestedOutputs=loadRequestedOutputs(plugin_dir,config)
-        if requestedOutputs['qsup_heat_spec_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
-            value = float(kpi_table['qsup_heat_c'])/getBuildingsEra(cur,config)
-            kpis.append({'qsup_heat_spec_c':value})
-        if requestedOutputs['qsup_cold_spec_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
-            value = float(kpi_table['qsup_cold_c'])/getBuildingsEra(cur,config)
-            kpis.append({'qsup_cold_spec_c':value})
-        if requestedOutputs['qsup_spec_c_kpi'] and kpi_table['qsup_c'] is not None:
-            value = float(kpi_table['qsup_c'])/getBuildingsEra(cur,config)
-            kpis.append({'qsup_spec_c':value})
+    networks=getNetworks(cur,config)
+    label_networks={}
+    table_networks={}
+    frame_networks={}
 
-        if requestedOutputs['qsup_heat_density_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
-            value = float(kpi_table['qsup_heat_c'])/network_extent.width()/network_extent.height()
-            kpis.append({'qsup_heat_density_c':value})
-        if requestedOutputs['qsup_cold_density_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
-            value = float(kpi_table['qsup_cold_c'])/network_extent.width()/network_extent.height()
-            kpis.append({'qsup_cold_density_c':value})
-        if requestedOutputs['qsup_density_c_kpi'] and kpi_table['qsup_c'] is not None:
-            value = float(kpi_table['qsup_c'])/network_extent.width()/network_extent.height()
-            kpis.append({'qsup_density_c':value})
-
-        if requestedOutputs['qsup_heat_linedensity_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
-            value = float(kpi_table['qsup_heat_c'])/getNetworkLength(cur,config)
-            kpis.append({'qsup_heat_linedensity_c':value})
-        if requestedOutputs['qsup_cold_linedensity_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
-            value = float(kpi_table['qsup_cold_c'])/getNetworkLength(cur,config)
-            kpis.append({'qsup_cold_linedensity_c':value})
-        if requestedOutputs['qsup_linedensity_c_kpi'] and kpi_table['qsup_c'] is not None:
-            value = float(kpi_table['qsup_c'])/getNetworkLength(cur,config)
-            kpis.append({'qsup_linedensity_c':value})
-
-        if requestedOutputs['eff_width']:
-            value = network_extent.width()*network_extent.height()/getNetworkLength(cur,config)
-            kpis.append({'eff_width':value})
-        
-        if requestedOutputs['volume_kpi']:
-            value = getNetworkVolume(cur,config)
-            kpis.append({'volume':value})
-
-        num_entries = len(kpis)
-
-        # define layout-mode: 4 columns if more than 4 entries
-        columns_count = 4 if num_entries > 4 else 2
-        table_data = []
-
-        if columns_count == 4:
-            # calc line counter for 2-block-layout
-            rows_needed = math.ceil(num_entries / 2)
-            for i in range(rows_needed):
-                row = []
-                # left block
-                #print(kpis[i])
-                (name_l, val_l), = kpis[i].items()         
-                row.extend([tr("@default",name_l), "{:.3g}".format(val_l),getKPIUnit(name_l)])
-                
-                # right block
-                idx_right = i + rows_needed
-                if idx_right < num_entries:
-                    (name_r, val_r), = kpis[idx_right].items()
-                    row.extend([tr("@default",name_r), "{:.3g}".format(val_r),getKPIUnit(name_r)])
-                else:
-                    row.extend(["", ""]) # Padding
-                table_data.append(row)
-        else:
-            # 2-column layout
-            table_data = [[tr("@default",key), "{:.3g}".format(value),getKPIUnit(key)] for d in kpis for key, value in d.items()]
-        #print(table_data)
-
-        # --- 2. initalize table  ---
-        table = QgsLayoutItemTextTable(layout)
-        layout.addMultiFrame(table)
-
-        # --- 3. define coulumn (HEADER) ---
-        header_labels = [(tr("@default","kpi"),45), (tr("@default","value"),15),(tr("@default","unit"),21)] * (columns_count // 2)
-        cols = []
-        for label,width in header_labels:
-            col = QgsLayoutTableColumn()
-            col.setHeading(label)
-            col.setWidth(width if columns_count == 4 else width+10) 
-            cols.append(col)
-        table.setColumns(cols)
-
-        # --- 4. STYLING ---
-        table.setGridStrokeWidth(0.000001) 
-        table.setGridColor(QColor("White"))
-
-        # Content Text Format
-        content_text_format = QgsTextFormat()
-        content_text_format.setFont(font_table) 
-        content_text_format.setColor(QColor("Black"))
-        table.setContentTextFormat(content_text_format)
-
-        # Header Text Format
-        header_text_format = QgsTextFormat()
-        header_text_format.setFont(font_table_label)
-        header_text_format.setColor(QColor("Black"))
-        table.setHeaderTextFormat(header_text_format)
-
-        # write data to table
-        table.setContents(table_data)
-
-        # --- 5. Generate FRAME  & registration ---
-        frame = QgsLayoutFrame(layout, table)
-        frame.setId("AttributTabelle")
-        layout.addLayoutItem(frame)
-        table.addFrame(frame)
-
-        # --- 6. geomatry & position ---
-        table.refreshAttributes()
-        width = 170 if columns_count == 4 else 100
-
-        y_layout +=table.totalHeight() + 1.5
-        frame.attemptResize(QgsLayoutSize(width, max(10, y_layout), QgsUnitTypes.LayoutMillimeters))
-        frame.attemptMove(QgsLayoutPoint(20, 155, QgsUnitTypes.LayoutMillimeters))
-    
-    #-------------pipes table---------
-    if dlg.checkBox_pipeTable.isChecked():
+    for network in networks:
+        #print(network)    
         # Create a new page
         new_page = QgsLayoutItemPage(layout)
 
         # Optional: set size and orientation (default is A4 Portrait)
         new_page.setPageSize('A4', QgsLayoutItemPage.Orientation.Portrait)
         layout.pageCollection().addPage(new_page)
-        y_layout=25
+        y_layout=15
         current_page = layout.pageCollection().pageCount()
         
+        # Add title network
+        label_networks[network] = QgsLayoutItemLabel(layout)
+        label_networks[network].setText(tr("@default","network")+': '+network)
+        label_networks[network].setFont(font_header_label)
+        label_networks[network].adjustSizeToText()
+        label_networks[network].attemptMove(
+            QgsLayoutPoint(20, y_layout),
+            page=current_page - 1
+        )
+        label_networks[network].attemptResize(QgsLayoutSize(140, 15), True)
+        layout.addLayoutItem(label_networks[network])
+        y_layout+=10
+    
+        #------------kpi table--------------
+        if dlg.checkBox_kpi.isChecked():
+            #print('------------kpi table--------------')
+
+            # --- 1. prepare data ---
+            sql="""SELECT * FROM "{}".kpi_{};""".format(config['versionName'],network) # nosec B608
+            try:
+                cur.execute(sql)
+                kpi_table=cur.fetchone()
+            
+                kpis=[{i:float(kpi_table[i])} for i in kpi_table if kpi_table[i] is not None and i!='id']
+                #print(kpis)
+                simulatedOutputs=loadSimulatedOutputs(config)
+                if simulatedOutputs['qsup_heat_spec_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
+                    value = float(kpi_table['qsup_heat_c'])/getBuildingsEra(cur,config)
+                    kpis.append({'qsup_heat_spec_c':value})
+                if simulatedOutputs['qsup_cold_spec_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
+                    value = float(kpi_table['qsup_cold_c'])/getBuildingsEra(cur,config)
+                    kpis.append({'qsup_cold_spec_c':value})
+                if simulatedOutputs['qsup_spec_c_kpi'] and kpi_table['qsup_c'] is not None:
+                    value = float(kpi_table['qsup_c'])/getBuildingsEra(cur,config)
+                    kpis.append({'qsup_spec_c':value})
+
+                if simulatedOutputs['qsup_heat_density_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
+                    value = float(kpi_table['qsup_heat_c'])/network_extent.width()/network_extent.height()
+                    kpis.append({'qsup_heat_density_c':value})
+                if simulatedOutputs['qsup_cold_density_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
+                    value = float(kpi_table['qsup_cold_c'])/network_extent.width()/network_extent.height()
+                    kpis.append({'qsup_cold_density_c':value})
+                if simulatedOutputs['qsup_density_c_kpi'] and kpi_table['qsup_c'] is not None:
+                    value = float(kpi_table['qsup_c'])/network_extent.width()/network_extent.height()
+                    kpis.append({'qsup_density_c':value})
+
+                if simulatedOutputs['qsup_heat_linedensity_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
+                    value = float(kpi_table['qsup_heat_c'])/getNetworkLength(cur,config)
+                    kpis.append({'qsup_heat_linedensity_c':value})
+                if simulatedOutputs['qsup_cold_linedensity_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
+                    value = float(kpi_table['qsup_cold_c'])/getNetworkLength(cur,config)
+                    kpis.append({'qsup_cold_linedensity_c':value})
+                if simulatedOutputs['qsup_linedensity_c_kpi'] and kpi_table['qsup_c'] is not None:
+                    value = float(kpi_table['qsup_c'])/getNetworkLength(cur,config)
+                    kpis.append({'qsup_linedensity_c':value})
+
+                if simulatedOutputs['eff_width']:
+                    value = network_extent.width()*network_extent.height()/getNetworkLength(cur,config)
+                    kpis.append({'eff_width':value})
+                
+                if simulatedOutputs['volume_kpi']:
+                    value = getNetworkVolume(cur,config)
+                    kpis.append({'volume':value})
+
+                num_entries = len(kpis)
+
+                # define layout-mode: 4 columns if more than 4 entries
+                columns_count = 4 if num_entries > 4 else 2
+                table_data = []
+
+                if columns_count == 4:
+                    # calc line counter for 2-block-layout
+                    rows_needed = math.ceil(num_entries / 2)
+                    for i in range(rows_needed):
+                        row = []
+                        # left block
+                        #print(kpis[i])
+                        (name_l, val_l), = kpis[i].items()         
+                        row.extend([tr("@default",name_l), "{:.3g}".format(val_l),getKPIUnit(name_l)])
+                        
+                        # right block
+                        idx_right = i + rows_needed
+                        if idx_right < num_entries:
+                            (name_r, val_r), = kpis[idx_right].items()
+                            row.extend([tr("@default",name_r), "{:.3g}".format(val_r),getKPIUnit(name_r)])
+                        else:
+                            row.extend(["", ""]) # Padding
+                        table_data.append(row)
+                else:
+                    # 2-column layout
+                    table_data = [[tr("@default",key), "{:.3g}".format(value),getKPIUnit(key)] for d in kpis for key, value in d.items()]
+                #print(table_data)
+
+                # --- 2. initalize table  ---
+                table = QgsLayoutItemTextTable(layout)
+                layout.addMultiFrame(table)
+
+                # --- 3. define coulumn (HEADER) ---
+                header_labels = [(tr("@default","kpi"),45), (tr("@default","value"),15),(tr("@default","unit"),21)] * (columns_count // 2)
+                cols = []
+                for label,width in header_labels:
+                    col = QgsLayoutTableColumn()
+                    col.setHeading(label)
+                    col.setWidth(width if columns_count == 4 else width+10) 
+                    cols.append(col)
+                table.setColumns(cols)
+
+                # --- 4. STYLING ---
+                table.setGridStrokeWidth(0.000001) 
+                table.setGridColor(QColor("White"))
+
+                # Content Text Format
+                content_text_format = QgsTextFormat()
+                content_text_format.setFont(font_table) 
+                content_text_format.setColor(QColor("Black"))
+                table.setContentTextFormat(content_text_format)
+
+                # Header Text Format
+                header_text_format = QgsTextFormat()
+                header_text_format.setFont(font_table_label)
+                header_text_format.setColor(QColor("Black"))
+                table.setHeaderTextFormat(header_text_format)
+
+                # write data to table
+                table.setContents(table_data)
+
+                # --- 5. Generate FRAME  & registration ---
+                frame = QgsLayoutFrame(layout, table)
+                frame.setId("AttributTabelle")
+                layout.addLayoutItem(frame)
+                table.addFrame(frame)
+
+                # --- 6. geomatry & position ---
+                table.refreshAttributes()
+                width = 170 if columns_count == 4 else 100
+
+                frame.attemptResize(QgsLayoutSize(width, max(10, table.totalHeight()), QgsUnitTypes.LayoutMillimeters))
+                frame.attemptMove(QgsLayoutPoint(20, y_layout, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
+                y_layout +=table.totalHeight() + 5
+
+            except:
+                pass
+    
+        #-------------pipes table---------
+        if dlg.checkBox_pipeTable.isChecked():
         
-        # Add title pipe info
-        label_pipe_info = QgsLayoutItemLabel(layout)
-        label_pipe_info.setText(tr("@default","pipe_info_titel"))
-        label_pipe_info.setFont(font_header_label)
-        label_pipe_info.adjustSizeToText()
-        label_pipe_info.attemptMove(QgsLayoutPoint(20, y_layout + (current_page-1) * page_height, QgsUnitTypes.LayoutMillimeters))
-        label_pipe_info.attemptResize(QgsLayoutSize(140, 15), True)
-        layout.addLayoutItem(label_pipe_info)
-        y_layout+=8
-        
-        networks=getNetworks(cur,config)
-        #print(networks)
-        label_networks={}
-        table_networks={}
-        frame_networks={}
-        for network in networks:
             pipe_info=getPipeInfo(cur,config,networks=[network])
             #print(pipe_info)
             table_data=[[i['name'],"{:.3g}".format(i['innerpipediameter']),"{:.3g}".format(i['length']),"{:.3g}".format(i['costs']) if i['costs'] is not None else ''] for i in pipe_info]
-            table_data.append(['∑','',"{:.3g}".format(sum([i['length'] for i in pipe_info])),"{:.3g}".format(sum([i['costs'] for i in pipe_info if i['costs'] is not None]))])
-            
-            #print(y_layout)
-            #print(y_layout+len(table_data)*5)
-            if y_layout+len(table_data)*5 >290:
-            # Create a new page
-                new_page = QgsLayoutItemPage(layout)
-
-                # Optional: set size and orientation (default is A4 Portrait)
-                new_page.setPageSize('A4', QgsLayoutItemPage.Orientation.Portrait)
-                layout.pageCollection().addPage(new_page)
-                y_layout=25
-                current_page = layout.pageCollection().pageCount()
-                
-            # Add title network
-            label_networks[network] = QgsLayoutItemLabel(layout)
-            label_networks[network].setText(tr("@default","network")+': '+network)
-            label_networks[network].setFont(font_header_label)
-            label_networks[network].adjustSizeToText()
-            #print(y_layout + (current_page-1) * page_height)
-            label_networks[network].attemptMove(QgsLayoutPoint(20,y_layout + (current_page-1) * page_height, QgsUnitTypes.LayoutMillimeters))
-            label_networks[network].attemptResize(QgsLayoutSize(140, 15), True)
-            layout.addLayoutItem(label_networks[network])
+            table_data.append(['∑','',"{:.3g}".format(sum([i['length'] for i in pipe_info])),"{:.3g}".format(sum([i['costs'] for i in pipe_info if i['costs'] is not None]))])    
 
             # --- initalize table  ---
             table_networks[network] = QgsLayoutItemTextTable(layout)
@@ -524,10 +512,8 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
 
             y_layout+=8
             frame_networks[network].attemptResize(QgsLayoutSize(width, max(10, table_networks[network] .totalHeight() + 1.5), QgsUnitTypes.LayoutMillimeters))
-            frame_networks[network].attemptMove(QgsLayoutPoint(20, y_layout + (current_page-1) * page_height, QgsUnitTypes.LayoutMillimeters))
+            frame_networks[network].attemptMove(QgsLayoutPoint(20, y_layout, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
             
-            y_layout+=table_networks[network].totalHeight()
-
     #plot images
     map_layers=[]
     if dlg.data:
@@ -537,16 +523,16 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         # Optional: set size and orientation (default is A4 Portrait)
         new_page.setPageSize('A4', QgsLayoutItemPage.Orientation.Portrait)
         layout.pageCollection().addPage(new_page)
-        y_layout=35
+        y_layout=25
         current_page = layout.pageCollection().pageCount()
 
         
-        # Add title pipe info
+        # Add title
         label_map_plots = QgsLayoutItemLabel(layout)
         label_map_plots.setText(tr("@default","map_plots"))
         label_map_plots.setFont(font_header_label)
         label_map_plots.adjustSizeToText()
-        label_map_plots.attemptMove(QgsLayoutPoint(20,y_layout - 10 + (current_page-1) * page_height, QgsUnitTypes.LayoutMillimeters))
+        label_map_plots.attemptMove(QgsLayoutPoint(20,y_layout - 10, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
         label_map_plots.attemptResize(QgsLayoutSize(140, 15), True)
         layout.addLayoutItem(label_map_plots)
 
@@ -618,7 +604,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         )
             maps[counter].setExtent(rectangle)
             
-            maps[counter].attemptMove(QgsLayoutPoint(20,y_layout + (current_page-1) * page_height+page_image_counter*130,QgsUnitTypes.LayoutMillimeters))
+            maps[counter].attemptMove(QgsLayoutPoint(20,y_layout + page_image_counter*130,QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
             maps[counter].attemptResize(QgsLayoutSize(170,120, QgsUnitTypes.LayoutMillimeters))
             layout.addLayoutItem(maps[counter])
 
@@ -660,7 +646,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             # position and size
             legends[counter].setResizeToContents(False)
             legends[counter].attemptResize(QgsLayoutSize(50, 110, QgsUnitTypes.LayoutMillimeters))
-            legends[counter].attemptMove(QgsLayoutPoint(138,  40 + (current_page-1) * page_height+page_image_counter*130, QgsUnitTypes.LayoutMillimeters))
+            legends[counter].attemptMove(QgsLayoutPoint(138,  40 +page_image_counter*130, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
             
 
             #Add scale bar    
@@ -677,14 +663,14 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             scales[counter].setUnitLabel("m")
             scales[counter].setLinkedMap(map)
             layout.addLayoutItem(scales[counter])
-            scales[counter].attemptMove(QgsLayoutPoint(22,y_layout+105+(current_page-1) * page_height+page_image_counter*130,QgsUnitTypes.LayoutMillimeters))
+            scales[counter].attemptMove(QgsLayoutPoint(22,y_layout+105+page_image_counter*130,QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
             scales[counter].attemptResize(QgsLayoutSize(50,8, QgsUnitTypes.LayoutMillimeters))
 
             #north arrow 
             north[counter]=QgsLayoutItemPicture(layout)
             north[counter].setMode(QgsLayoutItemPicture.FormatSVG)
             north[counter].setPicturePath(":/images/north_arrows/layout_default_north_arrow.svg")
-            north[counter].attemptMove(QgsLayoutPoint(25, y_layout+10+(current_page-1) * page_height+page_image_counter*130, QgsUnitTypes.LayoutMillimeters))
+            north[counter].attemptMove(QgsLayoutPoint(25, y_layout+10+page_image_counter*130, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
             north[counter].attemptResize(QgsLayoutSize(*[150,150], QgsUnitTypes.LayoutPixels))
             layout.addLayoutItem(north[counter])
 

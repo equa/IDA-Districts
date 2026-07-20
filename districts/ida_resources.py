@@ -152,7 +152,7 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
                 name=dlg.traceTableValues[traceValue][1]
             else:
                 name=dlg.traceTableValues[traceValue][0]
-            ExchangeConntypeFiles(config,name,table_name,dlg.traceTableValues[traceValue][3],dlg.traceTableValues[traceValue][2],cur)
+            ExchangeConntypeFiles(config,name,table_name,dlg.traceTableValues[traceValue][3],dlg.traceTableValues[traceValue][2],cur,plugin_dir=plugin_dir)
   
 def saveAsTemplate(cur,config,dlg,table_name,dropdowns,trace):
     """Save as the template"""
@@ -216,7 +216,11 @@ def openTemplate(main,type,dlg):
         
     row_index=dlg.tableWidget.currentRow()
     if row_index!=-1:
+        #deleted row and new template at same idx
         template=dlg.tableWidget.item(row_index, 0).text()
+        if dlg.traceTableValues[row_index][1] or dlg.traceTableValues[row_index][3]:
+            sql="UPDATE public.{}_templates SET template_name='{}',conn_bundle_type={} WHERE template={};".format(type,dlg.tableWidget.item(row_index, 1).text(),dlg.tableWidget.cellWidget(row_index, 2).currentText().split(":")[0],template) # nosec B608
+            main.cur.execute(sql)            
         sql="SELECT template_name,conn_bundle_type FROM public.{}_templates WHERE template={};".format(type,template) # nosec B608
         #print(sql)
         main.cur.execute(sql)
@@ -235,16 +239,13 @@ def openTemplate(main,type,dlg):
         name=template+'_'+template_name
         dir=main.config['pathProjects']+"{}\\{}_templates\\".format(main.config['projectName'],type)
         file=dir+"{}.idm".format(name)
-        #print(file)
         #print(dlg.traceTableValues)
-        
+
         if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
             if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
                 #print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
                 RenameTemplateFiles(main.config,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],main.cur)
-                dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
-                dlg.traceTableValues[row_index][1]=''
-                file=dir+"{}.idm".format(dlg.traceTableValues[row_index][0])
+                file=dir+"{}.idm".format(dlg.traceTableValues[row_index][1])
                 template_name=dlg.traceTableValues[row_index][1]
             else:
                 template_name=template_name
@@ -257,15 +258,22 @@ def openTemplate(main,type,dlg):
             dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
             dlg.traceTableValues[row_index][1]=''
             wroteTemplate=True
+        else:
+            if dlg.traceTableValues[row_index][1]:
+                dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
+                dlg.traceTableValues[row_index][1]=''
         
         if dlg.traceTableValues[row_index][3] and dlg.traceTableValues[row_index][2] and not wroteTemplate: # override connection bundle only if template exists before
             if dlg.traceTableValues[row_index][2]!=dlg.traceTableValues[row_index][3]:
                 #print('Changed conn bundle type')
                 #print(dlg.traceTableValues[row_index])
-                ExchangeConntypeFiles(main.config,name,type,dlg.traceTableValues[row_index][3],dlg.traceTableValues[row_index][2],main.cur)
-                dlg.traceTableValues[row_index][2]=dlg.traceTableValues[row_index][3]
-                dlg.traceTableValues[row_index][3]=''
-                #print(dlg.traceTableValues[row_index])                
+                ExchangeConntypeFiles(main.config,name,type,dlg.traceTableValues[row_index][3],dlg.traceTableValues[row_index][2],main.cur,plugin_dir=main.plugin_dir)
+                #print(dlg.traceTableValues[row_index])
+        if dlg.traceTableValues[row_index][3]:
+            dlg.traceTableValues[row_index][2]=dlg.traceTableValues[row_index][3]
+            dlg.traceTableValues[row_index][3]=''
+            
+        #print(dlg.traceTableValues)
 
         #write to DB
         sql="DELETE FROM public.{}_templates WHERE template={};".format(type,template) # nosec B608
@@ -374,7 +382,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
                 #print('*****************************************************************************')
                 #print(template['t_name'])
                 #print(oldConnValues_dict[template['t_name']])
-                ExchangeConntypeFiles(config,template['t_name'],template['type'],template['conn_bundle_type_id'],template['conn_bundle_type_id'],cur,oldConnValues=oldConnValues_dict[template['t_name']])
+                ExchangeConntypeFiles(config,template['t_name'],template['type'],template['conn_bundle_type_id'],template['conn_bundle_type_id'],cur,oldConnValues=oldConnValues_dict[template['t_name']],plugin_dir=plugin_dir)
         
     elif trace:
         #print(dlg.traceTableValues)

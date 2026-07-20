@@ -11,15 +11,16 @@ from .update_sensors import *
 
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 
-def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_sensor_info):
+def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_sensor_info,network):
+    #print('--writeMacroResultsIdm--')
     #print(added_sensor_info)
     filedata=[""";IDA {} Data UTF-8
 (DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n""".format(getIDAVersion(config),getIDADistrictsVersion(config))]
 
     #add irefs targets if target type==results (4)
-    filedata.append(''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 209)\n""".format(j['iref']) 
+    filedata.append(''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 209)\n""".format(j['iref'],network) 
                         for i in sensor_dec_data  if i['target_type'] ==4 
-                        for j in i['irefs_target']]))
+                        for j in i['irefs_target'] if j['iref'].split('_')[-1]==network]))
     connections=[]
     
     #----------customers-----------
@@ -29,7 +30,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tsup_mean_c" :T |Gain|){}){}\n""".format(
             """ (:VAR :N |y_var| :L "Tsup_mean_c_outputfile" :AS "Tsup mean customers")""" if requestedOutputs['tsup_mean_c_system'] else "",
             """\n(OUTPUT-FILE :N "Tsup_mean_c_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tsup_mean_c_system'] else ""))
-        connections.append(""" (("Tsup_mean_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tsup_mean_c_system']))
+        connections.append(""" (("Tsup_mean_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tsup_mean_c_system'],network))
     if requestedOutputs['tsup_mean_c_kpi']:
         filedata.append("""((MODEL :N "Tsup_mean_c_kpi" :T |SlidingAverage|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -43,7 +44,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tsup_min_c" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tsup_min_c_outputfile" :AS "Tsup min customers")""" if requestedOutputs['tsup_min_c_system'] else "",
             """\n(OUTPUT-FILE :N "Tsup_min_c_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tsup_min_c_system'] else ""))
-        connections.append(""" (("Tsup_min_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tsup_min_c_system']))
+        connections.append(""" (("Tsup_min_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tsup_min_c_system'],network))
     if requestedOutputs['tsup_min_c_kpi']:
         filedata.append("""((MODEL :N "Tsup_min_c_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -55,7 +56,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tsup_max_c" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tsup_max_c_outputfile" :AS "Tsup max customers")""" if requestedOutputs['tsup_max_c_system'] else "",
             """\n(OUTPUT-FILE :N "Tsup_max_c_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tsup_max_c_system'] else ""))
-        connections.append(""" (("Tsup_max_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tsup_max_c_system']))
+        connections.append(""" (("Tsup_max_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tsup_max_c_system'],network))
     if requestedOutputs['tsup_max_c_kpi']:
         filedata.append("""((MODEL :N "Tsup_max_c_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -69,7 +70,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tret_mean_c" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tret_mean_c_outputfile" :AS "Tret mean customers")""" if requestedOutputs['tret_mean_c_system'] else "",
             """\n(OUTPUT-FILE :N "Tret_mean_c_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tret_mean_c_system'] else ""))
-        connections.append(""" (("Tret_mean_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tret_mean_c_system']))
+        connections.append(""" (("Tret_mean_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tret_mean_c_system'],network))
     if requestedOutputs['tret_mean_c_kpi']:
         filedata.append("""((MODEL :N "Tret_mean_c_kpi" :T |SlidingAverage|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -83,7 +84,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tret_min_c" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tret_min_c_outputfile" :AS "Tret min customers")""" if requestedOutputs['tret_min_c_system'] else "",
             """\n(OUTPUT-FILE :N "Tret_min_c_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tret_min_c_system'] else ""))
-        connections.append(""" (("Tret_min_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tret_min_c_system']))
+        connections.append(""" (("Tret_min_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tret_min_c_system'],network))
     if requestedOutputs['tret_min_c_kpi']:
         filedata.append("""((MODEL :N "Tret_min_c_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -95,7 +96,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tret_max_c" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tret_max_c_outputfile" :AS "Tret max customers")""" if requestedOutputs['tret_max_c_system'] else "",
             """\n(OUTPUT-FILE :N "Tret_max_c_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tret_max_c_system'] else ""))
-        connections.append(""" (("Tret_max_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tret_max_c_system']))
+        connections.append(""" (("Tret_max_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tret_max_c_system'],network))
     if requestedOutputs['tret_max_c_kpi']:
         filedata.append("""((MODEL :N "Tret_max_c_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -107,8 +108,8 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         sensor_id=added_sensor_info['qsup_c']
         filedata.append("""((MODEL :N "Qsup_c" :T |Gain|))
 (:EO :N "Qsup_c_sepsign" :T SEPSIGN)\n""")
-        connections.append(""" (("Qsup_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)
- (("Qsup_c_sepsign" INSIGNALLINK) ("Qsup_c" |y|) 0 0 NIL)""".format(sensor_id))  
+        connections.append(""" (("Qsup_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)
+ (("Qsup_c_sepsign" INSIGNALLINK) ("Qsup_c" |y|) 0 0 NIL)""".format(sensor_id,network))  
         
         if requestedOutputs['qsup_heat_c_kpi'] or requestedOutputs['qsup_heat_spec_c_kpi'] or requestedOutputs['qsup_heat_density_c_kpi'] or requestedOutputs['qsup_heat_linedensity_c_kpi']:
             filedata.append("""((:CEO :N "Qsup_c_pos" :T EMETER)
@@ -142,7 +143,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tsup_mean_ep" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tsup_mean_ep_outputfile" :AS "Tsup mean energy plants")""" if requestedOutputs['tsup_mean_ep_system'] else "",
             """\n(OUTPUT-FILE :N "Tsup_mean_ep_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tsup_mean_ep_system'] else ""))
-        connections.append(""" (("Tsup_mean_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tsup_mean_ep_system']))
+        connections.append(""" (("Tsup_mean_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tsup_mean_ep_system'],network))
     if requestedOutputs['tsup_mean_ep_kpi']:
         filedata.append("""((MODEL :N "Tsup_mean_ep_kpi" :T |SlidingAverage|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -156,7 +157,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tsup_min_ep" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tsup_min_ep_outputfile" :AS "Tsup min energy plants")""" if requestedOutputs['tsup_min_ep_system'] else "",
             """\n(OUTPUT-FILE :N "Tsup_min_ep_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tsup_min_ep_system'] else ""))
-        connections.append(""" (("Tsup_min_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tsup_min_ep_system']))
+        connections.append(""" (("Tsup_min_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tsup_min_ep_system'],network))
     if requestedOutputs['tsup_min_ep_kpi']:
         filedata.append("""((MODEL :N "Tsup_min_ep_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -168,7 +169,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tsup_max_ep" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tsup_max_ep_outputfile" :AS "Tsup max energy plants")""" if requestedOutputs['tsup_max_ep_system'] else "",
             """\n(OUTPUT-FILE :N "Tsup_max_ep_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tsup_max_ep_system'] else ""))
-        connections.append(""" (("Tsup_max_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tsup_max_ep_system']))
+        connections.append(""" (("Tsup_max_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tsup_max_ep_system'],network))
     if requestedOutputs['tsup_max_ep_kpi']:
         filedata.append("""((MODEL :N "Tsup_max_ep_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -182,7 +183,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tret_mean_ep" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tret_mean_ep_outputfile" :AS "Tret mean energy plants")""" if requestedOutputs['tret_mean_ep_system'] else "",
             """\n(OUTPUT-FILE :N "Tret_mean_ep_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tret_mean_ep_system'] else ""))
-        connections.append(""" (("Tret_mean_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tret_mean_ep_system']))
+        connections.append(""" (("Tret_mean_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tret_mean_ep_system'],network))
     if requestedOutputs['tret_mean_ep_kpi']:
         filedata.append("""((MODEL :N "Tret_mean_ep_kpi" :T |SlidingAverage|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -196,7 +197,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tret_min_ep" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tret_min_ep_outputfile" :AS "Tret min energy plants")""" if requestedOutputs['tret_min_ep_system'] else "",
             """\n(OUTPUT-FILE :N "Tret_min_ep_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tret_min_ep_system'] else ""))
-        connections.append(""" (("Tret_min_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tret_min_ep_system']))
+        connections.append(""" (("Tret_min_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tret_min_ep_system'],network))
     if requestedOutputs['tret_min_ep_kpi']:
         filedata.append("""((MODEL :N "Tret_min_ep_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -208,7 +209,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""((MODEL :N "Tret_max_ep" :T |Gain|){}){}\n""".format(
             """\n (:VAR :N |y_var| :L "Tret_max_ep_outputfile" :AS "Tret max energy plants")""" if requestedOutputs['tret_max_ep_system'] else "",
             """\n(OUTPUT-FILE :N "Tret_max_ep_outputfile" :T OUTPUT-FILE :COL T :STM 1)"""if requestedOutputs['tret_max_ep_system'] else ""))
-        connections.append(""" (("Tret_max_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(added_sensor_info['tret_max_ep_system']))
+        connections.append(""" (("Tret_max_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(added_sensor_info['tret_max_ep_system'],network))
     if requestedOutputs['tret_max_ep_kpi']:
         filedata.append("""((MODEL :N "Tret_max_ep_kpi" :T |SnapMinMax|)
  (:VAR :N |u_var| :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (|u| 1) 0))))
@@ -220,8 +221,8 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         sensor_id=added_sensor_info['qsup_ep']
         filedata.append("""((MODEL :N "Qsup_ep" :T |Gain|))
 (:EO :N "Qsup_ep_sepsign" :T SEPSIGN)\n""")
-        connections.append(""" (("Qsup_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)
- (("Qsup_ep_sepsign" INSIGNALLINK) ("Qsup_ep" |y|) 0 0 NIL)""".format(sensor_id))  
+        connections.append(""" (("Qsup_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)
+ (("Qsup_ep_sepsign" INSIGNALLINK) ("Qsup_ep" |y|) 0 0 NIL)""".format(sensor_id,network))  
         
         if requestedOutputs['qsup_heat_ep_kpi']:
             filedata.append("""((:CEO :N "Qsup_ep_pos" :T EMETER)
@@ -250,7 +251,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 
     #qamb
     if requestedOutputs['heatbalance_system'] or requestedOutputs['qamb_kpi']:
-        line_conns=["""({} :SYSTEM "Pipebundle_{}" |QAmbtotal|)""".format(counter,lid) for counter,lid in enumerate(getLineIds(cur,config),1)]
+        line_conns=["""({} :SYSTEM "Pipebundle_{}" |QAmbtotal|)""".format(counter,lid) for counter,lid in enumerate(getLineIds(cur,config,network=[network]),1)]
         n_lines=len(line_conns)
         filedata.append("""((:EO :N "qamb" :T ADDER)
  (:PAR :N N_IN :V {})
@@ -268,29 +269,33 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 
     #----------system-----------
     #heat balance
+    #print(added_sensor_info['heatbalance_system'])
+    used_templates=[i['template_name'] for i in getUsedFeatureTemplates(cur,config,network=network)]
     if requestedOutputs['heatbalance_system']:
         filedata.append("""(OUTPUT-FILE :N "heatbalance_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
         for i in added_sensor_info['heatbalance_system']:
-            name= 'hb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
-            filedata.append("""((MODEL :N "{}" :T |Gain|)
+            if i['template_name'] in used_templates:
+                name= 'hb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
+                filedata.append("""((MODEL :N "{}" :T |Gain|)
  (:PAR :N |k| :V -1)
  (:VAR :N |y_var| :L "heatbalance_outputfile" :AS "{}"))\n""".format(name,i['template_name']))
-            connections.append(""" (("{}" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(name,i['id']))
+                connections.append(""" (("{}" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(name,i['id'],network))
     #mass balance
     if requestedOutputs['massbalance_system']:
         filedata.append("""(OUTPUT-FILE :N "massbalance_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
         for i in added_sensor_info['massbalance_system']:
-            #print(i)
-            name= 'mdotb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
-            filedata.append("""((MODEL :N "{}" :T |Gain|)
+            if i['template_name'] in used_templates:
+                #print(i)
+                name= 'mdotb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
+                filedata.append("""((MODEL :N "{}" :T |Gain|)
  (:VAR :N |y_var| :L "massbalance_outputfile" :AS "{}"))\n""".format(name,i['template_name']))
-            connections.append(""" (("{}" |u|) "Int_Ref_Sensor_Target_{}_X_X_X" 0 0 NIL)""".format(name,i['id']))
+                connections.append(""" (("{}" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)""".format(name,i['id'],network))
 
     if connections:
         filedata.append("(CONNECTIONS\n{})".format('\n'.join(connections)))
-    writeToFileFromList(filedata,dir,dir+'\\Results-macro.idm') 
+    writeToFileFromList(filedata,dir,dir+'\\Results-macro_{}.idm'.format(network)) 
                 
-def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_sensor_info):
+def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,network):
         
     filedata=[""";IDA {} Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 250 :PAGE-HEIGHT 123.2) 
@@ -307,7 +312,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tsup mean c
     if requestedOutputs['tsup_mean_c_kpi'] or requestedOutputs['tsup_mean_c_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("Tsup_mean_c") :NAME "Tsup_mean_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tsup_mean_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_mean_c_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tsup_mean_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_mean_c_system'],network))
         x_coord+=dx_coord
     #Tsup mean c kpi
     if requestedOutputs['tsup_mean_c_kpi']:
@@ -316,7 +321,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tsup min c
     if requestedOutputs['tsup_min_c_kpi'] or requestedOutputs['tsup_min_c_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tsup_min_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tsup_min_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_min_c_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tsup_min_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_min_c_system'],network))
         x_coord+=dx_coord
     #Tsup min c kpi
     if requestedOutputs['tsup_min_c_kpi']:
@@ -325,7 +330,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tsup max c
     if requestedOutputs['tsup_max_c_kpi'] or requestedOutputs['tsup_max_c_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tsup_max_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tsup_max_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_max_c_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tsup_max_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_max_c_system'],network))
         x_coord+=dx_coord
     #Tsup max c kpi
     if requestedOutputs['tsup_max_c_kpi']:
@@ -334,7 +339,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tret mean c
     if requestedOutputs['tret_mean_c_kpi'] or requestedOutputs['tret_mean_c_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("Tret_mean_c") :NAME "Tret_mean_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tret_mean_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_mean_c_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tret_mean_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_mean_c_system'],network))
         x_coord+=dx_coord
     #Tret mean c kpi
     if requestedOutputs['tret_mean_c_kpi']:
@@ -343,7 +348,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tret min c
     if requestedOutputs['tret_min_c_kpi'] or requestedOutputs['tret_min_c_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tret_min_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tret_min_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_min_c_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tret_min_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_min_c_system'],network))
         x_coord+=dx_coord
     #Tret min c kpi
     if requestedOutputs['tret_min_c_kpi']:
@@ -352,7 +357,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tret max c
     if requestedOutputs['tret_max_c_kpi'] or requestedOutputs['tret_max_c_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tret_max_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tret_max_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_max_c_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tret_max_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_max_c_system'],network))
         x_coord+=dx_coord
     #Tret max c kpi
     if requestedOutputs['tret_max_c_kpi']:
@@ -362,7 +367,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     try:  
         sensor_id=added_sensor_info['qsup_c']
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Qsup_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Qsup_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Qsup_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id,network))
         x_coord+=dx_coord
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "lib:sepsign.ids" :SLOT ("Qsup_c_sepsign") :NAME "Qsup_c_sepsign" :DATA MODEL) """.format(x_coord-67))
         filedata.append("""\n(CONNECTION-LINE :AT (({} 75) ({} 75)) :FIRST-LINK ("Qsup_c" (1 0.5) |y|) :LAST-LINK ("Qsup_c_sepsign" (0 0.5) INSIGNALLINK) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
@@ -382,7 +387,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tsup mean ep
     if requestedOutputs['tsup_mean_ep_kpi'] or requestedOutputs['tsup_mean_ep_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("Tsup_mean_ep") :NAME "Tsup_mean_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tsup_mean_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_mean_ep_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tsup_mean_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_mean_ep_system'],network))
         x_coord+=dx_coord
     #Tsup mean ep kpi
     if requestedOutputs['tsup_mean_ep_kpi']:
@@ -391,7 +396,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tsup min ep
     if requestedOutputs['tsup_min_ep_kpi'] or requestedOutputs['tsup_min_ep_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tsup_min_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tsup_min_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_min_ep_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tsup_min_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_min_ep_system'],network))
         x_coord+=dx_coord
     #Tsup min c kpi
     if requestedOutputs['tsup_min_ep_kpi']:
@@ -400,7 +405,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tsup max c
     if requestedOutputs['tsup_max_ep_kpi'] or requestedOutputs['tsup_max_ep_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tsup_max_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tsup_max_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_max_ep_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tsup_max_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tsup_max_ep_system'],network))
         x_coord+=dx_coord
     #Tsup max c kpi
     if requestedOutputs['tsup_max_ep_kpi']:
@@ -409,7 +414,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tret mean ep
     if requestedOutputs['tret_mean_ep_kpi'] or requestedOutputs['tret_mean_ep_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("Tret_mean_ep") :NAME "Tret_mean_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tret_mean_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_mean_ep_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tret_mean_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_mean_ep_system'],network))
         x_coord+=dx_coord
     #Tret mean ep kpi
     if requestedOutputs['tret_mean_ep_kpi']:
@@ -418,7 +423,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tret min ep
     if requestedOutputs['tret_min_ep_kpi'] or requestedOutputs['tret_min_ep_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tret_min_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tret_min_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_min_ep_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tret_min_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_min_ep_system'],network))
         x_coord+=dx_coord
     #Tret min c kpi
     if requestedOutputs['tret_min_ep_kpi']:
@@ -427,7 +432,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     #Tret max c
     if requestedOutputs['tret_max_ep_kpi'] or requestedOutputs['tret_max_ep_system']:
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Tret_max_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Tret_max_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_max_ep_system']))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Tret_max_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,added_sensor_info['tret_max_ep_system'],network))
         x_coord+=dx_coord
     #Tret max c kpi
     if requestedOutputs['tret_max_ep_kpi']:
@@ -437,7 +442,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
     try:  
         sensor_id=added_sensor_info['qsup_ep']
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Qsup_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("Qsup_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id))
+        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Qsup_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id,network))
         x_coord+=dx_coord
         filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "lib:sepsign.ids" :SLOT ("Qsup_ep_sepsign") :NAME "Qsup_ep_sepsign" :DATA MODEL) """.format(x_coord-67))
         filedata.append("""\n(CONNECTION-LINE :AT (({} 175) ({} 175)) :FIRST-LINK ("Qsup_ep" (1 0.5) |y|) :LAST-LINK ("Qsup_ep_sepsign" (0 0.5) INSIGNALLINK) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
@@ -462,24 +467,27 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
             filedata.append("""\n(CONNECTION-LINE :AT (({} 275) ({} 275)) :FIRST-LINK ("Qsup_ep_sepsign" (1.0 0.219) POSSIGNALLINK) :LAST-LINK ("Qamb_emeter" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
 
     #----------system-----------
+    used_templates=[i['template_name'] for i in getUsedFeatureTemplates(cur,config,network=network)]
     x_coord=46+dx_coord
     #heat balance
     if requestedOutputs['heatbalance_system']:
         for i in added_sensor_info['heatbalance_system']:
-            name= 'hb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
-            filedata.append("""\n(EQUATION-FRAME :AT (({} 275)) :R (16 16) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name,name))
-            filedata.append("""\n(CONNECTION-LINE :AT ((10 240) ({} 240) ({} 275) ({} 275)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("{}" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,i['id'],name))
-            x_coord+=dx_coord  
+            if i['template_name'] in used_templates:
+                name= 'hb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
+                filedata.append("""\n(EQUATION-FRAME :AT (({} 275)) :R (16 16) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name,name))
+                filedata.append("""\n(CONNECTION-LINE :AT ((10 240) ({} 240) ({} 275) ({} 275)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("{}" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,i['id'],network,name))
+                x_coord+=dx_coord  
     x_coord=46
     #mass balance
     if requestedOutputs['massbalance_system']:
         for i in added_sensor_info['massbalance_system']:
-            name= 'mdotb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
-            filedata.append("""\n(EQUATION-FRAME :AT (({} 375)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name,name))
-            filedata.append("""\n(CONNECTION-LINE :AT ((10 340) ({} 340) ({} 375) ({} 375)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X") :LAST-LINK ("{}" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,i['id'],name))
-            x_coord+=dx_coord    
+            if i['template_name'] in used_templates:
+                name= 'mdotb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
+                filedata.append("""\n(EQUATION-FRAME :AT (({} 375)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name,name))
+                filedata.append("""\n(CONNECTION-LINE :AT ((10 340) ({} 340) ({} 375) ({} 375)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("{}" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,i['id'],network,name))
+                x_coord+=dx_coord    
             
-    writeToFileFromList(filedata,dir,dir+'\\Results-macro.idc')
+    writeToFileFromList(filedata,dir,dir+'\\Results-macro_{}.idc'.format(network))
 
 def addRequestedOutputsSensors(cur,config,requestedOutputs):
     #print('--addRequestedOutputsSensors--')

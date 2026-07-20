@@ -7,20 +7,25 @@ name=Districts Modeler
 qgisMinimumVersion=3.0
 qgisMaximumVersion=4.99
 description=GIS-based district energy modeler for preparing, managing and visualising data for dynamic simulation in IDA Districts.
-version=1.0.0.0
+version=1.0.1.0
 author=EQUA
 email=districts.support@equa.se
 icon=icons/IDA_Districts_Icon_QGIS.png
 supportsQt6=True
 
 
-about=Districts Modeler is a QGIS plugin for creating, managing and preparing map-based models of district energy systems for simulation with IDA Districts. 
- It helps users build digital representations of district heating, district cooling and low-temperature energy networks by combining buildings, pipes, substations, energy plants, storage systems and consumers in one GIS-based environment. The plugin makes it easier to understand how a thermal energy network is structured, how different components are connected and how system data can be prepared for further analysis. 
- Districts Modeler supports the preparation of consistent, simulation-ready models by providing tools for spatial data processing, network topology generation, data management, validation and visualisation directly in QGIS. Model data is stored in a PostgreSQL/PostGIS database and can be exchanged with IDA Districts for detailed dynamic simulation. 
- The physical simulation itself is performed in IDA Districts, where users can analyse thermal and hydraulic network behaviour, building energy demand, energy sources, storage systems, control strategies and system performance over time. 
- Typical applications include district heating and cooling planning, network modelling, transformation studies, analysis of existing infrastructure, preparation of low-temperature or bidirectional network concepts, integration of renewable energy sources and support for research and planning projects. 
- Districts Modeler is intended for engineers, utilities, planners, municipalities, researchers and other stakeholders who want to prepare transparent and simulation-ready district energy models for use with IDA Districts. 
-
+about=Districts Modeler is a free QGIS plugin developed by EQUA for creating, managing and preparing map-based models of district energy systems for simulation with IDA Districts, EQUA’s district energy simulation software. Districts Modeler and IDA Districts are products of EQUA. The plugin is free to use; detailed dynamic simulation is carried out in IDA Districts.
+ 
+ The Districts Modeler helps users build digital representations of district heating, district cooling and low-temperature energy networks by combining buildings, pipes, substations, energy plants, storage systems and consumers in one GIS-based environment. The plugin makes it easier to understand how a thermal energy network is structured, how different components are connected and how system data can be prepared for further analysis. Districts Modeler supports the preparation of consistent, simulation-ready models by providing tools for spatial data processing, network topology generation, data management, validation and visualisation directly in QGIS. Model data is stored in a PostgreSQL/PostGIS database and can be exchanged with IDA Districts for detailed dynamic simulation. 
+ 
+ Districts Modeler supports the preparation of consistent, simulation-ready models by providing tools for spatial data processing, network topology generation, data management, validation and visualisation directly in QGIS. Model data is stored in a PostgreSQL/PostGIS database and can be exchanged with IDA Districts for detailed dynamic simulation.
+ 
+ The physical simulation itself is performed in IDA Districts, where users can analyse thermal and hydraulic network behaviour, building energy demand, energy sources, storage systems, control strategies and system performance over time.
+ 
+ Typical applications include district heating and cooling planning, network modelling, transformation studies, analysis of existing infrastructure, preparation of low-temperature or bidirectional network concepts, integration of renewable energy sources and support for research and planning projects.
+ 
+ Districts Modeler is intended for engineers, utilities, planners, municipalities, researchers and other stakeholders who want to prepare transparent and simulation-ready district energy models for use with IDA Districts.
+ 
 tracker=https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_Info_center/Districts_Known-bugs/
 repository=https://github.com/equa/IDA-Districts
 # End of mandatory metadata
@@ -32,7 +37,7 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python,districts,thermal modeling
+tags=python,districts,thermal modeling, simulation
 
 homepage=https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/
 category=Plugins

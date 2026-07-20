@@ -222,7 +222,7 @@ class DistrictsDialog(QtWidgets.QDialog):
         
         self.btn_path_reports.setIcon(QIcon(os.path.join(plugin_dir, "icons/pathreport.png")))
         self.btn_path_reports.setIconSize(QSize(btn_size, btn_size))  
-        self.btn_plotLoadProfiles.setIcon(QIcon(os.path.join(plugin_dir, "icons/loadprofile.png")))
+        self.btn_plotLoadProfiles.setIcon(QIcon(os.path.join(plugin_dir, "icons/diagrams.png")))
         self.btn_plotLoadProfiles.setIconSize(QSize(btn_size, btn_size))  
         
         self.btn_networkReport.setIcon(QIcon(":/images/themes/default/mIconReport.svg"))

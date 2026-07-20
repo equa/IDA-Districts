@@ -62,10 +62,10 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
             #print(sql)
             self.cur.execute(sql)
         
-        for i in range(self.dlg.combo_submodels.count()):
-            if self.dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and self.dlg.combo_submodels.itemChecked(i):
+        for submodel_idx in range(self.dlg.combo_submodels.count()):
+            if self.dlg.combo_submodels.itemText(submodel_idx) != tr('@default','check_all_items') and self.dlg.combo_submodels.itemChecked(submodel_idx):
                 try:
-                    submodel=self.dlg.combo_submodels.itemText(i)
+                    submodel=self.dlg.combo_submodels.itemText(submodel_idx)
                     #print(submodel)
                     match = re.match(r'\d+', submodel)
                     if match:
@@ -500,7 +500,7 @@ CREATE TABLE "{}".line_s_qamb
                                         table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                                     #print(table_names)
                                     self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
-                                self.signals.progress.emit(int(66+counter_l / len(lids)*32/len(line_outputs)+counter_of/len(line_outputs)*32))
+                                self.signals.progress.emit(int(66+counter_l / len(lids)*30/len(line_outputs)+counter_of/len(line_outputs)*30))
                             
                             self.createResultLayerIndex(table_names,'line')
 
@@ -515,73 +515,221 @@ CREATE TABLE "{}".line_s_qamb
 
                         self.signals.progress.emit(99)
                         
-                    #--------KPI`s------
-                    #print('------kpi----------')
-                    kpis={}
-                    if self.simulatedOutputs['tsup_mean_ep_kpi']: 
-                        kpis['tsup_mean_ep']=''
-                    if self.simulatedOutputs['tsup_max_ep_kpi']: 
-                        kpis['tsup_max_ep']=''
-                    if self.simulatedOutputs['tsup_min_ep_kpi']: 
-                        kpis['tsup_min_ep']=''
-                    if self.simulatedOutputs['tret_mean_ep_kpi']: 
-                        kpis['tret_mean_ep']=''
-                    if self.simulatedOutputs['tret_max_ep_kpi']: 
-                        kpis['tret_max_ep']=''
-                    if self.simulatedOutputs['tret_min_ep_kpi']: 
-                        kpis['tret_min_ep']=''
-                    if self.simulatedOutputs['qsup_heat_ep_kpi']: 
-                        kpis['qsup_heat_ep']=''
-                    if self.simulatedOutputs['qsup_cold_ep_kpi']: 
-                        kpis['qsup_cold_ep']=''
-                    if self.simulatedOutputs['qsup_ep_kpi']: 
-                        kpis['qsup_ep']=''                    
-                    
-                    if self.simulatedOutputs['tsup_mean_c_kpi']: 
-                        kpis['tsup_mean_c']=''
-                    if self.simulatedOutputs['tsup_max_c_kpi']: 
-                        kpis['tsup_max_c']=''
-                    if self.simulatedOutputs['tsup_min_c_kpi']: 
-                        kpis['tsup_min_c']=''
-                    if self.simulatedOutputs['tret_mean_c_kpi']: 
-                        kpis['tret_mean_c']=''
-                    if self.simulatedOutputs['tret_max_c_kpi']: 
-                        kpis['tret_max_c']=''
-                    if self.simulatedOutputs['tret_min_c_kpi']: 
-                        kpis['tret_min_c']=''
-                    if self.simulatedOutputs['qsup_heat_c_kpi']: 
-                        kpis['qsup_heat_c']=''
-                    if self.simulatedOutputs['qsup_cold_c_kpi']: 
-                        kpis['qsup_cold_c']=''
-                    if self.simulatedOutputs['qsup_c_kpi']: 
-                        kpis['qsup_c']=''
+                    for network in getNetworkBySubmodel(self.cur,self.config,submodel):
+                        #print(network)
+                        #--------KPI`s------
+                        #print('------kpi----------')
+                        kpis={}
+                        if self.simulatedOutputs['tsup_mean_ep_kpi']: 
+                            kpis['tsup_mean_ep']=''
+                        if self.simulatedOutputs['tsup_max_ep_kpi']: 
+                            kpis['tsup_max_ep']=''
+                        if self.simulatedOutputs['tsup_min_ep_kpi']: 
+                            kpis['tsup_min_ep']=''
+                        if self.simulatedOutputs['tret_mean_ep_kpi']: 
+                            kpis['tret_mean_ep']=''
+                        if self.simulatedOutputs['tret_max_ep_kpi']: 
+                            kpis['tret_max_ep']=''
+                        if self.simulatedOutputs['tret_min_ep_kpi']: 
+                            kpis['tret_min_ep']=''
+                        if self.simulatedOutputs['qsup_heat_ep_kpi']: 
+                            kpis['qsup_heat_ep']=''
+                        if self.simulatedOutputs['qsup_cold_ep_kpi']: 
+                            kpis['qsup_cold_ep']=''
+                        if self.simulatedOutputs['qsup_ep_kpi']: 
+                            kpis['qsup_ep']=''                    
+                        
+                        if self.simulatedOutputs['tsup_mean_c_kpi']: 
+                            kpis['tsup_mean_c']=''
+                        if self.simulatedOutputs['tsup_max_c_kpi']: 
+                            kpis['tsup_max_c']=''
+                        if self.simulatedOutputs['tsup_min_c_kpi']: 
+                            kpis['tsup_min_c']=''
+                        if self.simulatedOutputs['tret_mean_c_kpi']: 
+                            kpis['tret_mean_c']=''
+                        if self.simulatedOutputs['tret_max_c_kpi']: 
+                            kpis['tret_max_c']=''
+                        if self.simulatedOutputs['tret_min_c_kpi']: 
+                            kpis['tret_min_c']=''
+                        if self.simulatedOutputs['qsup_heat_c_kpi']: 
+                            kpis['qsup_heat_c']=''
+                        if self.simulatedOutputs['qsup_cold_c_kpi']: 
+                            kpis['qsup_cold_c']=''
+                        if self.simulatedOutputs['qsup_c_kpi']: 
+                            kpis['qsup_c']=''
 
-                    if self.simulatedOutputs['qamb_kpi']: 
-                        kpis['qamb']=''
-                    for counter_of,kpi in enumerate(kpis,1):
-                        #print('+++++++++'+kpi+'++++++++++++')
+                        if self.simulatedOutputs['qamb_kpi']: 
+                            kpis['qamb']=''
+                        for counter_of,kpi in enumerate(kpis,1):
+                            #print('+++++++++'+kpi+'++++++++++++')
 
-                        fname=dir_path+'Results-macro\\{}_kpi_outputfile.prn'.format(kpi.capitalize())
-                        #print(fname)
-                        if os.path.exists(fname):
-                            with open(fname, "r") as f:
-                                for line in f:
-                                    last_line = line
+                            fname=dir_path+'results-macro_{}\\{}_kpi_outputfile.prn'.format(network,kpi.capitalize())
+                            #print(fname)
+                            if os.path.exists(fname):
+                                with open(fname, "r") as f:
+                                    for line in f:
+                                        last_line = line
+                                    
+                                try:
+                                    kpis[kpi]=last_line.split()[-1]
+                                except:
+                                    pass
+                        #print(kpis)
+                        sql="""DROP TABLE IF EXISTS "{}".kpi_{} CASCADE;
+CREATE TABLE IF NOT EXISTS "{}".kpi_{}
+(
+    id serial,
+    tsup_mean_ep numeric,
+    tsup_max_ep numeric,
+    tsup_min_ep numeric,
+    tret_mean_ep numeric,
+    tret_max_ep numeric,
+    tret_min_ep numeric,
+    qsup_heat_ep numeric,
+    qsup_cold_ep numeric,
+    qsup_ep numeric,
+    tsup_mean_c numeric,
+    tsup_max_c numeric,
+    tsup_min_c numeric,
+    tret_mean_c numeric,
+    tret_max_c numeric,
+    tret_min_c numeric,
+    qsup_heat_c numeric,
+    qsup_cold_c numeric,
+    qsup_c numeric,
+    qamb numeric,
+    CONSTRAINT kpi_{}_pkey PRIMARY KEY (id)
+);\n""".format(self.config['versionName'],network,self.config['versionName'],network,network)  # nosec B608
+                        sql+="""INSERT INTO "{}".kpi_{} ({}) SELECT {};""".format(self.config['versionName'],network,  # nosec B608
+                            "id"+''.join([",{}".format(kpi) for kpi in kpis]),  # nosec B608
+                            "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))  # nosec B608
+                        #print(sql)
+                        self.cur.execute(sql)
+                        
+                        self.signals.progress.emit(97)
+                        
+                        #--------heat balance------
+                        if self.simulatedOutputs['heatbalance_system']: 
+                            #print('------heat balance----------')
+
+                            fname=dir_path+'results-macro_{}\\heatbalance_outputfile.prn'.format(network)
+                            #print(fname)
+
+                            if os.path.exists(fname):
+                                #get output headers
+                                components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(dir_path+'results-macro_{}.idm'.format(network))))
+                                for comp in components_idm:
+                                    if getCompName(comp)=='"heatbalance_outputfile"': 
+                                        as_dict={}
+                                        for subcomp in comp:
+                                            if getCompClass(subcomp)=='OUTPUT-FILE':                     
+                                                names = re.findall(r'([A-Z_]+)\s+#S', subcomp[':DF'])
+                                                as_dict={name.lower() : '' for name in names}  
+                                            elif getCompClass(subcomp)==':VAR':   
+                                                as_dict[subcomp[':N'].lower()]=tr('@default',subcomp[':D'].replace('"',''))       
+                                #print(as_dict)
+                                col_dict={}
+                                with open(fname, "r") as myfile:
+                                    for line in myfile:
+                                        if line[0]=='#':
+                                            line=line[1:]
+                                        col_dict={counter: as_dict[col.lower()] for counter,col in enumerate(line.split(),0) if counter>1}
+                                        break
+                                #print(col_dict)
+                                file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                 
-                            try:
-                                kpis[kpi]=last_line.split()[-1]
-                            except:
-                                pass
-                    #print(kpis)
-                    sql="""TRUNCATE "{}".kpi;\n""".format(self.config['versionName'])
-                    sql+="""INSERT INTO "{}".kpi ({}) SELECT {};""".format(self.config['versionName'],
-                        "id"+''.join([",{}".format(kpi) for kpi in kpis]),
-                        "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))
-                    #print(sql)
-                    self.cur.execute(sql)
+                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                        
+                                if self.dlg.checkbox_timestep.checkState() == checkState():
+                                    #linear interpolation
+                                    file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
+                                        
+                                #print(file_data)
+                                
+                                sql="""\nDROP TABLE IF EXISTS "{}".heatbalance_{}_s CASCADE;
+CREATE TABLE "{}".heatbalance_{}_s
+(
+	id serial,
+    time timestamp,{}
+	CONSTRAINT heatbalance_{}_s_pkey PRIMARY KEY (id)
+);""".format(self.config['versionName'],network,self.config['versionName'],network,''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()]),network) # nosec B608
+                                #print(sql)
+                                self.cur.execute(sql)
+                            
+                                self.copy_string_iterator_system_balance_sData(file_data,start_datetime,col_dict.values(),'heatbalance_{}_s'.format(network))
+                            
+                        self.signals.progress.emit(98)
+                        
+                        #--------mass balance------
+                        if self.simulatedOutputs['massbalance_system']: 
+                            #print('------mass balance----------')
+
+                            fname=dir_path+'results-macro_{}\\massbalance_outputfile.prn'.format(network)
+                            #print(fname)
+
+                            if os.path.exists(fname):
+                                #get output headers
+                                components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(dir_path+'results-macro_{}.idm'.format(network))))
+                                for comp in components_idm:
+                                    if getCompName(comp)=='"massbalance_outputfile"': 
+                                        as_dict={}
+                                        for subcomp in comp:
+                                            if getCompClass(subcomp)=='OUTPUT-FILE':                     
+                                                names = re.findall(r'([A-Z_]+)\s+#S', subcomp[':DF'])
+                                                as_dict={name.lower() : '' for name in names}
+                                                
+                                            elif getCompClass(subcomp)==':VAR':   
+                                                as_dict[subcomp[':N'].lower()]=tr('@default',subcomp[':D'].replace('"',''))       
+                                #print(as_dict)
+                                
+                                col_dict={}
+                                with open(fname, "r") as myfile:
+                                    for line in myfile:
+                                        if line[0]=='#':
+                                            line=line[1:]
+                                        col_dict={counter: as_dict[col.lower()] for counter,col in enumerate(line.split(),0) if counter>1}
+                                        break
+
+                                file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+                                
+                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
+                                        
+                                if self.dlg.checkbox_timestep.checkState() == checkState():
+                                    #linear interpolation
+                                    file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
+                                        
+                                #print(file_data)
+                                
+                                sql="""\nDROP TABLE IF EXISTS "{}".massbalance_{}_s CASCADE;
+CREATE TABLE "{}".massbalance_{}_s
+(
+	id serial,
+    time timestamp,{}
+	CONSTRAINT massbalance_s_{}_pkey PRIMARY KEY (id)
+);""".format(self.config['versionName'],network,self.config['versionName'],network,''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()]),network) # nosec B608
+                                #print(sql)
+                                self.cur.execute(sql)
+                            
+                                self.copy_string_iterator_system_balance_sData(file_data,start_datetime,col_dict.values(),'massbalance_{}_s'.format(network))
+                            
+                        self.signals.progress.emit(99)
+                        
+                        
                 except Exception as e:
                     self.signals.error.emit(str(e))
                         
+    def copy_string_iterator_system_balance_sData(self, sdata,start_datetime,col_names,table_name) -> None:
+        with self.conn.cursor() as cursor:
+            max_id=getMaxIdSchema(self.cur,table_name,self.config['versionName'])+1
+            mdata_string_iterator = StringIteratorIO((
+                '|'.join(map(clean_csv_value, (
+                    int(row_counter+max_id),
+                    start_datetime+datetime.timedelta(hours=float(data[0])),
+                    * [data[col] for col,col_name in enumerate(col_names,2)]
+                ))) + '\n'
+                for row_counter,data in enumerate(sdata)
+            ))
+            cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
 
     def copy_string_iterator_feature_c_t_seq_sData(self,sdata,fid,col_dict,start_datetime) -> None:
         for col in col_dict:
