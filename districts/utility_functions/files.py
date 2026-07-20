@@ -81,26 +81,27 @@ def replace_in_folder(root_folder, old_string, new_string, file_extensions=None,
                 replace_in_file(full_path, old_string, new_string)
                 
 def writeMacroSFIdm(config,cur,dir):
-    sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
-    cur.execute(sql)
-    sf_ids=cur.fetchall()     
-    #print(sf_ids)
-
     filedata=[""";IDA {} Data UTF-8
 (DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {})) """.format(getIDAVersion(config),getIDADistrictsVersion(config))]
-    filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
+
+    if config['versionName']:
+        sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
+        cur.execute(sql)
+        sf_ids=cur.fetchall()     
+        #print(sf_ids)
+        filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
     #print(dir)
                 
-def writeMacroSFIdc(config,cur,dir):
-    sql='SELECT id,sf FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
-    cur.execute(sql)
-    sf_ids=cur.fetchall()
-        
+def writeMacroSFIdc(config,cur,dir):     
     filedata=[""";IDA {} Data UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 97) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT) """.format(getIDAVersion(config))]
-    filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
+    if config['versionName']:
+        sql='SELECT id,sf FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
+        cur.execute(sql)
+        sf_ids=cur.fetchall()
+        filedata+=["""\n(EQUATION-FRAME :AT ((50 {})) :R (20 20) :ICON "sys:source-file.ids" :SLOT ("SOURCE-FILE-{}") :NAME "SOURCE-FILE-{}" :DATA SOURCE-FILE :D "SOURCE-FILE")""".format(30+counter*48,i['id'],i['id']) for counter,i in enumerate(sf_ids,1)]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idc')
     
 def readAndReplaceFileToList(file,replaceDict):
