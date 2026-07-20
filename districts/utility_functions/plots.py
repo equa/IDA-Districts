@@ -166,7 +166,7 @@ ORDER BY time;
 def matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='heatbalance',show_plot=True,save_plot=False,sync_temporalControler=False):
     scaling=0.001 if balance_type=='heatbalance' else 1
     for network in networks:
-        print(network)
+        #print(network)
         table_name=balance_type+'_{}_s'.format(network)
         columns=getDBColumnInfo(cur,config['versionName'],table_name).keys()
         var_colmns=list(columns)[2:]
@@ -175,7 +175,7 @@ def matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='heatbala
 FROM "{}"."{}"
 ORDER BY time;
         """.format(','.join(['"'+col+'"' for col in columns]),config['versionName'], table_name, ) # nosec B608               
-        print(sql)
+        #print(sql)
         cur.execute(sql)
         data=cur.fetchall()
         
@@ -183,7 +183,6 @@ ORDER BY time;
         var_data={col: [] for col in var_colmns}
 
         for entry in data:
-            print(entry)
             t = entry['time']
 
             # Keep datetime objects directly
@@ -339,7 +338,7 @@ def update_timeline_balance(controller, timeline_bar, canvas):
         # Redraw the plot canvas efficiently
         canvas.draw_idle()
     except Exception as e:
-        # print(f"Error during timeline update: {e}")
+        #print(f"Error during timeline update: {e}")
         pass
 
 def cleanup_plot(controller, update_func_ref):

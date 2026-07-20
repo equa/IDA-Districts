@@ -516,7 +516,7 @@ CREATE TABLE "{}".line_s_qamb
                         self.signals.progress.emit(99)
                         
                     for network in getNetworkBySubmodel(self.cur,self.config,submodel):
-                        print(network)
+                        #print(network)
                         #--------KPI`s------
                         #print('------kpi----------')
                         kpis={}
