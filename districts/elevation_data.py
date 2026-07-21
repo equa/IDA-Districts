@@ -62,7 +62,7 @@ class WorkerImportElevationData(QRunnable):
 
 
                 raster_cmd = [
-                    f"{self.config['pathPostgresql']}bin\\raster2pgsql",
+                    os.path.join(self.config["pathPostgresql"], "bin", "raster2pgsql.exe",),
                     "-I", "-C", "-M",
                     self.filePath.replace("\\", "/"),
                     "-F",
@@ -71,15 +71,15 @@ class WorkerImportElevationData(QRunnable):
                 ]
 
                 psql_cmd = [
-                    f"{self.config['pathPostgresql']}bin\\psql",
+                    os.path.join(self.config["pathPostgresql"], "bin", "psql.exe",),
                     "-h", self.config['host'],
                     "-d", self.config['projectName'],
                     "-U", self.username,
                     "-p", str(self.config['port'])
                 ]
 
-                raster_proc = subprocess.Popen(raster_cmd, stdout=subprocess.PIPE, env=env)
-                psql_proc = subprocess.run(psql_cmd, stdin=raster_proc.stdout, env=env, text=True)
+                raster_proc = subprocess.Popen(raster_cmd, stdout=subprocess.PIPE, env=env) # nosec B603
+                psql_proc = subprocess.run(psql_cmd, stdin=raster_proc.stdout, env=env, text=True) # nosec B603
 
                 raster_proc.stdout.close()
                 raster_proc.wait()
@@ -94,7 +94,7 @@ class WorkerImportElevationData(QRunnable):
                 env["PGPASSWORD"] = self.password
 
                 raster_cmd = [
-                    f"{self.config['pathPostgresql']}bin\\raster2pgsql",
+                    os.path.join(self.config["pathPostgresql"], "bin", "raster2pgsql.exe",),
                     "-I",
                     "-C",
                     "-M",
@@ -105,15 +105,15 @@ class WorkerImportElevationData(QRunnable):
                 ]
 
                 psql_cmd = [
-                    f"{self.config['pathPostgresql']}bin\\psql",
+                    os.path.join(self.config["pathPostgresql"], "bin", "psql.exe",),
                     "-h", self.config['host'],
                     "-d", self.config['projectName'],
                     "-U", self.username,
                     "-p", str(self.config['port'])
                 ]
 
-                raster_proc = subprocess.Popen(raster_cmd, stdout=subprocess.PIPE, env=env)
-                result = subprocess.run(psql_cmd, stdin=raster_proc.stdout, env=env, text=True, capture_output=True)
+                raster_proc = subprocess.Popen(raster_cmd, stdout=subprocess.PIPE, env=env)  # nosec B603
+                result = subprocess.run(psql_cmd, stdin=raster_proc.stdout, env=env, text=True, capture_output=True) # nosec B603
 
                 raster_proc.stdout.close()
                 raster_proc.wait()

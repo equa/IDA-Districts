@@ -1,6 +1,6 @@
 from qgis.utils import iface
 from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.core import QgsField,QgsProject
+from qgis.core import QgsField, QgsProject, Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QVariant
 from .utility_functions.dialog import *
 from .utility_functions.topology import *
@@ -9,45 +9,47 @@ from .utility_functions.utility import *
 import math
 import copy
 import ast
+import traceback
+
 
 def checkInputBundleEditorInput(mappedAttributesValues):
     #check input data pipe
     if not mappedAttributesValues['Pipe inner diameter, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a pipe diameter!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Error", "Please enter a pipe diameter!", level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Pipe inner diameter, m']):
-            iface.messageBar().pushMessage("Error", "Pipe diameter is not a number!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("Error", "Pipe diameter is not a number!", level=MessageWarning)
             return False
     if not mappedAttributesValues['Roughness, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a pipe roughness factor!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Error", "Please enter a pipe roughness factor!", level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Roughness, m']):
-            iface.messageBar().pushMessage("Error", "Pipe roughness is not a number!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("Error", "Pipe roughness is not a number!", level=MessageWarning)
             return False
     
     #check input pipe bundle
     if not mappedAttributesValues['Number of parallel pipes']:
-        iface.messageBar().pushMessage("Error", "Please enter a number of parallel pipes!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Error", "Please enter a number of parallel pipes!", level=MessageWarning)
         return False
     else:
         if not isInt(mappedAttributesValues['Number of parallel pipes']):
-            iface.messageBar().pushMessage("Error", "Number of parallel pipes is not an integer number!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("Error", "Number of parallel pipes is not an integer number!", level=MessageWarning)
             return False
     if not mappedAttributesValues['Horizontal distance, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a distance between pipes!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Error", "Please enter a distance between pipes!", level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Horizontal distance, m']):
-            iface.messageBar().pushMessage("Error", "Distance between pipes is not a number!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("Error", "Distance between pipes is not a number!", level=MessageWarning)
             return False
     if not mappedAttributesValues['Depth, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a depth below ground!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Error", "Please enter a depth below ground!", level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Depth, m']):
-            iface.messageBar().pushMessage("Error", "Depth below ground is not a number!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("Error", "Depth below ground is not a number!", level=MessageWarning)
             return False   
     
     return True
@@ -168,7 +170,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 layer.updateFields()                   
             bundle_idx=layer.fields().indexFromName(field_name)
         else:
-            iface.messageBar().pushMessage("Error", "Please enter a field name!", level=Qgis.Warning)
+            iface.messageBar().pushMessage("Error", "Please enter a field name!", level=MessageWarning)
             return False
     
     #loop over all features in layer
@@ -201,7 +203,11 @@ TRUNCATE pipe_layers CASCADE;\n"""
                             try:
                                 mappedAttributesValues['layer_constr'][layer_constr][1]=str(safe_eval(mappedAttributesValues['layer_constr'][layer_constr][1]))
                             except:
-                                pass
+                                QgsMessageLog.logMessage(
+                                    traceback.format_exc(),
+                                    "Districts",
+                                    MessageCritical
+                                )
                     else:
                         try:
                             dict=strToDict(mappedAttributesValues[mappedAttribute].split('[')[0])
@@ -210,7 +216,11 @@ TRUNCATE pipe_layers CASCADE;\n"""
                             else:
                                 mappedAttributesValues[mappedAttribute]=str(safe_eval(mappedAttributesValues[mappedAttribute]))
                         except:
-                            pass
+                            QgsMessageLog.logMessage(
+                                traceback.format_exc(),
+                                "Districts",
+                                MessageCritical
+                            )
 
         if not checkInputBundleEditorInput(mappedAttributesValues):
             return False
@@ -228,7 +238,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             #add to pipe layers
             for seq in constr:
                 if not constr[seq][1]:
-                    iface.messageBar().pushMessage("Warning", "Please enter a construction layer thickness!", level=Qgis.Warning)
+                    iface.messageBar().pushMessage("Warning", "Please enter a construction layer thickness!", level=MessageWarning)
                     return False
                 layer_max_id+=1
                 sql+="""INSERT INTO pipe_layers (id,pipe_construction_id,materialid,thickness,sequence) VALUES ({},{},{},{},{});\n""".format(# nosec B608
@@ -347,7 +357,7 @@ def importLayerToDb(type,dlg,main):
                     layer_srid=layer.crs().authid().split(':')[1]            
                     #print(layer_srid)
                 except:
-                    iface.messageBar().pushMessage("Info", "Please set a valid layer srid!", level=Qgis.Warning)
+                    iface.messageBar().pushMessage("Info", "Please set a valid layer srid!", level=MessageWarning)
                     return False
 
                 generateId=False
@@ -404,7 +414,11 @@ def importLayerToDb(type,dlg,main):
                         try:
                             values.append(str(safe_eval(mappedAttributesValues[attribute])))
                         except:
-                            pass
+                            QgsMessageLog.logMessage(
+                                traceback.format_exc(),
+                                "Districts",
+                                MessageCritical
+                            )
 
                     if type=='line':
                         values.append('ST_Transform(ST_SetSRID(ST_Force3D(ST_LineMerge(ST_GeomFromText(\''+str(feature.geometry().asWkt())+'\'))),'+layer_srid+'),'+ str(main.projectConfig['srid'])+')')
@@ -415,7 +429,7 @@ def importLayerToDb(type,dlg,main):
                         sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values)) # nosec B608
                     else:
                         if values[attributes.index('id')] in ids:
-                            iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=Qgis.Warning)
+                            iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=MessageWarning)
                             return False
                         else:
                             ids.append(values[attributes.index('id')])
@@ -427,8 +441,8 @@ def importLayerToDb(type,dlg,main):
                 main.dlg.statusMessage.setText(f'Import {type} layer compleded!')
                 closeDialog(dlg)
             else:
-                iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)

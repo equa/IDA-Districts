@@ -5,6 +5,9 @@ from win32 import win32process
 import sys
 import os
 from .files import *
+import traceback
+
+from qgis.core import QgsMessageLog, Qgis
 
 class Util_api:
     def __init__(self,plugin_dir,config,submodel='1'):
@@ -127,7 +130,11 @@ class Util_api:
             else:
               return ""
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
       return poll_result2[1]['value']
 
     def call_ida_api_function (self,fun, *args):

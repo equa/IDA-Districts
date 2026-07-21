@@ -1,9 +1,13 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QFileDialog,QDialog,QTableWidgetItem,QCheckBox,QComboBox,QHeaderView,QWidget,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QTableWidget,QComboBox,QTableView,QTabWidget
+from qgis.PyQt.QtWidgets import QFileDialog, QDialog, QTableWidgetItem, QCheckBox, QComboBox, QHeaderView, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QComboBox, QTableView, QTabWidget
 from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsMessageLog, Qgis
 
 from .utility_functions.dialog import *
 from .utility_functions.utility import *
+
+import traceback
+
 
 class ClimateDialog(QDialog):
     def __init__(self,data):
@@ -96,7 +100,11 @@ class ConnectionsDialog(QDialog):
             try:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],'',self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],True,self.traceTableValues[row][8],self.traceTableValues[row][9]]
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         else:
             item=QTableWidgetItem('')
             self.tableWidget.setItem(row,4,item)
@@ -107,7 +115,11 @@ class ConnectionsDialog(QDialog):
             try:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],'',self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],False,self.traceTableValues[row][8],self.traceTableValues[row][9]]
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         
         #print(self.traceTableValues)
         
@@ -115,14 +127,18 @@ class ConnectionsDialog(QDialog):
         row = item.row()
         #print('changed')
         try:
-            if self.traceTableValues[row][0]!=self.tableWidget.item(row,4).text(): #p
+            if self.tableWidget.item(row,4) and self.traceTableValues[row][0]!=self.tableWidget.item(row,4).text(): #p
                 self.traceTableValues[row][1]=self.tableWidget.item(row,4).text()
-            if self.traceTableValues[row][2]!=self.tableWidget.item(row,5).text(): #m
+            if self.tableWidget.item(row,5) and self.traceTableValues[row][2]!=self.tableWidget.item(row,5).text(): #m
                 self.traceTableValues[row][3]=self.tableWidget.item(row,5).text()
-            if self.traceTableValues[row][4]!=self.tableWidget.item(row,3).text(): #T
+            if self.tableWidget.item(row,3) and self.traceTableValues[row][4]!=self.tableWidget.item(row,3).text(): #T
                 self.traceTableValues[row][5]=self.tableWidget.item(row,3).text()
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         #print(self.traceTableValues)
 
 class DefaultsDialog(QDialog):

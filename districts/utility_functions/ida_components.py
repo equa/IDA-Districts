@@ -1,8 +1,12 @@
+from qgis.core import QgsMessageLog, Qgis
+
 from .utility import *
 from .db import *
 
 import re
 import ast
+import traceback
+
 
 def getSimData(requestedOutputs,networkSimData):
     #print(networkSimData)
@@ -235,7 +239,11 @@ def propertyListIDM(seq):
                             else:
                                 value+=seq[i+1]
                         except:
-                            pass
+                            QgsMessageLog.logMessage(
+                                traceback.format_exc(),
+                                "Districts",
+                                MessageCritical
+                            )
                         #print('break loop: '+str(value))
                         break
                     else:
@@ -288,7 +296,11 @@ def propertyListIDC(seq):
                         else:
                             value+=seq[i+1]
                     except:
-                        pass
+                        QgsMessageLog.logMessage(
+                            traceback.format_exc(),
+                            "Districts",
+                            MessageCritical
+                        )
                     #print('break loop: '+str(value))
                     break
                 else:
@@ -604,8 +616,11 @@ def getParmRunsInputNames(file_data):
                 try:
                     input_names.append(file_data[i].split(':PAR :N "')[1].split('"')[0])
                 except:
-                    #print('failed')
-                    pass
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -624,8 +639,11 @@ def getParmRunsOutputNames(file_data):
                 try:
                     output_names.append(file_data[i].split(':PAR :N "')[1].split('"')[0])
                 except:
-                    #print('failed')
-                    pass
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -644,8 +662,11 @@ def getParmRunsInputNamesTargets(file_data):
                 try:
                     input_names_target[file_data[i].split(':PAR :N "')[1].split('"')[0]]=(file_data[i].split('TARGET (')[1].split(')')[0].split()[-2:])
                 except:
-                    #print('failed')
-                    pass
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -664,8 +685,11 @@ def getParmRunsOutputNamesTargets(file_data):
                 try:
                     output_names_target[file_data[i].split(':PAR :N "')[1].split('"')[0]]=(file_data[i].split('TARGET (')[1].split(')')[0].split()[-2:])
                 except:
-                    #print('failed')
-                    pass
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
                 if openCloseBracketsCounter==0:
                     break
                 i+=1
@@ -683,17 +707,17 @@ def getBestParmRunsInputs (file_data):
             #print(inputs)
             i+=1
             try:
-                #print(file_data[i].split('OUTPUT :V (')[1].strip())
-                #print(file_data[i].split('OUTPUT :V (')[1].strip().strip(')'))
-                #print(file_data[i].split('OUTPUT :V (')[1].strip().strip(')').split(' '))
                 error=[float(i) for i in file_data[i].split('OUTPUT :V (')[1].strip().strip(')').split(' ')]
                 #print(error)
                 if error[0]<min_error[0]:
                     min_error=error
                     min_inputs=inputs
             except:
-                #print('failed')
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         i+=1
         
     return [min_error,min_inputs]

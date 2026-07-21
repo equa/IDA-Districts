@@ -608,13 +608,13 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 v_c=customer['v_c']
                 cid=customer['cid']
                 sql="""WITH sub As(
-                    	SELECT seq, node, edge, cost
-                    				FROM pgr_dijkstra(
-                    					'SELECT id, source, target, {} as cost FROM temp.streets_help',
-                    					{},
-                    					{},
-                    					false
-                    			       )
+                        SELECT seq, node, edge, cost
+                                    FROM pgr_dijkstra(
+                                        'SELECT id, source, target, {} as cost FROM temp.streets_help',
+                                        {},
+                                        {},
+                                        false
+                                    )
                     )
                     INSERT INTO temp.network_help (lid,cid,epid,geom ,pipe_length) SELECT st.id,{},{}, st.geom,st_length(geom) FROM sub,temp.streets_help st  WHERE sub.edge>0 AND st.id=sub.edge;""".format(costs,v_ep,v_c,cid,epid) # nosec B608
                 #print(sql) 
@@ -636,17 +636,17 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 sid_first=sid;
             else:
                 sql="""WITH sub AS(
-                    	SELECT seq, node, edge, cost
-                    				FROM pgr_dijkstra(
-                    					'SELECT id, source, target, length_m as cost FROM temp.streets_help',
-                    					{},
-                    					{},
-                    					false
-                    			       )
+                        SELECT seq, node, edge, cost
+                                    FROM pgr_dijkstra(
+                                        'SELECT id, source, target, length_m as cost FROM temp.streets_help',
+                                        {},
+                                        {},
+                                        false
+                                    )
                     )
                     INSERT INTO temp.lines_{} (id,type,geom)
-                    	SELECT st.id,{},ST_Force3D(st.geom)
-                    		FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode) # nosec B608
+                        SELECT st.id,{},ST_Force3D(st.geom)
+                            FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)   
         

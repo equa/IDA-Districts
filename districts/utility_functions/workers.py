@@ -7,21 +7,21 @@ from .db import *
 from ..upgrade import *
 import os
 import numpy as np
-from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
+from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable
 from qgis.utils import iface
 import subprocess
 import time
-from qgis.core import QgsProcessingUtils
+from qgis.core import QgsProcessingUtils, Qgis, QgsMessageLog
 import tempfile
 import zipfile
 from pathlib import Path
-
+import traceback
 
 
     
 def show_error_message(message):
     # Show the error message in a messageBar
-    iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+    iface.messageBar().pushMessage("Error", message, level=MessageCritical)
 
 class APIPlotinvokedFeatureSignals(QObject):
     progress=pyqtSignal(int)
@@ -198,8 +198,12 @@ class WorkerImportProject(QRunnable):
                 return False
             try:
                 copyFile(src_dir+'layersConfig.txt',target_dir,target_dir+'\\layersConfig.txt')
-            except Exception as e:
-                pass
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
             
             sql = """CREATE database {};""".format(db_info['projectName']) # nosec B608
             self.cur_postgres.execute(sql)
@@ -278,7 +282,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
             ]
 
             #print(cmd)
-            subprocess.call(cmd, env=env)
+            subprocess.call(cmd, env=env) # nosec B603
             
             self.signals.progress.emit(79)
             filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt") # nosec B608
@@ -294,7 +298,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
 
                 #print(cmd)  # optional zum Debuggen
 
-                subprocess.call(cmd, env=env)
+                subprocess.call(cmd, env=env) # nosec B603
             self.conn.close()
 
         else:
@@ -302,11 +306,6 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
             self.signals.progress.emit(0)           
             return False
             
-        try:
-            pass
-        except Exception as e:
-            pass
-            #print(e)
         self.signals.progress.emit(100)
         self.signals.finished.emit(db_info['projectName'])
         
@@ -376,7 +375,7 @@ class WorkerExportProject(QRunnable):
         #print(cmd)
         # Output file redirection (using stdout to redirect the output to a file)
         with open(sql_path, "w") as output_file:
-            subprocess.call(cmd, stdout=output_file)        
+            subprocess.call(cmd, stdout=output_file) # nosec B603      
             
         self.signals.progress.emit(25)
 
@@ -512,9 +511,12 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                         
                         self.progress_value=int(count/len(self.rows)*98)
                         self.signals.progress.emit(self.progress_value)
-        except Exception as e:
-            #print(e)
-            pass
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
                            
         self.signals.plot.emit(True) 
         if count>1:
@@ -695,12 +697,7 @@ class WorkerOpenModelCmd(QRunnable):
                 self.file_path
             ]
 
-            result = subprocess.run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)  # nosec B603
 
             if result.returncode==0:
                 self.signals.progress.emit(100)
@@ -800,7 +797,11 @@ class WorkerOpenParRunAPI():
             script_result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
             #print(script_result)
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
             
 class WorkerRunAutoMooAPI():
     """ Class to open IDA Doc with API """
@@ -838,12 +839,22 @@ class WorkerRunAutoMooAPI():
 
             #print('exit')
             #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
-            os.system("taskkill /f /im ida-ice.exe")
+            taskkill = os.path.join(
+                os.environ["SystemRoot"],
+                "System32",
+                "taskkill.exe"
+            )
+
+            subprocess.run([taskkill, "/f", "/im", "ida-ice.exe"],check=False,) # nosec B603
             #Disconnect
             #print('disconnect')
             #end = self.util.ida_lib.ida_disconnect()
             #print('finish')
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         
             

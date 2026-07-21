@@ -76,7 +76,11 @@ def setDistrictsModelerVersion2DB(cur,config):
         sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config)) # nosec B608
         cur.execute(sql)  
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
             
 def get_pgrouting_major_version(cur):
     """
@@ -230,7 +234,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
     ]
 
     with open(os.path.join(tempfile.gettempdir(), "dump_schema.sql"), "w", encoding="utf-8") as f:
-        subprocess.call(cmd, env=env, stdout=f)
+        subprocess.call(cmd, env=env, stdout=f) # nosec B603
     
     sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;' # nosec B608
     #print(sql)
@@ -249,7 +253,7 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
         "-f", f"{tempfile.gettempdir()}\\dump_schema.sql"
     ]
 
-    subprocess.call(cmd, env=env)
+    subprocess.call(cmd, env=env) # nosec B603
     
     sql="""CREATE EVENT TRIGGER prevent_column_alter
 ON ddl_command_start  -- Triggered before the DDL command is executed
@@ -484,7 +488,7 @@ def getDrawnSubmodels(cur,config):
     cur.execute(sql)
     submodels=[i['id'] for i in cur.fetchall()]
     if len(submodels)==0:
-        iface.messageBar().pushMessage("Info", "No simulation model has been build yet!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "No simulation model has been build yet!", level=MessageInfo)
         return False
     else:
         return submodels
@@ -503,7 +507,7 @@ def getNetworkSubmodels(cur,config,networks):
     return submodels
 
 def getNetworkBySubmodel(cur,config,submodel):
-    sql="""SELECT network from "{}".lines WHERE {} = ANY (submodel) GROUP BY network;""".format(config['versionName'],submodel)
+    sql="""SELECT network from "{}".lines WHERE {} = ANY (submodel) GROUP BY network;""".format(config['versionName'],submodel) # nosec B608
     #print(sql)
     cur.execute(sql)
     return [str(i['network']) for i in cur.fetchall()] 
@@ -760,7 +764,7 @@ def checkDBVersionConnected(config,errorMsg):
     else:
         #print('not connected to version!')
         if errorMsg:
-            iface.messageBar().pushMessage("WARNING", tr('@default','no_db_connection'), level=Qgis.Warning)
+            iface.messageBar().pushMessage("WARNING", tr('@default','no_db_connection'), level=MessageWarning)
         return False
         
 def dbConnect(config,errorMsg):
@@ -779,7 +783,7 @@ def dbConnect(config,errorMsg):
     except:
         #print("DB connection has failed")
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password, user name or project does not exists!", level=Qgis.Critical)
+            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password, user name or project does not exists!", level=MessageCritical)
     return conn
     
 def dbConnectProvidePwdUser(config,signals_error,pwd,user):
@@ -815,7 +819,7 @@ def dbConnectPerName(config,dbName,errorMsg):
     except:
         #print("DB connection has failed")
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=Qgis.Critical)
+            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=MessageCritical)
     return conn
     
 def getTemplateNames(cur,feature,seperator=':'):
@@ -875,7 +879,7 @@ def checkDBName(nameDb,projectNames):
     if nameDb not in projectNames:
         return True
     else:
-        iface.messageBar().pushMessage("ERROR", "DB already exists!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("ERROR", "DB already exists!", level=MessageCritical)
         return False
         
 def getFilteredDropDownItems(cur,dropdown):
@@ -1071,7 +1075,7 @@ def getDBColumnInfo(cur,schema,table):
 FROM information_schema.columns
 WHERE table_schema = '{}'
   AND table_name = '{}'
-ORDER BY ordinal_position;""".format(schema,table)
+ORDER BY ordinal_position;""".format(schema,table) # nosec B608
     #print(sql)
     cur.execute(sql)
     return {i['column_name']: {'data_type': i['data_type'],'column_default': i['column_default']} for i in cur.fetchall()}

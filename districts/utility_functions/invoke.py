@@ -1,7 +1,7 @@
 from qgis.PyQt.QtWidgets import QTableWidgetItem,QTableWidget, QTabWidget
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from qgis.utils import iface
-from qgis.core import  QgsCredentials,QgsDataSourceUri, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
+from qgis.core import  Qgis, QgsMessageLog, QgsCredentials, QgsDataSourceUri, QgsExpression, QgsOptionalExpression, QgsAttributeEditorField, QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 
 from .db import *
 from .files import *
@@ -27,6 +27,7 @@ import re
 import datetime
 import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
+import traceback
 
 class WorkerInvokeFeatures(QRunnable):
     """Worker thread
@@ -186,7 +187,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                         if parallize:
                             signals.error.emit("No borehole field data for plant id={} (layer boreholes) available!".format(id))
                         else:
-                            iface.messageBar().pushMessage("Critical", "No borehole field data for plant id={} (layer boreholes) available!".format(id), level=Qgis.Critical)
+                            iface.messageBar().pushMessage("Critical", "No borehole field data for plant id={} (layer boreholes) available!".format(id), level=MessageCritical)
                         return False
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype']) # nosec B608
                     cur.execute(sql)
@@ -250,11 +251,15 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     dlg.tableWidget_customer.setItem(idx,1,QTableWidgetItem('Yes'))
                     dlg.tableWidget_customer.viewport().update()
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
             type_old=type
             template_old=feature['template']
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
 
 class InvokeFeatures():
     def __init__(self,plugin_dir,config):
@@ -348,9 +353,9 @@ class InvokeFeatures():
                 #print('finished open feature')
                 
             else:
-                iface.messageBar().pushMessage("Info", "Feature not yet invoked!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "Feature not yet invoked!", level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
 
     def simulateInvokedFeatures(self,dlg,config):
         """Simulate the invoked features in IDA."""  
@@ -366,7 +371,7 @@ class InvokeFeatures():
             self.worker_simInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
             self.worker_simInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
         #print('simulation finished')
 
     def showFeatureLoad(self,dlg):
@@ -387,7 +392,7 @@ class InvokeFeatures():
             self.worker_plotLoad.signals.plot.connect(dlg.show_plots)
             
         else:
-            iface.messageBar().pushMessage("Info", "No feature selected or not invoked!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No feature selected or not invoked!", level=MessageInfo)
                        
     def getSensorComp(self,sensor_comp_idm,sensor_comp_idc,function,sensor_id,n_in,conns,i):
         if function in ['Max','Min']:
@@ -483,7 +488,11 @@ class CopyTemplateFiles:
                 try:
                     cur.execute(sql)
                 except:
-                    pass
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
             sql="""SELECT id,sf FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type_name)# nosec B608
             cur.execute(sql)
             sf_ids=cur.fetchall()
@@ -513,7 +522,11 @@ class CopyTemplateFiles:
                 i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
                 filedata+=["""\n{}""".format(pListToCompString(i,0))]
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\sf-macro.idm')
 
         #sf-macro.idc
@@ -548,12 +561,4 @@ class CopyTemplateFiles:
                     #print(os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     createSubDir(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     #print(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
-            try:
-                os.rename(dir_macro+'\\'+source_name.lower(), dir_macro+'\\'+target_name)
-            except:
-                try:
-                    os.rename(dir_macro+'\\'+source_name, dir_macro+'\\'+target_name)
-                except:
-                    pass
-                                
         

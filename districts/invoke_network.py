@@ -326,17 +326,7 @@ class InvokeNetworkModel:
     def saveFile(self):
         """ Save the file"""
         # Save the new building using the API
-        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1) 
-        
-    def replaceFile(self,dir,file):
-        dir_plugin_split=self.plugin_dir.split('\\')
-        dir_plugins=''
-        for x in range(len(dir_plungin_split)-1):
-            if x!=0:
-                dir_plugins+='//'
-            dir_plugins+=dir_plugin_split[x]
-        #print(dir_plugins)
-        os.popen('copy source.txt destination.txt')         
+        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1)            
     
     def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Inserts the lines in the submodel"""

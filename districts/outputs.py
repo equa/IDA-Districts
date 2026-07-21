@@ -10,6 +10,8 @@ from .utility_functions.workers import APISignals
 from .update_sensors import *
 
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
+from qgis.core import QgsMessageLog, Qgis
+import traceback
 
 def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_sensor_info,network):
     #print('--writeMacroResultsIdm--')
@@ -134,7 +136,11 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
  (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 :MACRO "Qsup_c_pos" TOTENERGY) (2 :MACRO "Qsup_c_neg" TOTENERGY)))))\n""")
             filedata.append("""(OUTPUT-FILE :N "Qsup_c_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
         
     #----------energy plants----------
     #-------Tsup
@@ -247,7 +253,11 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
  (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 :MACRO "Qsup_ep_pos" TOTENERGY) (2 :MACRO "Qsup_ep_neg" TOTENERGY)))))\n""")
             filedata.append("""(OUTPUT-FILE :N "Qsup_ep_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
     #qamb
     if requestedOutputs['heatbalance_system'] or requestedOutputs['qamb_kpi']:
@@ -380,7 +390,11 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
         if requestedOutputs['qsup_c_kpi'] or requestedOutputs['qsup_spec_c_kpi'] or requestedOutputs['qsup_density_c_kpi'] or requestedOutputs['qsup_linedensity_c_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Qsup_c_sum") :NAME "Qsup_c_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
     #----------energy plants-----------
     x_coord=46
@@ -455,7 +469,11 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
         if requestedOutputs['qsup_ep_kpi'] or requestedOutputs['qsup_spec_ep_kpi'] or requestedOutputs['qsup_density_ep_kpi'] or requestedOutputs['qsup_linedensity_ep_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Qsup_ep_sum") :NAME "Qsup_ep_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
         
     #qamb
     x_coord=46
@@ -1136,7 +1154,11 @@ class WorkerSetRequestedOutputs(QRunnable):
                                             del i[':L']
                                             del i[':AS']
                                         except:
-                                            pass
+                                            QgsMessageLog.logMessage(
+                                                traceback.format_exc(),
+                                                "Districts",
+                                                MessageCritical
+                                            )
                                         new_comp.append(i)
                                     else:
                                         new_comp.append(i)
@@ -1149,7 +1171,11 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         try:
                                             del i[':L']
                                         except:
-                                            pass
+                                            QgsMessageLog.logMessage(
+                                                traceback.format_exc(),
+                                                "Districts",
+                                                MessageCritical
+                                            )
                                         new_comp.append(i)
                                     else:
                                         new_comp.append(i)

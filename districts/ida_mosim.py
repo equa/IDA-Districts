@@ -1,4 +1,5 @@
 from qgis.PyQt.QtCore import QThreadPool
+from qgis.core import QgsMessageLog, Qgis
 
 from .utility_functions.files import *
 from .utility_functions.dialog import *
@@ -10,6 +11,7 @@ from .invoke_network import WorkerBuildNetworkModel
     
 import pandas as pd
 import numpy as np
+
 
 def openSupervisoryCtrl(cur,plugin_dir,config):
     Supervisory_control(plugin_dir,config)
@@ -43,7 +45,7 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
 def openModel(dlg,plugin_dir,config,mode='network'):
     #print('-***-')
     if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
         return False
     requestedOutputs=loadRequestedOutputs(plugin_dir,config)
     for i in range(dlg.combo_submodels.count()):
@@ -81,7 +83,7 @@ def setNetworkSimData(dlg,plugin_dir,config):
     networkSimData['calc_time_from']=dlg.dateedit_calcFrom.text()
     networkSimData['calc_time_to']=dlg.dateedit_calcTo.text()
     if not is_number(dlg.max_timestep.text()):
-        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=MessageWarning)
         return False
     else:
         networkSimData['max_timestep']=dlg.max_timestep.text()
@@ -94,7 +96,7 @@ def runModel(dlg,plugin_dir,config):
     if networkSimData:
         dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])
         if dlg.n_sims==0:
-            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
             return False
         requestedOutputs=loadRequestedOutputs(plugin_dir,config)
         invokedOutputs=loadInvokedOutputs(config)
@@ -131,7 +133,7 @@ def runModel(dlg,plugin_dir,config):
                     worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)   
                     worker_runNetwork[i].signals.finished.connect(dlg.update_finished)   
         else:
-            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=MessageInfo)
 
 def buildModel(dlg,main):
     networks=[]
@@ -149,7 +151,7 @@ def buildModel(dlg,main):
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
         main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)   
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=MessageInfo)
 
 def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     """set requested outputs"""
@@ -522,11 +524,11 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
             else:
-                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
+            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
 
 def finishedBuildBuildingModel(args):
     #print('------finished build building model----------')
@@ -651,6 +653,9 @@ def finishedBuildBuildingModel(args):
                 copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
                 if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
                     copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
-    except Exception as e:
-        #print(e)
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )

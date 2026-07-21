@@ -1,6 +1,6 @@
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
-from qgis.core import QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsWkbTypes,QgsPalLayerSettings,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsLineSymbol,QgsClassificationQuantile,QgsGeometry,QgsVectorLayer,QgsFeature,QgsClassificationEqualInterval,QgsRendererRangeLabelFormat,QgsStyle,QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer,QgsSymbol,QgsFilledMarkerSymbolLayer,QgsSymbolLayer,QgsProperty,Qgis
+from qgis.core import QgsMessageLog, QgsInterval, QgsDateTimeRange, QgsTemporalNavigationObject, QgsVectorLayerSimpleLabeling, QgsWkbTypes, QgsPalLayerSettings, QgsTemplatedLineSymbolLayerBase, QgsMarkerSymbol, QgsSimpleMarkerSymbolLayer, QgsMarkerLineSymbolLayer, QgsRuleBasedRenderer, QgsLineSymbol, QgsClassificationQuantile, QgsGeometry, QgsVectorLayer, QgsFeature, QgsClassificationEqualInterval, QgsRendererRangeLabelFormat, QgsStyle, QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsFilledMarkerSymbolLayer, QgsSymbolLayer, QgsProperty, Qgis
 from qgis.PyQt.QtWidgets import QShortcut,QListWidgetItem,QFileDialog,QStackedWidget,QListView,QLineEdit,QDialog,QTableWidgetItem
 from qgis.PyQt.QtGui import QFont, QColor
 
@@ -11,6 +11,8 @@ from .compat import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
+import traceback
+
 
 def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,color_classes=None,colormode=None,colorramp=None,feature=None,varRotation=None,size_symbolMin=None,size_symbolMax=None,rotation_symbolMin=None,rotation_symbolMax=None,networkReportDlg=None):
     #print(data)
@@ -253,17 +255,23 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
             except Exception:
                 renderer.setSymbol(base_symbol)
 
-    except Exception as e:
-        #print("Error applying size/rotation:", e)
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
     # ===== APPLY RENDERER (after labeling) =====
     try:
         #print("Applying renderer to layer...")
         layer.setRenderer(renderer)
-    except Exception as e:
-        #print("Error setting renderer:", e)
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
     # ===== ADD TO PROJECT =====
     #print("Adding layer to project...")
@@ -314,8 +322,12 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
     layer.triggerRepaint()
     try:
         iface.layerTreeView().refreshLayerSymbology(layer.id())
-    except Exception:
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
     iface.mapCanvas().refresh()
     
 def showOnMapMemoryLayer(vars,config,plugin_dir,feature,layer_name):   

@@ -1,9 +1,9 @@
-from qgis.core import QgsProperty,QgsVectorLayer,QgsProject,QgsApplication, QgsAuthMethodConfig,QgsDataSourceUri,QgsVectorLayer
+from qgis.core import QgsProperty, QgsVectorLayer, QgsProject, QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, QgsVectorLayer, Qgis, QgsMessageLog
 from qgis.PyQt.QtWidgets import QButtonGroup
 
 from qgis.PyQt.QtCore import QThreadPool
 from qgis.utils import iface
-from qgis.PyQt.QtGui import QColor,QStandardItem
+from qgis.PyQt.QtGui import QColor, QStandardItem
 
 from .utility_functions.dialog import *
 from .utility_functions.workers import *
@@ -14,6 +14,7 @@ from .utility_functions.files import *
 import datetime
 import tempfile
 import shutil
+import traceback
 from collections import deque
 
 from qgis._3d import (
@@ -244,8 +245,8 @@ def loadBuildingsLayer(uri,config,view,username):
 
     # Set height offset and extrusion based on attribute fields
     ddp = symbol.dataDefinedProperties()
-    ddp.setProperty(QgsPolygon3DSymbol.PropertyHeight, QgsProperty.fromField('z_bh_m'))
-    ddp.setProperty(QgsPolygon3DSymbol.PropertyExtrusionHeight, QgsProperty.fromField('z_height_m'))
+    ddp.setProperty(PolygonPropertyHeight, QgsProperty.fromField('z_bh_m'))
+    ddp.setProperty(PolygonPropertyExtrusionHeight, QgsProperty.fromField('z_height_m'))
     symbol.setDataDefinedProperties(ddp)
 
     # Create material and set color
@@ -327,10 +328,10 @@ def treeItem_add(level, mdlIdx,dlg,main):
                 closeDialog(dlg)
         else:
             main.dlg.update_progress(0)
-            iface.messageBar().pushMessage("Info", "Base version {} does already exist!".format(versionName), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "Base version {} does already exist!".format(versionName), level=MessageInfo)
     else:
         main.dlg.update_progress(0)
-        iface.messageBar().pushMessage("Info", "Please enter a version name!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please enter a version name!", level=MessageInfo)
 
 def treeItem_saveAs(level, mdlIdx,main,dlg):
     """Function to save project version As and add base item to treeview"""
@@ -369,10 +370,10 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
             closeDialog(dlg)
         else:
             main.dlg.update_progress(0)
-            iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(versionName), level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(versionName), level=MessageCritical)
     else:
         main.dlg.update_progress(0)
-        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=MessageCritical)
 
 def getDescription(versionName,cur):
     sql='SELECT description FROM public.versionhandling WHERE name=\''+versionName+'\';' # nosec B608
@@ -402,7 +403,7 @@ def treeItem_rename(level,mdlIdx,main,dlg):
                 main.cur.execute(sql)
                 os.rename(main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+oldSchemaName, main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+newSchemaName)
             else:
-                iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=Qgis.Critical)
+                iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=MessageCritical)
             sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'# nosec B608
             #print(sql)
             main.cur.execute(sql)
@@ -421,7 +422,7 @@ def treeItem_rename(level,mdlIdx,main,dlg):
         except Exception as e:
             main.dlg.statusMessage.setText(f'Rename verion "{oldSchemaName}" to "{versionName}" falied!')
     else:
-        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=Qgis.Critical)           
+        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=MessageCritical)           
         
 def treeItem_delete(item,dlg,main):
     """Function to delete project version and removes it from the tree"""
@@ -432,7 +433,11 @@ def treeItem_delete(item,dlg,main):
         #print(sql)
         main.cur.execute(sql)
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
     try:
         idBase=''
         sql="SELECT id, id_base FROM public.versionhandling WHERE name = '"+item.text()+"';" # nosec B608
@@ -479,7 +484,11 @@ def getVersionData(cur):
         for version in cur.fetchall():
             data.append({'unique_id': version['id'], 'parent_id': version['id_base'], 'name': version['name'], 'description': version['description']})
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
     #print(data)
     return data
         
@@ -554,9 +563,9 @@ def addBaseVersion(dlg,main):
                 loadVersion(main=main)
                 closeDialog(dlg)
         else:
-            iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(main.config['versionName']), level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(main.config['versionName']), level=MessageCritical)
     else:
-        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=MessageCritical)
 
 def copyVersionFiles(config,plugin_dir,base_name,new_name):
     versions_dir=config['pathProjects']+'{}\\versions\\'.format(config['projectName'])
@@ -581,9 +590,9 @@ def showProjectConfigData(dlg,main):
         if main.projectConfig:
             dlg.srid.setText(main.projectConfig['srid'])
         else:
-            iface.messageBar().pushMessage("Warning", "Project config not found!", level=Qgis.Info)        
+            iface.messageBar().pushMessage("Warning", "Project config not found!", level=MessageInfo)        
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)        
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)        
 
 def saveProjectConfigSettings(dlg,main):
     """ save project config data to file projectConfig.txt"""
@@ -654,7 +663,11 @@ WHERE pg_stat_activity.datname = '{}'
         try:
             shutil.rmtree(dir)
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
   
         main_dlg.projectNames=[i for i in main_dlg.projectNames if i!=projectName]
         if projectName==config['projectName']:
@@ -667,7 +680,11 @@ WHERE pg_stat_activity.datname = '{}'
         try: 
            dlg.close()
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         main_dlg.update_progress(100)
         main_dlg.statusMessage.setText(tr('@default','project_deleted').format(projectName))
 
@@ -707,9 +724,12 @@ def loadVersionLayers(config,cur,plugin_dir):
         view.refreshLayerSymbology(vlayer.id())
         
         
-    except Exception as e:
-        #print(f'error: {e}')
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
     
     loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
     view = iface.layerTreeView()
@@ -819,7 +839,7 @@ def loadVersion(main=None,item=None):
                     
         QThreadPool.globalInstance().start(worker_loadVersion)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)        
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)        
     
     
 def createNewProject(dlg,main):
@@ -906,7 +926,7 @@ def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=N
             
 def finishedExportProject(config,filename,main_dlg):
     msg="Districts project ({}) saved: ".format(config['projectName'])+filename
-    iface.messageBar().pushMessage("Info", msg, level=Qgis.Info)
+    iface.messageBar().pushMessage("Info", msg, level=MessageInfo)
     if main_dlg:    
         main_dlg.statusMessage.setText(msg)
 

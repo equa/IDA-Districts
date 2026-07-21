@@ -3,7 +3,9 @@ import shutil
 from .utility import *
 from .ida_components import *
 from qgis.core import Qgis, QgsMessageLog
+
 import tempfile
+import traceback
 
 def districtsModelerTempDir():
     temp_folder = tempfile.gettempdir().replace('/',"\\")+'\\'
@@ -54,9 +56,12 @@ def replace_in_files(folder_path, filename, replace_string, new_string):
                         pass
                         #print(f"Kein Treffer in: {file_path}")
 
-                except Exception as e:
-                    pass
-                    #print(f"Fehler bei {file_path}: {e}")
+                except:
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
                     
 def replace_in_file(file_path, old_string, new_string):
     try:
@@ -68,8 +73,12 @@ def replace_in_file(file_path, old_string, new_string):
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(content)
             #print(f"Updated: {file_path}")
-    except Exception as e:
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
 def replace_in_folder(root_folder, old_string, new_string, file_extensions=None, exclude_filenames=None):
     for dirpath, _, filenames in os.walk(root_folder):
@@ -392,7 +401,7 @@ def checkFilePathExists(title,file_path):
     if os.path.exists(file_path):
         return True
     else:
-        #iface.messageBar().pushMessage(title, "File not found: {}!".format(file_path), level=Qgis.Critical)
+        #iface.messageBar().pushMessage(title, "File not found: {}!".format(file_path), level=MessageCritical)
         return False
  
 def checkDirExists(title,dir):
@@ -401,7 +410,7 @@ def checkDirExists(title,dir):
     if os.path.exists(dir):
         return True
     else:
-        #iface.messageBar().pushMessage(title, "Directory not found: {}!".format(dir), level=Qgis.Critical)
+        #iface.messageBar().pushMessage(title, "Directory not found: {}!".format(dir), level=MessageCritical)
         return False
         
 def copyFile(src_file,dst_dir,dst_file):
@@ -442,7 +451,7 @@ def getUsedtemplatesFDict(plugin_dir,cur,config):
                 try:
                     sf[key]=sf[key]+[entry]
                 except:
-                        sf[key]=[entry]
+                    sf[key]=[entry]
                     
     sf={i: set(sf[i])for i in sf}
     #print(sf)

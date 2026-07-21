@@ -1,5 +1,6 @@
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
+from qgis.core import QgsMessageLog, Qgis      
 
 from .ida_mosim_dialog import SensorSignalsDialog
 from .utility_functions.sensor_signals import *
@@ -7,9 +8,10 @@ from .utility_functions.db import *
 from .utility_functions.translations import *
 from .utility_functions.dialog import *
 from .supervisory_control import Supervisory_control
-
 from .utility_functions.workers import APISignals,show_error_message
-        
+     
+import traceback
+     
 class UpdateSensors():
     def __init__(self,*args, **kwargs):
         self.config=kwargs['config']
@@ -63,7 +65,7 @@ AND EXISTS (
     FROM sensor_source ss
     WHERE ss.sensor_id = st.source_id
       AND ss.type = {}
-);""".format(type_id,type_name,type_name,type_id)
+);""".format(type_id,type_name,type_name,type_id) # nosec B608
             #print(sql)
             self.cur.execute(sql)
         
@@ -98,7 +100,7 @@ AND NOT EXISTS (
     SELECT 1
     FROM {}_templates ft, bundle_type_conns b_t_conns, source_template st
   	WHERE b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND b_t_conns.conn_type_id = sct.conn_type AND ft.template=st.template AND st.active AND st.source_id = sct.source_id
-);""".format(type_name,type_id,type_id,type_name)
+);""".format(type_name,type_id,type_id,type_name) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             
@@ -137,7 +139,7 @@ AND NOT EXISTS (
     FROM {}_templates ft, bundle_type_conns b_t_conns, connection_type_connections conn_type_conns, source_conn_type sct
     WHERE conn_type_conns.connection_id = sc.connection_id AND b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND conn_type_conns.connection_type_id = b_t_conns.conn_type_id 
 		AND sct.active AND sct.source_id = sc.source_id AND b_t_conns.conn_type_id =sct.conn_type
-);""".format(type_name,type_id,type_id,type_name)
+);""".format(type_name,type_id,type_id,type_name) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             
@@ -170,7 +172,7 @@ AND EXISTS (
     FROM sensor_target s
     WHERE s.sensor_id = st.target_id
       AND s.type = {}
-);""".format(type_id,type_name,type_name,type_id)
+);""".format(type_id,type_name,type_name,type_id) # nosec B608
             #print(sql)
             self.cur.execute(sql)
             
@@ -241,7 +243,7 @@ AND EXISTS (
             self.dlg.tableWidget_source.removeRow(row_index)
             self.dlg.tableWidget_target.removeRow(row_index)
         else:
-            iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No item selected!", level=MessageInfo)
         
     def loadSensorTableValues(self):
         """Load the sensor table values """
@@ -519,7 +521,11 @@ AND EXISTS (
             try:
                 comboBoxCheckable.setItemChecked(i+1,templates[i]['active'] if checkActive else False)
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         comboBoxCheckable.activated.connect(lambda signal, column=3,row=row: self.setDropDownConntypes(table,column,row,type))
         table.setCellWidget(row, 2, comboBoxCheckable) 
     
@@ -651,7 +657,11 @@ def getStoredSensorTableValues(cur):
             loadedSensorData[sensor_data['sensor_id']]['target']['description']=sensor_data['description_target']
             loadedSensorData=getFilteredTemplates(cur,sensor_data['target_type_name'],sensor_data['sensor_id'],'target',loadedSensorData=loadedSensorData)
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
 
     #print(loadedSensorData)
     return loadedSensorData

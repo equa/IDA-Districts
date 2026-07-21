@@ -2,10 +2,13 @@ from .files import *
 from .translations import *
 from .db import *
 from .reports import *
-from qgis.core import  QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
+from qgis.core import  Qgis, QgsMessageLog, QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
 from itertools import cycle
+
+import traceback
+
 
 
 def setupCustomerLoadValue(config,plugin_dir,projectConfig):    
@@ -162,7 +165,11 @@ def updateTableSrid(versions,cur,srid):
             try:
                 cur.execute(sql_version.replace("%table%",table))
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
             
     #print('++')
     sql_temp=sql.replace("%schema%","temp")        
@@ -174,7 +181,11 @@ def updateTableSrid(versions,cur,srid):
         try:
             cur.execute(sql_temp.replace("%table%",table))
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
             
 def mapValueLinesNetwork(cur,config):
     layer=QgsProject.instance().mapLayersByName(tr('@default','lines'))[0]
@@ -392,8 +403,11 @@ def showTempTables(uri,config,plugin_dir,signals,cur):
 
         loadProjectLayers('temp',uri,config,plugin_dir,cur,auth_cfg.config("username"))  
     except:
-        #print('Load project layers failed')
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
 def setLayersHidden(tableNames):
     for tableName in tableNames:
@@ -527,7 +541,11 @@ def updateNetworkDependingFields(cur,config):
         setFieldConstraints(constraint_expression_dict)
         setFieldDefaultValues(getDefaultValueDict(network_default, energy_plant_template,customer_template,line_type))
     except:
-        pass
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
     
 def featureLayerGroups(vlayerName,cur,config):
     try:

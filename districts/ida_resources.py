@@ -1,6 +1,6 @@
-from qgis.PyQt.QtWidgets import QTableWidgetItem,QComboBox,QCheckBox
-from qgis.PyQt.QtCore import Qt,QThreadPool
-from qgis.core import QgsDataSourceUri,QgsAuthMethodConfig
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QComboBox, QCheckBox
+from qgis.PyQt.QtCore import Qt, QThreadPool
+from qgis.core import QgsDataSourceUri, QgsAuthMethodConfig, Qgis, QgsMessageLog
 from qgis.utils import iface
 
 from .update_boundaries import *
@@ -12,6 +12,8 @@ from .utility_functions.workers import *
 from .utility_functions.invoke import CopyTemplateFiles
 from .utility_functions.layer_visualization import *
 from .utility_functions.reports import *
+
+import traceback
 
 def writeClimateDataToDB(dlg,main):
     """ write climate data into DB"""
@@ -139,7 +141,7 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
                 if dlg.traceTableValues[traceValue][3]:
                     WriteTemplateFiles(config,dlg.traceTableValues[traceValue][1],table_name,cur,dlg.traceTableValues[traceValue][3],plugin_dir)
                 else:
-                    iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
+                    iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=MessageCritical)
                     return False
                 wroteTemplate=True
             else:
@@ -205,7 +207,7 @@ UPDATE invoked_sensor_target_signals
         cur.execute(sql)
 
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
 
 
 def openTemplate(main,type,dlg):
@@ -232,7 +234,7 @@ def openTemplate(main,type,dlg):
             if dlg.tableWidget.item(row_index, 1) and dlg.tableWidget.item(row_index, 1).text():
                 template_name=dlg.tableWidget.item(row_index, 1).text()
             else:
-                iface.messageBar().pushMessage("Info", "Please enter an template name!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "Please enter an template name!", level=MessageInfo)
                 return False
             conn_bundle_type=dlg.tableWidget.cellWidget(row_index, 2).currentText()
             conn_bundle_type=conn_bundle_type.split(":")[0]
@@ -302,7 +304,7 @@ def openTemplate(main,type,dlg):
         
         #print('finished open template')
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
         
 def show_templateDialog(main=False,type=False):
     #print('Open current row dialog started: ')
@@ -340,7 +342,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     
     for traceValue in dlg.traceTableValues:
         if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
-            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=MessageInfo)
             return False
                 
     table_name="_".join(table.split('_')[0:-1])
@@ -358,7 +360,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         values=getValuesFromTableRow(dlg,dropdowns,row,columns,[])
         #print(values)
         if not values:
-            iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", "Invalid input!", level=MessageCritical)
             return False
         sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values) # nosec B608
         counter+=1
@@ -366,7 +368,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     try:
         cur.execute(sql)
     except Exception as e:
-        iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", str(e), level=MessageCritical)
         return False
     
     if trace in ['conn_type_trace','bt_conns_trace']:
@@ -460,7 +462,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)
         dlg.show() 
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
 
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
@@ -629,7 +631,7 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
         values.append(value)
     #print(values)
     if mdot and p:
-        iface.messageBar().pushMessage("Error", "It is not possible to set the pressure and mass flow as boundary!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "It is not possible to set the pressure and mass flow as boundary!", level=MessageCritical)
         return False
     return ','.join(str(i) for i in values)
  
@@ -647,7 +649,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
     try:
         main.cur.execute(sql)
     except Exception as e:
-        iface.messageBar().pushMessage("Error", f"An error occurred: {str(e)}", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", f"An error occurred: {str(e)}", level=MessageCritical)
         return False
     delIfNotInDBIds(table,openFnArg,main.cur)
     if ok_fn:
@@ -677,7 +679,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
                             os.rename(file_src, file_tar)
                             os.rename(templates_dir+'{}'.format(dlg.traceTableValues[row][1][0]), templates_dir+'{}'.format(dlg.traceTableValues[row][1][1]))
                         except:
-                            iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=Qgis.Critical)     
+                            iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=MessageCritical)     
     main.dlg.statusMessage.setText(tr('@default','data_saved_successfully'))
     dlg.close()
         
@@ -696,7 +698,7 @@ def checkConnsInputValues(dlg):
         if (dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,5).text()) or #m
             not dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,4).text()) or #p
             not isNumber(dlg.tableWidget.item(row,3).text())): #T
-                iface.messageBar().pushMessage("Error", tr('@default','please_enter_number_table_row').format(row), level=Qgis.Critical)
+                iface.messageBar().pushMessage("Error", tr('@default','please_enter_number_table_row').format(row), level=MessageCritical)
                 return False
     return True
          
@@ -824,7 +826,11 @@ def showDefaults(dlg,defaults,template_name,cur,config):
                 dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0].values() if i[0]==default['column_default']))
         
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
 
 def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
     """Write default values to DB """
@@ -838,7 +844,11 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
         try:
             value=value.split(':')[0]
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         if value:
             if value==tr("@default",'no_selection'):
                 sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input,value) # nosec B608

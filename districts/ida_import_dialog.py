@@ -7,6 +7,8 @@ from .utility_functions.dialog import *
 from .utility_functions.layer_visualization import *
 from .utility_functions.translations import *
 
+import traceback
+
 class ComboBox(QComboBox):
     popupAboutToBeShown = QtCore.pyqtSignal()
 
@@ -127,7 +129,11 @@ class PipeBundleEditor(QDialog):
             self.mappedAttributes['layer_constr'][seq_constr]=[material, thickness]
             #print(self.mappedAttributes)
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         
     def setActiveTable(self,s):
         #print(s)
@@ -172,7 +178,7 @@ class PipeBundleEditor(QDialog):
                 self.tableWidget_pipe.setCellWidget(i,1,comboBox)
                 self.tableWidget_pipe.setItem(i,2,QTableWidgetItem(''))
         else:
-            self.iface.messageBar().pushMessage("Error", "Please enter an integer number!", level=Qgis.Critical)
+            self.iface.messageBar().pushMessage("Error", "Please enter an integer number!", level=MessageCritical)
 
 
     def mapAttributesDoubleClick(self,s):
@@ -188,7 +194,7 @@ class PipeBundleEditor(QDialog):
                     self.mappedAttributes[table.item(table_index,2).text()]=self.mappedAttributes[table.item(table_index,2).text()]+'"'+s.text()+'"'
                     table.setItem(table_index,0,QTableWidgetItem(self.mappedAttributes[table.item(table_index,2).text()]))
                 else:
-                    iface.messageBar().pushMessage("Info", "This attribut cannot be mapped. Please enter an integer number.", level=Qgis.Info)
+                    iface.messageBar().pushMessage("Info", "This attribut cannot be mapped. Please enter an integer number.", level=MessageInfo)
             else:
                 seq_constr=table.item(table_index,0).text()
                 material=table.cellWidget(table_index, 1).currentText()
@@ -198,7 +204,7 @@ class PipeBundleEditor(QDialog):
                     self.mappedAttributes['layer_constr'][seq_constr]=[material, '"'+s.text()+'"']
                 table.setItem(table_index,2,QTableWidgetItem(self.mappedAttributes['layer_constr'][seq_constr][1]))
         else:
-            iface.messageBar().pushMessage("Info", "No pipe bundle type attribute selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No pipe bundle type attribute selected!", level=MessageInfo)
 
 class ImportNetworkTopologyFromLayer(QDialog):
     def __init__(self,config,plugin_dir):     
@@ -368,7 +374,7 @@ def mapAttributes(dlg):
     if currentLayer_attribute:
         currentLayer_attribute=currentLayer_attribute.text()
     else:
-        iface.messageBar().pushMessage("Info", "No layer field selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "No layer field selected!", level=MessageInfo)
         return False
     rowPosition = dlg.tableWidget.rowCount()
     
@@ -383,7 +389,7 @@ def mapAttributes(dlg):
         item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
         dlg.tableWidget.setItem(rowPosition,2,item)
     else:            
-        iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=Qgis.Info)  
+        iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=MessageInfo)  
     #print(dlg.mappedAttributes)
                
 class ImportPointLayer(QDialog):
