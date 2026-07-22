@@ -198,46 +198,53 @@ ORDER BY time;
             time.append(t)
             
             for col in var_colmns:
-                # Direkt zu float konvertieren, um Decimal-Probleme bei Matplotlib zu vermeiden
+                # convert to float, in order to avoid Decimal issues in Matplotlib
                 val = entry[col]
                 var_data[col].append(float(val)*scaling if val is not None else 0.0)
-
+                
         # --- Plot AFTER the loop ---
         fig, ax = plt.subplots()
 
         import numpy as np
         time_arr = np.array(time)
         
-        # Baselines für die positive und negative Stapelung initialisieren
+        # initialize baselines for positiv and negativ stacked areas
         pos_cum = np.zeros(len(time_arr))
         neg_cum = np.zeros(len(time_arr))
         
-        # Jede Variable separat als Bilanz-Fläche plotten
-        for label, values in var_data.items():
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+        for i, (label, values) in enumerate(var_data.items()):
+            color = colors[i % len(colors)]
+
             vals_arr = np.array(values)
-            
-            # Splitten in positive und negative Anteile
+
             pos_part = np.where(vals_arr > 0, vals_arr, 0.0)
             neg_part = np.where(vals_arr < 0, vals_arr, 0.0)
             
-            has_pos = np.any(pos_part)
-            
-            # Farb-Zuweisung sichern, damit Positiv/Negativ dieselbe Farbe haben (zorder=2)
-            poly = None
-            if has_pos:
+            if np.any(pos_part):
                 next_pos = pos_cum + pos_part
-                poly = ax.fill_between(time_arr, pos_cum, next_pos, label=label, zorder=2)
+                ax.fill_between(
+                    time_arr, pos_cum, next_pos,
+                    label=label,
+                    color=color,
+                    edgecolor='none',
+                    zorder=2
+                )
                 pos_cum = next_pos
-                
+
             if np.any(neg_part):
                 next_neg = neg_cum + neg_part
-                plot_label = None if has_pos else label
-                # Falls bereits eine Positiv-Fläche existiert, nutzen wir deren Farbe
-                color = poly.get_facecolor()[0] if poly else None
-                ax.fill_between(time_arr, neg_cum, next_neg, label=plot_label, color=color, zorder=2)
+                ax.fill_between(
+                    time_arr, neg_cum, next_neg,
+                    label=None if np.any(pos_part) else label,
+                    color=color,
+                    edgecolor='none',
+                    zorder=2
+                )
                 neg_cum = next_neg
 
-        # Eine schwarze Nulllinie als visueller Anker (zorder=2.5)
+        # black zero line as visual anker (zorder=2.5)
         ax.axhline(0, color='black', linestyle='--', linewidth=1, zorder=2.5)
 
        # --- X-axis formatting ---
@@ -250,17 +257,20 @@ ORDER BY time;
         # Labels
         ax.set_ylabel(tr('@default','power')+', kW' if balance_type=='heatbalance' else tr('@default','massflow')+', kg/s')
 
-        # Initialisiert die Standard-Legende ohne die rote Linie
+        # initialize the standard-legend without red line
         ax.legend(loc='upper left')
+        
+        #title
+        ax.set_title(tr('@default','heat_balance' if balance_type=='heatbalance' else 'mass_balance')+' '+ tr('@default','network')+': '+str(network))
         
         # 3. Initialize the synchronized timeline bar
         if sync_temporalControler:
-            # WICHTIG: x=time[0] statt dem ganzen Array, zorder=5 setzt die Linie ganz nach oben über die Flächen!
+            # important: x=time[0] instead of whole array, zorder=5 places the line on top of the areas!
             timeline_bar = ax.axvline(x=time[0], color='red', linestyle='-', linewidth=2, label="QGIS "+tr('@default','time'), zorder=5)
             
-            # Legende aktualisieren, um die rote Linie einzuschließen
+            # refresh legend, in order enable red line
             ax.legend(loc='upper left')
-            
+                     
             # Extract the actual canvas directly from the figure
             canvas = fig.canvas
                     
