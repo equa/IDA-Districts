@@ -329,7 +329,7 @@ def buildModel(dlg,main):
     submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)]
     #print(submodels)
     if networks and submodels:
-        main.worker_invokeNetwork = WorkerBuildNetworkModel(config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
+        main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
         QThreadPool.globalInstance().start(main.worker_invokeNetwork) 
         main.worker_invokeNetwork.signals.error.connect(show_error_message)
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
