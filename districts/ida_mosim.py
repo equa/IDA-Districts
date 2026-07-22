@@ -145,7 +145,7 @@ def buildModel(dlg,main):
     submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)]
     #print(submodels)
     if networks and submodels:
-        main.worker_invokeNetwork = WorkerBuildNetworkModel(config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
+        main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
         QThreadPool.globalInstance().start(main.worker_invokeNetwork) 
         main.worker_invokeNetwork.signals.error.connect(show_error_message)
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
@@ -162,134 +162,6 @@ def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     worker_setRequestedOutputs.signals.progress.connect(dlg.update_progress)   
     worker_setRequestedOutputs.signals.finished.connect(dlg.update_finished)  
     QThreadPool.globalInstance().start(worker_setRequestedOutputs) 
-
-def calculateKusudaSettings(file,modellingSettings):
-    # --------------------------------------------------
-    # Read climate file
-    # --------------------------------------------------
-
-    # Try reading with header
-    df = pd.read_csv(file, sep=r"\s+")
-
-    # If no recognizable header exists,
-    # assume:
-    #   column 0 = time
-    #   column 1 = ambient air temperature
-    if "#Time" not in df.columns and "TAir" not in df.columns:
-
-        df = pd.read_csv(
-            file,
-            sep=r"\s+",
-            header=None
-        )
-
-        df = df.rename(
-            columns={
-                0: "#Time",
-                1: "TAir"
-            }
-        )
-
-    else:
-
-        # Handle possible variations
-        time_col = df.columns[0]
-
-        tair_col = None
-        for c in df.columns:
-            if c.lower() in ["tair", "tair", "airtemp", "temperature"]:
-                tair_col = c
-                break
-
-        if tair_col is None:
-            raise ValueError("Could not identify air temperature column.")
-
-        df = df.rename(
-            columns={
-                time_col: "#Time",
-                tair_col: "TAir"
-            }
-        )
-
-    # --------------------------------------------------
-    # Create datetime index
-    # --------------------------------------------------
-
-    start = pd.Timestamp("2024-01-01 00:00:00")
-    df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
-
-    # Remove only the extra endpoint of the next year
-    df = df[df["datetime"] < "2025-01-01"]
-
-    df = df.set_index("datetime")
-
-    # --------------------------------------------------
-    # 1. Annual mean air temperature
-    # --------------------------------------------------
-
-    Tm = df["TAir"].mean()
-    modellingSettings['TSurfMean']=round(Tm,2)
-
-    # --------------------------------------------------
-    # 2. Mean daily temperature amplitude
-    # --------------------------------------------------
-
-    daily_max = df["TAir"].resample("D").max()
-    daily_min = df["TAir"].resample("D").min()
-
-    mean_daily_amplitude = (daily_max - daily_min).mean() / 2
-    modellingSettings['TSurfAmpl']=round(mean_daily_amplitude,2)
-
-    # --------------------------------------------------
-    # 3. Kusuda phase shift
-    #    (2628000 s = 730 h trailing moving average)
-    # --------------------------------------------------
-
-    window_hours = int(2628000 / 3600)  # 730
-
-    T = df["TAir"].values
-
-    # cyclic extension using end of previous year
-    T_ext = np.concatenate([
-        T[-(window_hours - 1):],
-        T
-    ])
-
-    moving_avg = (
-        pd.Series(T_ext)
-          .rolling(
-              window=window_hours,
-              min_periods=window_hours
-          )
-          .mean()
-          .values
-    )
-
-    moving_avg = moving_avg[
-        window_hours - 1 :
-        window_hours - 1 + len(T)
-    ]
-
-    idx_min = np.nanargmin(moving_avg)
-
-    phase_date = df.index[idx_min]
-    phase_shift = (
-        phase_date.dayofyear
-        + phase_date.hour / 24
-        + phase_date.minute / 1440
-    )
-
-    modellingSettings['Theta']=round(phase_shift,2)
-
-    # --------------------------------------------------
-    # Results
-    # --------------------------------------------------
-    #print(f"Annual mean temperature     = {Tm:.2f} °C")
-    #print(f"Mean daily amplitude        = {mean_daily_amplitude:.2f} °C")
-    #print(f"Kusuda phase shift          = {phase_shift:.2f} d")
-    #print(f"Minimum date               = {phase_date}")
-    
-    return modellingSettings
 
 def setModellingSettings(plugin_dir,config,dlg):
     """set modelling settings"""

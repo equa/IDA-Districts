@@ -5394,7 +5394,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../ida_mosim_dialog.py" line="1554"/>
         <source>ambient_air_temperatur</source>
-        <translation type="unfinished">AAmbient air temperature</translation>
+        <translation type="unfinished">Ambient air temperature</translation>
     </message>
     <message>
         <location filename="../ida_mosim_dialog.py" line="1562"/>

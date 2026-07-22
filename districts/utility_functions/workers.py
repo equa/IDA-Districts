@@ -4,6 +4,7 @@ from .topology import *
 from .files import *
 from .utility import *
 from .db import *
+from .compat import *
 from ..upgrade import *
 import os
 import numpy as np

@@ -14,7 +14,137 @@ from .utility_functions.layer_visualization import *
 from .utility_functions.reports import *
 
 import traceback
+import pandas as pd
+import numpy as np
 
+def calculateKusudaSettings(file,modellingSettings):
+    # --------------------------------------------------
+    # Read climate file
+    # --------------------------------------------------
+
+    # Try reading with header
+    df = pd.read_csv(file, sep=r"\s+")
+
+    # If no recognizable header exists,
+    # assume:
+    #   column 0 = time
+    #   column 1 = ambient air temperature
+    if "#Time" not in df.columns and "TAir" not in df.columns:
+
+        df = pd.read_csv(
+            file,
+            sep=r"\s+",
+            header=None
+        )
+
+        df = df.rename(
+            columns={
+                0: "#Time",
+                1: "TAir"
+            }
+        )
+
+    else:
+
+        # Handle possible variations
+        time_col = df.columns[0]
+
+        tair_col = None
+        for c in df.columns:
+            if c.lower() in ["tair", "tair", "airtemp", "temperature"]:
+                tair_col = c
+                break
+
+        if tair_col is None:
+            raise ValueError("Could not identify air temperature column.")
+
+        df = df.rename(
+            columns={
+                time_col: "#Time",
+                tair_col: "TAir"
+            }
+        )
+
+    # --------------------------------------------------
+    # Create datetime index
+    # --------------------------------------------------
+
+    start = pd.Timestamp("2024-01-01 00:00:00")
+    df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
+
+    # Remove only the extra endpoint of the next year
+    df = df[df["datetime"] < "2025-01-01"]
+
+    df = df.set_index("datetime")
+
+    # --------------------------------------------------
+    # 1. Annual mean air temperature
+    # --------------------------------------------------
+
+    Tm = df["TAir"].mean()
+    modellingSettings['kusuda_tsurfmean']=str(round(Tm,2))
+
+    # --------------------------------------------------
+    # 2. Mean daily temperature amplitude
+    # --------------------------------------------------
+
+    daily_max = df["TAir"].resample("D").max()
+    daily_min = df["TAir"].resample("D").min()
+
+    mean_daily_amplitude = (daily_max - daily_min).mean() / 2
+    modellingSettings['kusuda_tsurfampl']=str(round(mean_daily_amplitude,2))
+
+    # --------------------------------------------------
+    # 3. Kusuda phase shift
+    #    (2628000 s = 730 h trailing moving average)
+    # --------------------------------------------------
+
+    window_hours = int(2628000 / 3600)  # 730
+
+    T = df["TAir"].values
+
+    # cyclic extension using end of previous year
+    T_ext = np.concatenate([
+        T[-(window_hours - 1):],
+        T
+    ])
+
+    moving_avg = (
+        pd.Series(T_ext)
+          .rolling(
+              window=window_hours,
+              min_periods=window_hours
+          )
+          .mean()
+          .values
+    )
+
+    moving_avg = moving_avg[
+        window_hours - 1 :
+        window_hours - 1 + len(T)
+    ]
+
+    idx_min = np.nanargmin(moving_avg)
+
+    phase_date = df.index[idx_min]
+    phase_shift = (
+        phase_date.dayofyear
+        + phase_date.hour / 24
+        + phase_date.minute / 1440
+    )
+
+    modellingSettings['kusuda_theta']=str(round(phase_shift,2))
+
+    # --------------------------------------------------
+    # Results
+    # --------------------------------------------------
+    #print(f"Annual mean temperature     = {Tm:.2f} °C")
+    #print(f"Mean daily amplitude        = {mean_daily_amplitude:.2f} °C")
+    #print(f"Kusuda phase shift          = {phase_shift:.2f} d")
+    #print(f"Minimum date               = {phase_date}")
+    
+    return modellingSettings
+    
 def writeClimateDataToDB(dlg,main):
     """ write climate data into DB"""
     #print('Write climate data to DB')
@@ -37,13 +167,8 @@ def writeClimateDataToDB(dlg,main):
         main.cur.execute(sql)
         
         #update climate template
-        dir_project=main.config['pathProjects']+main.config['projectName']
-        dir_climate=dir_project+'\\climate\\'
-        dir_climateMacro=dir_climate+'climate\\'
-        data=getClimateData(main.cur,main.config,True)
-        modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
-        modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
-        updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
+        updateClimateTemplate(main,fileName)
+        
         main.dlg.statusMessage.setText('Climate data is successfully updated!')
         main.dlg.update_progress(100)
         closeDialog(dlg)
@@ -51,6 +176,16 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.statusMessage.setText('Climate data update failed: '+str(e))
         main.dlg.update_progress(0)
         
+def updateClimateTemplate(main,fileName):
+    dir_project=main.config['pathProjects']+main.config['projectName']
+    dir_climate=dir_project+'\\climate\\'
+    dir_climateMacro=dir_climate+'climate\\'
+    data=getClimateData(main.cur,main.config,True)
+    modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
+    modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
+    writeModellingSettings(main.config,modellingSettings)
+    updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
+    
 def updateClimateMacro(data,dir,config,modellingSettings):
     fname=dir+'climate-macro.idm'
     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
@@ -86,11 +221,11 @@ def updateClimateMacro(data,dir,config,modellingSettings):
             new_comp=[]
             for i in comp:
                 if getCompName(i)=='|TSurfMean|':
-                    i=setCompValue(i,modellingSettings['TSurfMean'])
+                    i=setCompValue(i,modellingSettings['kusuda_tsurfmean'])
                 elif getCompName(i)=='|TSurfAmpl|':
-                    i=setCompValue(i,modellingSettings['TSurfAmpl'])
+                    i=setCompValue(i,modellingSettings['kusuda_tsurfampl'])
                 elif getCompName(i)=='|Theta|':
-                    i=setCompValue(i,modellingSettings['Theta'])
+                    i=setCompValue(i,modellingSettings['kusuda_theta'])
                 elif getCompName(i)=='|cp|':
                     i=setCompValue(i,modellingSettings['kusuda_cp'])
                 elif getCompName(i)=='|Rho|':
