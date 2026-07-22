@@ -1,6 +1,6 @@
-from qgis.PyQt.QtWidgets import QTableWidgetItem,QComboBox,QCheckBox
-from qgis.PyQt.QtCore import Qt,QThreadPool
-from qgis.core import QgsDataSourceUri,QgsAuthMethodConfig
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QComboBox, QCheckBox
+from qgis.PyQt.QtCore import Qt, QThreadPool
+from qgis.core import QgsDataSourceUri, QgsAuthMethodConfig, Qgis, QgsMessageLog
 from qgis.utils import iface
 
 from .update_boundaries import *
@@ -13,6 +13,138 @@ from .utility_functions.invoke import CopyTemplateFiles
 from .utility_functions.layer_visualization import *
 from .utility_functions.reports import *
 
+import traceback
+import pandas as pd
+import numpy as np
+
+def calculateKusudaSettings(file,modellingSettings):
+    # --------------------------------------------------
+    # Read climate file
+    # --------------------------------------------------
+
+    # Try reading with header
+    df = pd.read_csv(file, sep=r"\s+")
+
+    # If no recognizable header exists,
+    # assume:
+    #   column 0 = time
+    #   column 1 = ambient air temperature
+    if "#Time" not in df.columns and "TAir" not in df.columns:
+
+        df = pd.read_csv(
+            file,
+            sep=r"\s+",
+            header=None
+        )
+
+        df = df.rename(
+            columns={
+                0: "#Time",
+                1: "TAir"
+            }
+        )
+
+    else:
+
+        # Handle possible variations
+        time_col = df.columns[0]
+
+        tair_col = None
+        for c in df.columns:
+            if c.lower() in ["tair", "tair", "airtemp", "temperature"]:
+                tair_col = c
+                break
+
+        if tair_col is None:
+            raise ValueError("Could not identify air temperature column.")
+
+        df = df.rename(
+            columns={
+                time_col: "#Time",
+                tair_col: "TAir"
+            }
+        )
+
+    # --------------------------------------------------
+    # Create datetime index
+    # --------------------------------------------------
+
+    start = pd.Timestamp("2024-01-01 00:00:00")
+    df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
+
+    # Remove only the extra endpoint of the next year
+    df = df[df["datetime"] < "2025-01-01"]
+
+    df = df.set_index("datetime")
+
+    # --------------------------------------------------
+    # 1. Annual mean air temperature
+    # --------------------------------------------------
+
+    Tm = df["TAir"].mean()
+    modellingSettings['kusuda_tsurfmean']=str(round(Tm,2))
+
+    # --------------------------------------------------
+    # 2. Mean daily temperature amplitude
+    # --------------------------------------------------
+
+    daily_max = df["TAir"].resample("D").max()
+    daily_min = df["TAir"].resample("D").min()
+
+    mean_daily_amplitude = (daily_max - daily_min).mean() / 2
+    modellingSettings['kusuda_tsurfampl']=str(round(mean_daily_amplitude,2))
+
+    # --------------------------------------------------
+    # 3. Kusuda phase shift
+    #    (2628000 s = 730 h trailing moving average)
+    # --------------------------------------------------
+
+    window_hours = int(2628000 / 3600)  # 730
+
+    T = df["TAir"].values
+
+    # cyclic extension using end of previous year
+    T_ext = np.concatenate([
+        T[-(window_hours - 1):],
+        T
+    ])
+
+    moving_avg = (
+        pd.Series(T_ext)
+          .rolling(
+              window=window_hours,
+              min_periods=window_hours
+          )
+          .mean()
+          .values
+    )
+
+    moving_avg = moving_avg[
+        window_hours - 1 :
+        window_hours - 1 + len(T)
+    ]
+
+    idx_min = np.nanargmin(moving_avg)
+
+    phase_date = df.index[idx_min]
+    phase_shift = (
+        phase_date.dayofyear
+        + phase_date.hour / 24
+        + phase_date.minute / 1440
+    )
+
+    modellingSettings['kusuda_theta']=str(round(phase_shift,2))
+
+    # --------------------------------------------------
+    # Results
+    # --------------------------------------------------
+    #print(f"Annual mean temperature     = {Tm:.2f} °C")
+    #print(f"Mean daily amplitude        = {mean_daily_amplitude:.2f} °C")
+    #print(f"Kusuda phase shift          = {phase_shift:.2f} d")
+    #print(f"Minimum date               = {phase_date}")
+    
+    return modellingSettings
+    
 def writeClimateDataToDB(dlg,main):
     """ write climate data into DB"""
     #print('Write climate data to DB')
@@ -35,13 +167,8 @@ def writeClimateDataToDB(dlg,main):
         main.cur.execute(sql)
         
         #update climate template
-        dir_project=main.config['pathProjects']+main.config['projectName']
-        dir_climate=dir_project+'\\climate\\'
-        dir_climateMacro=dir_climate+'climate\\'
-        data=getClimateData(main.cur,main.config,True)
-        modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
-        modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
-        updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
+        updateClimateTemplate(main,fileName)
+        
         main.dlg.statusMessage.setText('Climate data is successfully updated!')
         main.dlg.update_progress(100)
         closeDialog(dlg)
@@ -49,6 +176,16 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.statusMessage.setText('Climate data update failed: '+str(e))
         main.dlg.update_progress(0)
         
+def updateClimateTemplate(main,fileName):
+    dir_project=main.config['pathProjects']+main.config['projectName']
+    dir_climate=dir_project+'\\climate\\'
+    dir_climateMacro=dir_climate+'climate\\'
+    data=getClimateData(main.cur,main.config,True)
+    modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
+    modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
+    writeModellingSettings(main.config,modellingSettings)
+    updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
+    
 def updateClimateMacro(data,dir,config,modellingSettings):
     fname=dir+'climate-macro.idm'
     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
@@ -84,11 +221,11 @@ def updateClimateMacro(data,dir,config,modellingSettings):
             new_comp=[]
             for i in comp:
                 if getCompName(i)=='|TSurfMean|':
-                    i=setCompValue(i,modellingSettings['TSurfMean'])
+                    i=setCompValue(i,modellingSettings['kusuda_tsurfmean'])
                 elif getCompName(i)=='|TSurfAmpl|':
-                    i=setCompValue(i,modellingSettings['TSurfAmpl'])
+                    i=setCompValue(i,modellingSettings['kusuda_tsurfampl'])
                 elif getCompName(i)=='|Theta|':
-                    i=setCompValue(i,modellingSettings['Theta'])
+                    i=setCompValue(i,modellingSettings['kusuda_theta'])
                 elif getCompName(i)=='|cp|':
                     i=setCompValue(i,modellingSettings['kusuda_cp'])
                 elif getCompName(i)=='|Rho|':
@@ -139,7 +276,7 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
                 if dlg.traceTableValues[traceValue][3]:
                     WriteTemplateFiles(config,dlg.traceTableValues[traceValue][1],table_name,cur,dlg.traceTableValues[traceValue][3],plugin_dir)
                 else:
-                    iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=Qgis.Critical)
+                    iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=MessageCritical)
                     return False
                 wroteTemplate=True
             else:
@@ -205,7 +342,7 @@ UPDATE invoked_sensor_target_signals
         cur.execute(sql)
 
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
 
 
 def openTemplate(main,type,dlg):
@@ -232,7 +369,7 @@ def openTemplate(main,type,dlg):
             if dlg.tableWidget.item(row_index, 1) and dlg.tableWidget.item(row_index, 1).text():
                 template_name=dlg.tableWidget.item(row_index, 1).text()
             else:
-                iface.messageBar().pushMessage("Info", "Please enter an template name!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "Please enter an template name!", level=MessageInfo)
                 return False
             conn_bundle_type=dlg.tableWidget.cellWidget(row_index, 2).currentText()
             conn_bundle_type=conn_bundle_type.split(":")[0]
@@ -302,7 +439,7 @@ def openTemplate(main,type,dlg):
         
         #print('finished open template')
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
         
 def show_templateDialog(main=False,type=False):
     #print('Open current row dialog started: ')
@@ -340,7 +477,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     
     for traceValue in dlg.traceTableValues:
         if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
-            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=MessageInfo)
             return False
                 
     table_name="_".join(table.split('_')[0:-1])
@@ -358,7 +495,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         values=getValuesFromTableRow(dlg,dropdowns,row,columns,[])
         #print(values)
         if not values:
-            iface.messageBar().pushMessage("Error", "Invalid input!", level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", "Invalid input!", level=MessageCritical)
             return False
         sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values) # nosec B608
         counter+=1
@@ -366,7 +503,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     try:
         cur.execute(sql)
     except Exception as e:
-        iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", str(e), level=MessageCritical)
         return False
     
     if trace in ['conn_type_trace','bt_conns_trace']:
@@ -460,7 +597,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)
         dlg.show() 
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
 
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
@@ -629,7 +766,7 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
         values.append(value)
     #print(values)
     if mdot and p:
-        iface.messageBar().pushMessage("Error", "It is not possible to set the pressure and mass flow as boundary!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "It is not possible to set the pressure and mass flow as boundary!", level=MessageCritical)
         return False
     return ','.join(str(i) for i in values)
  
@@ -647,7 +784,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
     try:
         main.cur.execute(sql)
     except Exception as e:
-        iface.messageBar().pushMessage("Error", f"An error occurred: {str(e)}", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", f"An error occurred: {str(e)}", level=MessageCritical)
         return False
     delIfNotInDBIds(table,openFnArg,main.cur)
     if ok_fn:
@@ -677,7 +814,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
                             os.rename(file_src, file_tar)
                             os.rename(templates_dir+'{}'.format(dlg.traceTableValues[row][1][0]), templates_dir+'{}'.format(dlg.traceTableValues[row][1][1]))
                         except:
-                            iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=Qgis.Critical)     
+                            iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=MessageCritical)     
     main.dlg.statusMessage.setText(tr('@default','data_saved_successfully'))
     dlg.close()
         
@@ -696,7 +833,7 @@ def checkConnsInputValues(dlg):
         if (dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,5).text()) or #m
             not dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,4).text()) or #p
             not isNumber(dlg.tableWidget.item(row,3).text())): #T
-                iface.messageBar().pushMessage("Error", tr('@default','please_enter_number_table_row').format(row), level=Qgis.Critical)
+                iface.messageBar().pushMessage("Error", tr('@default','please_enter_number_table_row').format(row), level=MessageCritical)
                 return False
     return True
          
@@ -824,7 +961,11 @@ def showDefaults(dlg,defaults,template_name,cur,config):
                 dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0].values() if i[0]==default['column_default']))
         
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
 
 def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
     """Write default values to DB """
@@ -838,7 +979,11 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
         try:
             value=value.split(':')[0]
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         if value:
             if value==tr("@default",'no_selection'):
                 sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input,value) # nosec B608

@@ -1,5 +1,5 @@
 from qgis.PyQt.QtCore import Qt, QCoreApplication, QObject, QRunnable, pyqtSignal, pyqtSlot
-from qgis.core import QgsAuthMethodConfig,QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
+from qgis.core import QgsMessageLog,Qgis,QgsAuthMethodConfig,QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
 
 from .utility_functions.db import *
 from .utility_functions.files import *
@@ -14,6 +14,7 @@ import sys
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import traceback
 
 
 
@@ -156,7 +157,11 @@ class WorkerGenerateNetworkTopology(QRunnable):
                     showTempTables(uri,self.config,self.plugin_dir,self.signals,self.cur)
             except:
                 #print('Show temp layers failed')
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
             self.signals.progress.emit(100)
             self.signals.finished.emit('finished')
             self.cur.close()

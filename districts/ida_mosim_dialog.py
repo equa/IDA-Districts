@@ -15,9 +15,11 @@ import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from qgis.utils import iface
-from qgis.core import Qgis
+from qgis.core import Qgis,QgsMessageLog
 from qgis.PyQt.QtGui import QKeySequence
-import matplotlib.pyplot as plt      
+import matplotlib.pyplot as plt   
+import traceback
+  
         
 class SensorSignalsDialog(QDialog):
     def __init__(self,config,plugin_dir,dlg_main):     
@@ -1073,7 +1075,7 @@ class FeatureModelParmDlg(QDialog):
         if table_index!=-1:
             self.tableWidget_parameters.setItem(table_index,1,QTableWidgetItem('"'+s.text()+'"'))
         else:
-            iface.messageBar().pushMessage("Info", "No model parameter selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No model parameter selected!", level=MessageInfo)
             
     def onClickedRadio(self,s):
         #print(s)
@@ -1249,9 +1251,13 @@ class FeatureDecouplingDlg(QDialog):
             elif no_submodels==0:
                 sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.config['versionName'],type,self.config['versionName']) # nosec B608
             else:
-                iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=Qgis.Critical)
+                iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=MessageCritical)
         except:
-           pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
 
         
         #print(sql)
@@ -1322,7 +1328,7 @@ class InvokeFeaturesDlg(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        #iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        #iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         pass
         
     def update_progress(self,progress):
@@ -1366,7 +1372,11 @@ class InvokeFeaturesDlg(QDialog):
             plt.legend()
             fig1.show()
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
 
 #dublicated code
 class ComboBox(QComboBox):

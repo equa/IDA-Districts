@@ -59,11 +59,11 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             #print(template)
             dlg.tableWidget_templates.insertRow(i)
             item=QTableWidgetItem(str(template['id']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,0,item)
             
             item=QTableWidgetItem(str(template['template_name']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,1,item)
             
                         
@@ -74,7 +74,7 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             dlg.tableWidget_templates.setCellWidget(i, 3, comboBox)
                 
             item=QTableWidgetItem(str(template['used']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,4,item)
 
             i+=1    
@@ -91,11 +91,11 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             #print(customer)
             dlg.tableWidget_customer.insertRow(i)
             item=QTableWidgetItem(str(customer['c_id']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,0,item)
             
             item=QTableWidgetItem(str(customer['template_name']))
-            item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,1,item)
             
             comboBox = QComboBox()

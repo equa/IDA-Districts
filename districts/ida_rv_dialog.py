@@ -105,7 +105,7 @@ class NetworkReportDialog(QDialog):
             self.data = [i for i in self.data if i.get("name") != self.tableWidget_diagrams.item(row_index,0).text()]
             self.tableWidget_diagrams.removeRow(row_index)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
         
 
 class PlotLoadProfilesDialog(QDialog):
@@ -1127,7 +1127,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
     def update_finished(self,message):
         if str(message)=='finished':

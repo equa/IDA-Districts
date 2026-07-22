@@ -1,6 +1,7 @@
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from .outputs import *
+from .ida_resources import *
 from .utility_functions.dialog import *
 from .utility_functions.util import *
 from .utility_functions.db import *
@@ -37,6 +38,7 @@ class WorkerBuildNetworkModel(QRunnable):
         self.conn = dbConnect(self.config,True)
         self.networks=kwargs['networks']
         self.submodels=kwargs['submodels']
+        self.main=kwargs['main']
         self.dlg.process_running=True
 
         if self.conn:
@@ -51,7 +53,7 @@ class WorkerBuildNetworkModel(QRunnable):
         self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         self.modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
         self.networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
-        InvokeNetworkModel(self.config,self.plugin_dir,self.requestedOutputs,self.modellingSettings,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == checkState(),self.signals)
+        InvokeNetworkModel(self.main,self.config,self.plugin_dir,self.requestedOutputs,self.modellingSettings,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == checkState(),self.signals)
         
 class PageSettings:
     def __init__(self,cur,submodel,versionName,networks):
@@ -118,7 +120,7 @@ class InvokeNetworkModel:
         3) insert energy plants
         4) insert pipes between customers and nodes 
         5) insert pipes between nodes"""
-    def __init__(self,config,plugin_dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
+    def __init__(self,main,config,plugin_dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
         #print('**********invoke network*********')
         #print(submodels)
         self.plugin_dir=plugin_dir
@@ -129,6 +131,8 @@ class InvokeNetworkModel:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
             try:
+                updateClimateTemplate(main,getClimateData(self.cur,self.config,True)['filename'])
+                
                 self.projectConfig=loadProjectConfig(self.config,signals=self.signals)
                 
                 dir=self.config['pathProjects']+self.config['projectName']+"\\versions\\"
@@ -306,9 +310,12 @@ class InvokeNetworkModel:
                 self.signals.progress.emit(100)  
                 self.signals.finished.emit('Network model has been build successfully!')
 
-            except Exception as e:
-                self.signals.error.emit(str(e))
-                #self.signals.progress.emit(0)
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
                 
             
     def closeDocument(self):
@@ -326,17 +333,7 @@ class InvokeNetworkModel:
     def saveFile(self):
         """ Save the file"""
         # Save the new building using the API
-        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1) 
-        
-    def replaceFile(self,dir,file):
-        dir_plugin_split=self.plugin_dir.split('\\')
-        dir_plugins=''
-        for x in range(len(dir_plungin_split)-1):
-            if x!=0:
-                dir_plugins+='//'
-            dir_plugins+=dir_plugin_split[x]
-        #print(dir_plugins)
-        os.popen('copy source.txt destination.txt')         
+        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1)            
     
     def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Inserts the lines in the submodel"""

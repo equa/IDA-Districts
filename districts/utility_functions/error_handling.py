@@ -16,7 +16,7 @@ def checkIntersectingFeatures(cur,dictDB):
             overlaying_features=cur.fetchall()
             if overlaying_features:
                 for error in overlaying_features:
-                    iface.messageBar().pushMessage("Error", "{}: {} and {}: {} intersect.".format(f1.capitalize(),error['id1'],f2,error['id2']), level=Qgis.Critical)
+                    iface.messageBar().pushMessage("Error", "{}: {} and {}: {} intersect.".format(f1.capitalize(),error['id1'],f2,error['id2']), level=MessageCritical)
                 return True
     return False
     
@@ -41,7 +41,7 @@ def checkGenerateTopologyLayerData(dictDB,cur,networks,connectPlants,connectCust
             cur.execute(sql)
             ep_conn_count=cur.fetchone()['count']
             if ep_conn_count==0 and not connectPlants:
-                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one energy plant connected to network {}!".format(network), level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one energy plant connected to network {}!".format(network), level=MessageInfo)
                 network_check=False
             
             #check if features customers are connected to network if not connectCustomers 
@@ -49,10 +49,10 @@ def checkGenerateTopologyLayerData(dictDB,cur,networks,connectPlants,connectCust
             cur.execute(sql)
             customer_conn_count=cur.fetchone()['count']
             if customer_conn_count==0 and not connectCustomers:
-                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one customer connected to network {}!".format(network), level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one customer connected to network {}!".format(network), level=MessageInfo)
                 network_check=False        
         else:
-            iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one entry of network {} in the layers: energy_plants and customers!".format(network), level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one entry of network {} in the layers: energy_plants and customers!".format(network), level=MessageInfo)
         
         #check overlapping features
         if checkIntersectingFeatures(cur,dictDB):

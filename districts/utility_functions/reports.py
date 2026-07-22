@@ -1,4 +1,4 @@
-from qgis.core import QgsLayerTreeNode,QgsLayerTreeGroup,QgsLegendStyle,QgsLayoutItemScaleBar,QgsLayoutItemLegend,QgsLayerTree,QgsRectangle,QgsLayoutItemMap,QgsRasterLayer,QgsVectorLayer,QgsAttributeEditorAction,QgsAction,QgsProject,Qgis,QgsPrintLayout,QgsLayoutItemPage,QgsLayoutItemLabel,QgsLayoutPoint,QgsLayoutItemPolygon,QgsLayoutExporter
+from qgis.core import QgsMessageLog, QgsLayerTreeNode, QgsLayerTreeGroup, QgsLegendStyle, QgsLayoutItemScaleBar, QgsLayoutItemLegend, QgsLayerTree, QgsRectangle, QgsLayoutItemMap, QgsRasterLayer, QgsVectorLayer, QgsAttributeEditorAction, QgsAction, QgsProject, Qgis, QgsPrintLayout, QgsLayoutItemPage, QgsLayoutItemLabel, QgsLayoutPoint, QgsLayoutItemPolygon, QgsLayoutExporter
 from qgis.PyQt.QtCore import QPointF, Qt
 from qgis.PyQt.QtGui import QFont, QColor, QPolygonF
 
@@ -22,6 +22,8 @@ from .db import *
 import tempfile
 import os 
 import math 
+import traceback
+
 
 def getKPIUnit(name):
     if name.startswith("tsup") or name.startswith("tret"):
@@ -456,7 +458,11 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                 y_layout +=table.totalHeight() + 5
 
             except:
-                pass
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
     
         #-------------pipes table---------
         if dlg.checkBox_pipeTable.isChecked():
@@ -686,7 +692,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         export = QgsLayoutExporter(layout)
         export.exportToPdf(export_path, QgsLayoutExporter.PdfExportSettings())
 
-        os.startfile(export_path)
+        os.startfile(export_path)  # nosec B606
         
     
     #Redo changes
@@ -699,7 +705,11 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         try:
             project.removeMapLayer(layer_osm)
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
     iface.mapCanvas().refresh()
 
 def setupCustomerDataSheet(config,plugin_dir,projectConfig):

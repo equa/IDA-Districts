@@ -1,4 +1,5 @@
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
+from qgis.core import QgsMessageLog, Qgis
 
 from .utility_functions.files import *
 from .utility_functions.db import *
@@ -8,6 +9,8 @@ from .utility_functions.workers import APISignals
 
 import datetime
 import re
+import traceback
+
 
 
 class WorkerLoadResults(QRunnable):      
@@ -573,7 +576,11 @@ CREATE TABLE "{}".line_s_qamb
                                 try:
                                     kpis[kpi]=last_line.split()[-1]
                                 except:
-                                    pass
+                                    QgsMessageLog.logMessage(
+                                        traceback.format_exc(),
+                                        "Districts",
+                                        MessageCritical
+                                    )
                         #print(kpis)
                         sql="""DROP TABLE IF EXISTS "{}".kpi_{} CASCADE;
 CREATE TABLE IF NOT EXISTS "{}".kpi_{}

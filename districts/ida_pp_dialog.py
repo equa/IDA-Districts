@@ -544,11 +544,11 @@ class PipeLayingDialog(QDialog):
     def execute(self):  
         layerCheck=checkPipeLayingLayerData(self.config,self.cur,self.combo_network.currentText())
         if layerCheck=='no_streets':
-            iface.messageBar().pushMessage("Error", "Please insert streets into the streets layer.", level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", "Please insert streets into the streets layer.", level=MessageCritical)
         elif layerCheck=='no_plants':
-            iface.messageBar().pushMessage("Error", f"Please insert a main energy plant of network: {self.combo_network.currentText()} into the energy_plants layer.", level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", f"Please insert a main energy plant of network: {self.combo_network.currentText()} into the energy_plants layer.", level=MessageCritical)
         elif layerCheck=='no_customers':
-            iface.messageBar().pushMessage("Error", f"Please insert customers of network: {self.combo_network.currentText()} into the customers layer.", level=Qgis.Critical)
+            iface.messageBar().pushMessage("Error", f"Please insert customers of network: {self.combo_network.currentText()} into the customers layer.", level=MessageCritical)
         elif not layerCheck:
             self.process_running=True
             self.worker = WorkerPipeLaying(tsup_max_col=self.tsup_max_col.currentText(),linearHeatDensity_min_col=self.linearHeatDensity_min_col.currentText(),heat_demand_min_col=self.heat_demand_min_col.currentText(),heating_load_min_col=self.heating_load_min_col.currentText(),
@@ -576,7 +576,7 @@ class PipeLayingDialog(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -900,7 +900,7 @@ class NetworkTopologyDialog(QDialog):
 
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
     def execute(self):  
         self.conn=dbConnect(self.config,True)
@@ -1305,7 +1305,7 @@ class PipeSizingDlg(QDialog):
             self.table_circuits.removeRow(selected_row)
             self.on_combo_changed(None)
         else:
-            iface.messageBar().pushMessage("Info", "No row selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No row selected!", level=MessageInfo)
             
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -1315,7 +1315,7 @@ class PipeSizingDlg(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
     def execute(self,networks):  
         if self.conn:
@@ -1552,17 +1552,17 @@ class MapFeaturesDialog(QDialog):
         if id:
             id=id.text()
         else:
-            iface.messageBar().pushMessage("Info", "No energy plant selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No energy plant selected!", level=MessageInfo)
             return False
         if conn_type:
             conn_type=conn_type.text().split(':')[0]
         else:
-            iface.messageBar().pushMessage("Info", "No connection type selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No connection type selected!", level=MessageInfo)
             return False
         if lid:
             lid=lid.text()
         else:
-            iface.messageBar().pushMessage("Info", "No line selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No line selected!", level=MessageInfo)
             return False
         #print(id)
         #print(conn_type)
@@ -1590,7 +1590,7 @@ class MapFeaturesDialog(QDialog):
             #print(sql)
             self.cur.execute(sql)
             if self.cur.fetchone()['count']!=0: 
-                iface.messageBar().pushMessage("Info", "Already connected!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "Already connected!", level=MessageInfo)
                 return
             else:
                 if seq and id and lid:
@@ -1625,7 +1625,7 @@ class MapFeaturesDialog(QDialog):
         if conn:
             conn=conn.text()
         else:
-            iface.messageBar().pushMessage("Info", "No connection selected!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "No connection selected!", level=MessageInfo)
             return False
         id=self.listWidget_plants_ids.currentItem().text()
         conn_type=conn.split(':')[0]

@@ -255,7 +255,7 @@ class DistrictsDialog(QtWidgets.QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
     # ---------------- DRAG TAB TO FLOAT ----------------
     def eventFilter(self, source, event):

@@ -1,14 +1,16 @@
-from qgis.PyQt.QtCore import QObject,pyqtSignal,Qt
+from qgis.PyQt.QtCore import QObject, pyqtSignal,Qt
 from qgis.PyQt import uic, QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import QTextEdit,QTextBrowser,QDialog,QSpacerItem,QSizePolicy,QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar
+from qgis.PyQt.QtWidgets import QTextBrowser, QDialog, QSpacerItem, QSizePolicy, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar
 from qgis.utils import iface
-from qgis.core import Qgis
-from qgis.PyQt.QtGui import QIcon,QPixmap
+from qgis.core import Qgis, QgsMessageLog
+from qgis.PyQt.QtGui import QIcon, QPixmap
 
 from .db import *
 from .utility import *
+from .compat import *
 
 import copy
+import traceback
 
 def checkIDADistrictsInstallation(config):
     if not os.path.exists(f"{config['pathDistricts']}bin\\ida-districts.exe"):
@@ -272,7 +274,7 @@ def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
             #print(sql)
             cur.execute(sql)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
     
 def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
     """Insert table row"""
@@ -295,7 +297,7 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
             else:
                 item=QTableWidgetItem('')
             if col in deactivated:
-                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                item.setFlags(ItemIsSelectable | ItemIsEnabled)
 
             dlg.tableWidget.setItem(0,col,item)
             
@@ -319,11 +321,16 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
                 #print(dlg.tableWidget.item(0,1))
                 #print(dlg.tableWidget.item(0,1).text())
                 #print(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
-                dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
+                if dlg.tableWidget.cellWidget(0,2):
+                    dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
             #print(dlg.traceTableValues)
             #print('--finished trace values of row 0--')
         except:
-            pass
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         #print(dlg.traceTableValues)
 
 def deleteTableRowTrace (dlg,trace):
@@ -334,7 +341,7 @@ def deleteTableRowTrace (dlg,trace):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
             
     #delete row to dlg.traceTableValues in order to trace the changed values         
     if trace:
@@ -352,10 +359,10 @@ def deleteTableRow (dlg):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+        self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
             
 class TableDialog(QDialog):
-    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type='',info=False):
+    def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type=''):
         """Constructor"""
         super().__init__()
         self.setWindowTitle(title)   
@@ -386,12 +393,6 @@ class TableDialog(QDialog):
             self.btn_saveAs.setIcon(QIcon(":/images/themes/default/mActionEditCopy.svg"))
             layout_buttons_table.addWidget(self.btn_saveAs)
             
-        #info
-        layout_info = QHBoxLayout()
-        if info:
-            self.textEdit=QTextEdit(tr('@default',info))
-            layout_info.addWidget(self.textEdit)
-            
         layout_buttons_table.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
         #Table
         layout_table = QHBoxLayout() 
@@ -413,7 +414,6 @@ class TableDialog(QDialog):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_info)
         layout_win.addLayout(layout_buttons_table)
         layout_win.addLayout(layout_table)
         layout_win.addLayout(layout_buttons)
@@ -443,12 +443,9 @@ class TableDialog(QDialog):
         #print('changed')
         #print(row)
         #print(item)
-        #print(self.traceTableValues)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
-            try:
+            if self.tableWidget.cellWidget(row,1) and self.traceTableValues:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
-            except:
-                pass
         elif self.trace_type == 'building_template':
             #print(item.text())
             self.traceTableValues[row][item.column()][1]=item.text()
@@ -458,12 +455,11 @@ class TableDialog(QDialog):
                 changedValue+=self.tableWidget.item(row,0).text()+'_'
             if self.tableWidget.item(row,1):
                 changedValue+=self.tableWidget.item(row,1).text()
-            try:
+            if self.tableWidget.cellWidget(row,2):
                 #print(changedValue)
                 self.tableWidget.cellWidget(row,2).currentText()
                 self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
-            except:
-                pass
+
             item.setData(
                 Qt.ItemDataRole.UserRole,
                 item.text()
@@ -599,4 +595,4 @@ def deleteSelectedTableRow (table):
     if row_index!=-1:
         table.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)

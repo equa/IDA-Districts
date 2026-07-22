@@ -4731,7 +4731,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     <message>
         <location filename="../districts_dialog_base.ui" line="1584"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_plot_feature_load_profile&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished">Plot feature loads</translation>
+        <translation type="unfinished">Display feature loads as well as mass and heat balances for selected networks in charts.</translation>
     </message>
     <message>
         <location filename="../districts_dialog_base.ui" line="1637"/>
@@ -4776,7 +4776,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;description_diagrams&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">&lt;p&gt;The &lt;strong&gt;simulation results&lt;/strong&gt; can be visualized using &lt;strong&gt;interactive diagrams&lt;/strong&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Loads&lt;/strong&gt; can be displayed for each feature, such as &lt;strong&gt;customers&lt;/strong&gt; or &lt;strong&gt;energy plants&lt;/strong&gt;, as well as for the &lt;strong&gt;aggregated (cumulated) load&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Loads&lt;/strong&gt; for &lt;strong&gt;customers&lt;/strong&gt; or &lt;strong&gt;energy plants&lt;/strong&gt; as well as &lt;strong&gt;heat&lt;/strong&gt; and &lt;strong&gt;mass balances&lt;/strong&gt; of selected networks can be displayed.&lt;/p&gt;
 &lt;p&gt;In addition, &lt;strong&gt;pressure&lt;/strong&gt; and &lt;strong&gt;temperature profiles&lt;/strong&gt; can be plotted along the &lt;strong&gt;elevation data&lt;/strong&gt; for a selected path, for example from a specific &lt;strong&gt;customer&lt;/strong&gt; or &lt;strong&gt;network weak point&lt;/strong&gt; to an &lt;strong&gt;energy plant&lt;/strong&gt;.&lt;/p&gt;
 </translation>
     </message>
@@ -5398,7 +5398,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../ida_mosim_dialog.py" line="1554"/>
         <source>ambient_air_temperatur</source>
-        <translation type="unfinished">AAmbient air temperature</translation>
+        <translation type="unfinished">Ambient air temperature</translation>
     </message>
     <message>
         <location filename="../ida_mosim_dialog.py" line="1562"/>

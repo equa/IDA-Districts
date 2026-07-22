@@ -121,7 +121,7 @@ class ExportProjectDialog(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
     def dirDlg(self):
         folder = QFileDialog.getExistingDirectory(
@@ -292,7 +292,7 @@ class NewProjectDlg(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
 
 

@@ -1,4 +1,4 @@
-from qgis.core import QgsApplication,Qgis, QgsMessageLog, QgsProject
+from qgis.core import QgsApplication, Qgis, QgsMessageLog, QgsProject
 from qgis.PyQt.QtCore import QSettings
 from qgis.PyQt import QtCore
 from qgis.utils import iface
@@ -15,6 +15,8 @@ import ast
 import json
 import re
 import ntpath
+import traceback
+
 
 import ast
 import operator as op
@@ -131,11 +133,11 @@ def checkToolPaths(config):
     if os.path.exists(os.path.join(config['pathDistricts'],'bin','districts.exe')):
         pathCheck['pathDistricts']=True
     else:
-        iface.messageBar().pushMessage("Info", "Please update your IDA Districts path!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please update your IDA Districts path!", level=MessageInfo)
     if os.path.exists(config['pathProjects']):
         pathCheck['pathProjects']=True
     else:
-        iface.messageBar().pushMessage("Info", "Please update your project path!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please update your project path!", level=MessageInfo)
 
     return pathCheck
     
@@ -402,8 +404,12 @@ def strToDict(s: str) -> dict:
             return result
         else:
             return {}
-    except Exception:
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
     # Second try: clean up and parse manually if input is malformed
     try:
@@ -411,8 +417,12 @@ def strToDict(s: str) -> dict:
         result = json.loads(s_clean)
         if isinstance(result, dict):
             return result
-    except Exception:
-        pass
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
 
     # Fallback: manual parsing for simple key:value pairs (uses original s, should be fine for simple pairs)
     try:
@@ -453,12 +463,12 @@ def checkString(my_string):
 
     #checking empty string
     if len(my_string)==0:
-        iface.messageBar().pushMessage("Error", "Please enter a name!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "Please enter a name!", level=MessageCritical)
         return False
 
     #start with a character
     if not my_string[0].isalpha():
-        iface.messageBar().pushMessage("Error", "Please start with an alphabetic character!", level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", "Please start with an alphabetic character!", level=MessageCritical)
         return False
         
     ok=True
@@ -478,7 +488,7 @@ def checkString(my_string):
         ok = False
         
     if not ok:
-        iface.messageBar().pushMessage("Info", "Please don`t use upper cases, white spaces or special characters in your name!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please don`t use upper cases, white spaces or special characters in your name!", level=MessageInfo)
     
     return ok
     
