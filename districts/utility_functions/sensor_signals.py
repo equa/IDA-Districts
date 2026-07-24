@@ -504,7 +504,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'],config['versionName'], # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
-    print(sql)   
+    #print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  

@@ -173,7 +173,7 @@ AND EXISTS (
     WHERE s.sensor_id = st.target_id
       AND s.type = {}
 );""".format(type_id,type_name,type_name,type_id) # nosec B608
-            print(sql)
+            #print(sql)
             self.cur.execute(sql)
             
 
@@ -258,6 +258,7 @@ AND EXISTS (
         i=0
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():
+            #print(sensor_data)
             self.loadedSensorData[sensor_data['sensor_id']]={'source' : {'type' : sensor_data['source_type'],'templates' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure_id'],'function' : sensor_data['function_id'],'test_value' : float(sensor_data['test_value']),'description' : sensor_data['description_source']}, 
                 'target': {'type' : sensor_data['target_type'],'templates' : [],'target' : None,'description' : ''}}
             self.dlg.tableWidget_source.insertRow(i)
@@ -285,7 +286,6 @@ AND EXISTS (
                     self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),sensor_data['function'],6,i,False)
             self.dlg.tableWidget_source.setItem(i,7,QTableWidgetItem(str(sensor_data['test_value'])))
             self.dlg.tableWidget_source.setItem(i,8,QTableWidgetItem(sensor_data['description_source']))
-            i+=1            
         
         i=0  
         sql="""SELECT s_t.sensor_id, s_t.type AS target_type, type.name AS target_type_name, s_t.template, s_t.description AS description_target
@@ -309,6 +309,9 @@ AND EXISTS (
                 self.setFilteredTemplateDropdownItems(self.dlg.tableWidget_target,sensor_data['target_type_name'].replace(' ','_'),sensor_data['sensor_id'],i,'target')
             self.dlg.tableWidget_target.setItem(i,3,QTableWidgetItem(sensor_data['description_target']))
             i+=1
+            
+        for i in range(self.dlg.tableWidget_source.rowCount()):
+            self.measureChanged(self.dlg.tableWidget_source,None,5,i)
         #print(self.loadedSensorData)
 
     def setTableDropDown(self,table,dropdownItems,currentData,col,row,signal_function):
@@ -331,6 +334,7 @@ AND EXISTS (
     
     def measureChanged(self,table,selected_index,column,row): 
         #print('************measure changed***************')
+        #print(row)
         source_type=table.cellWidget(row, 1).currentData()
         target_type=self.dlg.tableWidget_target.cellWidget(row, 1).currentData()
         if table.cellWidget(row,5).currentData() =='custom':

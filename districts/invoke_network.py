@@ -162,7 +162,7 @@ class InvokeNetworkModel:
                 for network in networks:
                     sensor_data+=getResultSensorData(self.cur,self.config,network=network)
                 #print('---sensor-data-----')
-                print(sensor_data)
+                #print(sensor_data)
                 
 
                 #print(getUsedSubmodels(self.cur, self.config))
@@ -178,7 +178,7 @@ class InvokeNetworkModel:
                 
                 self.signals.progress.emit(2)
                 sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.config)      
-                print(sensor_dec_data)
+                #print(sensor_dec_data)
                 
                 self.signals.progress.emit(3)
                 #supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.config)['submodel'])
