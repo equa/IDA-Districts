@@ -349,7 +349,8 @@ def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
         #print(sql)
         cur.execute(sql) 
 
-def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter=""):
+def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter="",networks=None):
+    network_filter=" AND f.network && ARRAY[{}]".format(','.join([i for i in networks])) if networks else ""
     sql="""WITH sub AS(
 	WITH sub AS(
 		WITH sub AS(
@@ -361,7 +362,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                             (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
-                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type{}
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id 
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=1
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
@@ -374,7 +375,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                             (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
-                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type{}
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id AND s.sensor_id=s.sensor_id
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=2
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
@@ -384,7 +385,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
                         FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type{}
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=1
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
                         ORDER BY s.sensor_id, f.id)
@@ -393,7 +394,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
                         FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
-                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
+                        WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type{}
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=2
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
                         ORDER BY s.sensor_id, f.id)
@@ -401,28 +402,28 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
 				--customer; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
                         FROM  sensor_source s,"{}".customers f
-                        WHERE s.measure=5 AND s.type=1
+                        WHERE s.measure=5 AND s.type=1{}
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				UNION
 				--plant; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
                         FROM  sensor_source s,"{}".energy_plants f
-                        WHERE s.measure=5 AND s.type=2
+                        WHERE s.measure=5 AND s.type=2{}
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				--supervisory ctrl source ;customer target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
                         FROM sensor_source s, sensor_target t,target_template t_t, "{}".customers f
-                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=1
+                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=1{}
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
 				--supervisory ctrl source ;energy_plants target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
                         FROM sensor_source s, sensor_target t,target_template t_t, "{}".energy_plants f
-                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=2
+                        WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=2{}
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
 			)
@@ -499,11 +500,11 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
 	AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
     GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
     ORDER BY sub.sensor_id;""".format( # nosec B608
-    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'], # nosec B608
-    config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'], # nosec B608
+    config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
+    config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'],config['versionName'], # nosec B608
     config['versionName'],config['versionName'], # nosec B608
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
-    #print(sql)   
+    print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
