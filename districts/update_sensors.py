@@ -151,7 +151,7 @@ SELECT
     FALSE
 FROM (
     SELECT DISTINCT target_id
-    FROM target_template, sensor_source WHERE type={} AND sensor_id=target_id
+    FROM target_template, sensor_target WHERE type={} AND sensor_id=target_id
 ) s
 CROSS JOIN {}_templates ft
 WHERE NOT EXISTS (
@@ -173,7 +173,7 @@ AND EXISTS (
     WHERE s.sensor_id = st.target_id
       AND s.type = {}
 );""".format(type_id,type_name,type_name,type_id) # nosec B608
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             
 
