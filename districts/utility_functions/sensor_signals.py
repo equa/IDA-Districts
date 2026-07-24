@@ -450,13 +450,13 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
             (--Customer target irefs
                 SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
                 FROM sensor_target t, "{}".customers f
-                WHERE  t.type =1
+                WHERE  t.type =1 AND t.template=f.template{}
                 GROUP BY t.sensor_id,t.type
             UNION
             --Energy plants target irefs
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
                 FROM sensor_target t, "{}".energy_plants f
-                WHERE  t.type =2
+                WHERE  t.type =2 AND t.template=f.template{}
                 GROUP BY t.sensor_id,t.type
             UNION
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_X_X_X'::text ORDER BY t.sensor_id) AS irefs_target, t.type AS target_type
@@ -502,7 +502,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     ORDER BY sub.sensor_id;""".format( # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'],config['versionName'], # nosec B608
-    config['versionName'],config['versionName'], # nosec B608
+    config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
     print(sql)   
     if execute_query:
