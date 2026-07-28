@@ -152,16 +152,83 @@ def getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target):
     sensor_description+="""\") :AT ((8 380) (694 {})) :STYLE NOTE :MARKUP HTML)\n """.format(str((len(sensor_data_source)+len(sensor_data_target))*30+400))
     return sensor_description
 
-def getSensorDescriptionsTemplate(sensor_data_source,sensor_data_target):
+def getSensorDescriptionsTemplate(cur,type,template):
+    sql="""WITH template_map AS (
+    SELECT 1 AS type, 'customer' AS type_name, template, template_name
+    FROM customer_templates
+    UNION ALL
+    SELECT 2 AS type, 'energy_plant' AS type_name, template, template_name
+    FROM energy_plant_templates
+),
+source AS (
+    SELECT
+        s.sensor_id,
+        array_agg(st.template) AS source_templates,
+        s.description,
+        m.measure,
+        f.function,
+        tm.type_name AS source_type_name,
+        array_agg(tm.template_name) AS source_template_names
+    FROM sensor_source s
+    JOIN source_template st
+        ON st.source_id = s.sensor_id
+    JOIN measure m
+        ON m.id = s.sensor_id
+    JOIN signal_function f
+        ON f.id = s.sensor_id
+    JOIN template_map tm
+        ON tm.type = s.type
+       AND tm.template = st.template
+    WHERE st.active
+      AND tm.type_name = '{}'
+    GROUP BY
+        s.sensor_id,
+        s.description,
+        m.measure,
+        f.function,
+        tm.type_name
+    HAVING {} = ANY(array_agg(st.template))
+),
+target AS (
+    SELECT
+        t.sensor_id,
+        array_agg(tt.template) AS target_templates,
+        tm.type_name AS target_type_name,
+        array_agg(tm.template_name) AS target_template_names
+    FROM sensor_target t
+    JOIN target_template tt
+        ON tt.target_id = t.sensor_id
+    JOIN template_map tm
+        ON tm.type = t.type
+       AND tm.template = tt.template
+    WHERE tt.active
+    GROUP BY
+        t.sensor_id,
+        tm.type_name
+)
+SELECT
+    s.sensor_id,
+    s.source_templates,
+    s.measure,
+    s.function,
+    s.source_type_name,
+    s.source_template_names,
+    s.description AS source_description,
+    t.target_template_names,
+	t.target_type_name
+FROM source s
+JOIN target t
+    ON t.sensor_id = s.sensor_id;""".format(getTypeNameById(type)[:-1],template)
+    print(sql)
+    cur.execute(sql)
+    source_data=cur.fetchall()
+    print(source_data)
     sensor_description="""(TEXT-OBJECT :VALUE (ENGLISH "<meta name=\\"sensor-description\\"><b>Sensor descriptions:</b><br>"""
-    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+str(i['sensor_id']) +"</b> --> "+"Source description='"+i['description_source']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Target type='"+i['target_type_name']+
-        "'; Target feature ID`s='" + ','.join(['Supervisory control' if iref.split('_')[1]=='X' else iref.split('_')[1] for iref in i['irefs_target']]) +"'"  
-        for i in sensor_data_source])
-    sensor_description+="<br>"
-    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Target_"+str(i['sensor_id']) +"</b> --> "+"'; Target description='"+i['description_target']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source function='"+i['function_name']+"'; Source measure='"+i['measure_name']+"'; Source type='"+i['source_type_name']+
-        "'; Source feature ID´s='"+','.join(['Supervisory control' if iref.split('_')[1]=='X' else iref.split('_')[1] for iref in i['irefs_source']]) +"'" 
-        for i in sensor_data_target])
-    sensor_description+="""\") :AT ((8 380) (694 {})) :STYLE NOTE :MARKUP HTML)\n """.format(str((len(sensor_data_source)+len(sensor_data_target))*30+400))
+    sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+str(i['sensor_id']) +"</b> --> "+"Source description='"+i['source_description']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source type='"+i['source_type_name']+"'; Source template names='"+str(i['source_template_names'])+"'; Source function='"+tr('@default',i['function'])+"'; Source measure='"+tr('@default',i['measure'])+"'; Target type='"+i['target_type_name']+"'; Target template names='"+str(i['target_template_names'])
+        for i in source_data])
+    sensor_description+="<br>"   
+    sensor_description+="""\") :AT ((8 380) (694 {})) :STYLE NOTE :MARKUP HTML)\n """.format(str((len(source_data)+len(source_data))*30+400))
+    print(sensor_description)
     return sensor_description
     
 def delSensorConnection(file_data,remove_sensor_ids,type):
@@ -504,7 +571,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'],config['versionName'], # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
-    #print(sql)   
+    print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
@@ -618,7 +685,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     config['versionName'],config['versionName'], # nosec B608
     network, # nosec B608
     ','.join([str(i) for i in source_types])) # nosec B608
-    #print(sql)   
+    print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
@@ -654,9 +721,9 @@ class NetworkSensorSignals():
         
 class templatesensorSignals():
     def __init__(self,cur,config,dir,template_name,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
-        #print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+        print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
         #print(dir)
-        #print(template_name)
+        print(template_name)
         
         #get number of old sensor target signals --> for component placement in .idc
         sql="""WITH sub AS(
@@ -670,10 +737,11 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
         #numberOf_oldSensorTargets=cur.fetchone()['count']      
         numberOf_oldSensorTargets=1        
         
-        #print(add_sensor_source_idsValues)
-        #print(remove_sensor_source_ids)            
-        #print(add_sensor_target_idsValues)
-        #print(remove_sensor_target_ids)      
+        print(add_sensor_source_idsValues)
+        print(remove_sensor_source_ids)            
+        print(add_sensor_target_idsValues)
+        print(remove_sensor_target_ids)      
+        print(type)
         
         #template idm project file
         #print(dir)
@@ -762,26 +830,9 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
             file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')
             file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
             file_data=delSensorDescription(file_data)
-            file_data=setPageHeightSensorDescription(file_data,(len(add_sensor_source_idsValues)+len(add_sensor_target_idsValues)-len(remove_sensor_source_ids)-len(remove_sensor_target_ids)))
+            file_data=setPageHeightSensorDescription(file_data,(len(add_sensor_source_idsValues)+len(add_sensor_target_idsValues)-len(remove_sensor_source_ids)-len(remove_sensor_target_ids)))   
             
-            #todo: update if still needed
-            #if [True for i in add_sensor_target_idsValues if i['target']==2]:
-            #    file_data=self.removeHCModeConnection(file_data)
-                
-            sensor_data_source=getSensorData(cur,config,source_types=[type],filter=" AND s.measure=5")
-            sensor_data_target=getSensorData(cur,config,target_types=[type],filter="")
-            #print('---------------------------+++++++++++++++-----------------------')
-
-            #print(sensor_data_source)
-            #print(sensor_data_target)
-            #print('++')
-            sensor_data_source=[sensor for sensor in sensor_data_source for at_name in sensor['source_template_names'] if at_name==str(type)+':'+template_name]
-            sensor_data_target=[sensor for sensor in sensor_data_target for at_name in sensor['target_template_names'] if at_name==str(type)+':'+template_name]
-            #print(sensor_data_source)
-            #print(sensor_data_target)
-                
-            
-            sensor_description=getSensorDescriptionsTemplate(sensor_data_source,sensor_data_target)
+            #sensor_description=getSensorDescriptionsTemplate(cur,type,template_name.split('_')[0])
             file_data.append(sensor_description)
             writeToFileFromList(file_data,dir,file)
       

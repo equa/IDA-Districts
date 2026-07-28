@@ -15,6 +15,7 @@ import tempfile
 
 from .files import *
 from .utility import *
+from .compat import *
 
 #from .dialog import *
 #from .layer_visualization import *

@@ -281,7 +281,7 @@ class Supervisory_control():
             file=dir+"""\\Supervisory_control.idc"""
             file_data=[]
             #print('-----------------sensor-description-------------------')
-            sensor_description=getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target)
+            #sensor_description=getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target)
             #print(sensor_description)
             if os.path.exists(file):
                 #read file --> remove deleted connections --> add new connections
@@ -290,13 +290,13 @@ class Supervisory_control():
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 file_data=delSensorDescription(file_data)
                 file_data=setPageHeightSensorDescription(file_data,(len(add_sensor_source_idsValues)+len(add_sensor_target_idsValues)-len(remove_sensor_source_ids)-len(remove_sensor_target_ids)))
-                file_data.append(sensor_description)
+                #file_data.append(sensor_description)
                 writeToFileFromList(file_data,dir,file)
             else:
                 file_data.append(""";IDA {} Form UTF-8
 (DOCUMENT-HEADER :TYPE SCHEMA :PAGE-WIDTH 178 :PAGE-HEIGHT 140) 
 (SELF-FRAME :AT ((352 190)) :R (342 176) :SLOT (:SELF) :DATA MACRO-OBJECT)\n""".format(getIDAVersion(config)))
-                file_data.append(sensor_description)
+                #file_data.append(sensor_description)
                 writeToFileFromList(file_data,dir,file)
                 
             #sensor idm macro file

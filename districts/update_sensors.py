@@ -30,7 +30,7 @@ class UpdateSensors():
         self.dlg.tableWidget_target.currentCellChanged.connect(self.dlg.tableWidget_source.selectRow)
         self.updateSensorDBData()
         self.loadSensorTableValues()
-        #print(self.loadedSensorData)
+        print(self.loadedSensorData)
         self.dlg.show()  
 
     def updateSensorDBData(self):
@@ -254,7 +254,7 @@ AND EXISTS (
     FROM sensor_source s_s, public.type, public.measure m, public.signal_function f, sensor_target s_t
     WHERE s_s.type=type.id AND s_s.measure=m.id AND s_s.function=f.id AND s_t.sensor_id=s_s.sensor_id
     ORDER BY s_s.sensor_id;"""
-        #print(sql)
+        print(sql)
         i=0
         self.cur.execute(sql)
         for sensor_data in self.cur.fetchall():
@@ -286,6 +286,7 @@ AND EXISTS (
                     self.setTableDropDown(self.dlg.tableWidget_source,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),sensor_data['function'],6,i,False)
             self.dlg.tableWidget_source.setItem(i,7,QTableWidgetItem(str(sensor_data['test_value'])))
             self.dlg.tableWidget_source.setItem(i,8,QTableWidgetItem(sensor_data['description_source']))
+            i+=1
         
         i=0  
         sql="""SELECT s_t.sensor_id, s_t.type AS target_type, type.name AS target_type_name, s_t.template, s_t.description AS description_target
@@ -403,7 +404,8 @@ AND EXISTS (
         return items
         
     def setDropDowntemplates(self,table,col,row,type):
-        #print('set templates')
+        print('set templates')
+        print(type)
         dropDown=table.cellWidget(row, col)
         if dropDown!=None:
             templates=self.getCheckedItemsFromTable(dropDown)
@@ -530,7 +532,8 @@ AND EXISTS (
                     "Districts",
                     MessageCritical
                 )
-        comboBoxCheckable.activated.connect(lambda signal, column=3,row=row: self.setDropDownConntypes(table,column,row,type))
+        if sensor=='source':
+            comboBoxCheckable.activated.connect(lambda signal, column=3,row=row: self.setDropDownConntypes(table,column,row,type))
         table.setCellWidget(row, 2, comboBoxCheckable) 
     
     def setCheckableDropDownItemsTable(self,table,dropdownItems,row,col,signal_args):
@@ -930,11 +933,11 @@ class WorkerSensors(QRunnable):
         remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.config,source_types=[1,2],filter=" AND s.measure=5")
         remove_sensor_target_ids=getRemovedSensorTargetData(self.cur,self.config,target_types=[1,2],filter="")
 
-        #print('-+sensor data+-')
-        #print(add_sensor_source_idsValues)
-        #print(add_sensor_target_idsValues)
-        #print(remove_sensor_source_ids)
-        #print(remove_sensor_target_ids)
+        print('-+sensor data+-')
+        print(add_sensor_source_idsValues)
+        print(add_sensor_target_idsValues)
+        print(remove_sensor_source_ids)
+        print(remove_sensor_target_ids)
 
         templates={}
         for sensor in add_sensor_source_idsValues:
@@ -961,7 +964,7 @@ class WorkerSensors(QRunnable):
                     templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add':[sensor],'source_remove':[],'target_remove':[]}
         for sensor in remove_sensor_source_ids:
             template_name=getTemplateName(self.cur,getTemplateNameById(sensor['type']),sensor['template'])
-            #print(template_name)
+            print(template_name)
             if sensor['type'] not in templates:
                 templates[sensor['type']]={}
             if template_name:
@@ -980,32 +983,38 @@ class WorkerSensors(QRunnable):
                 else:
                     templates[sensor['type']][template_name[0]]={'source_add': [], 'target_add': [],'source_remove': [],'target_remove': [sensor]}
                 
-        #print('++++++++++++++---------+++++/////////')
-        #print('--------------add_sensor_source_idsValues------------')
-        #print(add_sensor_source_idsValues)
-        #print('--------------add_sensor_target_idsValues--------------')
-        #print(add_sensor_target_idsValues)
-        #print('----------remove_sensor_source_ids------------')
-        #print(remove_sensor_source_ids)
-        #print('------------remove_sensor_target_ids--------------')
-        #print(remove_sensor_target_ids)
+        print('++++++++++++++---------+++++/////////')
+        print('--------------add_sensor_source_idsValues------------')
+        print(add_sensor_source_idsValues)
+        print('--------------add_sensor_target_idsValues--------------')
+        print(add_sensor_target_idsValues)
+        print('----------remove_sensor_source_ids------------')
+        print(remove_sensor_source_ids)
+        print('------------remove_sensor_target_ids--------------')
+        print(remove_sensor_target_ids)
         
         for type in templates:
             for at in templates[type]:
-                #print('++++++++++++++----templatesensorSignals-----+++++/////////')
-                #print(at)
-                #print(templates[type][at])
+                print('++++++++++++++----templatesensorSignals-----+++++/////////')
+                print(at)
+                print(templates[type][at])
                 templatesensorSignals(self.cur,self.config,self.config['pathProjects']+self.config['projectName']+'\\'+getTemplateNameById(type),at,type,templates[type][at]['source_add'],templates[type][at]['target_add'],templates[type][at]['source_remove'],templates[type][at]['target_remove'])
                 
         #delete from invoked tables in DB
         if remove_sensor_source_ids:
-            sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids])) # nosec B608
-            #print(sql)
+            sql=""
+            for sensor in remove_sensor_source_ids:
+                sql+="""UPDATE invoked_sensor_source_signals SET templates = array_remove(templates,{}) WHERE sensor_id = {};\n""".format(sensor['template'],sensor['sensor_id']) # nosec B608
+            self.cur.execute(sql)
+            sql="""DELETE FROM invoked_sensor_source_signals WHERE templates = '{}';"""
             self.cur.execute(sql)
         if remove_sensor_target_ids:
-            sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids])) # nosec B608
-            #print(sql)
-            self.cur.execute(sql)  
+            sql=""
+            for sensor in remove_sensor_target_ids:
+                sql+="""UPDATE invoked_sensor_target_signals SET templates = array_remove(templates,{}) WHERE sensor_id = {};\n""".format(sensor['template'],sensor['sensor_id']) # nosec B608
+            self.cur.execute(sql)
+            sql="""DELETE FROM invoked_sensor_target_signals WHERE templates = '{}';"""
+            self.cur.execute(sql)
         
         #write to invoked table in DB    
         writeInvokedSensorSourceSignals(self.cur,self.config,add_sensor_source_idsValues)

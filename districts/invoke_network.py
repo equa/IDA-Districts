@@ -162,7 +162,7 @@ class InvokeNetworkModel:
                 for network in networks:
                     sensor_data+=getResultSensorData(self.cur,self.config,network=network)
                 #print('---sensor-data-----')
-                #print(sensor_data)
+                print(sensor_data)
                 
 
                 #print(getUsedSubmodels(self.cur, self.config))
