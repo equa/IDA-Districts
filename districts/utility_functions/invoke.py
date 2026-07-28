@@ -432,7 +432,7 @@ class InvokeFeatures():
 class CopyTemplateFiles:
     """ Copy the files and rename it"""
     def __init__(self,source_dir='',source_name='',target_dir='',target_name='',update_sensors=False,type='',template='',id='',cur='',config='',replaceDict='',parmRun='',update_sf=False):
-        #print('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
+        print('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
         #print(parmRun)
         self.config=config
         type_name=type
@@ -553,12 +553,14 @@ class CopyTemplateFiles:
                         #print(os.path.splitext(os.path.basename(file))[0])
                         path_target=dir_macro+os.path.join(root, file).split(source_dir+'\\'+source_name)[1].split(file)[0]
                         copyFileReplaceStr(os.path.join(root, file),path_target,path_target+file,[source_name],[target_name],{j : replaceDict[i][j] for i in replaceDict if file.lower().split('.')[0]==i.lower() for j in replaceDict[i]})
-
-                        #copyFile(os.path.join(root, file),path_target,path_target+'\\'+file)
                         
                 #print(dirs)
                 for dir in dirs: 
                     #print(os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     createSubDir(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     #print(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
+                
+            if os.path.exists(dir_macro+'\\'+source_name):
+                os.rename(dir_macro+'\\'+source_name, dir_macro+'\\'+target_name)
+
         
