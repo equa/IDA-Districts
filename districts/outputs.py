@@ -536,6 +536,9 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
         max_sensor_id+=1
         sensor_data[max_sensor_id]={'source' : {'type' : 1,'templates' : c_templates,'conn_types' : c_connTypes,'conns' : c_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
                 'target': {'type' : 4,'templates' : {},'description' : ''}}
+        print({'source' : {'type' : 1,'templates' : c_templates,'conn_types' : c_connTypes,'conns' : c_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
+                'target': {'type' : 4,'templates' : {},'description' : ''}})
+        print(max_sensor_id)
         added_sensor_info['tsup_mean_c_system']=max_sensor_id
     if requestedOutputs['tsup_max_c_kpi'] or requestedOutputs['tsup_max_c_system']:
         max_sensor_id+=1
@@ -570,6 +573,9 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
         max_sensor_id+=1
         sensor_data[max_sensor_id]={'source' : {'type' : 2,'templates' : ep_templates,'conn_types' : ep_connTypes,'conns' : ep_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
                 'target': {'type' : 4,'templates' : {},'description' : ''}}
+        print({'source' : {'type' : 2,'templates' : ep_templates,'conn_types' : ep_connTypes,'conns' : ep_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
+                'target': {'type' : 4,'templates' : {},'description' : ''}})
+        print(max_sensor_id)
         added_sensor_info['tsup_mean_ep_system']=max_sensor_id
     if requestedOutputs['tsup_max_ep_kpi'] or requestedOutputs['tsup_max_ep_system']:
         max_sensor_id+=1

@@ -430,7 +430,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type{}
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id 
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=1
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
@@ -443,7 +443,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type{}
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id AND s.sensor_id=s.sensor_id
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=2
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
@@ -571,7 +571,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'],config['versionName'], # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
-    print(sql)   
+    #print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
@@ -604,8 +604,8 @@ def getResultSensorData(cur,config,execute_query=True,source_types=[1,2],network
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
-                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id AND s.sensor_id=s.sensor_id
-                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.ep_seq=bp.sequence AND b_t_conns.sequence=fc.ep_seq
+                            AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id
+                            AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=2 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.ep_seq=bp.sequence AND b_t_conns.sequence=fc.ep_seq
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
                 UNION
@@ -685,7 +685,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     config['versionName'],config['versionName'], # nosec B608
     network, # nosec B608
     ','.join([str(i) for i in source_types])) # nosec B608
-    print(sql)   
+    #print(sql)   
     if execute_query:
         cur.execute(sql)
         return cur.fetchall()  
