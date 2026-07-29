@@ -1,5 +1,4 @@
 from qgis.PyQt.QtCore import QThreadPool
-from qgis.core import QgsMessageLog, Qgis
 
 from .utility_functions.files import *
 from .utility_functions.dialog import *
@@ -12,7 +11,192 @@ from .invoke_network import WorkerBuildNetworkModel
 import pandas as pd
 import numpy as np
 
+def addBoreholefieldTableRow(dlg,main):
+    """Insert table row"""
+    #print('-------insert row---------------')
+    dropdowns=[[20,'public','liquids','id','liquid']]
 
+    maxId=max([getMaxIdAcrossSchemas(main.config,main.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
+    dlg.tableWidget.insertRow(0)
+    dropdownItems=getDropDownItems(main.cur,dropdowns)
+
+    item = QTableWidgetItem(str(maxId))
+    try:
+        item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
+    except AttributeError:
+        item_is_editable = Qt.ItemIsEditable           # Qt5
+
+    item.setFlags(item.flags() & ~item_is_editable)
+    dlg.tableWidget.setItem(0 , 0, item)
+    
+    comboBox = QComboBox()
+    comboBox.addItems([str(i['id']) for i in getTableIds(main.cur,main.config['versionName'],'energy_plants','id')])
+    dlg.tableWidget.setCellWidget(0, 1, comboBox) #plant id
+    dlg.tableWidget.setItem(0,2,QTableWidgetItem('190')) #zhole
+    dlg.tableWidget.setItem(0,3,QTableWidgetItem('0.0575')) #rhole
+    dlg.tableWidget.setItem(0,4,QTableWidgetItem('0.039')) #RB
+    dlg.tableWidget.setItem(0,5,QTableWidgetItem('0.001')) #RPIPEGROUT
+    dlg.tableWidget.setItem(0,6,QTableWidgetItem('100')) #RPIPEEARTH
+    dlg.tableWidget.setItem(0,7,QTableWidgetItem('0.0147')) #RGROUTGROUT
+    dlg.tableWidget.setItem(0,8,QTableWidgetItem('0.0423')) #RGROUTEARTH
+    dlg.tableWidget.setItem(0,9,QTableWidgetItem('0.0147')) #RRINGEARTH
+    dlg.tableWidget.setItem(0,10,QTableWidgetItem('840')) #cpgrd
+    dlg.tableWidget.setItem(0,11,QTableWidgetItem('3.8')) #lambgrd
+    dlg.tableWidget.setItem(0,12,QTableWidgetItem('2880')) #rhogrd
+    dlg.tableWidget.setItem(0,13,QTableWidgetItem('4180')) #cpgrout
+    dlg.tableWidget.setItem(0,14,QTableWidgetItem('0.6')) #lambgrout
+    dlg.tableWidget.setItem(0,15,QTableWidgetItem('1000')) #rhogrout
+    dlg.tableWidget.setItem(0,16,QTableWidgetItem('0.016')) #rpipe
+    dlg.tableWidget.setItem(0,17,QTableWidgetItem('0.0026')) #thickpipe
+    dlg.tableWidget.setItem(0,18,QTableWidgetItem('2200')) #cppipe
+    dlg.tableWidget.setItem(0,19,QTableWidgetItem('0.42')) #lambpipe
+    comboBox = QComboBox()
+    try:
+        items={dropdownItems[20][i].split(':')[0] : tr("@default",dropdownItems[20][i].split(':')[1]) for i in dropdownItems[20]}
+        # Add items to the comboBox, storing the original key as user data
+        for original_key, translated_text in items.items():
+            comboBox.addItem(translated_text, original_key) # The second argument is the userData
+    except:
+        comboBox.addItems(dropdownItems)
+    dlg.tableWidget.setCellWidget(0, 20, comboBox) #liquid
+    dlg.tableWidget.setItem(0,21,QTableWidgetItem('0')) #Tfreeze
+    dlg.tableWidget.setItem(0,22,QTableWidgetItem('0.42')) #lambliq
+    dlg.tableWidget.setItem(0,23,QTableWidgetItem('2')) #lcasting
+    dlg.tableWidget.setItem(0,24,QTableWidgetItem('0.1')) #lambda
+    dlg.tableWidget.setItem(0,25,QTableWidgetItem('1000')) #rhosurface
+    dlg.tableWidget.setItem(0,26,QTableWidgetItem('4180')) #cpsurface
+    dlg.tableWidget.setItem(0,27,QTableWidgetItem('100')) #rmax
+    dlg.tableWidget.setItem(0,28,QTableWidgetItem('10')) #nring
+    dlg.tableWidget.setItem(0,29,QTableWidgetItem('10')) #nzhole
+    dlg.tableWidget.setItem(0,30,QTableWidgetItem('12')) #nlayt
+    dlg.tableWidget.setItem(0,31,QTableWidgetItem('0')) #n1
+    dlg.tableWidget.setItem(0,32,QTableWidgetItem('0')) #n2
+    dlg.tableWidget.setItem(0,33,QTableWidgetItem('0')) #n3
+    dlg.tableWidget.setItem(0,34,QTableWidgetItem('0')) #toutput
+    dlg.tableWidget.setItem(0,35,QTableWidgetItem('5')) #tmean
+    dlg.tableWidget.setItem(0,36,QTableWidgetItem('0')) #geotgrad
+
+def setBoreholeFieldSettings(dlg,main):
+    table=dlg.tableWidget
+    boreholefieldsData={}
+    
+    sql=""
+    for row in range(dlg.tableWidget.rowCount()):
+        #print(row)
+        boreholefieldsData[int(table.item(row, 0).text())]={'ep_id': dlg.tableWidget.cellWidget(row, 1).currentText(),'zhole': table.item(row,2).text(),'rhole': table.item(row,3).text(),'rb': table.item(row,4).text(),
+            'rpipegrout': table.item(row,5).text(),'rpipeearth': table.item(row,6).text(),'rgroutgrout': table.item(row,7).text(),'rgroutearth': table.item(row,8).text(), 'rringearth': table.item(row,9).text(),
+            'cpgrd': table.item(row,10).text(),'lambgrd': table.item(row,11).text(),'rhogrd': table.item(row,12).text(),'cpgrout': table.item(row,13).text(),
+            'lambgrout': table.item(row,14).text(),'rhogrout': table.item(row,15).text(),'rpipe': table.item(row,16).text(),'thickpipe': table.item(row,17).text(),
+            'cppipe': table.item(row,18).text(),'lambpipe': table.item(row,19).text(),'liqtype': table.cellWidget(row, 20).currentData(),'tfreeze': table.item(row,21).text(),
+            'lambliq': table.item(row,22).text(),'lcasting': table.item(row,23).text(),'lambda': table.item(row,24).text(),'rhosurface': table.item(row,25).text(),
+            'cpsurface': table.item(row,26).text(),'rmax': table.item(row,27).text(),'nring': table.item(row,28).text(),
+            'nzhole': table.item(row,29).text(),'nlayt': table.item(row,30).text(),'n1': table.item(row,31).text(),'n2': table.item(row,32).text(),
+            'n3': table.item(row,33).text(),'toutput': table.item(row,34).text(),'tmean': table.item(row,35).text(),'geotgrad': table.item(row,36).text()}
+    
+    #print(boreholefieldsData)
+    
+    sql="""TRUNCATE "{}".borehole_fields;""".format(main.config['versionName'])
+    
+    #added
+    for key_table in boreholefieldsData:
+        sql+="""\nINSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});""".format(
+            main.config['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
+            boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
+            boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['rmax'],
+            boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'],
+            boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'],
+            boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'],
+            boreholefieldsData[key_table]['rhogrout'],boreholefieldsData[key_table]['rpipe'],boreholefieldsData[key_table]['thickpipe'],
+            boreholefieldsData[key_table]['cppipe'],boreholefieldsData[key_table]['lambpipe'],boreholefieldsData[key_table]['lcasting'],boreholefieldsData[key_table]['lambda'],               
+            boreholefieldsData[key_table]['rhosurface'],boreholefieldsData[key_table]['cpsurface'],boreholefieldsData[key_table]['liqtype'],boreholefieldsData[key_table]['tfreeze'],               
+            boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad'])               
+    
+    try:
+        #print(sql)
+        main.cur.execute(sql)
+        closeDialog(dlg)
+    except Exception as e:
+        iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
+
+def showBoreholeFieldSettingsData(dlg,main):
+    sql="""SELECT * FROM "{}".borehole_fields;""".format(main.config['versionName'])
+    main.cur.execute(sql)
+    boreholes_data=main.cur.fetchall()
+    dropdowns=[[20,'public','liquids','id','liquid']]
+    dlg.tableWidget.setRowCount(len(boreholes_data))
+    boreholefieldsData={}
+
+    for counter,i in enumerate(boreholes_data):
+        boreholefieldsData[i['id']]={'ep_id': str(i['id']),'zhole': str(i['zhole']),'rhole': str(i['rhole']),'rb': str(i['rb']),'rpipegrout': str(i['rpipegrout']),'rgroutearth': str(['rgroutearth']),'rpipeearth': str(i['rpipeearth']),
+            'rgroutgrout': str(i['rgroutgrout']),'rringearth': str(i['rringearth']),'cpgrd': str(i['cpgrd']),'lambgrd': str(i['lambgrd']),'rhogrd': str(i['rhogrd']),'cpgrout': str(i['cpgrout']),'lambgrout': str(i['lambgrout']),
+            'rhogrout': str(i['rhogrout']),'rpipe': str(i['rpipe']),'thickpipe': str(i['thickpipe']),'cppipe': str(i['cppipe']),'lambpipe': str(i['lambpipe']),'liqtype': str(i['liqtype']),'tfreeze': str(i['tfreeze']),
+            'lambliq': str(i['lambliq']),'lcasting': str(i['lcasting']),'lambda': str(i['lambda']),'rhosurface': str(i['rhosurface']),'cpsurface': str(i['cpsurface']),'rmax': str(i['rmax']),
+            'nring': str(i['nring']),'nzhole': str(i['nzhole']),'nlayt': str(i['nlayt']),'n1': str(i['n1']),'n2': str(i['n2']),'n3': str(i['n3']),'toutput': str(i['toutput']),'tmean': str(i['tmean']),'geotgrad': str(i['geotgrad'])}
+        
+        item = QTableWidgetItem(str(i['id'])) #id
+        try:
+            item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
+        except AttributeError:
+            item_is_editable = Qt.ItemIsEditable           # Qt5 
+        item.setFlags(item.flags() & ~item_is_editable)
+
+        dlg.tableWidget.setItem(counter,0,item)            
+        comboBox = QComboBox()
+        comboBox.addItems([str(ids['id']) for ids in getTableIds(main.cur,main.config['versionName'],'energy_plants','id')])
+        comboBox.setCurrentText(str(i['ep_id']))
+        dlg.tableWidget.setCellWidget(counter, 1, comboBox) #plant id
+        dlg.tableWidget.setItem(counter,2,QTableWidgetItem(str(i['zhole']))) #zhole
+        dlg.tableWidget.setItem(counter,3,QTableWidgetItem(str(i['rhole']))) #rhole
+        dlg.tableWidget.setItem(counter,4,QTableWidgetItem(str(i['rb']))) #RB
+        dlg.tableWidget.setItem(counter,5,QTableWidgetItem(str(i['rpipegrout']))) #RPIPEGROUT
+        dlg.tableWidget.setItem(counter,6,QTableWidgetItem(str(i['rpipeearth']))) #RPIPEEARTH
+        dlg.tableWidget.setItem(counter,7,QTableWidgetItem(str(i['rgroutgrout']))) #RGROUTGROUT
+        dlg.tableWidget.setItem(counter,8,QTableWidgetItem(str(i['rgroutearth']))) #RGROUTEARTH
+        dlg.tableWidget.setItem(counter,9,QTableWidgetItem(str(i['rringearth']))) #RRINGEARTH
+        dlg.tableWidget.setItem(counter,10,QTableWidgetItem(str(i['cpgrd']))) #cpgrd
+        dlg.tableWidget.setItem(counter,11,QTableWidgetItem(str(i['lambgrd']))) #lambgrd
+        dlg.tableWidget.setItem(counter,12,QTableWidgetItem(str(i['rhogrd']))) #rhogrd
+        dlg.tableWidget.setItem(counter,13,QTableWidgetItem(str(i['cpgrout']))) #cpgrout
+        dlg.tableWidget.setItem(counter,14,QTableWidgetItem(str(i['lambgrout']))) #lambgrout
+        dlg.tableWidget.setItem(counter,15,QTableWidgetItem(str(i['rhogrout']))) #rhogrout
+        dlg.tableWidget.setItem(counter,16,QTableWidgetItem(str(i['rpipe']))) #rpipe
+        dlg.tableWidget.setItem(counter,17,QTableWidgetItem(str(i['thickpipe']))) #thickpipe
+        dlg.tableWidget.setItem(counter,18,QTableWidgetItem(str(i['cppipe']))) #cppipe
+        dlg.tableWidget.setItem(counter,19,QTableWidgetItem(str(i['lambpipe']))) #lambpipe
+        
+        comboBox = QComboBox()
+        dropdownItems=getDropDownItems(main.cur,dropdowns)
+        try:
+            items={i : dropdownItems[20][i].split(':')[1] for i in dropdownItems[20]}
+            # Add items to the comboBox, storing the original key as user data
+            for original_key, translated_text in items.items():
+                comboBox.addItem(translated_text, original_key) # The second argument is the userData
+        except:
+            comboBox.addItems(dropdownItems)
+            
+        sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype'])
+        main.cur.execute(sql)
+        comboBox.setCurrentText(main.cur.fetchone()['liquid'])
+
+        dlg.tableWidget.setCellWidget(counter, 20, comboBox) #liquid
+        dlg.tableWidget.setItem(counter,21,QTableWidgetItem(str(i['tfreeze']))) #tfreeze
+        dlg.tableWidget.setItem(counter,22,QTableWidgetItem(str(i['lambliq']))) #lambliq
+        dlg.tableWidget.setItem(counter,23,QTableWidgetItem(str(i['lcasting']))) #lcasting
+        dlg.tableWidget.setItem(counter,24,QTableWidgetItem(str(i['lambda']))) #lambda
+        dlg.tableWidget.setItem(counter,25,QTableWidgetItem(str(i['rhosurface']))) #rhosurface
+        dlg.tableWidget.setItem(counter,26,QTableWidgetItem(str(i['cpsurface']))) #cpsurface
+        dlg.tableWidget.setItem(counter,27,QTableWidgetItem(str(i['rmax']))) #rmax
+        dlg.tableWidget.setItem(counter,28,QTableWidgetItem(str(i['nring']))) #nring
+        dlg.tableWidget.setItem(counter,29,QTableWidgetItem(str(i['nzhole']))) #nzhole
+        dlg.tableWidget.setItem(counter,30,QTableWidgetItem(str(i['nlayt']))) #nlayt
+        dlg.tableWidget.setItem(counter,31,QTableWidgetItem(str(i['n1']))) #n1
+        dlg.tableWidget.setItem(counter,32,QTableWidgetItem(str(i['n2']))) #n2
+        dlg.tableWidget.setItem(counter,33,QTableWidgetItem(str(i['n3']))) #n3
+        dlg.tableWidget.setItem(counter,34,QTableWidgetItem(str(i['toutput']))) #toutput
+        dlg.tableWidget.setItem(counter,35,QTableWidgetItem(str(i['tmean']))) #tmean
+        dlg.tableWidget.setItem(counter,36,QTableWidgetItem(str(i['geotgrad']))) #geotgrad
+    return boreholefieldsData  
+            
 def openSupervisoryCtrl(cur,plugin_dir,config):
     Supervisory_control(plugin_dir,config)
     #setSupervisoryCrtlSubmodel(dlg,cur)
@@ -45,7 +229,7 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
 def openModel(dlg,plugin_dir,config,mode='network'):
     #print('-***-')
     if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
         return False
     requestedOutputs=loadRequestedOutputs(plugin_dir,config)
     for i in range(dlg.combo_submodels.count()):
@@ -83,7 +267,7 @@ def setNetworkSimData(dlg,plugin_dir,config):
     networkSimData['calc_time_from']=dlg.dateedit_calcFrom.text()
     networkSimData['calc_time_to']=dlg.dateedit_calcTo.text()
     if not is_number(dlg.max_timestep.text()):
-        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=MessageWarning)
+        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=Qgis.Warning)
         return False
     else:
         networkSimData['max_timestep']=dlg.max_timestep.text()
@@ -96,7 +280,7 @@ def runModel(dlg,plugin_dir,config):
     if networkSimData:
         dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])
         if dlg.n_sims==0:
-            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
             return False
         requestedOutputs=loadRequestedOutputs(plugin_dir,config)
         invokedOutputs=loadInvokedOutputs(config)
@@ -133,7 +317,7 @@ def runModel(dlg,plugin_dir,config):
                     worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)   
                     worker_runNetwork[i].signals.finished.connect(dlg.update_finished)   
         else:
-            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=MessageInfo)
+            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=Qgis.Info)
 
 def buildModel(dlg,main):
     networks=[]
@@ -151,7 +335,7 @@ def buildModel(dlg,main):
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
         main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)   
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=MessageInfo)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
 
 def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     """set requested outputs"""
@@ -162,6 +346,134 @@ def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     worker_setRequestedOutputs.signals.progress.connect(dlg.update_progress)   
     worker_setRequestedOutputs.signals.finished.connect(dlg.update_finished)  
     QThreadPool.globalInstance().start(worker_setRequestedOutputs) 
+
+def calculateKusudaSettings(file,modellingSettings):
+    # --------------------------------------------------
+    # Read climate file
+    # --------------------------------------------------
+
+    # Try reading with header
+    df = pd.read_csv(file, sep=r"\s+")
+
+    # If no recognizable header exists,
+    # assume:
+    #   column 0 = time
+    #   column 1 = ambient air temperature
+    if "#Time" not in df.columns and "TAir" not in df.columns:
+
+        df = pd.read_csv(
+            file,
+            sep=r"\s+",
+            header=None
+        )
+
+        df = df.rename(
+            columns={
+                0: "#Time",
+                1: "TAir"
+            }
+        )
+
+    else:
+
+        # Handle possible variations
+        time_col = df.columns[0]
+
+        tair_col = None
+        for c in df.columns:
+            if c.lower() in ["tair", "tair", "airtemp", "temperature"]:
+                tair_col = c
+                break
+
+        if tair_col is None:
+            raise ValueError("Could not identify air temperature column.")
+
+        df = df.rename(
+            columns={
+                time_col: "#Time",
+                tair_col: "TAir"
+            }
+        )
+
+    # --------------------------------------------------
+    # Create datetime index
+    # --------------------------------------------------
+
+    start = pd.Timestamp("2024-01-01 00:00:00")
+    df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
+
+    # Remove only the extra endpoint of the next year
+    df = df[df["datetime"] < "2025-01-01"]
+
+    df = df.set_index("datetime")
+
+    # --------------------------------------------------
+    # 1. Annual mean air temperature
+    # --------------------------------------------------
+
+    Tm = df["TAir"].mean()
+    modellingSettings['TSurfMean']=round(Tm,2)
+
+    # --------------------------------------------------
+    # 2. Mean daily temperature amplitude
+    # --------------------------------------------------
+
+    daily_max = df["TAir"].resample("D").max()
+    daily_min = df["TAir"].resample("D").min()
+
+    mean_daily_amplitude = (daily_max - daily_min).mean() / 2
+    modellingSettings['TSurfAmpl']=round(mean_daily_amplitude,2)
+
+    # --------------------------------------------------
+    # 3. Kusuda phase shift
+    #    (2628000 s = 730 h trailing moving average)
+    # --------------------------------------------------
+
+    window_hours = int(2628000 / 3600)  # 730
+
+    T = df["TAir"].values
+
+    # cyclic extension using end of previous year
+    T_ext = np.concatenate([
+        T[-(window_hours - 1):],
+        T
+    ])
+
+    moving_avg = (
+        pd.Series(T_ext)
+          .rolling(
+              window=window_hours,
+              min_periods=window_hours
+          )
+          .mean()
+          .values
+    )
+
+    moving_avg = moving_avg[
+        window_hours - 1 :
+        window_hours - 1 + len(T)
+    ]
+
+    idx_min = np.nanargmin(moving_avg)
+
+    phase_date = df.index[idx_min]
+    phase_shift = (
+        phase_date.dayofyear
+        + phase_date.hour / 24
+        + phase_date.minute / 1440
+    )
+
+    modellingSettings['Theta']=round(phase_shift,2)
+
+    # --------------------------------------------------
+    # Results
+    # --------------------------------------------------
+    #print(f"Annual mean temperature     = {Tm:.2f} °C")
+    #print(f"Mean daily amplitude        = {mean_daily_amplitude:.2f} °C")
+    #print(f"Kusuda phase shift          = {phase_shift:.2f} d")
+    #print(f"Minimum date               = {phase_date}")
+    
+    return modellingSettings
 
 def setModellingSettings(plugin_dir,config,dlg):
     """set modelling settings"""
@@ -396,11 +708,11 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
             else:
-                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=MessageInfo)
+                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
 
 def finishedBuildBuildingModel(args):
     #print('------finished build building model----------')
@@ -525,9 +837,6 @@ def finishedBuildBuildingModel(args):
                 copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
                 if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
                     copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
-    except:
-        QgsMessageLog.logMessage(
-            traceback.format_exc(),
-            "Districts",
-            MessageCritical
-        )
+    except Exception as e:
+        #print(e)
+        pass

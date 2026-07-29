@@ -640,6 +640,7 @@ def replaceKeywordsInPList(plist,replaceDict):
     #print(replaceDict)
     for comp in plist:
         comp_name=getCompName(comp)[1:-1]
+        #print(comp_name)
         if comp_name in replaceDict:
             #print('---replace---')
             model_type=getCompTemplate(comp)

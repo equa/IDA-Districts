@@ -738,7 +738,7 @@ def loadVersionLayers(config,cur,plugin_dir):
     view.setLayerVisible(QgsProject.instance().mapLayersByName(tr('@default','junctions'))[0], False)    
 
     
-    #loadBoreholesLayer(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
+    loadBoreholesLayer(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
 
    
     versionLayersAliasNames()

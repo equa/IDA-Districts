@@ -26,15 +26,15 @@ from qgis.PyQt.QtGui import QStandardItemModel
 from qgis.PyQt.QtWidgets import QTabWidget,QMenu,QAbstractItemView,QFileDialog
 from qgis.PyQt.QtCore import Qt,QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon,QPixmap
-from qgis.core import Qgis, QgsMessageLog, QgsRasterLayer, QgsMapSettings, QgsMapRendererParallelJob, QgsCoordinateTransform, QgsProject
+from qgis.core import QgsRasterLayer, QgsMapSettings, QgsMapRendererParallelJob, QgsCoordinateTransform, QgsProject
 from qgis.PyQt.QtGui import QImage
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt  # Qt.GlobalColor lives here
 from functools import partial
 from qgis.PyQt.QtWidgets import QShortcut  
 
 # Import the code for the dialog
 from .utility_functions.switch_debug_mode import *
-from .utility_functions.compat import *
+from .utility_functions.compat import QAction, QT6
 from .districts_dialog import *
 from .ida_ph_dialog import *
 from .ida_resources_dialog import *
@@ -58,8 +58,6 @@ from .utility_functions.invoke import *
 from .utility_functions.files import *
 import os.path
 import webbrowser
-import traceback
-
 
 class Districts:
     """QGIS Plugin Implementation."""
@@ -113,11 +111,15 @@ class Districts:
         self.projectConfig = loadProjectConfig(self.config)  
         self.timer=None
         self.process_running=False
+        
+        #print('shortcuts')
+        # 1. Kontext & Speicher sicherstellen
+        ctx = Qt.ShortcutContext.ApplicationShortcut if hasattr(Qt, 'ShortcutContext') else Qt.ApplicationShortcut
 
         if not hasattr(self, 'my_shortcuts'):
             self.my_shortcuts = []
         else:
-            # remove existing shortcuts
+            # Vorhandene Shortcuts explizit löschen, bevor die Liste geleert wird
             for s in self.my_shortcuts:
                 s.setEnabled(False)
                 s.setParent(None)
@@ -149,7 +151,7 @@ class Districts:
 
         for key, (mode, target) in configs.items():
             shortcut = QShortcut(QKeySequence(key), parent)
-            shortcut.setContext(ApplicationShortcut)
+            shortcut.setContext(ctx)
             
             if mode == 'action':
                 shortcut.activated.connect(target)
@@ -161,7 +163,7 @@ class Districts:
             self.my_shortcuts.append(shortcut)
 
         shortcut_plugin = QShortcut(QKeySequence('Ctrl+D'), iface.mainWindow())
-        shortcut_plugin.setContext(ApplicationShortcut)
+        shortcut_plugin.setContext(ctx)
         shortcut_plugin.activated.connect(self.openPlugin)
 
     def switchTab(self,tab_name):
@@ -185,11 +187,7 @@ class Districts:
 
             #print(f"Tab not found: {tab_name}")
         except:
-            QgsMessageLog.logMessage(
-                traceback.format_exc(),
-                "Districts",
-                MessageCritical
-            )
+            pass
 
             
     def toggle_active_layer(self):
@@ -377,7 +375,7 @@ class Districts:
             self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
             self.dlg_addVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
     def treeItem_saveAsDialog(self,level, mdlIdx):
         """Project version Save As dialog --> connects to the TreeItem_SaveAs function, which does the Save As"""
@@ -390,7 +388,7 @@ class Districts:
             self.dlg_saveAsVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_saveAsVersion))
             self.dlg_saveAsVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
     def showDeleteVersionDialog(self):
         try:
@@ -400,7 +398,7 @@ class Districts:
             #print(item)
             self.deleteVersionDialog(item)
         except:
-            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
             #print('No item selected!')
 
     def deleteVersionDialog(self,item):
@@ -415,7 +413,7 @@ class Districts:
             self.dlg_deleteVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteVersion))
             self.dlg_deleteVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
             
     def addBaseVersionDialog(self):
@@ -428,7 +426,7 @@ class Districts:
             self.dlg_addBase.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addBase))
             self.dlg_addBase.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
     def loadSelectedVersion(self):
         try:
@@ -436,7 +434,7 @@ class Districts:
             item=self.model.itemFromIndex(mdlIdx)
             treeItem_load(item, mdlIdx,self)
         except:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
             #print('No item selected!')
 
     def renameVersion(self):
@@ -450,7 +448,7 @@ class Districts:
                 level += 1
             self.treeItem_renameDialog(level, mdlIdx,item)
         except:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=Qgis.Info)
             #print('No item selected!')
 
     def treeItem_renameDialog(self, level, mdlIdx,item):
@@ -465,7 +463,7 @@ class Districts:
             self.dlg_renameVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_renameVersion))
             self.dlg_renameVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
     def fileDialog(self,dlg,dir,extensions):
         #print(dir)
@@ -496,9 +494,9 @@ class Districts:
                 self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
                 self.dlg_import.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)           
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)           
 
     def importBuildingsFromOSM(self,dlg):
         if self.conn:
@@ -512,9 +510,9 @@ class Districts:
                 self.worker_importBuildings.signals.progress.connect(dlg.update_progress)    
                 self.worker_importBuildings.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))    
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
   
     def importStreetsFromOSM(self,dlg):
         if self.conn:
@@ -528,9 +526,9 @@ class Districts:
                 self.worker_importStreets.signals.progress.connect(dlg.update_progress)
                 self.worker_importStreets.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
         
     def importElevationData(self,dlg):
         if self.conn:
@@ -544,9 +542,9 @@ class Districts:
                 self.worker_importElevevationData.signals.progress.connect(dlg.update_progress)
                 self.worker_importElevevationData.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)     
         
     def show_manageClimateTemplate(self):
         if not checkIDADistrictsInstallation(self.config):
@@ -565,9 +563,9 @@ class Districts:
                 self.dlg_climate.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_climate))
                 self.dlg_climate.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)        
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)        
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)     
 
     def showExportProject(self):
         if self.conn:
@@ -576,7 +574,7 @@ class Districts:
             self.dlg_export.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_export))
             self.dlg_export.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
   
 
     def importProject(self):
@@ -602,7 +600,7 @@ class Districts:
                 self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=zip_file.split('\\')[-1].split('.')[0]))                  
                 QThreadPool.globalInstance().start(self.worker_import)    
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
 
     def deleteProjectDialog(self):
@@ -618,9 +616,9 @@ class Districts:
                 self.dlg_deleteProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteProject))
                 self.dlg_deleteProject.show()               
             else:
-                iface.messageBar().pushMessage("Info", tr('@default','no_project_selected'), level=MessageInfo)
+                iface.messageBar().pushMessage("Info", tr('@default','no_project_selected'), level=Qgis.Info)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
     def importPointLayer(self):
         #print('Import plant or customer from point layer')
@@ -633,9 +631,9 @@ class Districts:
                 self.dlg_importPointLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importPointLayer))
                 self.dlg_importPointLayer.show()     
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)   
 
     def showGeneratePipebundleTyps(self,dlg):
         """Generate pipe bundle types based on layer attributes"""
@@ -646,7 +644,7 @@ class Districts:
             self.dlg_pipeBundleEditor.btn_generate.pressed.connect(lambda: generatePipebundleTyps(dlg,self.dlg_pipeBundleEditor, layer,self))
             self.dlg_pipeBundleEditor.show() 
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=MessageInfo)
+            iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=Qgis.Info)
             
     def importNetworkTopologyFromLayer(self):
         #print('Import Network topology from layer')
@@ -661,9 +659,9 @@ class Districts:
                 self.dlg_importNetworkTopologyFromLayer.btn_generate_pipe_bundles.pressed.connect(lambda: self.showGeneratePipebundleTyps(self.dlg_importNetworkTopologyFromLayer))
                 self.dlg_importNetworkTopologyFromLayer.show() 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)   
            
     def showCreateNewProject(self):
         """Creates a new Project"""
@@ -795,9 +793,9 @@ class Districts:
                 columns='(id,liq_type,t_freeze,t_ref,description)'
                 show_TableDialog(main=self,title=tr('@default','networks'),table='"{}".network'.format(self.config['versionName']),headers=headers,columns=columns,ok_fn=loadFeatureLayer,ok_fn_arg=[self.config['versionName'],self.config,self.plugin_dir,'lines',self.cur],deactivated=[],dropdowns=[[1,'public','liquids','id','liquid']]) 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)   
             
     def pipeLayingAlgorithm(self):
         #print('--pipeLayingAlgorithm--')
@@ -806,9 +804,9 @@ class Districts:
                 self.dlg_pipeLayingAlgorithm=PipeLayingDialog(self.config,self.plugin_dir)
                 self.dlg_pipeLayingAlgorithm.show()   
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)   
             
     def generateNetworkTopology(self):
         """ Generate network topology"""
@@ -818,9 +816,9 @@ class Districts:
                 self.window_topology=NetworkTopologyDialog(self.config,self.plugin_dir)
                 self.window_topology.show() 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
 
     def pipeSizing(self):
         """Pipe sizing"""
@@ -835,9 +833,9 @@ class Districts:
                 loadPipes(self.config, self.cur,self.dlg_pipeSizing)
                 self.dlg_pipeSizing.show()  
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)
         
     
     def mapFeatures(self):
@@ -848,9 +846,9 @@ class Districts:
                 self.window_mapPlants=MapFeaturesDialog(self.config,self.plugin_dir)
                 self.window_mapPlants.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
             
     def setProjectConfig(self):
         """ open Dialog to set Project configuration data"""
@@ -884,7 +882,7 @@ class Districts:
         pathPostgresql=standardizePath(dlg.lineEdit_pathPostgresql.text())
         if not os.path.exists(pathDistricts):
             self.config['pathDistricts']=pathDistricts
-            self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=MessageInfo)
+            self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=Qgis.Info)
             checkIDADistrictsInstallation(self.config)
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
@@ -955,9 +953,10 @@ class Districts:
             #timer if autosave
             if self.config['autosave']:
                 districtsModelerTempDir()
-                if self.timer is not None:
+                try:
                     self.timer.stop()
-
+                except:
+                    pass
                 self.timer = QTimer()
                 self.timer.timeout.connect(lambda: exportProject(config=self.config,exportPrn=self.config['exportPrn'],exportInvokedFeatures=self.config['exportInvokedFeatures'],exportDBResults=self.config['exportDbResults'],plugin_dir=self.plugin_dir,autosave=True))
                 self.timer.start(int(float(self.config['autosave_dt'])*60*1000))
@@ -969,11 +968,7 @@ class Districts:
             self.dlg.btn_sridProject.setText('EPSG: '+str(self.projectConfig['srid']))
             self.dlg.statusMessage.setText(tr('@default','project_loaded').format(self.config['projectName']))
         except:
-            QgsMessageLog.logMessage(
-                traceback.format_exc(),
-                "Districts",
-                MessageCritical
-            )
+            pass
             
     def selectedProjectUpdated(self,index):
         """load selected project and write it to QSettings and update config"""
@@ -1018,9 +1013,9 @@ class Districts:
                 self.dlg_modellingSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_modellingSettings))
                 self.dlg_modellingSettings.show() 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showRequestedOutputs(self):
         if self.conn:
@@ -1031,9 +1026,9 @@ class Districts:
                 self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
                 self.dlg_outputs.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showParmMapping(self):
         if self.conn:
@@ -1047,9 +1042,9 @@ class Districts:
                 self.dlg_featureParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureParm))
                 self.dlg_featureParm.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def sensorSignals(self):
         """Create sensor signals for comunication between plants, customers and supervisory control"""
@@ -1058,9 +1053,9 @@ class Districts:
             if self.config['versionName']:
                 self.updateSensor=UpdateSensors(config=self.config,cur=self.cur,plugin_dir=self.plugin_dir,dlg_main=self.dlg)
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showFeatureModels(self):
         if self.conn:
@@ -1069,9 +1064,9 @@ class Districts:
                     return
                 self.invoke_features=InvokeFeatures(self.plugin_dir,self.config)
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showBuildModel(self):
         """ Build IDA subnetwork models; loop over subnetworks"""
@@ -1102,9 +1097,9 @@ class Districts:
                 self.dlg_buildModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildModel))
                 self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: buildModel(self.dlg_buildModel,self))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showOpenModel(self,mode='network'):
         """ Show IDA submodels; loop over submodels"""
@@ -1118,7 +1113,7 @@ class Districts:
                 if submodels:
                     submodel=submodels[0]
                 else:
-                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=MessageInfo)
+                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=Qgis.Info)
                     return False
                 fname=dir+'\\{}_{}.idm'.format(mode,submodel)
                 if os.path.exists(fname):
@@ -1140,11 +1135,11 @@ class Districts:
                     """
                     
                 else:
-                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=MessageInfo)
+                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=Qgis.Info)
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showRunModel(self):
         """ Run IDA submodels; loop over submodels"""
@@ -1167,9 +1162,9 @@ class Districts:
                 self.dlg_runModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_runModel))
                 self.dlg_runModel.btn_runModel.clicked.connect(lambda: runModel(self.dlg_runModel,self.plugin_dir,self.config))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showLoadResults(self):
         """ show load results; loop over submodels"""
@@ -1190,9 +1185,9 @@ class Districts:
                 self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
                 self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: loadResults(self.dlg_loadResults,self))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showPathReports(self):                  
         if self.conn:
@@ -1210,9 +1205,9 @@ class Districts:
                 self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
                 self.dlg_pathReports.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def loadProfiles(self):                   
         if self.conn:
@@ -1234,9 +1229,9 @@ class Districts:
                 loadFeatureIds(self.dlg_plotLoads,self.cur,self.config)
                 self.dlg_plotLoads.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
 
     def showSupervisoryCtrl(self):
         if self.conn:
@@ -1252,9 +1247,9 @@ class Districts:
                 self.dlg_supervisoryCrtl.show()  
                 """
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)   
             
     def showDataOnMap(self,networkReportDlg=None,function_items=None,time_values=None):                      
         if self.conn:
@@ -1265,9 +1260,9 @@ class Districts:
                 self.dlg_showOnMap.featureGroupChanged(False)
                 self.dlg_showOnMap.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo) 
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info) 
             
     def showNetworkReport(self):                      
         if self.conn:
@@ -1279,10 +1274,37 @@ class Districts:
                 self.dlg_networkReport.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_networkReport))
                 self.dlg_networkReport.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
-            
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
+
+    def showBoreholeFieldSettings(self):
+        if self.conn:
+            if self.config['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+                headers=[tr('@default',"id"),tr('@default',"epid"),tr('@default',"drilling_depth"),tr('@default',"drilling_radius"), tr('@default',"borehole_heat_resistance"),
+                    tr('@default',"heat_resistance_between_pipe_innergrout"),tr('@default',"heat_resistance_between_pipe_earth"), tr('@default',"heat_resistance_between_innergrout_outergrout"),tr('@default',"heat_resistance_between_grout_earth"),tr('@default',"heat_resistance_between_grouting_earth"),
+                    tr('@default',"heat_capacity_ground"),tr('@default',"heat_transfer_coefficient_ground"),tr('@default',"density_ground"),
+                    tr('@default',"heat_capacity_grout"),tr('@default',"heat_transfer_coefficient_grout"),tr('@default',"density_grout"),
+                    tr('@default',"radius_pipe"),tr('@default',"thickness_pipe_wall"),tr('@default',"heat_capacity_pipe_wall"),tr('@default',"heat_transfer_coefficient_pipe"),
+                    tr('@default',"liquid_type"),tr('@default',"liquid_freezing_point"),tr('@default',"heat_transfer_coefficient_liquid"),
+                    tr('@default',"length_surface_casting"),tr('@default',"heat_transfer_coefficient_surface"),tr('@default',"density_surface"), tr('@default',"heat_capacity_surface"),
+                    tr('@default',"distance_borehole_boundary"),tr('@default',"no_earthrings"),tr('@default',"no_borehole_nodes"),tr('@default',"total_no_nodes_z"),
+                    tr('@default',"no_points_direction1"),tr('@default',"no_points_direction2"),tr('@default',"no_points_direction3"),tr('@default',"timestep_outputs"),
+                    tr('@default',"yearly_mean_temp"),tr('@default',"temp_gradient_ground")]
+                info_boreholes=tr('@default',"info_boreholefield")
+                self.dlg_boreholeFieldSettings=TableDialog(tr('@default',"boreholefield_settings"),headers,False,False,False,False,info=info_boreholes)
+                self.dlg_boreholeFieldSettings.btn_ok.clicked.connect(lambda: setBoreholeFieldSettings(self.dlg_boreholeFieldSettings,self))
+                self.dlg_boreholeFieldSettings.btn_add.clicked.connect(lambda: addBoreholefieldTableRow(self.dlg_boreholeFieldSettings,self))
+                self.dlg_boreholeFieldSettings.btn_delete.clicked.connect(lambda: deleteTableRow(self.dlg_boreholeFieldSettings))
+                self.dlg_boreholeFieldSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_boreholeFieldSettings))
+                self.loadedBoreholefieldsData=showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings,self)
+                self.dlg_boreholeFieldSettings.show()  
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=Qgis.Info)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info) 
+        
     def on_tab_changed(self,index):
         widget = self.dlg.tabWidget.widget(index)           # get the QWidget for the tab
         if widget.objectName() == "tab_import":  # compare with object name
@@ -1349,11 +1371,7 @@ class Districts:
             try: 
                 self.dlg.btn_sridProject.setText('EPSG: '+str(self.projectConfig['srid']))
             except:
-                QgsMessageLog.logMessage(
-                    traceback.format_exc(),
-                    "Districts",
-                    MessageCritical
-                )
+                pass
             self.dlg.btn_sridProject.clicked.connect(self.setProjectConfig)
             self.dlg.btn_importProject.clicked.connect(self.importProject)
             self.dlg.btn_exportProject.clicked.connect(self.showExportProject)
@@ -1401,6 +1419,7 @@ class Districts:
             self.dlg.btn_sensorSignals.clicked.connect(self.sensorSignals)
             self.dlg.btn_supervisory.clicked.connect(self.showSupervisoryCtrl)
             self.dlg.btn_climateVersionData.clicked.connect(self.show_setClimateVersionDialog)
+            self.dlg.btn_boreholeFieldSettings.clicked.connect(self.showBoreholeFieldSettings)
             self.dlg.btn_featureModels.clicked.connect(self.showFeatureModels)
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
@@ -1423,7 +1442,7 @@ class Districts:
             self.conn_postgres,self.cur_postgres,self.dlg.projectNames=connectDBPostgres(self.config,self.dlg)
             if self.config['projectName']:
                 self.loadProject()
-            if self.config['versionName'] and self.config['versionName'] in [i['name'] for i in getVersionData(self.cur)]:
+            if self.config['versionName']:
                 loadVersion(main=self)
                 
             self.dlg.selectProject.currentIndexChanged.connect(self.selectedProjectUpdated)
