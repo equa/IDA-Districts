@@ -397,6 +397,7 @@ def _register_translation_keys():
 
     #import project dialog
     tr('import_districts_project_directory')
+    tr('import_districts_project_zip')
 
     #export project dialog
     tr('export_project_settings')
