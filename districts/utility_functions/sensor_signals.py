@@ -219,16 +219,16 @@ SELECT
 FROM source s
 JOIN target t
     ON t.sensor_id = s.sensor_id;""".format(getTypeNameById(type)[:-1],template)
-    print(sql)
+    #print(sql)
     cur.execute(sql)
     source_data=cur.fetchall()
-    print(source_data)
+    #print(source_data)
     sensor_description="""(TEXT-OBJECT :VALUE (ENGLISH "<meta name=\\"sensor-description\\"><b>Sensor descriptions:</b><br>"""
     sensor_description+="<br>".join(["<b>Int_Ref_Sensor_Source_"+str(i['sensor_id']) +"</b> --> "+"Source description='"+i['source_description']+"'; Sensor ID='"+str(i['sensor_id'])+"'; Source type='"+i['source_type_name']+"'; Source template names='"+str(i['source_template_names'])+"'; Source function='"+tr('@default',i['function'])+"'; Source measure='"+tr('@default',i['measure'])+"'; Target type='"+i['target_type_name']+"'; Target template names='"+str(i['target_template_names'])
         for i in source_data])
     sensor_description+="<br>"   
     sensor_description+="""\") :AT ((8 380) (694 {})) :STYLE NOTE :MARKUP HTML)\n """.format(str((len(source_data)+len(source_data))*30+400))
-    print(sensor_description)
+    #print(sensor_description)
     return sensor_description
     
 def delSensorConnection(file_data,remove_sensor_ids,type):
@@ -468,15 +468,15 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                 UNION
 				--customer; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
-                        FROM  sensor_source s,"{}".customers f
-                        WHERE s.measure=5 AND s.type=1{}
+                        FROM  sensor_source s,"{}".customers f, source_template st
+                        WHERE st.source_id=s.sensor_id AND st.active AND st.template=f.template AND s.measure=5 AND s.type=1{}
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				UNION
 				--plant; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
-                        FROM  sensor_source s,"{}".energy_plants f
-                        WHERE s.measure=5 AND s.type=2{}
+                        FROM  sensor_source s,"{}".energy_plants f, source_template st
+                        WHERE st.source_id=s.sensor_id AND st.active AND st.template=f.template AND s.measure=5 AND s.type=2{}
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
 				--supervisory ctrl source ;customer target; custom (measure:5) 
@@ -516,14 +516,14 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
         FROM sub,
             (--Customer target irefs
                 SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
-                FROM sensor_target t, "{}".customers f
-                WHERE  t.type =1 AND t.template=f.template{}
+                FROM sensor_target t, target_template tt, "{}".customers f
+                WHERE  t.type =1 AND tt.target_id=t.sensor_id AND tt.template=f.template{}
                 GROUP BY t.sensor_id,t.type
             UNION
             --Energy plants target irefs
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
-                FROM sensor_target t, "{}".energy_plants f
-                WHERE  t.type =2 AND t.template=f.template{}
+                FROM sensor_target t, target_template tt, "{}".energy_plants f
+                WHERE  t.type =2 AND tt.target_id=t.sensor_id AND tt.template=f.template{}
                 GROUP BY t.sensor_id,t.type
             UNION
             SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_X_X_X'::text ORDER BY t.sensor_id) AS irefs_target, t.type AS target_type
@@ -585,45 +585,49 @@ def getResultSensorData(cur,config,execute_query=True,source_types=[1,2],network
 			WITH sub AS(
 			     --customer (type:1); temp,mass,p(measure:1,2,3) 
                 (SELECT s.sensor_id, f.id::text  AS feature_id, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s, "{}".customer_connections fc, "{}".lines l,bundle_pipes bp,
+                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s, "{}".customer_connections fc, "{}".lines l,bundle_pipes bp, source_template st,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
                             (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id 
+                            AND st.source_id=s.sensor_id AND st.active AND st.source_id=s.template AND st.template=f.template
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=1 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.c_seq=bp.sequence AND b_t_conns.sequence=fc.c_seq
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
 				UNION
                 --plant (type:2); temp,mass,p(measure:1,2,3) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
-                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s, "{}".energy_plant_connections fc, "{}".lines l,bundle_pipes bp,
+                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s, "{}".energy_plant_connections fc, "{}".lines l,bundle_pipes bp, source_template st,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
                             (SELECT source_id, connection_id FROM source_conns 
                                 WHERE active=True  
                                 GROUP BY source_id,connection_id)  s_c
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s_c.source_id=s.sensor_id
+                            AND st.source_id=s.sensor_id AND st.active AND st.source_id=s.template AND st.template=f.template
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=2 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.ep_seq=bp.sequence AND b_t_conns.sequence=fc.ep_seq
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
                 UNION
 				--customer (type:1); power(measure:4) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s, "{}".customer_connections fc, "{}".lines l,bundle_pipes bp,
+                        FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s, "{}".customer_connections fc, "{}".lines l,bundle_pipes bp, source_template st,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=1 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.c_seq=bp.sequence AND b_t_conns.sequence=fc.c_seq
+                            AND st.source_id=s.sensor_id AND st.active AND st.source_id=s.template AND st.template=f.template
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
                         ORDER BY s.sensor_id, f.id)
 				UNION
                 --plant (type:2); power(measure:4) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
-                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s, "{}".energy_plant_connections fc, "{}".lines l,bundle_pipes bp,
+                        FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s, "{}".energy_plant_connections fc, "{}".lines l,bundle_pipes bp, source_template st,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
                         WHERE f.template=f_t.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=2 AND {} = ANY( f.network) AND fc.lid=l.id AND l.network={}  AND fc.ep_seq=bp.sequence AND b_t_conns.sequence=fc.ep_seq
+                            AND st.source_id=s.sensor_id AND st.active AND st.source_id=s.template AND st.template=f.template
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
                         ORDER BY s.sensor_id, f.id)
 			)
@@ -721,9 +725,9 @@ class NetworkSensorSignals():
         
 class templatesensorSignals():
     def __init__(self,cur,config,dir,template_name,type,add_sensor_source_idsValues,add_sensor_target_idsValues,remove_sensor_source_ids,remove_sensor_target_ids):
-        print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+        #print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
         #print(dir)
-        print(template_name)
+        #print(template_name)
         
         #get number of old sensor target signals --> for component placement in .idc
         sql="""WITH sub AS(
@@ -737,11 +741,11 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
         #numberOf_oldSensorTargets=cur.fetchone()['count']      
         numberOf_oldSensorTargets=1        
         
-        print(add_sensor_source_idsValues)
-        print(remove_sensor_source_ids)            
-        print(add_sensor_target_idsValues)
-        print(remove_sensor_target_ids)      
-        print(type)
+        #print(add_sensor_source_idsValues)
+        #print(remove_sensor_source_ids)            
+        #print(add_sensor_target_idsValues)
+        #print(remove_sensor_target_ids)      
+        #print(type)
         
         #template idm project file
         #print(dir)
@@ -833,7 +837,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
             file_data=setPageHeightSensorDescription(file_data,(len(add_sensor_source_idsValues)+len(add_sensor_target_idsValues)-len(remove_sensor_source_ids)-len(remove_sensor_target_ids)))   
             
             #sensor_description=getSensorDescriptionsTemplate(cur,type,template_name.split('_')[0])
-            file_data.append(sensor_description)
+            #file_data.append(sensor_description)
             writeToFileFromList(file_data,dir,file)
       
         #sensor idm macro file

@@ -34,15 +34,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         
     #print('***************************')
 
-    print(sensor_dec_data)
-    for i in sensor_dec_data:
-        if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2):
-            print(i)
-            for j in i['irefs_source']:
-                print(j)
-                getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)
-                
-    
     #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2)        
     data.append("".join(["""((:EO :N "Sensor_{}{}" :T ADDER_CONT)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))

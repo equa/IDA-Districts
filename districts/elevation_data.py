@@ -1,9 +1,12 @@
+from qgis.core import Qgis, QgsMessageLog
+
 import sys
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT 
 from .utility_functions.db import *
 from .utility_functions.workers import *
 import subprocess   
+import traceback
        
 class WorkerImportElevationData(QRunnable):
     """Import elevation data"""
@@ -129,8 +132,12 @@ class WorkerImportElevationData(QRunnable):
 
             self.signals.progress.emit(100)
             self.signals.finished.emit('Import elevation data completed!')
-        except Exception as e:
-            self.signals.error.emit(str(e))
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
             self.signals.progress.emit(0)
             self.signals.finished.emit('Import elevation data failed!')
             

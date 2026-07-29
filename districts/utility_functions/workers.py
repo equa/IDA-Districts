@@ -96,8 +96,8 @@ class WorkerImportProject(QRunnable):
         
     @pyqtSlot()
     def run(self):
-        print('Import project')
-        print(self.project_name)
+        #print('Import project')
+        #print(self.project_name)
         self.signals.progress.emit(1)            
 
         if zipfile.is_zipfile(self.filename):
@@ -125,7 +125,7 @@ class WorkerImportProject(QRunnable):
 
         src_dir=src_dir+name+'\\' 
 
-        print(src_dir)
+        #print(src_dir)
         #print(self.config)
         #print(name)
         
@@ -140,14 +140,14 @@ class WorkerImportProject(QRunnable):
             db_info=strToDict(db_info)
         else:
             db_info={'projectName': self.project_name}                
-        print(db_info)
+        #print(db_info)
         
         #check if project already exists
         if db_info['projectName'] not in self.projectNames:
-            print('project does not exist') 
+            #print('project does not exist') 
 
             target_dir=self.config['pathProjects']+(self.project_name if self.project_name else name)
-            print(target_dir)
+            #print(target_dir)
             os.makedirs(target_dir, exist_ok=True)
 
             self.signals.progress.emit(20)

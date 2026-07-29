@@ -722,8 +722,12 @@ CREATE TABLE "{}".massbalance_{}_s
                         self.signals.progress.emit(99)
                         
                         
-                except Exception as e:
-                    self.signals.error.emit(str(e))
+                except:
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
                         
     def copy_string_iterator_system_balance_sData(self, sdata,start_datetime,col_names,table_name) -> None:
         with self.conn.cursor() as cursor:

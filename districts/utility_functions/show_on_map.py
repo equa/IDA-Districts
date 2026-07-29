@@ -699,7 +699,11 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
             self.showOnMap()
             self.signals.progress.emit(100)  
             self.signals.finished.emit('Data has been successfully visualized on map!',self)  
-        except Exception as e:
-            self.signals.error.emit(str(e))  
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            ) 
             self.signals.progress.emit(0) 
             self.signals.finished.emit('Data visualization has failed!',self)  

@@ -1,6 +1,6 @@
 from qgis.PyQt.QtWidgets import QTextEdit,QDialog,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
 from qgis.utils import iface
-from qgis.core import QgsWkbTypes,QgsProperty,QgsSymbolLayer,QgsLineSymbol,QgsSymbol,QgsGraduatedSymbolRenderer,QgsStyle,QgsTemplatedLineSymbolLayerBase,QgsMarkerSymbol,QgsSimpleMarkerSymbolLayer,QgsMarkerLineSymbolLayer,QgsRuleBasedRenderer,QgsClassificationQuantile,QgsTextFormat,QgsInterval,QgsDateTimeRange,QgsTemporalNavigationObject,QgsVectorLayerSimpleLabeling,QgsPalLayerSettings
+from qgis.core import Qgis, QgsMessageLog, QgsWkbTypes, QgsProperty, QgsSymbolLayer, QgsLineSymbol, QgsSymbol, QgsGraduatedSymbolRenderer, QgsStyle, QgsTemplatedLineSymbolLayerBase, QgsMarkerSymbol, QgsSimpleMarkerSymbolLayer, QgsMarkerLineSymbolLayer, QgsRuleBasedRenderer, QgsClassificationQuantile, QgsTextFormat, QgsInterval, QgsDateTimeRange, QgsTemporalNavigationObject, QgsVectorLayerSimpleLabeling, QgsPalLayerSettings
 
 from .utility_functions.dialog import *
 from .utility_functions.translations import *
@@ -13,6 +13,8 @@ from qgis.PyQt.QtGui import QFont, QColor
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import traceback
+
 from matplotlib.path import Path
 
 class ImportMeasuremntsDialog(QDialog):
@@ -554,8 +556,12 @@ class ShowOnMapDialog(QDialog):
             try:
                 layer.commitChanges()
                 #print("Committed pending edits.")
-            except Exception as e:
-                #print("Commit error:", e)
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
                 layer.rollBack()
         
         if layer:

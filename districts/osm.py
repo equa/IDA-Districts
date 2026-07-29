@@ -3,6 +3,9 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT 
 from .utility_functions.db import *
 from .utility_functions.workers import *
+from qgis.core import Qgis, QgsMessageLog
+import traceback
+
        
 class WorkerOSMBuildingsImport(QRunnable):
     """Import buildings from OSM"""
@@ -46,8 +49,12 @@ class WorkerOSMBuildingsImport(QRunnable):
                     
                     #insert customers
                     sql+='INSERT INTO "'+self.config['versionName']+"""\".customers(id,template,geom) VALUES ("""+str(counter+1)+""",1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"# nosec B608
-                except Exception as e:
-                    self.signals.error.emit(str(e))
+                except:
+                    QgsMessageLog.logMessage(
+                        traceback.format_exc(),
+                        "Districts",
+                        MessageCritical
+                    )
             self.signals.progress.emit(int(49*counter/len(buildings)))
             
         #print(sql)
@@ -89,8 +96,12 @@ class WorkerOSMBuildingsImport(QRunnable):
                         buildings.append(OSMBuilding(bid,latitudes,longitudes,height))
                     latitudes=[]
                     longitudes=[]
-            except Exception as e:
-                self.signals.error.emit(str(e))
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         return buildings
                     
 class WorkerOSMStreetsImport(QRunnable):
@@ -158,8 +169,12 @@ class WorkerOSMStreetsImport(QRunnable):
                     streets.append(OSMStreet(sid,latitudes,longitudes))
                     latitudes=[]
                     longitudes=[]
-            except Exception as e:
-                self.signals.error.emit(e)
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         return streets
         
 def readOSMNodes(osmStreetFileName):

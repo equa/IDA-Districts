@@ -1,5 +1,5 @@
 from qgis.PyQt.QtCore import Qt, QSettings, QTranslator, QCoreApplication, QObject, QRunnable, pyqtSignal, pyqtSlot
-from qgis.core import QgsAuthMethodConfig,QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
+from qgis.core import QgsMessageLog, Qgis, QgsAuthMethodConfig,QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
 
 from .utility_functions.layer_visualization import *
 from .utility_functions.db import *
@@ -16,6 +16,7 @@ import sys
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import traceback
 
         
 class WorkerPipeLayingSignals(QObject):
@@ -175,8 +176,12 @@ class WorkerPipeLaying(QRunnable):
                     self.connectPlantsNetwork(self.config['versionName'],plants,mode)
                     self.connectCustomersNetwork(self.config['versionName'],mode,connectionModes)
                 self.finishNetworkTopology(self.config['versionName'])
-        except Exception as e:
-            self.signals.error.emit(str(e))
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
             self.signals.progress.emit(0)
         finally:
             if self.cur:

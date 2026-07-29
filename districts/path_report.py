@@ -1,7 +1,10 @@
+from qgis.core import Qgis, QgsMessageLog
+
 from .utility_functions.db import *
 from .utility_functions.topology import *
 
 from .utility_functions.workers import *
+import traceback
 
 class WorkerPathReport(QRunnable):
     """Worker thread
@@ -271,8 +274,12 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
             else:
                 self.signals.finished.emit('failed')
                 self.signals.progress.emit(0)  
-        except Exception as e:
-            self.signals.error.emit(str(e))  
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            ) 
             self.signals.progress.emit(0) 
             self.signals.finished.emit('failed')  
         

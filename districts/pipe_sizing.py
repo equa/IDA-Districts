@@ -3,7 +3,7 @@ from qgis.utils import iface
 from qgis.PyQt.QtWidgets import QListWidgetItem
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtCore import Qt,QThreadPool
-from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsAuthMethodConfig
+from qgis.core import Qgis, QgsMessageLog, QgsVectorLayer, QgsDataSourceUri, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsAuthMethodConfig
  
 from .utility_functions.topology import *
 from .utility_functions.utility import *
@@ -18,6 +18,8 @@ import numpy as np
 import math
 from scipy.optimize import fsolve,leastsq
 import psycopg2.extras
+import traceback
+
  
 def loadPipes(config,cur,dlg):
     sql="""SELECT id, name, innerpipediameter FROM pipes ORDER BY innerpipediameter;"""
@@ -207,8 +209,12 @@ class WorkerPipeSizing(QRunnable):
             
             self.dlg.new_pipe_bundles=new_pipe_bundles
             self.signals.progress.emit(100)
-        except Exception as e:
-            self.signals.error.emit(str(e))
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
         self.signals.finished.emit('finished')
  
 def checkPipeSizingInput(dlg):

@@ -432,7 +432,7 @@ class InvokeFeatures():
 class CopyTemplateFiles:
     """ Copy the files and rename it"""
     def __init__(self,source_dir='',source_name='',target_dir='',target_name='',update_sensors=False,type='',template='',id='',cur='',config='',replaceDict='',parmRun='',update_sf=False):
-        print('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
+        #print('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
         #print(parmRun)
         self.config=config
         type_name=type
@@ -502,9 +502,9 @@ class CopyTemplateFiles:
 
         if update_sensors:
             pList=delSensorConnectionPList(pList,remove_sensor_source_ids,'Source')
-        #print(pList)
         writePropertyListIDMToFile(pList,dir_macro,dir_macro+'\\'+target_name+'.idm',self.config)
 
+        #print(dir_macro+'\\'+target_name+'.idm')
         filedata=readFileToList(source_dir+'\\'+source_name+'\\'+source_name+'.idc')
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')

@@ -172,8 +172,12 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.statusMessage.setText('Climate data is successfully updated!')
         main.dlg.update_progress(100)
         closeDialog(dlg)
-    except Exception as e:
-        main.dlg.statusMessage.setText('Climate data update failed: '+str(e))
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
         main.dlg.update_progress(0)
         
 def updateClimateTemplate(main,fileName):
@@ -502,8 +506,12 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     #print(sql)
     try:
         cur.execute(sql)
-    except Exception as e:
-        iface.messageBar().pushMessage("Error", str(e), level=MessageCritical)
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
         return False
     
     if trace in ['conn_type_trace','bt_conns_trace']:
@@ -783,8 +791,12 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
         sql+="""INSERT INTO {} {} VALUES ({});\n""".format(table,columns,values)# nosec B608
     try:
         main.cur.execute(sql)
-    except Exception as e:
-        iface.messageBar().pushMessage("Error", f"An error occurred: {str(e)}", level=MessageCritical)
+    except:
+        QgsMessageLog.logMessage(
+            traceback.format_exc(),
+            "Districts",
+            MessageCritical
+        )
         return False
     delIfNotInDBIds(table,openFnArg,main.cur)
     if ok_fn:

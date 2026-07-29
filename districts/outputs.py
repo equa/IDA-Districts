@@ -106,11 +106,12 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 (OUTPUT-FILE :N "Tret_max_c_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
         connections.append(""" (("Tret_max_c_kpi" (|u| 1)) ("Tret_max_c" |y|) 0 0 NIL)""")
     #qsup c
-    try:    
-        sensor_id=added_sensor_info['qsup_c']
-        filedata.append("""((MODEL :N "Qsup_c" :T |Gain|))
+    try:
+        if requestedOutputs['qsup_c_kpi']:        
+            sensor_id=added_sensor_info['qsup_c']
+            filedata.append("""((MODEL :N "Qsup_c" :T |Gain|))
 (:EO :N "Qsup_c_sepsign" :T SEPSIGN)\n""")
-        connections.append(""" (("Qsup_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)
+            connections.append(""" (("Qsup_c" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)
  (("Qsup_c_sepsign" INSIGNALLINK) ("Qsup_c" |y|) 0 0 NIL)""".format(sensor_id,network))  
         
         if requestedOutputs['qsup_heat_c_kpi'] or requestedOutputs['qsup_heat_spec_c_kpi'] or requestedOutputs['qsup_heat_density_c_kpi'] or requestedOutputs['qsup_heat_linedensity_c_kpi']:
@@ -224,10 +225,11 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         connections.append(""" (("Tret_max_ep_kpi" (|u| 1)) ("Tret_max_ep" |y|) 0 0 NIL)""")
     #qsup ep
     try:    
-        sensor_id=added_sensor_info['qsup_ep']
-        filedata.append("""((MODEL :N "Qsup_ep" :T |Gain|))
+        if requestedOutputs['qsup_ep_kpi']:   
+            sensor_id=added_sensor_info['qsup_ep']
+            filedata.append("""((MODEL :N "Qsup_ep" :T |Gain|))
 (:EO :N "Qsup_ep_sepsign" :T SEPSIGN)\n""")
-        connections.append(""" (("Qsup_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)
+            connections.append(""" (("Qsup_ep" |u|) "Int_Ref_Sensor_Target_{}_X_X_X_{}" 0 0 NIL)
  (("Qsup_ep_sepsign" INSIGNALLINK) ("Qsup_ep" |y|) 0 0 NIL)""".format(sensor_id,network))  
         
         if requestedOutputs['qsup_heat_ep_kpi']:
@@ -374,13 +376,14 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
         filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "lib:snapminmax.ids" :SLOT ("Tret_max_c_kpi") :NAME "Tret_max_c_kpi" :DATA MODEL) """.format(x_coord-67))
         filedata.append("""\n(CONNECTION-LINE :AT (({} 75) ({} 75)) :FIRST-LINK ("Tret_max_c" (1 0.5) |y|) :LAST-LINK ("Tret_max_c_kpi" (0 0.5) (|u| 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
     #Qsup c
-    try:  
-        sensor_id=added_sensor_info['qsup_c']
-        filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Qsup_c" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Qsup_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id,network))
-        x_coord+=dx_coord
-        filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "lib:sepsign.ids" :SLOT ("Qsup_c_sepsign") :NAME "Qsup_c_sepsign" :DATA MODEL) """.format(x_coord-67))
-        filedata.append("""\n(CONNECTION-LINE :AT (({} 75) ({} 75)) :FIRST-LINK ("Qsup_c" (1 0.5) |y|) :LAST-LINK ("Qsup_c_sepsign" (0 0.5) INSIGNALLINK) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
+    try:
+        if requestedOutputs['qsup_c_kpi']:           
+            sensor_id=added_sensor_info['qsup_c']
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Qsup_c" :DATA MODEL) """.format(x_coord))
+            filedata.append("""\n(CONNECTION-LINE :AT ((10 40) ({} 40) ({} 75) ({} 75)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Qsup_c" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id,network))
+            x_coord+=dx_coord
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "lib:sepsign.ids" :SLOT ("Qsup_c_sepsign") :NAME "Qsup_c_sepsign" :DATA MODEL) """.format(x_coord-67))
+            filedata.append("""\n(CONNECTION-LINE :AT (({} 75) ({} 75)) :FIRST-LINK ("Qsup_c" (1 0.5) |y|) :LAST-LINK ("Qsup_c_sepsign" (0 0.5) INSIGNALLINK) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
         if requestedOutputs['qsup_heat_c_kpi'] or requestedOutputs['qsup_heat_spec_c_kpi'] or requestedOutputs['qsup_heat_density_c_kpi'] or requestedOutputs['qsup_heat_linedensity_c_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 57)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qsup_c_pos") :NAME "Qsup_c_pos" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-21))
             filedata.append("""\n(CONNECTION-LINE :AT (({} 66) ({} 66) ({} 58) ({} 58)) :FIRST-LINK ("Qsup_c_sepsign" (1.0 0.219) POSSIGNALLINK) :LAST-LINK ("Qsup_c_pos" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-35))
@@ -454,19 +457,20 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
         filedata.append("""\n(CONNECTION-LINE :AT (({} 175) ({} 175)) :FIRST-LINK ("Tret_max_ep" (1 0.5) |y|) :LAST-LINK ("Tret_max_ep_kpi" (0 0.5) (|u| 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
     #qsup ep
     try:  
-        sensor_id=added_sensor_info['qsup_ep']
-        filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Qsup_ep" :DATA MODEL) """.format(x_coord))
-        filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Qsup_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id,network))
-        x_coord+=dx_coord
-        filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "lib:sepsign.ids" :SLOT ("Qsup_ep_sepsign") :NAME "Qsup_ep_sepsign" :DATA MODEL) """.format(x_coord-67))
-        filedata.append("""\n(CONNECTION-LINE :AT (({} 175) ({} 175)) :FIRST-LINK ("Qsup_ep" (1 0.5) |y|) :LAST-LINK ("Qsup_ep_sepsign" (0 0.5) INSIGNALLINK) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
-        if requestedOutputs['qsup_heat_ep_kpi'] or requestedOutputs['qsup_heat_spec_ep_kpi'] or requestedOutputs['qsup_heat_density_ep_kpi'] or requestedOutputs['qsup_heat_linedensity_ep_kpi']:
+        if requestedOutputs['qsup_ep_kpi']:   
+            sensor_id=added_sensor_info['qsup_ep']
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("min") :NAME "Qsup_ep" :DATA MODEL) """.format(x_coord))
+            filedata.append("""\n(CONNECTION-LINE :AT ((10 140) ({} 140) ({} 175) ({} 175)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("Qsup_ep" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,sensor_id,network))
+            x_coord+=dx_coord
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "lib:sepsign.ids" :SLOT ("Qsup_ep_sepsign") :NAME "Qsup_ep_sepsign" :DATA MODEL) """.format(x_coord-67))
+            filedata.append("""\n(CONNECTION-LINE :AT (({} 175) ({} 175)) :FIRST-LINK ("Qsup_ep" (1 0.5) |y|) :LAST-LINK ("Qsup_ep_sepsign" (0 0.5) INSIGNALLINK) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
+        if requestedOutputs['qsup_heat_ep_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 157)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qsup_ep_pos") :NAME "Qsup_ep_pos" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-21))
             filedata.append("""\n(CONNECTION-LINE :AT (({} 166) ({} 166) ({} 158) ({} 158)) :FIRST-LINK ("Qsup_ep_sepsign" (1.0 0.219) POSSIGNALLINK) :LAST-LINK ("Qsup_ep_pos" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-35))
-        if requestedOutputs['qsup_cold_ep_kpi'] or requestedOutputs['qsup_cold_spec_ep_kpi'] or requestedOutputs['qsup_cold_density_ep_kpi'] or requestedOutputs['qsup_cold_linedensity_ep_kpi']:
+        if requestedOutputs['qsup_cold_ep_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 195)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qsup_ep_neg") :NAME "Qsup_ep_neg" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-19))
             filedata.append("""\n(CONNECTION-LINE :AT (({} 184) ({} 184) ({} 196) ({} 196)) :FIRST-LINK ("Qsup_ep_sepsign" (1 0.781) NEGSIGNALLINK) :LAST-LINK ("Qsup_ep_neg" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-33))
-        if requestedOutputs['qsup_ep_kpi'] or requestedOutputs['qsup_spec_ep_kpi'] or requestedOutputs['qsup_density_ep_kpi'] or requestedOutputs['qsup_linedensity_ep_kpi']:
+        if requestedOutputs['qsup_ep_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Qsup_ep_sum") :NAME "Qsup_ep_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
     except:
         QgsMessageLog.logMessage(
@@ -536,9 +540,6 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
         max_sensor_id+=1
         sensor_data[max_sensor_id]={'source' : {'type' : 1,'templates' : c_templates,'conn_types' : c_connTypes,'conns' : c_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
                 'target': {'type' : 4,'templates' : {},'description' : ''}}
-        print({'source' : {'type' : 1,'templates' : c_templates,'conn_types' : c_connTypes,'conns' : c_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
-                'target': {'type' : 4,'templates' : {},'description' : ''}})
-        print(max_sensor_id)
         added_sensor_info['tsup_mean_c_system']=max_sensor_id
     if requestedOutputs['tsup_max_c_kpi'] or requestedOutputs['tsup_max_c_system']:
         max_sensor_id+=1
@@ -573,9 +574,6 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
         max_sensor_id+=1
         sensor_data[max_sensor_id]={'source' : {'type' : 2,'templates' : ep_templates,'conn_types' : ep_connTypes,'conns' : ep_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
                 'target': {'type' : 4,'templates' : {},'description' : ''}}
-        print({'source' : {'type' : 2,'templates' : ep_templates,'conn_types' : ep_connTypes,'conns' : ep_conns_sup,'measure' : 1,'function' : 3,'test_value' : 1,'description' : ''}, 
-                'target': {'type' : 4,'templates' : {},'description' : ''}})
-        print(max_sensor_id)
         added_sensor_info['tsup_mean_ep_system']=max_sensor_id
     if requestedOutputs['tsup_max_ep_kpi'] or requestedOutputs['tsup_max_ep_system']:
         max_sensor_id+=1
@@ -1307,6 +1305,10 @@ class WorkerSetRequestedOutputs(QRunnable):
                         else:
                             data_idm.append(comp)
                         writePropertyListIDMToFile(data_idm,dir+t_name,fname,self.config)
-            except Exception as e:
-                self.signals.error.emit(str(e))
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
             self.signals.progress.emit(int((45 if both_featureType_update and feature == 'energy_plant' else 0)+counter/len(t_names)*(45 if both_featureType_update and feature == 'customer' else 90)))  

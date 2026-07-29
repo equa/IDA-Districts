@@ -1,4 +1,5 @@
 from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.core import Qgis, QgsMessageLog
 
 from .outputs import *
 from .ida_resources import *
@@ -22,6 +23,8 @@ from multiprocessing import Process
 
 import math
 import psycopg2.extras
+import traceback
+
 
 class WorkerBuildNetworkModel(QRunnable):
     """Worker thread
@@ -162,8 +165,7 @@ class InvokeNetworkModel:
                 for network in networks:
                     sensor_data+=getResultSensorData(self.cur,self.config,network=network)
                 #print('---sensor-data-----')
-                print(sensor_data)
-                
+                #print(sensor_data)                
 
                 #print(getUsedSubmodels(self.cur, self.config))
                 for submodel in getUsedSubmodels(self.cur, self.config):
@@ -827,8 +829,12 @@ ORDER BY m.id;
                 conn_old=conn
                 #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
                 conn_counter+=1
-            except Exception as e:
-                self.signals.error.emit(str(e))
+            except:
+                QgsMessageLog.logMessage(
+                    traceback.format_exc(),
+                    "Districts",
+                    MessageCritical
+                )
         
         #print(inStreamT)
         #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
