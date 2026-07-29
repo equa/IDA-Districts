@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 generate_boreholes.py
 
@@ -124,21 +123,26 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
 
             # Translate the origin to the center point (0, 0)
             tp = translate_point(rp, center)
-            # X can be positive or negative, Y is mirrored to the positive side
-            final_x = float(tp[0])
-            final_y = abs(float(tp[1]))
-
-            result.append({
-                "id": p['id'],
-                "x": final_x,
-                "y": final_y,
-                "z": p['z'],
-                "group": p['group'],
-                "mir": 1  # 1 -> 2 mirror points available
-            })
             
+            # The raw tp[1] is the signed local Y distance from the line.
+            # Rotiert nach -theta gilt: links der Linie ist tp[1] > 0, rechts ist tp[1] < 0.
+            # To neglect points on the left, we only keep points on the right (tp[1] <= 0) or on the line (tp[1] == 0).
+            # Including a tiny floating point epsilon tolerance keeps points exactly on the line safe.
+            if tp[1] <= 1e-9:
+                final_x = float(tp[0])
+                final_y = max(0.0, abs(float(tp[1])))  # Mirrored to the positive side as requested
+
+                result.append({
+                    "id": p['id'],
+                    "x": final_x,
+                    "y": final_y,
+                    "z": p['z'],
+                    "group": p['group'],
+                    "mir": 1  # 1 -> 2 mirror points available
+                })
 
         return result
+
 
     # -------------------
     # CASE 3 MIR POINTS
@@ -171,8 +175,30 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
         else:
             raise ValueError(f"Unsupported angle: {ang}")
 
+        # Epsilon tolerance for floating-point safety on the sector boundaries
+        epsilon = 1e-9
+
         # Using ang_v1 (angle of v1) as our virtual zero-line for counter-clockwise checks
         for p in base_points:
+            #print(p)
+            
+            #check if point is on the center
+            dx = p['x'] - center[0]
+            dy = p['y'] - center[1]
+            dist = math.hypot(dx, dy)
+            
+            if dist <= epsilon:
+                #print('keep (center vertex)')
+                result.append({
+                    "id": p['id'],
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": p['z'],
+                    "group": p['group'],
+                    "mir": mir_status
+                })
+                continue # Nächsten Punkt verarbeiten, Winkelberechnung überspringen
+
             # Calculate the global angle of the current borehole relative to the center
             ang_p = math.atan2(p['y'] - center[1], p['x'] - center[0])
             
@@ -180,7 +206,9 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
             rel_ang = (ang_p - ang_v1) % (2 * math.pi)
 
             # Check if the point falls inside the valid sector slice (0 to step)
-            if 0 <= rel_ang < step:
+            # Inclusive bounds with epsilon to keep points exactly on both border lines
+            if (0 - epsilon) <= rel_ang <= (step + epsilon):
+                #print('keep')
                 # Project the point into the first quadrant via polar coordinates
                 dx = p['x'] - center[0]
                 dy = p['y'] - center[1]
@@ -188,8 +216,8 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
 
                 # Compute local coordinates based on the relative sector angle
                 # This guarantees that all valid points end up in the first quadrant (X>0, Y>0)
-                final_x = dist * math.cos(rel_ang)
-                final_y = dist * math.sin(rel_ang)
+                final_x = max(0.0, dist * math.cos(rel_ang))
+                final_y = max(0.0, dist * math.sin(rel_ang))
 
                 result.append({
                     "id": p['id'],
@@ -201,5 +229,6 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
                 })
 
         return result
+
 
     return False
