@@ -134,21 +134,27 @@ def setSubnetwork(cur,config,redraw_submodels_polygons,srid):
         cur.execute(sql)  
 
 def getBundleValues(bundle,cur):
-    sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
-	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
-	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
-    cur.execute(sql)
-    return cur.fetchall()
+    if bundle:
+        sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
+        FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+        WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+        ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
+        cur.execute(sql)
+        return cur.fetchall()
+    else: 
+        return []
 
 def getConnTypesByFeature(cur,config,feature,id):
-    sql="""SELECT b_t_conns.conn_type_id 
-    FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
-    WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
-    ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature,feature,id) # nosec B608
-    #print(sql)
-    cur.execute(sql)
-    return [str(i['conn_type_id']) for i in cur.fetchall()]
+    if feature and id:
+        sql="""SELECT b_t_conns.conn_type_id 
+        FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
+        WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
+        ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature,feature,id) # nosec B608
+        #print(sql)
+        cur.execute(sql)
+        return [str(i['conn_type_id']) for i in cur.fetchall()]
+    else:
+        return []
     
 def getConnIdsByConnType(cur,conn_type):
     sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
@@ -157,10 +163,13 @@ def getConnIdsByConnType(cur,conn_type):
     return [str(i['connection_id']) for i in cur.fetchall()]
     
 def getConnSequencesByConnType(cur,conn_type):
-    sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
-    #print(sql)
-    cur.execute(sql)
-    return [str(i['sequence']) for i in cur.fetchall()]
+    if conn_type:
+        sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
+        #print(sql)
+        cur.execute(sql)
+        return [str(i['sequence']) for i in cur.fetchall()]
+    else:
+        return []
     
 def getConnTypeConnValues(cur,ids):
     sql="""SELECT conn_t_conns.connection_type_id, conn_t_conns.connection_id , conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id

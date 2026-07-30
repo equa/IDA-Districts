@@ -1127,6 +1127,8 @@ class IDADistrictsPathReportsDialog(QDialog):
         self.sup_sequence.addItems(sequences)
         self.ret_sequence.clear()
         self.ret_sequence.addItems(sequences)
+        if sequences:
+            self.ret_sequence.setCurrentText(sequences[-1])
         
     def update_progress(self,progress):
         self.progress.setValue(progress)

@@ -144,8 +144,8 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
             elif self.dlg.rbtn_weakPoint.isChecked() or self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked():              
                 #set up topology
                 sql="""TRUNCATE temp.streets_help;
-INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines;
-SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.config['versionName']) # nosec B608
+INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),ST_3Dlength(geom) FROM "{}".lines WHERE network={};
+SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');""".format(self.config['versionName'],self.dlg.network.currentText()) # nosec B608
                 self.cur.execute(sql)
                 
                 sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.config['versionName'],self.dlg.main_plant.currentText()) # nosec B608
@@ -161,8 +161,11 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             
             if self.dlg.rbtn_maxValue.isChecked():
                 sql="""WITH sub AS(
-    SELECT var_f.fid,max(var_ep."${}"-var_f."${}") as dvar FROM {}.{}_s_{}${} var_f, "{}".energy_plant_s_{}${} var_ep 
-        WHERE var_f.time=var_ep.time AND var_ep.fid={}{}
+    WITH sub AS(
+		SELECT id FROM "{}".{}s WHERE {}=ANY (network)
+	)
+    SELECT var_f.fid,max(var_ep."${}"-var_f."${}") as dvar FROM {}.{}_s_{}${} var_f, "{}".energy_plant_s_{}${} var_ep, sub
+        WHERE var_f.time=var_ep.time AND var_ep.fid={} AND var_f.fid IN (sub.id){}
         GROUP BY var_f.fid
         ORDER BY dvar DESC
         LIMIT 1
@@ -170,17 +173,21 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
 SELECT sub.fid, sub.dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
     FROM sub, {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2
     WHERE var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_ep1."${}"-var_f1."${}" = sub.dvar AND sub.fid=var_f1.fid AND sub.fid=var_f2.fid{};""".format( # nosec B608
+        self.config['versionName'],f_type, self.dlg.network.currentText(), # nosec B608
         quantity_var,quantity_var,self.config['versionName'],f_type,quantity_var,p_f_sup_ident,self.config['versionName'],quantity_var,p_ep_sup_ident,# nosec B608
         self.dlg.main_plant.currentText(),' AND var_f.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '', # nosec B608
         quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
         self.config['versionName'],f_type, quantity_var, p_f_sup_ident,self.config['versionName'],f_type,quantity_var,p_f_ret_ident,self.config['versionName'],quantity_var, p_ep_sup_ident,self.config['versionName'],quantity_var, p_ep_ret_ident, # nosec B608
         self.dlg.main_plant.currentText(), quantity_var, quantity_var, ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
             else:
-                sql="""SELECT var_f1.fid, var_ep1."${}" - var_f1."${}" AS dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
-    FROM {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2
-    WHERE var_f1.time='{}' AND var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.fid = var_f2.fid {}
+                sql="""WITH sub AS(
+    SELECT id FROM "{}".{}s WHERE {}=ANY (network)
+)
+SELECT var_f1.fid, var_ep1."${}" - var_f1."${}" AS dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
+    FROM {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2, sub
+    WHERE var_f1.fid IN (sub.id) AND var_f1.time='{}' AND var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.fid = var_f2.fid {}
     ORDER BY dvar DESC
-    LIMIT 1;""".format(quantity_var,quantity_var,quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
+    LIMIT 1;""".format(self.config['versionName'], f_type, self.dlg.network.currentText(), quantity_var,quantity_var,quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
         self.config['versionName'],f_type, quantity_var, p_f_sup_ident,self.config['versionName'],f_type, quantity_var, p_f_ret_ident,self.config['versionName'], quantity_var, p_ep_sup_ident,self.config['versionName'], quantity_var, p_ep_ret_ident, # nosec B608
         self.dlg.date_input.text(),self.dlg.main_plant.currentText(), ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
     
@@ -197,7 +204,7 @@ SELECT sub.fid, sub.dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as re
             
             if not self.dlg.rbtn_lineIds.isChecked():
                 #get line with shortest path
-                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".customers f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.config['versionName'],self.dlg.weak_point['fid']) # nosec B608
+                sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".{}s f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.config['versionName'],f_type,self.dlg.weak_point['fid']) # nosec B608
                 #print(sql)
                 self.cur.execute(sql)
                 v_id=self.cur.fetchone()['vid']
@@ -213,6 +220,7 @@ SELECT sub.fid, sub.dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as re
             )
 )
 SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_id,self.config['versionName']) # nosec B608
+                #print(sql)
                 self.cur.execute(sql)
                 self.dlg.lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
                             
