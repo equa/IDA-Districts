@@ -237,6 +237,7 @@ CREATE TABLE "{}".customer_s_ventilation
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
     FROM "{}".customers f, bundle_type_conns b_t_conns, customer_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
+    GROUP BY f.id , b_t_conns.conn_bundle_type_id
     ORDER BY f.id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
                         cids=self.cur.fetchall()
@@ -263,8 +264,8 @@ CREATE TABLE "{}".customer_s_ventilation
                                                 #print(header)
                                                 for col,var in enumerate(header,-1):
                                                     if len(var.split('_'))==2:
-                                                        col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
-                                                            'table_name': 'customer_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]))}
+                                                        col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]),conn_t_seq=seq),
+                                                            'table_name': 'customer_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]),conn_t_seq=seq)}
                                                     elif var=='power':
                                                         col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'customer_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
                                                         
@@ -366,7 +367,8 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         #get epid`s
                         sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
     FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_templates t
-    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={};""".format(self.config['versionName'],submodel_id) # nosec B608
+    WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
+    GROUP BY f.id , b_t_conns.conn_bundle_type_id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         #print(sql)
                         self.cur.execute(sql)
                         epids=self.cur.fetchall()
@@ -377,7 +379,9 @@ CREATE TABLE "{}".energy_plant_s_power${}
                             #print(id)
                             if ep_conn_outputs or conn_t_power_names:
                                 connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
+                                #print(connValues)
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
+                                #print(conn_type_seq)
                                 for seq in conn_type_seq:
                                     fname=dir_path+'energy_plant_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
                                     #print(fname)
@@ -389,8 +393,8 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                                 #print(header)
                                                 for col,var in enumerate(header,-1):
                                                     if len(var.split('_'))==2:
-                                                        col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1])),
-                                                            'table_name': 'energy_plant_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]))}
+                                                        col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]),conn_t_seq=seq),
+                                                            'table_name': 'energy_plant_s_'+var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]),conn_t_seq=seq)}
                                                     elif var=='power':
                                                         col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'energy_plant_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
                                                         
@@ -398,6 +402,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                                 break
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
+                                        #print(file_data)
 
                                         if self.dlg.checkbox_timestep.checkState() == checkState():
                                             #linear interpolation
