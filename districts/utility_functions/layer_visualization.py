@@ -432,7 +432,7 @@ def removeLayers():
         if layer.name() in ['pipe_bundle_types','submodels',tr('@default','energy_plants'),tr('@default','customers'),'customer_templates','energy_plant_templates',
             'junction_types','junction_templates',tr('@default','junctions'),
             tr('@default','streets'), tr('@default','buildings'),'network','cosim',
-            tr('@default','lines'),'line_types','boreholes','borehole_fields',
+            tr('@default','lines'),'line_types',tr('@default','boreholes'),'borehole_fields',
             'pipematerial','lines_results_supply_temperature','customer_results_load']:
             QgsProject.instance().removeMapLayer(layer)
     iface.mapCanvas().refresh()

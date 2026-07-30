@@ -15,6 +15,7 @@ from .layer_visualization import *
 from .workers import *
 from ..ida_mosim_dialog import InvokeFeaturesDlg
 from ..calibrate_customers import *
+from ..boreholes import *
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -149,25 +150,15 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
             if type=='customer':
                 pass  
             elif type=='energy_plant':
-                sql="""WITH sub AS(
-    WITH sub AS(
-        SELECT count(mir) AS mir_counter,geom AS mir_point FROM "{}".boreholes WHERE plant_id={} AND mir=TRUE GROUP BY geom
-    )
-    SELECT CASE WHEN sub.mir_counter>0 THEN ST_X(sub.mir_point) ELSE (max(st_x(geom))-min(st_x(geom)))/2 + min(st_x(geom)) END AS x_center, 
-           CASE WHEN sub.mir_counter>0 THEN ST_Y(sub.mir_point) ELSE (max(st_y(geom))-min(st_y(geom)))/2 + min(st_y(geom)) END AS y_center
-        FROM "{}".boreholes 
-        LEFT JOIN sub ON true WHERE plant_id={} GROUP BY sub.mir_counter, sub.mir_point
-)
-SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_center)::numeric,2) AS y, "group" FROM "{}".boreholes,sub WHERE plant_id={} AND mir=FALSE ORDER BY "group",id;""".format(config['versionName'],id,config['versionName'],id,config['versionName'],id) # nosec B608
-                cur.execute(sql)
-                boreholes=cur.fetchall()
-                #print(boreholes)
+                boreholes=getTransformedBoreholeInfo(cur,id,config)
+                print(boreholes)
                 if boreholes:
                     x="#("+" ".join([str(i['x']) for i in boreholes])+")"
                     x_source="(:DEFAULT #S (MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ("+" ".join(['('+str(counter)+')' for counter,i in enumerate(boreholes,1)])+")) 2)"
                     y="#("+" ".join([str(i['y']) for i in boreholes])+")"
                     nholes=len([str(i['x']) for i in boreholes])
                     ngroups=len(set([str(i['group']) for i in boreholes]))
+                    mir=boreholes[0]['mir']
                     ng_dict={}
                     for i in boreholes:
                         try:
@@ -182,7 +173,7 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     #print(sql)
                     cur.execute(sql)
                     field_data=cur.fetchone()
-                    #print(field_data)
+                    print(field_data)
                     if not field_data:
                         if parallize:
                             signals.error.emit("No borehole field data for plant id={} (layer boreholes) available!".format(id))
@@ -193,12 +184,12 @@ SELECT id,round((st_x(geom) - x_center)::numeric,2) AS x, round((st_y(geom) - y_
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
                     replaceDict={':FEATURE': {'GHX_MANY': {
-                        #'X': {':V' : x, ':S': x_source},
+                        'MIR': mir,
                         'X': x,
                         'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
                         'ZHOLE':field_data['zhole'],'RHOLE':field_data['rhole'],
                         'RB':field_data['rb'],'RPIPEEARTH':field_data['rpipeearth'],'RPIPEGROUT':field_data['rpipegrout'],'RRINGEARTH':field_data['rringearth'],'RGROUTEARTH':field_data['rgroutearth'],'RGROUTGROUT':field_data['rgroutgrout'],
-                        'MIR':field_data['mir'],'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
+                        'RMAX':field_data['rmax'],'NRING':field_data['nring'],'NZHOLE':field_data['nzhole'],'NLAYT':field_data['nlayt'],'N1':field_data['n1'],'N2':field_data['n2'],'N3':field_data['n3'],'TOUTPUT':field_data['toutput'],
                         'CPGRD':field_data['cpgrd'],'LAMBGRD':field_data['lambgrd'],'RHOGRD':field_data['rhogrd'],
                         'CPGROUT':field_data['cpgrout'],'LAMBGROUT':field_data['lambgrout'],'RHOGROUT':field_data['rhogrout'],
                         'RPIPE':field_data['rpipe'],'THICKPIPE':field_data['thickpipe'],'CPPIPE':field_data['cppipe'],'LAMBPIPE':field_data['lambpipe'],
