@@ -134,7 +134,12 @@ class InvokeNetworkModel:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
             try:
-                updateClimateTemplate(main,getClimateData(self.cur,self.config,True)['filename'])
+                climate_file=getClimateData(self.cur,self.config,True)['filename']
+                if os.path.exists(climate_file):
+                    updateClimateTemplate(main,climate_file)
+                else:
+                    self.signals.error.emit("Climate file could not be found: " + climate_file)
+                    return
                 
                 self.projectConfig=loadProjectConfig(self.config,signals=self.signals)
                 

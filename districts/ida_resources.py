@@ -181,14 +181,15 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.update_progress(0)
         
 def updateClimateTemplate(main,fileName):
-    dir_project=main.config['pathProjects']+main.config['projectName']
-    dir_climate=dir_project+'\\climate\\'
-    dir_climateMacro=dir_climate+'climate\\'
-    data=getClimateData(main.cur,main.config,True)
-    modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
-    modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
-    writeModellingSettings(main.config,modellingSettings)
-    updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
+    if os.path.exists(fileName):
+        dir_project=main.config['pathProjects']+main.config['projectName']
+        dir_climate=dir_project+'\\climate\\'
+        dir_climateMacro=dir_climate+'climate\\'
+        data=getClimateData(main.cur,main.config,True)
+        modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
+        modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
+        writeModellingSettings(main.config,modellingSettings)
+        updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
     
 def updateClimateMacro(data,dir,config,modellingSettings):
     fname=dir+'climate-macro.idm'
