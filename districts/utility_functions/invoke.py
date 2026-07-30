@@ -151,7 +151,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                 pass  
             elif type=='energy_plant':
                 boreholes=getTransformedBoreholeInfo(cur,id,config)
-                print(boreholes)
+                #print(boreholes)
                 if boreholes:
                     x="#("+" ".join([str(i['x']) for i in boreholes])+")"
                     x_source="(:DEFAULT #S (MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ("+" ".join(['('+str(counter)+')' for counter,i in enumerate(boreholes,1)])+")) 2)"
@@ -173,7 +173,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     #print(sql)
                     cur.execute(sql)
                     field_data=cur.fetchone()
-                    print(field_data)
+                    #print(field_data)
                     if not field_data:
                         if parallize:
                             signals.error.emit("No borehole field data for plant id={} (layer boreholes) available!".format(id))

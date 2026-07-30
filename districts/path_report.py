@@ -164,30 +164,32 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
     WITH sub AS(
 		SELECT id FROM "{}".{}s WHERE {}=ANY (network)
 	)
-    SELECT var_f.fid,max(var_ep."${}"-var_f."${}") as dvar FROM {}.{}_s_{}${} var_f, "{}".energy_plant_s_{}${} var_ep, sub
-        WHERE var_f.time=var_ep.time AND var_ep.fid={} AND var_f.fid IN (sub.id){}
-        GROUP BY var_f.fid
+    SELECT var_f1.fid, max(var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}")) as dvar, var_f1.time 
+        FROM "{}".{}_s_{}${} var_f1, "{}".energy_plant_s_{}${} var_ep1, "{}".{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep2, sub
+        WHERE var_f1.time=var_ep1.time AND var_f1.time=var_f2.time AND var_f1.time=var_ep2.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.fid=var_f2.fid AND var_f1.fid IN (sub.id){}
+        GROUP BY var_f1.fid, var_f1.time
         ORDER BY dvar DESC
         LIMIT 1
 )
 SELECT sub.fid, sub.dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
     FROM sub, {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2
-    WHERE var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_ep1."${}"-var_f1."${}" = sub.dvar AND sub.fid=var_f1.fid AND sub.fid=var_f2.fid{};""".format( # nosec B608
+    WHERE var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.time = sub.time AND sub.fid=var_f1.fid AND sub.fid=var_f2.fid{};""".format( # nosec B608
         self.config['versionName'],f_type, self.dlg.network.currentText(), # nosec B608
-        quantity_var,quantity_var,self.config['versionName'],f_type,quantity_var,p_f_sup_ident,self.config['versionName'],quantity_var,p_ep_sup_ident,# nosec B608
+        quantity_var, quantity_var, quantity_var, quantity_var,  # nosec B608
+        self.config['versionName'],f_type,quantity_var,p_f_sup_ident,self.config['versionName'],quantity_var,p_ep_sup_ident, self.config['versionName'],f_type,quantity_var,p_f_ret_ident,self.config['versionName'],quantity_var,p_ep_ret_ident,# nosec B608
         self.dlg.main_plant.currentText(),' AND var_f.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '', # nosec B608
         quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
         self.config['versionName'],f_type, quantity_var, p_f_sup_ident,self.config['versionName'],f_type,quantity_var,p_f_ret_ident,self.config['versionName'],quantity_var, p_ep_sup_ident,self.config['versionName'],quantity_var, p_ep_ret_ident, # nosec B608
-        self.dlg.main_plant.currentText(), quantity_var, quantity_var, ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
+        self.dlg.main_plant.currentText(), ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
             else:
                 sql="""WITH sub AS(
     SELECT id FROM "{}".{}s WHERE {}=ANY (network)
 )
-SELECT var_f1.fid, var_ep1."${}" - var_f1."${}" AS dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
-    FROM {}.{}_s_{}${} var_f1, {}.{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2, sub
+SELECT var_f1.fid, var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}") AS dvar, var_f1.time, var_f1."${}" as sup_f, var_f2."${}" as ret_f, ST_Z(var_f1.geom) AS height_f, var_ep1."${}" as sup_ep, var_ep2."${}" as ret_ep, ST_Z(var_ep1.geom) AS height_ep 
+    FROM "{}".{}_s_{}${} var_f1, "{}".{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep1, "{}".energy_plant_s_{}${} var_ep2, sub
     WHERE var_f1.fid IN (sub.id) AND var_f1.time='{}' AND var_f1.time=var_ep1.time AND var_ep2.time=var_ep1.time AND var_f2.time=var_ep1.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.fid = var_f2.fid {}
     ORDER BY dvar DESC
-    LIMIT 1;""".format(self.config['versionName'], f_type, self.dlg.network.currentText(), quantity_var,quantity_var,quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
+    LIMIT 1;""".format(self.config['versionName'], f_type, self.dlg.network.currentText(), quantity_var, quantity_var, quantity_var, quantity_var, quantity_var, quantity_var, quantity_var, quantity_var, # nosec B608
         self.config['versionName'],f_type, quantity_var, p_f_sup_ident,self.config['versionName'],f_type, quantity_var, p_f_ret_ident,self.config['versionName'], quantity_var, p_ep_sup_ident,self.config['versionName'], quantity_var, p_ep_ret_ident, # nosec B608
         self.dlg.date_input.text(),self.dlg.main_plant.currentText(), ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
     
@@ -263,7 +265,7 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
                 self.dlg.title=tr('@default','simulation_time')+'='+str(self.dlg.weak_point['time'])+' h; ID='+str(self.dlg.weak_point['fid'])+ '; '+ tr('@default','dt_substation')+': ' +str(round(dt,2))+' °C'
                 #print(self.dlg.title)
             elif self.dlg.rbtn_pathPressure.isChecked(): 
-                dp=self.dlg.weak_point['dvar']*2
+                dp=self.dlg.weak_point['dvar']
                 self.dlg.title=tr('@default','simulation_time')+'='+str(self.dlg.weak_point['time'])+' h; ID='+str(self.dlg.weak_point['fid'])+ ' ; '+tr('@default','pressure_loss')+': ' +str(dp)+' Pa'
             
             return True
