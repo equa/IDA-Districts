@@ -288,7 +288,7 @@ def getAvergageByMode(mode,cur,config,table):
         return getTimeDiff(cur,config,table,'time','fid')/3600
         
 def featureCount(cur,config,network,type):
-    sql="""SELECT count(*) FROM "{}".{}s WHERE network=array[{}];""".format(config['versionName'],type,network) # nosec B608
+    sql="""SELECT count(*) FROM "{}".{}s WHERE {}=ANY(network);""".format(config['versionName'],type,network) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['count']
 
