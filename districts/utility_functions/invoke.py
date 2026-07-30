@@ -169,7 +169,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
 
                     ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
                     
-                    sql='SELECT * FROM "{}".borehole_fields WHERE id={};'.format(config['versionName'],id) # nosec B608
+                    sql='SELECT * FROM "{}".borehole_fields WHERE ep_id={};'.format(config['versionName'],id) # nosec B608
                     #print(sql)
                     cur.execute(sql)
                     field_data=cur.fetchone()
@@ -183,7 +183,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype']) # nosec B608
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
-                    replaceDict={':FEATURE': {'GHX_MANY': {
+                    replaceDict={':FEATURE': {'Ghx_Many': {
                         'MIR': mir,
                         'X': x,
                         'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
