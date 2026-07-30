@@ -680,7 +680,7 @@ class PipeLayingDialog(QDialog):
         removeTempLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         for layer in ['lines','junctions','customers','energy_plants']:
-            if QgsProject.instance().mapLayersByName(layer):
+            if QgsProject.instance().mapLayersByName(tr('@default',layer)):
                 vlayer= QgsProject.instance().mapLayersByName(tr('@default',layer))
                 if vlayer:
                     vlayer=vlayer[0]
@@ -1018,7 +1018,7 @@ class NetworkTopologyDialog(QDialog):
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         for layer in ['lines','junctions','customers','energy_plants']:
             if QgsProject.instance().mapLayersByName(tr('@default',layer)):
-                vlayer= QgsProject.instance().mapLayersByName(layer)
+                vlayer= QgsProject.instance().mapLayersByName(tr('@default',layer))
                 if vlayer:
                     vlayer=vlayer[0]
                     layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
