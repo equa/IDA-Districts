@@ -74,7 +74,8 @@ def getNetworkInfo(cur,config,network):
 def setDistrictsModelerVersion2DB(cur,config):
     getDistrictsModelerVersion(config)
     try:
-        sql="""INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config)) # nosec B608
+        sql="""TRUNCATE db_info;
+INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config)) # nosec B608
         cur.execute(sql)  
     except:
         QgsMessageLog.logMessage(
