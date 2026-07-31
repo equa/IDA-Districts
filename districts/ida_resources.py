@@ -960,7 +960,7 @@ def showDefaults(dlg,defaults,template_name,cur,config):
                 dropdownItems=getDropDownItems(cur,[[0,'public','pipe_bundle_types','id','description']])
             elif default['column_name'] =='network':  
                 dropdownItems=getDropDownItems(cur,[[0,config['versionName'],'network','id','description']])
-            try:
+            if default['column_name'] in dlg.input:
                 dlg.input[default['column_name']].clear()    
                 
                 try:
@@ -972,13 +972,6 @@ def showDefaults(dlg,defaults,template_name,cur,config):
                 for original_key, translated_text in items.items():
                     dlg.input[default['column_name']].addItem(translated_text, original_key) # The second argument is the userData
                 dlg.input[default['column_name']].setCurrentText("".join(i for i in dropdownItems[0].values() if i[0]==default['column_default']))
-        
-            except:
-                QgsMessageLog.logMessage(
-                    traceback.format_exc(),
-                    "Districts",
-                    MessageCritical
-                )
 
 def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
     """Write default values to DB """
