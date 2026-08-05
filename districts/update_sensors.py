@@ -312,7 +312,7 @@ AND EXISTS (
             i+=1
             
         for i in range(self.dlg.tableWidget_source.rowCount()):
-            self.measureChanged(self.dlg.tableWidget_source,None,5,i)
+            self.measureChanged(self.dlg.tableWidget_source,None,5,i,update_signal_function=False)
         #print(self.loadedSensorData)
 
     def setTableDropDown(self,table,dropdownItems,currentData,col,row,signal_function):
@@ -333,7 +333,7 @@ AND EXISTS (
             comboBox.currentIndexChanged.connect(lambda selected_index, column=col,row=row: signal_function(table,selected_index,column,row))
         table.setCellWidget(row, col, comboBox)   
     
-    def measureChanged(self,table,selected_index,column,row): 
+    def measureChanged(self,table,selected_index,column,row,update_signal_function=True): 
         #print('************measure changed***************')
         #print(row)
         source_type=table.cellWidget(row, 1).currentData()
@@ -342,20 +342,22 @@ AND EXISTS (
             #print('deactivate conn type')
             self.setCheckableDropDownItemsTable(table,[],row,3,[]) 
             self.setCheckableDropDownItemsTable(table,[],row,4,[]) 
-            if source_type =='supervisory' or target_type=='supervisory':
-                if target_type=='supervisory':
-                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',6,row,False)
+            if update_signal_function:
+                if source_type =='supervisory' or target_type=='supervisory':
+                    if target_type=='supervisory':
+                        self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',6,row,False)
+                    else:
+                        self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'',6,row,False)
                 else:
-                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[5,6]]]),'',6,row,False)
-            else:
-                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',6,row,False)
+                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',6,row,False)
         else:
             self.setDropDownConntypes(table,3,row,source_type)
             self.setDropDownConns(table,4,row,source_type)
-            if target_type=='supervisory':
-                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',6,row,False)
-            else:
-                self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',6,row,False)
+            if update_signal_function:
+                if target_type=='supervisory':
+                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4,6]]]),'',6,row,False)
+                else:
+                    self.setTableDropDown(table,getFilteredDropDownItemNames(self.cur,[[1,'public','signal_function','function',[1,2,3,4]]]),'',6,row,False)
         
     def setFilteredConnTypesDropdownItems(self,type,id,row):
         sql="""SELECT c_type.id AS conn_type_id, c_type.description, s_ct.active
