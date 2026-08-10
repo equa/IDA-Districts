@@ -543,28 +543,28 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
     #print(sf_names)
     
     link_dict={}
-    
-    for i in plist[-1][':CONNS']:
-        if i[0][0] in sf_names or i[1][0] in sf_names:
-            #print(i)
-            if i[0][0] in sf_names:
-                model_name=i[1][0]
-                model_link=listToBracketsString(i[1][1]) if isinstance(i[1][1],list) else i[1][1]
-                sf_name=i[0][0]
-                sf_link=sf_names_dict[sf_name]['link_refs'][i[0][1]]
-                path=sf_names_dict[sf_name]['path']
-            else:
-                model_name=i[0][0]
-                model_link=listToBracketsString(i[0][1]) if isinstance(i[0][1],list) else i[0][1]
-                sf_name=i[1][0]
-                sf_link=sf_names_dict[sf_name]['link_refs'][i[1][1]]
-                path=sf_names_dict[sf_name]['path']
-            try:
-                link_dict[model_name][model_link]={'sf_name': sf_name, 'sf_link': sf_link,'path':path}
-            except:
-                link_dict[model_name]={model_link:{'sf_name': sf_name, 'sf_link': sf_link,'path':path}}
-    #print(link_dict)    
-       
+    if ':CONNS' in plist[-1]:
+        for i in plist[-1][':CONNS']:
+            if i[0][0] in sf_names or i[1][0] in sf_names:
+                #print(i)
+                if i[0][0] in sf_names:
+                    model_name=i[1][0]
+                    model_link=listToBracketsString(i[1][1]) if isinstance(i[1][1],list) else i[1][1]
+                    sf_name=i[0][0]
+                    sf_link=sf_names_dict[sf_name]['link_refs'][i[0][1]]
+                    path=sf_names_dict[sf_name]['path']
+                else:
+                    model_name=i[0][0]
+                    model_link=listToBracketsString(i[0][1]) if isinstance(i[0][1],list) else i[0][1]
+                    sf_name=i[1][0]
+                    sf_link=sf_names_dict[sf_name]['link_refs'][i[1][1]]
+                    path=sf_names_dict[sf_name]['path']
+                try:
+                    link_dict[model_name][model_link]={'sf_name': sf_name, 'sf_link': sf_link,'path':path}
+                except:
+                    link_dict[model_name]={model_link:{'sf_name': sf_name, 'sf_link': sf_link,'path':path}}
+        #print(link_dict)    
+           
     for comp in plist:
         if getCompClass(comp)=='SOURCE-FILE':
             pass
@@ -636,13 +636,13 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
 
 def replaceKeywordsInPList(plist,replaceDict):
     data=[]
-    #print('--------replace keywords-------------')
-    #print(replaceDict)
+    print('--------replace keywords-------------')
+    print(replaceDict)
     for comp in plist:
         comp_name=getCompName(comp)[1:-1]
-        #print(comp_name)
+        print(comp_name)
         if comp_name in replaceDict:
-            #print('---replace---')
+            print('---replace---')
             model_type=getCompTemplate(comp)
             model_language=modelLanguage(model_type)
             pre_suffix='|' if model_language=='MODELICA' else ''
@@ -654,15 +654,19 @@ def replaceKeywordsInPList(plist,replaceDict):
             else:
                 new_comp=[]     
                 parms=[]
-                #print(comp_name)
-                #print(comp)
-                #print(replaceDict[comp_name])
+                print(comp_name)
+                print(comp)
+                print(replaceDict[comp_name])
+                if not isinstance(comp, list):
+                    comp=[comp]
                 for i in comp:
+                    print('++')
+                    print(i)
                     i_name=getCompName(i).replace('|','')
-                    #print(i_name)
+                    print(i_name)
                     if i_name in replaceDict[comp_name]:
                         if isinstance(replaceDict[comp_name][i_name], dict):
-                            #print("It's a dictionary!")
+                            print("It's a dictionary!")
                             for key,value in replaceDict[comp_name][i_name].items():
                                 i[key]=str(value)
                         else:
@@ -671,16 +675,17 @@ def replaceKeywordsInPList(plist,replaceDict):
                         new_comp.append(i)
                     else:
                         new_comp.append(i)
-                #print(parms)
+                print(parms)
                 for i in replaceDict[comp_name]:
-                    #print(i)
+                    print(i)
                     if i not in parms:
                         #print('not in parms')
                         new_comp.append({':C':':PAR', ':N': pre_suffix+i+pre_suffix,':V': str(replaceDict[comp_name][i])})
                 data.append(new_comp)
         else:
             data.append(comp)
-    #print('---finish replace kewords----')    
+    print(data)
+    print('---finish replace kewords----')    
     return data
     
 def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False,doubleQuotes=True):
