@@ -782,15 +782,19 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
  
 def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg,trace=False,main=None):
     """" Save table to DB an close dialog"""
-    #print('Save table to DB an close dialog')
+    print('Save table to DB an close dialog')
     sql="""TRUNCATE {} CASCADE;\n""".format(table)# nosec B608
+    row_dict={}
     for row in range(dlg.tableWidget.rowCount()):
         values= getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','),checkBoxes)
         if not values:
             #print('return')
             return False
-        sql+="""INSERT INTO {} {} VALUES ({});\n""".format(table,columns,values)# nosec B608
+        row_dict[int(dlg.tableWidget.item(row, 0).text())]= """INSERT INTO {} {} VALUES ({});""".format(table,columns,values)# nosec B608
+
     try:
+        sql+='\n'.join(dict(sorted(row_dict.items())).values())
+        #print(sql)
         main.cur.execute(sql)
     except:
         QgsMessageLog.logMessage(
