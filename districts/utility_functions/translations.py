@@ -134,6 +134,8 @@ def _register_translation_keys():
     tr("network")
     tr("submodel")
     tr("load_w")
+    tr("heating_load_w")
+    tr("cooling_load_w")
     tr("gfa_m2")
     tr("type")
     tr("pipe_bundle_type_id")
@@ -201,6 +203,7 @@ def _register_translation_keys():
     tr("heating_network")
     tr("db_default_values")
     tr("low_temperature_network")
+    tr("secondary_network")
     
     #descriptions
     tr("description_importPRNData")
