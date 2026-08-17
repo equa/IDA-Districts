@@ -4,6 +4,7 @@ from qgis.PyQt import QtCore
 from qgis.utils import iface
 
 from .translations import *
+from .compat import *
 
 from datetime import datetime 
 from scipy.interpolate import interp1d

@@ -241,39 +241,57 @@ def valueRelationPipeBundleType():
     field_idx = fields.indexOf('pipe_bundle_type_id')
     QgsProject.instance().mapLayersByName(tr('@default','lines'))[0].setEditorWidgetSetup(field_idx, widget_setup)   
 
-def extract_group_fields(layer):
+def extract_group_fields(layer, layersConfig, vlayerName):
     """
     Returns:
-        {group_name: [field1, field2, ...]}
+        {original_group_name: [field1, field2, ...]}
     """
+    print(layer)
+    print(vlayerName)
 
     config = layer.editFormConfig()
     root = config.invisibleRootContainer()
+
+    # translated tab name -> original tab name
+    if vlayerName in layersConfig:
+        tab_name_map = {
+            tr('@default', tab): tab
+            for tab in layersConfig[vlayerName]
+        }
+    else:
+        tab_name_map = {}
 
     result = {}
 
     def walk(container, current_group="general"):
 
-        # ensure group exists
         if current_group not in result:
             result[current_group] = []
 
         for child in container.children():
 
+            print("Displayed name:", child.name())
+
             cls = child.__class__.__name__
 
-            # FIELD NODE ONLY
             if cls == "QgsAttributeEditorField":
                 result[current_group].append(child.name())
 
-            # GROUP CONTAINER
             elif cls == "QgsAttributeEditorContainer":
-                group_name = child.name() or current_group
+
+                # child.name() is the translated name
+                translated_name = child.name()
+
+                # Convert back to original name
+                group_name = tab_name_map.get(
+                    translated_name,
+                    translated_name
+                )
+
                 walk(child, group_name)
 
     walk(root)
 
-    # clean duplicates + sort
     for k in result:
         result[k] = sorted(set(result[k]))
 
@@ -283,9 +301,9 @@ def extract_group_fields(layer):
 def on_form_changed(config,plugin_dir,project_name):
     layersConfig=loadLayersConfig(config,plugin_dir,project_name)
     layer = iface.activeLayer()
-    data = extract_group_fields(layer)
+    data = extract_group_fields(layer, layersConfig, layer.customProperty("original_layer_name"))
     #print(data)
-    layersConfig[layer.name()]=data
+    layersConfig[layer.customProperty("original_layer_name")]=data
     #print(layersConfig)
     writeLayersConfig(config,project_name,layersConfig)
 
@@ -306,6 +324,7 @@ def setupVersionForm(cur,plugin_dir,config):
             for tab, attrNamesTab in layersConfig[vlayerName].items():
                 c = QgsAttributeEditorContainer(tr('@default',tab), fc.invisibleRootContainer())
                 # Instead of setIsGroupBox, we directly use the container for tabs
+               
                 for attrName in attrNamesTab:
                     if isinstance(attrName, list):
                         c1 = QgsAttributeEditorContainer("Modelparameter", c)  # Set parent as 'c'
@@ -352,6 +371,7 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
     vlayerName=(tr('@default','boreholes'))
     uri.setDataSource(version, 'boreholes', "geom")
     vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
+    vlayer.setCustomProperty("original_layer_name", 'boreholes')
     QgsProject.instance().addMapLayer(vlayer)  
     # 1. Setup ValueRelation Widget
     target_layer = QgsProject.instance().mapLayersByName(tr('@default', 'energy_plants'))[0] # Added [0] index safely
@@ -524,6 +544,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
                 vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+' temp.', username)
             else:
                 vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), username)
+            vlayer.setCustomProperty("original_layer_name", vlayerName)
             QgsProject.instance().addMapLayer(vlayer)  
             #print(vlayerName[:-1])
 
