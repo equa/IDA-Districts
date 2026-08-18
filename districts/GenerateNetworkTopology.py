@@ -472,15 +472,19 @@ DROP TABLE IF EXISTS temp.energy_plants;
 CREATE TABLE temp.customers (LIKE "{}".customers INCLUDING constraints);
 CREATE SEQUENCE temp.customers_id_seq OWNED BY temp.customers.id;
 ALTER TABLE temp.customers ALTER COLUMN id SET DEFAULT nextval('temp.customers_id_seq');
+ALTER TABLE temp.customers ADD PRIMARY KEY (id);
 CREATE TABLE temp.energy_plants (LIKE "{}".energy_plants INCLUDING constraints);
 CREATE SEQUENCE temp.energy_plants_id_seq OWNED BY temp.energy_plants.id;
 ALTER TABLE temp.energy_plants ALTER COLUMN id SET DEFAULT nextval('temp.energy_plants_id_seq');
+ALTER TABLE temp.energy_plants ADD PRIMARY KEY (id);
 CREATE TABLE temp.junctions (LIKE"{}".junctions INCLUDING constraints);
 CREATE SEQUENCE temp.junctions_id_seq OWNED BY temp.junctions.id;
 ALTER TABLE temp.junctions ALTER COLUMN id SET DEFAULT nextval('temp.junctions_id_seq');
+ALTER TABLE temp.junctions ADD PRIMARY KEY (id);
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING constraints);
 CREATE SEQUENCE temp.lines_id_seq OWNED BY temp.lines.id;
-ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');""".format(version,version,version,version,version,version)) # nosec B608
+ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');
+ALTER TABLE temp.lines ADD PRIMARY KEY (id);""".format(version,version,version,version,version,version)) # nosec B608
         self.cur.execute("""TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
 
         if self.keepTemplates:
