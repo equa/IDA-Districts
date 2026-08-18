@@ -544,7 +544,7 @@ ORDER BY m.id;
                                                 mdot,
                                                 qamb,
                                                 p)
-            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:FDpipebundle.ids" :SYMMETRY {} :SLOT ("Pipebundle_{}") :NAME "Pipebundle_{}" :DATA MODEL) 
+            idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "sys:Components/DistrictsMo/symbols/FDpipebundle.ids" :SYMMETRY {} :SLOT ("Pipebundle_{}") :NAME "Pipebundle_{}" :DATA MODEL) 
 """.format(coordinates['x_pipe'],coordinates['y_pipe'],coordinates['angle'],lid,lid)
         
         return idm,idc
@@ -641,15 +641,16 @@ ORDER BY m.id;
         self.cur.execute(sql)
         seq_counter=1
         lid_old=0
+        conn_bundl_type_old=0
         for conn in self.cur.fetchall():
             #print(conn)
             lid=conn['lid']
-            did=conn['fid']
-            if lid!=lid_old:
+            fid=conn['fid']
+            conn_bundl_type=conn['conn_bundle_type_id']
+            if lid!=lid_old or conn_bundl_type!=conn_bundl_type_old:
                 seq_counter=1
             point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
             point_d = self.getSymbolCoordinate(conn['f_point'].split("(")[1][:-1].split(' '))
-            conn_bundl_type=conn['conn_bundle_type_id']
             conn_bundl_type_seq=conn['conn_bundl_type_seq']
             conn_type=conn['connection_type_id']
             conn_type_seq=conn['conn_type_seq']
@@ -658,11 +659,12 @@ ORDER BY m.id;
             
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
 
-            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
-            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),did,name_conn,lid,conn_dir,seq_counter)
+            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),fid,name_conn,lid,conn_dir,seq_counter)
+            idc_conn+="""\n(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),fid,name_conn,lid,conn_dir,seq_counter)
 
             seq_counter+=1
             lid_old=lid
+            conn_bundl_type_old=conn_bundl_type
             
         return idm_conn,idc_conn
     
@@ -869,7 +871,7 @@ ORDER BY m.id;
 {}
  ((RECORD :N |nodebdl|)
   (:PAR :N |vol| :DIM ({}) :V #({})))) """.format(jid,junction['n_connections'],max_seq,connector,max_seq,' '.join(modellingSettings['node_vol'] for x in range(0,max_seq)))
-        idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "lib:nodebundle.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
+        idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "sys:Components/DistrictsMo/symbols/nodebundle.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)""".format(x,y,jid,jid)
         return idm,idc
                 
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):
@@ -921,7 +923,7 @@ ORDER BY m.id;
                     for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                 ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                     for i in sensor_dec_data if i['target_type']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:customer.ids" :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,cid_old,cid_old)
+                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "sys:Components/Macros/symbols/customer.ids" :SLOT ("customer_{}") :NAME "customer_{}" :DATA MACRO-OBJECT)""".format(x_old,y_old,cid_old,cid_old)
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             cid_old=cid
             iref_old=iref
@@ -936,7 +938,7 @@ ORDER BY m.id;
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==1 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                         for i in sensor_dec_data if i['target_type']==1 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(cid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:customer.ids" :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,cid,cid)
+            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "sys:Components/Macros/symbols/customer.ids" :SLOT ("Customer_{}") :NAME "Customer_{}" :DATA MACRO-OBJECT)""".format(x,y,cid,cid)
         
         return idm,idc
         
@@ -980,7 +982,7 @@ ORDER BY m.id;
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==2 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                         for i in sensor_dec_data if i['target_type']==2 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:boil1circ.ids" :SLOT ("Energy_plant_{}") :NAME "Energy_plant_{}" :DATA MACRO-OBJECT) """.format(x_old,y_old,epid_old,epid_old) 
+                idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "sys:Components/EsboNmf/symbols/boil1circ.ids" :SLOT ("Energy_plant_{}") :NAME "Energy_plant_{}" :DATA MACRO-OBJECT) """.format(x_old,y_old,epid_old,epid_old) 
                 iref="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             epid_old=epid
             iref_old=iref
@@ -994,7 +996,7 @@ ORDER BY m.id;
                         for i in sensor_dec_data if i['measure']==5 and i['source_type']==2 for j in i['irefs_source'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]),
                     ''.join(["""\n (:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 208)""".format(i['sensor_id']) 
                         for i in sensor_dec_data if i['target_type']==2 for j in i['irefs_target'] if j['iref'].split('_')[1]==str(epid_old) and (j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side'])]))
-            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "lib:boil1circ.ids" :SLOT ("energy_plant_{}") :NAME "energy_plant_{}" :DATA MACRO-OBJECT) """.format(x,y,epid,epid)                   
+            idc+="""\n(EQUATION-FRAME :AT (({} {})) :R (20 20) :ICON "sys:Components/EsboNmf/symbols/boil1circ.ids" :SLOT ("energy_plant_{}") :NAME "energy_plant_{}" :DATA MACRO-OBJECT) """.format(x,y,epid,epid)                   
         return idm,idc
 
 
