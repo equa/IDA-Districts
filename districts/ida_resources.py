@@ -782,7 +782,7 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
  
 def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg,trace=False,main=None):
     """" Save table to DB an close dialog"""
-    print('Save table to DB an close dialog')
+    #print('Save table to DB an close dialog')
     sql="""TRUNCATE {} CASCADE;\n""".format(table)# nosec B608
     row_dict={}
     for row in range(dlg.tableWidget.rowCount()):

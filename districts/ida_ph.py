@@ -51,7 +51,7 @@ def setLoadAttribute(dlg,fid):
         layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
         if layer:
-            data = extract_group_fields(layer[0])
+            data = extract_group_fields(layer[0], layersConfig, layer[0].customProperty("original_layer_name"))
             data[tr('@default','physical_data')].append(attribute_name)
             #print(data)
             layersConfig[layer[0].name()]=data
@@ -82,7 +82,7 @@ def setGFAAttribute(dlg,fid):
         layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
         if layer:
-            data = extract_group_fields(layer[0])
+            data = extract_group_fields(layer[0], layersConfig, layer[0].customProperty("original_layer_name"))
             data[tr('@default','physical_data')].append(attribute_name)
             #print(data)
             layersConfig[layer[0].name()]=data
