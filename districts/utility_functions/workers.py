@@ -98,7 +98,15 @@ class WorkerImportProject(QRunnable):
     def run(self):
         #print('Import project')
         #print(self.project_name)
-        self.signals.progress.emit(1)            
+        self.signals.progress.emit(1)
+
+        if not os.path.exists(self.filename):
+            QgsMessageLog.logMessage(
+                tr('@default',"path_not_exists")+self.filename,
+                "Districts",
+                MessageCritical
+            )
+            return False
 
         if zipfile.is_zipfile(self.filename):
             #print("Valid ZIP file")
@@ -113,11 +121,6 @@ class WorkerImportProject(QRunnable):
             
             with zipfile.ZipFile(self.filename, 'r') as zip_ref:
                 zip_ref.extractall(temp_folder)
-        elif self.filename.split('\\')[-1]=='low_temperature_network' and os.path.exists(self.config['pathDistricts']+'Samples\districts\low_temperature_network\low_temperature_network'):
-            #print("Not a ZIP file")
-            name=self.filename.split('\\')[-1]
-            src_dir='\\'.join(self.filename.split('\\')[0:-1])+'\\'
-            src_dir=src_dir+name+'\\'+name+'\\'
         else:
             #print("Not a ZIP file")
             name=self.filename.split('\\')[-1]
@@ -222,7 +225,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_raster WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.cur.execute(sql)
             self.signals.progress.emit(71)
-            if self.project_name:
+            if self.project_name and name not in ['secondary_network','low_temperature_network']:
                 sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames]) # nosec B608
                 #print(sql)
                 if sql:
@@ -235,9 +238,13 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                 #print(filedata)
                 self.cur.execute(filedata)
                 
+                #print('----------------')
+                #print(self.versionNames)
                 if self.versionNames:
                     #version tables
-                    self.projectConfig=loadProjectConfig(self.config,project_name=self.project_name,signals=self.signals)  
+                    #print(self.project_name)
+                    self.projectConfig=loadProjectConfig(self.config,project_name=self.project_name,signals=self.signals) 
+                    #print(self.projectConfig)                    
                     filedata=readFileToString(self.plugin_dir+"\\DB_versionTablesDefault.txt")
                     filedata = filedata.replace("$srid$", self.projectConfig['srid'])
                     filedata = filedata.replace("$plugins_path$", self.plugin_dir)
@@ -247,7 +254,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                         self.cur.execute(newdata)
             
             self.signals.progress.emit(75)
-            if name =='heating_network':
+            if name in ['heating_network']:
                 #print('-----heating_network------')
                 sql="""ALTER TABLE "base1".customers ADD COLUMN load_w NUMERIC;
 ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
@@ -256,8 +263,6 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 
             temp_dir = QgsProcessingUtils.tempFolder()+'\\'
             #create tables in new schema
-            if name=='low_temperature_network' and os.path.exists(self.config['pathDistricts']+'Samples\districts\low_temperature_network\low_temperature_network'):
-                src_dir='\\'.join([i for i in src_dir.split('\\') if i][:-1])+'\\'
             filedata=""
             if os.path.exists(src_dir+('db_tables.sql' if self.project_name else name+'.sql')):
                 with open(src_dir+('db_tables.sql' if self.project_name else name+'.sql'), "r") as myfile:
@@ -367,12 +372,15 @@ class WorkerExportProject(QRunnable):
             "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.username,self.password ,self.config['host'],self.config['port'],self.config['projectName'])
         ]
         if self.no_db_results:
-            cmd.append("--exclude-table-data=*.customer_s*")
-            cmd.append("--exclude-table-data=*.line_s*")
-            cmd.append("--exclude-table-data=*.energy_plant_s*")            
-            cmd.append("--exclude-table-data=*.customer_m_*")
-            cmd.append("--exclude-table-data=*.line_m*")
-            cmd.append("--exclude-table-data=*.energy_plant_m*")
+            cmd.append("--exclude-table=*.customer_s*")
+            cmd.append("--exclude-table=*.line_s*")
+            cmd.append("--exclude-table=*.energy_plant_s*")            
+            cmd.append("--exclude-table=*.customer_m_*")
+            cmd.append("--exclude-table=*.line_m*")
+            cmd.append("--exclude-table=*.energy_plant_m*")
+            cmd.append("--exclude-table=*.massbalance_*")
+            cmd.append("--exclude-table=*.heatbalance_*")
+            cmd.append("--exclude-table=*.kpi_*")
         #print(cmd)
         # Output file redirection (using stdout to redirect the output to a file)
         with open(sql_path, "w") as output_file:

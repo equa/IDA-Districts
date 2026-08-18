@@ -246,8 +246,6 @@ def extract_group_fields(layer, layersConfig, vlayerName):
     Returns:
         {original_group_name: [field1, field2, ...]}
     """
-    print(layer)
-    print(vlayerName)
 
     config = layer.editFormConfig()
     root = config.invisibleRootContainer()
@@ -269,8 +267,6 @@ def extract_group_fields(layer, layersConfig, vlayerName):
             result[current_group] = []
 
         for child in container.children():
-
-            print("Displayed name:", child.name())
 
             cls = child.__class__.__name__
 

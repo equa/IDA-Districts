@@ -213,10 +213,7 @@ class NewProjectDlg(QDialog):
         
         templates_ida_dir = os.path.join(self.config['pathDistricts'], 'Samples','districts')
         try:
-            if not config['ida_districts_version']=='1.0.0.0':
-                templates_ida =[folder for folder in os.listdir(templates_ida_dir) if os.path.isdir(os.path.join(templates_ida_dir, folder))]
-            else:
-                templates_ida = []
+            templates_ida =[folder for folder in os.listdir(templates_ida_dir) if os.path.isdir(os.path.join(templates_ida_dir, folder))]
         except:
             templates_ida=[]
 
