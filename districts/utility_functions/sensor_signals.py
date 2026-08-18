@@ -944,7 +944,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
             file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
             file_data=delSensorComp(file_data,remove_sensor_target_ids,'Target')
             if add_sensor_target_idsValues:
-                file_data.insert(2,''.join(["""(EQUATION-FRAME :AT ((643 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_Target_{}") :NAME "Sensor_Target_{}" :PADDING 3 :DATA :EO)\n""".format(str(50+35*i[0]),i[1],i[1]) for i in enumerate([i['sensor_id'] for i in add_sensor_target_idsValues],numberOf_oldSensorTargets+1)]))
+                file_data.insert(2,''.join(["""(EQUATION-FRAME :AT ((643 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_Target_{}") :NAME "Sensor_Target_{}" :PADDING 3 :DATA :EO)\n""".format(str(50+35*i[0]),i[1],i[1]) for i in enumerate([i['sensor_id'] for i in add_sensor_target_idsValues],numberOf_oldSensorTargets+1)]))
                 file_data.insert(2,''.join(["""(CONNECTION-LINE :AT ((660 {}) (694 {})) :FIRST-LINK ("Sensor_Target_{}" (0 0.491) OUTSIGNALLINK) :LAST-LINK (:SELF (0.0 0.144) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(str(50+35*(i[0])),str(50+35*(i[0])),i[1],i[1]) for i in enumerate([i['sensor_id'] for i in add_sensor_target_idsValues],numberOf_oldSensorTargets+1)]))
             writeToFileFromList(file_data,dir,file)            
 

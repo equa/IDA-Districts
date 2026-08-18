@@ -395,7 +395,7 @@ class InvokeFeatures():
  (:PAR :N N_IN :V {})
  (:PAR :N SELECTOR :V {})
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))))\n""".format(sensor_id,n_in,selector,conns)
-            sensor_comp_idc+="""\n(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:minmaxd.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :DATA :EO) """.format(str(50+35*i),sensor_id,sensor_id)
+            sensor_comp_idc+="""\n(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/minmaxd.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :DATA :EO) """.format(str(50+35*i),sensor_id,sensor_id)
         elif function in ['Add','Average']:
             if function=='Add':
                 coeff=' '.join(['1' for i in range(n_in)])
@@ -405,7 +405,7 @@ class InvokeFeatures():
  (:PAR :N N_IN :V {})
  (:PAR :N COEFF :DIM ({}) :V #({}))
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})))) """.format(sensor_id,n_in,n_in,coeff,conns)
-            sensor_comp_idc+="""\n(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO) """.format(str(50+35*i),sensor_id,sensor_id)
+            sensor_comp_idc+="""\n(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO) """.format(str(50+35*i),sensor_id,sensor_id)
         return sensor_comp_idm,sensor_comp_idc
             
     def invokeAllFeatures(self):

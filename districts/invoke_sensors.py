@@ -210,7 +210,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     count_sensors=0                                      
 
     #add Adder comp if function  Individual signals for each target (6) and target=Custom(1) and source type in (3) for decoupling option
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1],i[1]) 
                         for i in enumerate([j['iref'] for i in sensor_dec_data if i['function']==6 and i['source_type']==3 for j in i['irefs_target'] if
                         j['submodel']==submodel and not j['network_side'] and supervisory_submodel!=j['submodel'] or 
@@ -230,7 +230,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
 
                         
     #add Adder comp for target type == supervisory contrl (3) if function (6)  measure in (5) and source type in (1,2) for decoupling mode
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1],i[1]) 
         for i in enumerate([j['iref'] for i in sensor_dec_data if i['target_type'] ==3 and i['source_type'] in(1,2) and i['function']==6 and i['measure'] ==5 
                                 for j in i['irefs_source'] if supervisory_submodel==submodel and submodel!=j['submodel'] and not j['network_side']],1+count_sensors)]))
@@ -242,7 +242,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                                 for j in i['irefs_source'] if supervisory_submodel==submodel and submodel!=j['submodel'] and not j['network_side']])
 
     #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}{}") :NAME "Sensor_{}{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}{}") :NAME "Sensor_{}{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '', i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '') 
         for i in enumerate([i for i in sensor_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
@@ -252,7 +252,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
 
     #print('add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2)')   
     #add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:minmaxd.ids" :SLOT ("Sensor_{}{}") :NAME "Sensor_{}{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/minmaxd.ids" :SLOT ("Sensor_{}{}") :NAME "Sensor_{}{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '',i[1]['sensor_id'], '_{}'.format(i[1]['irefs_target'][0].split('_')[-1]) if i[1]['target_type']==4 else '') 
         for i in enumerate([i for i in sensor_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
@@ -262,7 +262,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     #print('add min/max comp for function Min(1),Max(2)) if measure in (1,2,3,4) and source type in (1,2) finished')       
 
     #add Adder comp for function Individual signals for each target (6) if measure in (1,2,3,4) and source type in (1,2) for decoupling mode if network_side
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1],i[1]) 
         for i in enumerate([j for i in sensor_data if i['function']==6 and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2) for j in i['irefs_source']],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(
@@ -271,7 +271,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     count_sensors+=len([j for i in sensor_data if i['function']==6 and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2) for j in i['irefs_source']])  
     
     #add Adder comp for function Individual signals for each target (6) if measure==5 and source type in (1,2) for decoupling mode if feature side
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['iref'],i[1]['iref']) 
         for i in enumerate([j for i in sensor_dec_data if i['target_type'] ==3 and i['source_type'] in(1,2) and i['function']==6 and i['measure'] ==5 
         for j in i['irefs_source'] if submodel==j['submodel'] and not j['network_side'] and not supervisory_submodel==submodel],1+count_sensors)]))                                    
@@ -283,7 +283,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         for j in i['irefs_source'] if submodel==j['submodel'] and not j['network_side'] and not supervisory_submodel==submodel])                
     
     #add Min/Max comp if function (1,2) and measure== Custom(5) and source type in (1,2)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:minmaxd.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/minmaxd.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id'])
         for i in enumerate([i for i in sensor_dec_data if i['source_type'] in (1,2) and i['measure']==5 and i['function'] in (1,2) and 
            [True for j in i['irefs_source'] 
@@ -309,7 +309,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                 or j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side']]])      
     
     #Adder comp if function (3,4,5) and measure== Custom(5) and source type in (1,2)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id'])
         for i in enumerate([i for i in sensor_dec_data if i['source_type'] in (1,2) and i['measure']==5 and i['function'] in (3,4,5) and 
             ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim'] and not j['network_side']] or [True for j in i['irefs_target'] if submodel==j['submodel'] or submodel==j['cosim']])],1+count_sensors)]))
@@ -322,7 +322,7 @@ def sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
     count_sensors+=len([i for i in sensor_dec_data if i['source_type'] in (1,2) and i['measure']==5 and i['function'] in (3,4,5) and ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim'] and not j['network_side']] or [True for j in i['irefs_target'] if submodel==j['submodel'] or submodel==j['cosim']])])  
     
     #add Adder comp if function Same signal for all targets (5) and source type in (3)
-    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
+    data.append(''.join(["""(EQUATION-FRAME :AT ((41 {})) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Sensor_{}") :NAME "Sensor_{}" :PADDING 3 :DATA :EO)\n""".format(
         str(50+35*i[0]),i[1]['sensor_id'],i[1]['sensor_id'])
         for i in enumerate([i for i in sensor_data if i['function']==5 and i['source_type']==3],1+count_sensors)]))
     data.append(''.join(["""(CONNECTION-LINE :AT ((58 {}) (58 {}) (694 {})) :FIRST-LINK ("Sensor_{}" (1 0.531) OUTSIGNALLINK) :LAST-LINK (:SELF (1.0 0.205) "Int_Ref_Sensor_Target_{}") :DIR :RIGHT :ARROW (19 8 8))\n""".format(

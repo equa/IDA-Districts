@@ -391,7 +391,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
             filedata.append("""\n(EQUATION-FRAME :AT (({} 95)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qsup_c_neg") :NAME "Qsup_c_neg" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-19))
             filedata.append("""\n(CONNECTION-LINE :AT (({} 84) ({} 84) ({} 96) ({} 96)) :FIRST-LINK ("Qsup_c_sepsign" (1 0.781) NEGSIGNALLINK) :LAST-LINK ("Qsup_c_neg" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-33))
         if requestedOutputs['qsup_c_kpi'] or requestedOutputs['qsup_spec_c_kpi'] or requestedOutputs['qsup_density_c_kpi'] or requestedOutputs['qsup_linedensity_c_kpi']:
-            filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Qsup_c_sum") :NAME "Qsup_c_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Qsup_c_sum") :NAME "Qsup_c_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
     except:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
@@ -471,7 +471,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
             filedata.append("""\n(EQUATION-FRAME :AT (({} 195)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qsup_ep_neg") :NAME "Qsup_ep_neg" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-19))
             filedata.append("""\n(CONNECTION-LINE :AT (({} 184) ({} 184) ({} 196) ({} 196)) :FIRST-LINK ("Qsup_ep_sepsign" (1 0.781) NEGSIGNALLINK) :LAST-LINK ("Qsup_ep_neg" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-33))
         if requestedOutputs['qsup_ep_kpi']:
-            filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "lib:adder.ids" :SLOT ("Qsup_ep_sum") :NAME "Qsup_ep_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Qsup_ep_sum") :NAME "Qsup_ep_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
     except:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
@@ -482,7 +482,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
     #qamb
     x_coord=46
     if requestedOutputs['heatbalance_system'] or requestedOutputs['qamb_kpi']:
-        filedata.append("""\n(EQUATION-FRAME :AT (({} 275)):R (16 16) :ICON "lib:adder.ids" :SLOT ("qamb") :NAME "qamb" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord))     
+        filedata.append("""\n(EQUATION-FRAME :AT (({} 275)):R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("qamb") :NAME "qamb" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord))     
         if requestedOutputs['qamb_kpi']:
             x_coord=46+dx_coord
             filedata.append("""\n(EQUATION-FRAME :AT (({} 275)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qamb_emeter") :NAME "Qamb_emeter" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-67))
