@@ -2821,12 +2821,12 @@
     <message>
         <location filename="../utility_functions/translations.py" line="248"/>
         <source>minimum_cooling_load</source>
-        <translation type="unfinished">Minimale Kühllast, kW</translation>
+        <translation type="unfinished">Minimale Kühllast</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="249"/>
         <source>minimum_cold_demand</source>
-        <translation type="unfinished">Minimaler Kühlbedarf, kWh/a</translation>
+        <translation type="unfinished">Minimaler Kühlbedarf</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="250"/>
@@ -2856,12 +2856,12 @@
     <message>
         <location filename="../utility_functions/translations.py" line="256"/>
         <source>minimum_heating_load</source>
-        <translation type="unfinished">Minimale Heizlast, kW</translation>
+        <translation type="unfinished">Minimale Heizlast</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="257"/>
         <source>minimum_heat_demand</source>
-        <translation type="unfinished">Minimaler Wärmebedarf, kWh/a</translation>
+        <translation type="unfinished">Minimaler Wärmebedarf</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="258"/>

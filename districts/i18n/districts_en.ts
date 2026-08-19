@@ -2841,12 +2841,12 @@
     <message>
         <location filename="../utility_functions/translations.py" line="248"/>
         <source>minimum_cooling_load</source>
-        <translation type="unfinished">Minimum cooling load, kW</translation>
+        <translation type="unfinished">Minimum cooling load,</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="249"/>
         <source>minimum_cold_demand</source>
-        <translation type="unfinished">Minimum cooling demand, kWh/a</translation>
+        <translation type="unfinished">Minimum cooling demand</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="250"/>
@@ -2876,12 +2876,12 @@
     <message>
         <location filename="../utility_functions/translations.py" line="256"/>
         <source>minimum_heating_load</source>
-        <translation type="unfinished">Minimum heating load, kW</translation>
+        <translation type="unfinished">Minimum heating load</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="257"/>
         <source>minimum_heat_demand</source>
-        <translation type="unfinished">Minimum heat demand, kWh/a</translation>
+        <translation type="unfinished">Minimum heat demand</translation>
     </message>
     <message>
         <location filename="../utility_functions/translations.py" line="258"/>
