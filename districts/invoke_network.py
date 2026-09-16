@@ -294,17 +294,20 @@ class InvokeNetworkModel:
                     
                     idm,idc=self.insertLines(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
                     self.signals.progress.emit(int(2+25*(submodels.index(submodel)+1)/len(submodels)*97))
-                    idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
-                    self.signals.progress.emit(int(2+35*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
                     self.signals.progress.emit(int(2+45*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
                     self.signals.progress.emit(int(2+65*(submodels.index(submodel)+1)/len(submodels)*97))
                     
-                    idm_conn,idc_conn=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks)
+                    plug_dict={}
+                    idm_conn,idc_conn,plug_dict=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks,plug_dict)
                     self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
-                    idm_conn,idc_conn=self.insertConnections(submodel,'energy_plants',idm_conn,idc_conn,networks)
+                    idm_conn,idc_conn,plug_dict=self.insertConnections(submodel,'energy_plants',idm_conn,idc_conn,networks,plug_dict)
                     self.signals.progress.emit(int(2+95*(submodels.index(submodel)+1)/len(submodels)*97))
+                    
+                    idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks,plug_dict)
+                    self.signals.progress.emit(int(2+35*(submodels.index(submodel)+1)/len(submodels)*97))
+                    
                     idm_conn,idc_conn=self.insertJunctionConnections(submodel,idm_conn,idc_conn,networks)
                     self.signals.progress.emit(int(2+97*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm_conn+=")"
@@ -551,13 +554,13 @@ ORDER BY m.id;
     
     def insertJunctionConnections(self,submodel,idm_conn,idc_conn,networks):
         """Insert the junction connections between plants or customers and pipes"""
-        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liq1' ELSE 'liq2' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
-    FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
-        (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
+        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, pipe_lids.lids, CASE WHEN ST_dWithIn(ST_StartPoint(l.geom),j.geom,0.0001) THEN 'liq1' ELSE 'liq2' END AS dir, ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point
+    FROM "{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
         (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
         (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
-    WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
-    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks])) # nosec B608
+    WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND b_pipes.pipe_bundle_type_id=l.pipe_bundle_type_id AND
+		l.id NOT IN (SELECT lid FROM "{}".customer_connections) AND l.id NOT IN (SELECT lid FROM "{}".energy_plant_connections)
+	ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks]),self.config['versionName'],self.config['versionName']) # nosec B608
         #print(sql)
         self.cur.execute(sql)
 
@@ -580,12 +583,6 @@ ORDER BY m.id;
                     
                 if conn['seq']!=seq_old:
                     #print('--new seq--')
-                    if seq_counter!=0:
-                        #print(seq_lids)
-                        #print([i for i in lids if i not in seq_lids])
-                        #print([lids.index(i)+1 for i in lids if i not in seq_lids])
-                        #print("".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids]))
-                        idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,seq_counter,lids.index(i)+1) for i in lids if i not in seq_lids])
                     seq_lids=[conn['lid']]
                     seq_counter+=1
                     conn_counter=1
@@ -599,7 +596,6 @@ ORDER BY m.id;
                     #print(lids)
                     conn_counter=1
                     seq_counter=1
-                    max_seq=conn['max_seq']
                     pipe_counter={}
                     for lid in lids:
                         pipe_counter[lid]=0                  
@@ -619,11 +615,9 @@ ORDER BY m.id;
             except Exception as e:
                 self.signals.error.emit("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles.")
 
-        idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(conn['jid'],seq_old,lids.index(i)+1) for i in lids if i not in seq_lids])
-            
         return idm_conn,idc_conn
     
-    def insertConnections(self,submodel,type,idm_conn,idc_conn,networks):
+    def insertConnections(self,submodel,type,idm_conn,idc_conn,networks,plug_dict):
         """Insert the connections between features and the pipe"""
         #print("********insertConnections:"+type)
         if type=='customers':
@@ -632,41 +626,142 @@ ORDER BY m.id;
         elif type=='energy_plants':
             id_name='epid'
             seq_name='ep_seq'
-        sql="""SELECT l.id AS lid,ST_AsText(ST_LineInterpolatePoint(l.geom,0.5)) AS l_point,f.id AS fid, ST_AsText(f.geom) AS f_point, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp, CASE WHEN ST_dWithIn(st_startpoint(l.geom),f.geom,0.01) THEN 'liq1' ELSE 'liq2' END AS dir
-    FROM "{}".{} f, "{}".{}_connections fc, "{}".lines l, public.bundle_type_conns conn_b_t, public.{}_templates f_t, public.connections conn, public.connection_type_connections conn_t_conns
-    WHERE conn_t_conns.connection_id=conn.id AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND conn_b_t.conn_bundle_type_id=f_t.conn_bundle_type AND fc.{}=conn_b_t.sequence AND f_t.template=f.template AND l.id=fc.lid AND f.id=fc.{} AND {} =ANY(l.submodel) AND l.network IN ({})
-    ORDER BY f.id, conn_b_t.sequence, conn_type_seq;""".format(self.config['versionName'],type,self.config['versionName'],type[:-1],self.config['versionName'],type[:-1],seq_name,id_name,submodel,','.join([str(i) for i in networks])) # nosec B608
+        sql="""WITH c_counter AS (
+    SELECT
+        pipe_bundle_type_id,
+        count(*) AS max_connections
+    FROM bundle_pipes
+    GROUP BY pipe_bundle_type_id
+),
+pipe_lids AS (
+    SELECT
+        jc.jid,
+        array_agg(jc.lid ORDER BY jc.lid) AS lids,
+        max(cc.max_connections) AS max_connections
+    FROM "{}".junction_connections jc
+    JOIN "{}".lines l
+        ON l.id = jc.lid
+    JOIN c_counter cc
+        ON cc.pipe_bundle_type_id = l.pipe_bundle_type_id
+    GROUP BY jc.jid
+)
+SELECT
+    l.id AS lid,
+    ST_AsText(ST_LineInterpolatePoint(l.geom, 0.5)) AS l_point,
+    f.id AS fid,
+    ST_AsText(f.geom) AS f_point,
+    jc.jid,
+    ST_AsText(j.geom) AS j_point,
+    pipe_lids.lids,
+    pipe_lids.max_connections,
+    conn_b_t.conn_bundle_type_id,
+    conn_b_t.sequence AS conn_bundl_type_seq,
+    conn_t_conns.connection_type_id,
+    conn_t_conns.sequence AS conn_type_seq,
+    conn.temp,
+
+    CASE
+        WHEN ST_DWithin(ST_StartPoint(l.geom), f.geom, 0.01)
+        THEN 'liq1'
+        ELSE 'liq2'
+    END AS dir_f,
+
+    CASE
+        WHEN ST_DWithin(ST_StartPoint(l.geom), f.geom, 0.01)
+        THEN 'liq2'
+        ELSE 'liq1'
+    END AS dir_j
+
+FROM "{}".{} f,
+     "{}".{}_connections fc,
+     "{}".lines l,
+     bundle_type_conns conn_b_t,
+     {}_templates f_t,
+     connections conn,
+     connection_type_connections conn_t_conns,
+     "{}".junction_connections jc,
+     "{}".junctions j,
+     pipe_lids
+
+WHERE pipe_lids.jid = jc.jid
+  AND conn_t_conns.connection_id = conn.id
+  AND conn_t_conns.connection_type_id = conn_b_t.conn_type_id
+  AND conn_b_t.conn_bundle_type_id = f_t.conn_bundle_type
+  AND fc.{} = conn_b_t.sequence
+  AND f_t.template = f.template
+  AND l.id = fc.lid
+  AND f.id = fc.{}
+  AND jc.lid = fc.lid
+  AND jc.jid = j.id
+  AND {} = ANY(l.submodel)
+  AND l.network IN ({})
+
+ORDER BY f.id, conn_b_t.sequence, conn_type_seq;""".format(self.config['versionName'],self.config['versionName'],  # nosec B608
+    self.config['versionName'],type,self.config['versionName'],type[:-1],self.config['versionName'],type[:-1],self.config['versionName'],self.config['versionName'],seq_name,id_name,submodel,','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
         
         self.cur.execute(sql)
         seq_counter=1
         lid_old=0
         conn_bundl_type_old=0
-        for conn in self.cur.fetchall():
+        sequences=[]
+        for counter,conn in enumerate(self.cur.fetchall(),0):
             #print(conn)
             lid=conn['lid']
             fid=conn['fid']
             conn_bundl_type=conn['conn_bundle_type_id']
+            conn_type_seq=conn['conn_type_seq']
             if lid!=lid_old or conn_bundl_type!=conn_bundl_type_old:
                 seq_counter=1
+                if counter!=0:
+                    #plugs
+                    plug_sequences=[i for i in range(1,max_connections_old+1) if i not in sequences]
+                    idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,i,lids_old.index(lid_old)+1) for i in plug_sequences])
+                    if plug_sequences:
+                        if jid_old in plug_dict and lid_old in plug_dict[jid_old] and plug_sequences:
+                            plug_dict[jid_old][lid_old]=plug_sequences
+                        else:
+                            plug_dict[jid_old]={lid_old : plug_sequences}
+                            
+                sequences=[]
             point_pipe = self.getSymbolCoordinate(conn['l_point'].split("(")[1][:-1].split(' '))
-            point_d = self.getSymbolCoordinate(conn['f_point'].split("(")[1][:-1].split(' '))
+            point_f = self.getSymbolCoordinate(conn['f_point'].split("(")[1][:-1].split(' '))
+            point_j = self.getSymbolCoordinate(conn['j_point'].split("(")[1][:-1].split(' '))
             conn_bundl_type_seq=conn['conn_bundl_type_seq']
             conn_type=conn['connection_type_id']
-            conn_type_seq=conn['conn_type_seq']
             conn_temp=conn['temp']
-            conn_dir=conn['dir']
+            conn_dir_f=conn['dir_f']
+            conn_dir_j=conn['dir_j']
             
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
 
-            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),fid,name_conn,lid,conn_dir,seq_counter)
-            idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))\n""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),fid,name_conn,lid,conn_dir,seq_counter)
+            #feature to pipe
+            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),fid,name_conn,lid,conn_dir_f,seq_counter)
+            idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))\n""".format(point_f['x'],point_f['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),fid,name_conn,lid,conn_dir_f,seq_counter)
+                            
+            #junction to pipe                
+            idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],conn_type_seq,conn['lids'].index(lid)+1,lid,conn['dir_j'],seq_counter)
+            idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))\n""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],conn_type_seq,conn['lids'].index(conn['lid'])+1,conn['lid'],conn_dir_j,seq_counter)
+
 
             seq_counter+=1
             lid_old=lid
+            jid_old=conn['jid']
+            max_connections_old=conn['max_connections']
             conn_bundl_type_old=conn_bundl_type
+            lids_old=conn['lids']
+            sequences.append(conn_type_seq)
             
-        return idm_conn,idc_conn
+        #plugs
+        plug_sequences=[i for i in range(1,max_connections_old+1) if i not in sequences]
+        if plug_sequences:
+            if jid_old in plug_dict and lid_old in plug_dict[jid_old]:
+                plug_dict[jid_old][lid_old]=plug_sequences
+            else:
+                plug_dict[jid_old]={lid_old : plug_sequences}
+        idm_conn+="".join(["""\n (("NodeBundle_{}" (|term| {} {})) ((:LIB WATPLUG) OUTLET) 0 0 NIL)""".format(jid_old,i,lids_old.index(lid_old)+1) for i in plug_sequences])
+            
+        return idm_conn,idc_conn,plug_dict
     
     def getSymbolCoordinate(self,point):
         """Get the IDA x and y coordinates of a georeferenced point in a dict """
@@ -757,103 +852,70 @@ ORDER BY m.id;
         return data
         #writeToFile(data,dir,dir+"""\\network_{}.idc""".format(submodel))
         
-    def insertJunctions(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
+    def insertJunctions(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks,plug_dict):
         """ Insert junctions"""
         #print('**************insert junctions*************************')
-        sql="""SELECT l.id AS lid,j.id AS jid, ST_AsText(j.geom) AS j_point,b_pipes.sequence AS seq, j.n_connections,pipe_lids.lids, c.counter AS max_seq
-    FROM"{}".junctions j, "{}".junction_connections jc, "{}".lines l, 
-        (SELECT count(*) AS counter,pipe_bundle_type_id FROM public.bundle_pipes GROUP BY pipe_bundle_type_id) c,
-        (SELECT pipe_bundle_type_id,sequence FROM public.bundle_pipes) b_pipes,
-        (SELECT jid, array_agg(lid ORDER BY lid) AS lids FROM "{}".junction_connections jc GROUP BY jid) pipe_lids
-    WHERE pipe_lids.jid=jc.jid AND l.id=jc.lid AND j.id=jc.jid AND j.submodel={} AND l.network IN ({}) AND c.pipe_bundle_type_id=l.pipe_bundle_type_id AND b_pipes.pipe_bundle_type_id=c.pipe_bundle_type_id
-    ORDER BY j.id,b_pipes.sequence, l.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks]))# nosec B608
+        sql="""WITH c_counter AS (
+    SELECT
+        pipe_bundle_type_id,
+        count(*) AS max_sequences
+    FROM bundle_pipes
+    GROUP BY pipe_bundle_type_id
+),
+pipe_lids AS (
+    SELECT
+        jc.jid,
+        array_agg(jc.lid ORDER BY jc.lid) AS lids,
+        max(cc.max_sequences) AS max_sequences
+    FROM "{}".junction_connections jc
+    JOIN "{}".lines l
+        ON l.id = jc.lid
+    JOIN c_counter cc
+        ON cc.pipe_bundle_type_id = l.pipe_bundle_type_id
+    GROUP BY jc.jid
+)
+SELECT
+    j.id AS jid,
+    ST_AsText(j.geom) AS j_point,
+    pipe_lids.lids,
+    pipe_lids.max_sequences,
+	j.n_connections
+FROM "{}".junctions j,
+     pipe_lids,
+	 "{}".junction_connections jc,
+	 "{}".lines l
+WHERE pipe_lids.jid = j.id
+  AND jc.lid = l.id
+  AND jc.jid = j.id
+  AND {} = ANY(l.submodel)
+  AND l.network IN ({})
+GROUP BY j.id, j_point, lids, max_sequences, n_connections
+ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,','.join([str(i) for i in networks]))# nosec B608
         #print(sql)
         self.cur.execute(sql)
         #print(requestedOutputs)
-
+        #print(plug_dict)
         conns=self.cur.fetchall()
         if not conns:
             #print('No nodes in network or wrong junction constructions!')
             #self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
             
-        inStreamT=''
-        m_dot=''
-        jid_old=0
-        lid_old=0
-        seq_old=0
-        seq_counter=0
         for conn in conns:
-            try:
-                #print(conn)
-                #print('instreamT: '+inStreamT)
-                #print('m_dot: '+m_dot)
-                    
-                if conn['seq']!=seq_old:
-                    #print('--new seq--')
-                    if seq_counter!=0:
-                        #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
-                        for i in range(conn_counter,len(lids)+1):
-                            #print('--add connection: '+str(i))
-                            inStreamT+=" ("+str(conn_counter)+" . 0.0)"
-                            m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
-                    seq_counter+=1
-                    conn_counter=1
-                    if seq_counter!=1:
-                        inStreamT+=')'
-                    if conn['jid']==jid_old:
-                        inStreamT+='('+str(seq_counter)   
-                    
-                if conn['jid']!=jid_old:
-                    #print('++new jid++')
-                    lids=conn['lids']
-                    #print(lids)
-                    if jid_old!=0:
-                        dim='('+str(seq_counter-1)+' '+str(len(lids))+')'
-                        idm,idc=self.makeNodeComponent(conn_old,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
-                    conn_counter=1
-                    seq_counter=1
-                    max_seq=conn['max_seq']
-                    inStreamT='('+str(seq_counter)
-                    m_dot=''
-                  
-                if lids[conn_counter-1]!=conn['lid']:
-                    #print('++lids[conn_counter-1]: {}; conn[lid]: {}'.format(lids[conn_counter-1],conn['lid']))
-                    #print('++conn_counter: {}; lids.index(conn[lid]): {}'.format(conn_counter,lids.index(conn['lid'])))
-                    for i in range(conn_counter,lids.index(conn['lid'])+1):
-                        #print('++'+str(i))
-                        inStreamT+=" ("+str(conn_counter)+" . 0.0)"
-                        m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
-                        conn_counter+=1
+            #print(conn)
+            m_dot=''
+            if conn['jid'] in plug_dict:
+                m_dot=''.join(['({} ({} -2 (|term| {} {}) 1))'.format(seq,conn['lids'].index(lid)+1,seq,conn['lids'].index(lid)+1) for lid,seqs in plug_dict[conn['jid']].items() for seq in seqs])
+            #print('m_dot: '+m_dot)
                 
-                inStreamT+=" ("+str(conn_counter)+")"
+            inStreamT=''.join(["({} {})".format(seq,' '.join(["({})".format(str(counter_conn) + ' . 0.0' if conn['jid'] in plug_dict and [True for lid in conn['lids'] if lid in plug_dict[conn['jid']] and seq in plug_dict[conn['jid']][lid] and counter_conn == conn['lids'].index(lid)+1] else counter_conn) 
+                for counter_conn in range(1,conn['n_connections']+1)])) 
+                for seq in range(1,conn['max_sequences']+1)])
+            #print('instreamT: '+inStreamT)
+   
+            dim='('+str(conn['max_sequences'])+' '+str(len(conn['lids']))+')'
+            idm,idc=self.makeNodeComponent(conn,idm,idc,modellingSettings,inStreamT,m_dot,dim,conn['max_sequences'],conn['jid'])
 
-                seq_old=conn['seq']
-                jid_old=conn['jid']
-                lid_old=conn['lid']
-                if max_seq<conn['max_seq']:
-                    max_seq=conn['max_seq']
-                conn_old=conn
-                #print("seq: {}; conn: {}".format(seq_counter,conn_counter))
-                conn_counter+=1
-            except:
-                QgsMessageLog.logMessage(
-                    traceback.format_exc(),
-                    "Districts",
-                    MessageCritical
-                )
-        
-        #print(inStreamT)
-        #print('--conn_counter: {}; len(lids): {}'.format(conn_counter,len(lids)))
-        for i in range(conn_counter,len(lids)+1):
-            #print('--add connection: '+str(i))
-            inStreamT+=" ("+str(conn_counter)+" . 0.0)"
-            m_dot+='({} ({} -2 (|term| {} {}) 1))'.format(seq_counter,conn_counter,seq_counter,conn_counter)
-        inStreamT+=')'
-        #print(inStreamT)
-        #print(m_dot)
-        dim='('+str(seq_counter)+' '+str(len(lids))+')'
-        idm,idc=self.makeNodeComponent(conn,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid_old)
         return idm,idc
      
     def makeNodeComponent(self,junction,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid):

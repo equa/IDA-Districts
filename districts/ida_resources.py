@@ -478,7 +478,6 @@ def show_templateDialog(main=False,type=False):
 def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trace):
     """" Save table to DB an close dialog"""
     #print('Save table content to DB an close dialog')
-    #print(trace)
     
     for traceValue in dlg.traceTableValues:
         if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
@@ -497,6 +496,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     maxId=getMaxId(cur,table)
     counter=1
     for row in range(dlg.tableWidget.rowCount()):
+        #print(dlg.tableWidget.item(1,0).text())
         values=getValuesFromTableRow(dlg,dropdowns,row,columns,[])
         #print(values)
         if not values:
@@ -710,6 +710,7 @@ def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,drop
 def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]],trace=False,deactivated=[0]):
     """Show types from table in DB"""
     #print('Manage connection types')
+    #print(ok_fn)
     openBtn=False
     if openFn:
         openBtn=True
@@ -737,7 +738,6 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
     values=[]
     p=False
     mdot=False
-    #print(row)
     for col in range(dlg.tableWidget.columnCount()):
         if col in list([i[0] for i in dropdowns]):
             value=dlg.tableWidget.cellWidget(row, col).currentData()
@@ -751,8 +751,9 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
             #print(value)
         else:
             if dlg.tableWidget.item(row,col):
+                #print(dlg.tableWidget.item(row,col).text())
                 value=dlg.tableWidget.item(row,col).data(Qt.ItemDataRole.UserRole)
-                if not value:
+                if not value or col==0:
                     value=dlg.tableWidget.item(row,col).text()
                 #print(value)
                 if value and columns[col]=='p':
@@ -773,7 +774,6 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
         if not isFloat(value) and value!='Null' or columns[col] in ['description']:
             value="'"+value + "'" 
         values.append(value)
-    #print(values)
     if mdot and p:
         iface.messageBar().pushMessage("Error", "It is not possible to set the pressure and mass flow as boundary!", level=MessageCritical)
         return False

@@ -52,8 +52,7 @@ def setLoadAttribute(dlg,fid):
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
         if layer:
             data = extract_group_fields(layer[0], layersConfig, layer[0].customProperty("original_layer_name"))
-            data[tr('@default','physical_data')].append(attribute_name)
-            #print(data)
+            data['physical_data'].append(attribute_name)
             layersConfig[layer[0].name()]=data
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
@@ -83,7 +82,7 @@ def setGFAAttribute(dlg,fid):
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
         if layer:
             data = extract_group_fields(layer[0], layersConfig, layer[0].customProperty("original_layer_name"))
-            data[tr('@default','physical_data')].append(attribute_name)
+            data['physical_data'].append(attribute_name)
             #print(data)
             layersConfig[layer[0].name()]=data
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
