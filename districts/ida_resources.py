@@ -594,7 +594,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
             dlg.btn_add.clicked.connect(lambda: addTableRowTrace(dlg,dropdowns,trace,[],main.cur))
         else:
             dlg.btn_add.clicked.connect(lambda: addTableRowTrace(dlg,dropdowns,trace,deactivated,main.cur))
-        dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg,table,openFnArg))   
+        dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))   
         dlg.btn_ok.clicked.connect(lambda: saveContent(main.plugin_dir,main.cur,main.config,dlg,id,openFnArg[0],columns,filter,dropdowns,trace))
         if save_as:
             dlg.btn_saveAs.clicked.connect(lambda: saveAsTemplate(main.cur,main.config,dlg,openFnArg[0],dropdowns,trace))
