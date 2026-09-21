@@ -764,7 +764,7 @@ class Districts:
 
     def manageConnBundleTypes(self):
         if self.conn:
-            show_TableDialog(main=self,title=tr('@default','connection_bundles'),table='conn_bundle_types',headers=[tr('@default','connection_bundle_id'),tr('@default','description')],columns='(id,description)', openFn=show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],[tr('@default','sequence'),tr('@default','type'),tr('@default','description')],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'','bt_conns_trace',False,[0]]) 
+            show_TableDialog(main=self,title=tr('@default','connection_bundles'),table='conn_bundle_types',headers=[tr('@default','connection_bundle_id'),tr('@default','description')],columns='(id,description)', openFn=show_TableCurrentRowDialog, openFnArg=['bundle_type_conns',['sequence','conn_type_id','description'],[tr('@default','sequence'),tr('@default','type'),tr('@default','description')],'WHERE conn_bundle_type_id =','ORDER BY sequence',[[1,'public','connection_types','id','description']],False,'','bt_conns_trace',False,[]]) 
 
     def managePipeBundlesTypes(self):
         if self.conn:
