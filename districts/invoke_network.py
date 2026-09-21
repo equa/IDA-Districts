@@ -615,17 +615,17 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
         self.cur.execute(sql)
 
         conns=self.cur.fetchall()
+        plug_dict={}
         if not conns:
             #print('No nodes in network or wrong junction constructions!')
             #self.signals.error.emit("No junctions in network or wrong constructions!")
-            return idm_conn,idc_conn
+            return idm_conn,idc_conn, plug_dict
             
         jid_old=0
         lid_old=0
         seq_old=0
         seq_counter=0
         seq_lids=[]
-        plug_dict={}
         for conn in conns:
             try:
                 #print(conn)
