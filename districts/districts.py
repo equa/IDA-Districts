@@ -105,6 +105,7 @@ class Districts:
         # Must be set in initGui() to survive plugin reloads
         self.first_start = True
       
+        self.model=None
         self.conn=None
         self.cur=None
         self.conn_postgres=None
