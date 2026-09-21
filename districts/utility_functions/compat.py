@@ -27,8 +27,8 @@ if QT6:
     MessageCritical = Qgis.MessageLevel.Critical
     MessageSuccess = Qgis.MessageLevel.Success
 else:
-    MessageInfo = Qgis.Info
-    MessageWarning = Qgis.Warning
+    MessageInfo = MessageInfo
+    MessageWarning = MessageWarning
     MessageCritical = MessageCritical
     MessageSuccess = Qgis.Success
     

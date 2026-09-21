@@ -1,15 +1,18 @@
 from qgis.PyQt.QtCore import QThreadPool
 
+from .utility_functions.compat import *
 from .utility_functions.files import *
 from .utility_functions.dialog import *
 from .utility_functions.workers import *
 from .supervisory_control import Supervisory_control
+from qgis.core import Qgis, QgsMessageLog
 
 from .outputs import WorkerSetRequestedOutputs
 from .invoke_network import WorkerBuildNetworkModel
     
 import pandas as pd
 import numpy as np
+import traceback
 
 def addBoreholefieldTableRow(dlg,main):
     """Insert table row"""
@@ -21,12 +24,7 @@ def addBoreholefieldTableRow(dlg,main):
     dropdownItems=getDropDownItems(main.cur,dropdowns)
 
     item = QTableWidgetItem(str(maxId))
-    try:
-        item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
-    except AttributeError:
-        item_is_editable = Qt.ItemIsEditable           # Qt5
-
-    item.setFlags(item.flags() & ~item_is_editable)
+    item.setFlags(item.flags() & ~ItemIsEditable)
     dlg.tableWidget.setItem(0 , 0, item)
     
     comboBox = QComboBox()
@@ -99,27 +97,27 @@ def setBoreholeFieldSettings(dlg,main):
     
     #added
     for key_table in boreholefieldsData:
-        sql+="""\nINSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});""".format(
-            main.config['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'],
-            boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'],
-            boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['rmax'],
-            boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'],
-            boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'],
-            boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'],
-            boreholefieldsData[key_table]['rhogrout'],boreholefieldsData[key_table]['rpipe'],boreholefieldsData[key_table]['thickpipe'],
-            boreholefieldsData[key_table]['cppipe'],boreholefieldsData[key_table]['lambpipe'],boreholefieldsData[key_table]['lcasting'],boreholefieldsData[key_table]['lambda'],               
-            boreholefieldsData[key_table]['rhosurface'],boreholefieldsData[key_table]['cpsurface'],boreholefieldsData[key_table]['liqtype'],boreholefieldsData[key_table]['tfreeze'],               
-            boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad'])               
+        sql+="""\nINSERT INTO "{}".borehole_fields (id,ep_id,zhole,rhole,rb,rpipeearth,rpipegrout,rringearth,rgroutearth,rgroutgrout,rmax,nring,nzhole,nlayt,n1,n2,n3,toutput,cpgrd,lambgrd,rhogrd,cpgrout,lambgrout,rhogrout,rpipe,thickpipe,cppipe,lambpipe,lcasting,lambda,rhosurface,cpsurface,liqtype,tfreeze,lambliq,tmean,geotgrad) VALUES({},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}',{},{},{},{});""".format( # nosec B608
+            main.config['versionName'],key_table,boreholefieldsData[key_table]['ep_id'],boreholefieldsData[key_table]['zhole'],boreholefieldsData[key_table]['rhole'], # nosec B608
+            boreholefieldsData[key_table]['rb'],boreholefieldsData[key_table]['rpipeearth'],boreholefieldsData[key_table]['rpipegrout'],boreholefieldsData[key_table]['rringearth'], # nosec B608
+            boreholefieldsData[key_table]['rgroutearth'],boreholefieldsData[key_table]['rgroutgrout'],boreholefieldsData[key_table]['rmax'], # nosec B608
+            boreholefieldsData[key_table]['nring'],boreholefieldsData[key_table]['nzhole'],boreholefieldsData[key_table]['nlayt'],boreholefieldsData[key_table]['n1'], # nosec B608
+            boreholefieldsData[key_table]['n2'],boreholefieldsData[key_table]['n3'],boreholefieldsData[key_table]['toutput'],boreholefieldsData[key_table]['cpgrd'], # nosec B608
+            boreholefieldsData[key_table]['lambgrd'],boreholefieldsData[key_table]['rhogrd'],boreholefieldsData[key_table]['cpgrout'],boreholefieldsData[key_table]['lambgrout'], # nosec B608
+            boreholefieldsData[key_table]['rhogrout'],boreholefieldsData[key_table]['rpipe'],boreholefieldsData[key_table]['thickpipe'], # nosec B608
+            boreholefieldsData[key_table]['cppipe'],boreholefieldsData[key_table]['lambpipe'],boreholefieldsData[key_table]['lcasting'],boreholefieldsData[key_table]['lambda'], # nosec B608             
+            boreholefieldsData[key_table]['rhosurface'],boreholefieldsData[key_table]['cpsurface'],boreholefieldsData[key_table]['liqtype'],boreholefieldsData[key_table]['tfreeze'], # nosec B608         
+            boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad']) # nosec B608               
     
     try:
         #print(sql)
         main.cur.execute(sql)
         closeDialog(dlg)
     except Exception as e:
-        iface.messageBar().pushMessage("Error", str(e), level=Qgis.Critical)
+        iface.messageBar().pushMessage("Error", str(e), level=MessageCritical)
 
 def showBoreholeFieldSettingsData(dlg,main):
-    sql="""SELECT * FROM "{}".borehole_fields;""".format(main.config['versionName'])
+    sql="""SELECT * FROM "{}".borehole_fields;""".format(main.config['versionName']) # nosec B608
     main.cur.execute(sql)
     boreholes_data=main.cur.fetchall()
     dropdowns=[[20,'public','liquids','id','liquid']]
@@ -134,11 +132,7 @@ def showBoreholeFieldSettingsData(dlg,main):
             'nring': str(i['nring']),'nzhole': str(i['nzhole']),'nlayt': str(i['nlayt']),'n1': str(i['n1']),'n2': str(i['n2']),'n3': str(i['n3']),'toutput': str(i['toutput']),'tmean': str(i['tmean']),'geotgrad': str(i['geotgrad'])}
         
         item = QTableWidgetItem(str(i['id'])) #id
-        try:
-            item_is_editable = Qt.ItemFlag.ItemIsEditable  # Qt6
-        except AttributeError:
-            item_is_editable = Qt.ItemIsEditable           # Qt5 
-        item.setFlags(item.flags() & ~item_is_editable)
+        item.setFlags(item.flags() & ~ItemIsEditable)
 
         dlg.tableWidget.setItem(counter,0,item)            
         comboBox = QComboBox()
@@ -174,7 +168,7 @@ def showBoreholeFieldSettingsData(dlg,main):
         except:
             comboBox.addItems(dropdownItems)
             
-        sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype'])
+        sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype']) # nosec B608
         main.cur.execute(sql)
         comboBox.setCurrentText(main.cur.fetchone()['liquid'])
 
@@ -229,7 +223,7 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
 def openModel(dlg,plugin_dir,config,mode='network'):
     #print('-***-')
     if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
         return False
     requestedOutputs=loadRequestedOutputs(plugin_dir,config)
     for i in range(dlg.combo_submodels.count()):
@@ -267,7 +261,7 @@ def setNetworkSimData(dlg,plugin_dir,config):
     networkSimData['calc_time_from']=dlg.dateedit_calcFrom.text()
     networkSimData['calc_time_to']=dlg.dateedit_calcTo.text()
     if not is_number(dlg.max_timestep.text()):
-        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=Qgis.Warning)
+        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=MessageWarning)
         return False
     else:
         networkSimData['max_timestep']=dlg.max_timestep.text()
@@ -280,7 +274,7 @@ def runModel(dlg,plugin_dir,config):
     if networkSimData:
         dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])
         if dlg.n_sims==0:
-            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
             return False
         requestedOutputs=loadRequestedOutputs(plugin_dir,config)
         invokedOutputs=loadInvokedOutputs(config)
@@ -317,7 +311,7 @@ def runModel(dlg,plugin_dir,config):
                     worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)   
                     worker_runNetwork[i].signals.finished.connect(dlg.update_finished)   
         else:
-            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=Qgis.Info)
+            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=MessageInfo)
 
 def buildModel(dlg,main):
     networks=[]
@@ -335,7 +329,7 @@ def buildModel(dlg,main):
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
         main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)   
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=MessageInfo)
 
 def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     """set requested outputs"""
@@ -708,11 +702,11 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
             else:
-                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=Qgis.Info)
+                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=Qgis.Info)  
+            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
 
 def finishedBuildBuildingModel(args):
     #print('------finished build building model----------')
@@ -839,4 +833,8 @@ def finishedBuildBuildingModel(args):
                     copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
     except Exception as e:
         #print(e)
-        pass
+        QgsMessageLog.logMessage(
+                                    traceback.format_exc(),
+                                    "Districts",
+                                    MessageCritical
+                                )

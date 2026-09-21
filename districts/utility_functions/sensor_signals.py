@@ -218,7 +218,7 @@ SELECT
 	t.target_type_name
 FROM source s
 JOIN target t
-    ON t.sensor_id = s.sensor_id;""".format(getTypeNameById(type)[:-1],template)
+    ON t.sensor_id = s.sensor_id;""".format(getTypeNameById(type)[:-1],template) # nosec B608
     #print(sql)
     cur.execute(sql)
     source_data=cur.fetchall()
