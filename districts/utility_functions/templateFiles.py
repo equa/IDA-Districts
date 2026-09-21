@@ -979,23 +979,31 @@ class WriteTemplateFiles:
             ret_m_conn=' '.join(['('+str(meter['ret_conn'].index(i)+1)+' :MACRO "'+i+'" |M_var|)' for i in meter['ret_conn']])
             ret_t_conn=ret_m_conn.replace('|M_var|','|T_var|')
             if requestedOutputs['mdot_c'] and self.type=='customer' or requestedOutputs['mdot_ep'] and self.type=='energy_plant':
-                flow_output='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
-                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[0])+')' for i in enumerate(meter['sup_conn'],1)])))
+                flow_output_sup='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
+                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1].split('_')[-1])+')' for i in enumerate(meter['sup_conn'],1)])))
+                flow_output_ret='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
+                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1].split('_')[-1])+')' for i in enumerate(meter['ret_conn'],1)])))
             else:
-                flow_output=''
-            #print(flow_output)
+                flow_output_sup=''
+                flow_output_ret=''
+            #print(flow_output_sup)
+            #print(flow_output_ret)
             if requestedOutputs['temp_c'] and self.type=='customer' or requestedOutputs['temp_ep'] and self.type=='energy_plant':
-                temp_output='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
-                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[0])+')' for i in enumerate(meter['sup_conn'],1)])))
+                temp_output_sup='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
+                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1].split('_')[-1])+')' for i in enumerate(meter['sup_conn'],1)])))
+                temp_output_ret='{}{}'.format(""" :L #S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({})) """.format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(meter['name'].split('_')[1])+')' for i in enumerate(meter['sup_conn'],1)])),
+                                            """ :AS #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1].split('_')[-1])+')' for i in enumerate(meter['ret_conn'],1)])))
             else:
-                temp_output=''
-            #print(temp_output)
+                temp_output_sup=''
+                temp_output_ret=''
+            #print(temp_output_sup)
+            #print(temp_output_ret)
 
             if requestedOutputs['power_c'] and self.type=='customer' or requestedOutputs['power_ep'] and self.type=='energy_plant':
                 power_output="""\n (:VAR :N P :V 2665 :L "Connection type sequence_{}" :AS "power")""".format(meter['name'].split('_')[1])
             else:
                 power_output=''
-            if power_output or temp_output or flow_output or requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer':
+            if power_output or temp_output or flow_output_sup or requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer':
                 data+="""\n(OUTPUT-FILE :N "Connection type sequence_{}" :T OUTPUT-FILE)""".format(meter['name'].split('_')[1])
             data+="""\n((:EO :N "{}_Flowmeter2" :T FLOWMETER2){}
  (:PAR :N N_SUP :V {})
@@ -1004,7 +1012,7 @@ class WriteTemplateFiles:
  (:VAR :N TSUP :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){})
  (:VAR :N FLOW_RET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){})
  (:VAR :N TRET :DIM ({}) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({})){}))""".format(
-                meter['name'],power_output,meter['n_sup'],meter['n_ret'],meter['n_sup'],sup_m_conn,flow_output,meter['n_sup'],sup_t_conn,temp_output,meter['n_ret'],ret_m_conn,flow_output,meter['n_ret'],ret_t_conn,temp_output)
+                meter['name'],power_output,meter['n_sup'],meter['n_ret'],meter['n_sup'],sup_m_conn,flow_output_sup,meter['n_sup'],sup_t_conn,temp_output_sup,meter['n_ret'],ret_m_conn,flow_output_ret,meter['n_ret'],ret_t_conn,temp_output_ret)
         data+="\n(CONNECTIONS"   
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
