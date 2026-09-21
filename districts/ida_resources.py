@@ -69,11 +69,11 @@ def calculateKusudaSettings(file,modellingSettings):
     # Create datetime index
     # --------------------------------------------------
 
-    start = pd.Timestamp("2024-01-01 00:00:00")
+    start = pd.Timestamp("2026-01-01 00:00:00")
     df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
 
     # Remove only the extra endpoint of the next year
-    df = df[df["datetime"] < "2025-01-01"]
+    df = df[df["datetime"] < "2027-01-01"]
 
     df = df.set_index("datetime")
 
