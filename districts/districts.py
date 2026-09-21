@@ -130,7 +130,7 @@ class Districts:
         configs = {
             'Shift+D': ('action', self.openPlugin),  
             'Shift+J': ('layer', tr("@default",'junctions')),             
-            'Shift+L': ('layer', tr("@default",'lines')),         
+            'Shift+R': ('layer', tr("@default",'lines')),         
             'Shift+C': ('layer', tr("@default",'customers')),              
             'Shift+E': ('layer', tr("@default",'energy_plants')),          
             'Shift+B': ('layer', tr("@default",'buildings')),              
