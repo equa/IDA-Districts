@@ -204,6 +204,7 @@ def _register_translation_keys():
     tr("db_default_values")
     tr("low_temperature_network")
     tr("secondary_network")
+    tr("hc_network")
     
     #descriptions
     tr("description_importPRNData")

@@ -759,7 +759,7 @@ def finishedImportProject(dlg=None,main=None,projectName=''):
         main.dlg.selectProject.addItem(main.config['projectName'])
         main.dlg.selectProject.setCurrentText(main.config['projectName'])
         main.loadProject()
-        if dlg and dlg.selectTemplate.currentData() in ['heating_network']:
+        if dlg and dlg.selectTemplate.currentData() in ['heating_network','hc_network','secondary_network']:
             main.config['versionName']='base1'
             loadVersion(main=main)
         else:

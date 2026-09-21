@@ -225,7 +225,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_raster WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.cur.execute(sql)
             self.signals.progress.emit(71)
-            if self.project_name and name not in ['secondary_network','low_temperature_network']:
+            if self.project_name and name not in ['secondary_network','low_temperature_network','hc_network']:
                 sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames]) # nosec B608
                 #print(sql)
                 if sql:
@@ -302,7 +302,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                     temp_dir + "db_results.sql"
                 ]
 
-                #print(cmd)  # optional zum Debuggen
+                #print(cmd)
 
                 subprocess.call(cmd, env=env) # nosec B603
             self.conn.close()
