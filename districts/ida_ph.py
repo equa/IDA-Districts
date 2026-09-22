@@ -184,7 +184,8 @@ class GFAAttributeDialog(QDialog):
         
 def loadBuildingsLayer(uri,config,view,username):
     uri.setDataSource(config['versionName'], "buildings", "geom")
-    vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"buildings"), username)
+    vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"buildings"), "postgres")
+        
     QgsProject.instance().addMapLayer(vlayer)
     """
     target_layer = QgsProject.instance().mapLayersByName('room_units')[0]
@@ -706,7 +707,7 @@ def loadVersionLayers(config,cur,plugin_dir):
     loadBuildingsLayer(uri,config,view,auth_cfg.config("username"))    
     try: 
         #uri.setDataSource(config['versionName'], "submodels", "geom")
-        #vlayer = QgsVectorLayer(uri.uri(False), "submodels", auth_cfg.config("username"))
+        #vlayer = QgsVectorLayer(uri.uri(False), "submodels", "postgres")
         #QgsProject.instance().addMapLayer(vlayer)
         #single_symbol_renderer = vlayer.renderer()
         #symbol = single_symbol_renderer.symbol()
@@ -714,7 +715,7 @@ def loadVersionLayers(config,cur,plugin_dir):
         #view.refreshLayerSymbology(vlayer.id())
 
         uri.setDataSource(config['versionName'], "streets", "geom")
-        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"streets"), auth_cfg.config("username"))
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"streets"), "postgres")
         QgsProject.instance().addMapLayer(vlayer) 
         single_symbol_renderer = vlayer.renderer()
         symbol = single_symbol_renderer.symbol()
@@ -730,7 +731,7 @@ def loadVersionLayers(config,cur,plugin_dir):
             MessageCritical
         )
     
-    loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
+    loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,"postgres")
     view = iface.layerTreeView()
     #view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
     view.setLayerVisible(QgsProject.instance().mapLayersByName(tr('@default','streets'))[0], False)    

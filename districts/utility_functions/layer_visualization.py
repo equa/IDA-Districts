@@ -366,7 +366,7 @@ def color_for_index(index, total_count):
 def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
     vlayerName=(tr('@default','boreholes'))
     uri.setDataSource(version, 'boreholes', "geom")
-    vlayer = QgsVectorLayer(uri.uri(False), vlayerName, username)
+    vlayer = QgsVectorLayer(uri.uri(False), vlayerName, "postgres")
     vlayer.setCustomProperty("original_layer_name", 'boreholes')
     QgsProject.instance().addMapLayer(vlayer)  
     # 1. Setup ValueRelation Widget
@@ -504,7 +504,7 @@ def loadTopologyLayers(version,uri,config,username):
         'line_types']
     for tableName in tableNames:
         uri.setDataSource("public", tableName, "")
-        layer = QgsVectorLayer(uri.uri(False), tableName, username)
+        layer = QgsVectorLayer(uri.uri(False), tableName, "postgres")
         QgsProject.instance().addMapLayer(layer)
     
     setLayersHidden(tableNames) 
@@ -537,9 +537,9 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
 
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
-                vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+' temp.', username)
+                vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+' temp.', "postgres")
             else:
-                vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), username)
+                vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), "postgres")
             vlayer.setCustomProperty("original_layer_name", vlayerName)
             QgsProject.instance().addMapLayer(vlayer)  
             #print(vlayerName[:-1])
@@ -665,9 +665,9 @@ def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
     uri.setDataSource(version, vlayerName, "geom")
  
     if version =='temp':
-        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+'_temp', auth_cfg.config("username"))
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+'_temp', "postgres")
     else:
-        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), auth_cfg.config("username"))
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), "postgres")
     QgsProject.instance().addMapLayer(vlayer)  
 
     if vlayerName in ['customers','energy_plants']:     

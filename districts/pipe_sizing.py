@@ -340,9 +340,9 @@ def showLinesTempTable(version,config,plugin_dir):
 
     uri.setDataSource(version, vlayerName, "geom")
     if version =='temp':
-        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+' temp.', username)
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName)+' temp.', "postgres")
     else:
-        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), username)
+        vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), "postgres")
     QgsProject.instance().addMapLayer(vlayer)  
     #print(vlayerName[:-1] + '_types')
     target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_types')
@@ -350,7 +350,7 @@ def showLinesTempTable(version,config,plugin_dir):
         target_layer=target_layer[0]
     else:
         uri.setDataSource("public", 'line_types', "")
-        target_layer = QgsVectorLayer(uri.uri(False), 'line_types', username)
+        target_layer = QgsVectorLayer(uri.uri(False), 'line_types', "postgres")
         QgsProject.instance().addMapLayer(target_layer)
         setLayersHidden(['line_types']) 
     config = {'AllowMulti': False,
