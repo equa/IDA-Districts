@@ -205,6 +205,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_climateVersionData.setIconSize(QSize(btn_size, btn_size))
         self.btn_boreholeFieldSettings.setIcon(QIcon(os.path.join(plugin_dir, "icons/boreholefield.png")))  
         self.btn_boreholeFieldSettings.setIconSize(QSize(btn_size, btn_size))
+        self.btn_calibration.setIcon(QIcon(os.path.join(plugin_dir, "icons/Calibration.png")))  
+        self.btn_calibration.setIconSize(QSize(btn_size, btn_size))
         
         self.btn_buildModel.setIcon(QIcon(os.path.join(plugin_dir, "icons/BuildModel.png")))
         self.btn_buildModel.setIconSize(QSize(btn_size, btn_size))   
@@ -245,13 +247,13 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.projectNameLabel.setFont(font)
         font = self.versionNameLabel.font()
         font.setBold(True)
-        self.versionNameLabel.setFont(font)
-        
-    def modelOpeningFinished(self,message):
-        self.statusMessage.setText(message)
+        self.versionNameLabel.setFont(font)   
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
+        
+    def update_finished(self,message):
+        self.statusMessage.setText(message)
         
     def show_error_message(self, message):
         # Show the error message in a messageBar

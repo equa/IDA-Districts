@@ -9,6 +9,7 @@ from qgis.PyQt.QtGui import QIcon
 from .utility_functions.dialog import *
 from .utility_functions.files import *
 from .utility_functions.db import *
+from .calibrate_customers import *
 
 import os
 import psycopg2
@@ -927,80 +928,100 @@ class RunNetworkModelDialog(QDialog):
         self.process_running=False
         
 class CalibrateCustomers(QDialog):
-    def __init__(self,config,conn):
+    def __init__(self,config,conn,plugin_dir):
         """Constructor."""
         super().__init__()
-        self.setWindowTitle("Customer model calibration") 
-        self.cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)          
+        self.setWindowTitle(tr('@default',"customer_model_calibration")) 
+        self.cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)   
+        self.config=config
+        self.process_running=False
         
-        #radio buttons 
-        layout_rbtn = QHBoxLayout()
-        self.rbtn_annualConumtion = QRadioButton('Use annual consumption data')
-        self.rbtn_annualConumtion.setChecked(True)
-        #self.rbtn_loadProfile = QRadioButton('Use load profile')
-           
-        layout_rbtn.addWidget(self.rbtn_annualConumtion)
-        #layout_rbtn.addWidget(self.rbtn_loadProfile)
-        
+        self.textEdit=QTextEdit(tr('@default','info_calibration'))
+            
         #table templates
         layout_templates = QVBoxLayout()
-        label_templates_title =QLabel("Templates")
+        label_templates_title =QLabel(tr('@default',"templates"))
         font=label_templates_title.font()
         font.setPointSize(15)
         label_templates_title.setFont(font)
         layout_templates.addWidget(label_templates_title)
 
-        self.btn_openTemplate=QPushButton("Open Parametric Run")
-        layout_templates.addWidget(self.btn_openTemplate)
+        self.btn_openTemplate=QPushButton()
+        layout_template_btn=QHBoxLayout()
+        self.btn_openTemplate.setIcon(QIcon(":/images/themes/default/mActionFileOpen.svg"))
+        self.btn_openTemplate.setToolTip(tr('@default','tooltip_openParmrunTemplate'))
+        layout_template_btn.addWidget(self.btn_openTemplate)
+        layout_template_btn.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
+        layout_templates.addLayout(layout_template_btn)
         
-        self.tableWidget_templates = QTableWidget(0,5)   
-        self.tableWidget_templates.setHorizontalHeaderLabels(["Id","Template name","Asset group","Parametric Runs","Used"]) 
+        self.tableWidget_templates = QTableWidget(0,4)   
+        self.tableWidget_templates.setHorizontalHeaderLabels([tr('@default','id'),tr('@default','template'),tr('@default',"parametric_runs"),tr('@default',"used")]) 
         layout_templates.addWidget(self.tableWidget_templates)
         
         #table select customers
         layout_selectCustomers = QVBoxLayout()
-        label_selCust_title =QLabel("Customers")
+        label_selCust_title =QLabel(tr('@default',"customers"))
         font=label_selCust_title.font()
         font.setPointSize(15)
         label_selCust_title.setFont(font)
         layout_selectCustomers.addWidget(label_selCust_title)
-        self.tableWidget_customer = QTableWidget(0,4)   
-        self.tableWidget_customer.setHorizontalHeaderLabels(["ID","Template name","Asset group","Parametric Runs"]) 
+        layout_customer_btn=QHBoxLayout()
+        self.btn_startCallibration=QPushButton()
+        self.btn_startCallibration.setIcon(QIcon(os.path.join(plugin_dir, "icons/Calibration.png")))
+        self.btn_startCallibration.setToolTip(tr('@default','tooltip_startCallibration'))
+        layout_customer_btn.addWidget(self.btn_startCallibration)
+        layout_customer_btn.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
+        layout_selectCustomers.addLayout(layout_customer_btn)
+        self.tableWidget_customer = QTableWidget(0,3)   
+        self.tableWidget_customer.setHorizontalHeaderLabels([tr('@default','id'),tr('@default','template'),tr('@default',"parametric_runs")]) 
         layout_selectCustomers.addWidget(self.tableWidget_customer)
 
         #Results
         layout_results = QVBoxLayout()
-        label_results_title =QLabel("Results (sorted by leftmost output parameter)")
+        label_results_title =QLabel(tr('@default','parmrun_results'))#"Results (sorted by leftmost output parameter)")
         font=label_results_title.font()
         font.setPointSize(15)
         label_results_title.setFont(font)
         layout_results.addWidget(label_results_title)
-        
-        
+                
+        layout_result_btn = QHBoxLayout()
+        self.btn_showCallibCust=QPushButton()
+        self.btn_showCallibCust.setIcon(QIcon(":/images/themes/default/mActionFileOpen.svg"))
+        self.btn_showCallibCust.setToolTip(tr('@default','tooltip_openParmrunResult'))
+        layout_result_btn.addWidget(self.btn_showCallibCust)
+        self.btn_saveCallibration=QPushButton()
+        self.btn_saveCallibration.setIcon(QIcon(":/images/themes/default/mActionFileSave.svg"))
+        self.btn_saveCallibration.setToolTip(tr('@default','tooltip_saveParmrunResult'))
+        layout_result_btn.addWidget(self.btn_saveCallibration)
+        layout_result_btn.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
+        layout_results.addLayout(layout_result_btn)
         self.tabwidget = QTabWidget()
         layout_results.addWidget(self.tabwidget)
         
-    
-        #buttons     
-        layout_buttons = QHBoxLayout()
-        self.btn_startCallibration=QPushButton("Callibrate selected customers")
-        layout_buttons.addWidget(self.btn_startCallibration)
-        self.btn_showCallibCust=QPushButton("Open selected results")
-        layout_buttons.addWidget(self.btn_showCallibCust)
-        self.btn_saveCallibration=QPushButton("Save selected results/Invoke customers")
-        layout_buttons.addWidget(self.btn_saveCallibration)
-        self.btn_cancel=QPushButton("Cancel")
-        layout_buttons.addWidget(self.btn_cancel)
+            
+        #progress bar
+        self.progress=QProgressBar()       
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_rbtn)
+        layout_win.addWidget(self.textEdit)
         layout_win.addLayout(layout_templates)
         layout_win.addLayout(layout_selectCustomers)
         layout_win.addLayout(layout_results)
-        layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
         
         self.setLayout(layout_win)
+        
+    def update_finished(self,message):
+        updateParmruns(self,message)
+        self.process_running=False
+                
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+        
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
 class FeatureModelParmDlg(QDialog):
     def __init__(self,cur,config):
@@ -1104,8 +1125,8 @@ class FeatureModelParmDlg(QDialog):
             table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
                         
             comboBox = QComboBox()
-            #comboBox.addItems(['<-->','<--','-->'])
-            comboBox.addItems(['-->'])
+            comboBox.addItems(['<-->','<--','-->'])
+            #comboBox.addItems(['-->'])
             comboBox.setCurrentText(parm['mapping_direction'])
             table.setCellWidget(i, 2, comboBox)  
             
@@ -1270,113 +1291,6 @@ class FeatureDecouplingDlg(QDialog):
             return        
         for item in listItems:
             self.listWidget_featureModels.takeItem(self.listWidget_featureModels.row(item))
-
-class InvokeFeaturesDlg(QDialog):
-    def __init__(self):
-        """Constructor."""
-        super().__init__()
-        self.setWindowTitle(self.tr("invoke_feature_models_from_template"))
-        self.type=""        
-        
-        #-------------Invoke---------------
-               
-        #invoke buttons       
-        layout_invoke_btn = QHBoxLayout()      
-        
-        self.btn_invokeOne=QPushButton(self.tr("invoke_selected_feature"))
-        layout_invoke_btn.addWidget(self.btn_invokeOne)
-        
-        self.btn_invokeAll=QPushButton(self.tr("invoke_all_features"))
-        layout_invoke_btn.addWidget(self.btn_invokeAll)
-        
-        #radio buttons
-        layout_rbtn = QHBoxLayout()
-        self.rbtn_customers = QRadioButton(tr('@default','customer'))
-        self.rbtn_customers.setChecked(True)
-        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
-           
-        layout_rbtn.addWidget(self.rbtn_customers)
-        layout_rbtn.addWidget(self.rbtn_plants)
-        
-        #table
-        self.tableWidget_customer = QTableWidget(0,2)   
-        self.tableWidget_customer.setHorizontalHeaderLabels([tr('@default','id'),self.tr("feature_is_invoked")])      
-
-        #---------------ok/Open buttons     
-        layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton(tr('@default','ok'))
-        layout_buttons.addWidget(self.btn_ok)
-        self.btn_openInvoked=QPushButton(self.tr("open_invoked_feature"))
-        layout_buttons.addWidget(self.btn_openInvoked)      
-        self.btn_simulateInvoked=QPushButton(self.tr("simulate_invoked_features"))
-        layout_buttons.addWidget(self.btn_simulateInvoked)      
-        self.btn_showFeatureLoad=QPushButton(self.tr("plot_selected_features_load_energy"))
-        layout_buttons.addWidget(self.btn_showFeatureLoad)    
-
-        #progress bar
-        self.progress=QProgressBar()        
-        
-        #---------------set layouts together-------------------
-        layout_win = QVBoxLayout()
-        layout_win.addLayout(layout_invoke_btn)
-        layout_win.addLayout(layout_rbtn)
-        layout_win.addWidget(self.tableWidget_customer)
-        layout_win.addLayout(layout_buttons)
-        layout_win.addWidget(self.progress)
-        
-        self.setLayout(layout_win)         
-        
-    def show_error_message(self, message):
-        # Show the error message in a messageBar
-        #iface.messageBar().pushMessage("Error", message, level=MessageCritical)
-        pass
-        
-    def update_progress(self,progress):
-        self.progress.setValue(progress)
-
-    def show_plots(self,plot):
-        if plot:
-            self.ax.set_title('Load profiles {}'.format(self.type))
-            self.ax2.set_title('Cumulated energy {}'.format(self.type))
-            self.ax.set_xlabel('Time, h')
-            self.ax2.set_xlabel('Time, h')
-            self.ax.set_ylabel('Power, W')
-            self.ax2.set_ylabel('Energy, kWh')
-        
-            self.fig.legend()
-            self.fig2.legend()
-            self.fig.show()            
-            self.fig2.show()  
-        
-    def plot_data(self, data):
-        # Plotting in the main thread, which is non-blocking
-        time=data[0]['time']
-        valuesPowerInt=data[0]['data']
-        label=data[0]['label']
-        self.ax.plot(time, valuesPowerInt,label=label)
-        time=data[1]['time']
-        valuesEnergyInt=data[1]['data']
-        label=data[1]['label']
-        self.ax2.plot(time, valuesEnergyInt,label=label)
-        
-    def plot_total_data(self, data):
-        try:
-            fig1, ax1 = plt.subplots(layout='constrained')
-            time=data[0]['time']
-            power_sum=data[0]['data']
-            ax1.plot(time, power_sum, label='Total power, W')
-            time=data[1]['time']
-            energy_sum=data[1]['data']
-            ax1.plot(time, energy_sum, label='Total energy, kWh')
-            ax1.set_title('Total load profiles')
-            plt.legend()
-            fig1.show()
-        except:
-            QgsMessageLog.logMessage(
-                traceback.format_exc(),
-                "Districts",
-                MessageCritical
-            )
 
 #dublicated code
 class ComboBox(QComboBox):

@@ -2,6 +2,7 @@ from qgis.PyQt import QtCore, QtGui, QtWidgets
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import Qt
 from qgis._3d import QgsPolygon3DSymbol
+from qgis.PyQt.QtWidgets import QAbstractItemView
 
 QT6 = QtCore.QT_VERSION >= 0x060000
 
@@ -47,6 +48,11 @@ if QT6:
     ApplicationShortcut = Qt.ShortcutContext.ApplicationShortcut
 else:
     ApplicationShortcut = Qt.ApplicationShortcut
+    
+if QT6:
+    SelectRows = QAbstractItemView.SelectionBehavior.SelectRows
+else:
+    SelectRows = QAbstractItemView.SelectRows
     
 if QT6:
     PolygonPropertyHeight = QgsPolygon3DSymbol.Property.PropertyHeight

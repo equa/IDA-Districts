@@ -1,4 +1,4 @@
-from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings, QTimer, QEventLoop
 from .util import *
 from .topology import *
 from .files import *
@@ -18,7 +18,17 @@ import zipfile
 from pathlib import Path
 import traceback
 
-
+def wait(ms):
+    loop = QEventLoop()
+    QTimer.singleShot(ms, loop.quit)
+    loop.exec()
+        
+def process_wait(dlg,max_sec=60):
+    counter=0
+    while dlg.process_running==True and counter<max_sec:
+        wait(1000)
+        counter+=1
+        #print('-wait: '+str(counter)+'s')
     
 def show_error_message(message):
     # Show the error message in a messageBar
@@ -683,38 +693,56 @@ class WorkerOpenAPI(QRunnable):
 class WorkerOpenModelCmd(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,config,submodel='1'):
+    def __init__(self,file_path,config,submodel='1',script=None,progress=True):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
         self.signals=APISignals()
         self.submodel=submodel
         self.config=config
+        self.script=script
+        self.progress=progress
             
     @pyqtSlot()
     def run(self):
         #open file in IDA
-        self.signals.progress.emit(1)
+        if self.progress:
+            self.signals.progress.emit(1)
 
         try:
             cmd = [
-                f"{self.config['pathDistricts']}bin\\ida-districts.exe",
-                f"{self.config['pathDistricts']}bin\\ida.img",
+                f'"{self.config['pathDistricts']}bin\\ida-districts.exe"',
+                f'"{self.config['pathDistricts']}bin\\ida.img"',
                 "-C",
                 f"ida_{self.submodel}_{time.strftime('%m%d%H%M%S', time.localtime())}",
-                "-G1",
-                "-O",
-                self.file_path
+                "-G1"
             ]
+            if self.script:
+                cmd.append('-e')
+                writeToFile(self.script,districtsModelerTempDir(),os.path.join(districtsModelerTempDir(),"script.txt"))
+                cmd.append('"'+os.path.join(districtsModelerTempDir(),"script.txt").replace('\\','\\\\')+'"')
+                cmd.append('-r')
+            cmd.append('"'+self.file_path+'"')     
+            cmd=' '.join(cmd)
+            #print(cmd)
 
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)  # nosec B603
+            result = subprocess.run(cmd, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True)  # nosec B603
+            #print(result)
 
             if result.returncode==0:
-                self.signals.progress.emit(100)
-                self.signals.finished.emit('IDA Districts model updated successfully!')
+                if self.progress:
+                    self.signals.progress.emit(100)
+                #print('updated')
+                self.signals.finished.emit(result.args)
             else:
-                self.signals.progress.emit(0)
+                if self.progress:
+                    self.signals.progress.emit(0)
+                self.signals.finished.emit('IDA Districts model updated failed!')
         except Exception as e:
-            self.signals.progress.emit(0)
+            if self.progress:
+                self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature!: "+ str(e))  
             
 class WorkerOpenRunScriptAPI(QRunnable):
@@ -778,92 +806,3 @@ class WorkerOpenRunScriptAPI(QRunnable):
         except:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature or run the script!")     
-            
-class WorkerOpenParRunAPI():
-    """ Class to open IDA Doc with API """
-    def __init__(self,file_path,plugin_dir,config,parmRun):
-        #open file in IDA
-        self.util=Util_api(plugin_dir,config)
-        self.file_path=file_path.replace('/','\\')
-        #print(self.util.pid)
-        
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        #print(connectionTest)
-        try:
-            building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            if parmRun=='New Parametric Run':
-                script="""((:set name (:call get-unique-component-name "ParmRun_1" [@ :SYSTEM]))
-(:set value (:call make-component [@ :SYSTEM] '(macro-object :t parmrun-info :n (:eval name))))
-(on-add-component value)
-(log-add-object value [@ :SYSTEM])
-(if (:call object-p value)
-  (:call open-as value 'form)))"""
-            else:
-                script="""((:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
-(open-as parm_name 'form))""".format(parmRun)
-            
-            #print(script)
-            script_result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
-            #print(script_result)
-        except:
-            QgsMessageLog.logMessage(
-                traceback.format_exc(),
-                "Districts",
-                MessageCritical
-            )
-            
-class WorkerRunAutoMooAPI():
-    """ Class to open IDA Doc with API """
-    def __init__(self,file_path,plugin_dir,config,parmRun):
-        #open file in IDA
-        self.util=Util_api(plugin_dir,config)
-        self.file_path=file_path.replace('/','\\')
-        #print(self.file_path)
-        #print(self.util.pid)
-        # IDA Districts connection test
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        #print(connectionTest)
-        try:
-            #print('**************ParmRunSkopt*****************')
-            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            #print(self.building)
-
-            #print('save doc')
-            self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
-            
-            #print('--script---')
-            #execute AutoMOO
-            script="""((:set parmrun_ [@ "{}"])
-(:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
-(open-as parm_name 'form)
-(parmrun-init-summary parmrun_)
-(parmrun-common-check parmrun_ t)
-(PARMRUN-SKOPT parmrun_)
-)""".format(parmRun,parmRun)
-            #print(script)
-            self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
-      
-            #print('save doc')
-            self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.file_path.encode(), 1)
-
-            #print('exit')
-            #self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, """(exit-ida)""".encode('utf-8'))
-            taskkill = os.path.join(
-                os.environ["SystemRoot"],
-                "System32",
-                "taskkill.exe"
-            )
-
-            subprocess.run([taskkill, "/f", "/im", "ida-ice.exe"],check=False,) # nosec B603
-            #Disconnect
-            #print('disconnect')
-            #end = self.util.ida_lib.ida_disconnect()
-            #print('finish')
-        except:
-            QgsMessageLog.logMessage(
-                traceback.format_exc(),
-                "Districts",
-                MessageCritical
-            )
-        
-            

@@ -114,6 +114,18 @@ def _register_translation_keys():
     
     tr("eff_width")
     
+    #parmruns
+    tr("parametric_runs")
+    tr("used")
+    tr("parmrun_results")
+    tr("customer_model_calibration")
+    tr("new_parametric_run")
+    tr("info_calibration")
+    tr("tooltip_openParmrunTemplate")
+    tr("tooltip_startCallibration")
+    tr("tooltip_openParmrunResult")
+    tr("tooltip_saveParmrunResult")
+    
     #tables
     tr("unit")
     tr("value")

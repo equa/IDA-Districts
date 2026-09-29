@@ -213,17 +213,17 @@
         <translation type="unfinished">Minimum return temp. (EP)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="118"/>
+        <location filename="../utility_functions/translations.py" line="130"/>
         <source>unit</source>
         <translation type="unfinished">Unit</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="119"/>
+        <location filename="../utility_functions/translations.py" line="131"/>
         <source>value</source>
         <translation type="unfinished">Value</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="120"/>
+        <location filename="../utility_functions/translations.py" line="132"/>
         <source>kpi</source>
         <translation type="unfinished">KPI</translation>
     </message>
@@ -395,7 +395,7 @@
         <translation type="unfinished">Version</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="121"/>
+        <location filename="../utility_functions/translations.py" line="133"/>
         <source>length</source>
         <translation type="unfinished">Length, m</translation>
     </message>
@@ -405,27 +405,27 @@
         <translation type="obsolete">Inner pipe diameter, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="123"/>
+        <location filename="../utility_functions/translations.py" line="135"/>
         <source>pipe</source>
         <translation type="unfinished">Pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="124"/>
+        <location filename="../utility_functions/translations.py" line="136"/>
         <source>costs</source>
         <translation type="unfinished">Costs, €</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="127"/>
+        <location filename="../utility_functions/translations.py" line="139"/>
         <source>pipe_info_titel</source>
         <translation type="unfinished">Pipe info</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="122"/>
+        <location filename="../utility_functions/translations.py" line="134"/>
         <source>innerdiameter</source>
         <translation type="unfinished">Inner pipe diameter, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="134"/>
+        <location filename="../utility_functions/translations.py" line="146"/>
         <source>network</source>
         <translation type="unfinished">Network</translation>
     </message>
@@ -464,7 +464,7 @@
         <translation type="unfinished">Route</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="129"/>
+        <location filename="../utility_functions/translations.py" line="141"/>
         <source>map_plots</source>
         <translation type="unfinished">Map plots</translation>
     </message>
@@ -484,42 +484,42 @@
         <translation type="unfinished">Energy plants</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="132"/>
+        <location filename="../utility_functions/translations.py" line="144"/>
         <source>id</source>
         <translation type="unfinished">ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="133"/>
+        <location filename="../utility_functions/translations.py" line="145"/>
         <source>template</source>
         <translation type="unfinished">Template</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="135"/>
+        <location filename="../utility_functions/translations.py" line="147"/>
         <source>submodel</source>
         <translation type="unfinished">Submodel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="136"/>
+        <location filename="../utility_functions/translations.py" line="148"/>
         <source>load_w</source>
         <translation type="unfinished">Load, W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="139"/>
+        <location filename="../utility_functions/translations.py" line="151"/>
         <source>gfa_m2</source>
         <translation type="unfinished">Gross floor area, m2</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="140"/>
+        <location filename="../utility_functions/translations.py" line="152"/>
         <source>type</source>
         <translation type="unfinished">Type</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="141"/>
+        <location filename="../utility_functions/translations.py" line="153"/>
         <source>pipe_bundle_type_id</source>
         <translation type="unfinished">Pipe bundle ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="142"/>
+        <location filename="../utility_functions/translations.py" line="154"/>
         <source>zeta</source>
         <translation type="unfinished">Zeta</translation>
     </message>
@@ -529,42 +529,42 @@
         <translation type="obsolete">No. connections</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="144"/>
+        <location filename="../utility_functions/translations.py" line="156"/>
         <source>length_m</source>
         <translation type="unfinished">Length, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="145"/>
+        <location filename="../utility_functions/translations.py" line="157"/>
         <source>costs_eur7m</source>
         <translation type="unfinished">Costs, €/m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="146"/>
+        <location filename="../utility_functions/translations.py" line="158"/>
         <source>b_id</source>
         <translation type="unfinished">Building ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="147"/>
+        <location filename="../utility_functions/translations.py" line="159"/>
         <source>z_id</source>
         <translation>Zone ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="148"/>
+        <location filename="../utility_functions/translations.py" line="160"/>
         <source>substation_id</source>
         <translation type="unfinished">Substation ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="149"/>
+        <location filename="../utility_functions/translations.py" line="161"/>
         <source>z_bh_m</source>
         <translation type="unfinished">Zone base height, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="150"/>
+        <location filename="../utility_functions/translations.py" line="162"/>
         <source>z_height_m</source>
         <translation type="unfinished">Zone height CH, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="143"/>
+        <location filename="../utility_functions/translations.py" line="155"/>
         <source>n_connections</source>
         <translation type="unfinished">No. connections</translation>
     </message>
@@ -620,22 +620,22 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="153"/>
+        <location filename="../utility_functions/translations.py" line="165"/>
         <source>general</source>
         <translation type="unfinished">General</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="155"/>
+        <location filename="../utility_functions/translations.py" line="167"/>
         <source>simulation_data</source>
         <translation type="unfinished">Simulation data</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="156"/>
+        <location filename="../utility_functions/translations.py" line="168"/>
         <source>meta_data</source>
         <translation type="unfinished">Meta data</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="154"/>
+        <location filename="../utility_functions/translations.py" line="166"/>
         <source>physical_data</source>
         <translation type="unfinished">Physical data</translation>
     </message>
@@ -670,57 +670,57 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="159"/>
+        <location filename="../utility_functions/translations.py" line="171"/>
         <source>unkown</source>
         <translation type="unfinished">Unkown</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="161"/>
+        <location filename="../utility_functions/translations.py" line="173"/>
         <source>cross</source>
         <translation type="unfinished">Cross</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="162"/>
+        <location filename="../utility_functions/translations.py" line="174"/>
         <source>end_cap</source>
         <translation type="unfinished">End cap</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="163"/>
+        <location filename="../utility_functions/translations.py" line="175"/>
         <source>reducer</source>
         <translation type="unfinished">Reducer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="164"/>
+        <location filename="../utility_functions/translations.py" line="176"/>
         <source>tee</source>
         <translation type="unfinished">Tee</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="165"/>
+        <location filename="../utility_functions/translations.py" line="177"/>
         <source>y_connector</source>
         <translation type="unfinished">Y-connector</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="167"/>
+        <location filename="../utility_functions/translations.py" line="179"/>
         <source>service_pipe</source>
         <translation type="unfinished">Service pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="168"/>
+        <location filename="../utility_functions/translations.py" line="180"/>
         <source>distribution_pipe</source>
         <translation type="unfinished">Distribution pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="169"/>
+        <location filename="../utility_functions/translations.py" line="181"/>
         <source>transmission_pipe</source>
         <translation type="unfinished">Transmission pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="170"/>
+        <location filename="../utility_functions/translations.py" line="182"/>
         <source>station_pipe</source>
         <translation type="unfinished">Station pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="171"/>
+        <location filename="../utility_functions/translations.py" line="183"/>
         <source>customer_pipe</source>
         <translation type="unfinished">Customer pipe</translation>
     </message>
@@ -741,12 +741,12 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="173"/>
+        <location filename="../utility_functions/translations.py" line="185"/>
         <source>simplified_consumer</source>
         <translation type="unfinished">Simplified consumer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="178"/>
+        <location filename="../utility_functions/translations.py" line="190"/>
         <source>ideal_heat_source</source>
         <translation type="unfinished">Ideal heat source</translation>
     </message>
@@ -757,32 +757,32 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="174"/>
+        <location filename="../utility_functions/translations.py" line="186"/>
         <source>simplified_consumer_2sup_2ret</source>
         <translation type="unfinished">Simplified consumer 2sup 2ret</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="175"/>
+        <location filename="../utility_functions/translations.py" line="187"/>
         <source>simplified_consumer_2sup_1ret</source>
         <translation type="unfinished">Simplified consumer 2sup 1ret</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="176"/>
+        <location filename="../utility_functions/translations.py" line="188"/>
         <source>simplified_consumer_hp</source>
         <translation type="unfinished">Simplified consumer with HP</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="179"/>
+        <location filename="../utility_functions/translations.py" line="191"/>
         <source>ideal_cooling_source</source>
         <translation type="unfinished">Ideal cooling source</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="180"/>
+        <location filename="../utility_functions/translations.py" line="192"/>
         <source>ideal_heat_cooling_source_2sup_2ret</source>
         <translation type="unfinished">Ideal heating or cooling source 2sup 2ret</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="181"/>
+        <location filename="../utility_functions/translations.py" line="193"/>
         <source>ideal_heat_cooling_source_2sup_1ret</source>
         <translation type="unfinished">Ideal heating or cooling source 2sup 1ret</translation>
     </message>
@@ -804,7 +804,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="184"/>
+        <location filename="../utility_functions/translations.py" line="196"/>
         <source>set_load_attribute</source>
         <translation type="unfinished">Set load attribute</translation>
     </message>
@@ -815,22 +815,22 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="186"/>
+        <location filename="../utility_functions/translations.py" line="198"/>
         <source>customer_data_sheet</source>
         <translation type="unfinished">Customer Data Sheet</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="202"/>
+        <location filename="../utility_functions/translations.py" line="214"/>
         <source>empty_project</source>
         <translation type="unfinished">Empty project</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="203"/>
+        <location filename="../utility_functions/translations.py" line="215"/>
         <source>heating_network</source>
         <translation type="unfinished">Heating network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="204"/>
+        <location filename="../utility_functions/translations.py" line="216"/>
         <source>db_default_values</source>
         <translation type="unfinished">DB default values</translation>
     </message>
@@ -883,7 +883,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1028"/>
+        <location filename="../ida_mosim_dialog.py" line="1050"/>
         <source>@default</source>
         <comment>fields</comment>
         <translation type="unfinished">Mirror</translation>
@@ -967,17 +967,17 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="188"/>
+        <location filename="../utility_functions/translations.py" line="200"/>
         <source>import</source>
         <translation type="unfinished">Import</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="189"/>
+        <location filename="../utility_functions/translations.py" line="201"/>
         <source>cancel</source>
         <translation type="unfinished">Cancel</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="210"/>
+        <location filename="../utility_functions/translations.py" line="222"/>
         <source>description_importPRNData</source>
         <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
   &lt;p&gt;
@@ -995,7 +995,7 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="211"/>
+        <location filename="../utility_functions/translations.py" line="223"/>
         <source>description_importLineFeature</source>
         <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
   &lt;p&gt;
@@ -1021,7 +1021,7 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="212"/>
+        <location filename="../utility_functions/translations.py" line="224"/>
         <source>description_importFeaturePoint</source>
         <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
   &lt;p&gt;
@@ -1041,77 +1041,77 @@
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="373"/>
+        <location filename="../utility_functions/translations.py" line="385"/>
         <source>import_plants_or_customers_from_layer</source>
         <translation type="unfinished">Import plants or customers from layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="374"/>
+        <location filename="../utility_functions/translations.py" line="386"/>
         <source>import_network_topology_from_layer</source>
         <translation type="unfinished">Import network topology from layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="375"/>
+        <location filename="../utility_functions/translations.py" line="387"/>
         <source>network_layer</source>
         <translation type="unfinished">Network layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="376"/>
+        <location filename="../utility_functions/translations.py" line="388"/>
         <source>point_layer</source>
         <translation type="unfinished">Point layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="377"/>
+        <location filename="../utility_functions/translations.py" line="389"/>
         <source>extend_topology</source>
         <translation type="unfinished">Extend topology</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="378"/>
+        <location filename="../utility_functions/translations.py" line="390"/>
         <source>truncate_existing_topology</source>
         <translation type="unfinished">Truncate existing topology</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="379"/>
+        <location filename="../utility_functions/translations.py" line="391"/>
         <source>layer_fields</source>
         <translation type="unfinished">Layer fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="380"/>
+        <location filename="../utility_functions/translations.py" line="392"/>
         <source>line_fields</source>
         <translation type="unfinished">Route fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="381"/>
+        <location filename="../utility_functions/translations.py" line="393"/>
         <source>feature_fields</source>
         <translation type="unfinished">Feature fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="382"/>
+        <location filename="../utility_functions/translations.py" line="394"/>
         <source>expression</source>
         <translation type="unfinished">Expression</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="383"/>
+        <location filename="../utility_functions/translations.py" line="395"/>
         <source>fields</source>
         <translation type="unfinished">Fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="384"/>
+        <location filename="../utility_functions/translations.py" line="396"/>
         <source>map_layer_fields</source>
         <translation type="unfinished">Map layer fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="385"/>
+        <location filename="../utility_functions/translations.py" line="397"/>
         <source>pipe_bundle_type_editor</source>
         <translation type="unfinished">Pipe bundle type editor</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="187"/>
+        <location filename="../utility_functions/translations.py" line="199"/>
         <source>disconnect</source>
         <translation type="unfinished">Disconnect</translation>
     </message>
     <message>
-        <location filename="../utility_functions/dialog.py" line="416"/>
+        <location filename="../utility_functions/invoke.py" line="66"/>
         <source>@default</source>
         <comment>ok</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1177,54 +1177,54 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="185"/>
+        <location filename="../utility_functions/translations.py" line="197"/>
         <source>set_gfa_attribute</source>
         <translation type="unfinished">Set gross floor area field</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1009"/>
+        <location filename="../ida_mosim_dialog.py" line="1031"/>
         <source>@default</source>
         <comment>title_feature_model_parameter_mapping</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1034"/>
+        <location filename="../ida_mosim_dialog.py" line="1056"/>
         <source>@default</source>
         <comment>info_feature_parm_mapping</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="452"/>
+        <location filename="../utility_functions/invoke.py" line="62"/>
         <source>@default</source>
         <comment>id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1051"/>
+        <location filename="../ida_mosim_dialog.py" line="1073"/>
         <source>@default</source>
         <comment>mapping_expression</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1051"/>
+        <location filename="../ida_mosim_dialog.py" line="1073"/>
         <source>@default</source>
         <comment>mapping_direction</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1051"/>
+        <location filename="../ida_mosim_dialog.py" line="1073"/>
         <source>@default</source>
         <comment>parameter_name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1051"/>
+        <location filename="../ida_mosim_dialog.py" line="1073"/>
         <source>@default</source>
         <comment>model_name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1051"/>
+        <location filename="../ida_mosim_dialog.py" line="1073"/>
         <source>@default</source>
         <comment>macro_name</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1241,52 +1241,52 @@
         <translation type="unfinished">Description</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="390"/>
+        <location filename="../utility_functions/translations.py" line="402"/>
         <source>title_feature_model_parameter_mapping</source>
         <translation type="unfinished">Feature model parameter mapping</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="391"/>
+        <location filename="../utility_functions/translations.py" line="403"/>
         <source>info_feature_parm_mapping</source>
         <translation type="unfinished">Info: Double click on the field in order to map it to the selected mapping expression. Allowed operators are: +, -, *, / and **. Allowed functions are : str(), int(), float() and round().</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="392"/>
+        <location filename="../utility_functions/translations.py" line="404"/>
         <source>mapping_expression</source>
         <translation type="unfinished">Mapping expression</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="393"/>
+        <location filename="../utility_functions/translations.py" line="405"/>
         <source>mapping_direction</source>
         <translation type="unfinished">Mapping direction</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="394"/>
+        <location filename="../utility_functions/translations.py" line="406"/>
         <source>parameter_name</source>
         <translation type="unfinished">Parameter name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="395"/>
+        <location filename="../utility_functions/translations.py" line="407"/>
         <source>model_name</source>
         <translation type="unfinished">Model name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="396"/>
+        <location filename="../utility_functions/translations.py" line="408"/>
         <source>macro_name</source>
         <translation type="unfinished">Macro name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="419"/>
+        <location filename="../utility_functions/translations.py" line="431"/>
         <source>new_districts_project</source>
         <translation type="unfinished">New districts project</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="420"/>
+        <location filename="../utility_functions/translations.py" line="432"/>
         <source>project_name</source>
         <translation type="unfinished">Project name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="205"/>
+        <location filename="../utility_functions/translations.py" line="217"/>
         <source>low_temperature_network</source>
         <translation type="unfinished">Low temperature network</translation>
     </message>
@@ -1297,49 +1297,49 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="190"/>
+        <location filename="../utility_functions/translations.py" line="202"/>
         <source>create</source>
         <translation type="unfinished">Create</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="191"/>
+        <location filename="../utility_functions/translations.py" line="203"/>
         <source>ok</source>
         <translation type="unfinished">Ok</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="612"/>
+        <location filename="../districts.py" line="619"/>
         <source>@default</source>
         <comment>delete_project</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="613"/>
+        <location filename="../districts.py" line="620"/>
         <source>@default</source>
         <comment>ask_delete_project</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="415"/>
+        <location filename="../utility_functions/translations.py" line="427"/>
         <source>delete_project</source>
         <translation type="unfinished">Delete project</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="416"/>
+        <location filename="../utility_functions/translations.py" line="428"/>
         <source>ask_delete_project</source>
         <translation type="unfinished">Are you sure you want to delete project &quot;{}&quot;?</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="497"/>
+        <location filename="../utility_functions/translations.py" line="509"/>
         <source>no_db_connection</source>
         <translation type="unfinished">You are not connected to the DB!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="498"/>
+        <location filename="../utility_functions/translations.py" line="510"/>
         <source>no_project_selected</source>
         <translation type="unfinished">No project selected!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="499"/>
+        <location filename="../utility_functions/translations.py" line="511"/>
         <source>no_version_selected</source>
         <translation type="unfinished">No version selected!</translation>
     </message>
@@ -1356,18 +1356,18 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="619"/>
+        <location filename="../districts.py" line="626"/>
         <source>@default</source>
         <comment>no_project_selected</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="500"/>
+        <location filename="../utility_functions/translations.py" line="512"/>
         <source>no_version_loaded</source>
         <translation type="unfinished">Please load a project version!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="501"/>
+        <location filename="../utility_functions/translations.py" line="513"/>
         <source>no_layer_selected</source>
         <translation type="unfinished">Please select a layer!</translation>
     </message>
@@ -1378,94 +1378,94 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="969"/>
+        <location filename="../districts.py" line="974"/>
         <source>@default</source>
         <comment>project_loaded</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="999"/>
+        <location filename="../districts.py" line="1008"/>
         <source>@default</source>
         <comment>db_connected</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1003"/>
+        <location filename="../districts.py" line="1012"/>
         <source>@default</source>
         <comment>db_disconnected</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="507"/>
+        <location filename="../utility_functions/translations.py" line="519"/>
         <source>version_loaded</source>
         <translation type="unfinished">Version &quot;{}&quot; is successfully loaded!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="508"/>
+        <location filename="../utility_functions/translations.py" line="520"/>
         <source>project_loaded</source>
         <translation type="unfinished">Project &quot;{}&quot; is successfully loaded!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="510"/>
+        <location filename="../utility_functions/translations.py" line="522"/>
         <source>db_connected</source>
         <translation type="unfinished">Connected to DB</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="511"/>
+        <location filename="../utility_functions/translations.py" line="523"/>
         <source>db_disconnected</source>
         <translation type="unfinished">Unconnected to DB</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="423"/>
+        <location filename="../utility_functions/translations.py" line="435"/>
         <source>coordinate_system_srid</source>
         <translation type="unfinished">Coordination system (SRID)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="424"/>
+        <location filename="../utility_functions/translations.py" line="436"/>
         <source>project_configuration_settings</source>
         <translation type="unfinished">Project configuration settings</translation>
     </message>
     <message>
-        <location filename="../utility_functions/invoke.py" line="365"/>
+        <location filename="../utility_functions/invoke.py" line="472"/>
         <source>@default</source>
         <comment>no_item_selected</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="409"/>
+        <location filename="../districts.py" line="416"/>
         <source>@default</source>
         <comment>delete_version</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="410"/>
+        <location filename="../districts.py" line="417"/>
         <source>@default</source>
         <comment>ask_delete_version</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="423"/>
+        <location filename="../districts.py" line="430"/>
         <source>@default</source>
         <comment>add_base_version</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="399"/>
+        <location filename="../utility_functions/translations.py" line="411"/>
         <source>delete_version</source>
         <translation type="unfinished">Delete version</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="412"/>
+        <location filename="../utility_functions/translations.py" line="424"/>
         <source>ask_delete_version</source>
         <translation type="unfinished">Are you sure you want to delete project version &quot;{}&quot;?</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="411"/>
+        <location filename="../utility_functions/translations.py" line="423"/>
         <source>add_base_version</source>
         <translation type="unfinished">Add a base version</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="502"/>
+        <location filename="../utility_functions/translations.py" line="514"/>
         <source>no_item_selected</source>
         <translation type="unfinished">Please select an item!</translation>
     </message>
@@ -1496,76 +1496,76 @@
         <translation type="unfinished">Select directory</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="403"/>
+        <location filename="../utility_functions/translations.py" line="415"/>
         <source>import_districts_project_directory</source>
         <translation type="unfinished">Districts project directory</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="407"/>
+        <location filename="../utility_functions/translations.py" line="419"/>
         <source>export_project_settings</source>
         <translation type="unfinished">Export project settings</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="408"/>
+        <location filename="../utility_functions/translations.py" line="420"/>
         <source>export</source>
         <translation type="unfinished">Export</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="928"/>
+        <location filename="../districts.py" line="935"/>
         <source>@default</source>
         <comment>settings_saved</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="512"/>
+        <location filename="../utility_functions/translations.py" line="524"/>
         <source>settings_saved</source>
         <translation type="unfinished">Settings saved correctly!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="513"/>
+        <location filename="../utility_functions/translations.py" line="525"/>
         <source>version_deleted</source>
         <translation type="unfinished">Version &quot;{}&quot; deleted successfully!</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1387"/>
+        <location filename="../districts.py" line="1416"/>
         <source>@default</source>
         <comment>osm_streets</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1388"/>
+        <location filename="../districts.py" line="1417"/>
         <source>@default</source>
         <comment>osm_buildings</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1389"/>
+        <location filename="../districts.py" line="1418"/>
         <source>@default</source>
         <comment>elevation_data</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="427"/>
+        <location filename="../utility_functions/translations.py" line="439"/>
         <source>drop_old_features</source>
         <translation type="unfinished">Drop old features</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="428"/>
+        <location filename="../utility_functions/translations.py" line="440"/>
         <source>osm_streets</source>
         <translation type="unfinished">Streets from OSM</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="429"/>
+        <location filename="../utility_functions/translations.py" line="441"/>
         <source>osm_buildings</source>
         <translation type="unfinished">Buildings from OSM</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="514"/>
+        <location filename="../utility_functions/translations.py" line="526"/>
         <source>import_completed</source>
         <translation type="unfinished">Import {} completed!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="479"/>
+        <location filename="../utility_functions/translations.py" line="491"/>
         <source>elevation_data</source>
         <translation type="unfinished">Elevation data</translation>
     </message>
@@ -1639,22 +1639,22 @@
         <translation type="unfinished">Alias</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="490"/>
+        <location filename="../utility_functions/translations.py" line="502"/>
         <source>import_measurement_data_into_DB</source>
         <translation type="unfinished">Import measurement data into DB</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="491"/>
+        <location filename="../utility_functions/translations.py" line="503"/>
         <source>data_interpolation_s</source>
         <translation type="unfinished">Data interpolation, s</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="492"/>
+        <location filename="../utility_functions/translations.py" line="504"/>
         <source>delete_data_selected_variables</source>
         <translation type="unfinished">Delete data of selected variables</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="493"/>
+        <location filename="../utility_functions/translations.py" line="505"/>
         <source>delete_data_selected_variables_present_feature_id</source>
         <translation type="unfinished">Delete data of selected variables with present feature ID</translation>
     </message>
@@ -1665,7 +1665,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="494"/>
+        <location filename="../utility_functions/translations.py" line="506"/>
         <source>data_source</source>
         <translation type="unfinished">Data source</translation>
     </message>
@@ -1676,37 +1676,37 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="763"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>connection_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="767"/>
+        <location filename="../districts.py" line="774"/>
         <source>@default</source>
         <comment>type</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="742"/>
+        <location filename="../districts.py" line="749"/>
         <source>@default</source>
         <comment>massflow_set_asboundary_condition</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="742"/>
+        <location filename="../districts.py" line="749"/>
         <source>@default</source>
         <comment>design_temperature</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="742"/>
+        <location filename="../districts.py" line="749"/>
         <source>@default</source>
         <comment>design_pressure</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="742"/>
+        <location filename="../districts.py" line="749"/>
         <source>@default</source>
         <comment>design_massflow</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1724,32 +1724,32 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="482"/>
+        <location filename="../utility_functions/translations.py" line="494"/>
         <source>connections</source>
         <translation type="unfinished">Connections</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="483"/>
+        <location filename="../utility_functions/translations.py" line="495"/>
         <source>connection_id</source>
         <translation type="unfinished">Connection ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="484"/>
+        <location filename="../utility_functions/translations.py" line="496"/>
         <source>massflow_set_asboundary_condition</source>
         <translation type="unfinished">Massflow set as boundary condition</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="485"/>
+        <location filename="../utility_functions/translations.py" line="497"/>
         <source>design_temperature</source>
         <translation type="unfinished">Design temperature, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="486"/>
+        <location filename="../utility_functions/translations.py" line="498"/>
         <source>design_pressure</source>
         <translation type="unfinished">Design pressure, Pa</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="487"/>
+        <location filename="../utility_functions/translations.py" line="499"/>
         <source>design_massflow</source>
         <translation type="unfinished">Design massflow, kg/s</translation>
     </message>
@@ -1760,17 +1760,17 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="192"/>
+        <location filename="../utility_functions/translations.py" line="204"/>
         <source>add_btn</source>
         <translation type="unfinished">Add</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="193"/>
+        <location filename="../utility_functions/translations.py" line="205"/>
         <source>delete</source>
         <translation type="unfinished">Delete</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="194"/>
+        <location filename="../utility_functions/translations.py" line="206"/>
         <source>save</source>
         <translation type="unfinished">Save</translation>
     </message>
@@ -1781,7 +1781,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="763"/>
+        <location filename="../districts.py" line="770"/>
         <source>@default</source>
         <comment>connection_type_id</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1799,61 +1799,61 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="767"/>
+        <location filename="../districts.py" line="774"/>
         <source>@default</source>
         <comment>connection_bundle_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>pipe_bundle_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>investment_costs</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>operating_costs</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>x_coord</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>y_coord</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>ambient</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="775"/>
+        <location filename="../districts.py" line="782"/>
         <source>@default</source>
         <comment>materials</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="783"/>
+        <location filename="../districts.py" line="790"/>
         <source>@default</source>
         <comment>name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="775"/>
+        <location filename="../districts.py" line="782"/>
         <source>@default</source>
         <comment>thermal_conductivity</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1871,7 +1871,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="779"/>
+        <location filename="../districts.py" line="786"/>
         <source>@default</source>
         <comment>construction_id</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1889,7 +1889,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="783"/>
+        <location filename="../districts.py" line="790"/>
         <source>@default</source>
         <comment>pipes</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1907,19 +1907,19 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="783"/>
+        <location filename="../districts.py" line="790"/>
         <source>@default</source>
         <comment>pipe_construction_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="783"/>
+        <location filename="../districts.py" line="790"/>
         <source>@default</source>
         <comment>pipe_costs</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="546"/>
+        <location filename="../ida_mosim_dialog.py" line="547"/>
         <source>@default</source>
         <comment>networks</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1940,102 +1940,102 @@
         <translation type="unfinished">Networks</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="432"/>
+        <location filename="../utility_functions/translations.py" line="444"/>
         <source>connection_types</source>
         <translation type="unfinished">Connection types</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="433"/>
+        <location filename="../utility_functions/translations.py" line="445"/>
         <source>connection_type_id</source>
         <translation type="unfinished">Connection type ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="437"/>
+        <location filename="../utility_functions/translations.py" line="449"/>
         <source>connection_bundles</source>
         <translation type="unfinished">Connection bundles</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="438"/>
+        <location filename="../utility_functions/translations.py" line="450"/>
         <source>connection_bundle_id</source>
         <translation type="unfinished">Connection bundle ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="441"/>
+        <location filename="../utility_functions/translations.py" line="453"/>
         <source>pipe_bundle</source>
         <translation type="unfinished">Pipe bundle</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="442"/>
+        <location filename="../utility_functions/translations.py" line="454"/>
         <source>pipe_bundle_id</source>
         <translation type="unfinished">Pipe bundle ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="443"/>
+        <location filename="../utility_functions/translations.py" line="455"/>
         <source>investment_costs</source>
         <translation type="unfinished">Investment costs, €/m pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="444"/>
+        <location filename="../utility_functions/translations.py" line="456"/>
         <source>operating_costs</source>
         <translation type="unfinished">Operating costs, €/(m pipe * a)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="452"/>
+        <location filename="../utility_functions/translations.py" line="464"/>
         <source>pipes</source>
         <translation type="unfinished">Pipes</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="453"/>
+        <location filename="../utility_functions/translations.py" line="465"/>
         <source>pipe_id</source>
         <translation type="unfinished">Pipe ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="457"/>
+        <location filename="../utility_functions/translations.py" line="469"/>
         <source>pipe_costs</source>
         <translation type="unfinished">Costs, €/m pipe</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="455"/>
+        <location filename="../utility_functions/translations.py" line="467"/>
         <source>absolute_roughness</source>
         <translation type="unfinished">Absolute pipe roughness, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="472"/>
+        <location filename="../utility_functions/translations.py" line="484"/>
         <source>materials</source>
         <translation type="unfinished">Materials</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="473"/>
+        <location filename="../utility_functions/translations.py" line="485"/>
         <source>material_id</source>
         <translation type="unfinished">Material ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="474"/>
+        <location filename="../utility_functions/translations.py" line="486"/>
         <source>thermal_conductivity</source>
         <translation type="unfinished">Thermal conductivity, W/(m*K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="475"/>
+        <location filename="../utility_functions/translations.py" line="487"/>
         <source>specific_heat</source>
         <translation type="unfinished">Specific heat, J/(kg*K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="476"/>
+        <location filename="../utility_functions/translations.py" line="488"/>
         <source>density</source>
         <translation type="unfinished">Density, kg/m3</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="465"/>
+        <location filename="../utility_functions/translations.py" line="477"/>
         <source>constructions</source>
         <translation type="unfinished">Constructions</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="466"/>
+        <location filename="../utility_functions/translations.py" line="478"/>
         <source>construction_id</source>
         <translation type="unfinished">Construction ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="467"/>
+        <location filename="../utility_functions/translations.py" line="479"/>
         <source>thickness</source>
         <translation type="unfinished">Thickness, m</translation>
     </message>
@@ -2046,55 +2046,55 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="771"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>pipe_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="779"/>
+        <location filename="../districts.py" line="786"/>
         <source>@default</source>
         <comment>constructions</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="445"/>
+        <location filename="../utility_functions/translations.py" line="457"/>
         <source>x_coord</source>
         <translation type="unfinished">x, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="446"/>
+        <location filename="../utility_functions/translations.py" line="458"/>
         <source>y_coord</source>
         <translation type="unfinished">y, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="447"/>
+        <location filename="../utility_functions/translations.py" line="459"/>
         <source>ambient</source>
         <translation type="unfinished">Ambient</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="448"/>
+        <location filename="../utility_functions/translations.py" line="460"/>
         <source>bundle_type_conns</source>
         <translation type="unfinished">bundle type</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="449"/>
+        <location filename="../utility_functions/translations.py" line="461"/>
         <source>bundle_pipes</source>
         <translation type="unfinished">Pipe bundle</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="468"/>
+        <location filename="../utility_functions/translations.py" line="480"/>
         <source>pipe_layers</source>
         <translation type="unfinished">Constructions</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="709"/>
+        <location filename="../districts.py" line="716"/>
         <source>@default</source>
         <comment>defaults_layer_lines</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="720"/>
+        <location filename="../districts.py" line="727"/>
         <source>@default</source>
         <comment>defaults_layer_customers</comment>
         <translation type="unfinished">Mirror</translation>
@@ -2106,23 +2106,23 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="730"/>
+        <location filename="../districts.py" line="737"/>
         <source>@default</source>
         <comment>defaults_layer_energy_plants</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="460"/>
+        <location filename="../utility_functions/translations.py" line="472"/>
         <source>defaults_layer_lines</source>
         <translation type="unfinished">Defaults for layer: &quot;Route&quot;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="461"/>
+        <location filename="../utility_functions/translations.py" line="473"/>
         <source>defaults_layer_customers</source>
         <translation type="unfinished">Defaults for layer: &quot;Customers&quot;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="462"/>
+        <location filename="../utility_functions/translations.py" line="474"/>
         <source>defaults_layer_energy_plants</source>
         <translation type="unfinished">Defaults for layer: &quot;Energy plants&quot;</translation>
     </message>
@@ -2156,52 +2156,52 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="503"/>
+        <location filename="../utility_functions/translations.py" line="515"/>
         <source>please_enter_number_table_row</source>
         <translation type="unfinished">Please enter a number as input in table row: {}!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="504"/>
+        <location filename="../utility_functions/translations.py" line="516"/>
         <source>file_not_found</source>
         <translation type="unfinished">“The file &quot;{}&quot; could not be found!”</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="515"/>
+        <location filename="../utility_functions/translations.py" line="527"/>
         <source>connections_saved_successfully</source>
         <translation type="unfinished">Connections saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="516"/>
+        <location filename="../utility_functions/translations.py" line="528"/>
         <source>connection_types_saved_successfully</source>
         <translation type="unfinished">Connection types saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="517"/>
+        <location filename="../utility_functions/translations.py" line="529"/>
         <source>connection_bundles_saved_successfully</source>
         <translation type="unfinished">Connection bundles saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="518"/>
+        <location filename="../utility_functions/translations.py" line="530"/>
         <source>materials_saved_successfully</source>
         <translation type="unfinished">Materials saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="519"/>
+        <location filename="../utility_functions/translations.py" line="531"/>
         <source>constructions_saved_successfully</source>
         <translation type="unfinished">Constructions saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="520"/>
+        <location filename="../utility_functions/translations.py" line="532"/>
         <source>pipes_saved_successfully</source>
         <translation type="unfinished">Pipes saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="521"/>
+        <location filename="../utility_functions/translations.py" line="533"/>
         <source>pipe_bundles_saved_successfully</source>
         <translation type="unfinished">Pipe bundles saved successfully!</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="522"/>
+        <location filename="../utility_functions/translations.py" line="534"/>
         <source>data_saved_successfully</source>
         <translation type="unfinished">Data saved successfully!</translation>
     </message>
@@ -2224,98 +2224,98 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="454"/>
+        <location filename="../utility_functions/translations.py" line="466"/>
         <source>pipe_construction_id</source>
         <translation type="unfinished">Construction ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="456"/>
+        <location filename="../utility_functions/translations.py" line="468"/>
         <source>inner_diameter</source>
         <translation type="unfinished">Inner pipe diameter, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="386"/>
+        <location filename="../utility_functions/translations.py" line="398"/>
         <source>truncate_existing_layer</source>
         <translation type="unfinished">Truncate layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="387"/>
+        <location filename="../utility_functions/translations.py" line="399"/>
         <source>extend_layer</source>
         <translation type="unfinished">Extend layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="434"/>
+        <location filename="../utility_functions/translations.py" line="446"/>
         <source>connection_type_connections</source>
         <translation type="unfinished">Connection type</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="471"/>
+        <location filename="../utility_functions/translations.py" line="483"/>
         <source>material</source>
         <translation type="unfinished">Material</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="371"/>
+        <location filename="../districts.py" line="378"/>
         <source>@default</source>
         <comment>add_child_version</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="372"/>
+        <location filename="../districts.py" line="379"/>
         <source>@default</source>
         <comment>child_version_name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="384"/>
+        <location filename="../districts.py" line="391"/>
         <source>@default</source>
         <comment>save_project_version_as</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="385"/>
+        <location filename="../districts.py" line="392"/>
         <source>@default</source>
         <comment>project_version_name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="283"/>
+        <location filename="../utility_functions/translations.py" line="295"/>
         <source>add_child_version</source>
         <translation type="unfinished">Add child version</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="284"/>
+        <location filename="../utility_functions/translations.py" line="296"/>
         <source>child_version_name</source>
         <translation type="unfinished">Child version name</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="307"/>
+        <location filename="../utility_functions/translations.py" line="319"/>
         <source>save_project_version_as</source>
         <translation type="unfinished">Save project version as</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="308"/>
+        <location filename="../utility_functions/translations.py" line="320"/>
         <source>project_version_name</source>
         <translation type="unfinished">Project version name</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="457"/>
+        <location filename="../districts.py" line="464"/>
         <source>@default</source>
         <comment>rename_version</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="287"/>
+        <location filename="../utility_functions/translations.py" line="299"/>
         <source>rename_version</source>
         <translation type="unfinished">Rename version</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="458"/>
+        <location filename="../districts.py" line="465"/>
         <source>@default</source>
         <comment>new_version_name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="288"/>
+        <location filename="../utility_functions/translations.py" line="300"/>
         <source>new_version_name</source>
         <translation type="unfinished">New version name</translation>
     </message>
@@ -2392,57 +2392,57 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="291"/>
+        <location filename="../utility_functions/translations.py" line="303"/>
         <source>generate_pipe_bundles</source>
         <translation type="unfinished">Generate pipe bundles</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="292"/>
+        <location filename="../utility_functions/translations.py" line="304"/>
         <source>pipe_constructions</source>
         <translation type="unfinished">Pipe constructions</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="293"/>
+        <location filename="../utility_functions/translations.py" line="305"/>
         <source>horizontal_distance</source>
         <translation type="unfinished">Horizontal installation spacing</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="294"/>
+        <location filename="../utility_functions/translations.py" line="306"/>
         <source>depth</source>
         <translation type="unfinished">Installation depth</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="295"/>
+        <location filename="../utility_functions/translations.py" line="307"/>
         <source>no_parallel_pipes</source>
         <translation type="unfinished">Number of parallel pipes</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="297"/>
+        <location filename="../utility_functions/translations.py" line="309"/>
         <source>description_pipe_bundle_editor</source>
         <translation type="unfinished">Info: Durch Doppelklick auf ein Feld kann es dem ausgewählten Feldelement zugewiesen werden. Zulässige Operatoren sind: +, -, *, / und . Zulässige Funktionen sind: str(), int(), float() und round().</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="298"/>
+        <location filename="../utility_functions/translations.py" line="310"/>
         <source>fields_of_layer</source>
         <translation type="unfinished">Layer fields</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="299"/>
+        <location filename="../utility_functions/translations.py" line="311"/>
         <source>add_pipe_bundle_field_to_layer</source>
         <translation type="unfinished">Add pipe bundle field to layer</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="300"/>
+        <location filename="../utility_functions/translations.py" line="312"/>
         <source>pipe_bundle_editor</source>
         <translation type="unfinished">Pipe bundle editor</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="301"/>
+        <location filename="../utility_functions/translations.py" line="313"/>
         <source>extend_pipe_bundles</source>
         <translation type="unfinished">Extend pipe bundles</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="302"/>
+        <location filename="../utility_functions/translations.py" line="314"/>
         <source>truncate_existing_pipe_bundles_and_their_constructions</source>
         <translation type="unfinished">Delete existing pipe bundles, pipes and their constructions</translation>
     </message>
@@ -2453,7 +2453,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="303"/>
+        <location filename="../utility_functions/translations.py" line="315"/>
         <source>ambient_mapping</source>
         <translation type="unfinished">Pipe ambient (1 → air; 2 → ground; 3 → duct)</translation>
     </message>
@@ -2464,12 +2464,12 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="304"/>
+        <location filename="../utility_functions/translations.py" line="316"/>
         <source>pipe_bundle_attributes</source>
         <translation type="unfinished">Pipe bundle attributes</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="296"/>
+        <location filename="../utility_functions/translations.py" line="308"/>
         <source>no_layers</source>
         <translation type="unfinished">Number of pipe layers</translation>
     </message>
@@ -2552,72 +2552,72 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="195"/>
+        <location filename="../utility_functions/translations.py" line="207"/>
         <source>reject</source>
         <translation type="unfinished">Reject</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="196"/>
+        <location filename="../utility_functions/translations.py" line="208"/>
         <source>start</source>
         <translation type="unfinished">Start</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="269"/>
+        <location filename="../utility_functions/translations.py" line="281"/>
         <source>snapping_tolerance</source>
         <translation type="unfinished">Snapping tolerance, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="270"/>
+        <location filename="../utility_functions/translations.py" line="282"/>
         <source>redraw_submodel_polygon</source>
         <translation type="unfinished">Redraw submodel polygon</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="271"/>
+        <location filename="../utility_functions/translations.py" line="283"/>
         <source>delete_unconnected_customers</source>
         <translation type="unfinished">Delete unconnected customers</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="272"/>
+        <location filename="../utility_functions/translations.py" line="284"/>
         <source>delete_unconnected_lines</source>
         <translation type="unfinished">Delete unconnected lines</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="273"/>
+        <location filename="../utility_functions/translations.py" line="285"/>
         <source>connect_unconnected_plants_to_network</source>
         <translation type="unfinished">Connect unconnected plants to network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="274"/>
+        <location filename="../utility_functions/translations.py" line="286"/>
         <source>connect_unconnected_customers_to_network</source>
         <translation type="unfinished">Connect unconnected customers to network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="275"/>
+        <location filename="../utility_functions/translations.py" line="287"/>
         <source>customer_template</source>
         <translation type="unfinished">Customer template</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="276"/>
+        <location filename="../utility_functions/translations.py" line="288"/>
         <source>add_customers_to_unconnected_network_ends</source>
         <translation type="unfinished">Add customers to unconnected network ends</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="277"/>
+        <location filename="../utility_functions/translations.py" line="289"/>
         <source>delete_unconnected_network_ends</source>
         <translation type="unfinished">Delete unconnected network ends</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="278"/>
+        <location filename="../utility_functions/translations.py" line="290"/>
         <source>override_templates</source>
         <translation type="unfinished">Override templates</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="279"/>
+        <location filename="../utility_functions/translations.py" line="291"/>
         <source>keep_templates</source>
         <translation type="unfinished">Keep templates</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="280"/>
+        <location filename="../utility_functions/translations.py" line="292"/>
         <source>generate_topology</source>
         <translation type="unfinished">Generate network topology</translation>
     </message>
@@ -2784,182 +2784,182 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="197"/>
+        <location filename="../utility_functions/translations.py" line="209"/>
         <source>pause_resume</source>
         <translation type="unfinished">Pause/Resume</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="239"/>
+        <location filename="../utility_functions/translations.py" line="251"/>
         <source>pipe_laying_algorithm</source>
         <translation type="unfinished">Pipe laying algorithm</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="240"/>
+        <location filename="../utility_functions/translations.py" line="252"/>
         <source>generate_heating_network</source>
         <translation type="unfinished">Generate heating network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="241"/>
+        <location filename="../utility_functions/translations.py" line="253"/>
         <source>lines_template</source>
         <translation type="unfinished">Route template</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="242"/>
+        <location filename="../utility_functions/translations.py" line="254"/>
         <source>type_settings_for_heating_and_cooling</source>
         <translation type="unfinished">Type settings for heating and cooling</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="243"/>
+        <location filename="../utility_functions/translations.py" line="255"/>
         <source>extend_existing_network</source>
         <translation type="unfinished">Extend existing network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="244"/>
+        <location filename="../utility_functions/translations.py" line="256"/>
         <source>amortization_period</source>
         <translation type="unfinished">Amortization period, a</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="245"/>
+        <location filename="../utility_functions/translations.py" line="257"/>
         <source>cold_costs</source>
         <translation type="unfinished">Cold revenue, €/kWh</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="246"/>
+        <location filename="../utility_functions/translations.py" line="258"/>
         <source>Cold_loss</source>
         <translation type="unfinished">Cold loss to ambient, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="247"/>
+        <location filename="../utility_functions/translations.py" line="259"/>
         <source>consider_trench_and_pipe_costs</source>
         <translation type="unfinished">consider trench and pipe costs</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="248"/>
+        <location filename="../utility_functions/translations.py" line="260"/>
         <source>line_type</source>
         <translation type="unfinished">Line type</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="249"/>
+        <location filename="../utility_functions/translations.py" line="261"/>
         <source>minimum_cooling_load</source>
         <translation type="unfinished">Minimum cooling load,</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="250"/>
+        <location filename="../utility_functions/translations.py" line="262"/>
         <source>minimum_cold_demand</source>
         <translation type="unfinished">Minimum cooling demand</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="251"/>
+        <location filename="../utility_functions/translations.py" line="263"/>
         <source>minimum_linear_cold_density</source>
         <translation type="unfinished">Minimum linear cold density, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="252"/>
+        <location filename="../utility_functions/translations.py" line="264"/>
         <source>minimum_supply_temperature</source>
         <translation type="unfinished">Minimum supply temperature, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="253"/>
+        <location filename="../utility_functions/translations.py" line="265"/>
         <source>constraints</source>
         <translation type="unfinished">Constraints</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="254"/>
+        <location filename="../utility_functions/translations.py" line="266"/>
         <source>generate_cooling_network</source>
         <translation type="unfinished">Generate cooling network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="255"/>
+        <location filename="../utility_functions/translations.py" line="267"/>
         <source>heat_costs</source>
         <translation type="unfinished">Heat revenue, €/kWh</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="257"/>
+        <location filename="../utility_functions/translations.py" line="269"/>
         <source>minimum_heating_load</source>
         <translation type="unfinished">Minimum heating load</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="258"/>
+        <location filename="../utility_functions/translations.py" line="270"/>
         <source>minimum_heat_demand</source>
         <translation type="unfinished">Minimum heat demand</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="259"/>
+        <location filename="../utility_functions/translations.py" line="271"/>
         <source>minimum_linear_heat_density</source>
         <translation type="unfinished">Minimum linear heat density, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="260"/>
+        <location filename="../utility_functions/translations.py" line="272"/>
         <source>maximum_supply_temperature</source>
         <translation type="unfinished">Maximum supply temperature, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="198"/>
+        <location filename="../utility_functions/translations.py" line="210"/>
         <source>stop</source>
         <translation type="unfinished">Stop</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="256"/>
+        <location filename="../utility_functions/translations.py" line="268"/>
         <source>heat_loss</source>
         <translation type="unfinished">Heat loos to ambient, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="261"/>
+        <location filename="../utility_functions/translations.py" line="273"/>
         <source>keep_unconnected_customers</source>
         <translation type="unfinished">Keep unconnected customers</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="215"/>
+        <location filename="../utility_functions/translations.py" line="227"/>
         <source>pipe_sizing</source>
         <translation type="unfinished">Pipe sizing</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="216"/>
+        <location filename="../utility_functions/translations.py" line="228"/>
         <source>select_considered_pipes</source>
         <translation type="unfinished">Select considered pipes</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="217"/>
+        <location filename="../utility_functions/translations.py" line="229"/>
         <source>supply_temperature</source>
         <translation type="unfinished">T supply, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="218"/>
+        <location filename="../utility_functions/translations.py" line="230"/>
         <source>return_temperature</source>
         <translation type="unfinished">T return, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="219"/>
+        <location filename="../utility_functions/translations.py" line="231"/>
         <source>load_column</source>
         <translation type="unfinished">Load, W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="220"/>
+        <location filename="../utility_functions/translations.py" line="232"/>
         <source>consider_the_simultaneity_of_energy_consumption</source>
         <translation type="unfinished">Consider the simultaneity of energy consumption</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="221"/>
+        <location filename="../utility_functions/translations.py" line="233"/>
         <source>lines_energy_demand</source>
         <translation type="unfinished">Line`s energy demand</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="222"/>
+        <location filename="../utility_functions/translations.py" line="234"/>
         <source>sizing_according_to_customers_energy_demand_and_shortest_path_from_customer_to_main_energy_plant</source>
         <translation type="unfinished">Sizing according to customers energy demand and shortest path from customer to main energy plant</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="223"/>
+        <location filename="../utility_functions/translations.py" line="235"/>
         <source>main_energy_plant</source>
         <translation type="unfinished">Main energy plant</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="224"/>
+        <location filename="../utility_functions/translations.py" line="236"/>
         <source>kinematic_viscosity</source>
         <translation type="unfinished">Kinematic viscosity, m2/s</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="226"/>
+        <location filename="../utility_functions/translations.py" line="238"/>
         <source>dp_specific</source>
         <translation type="unfinished">Specific pressure drop, m pipe</translation>
     </message>
@@ -3054,12 +3054,12 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="227"/>
+        <location filename="../utility_functions/translations.py" line="239"/>
         <source>liquid_circuits</source>
         <translation type="unfinished">Liquid circuit</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="228"/>
+        <location filename="../utility_functions/translations.py" line="240"/>
         <source>select_considerable_pipes_per_sequence</source>
         <translation type="unfinished">Select considerable pipes per sequence</translation>
     </message>
@@ -3081,12 +3081,12 @@
         <translation type="unfinished">ID`s</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="199"/>
+        <location filename="../utility_functions/translations.py" line="211"/>
         <source>connect</source>
         <translation type="unfinished">Connect</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="815"/>
+        <location filename="../ida_ph.py" line="816"/>
         <source>@default</source>
         <comment>version_loaded</comment>
         <translation type="unfinished">Mirror</translation>
@@ -3097,174 +3097,174 @@
         <translation type="unfinished">Simulation results</translation>
     </message>
     <message>
-        <location filename="../ida_ph.py" line="688"/>
+        <location filename="../ida_ph.py" line="689"/>
         <source>@default</source>
         <comment>project_deleted</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="509"/>
+        <location filename="../utility_functions/translations.py" line="521"/>
         <source>project_deleted</source>
         <translation type="unfinished">Project &quot;{}&quot; is deleted!</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="584"/>
+        <location filename="../districts.py" line="591"/>
         <source>@default</source>
         <comment>import_districts_project_zip</comment>
         <translation type="unfinished">Projectimport</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1285"/>
+        <location filename="../districts.py" line="1310"/>
         <source>@default</source>
         <comment>epid</comment>
         <translation type="unfinished">Energyplant ID</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1285"/>
+        <location filename="../districts.py" line="1310"/>
         <source>@default</source>
         <comment>drilling_depth</comment>
         <translation type="unfinished">Drilling (Borehole) Depth, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1285"/>
+        <location filename="../districts.py" line="1310"/>
         <source>@default</source>
         <comment>drilling_radius</comment>
         <translation type="unfinished">Drilling (Borehole) Radius, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1285"/>
+        <location filename="../districts.py" line="1310"/>
         <source>@default</source>
         <comment>borehole_heat_resistance</comment>
         <translation type="unfinished">Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1286"/>
+        <location filename="../districts.py" line="1311"/>
         <source>@default</source>
         <comment>heat_resistance_between_pipe_innergrout</comment>
         <translation type="unfinished">Heat resistance between pipe and inner grout, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1286"/>
+        <location filename="../districts.py" line="1311"/>
         <source>@default</source>
         <comment>heat_resistance_between_pipe_earth</comment>
         <translation type="unfinished">Heat resistance between pipe and earth, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1286"/>
+        <location filename="../districts.py" line="1311"/>
         <source>@default</source>
         <comment>heat_resistance_between_innergrout_outergrout</comment>
         <translation type="unfinished">Heat resistance between inner and outer grout, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1286"/>
+        <location filename="../districts.py" line="1311"/>
         <source>@default</source>
         <comment>heat_resistance_between_grout_earth</comment>
         <translation type="unfinished">Heat resistance between grout and earth, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1286"/>
+        <location filename="../districts.py" line="1311"/>
         <source>@default</source>
         <comment>heat_resistance_between_grouting_earth</comment>
         <translation type="unfinished">Heat resistance between groutring and earth, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1287"/>
+        <location filename="../districts.py" line="1312"/>
         <source>@default</source>
         <comment>heat_capacity_ground</comment>
         <translation type="unfinished">Heat capacity of ground, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1287"/>
+        <location filename="../districts.py" line="1312"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_ground</comment>
         <translation type="unfinished">Heat transfer coefficient of ground, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1287"/>
+        <location filename="../districts.py" line="1312"/>
         <source>@default</source>
         <comment>density_ground</comment>
         <translation type="unfinished">Density of ground, kg/m3</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1288"/>
+        <location filename="../districts.py" line="1313"/>
         <source>@default</source>
         <comment>heat_capacity_grout</comment>
         <translation type="unfinished">Heat capacity of grout, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1288"/>
+        <location filename="../districts.py" line="1313"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_grout</comment>
         <translation type="unfinished">Heat transfer coefficient of grout, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1288"/>
+        <location filename="../districts.py" line="1313"/>
         <source>@default</source>
         <comment>density_grout</comment>
         <translation type="unfinished">Density of grout, kg/m3</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1289"/>
+        <location filename="../districts.py" line="1314"/>
         <source>@default</source>
         <comment>radius_pipe</comment>
         <translation type="unfinished">Radius of pipe, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1289"/>
+        <location filename="../districts.py" line="1314"/>
         <source>@default</source>
         <comment>thickness_pipe_wall</comment>
         <translation type="unfinished">Thickness of Pipwe wall, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1289"/>
+        <location filename="../districts.py" line="1314"/>
         <source>@default</source>
         <comment>heat_capacity_pipe_wall</comment>
         <translation type="unfinished">Heat capacity of pipe, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1289"/>
+        <location filename="../districts.py" line="1314"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_pipe</comment>
         <translation type="unfinished">Heat transfer coefficient of pipe, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1290"/>
+        <location filename="../districts.py" line="1315"/>
         <source>@default</source>
         <comment>liquid_type</comment>
         <translation type="unfinished">Type of liquid</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1290"/>
+        <location filename="../districts.py" line="1315"/>
         <source>@default</source>
         <comment>liquid_freezing_point</comment>
         <translation type="unfinished">Freezing point of liquid, °C</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1290"/>
+        <location filename="../districts.py" line="1315"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_liquid</comment>
         <translation type="unfinished">Heat transfer coefficient of liquid, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1291"/>
+        <location filename="../districts.py" line="1316"/>
         <source>@default</source>
         <comment>length_surface_casting</comment>
         <translation type="unfinished">Thickness of surface casting, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1291"/>
+        <location filename="../districts.py" line="1316"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_surface</comment>
         <translation type="unfinished">Heat transfer coefficient of surface layer, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1291"/>
+        <location filename="../districts.py" line="1316"/>
         <source>@default</source>
         <comment>density_surface</comment>
         <translation type="unfinished">Density of surface layer, kg/m3</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1291"/>
+        <location filename="../districts.py" line="1316"/>
         <source>@default</source>
         <comment>heat_capacity_surface</comment>
         <translation type="unfinished">Heat capacity of surface layer, J/(kg K)</translation>
@@ -3276,352 +3276,352 @@
         <translation type="obsolete">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1292"/>
+        <location filename="../districts.py" line="1317"/>
         <source>@default</source>
         <comment>distance_borehole_boundary</comment>
         <translation type="unfinished">Distance from the borehole to the boundary of the calculation region</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1292"/>
+        <location filename="../districts.py" line="1317"/>
         <source>@default</source>
         <comment>no_earthrings</comment>
         <translation type="unfinished">Number of earth rings around borehole</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1292"/>
+        <location filename="../districts.py" line="1317"/>
         <source>@default</source>
         <comment>no_borehole_nodes</comment>
         <translation type="unfinished">Number of nodes in borehole</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1292"/>
+        <location filename="../districts.py" line="1317"/>
         <source>@default</source>
         <comment>total_no_nodes_z</comment>
         <translation type="unfinished">Total number of nodes in extended domain in z-direction</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1293"/>
+        <location filename="../districts.py" line="1318"/>
         <source>@default</source>
         <comment>no_points_direction1</comment>
         <translation type="unfinished">Number of points in direction 1 of rectangulat result plane</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1293"/>
+        <location filename="../districts.py" line="1318"/>
         <source>@default</source>
         <comment>no_points_direction2</comment>
         <translation type="unfinished">Number of points in direction 2 of rectangulat result plane</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1293"/>
+        <location filename="../districts.py" line="1318"/>
         <source>@default</source>
         <comment>no_points_direction3</comment>
         <translation type="unfinished">Number of points in direction 3 of cubes</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1293"/>
+        <location filename="../districts.py" line="1318"/>
         <source>@default</source>
         <comment>timestep_outputs</comment>
         <translation type="unfinished">Timestep for output of temperature field, hr</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1294"/>
+        <location filename="../districts.py" line="1319"/>
         <source>@default</source>
         <comment>yearly_mean_temp</comment>
         <translation type="unfinished">Yearly mean temperature, °C</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1294"/>
+        <location filename="../districts.py" line="1319"/>
         <source>@default</source>
         <comment>temp_gradient_ground</comment>
         <translation type="unfinished">Temperature gradient in ground, K</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="334"/>
+        <location filename="../utility_functions/translations.py" line="346"/>
         <source>epid</source>
         <translation type="unfinished">Energyplant ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="335"/>
+        <location filename="../utility_functions/translations.py" line="347"/>
         <source>drilling_depth</source>
         <translation type="unfinished">Drilling (Borehole) Depth, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="336"/>
+        <location filename="../utility_functions/translations.py" line="348"/>
         <source>drilling_radius</source>
         <translation type="unfinished">Drilling (Borehole) Radius, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="337"/>
+        <location filename="../utility_functions/translations.py" line="349"/>
         <source>borehole_heat_resistance</source>
         <translation type="unfinished">Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="338"/>
+        <location filename="../utility_functions/translations.py" line="350"/>
         <source>heat_resistance_between_pipe_innergrout</source>
         <translation type="unfinished">Heat resistance between pipe and inner grout, (m K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="339"/>
+        <location filename="../utility_functions/translations.py" line="351"/>
         <source>heat_resistance_between_pipe_earth</source>
         <translation type="unfinished">Heat resistance between pipe and earth, (m K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="340"/>
+        <location filename="../utility_functions/translations.py" line="352"/>
         <source>heat_resistance_between_innergrout_outergrout</source>
         <translation type="unfinished">Heat resistance between inner and outer grout, (m K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="341"/>
+        <location filename="../utility_functions/translations.py" line="353"/>
         <source>heat_resistance_between_grout_earth</source>
         <translation type="unfinished">Heat resistance between grout and earth, (m K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="342"/>
+        <location filename="../utility_functions/translations.py" line="354"/>
         <source>heat_resistance_between_grouting_earth</source>
         <translation type="unfinished">Heat resistance between groutring and earth, (m K)/W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="343"/>
+        <location filename="../utility_functions/translations.py" line="355"/>
         <source>heat_capacity_ground</source>
         <translation type="unfinished">Heat capacity of ground, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="344"/>
+        <location filename="../utility_functions/translations.py" line="356"/>
         <source>heat_transfer_coefficient_ground</source>
         <translation type="unfinished">Heat transfer coefficient of ground, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="345"/>
+        <location filename="../utility_functions/translations.py" line="357"/>
         <source>density_ground</source>
         <translation type="unfinished">Density of ground, kg/m3</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="346"/>
+        <location filename="../utility_functions/translations.py" line="358"/>
         <source>heat_capacity_grout</source>
         <translation type="unfinished">Heat capacity of grout, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="347"/>
+        <location filename="../utility_functions/translations.py" line="359"/>
         <source>heat_transfer_coefficient_grout</source>
         <translation type="unfinished">Heat transfer coefficient of grout, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="348"/>
+        <location filename="../utility_functions/translations.py" line="360"/>
         <source>density_grout</source>
         <translation type="unfinished">Density of grout, kg/m3</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="349"/>
+        <location filename="../utility_functions/translations.py" line="361"/>
         <source>radius_pipe</source>
         <translation type="unfinished">Radius of pipe, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="350"/>
+        <location filename="../utility_functions/translations.py" line="362"/>
         <source>thickness_pipe_wall</source>
         <translation type="unfinished">Thickness of Pipwe wall, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="351"/>
+        <location filename="../utility_functions/translations.py" line="363"/>
         <source>heat_capacity_pipe_wall</source>
         <translation type="unfinished">Heat capacity of pipe, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="352"/>
+        <location filename="../utility_functions/translations.py" line="364"/>
         <source>heat_transfer_coefficient_pipe</source>
         <translation type="unfinished">Heat transfer coefficient of pipe, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="353"/>
+        <location filename="../utility_functions/translations.py" line="365"/>
         <source>liquid_type</source>
         <translation type="unfinished">Type of liquid</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="354"/>
+        <location filename="../utility_functions/translations.py" line="366"/>
         <source>liquid_freezing_point</source>
         <translation type="unfinished">Freezing point of liquid, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="355"/>
+        <location filename="../utility_functions/translations.py" line="367"/>
         <source>heat_transfer_coefficient_liquid</source>
         <translation type="unfinished">Heat transfer coefficient of liquid, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="356"/>
+        <location filename="../utility_functions/translations.py" line="368"/>
         <source>length_surface_casting</source>
         <translation type="unfinished">Thickness of surface casting, m</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="357"/>
+        <location filename="../utility_functions/translations.py" line="369"/>
         <source>heat_transfer_coefficient_surface</source>
         <translation type="unfinished">Heat transfer coefficient of surface layer, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="358"/>
+        <location filename="../utility_functions/translations.py" line="370"/>
         <source>density_surface</source>
         <translation type="unfinished">Density of surface layer, kg/m3</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="359"/>
+        <location filename="../utility_functions/translations.py" line="371"/>
         <source>heat_capacity_surface</source>
         <translation type="unfinished">Heat capacity of surface layer, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="360"/>
+        <location filename="../utility_functions/translations.py" line="372"/>
         <source>mir</source>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="361"/>
+        <location filename="../utility_functions/translations.py" line="373"/>
         <source>distance_borehole_boundary</source>
         <translation type="unfinished">Distance from the borehole to the boundary of the calculation region</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="362"/>
+        <location filename="../utility_functions/translations.py" line="374"/>
         <source>no_earthrings</source>
         <translation type="unfinished">Number of earth rings around borehole</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="363"/>
+        <location filename="../utility_functions/translations.py" line="375"/>
         <source>no_borehole_nodes</source>
         <translation type="unfinished">Number of nodes in borehole</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="364"/>
+        <location filename="../utility_functions/translations.py" line="376"/>
         <source>total_no_nodes_z</source>
         <translation type="unfinished">Total number of nodes in extended domain in z-direction</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="365"/>
+        <location filename="../utility_functions/translations.py" line="377"/>
         <source>no_points_direction1</source>
         <translation type="unfinished">Number of points in direction 1 of rectangulat result plane</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="366"/>
+        <location filename="../utility_functions/translations.py" line="378"/>
         <source>no_points_direction2</source>
         <translation type="unfinished">Number of points in direction 2 of rectangulat result plane</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="367"/>
+        <location filename="../utility_functions/translations.py" line="379"/>
         <source>no_points_direction3</source>
         <translation type="unfinished">Number of points in direction 3 of cubes</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="368"/>
+        <location filename="../utility_functions/translations.py" line="380"/>
         <source>timestep_outputs</source>
         <translation type="unfinished">Timestep for output of temperature field, hr</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="369"/>
+        <location filename="../utility_functions/translations.py" line="381"/>
         <source>yearly_mean_temp</source>
         <translation type="unfinished">Yearly mean temperature, °C</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="370"/>
+        <location filename="../utility_functions/translations.py" line="382"/>
         <source>temp_gradient_ground</source>
         <translation type="unfinished">Temperature gradient in ground, K</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="333"/>
+        <location filename="../utility_functions/translations.py" line="345"/>
         <source>boreholefield_settings</source>
         <translation type="unfinished">Borehole field mapping</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="332"/>
+        <location filename="../utility_functions/translations.py" line="344"/>
         <source>info_boreholefield</source>
-        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;&lt;p&gt;Pro &lt;strong&gt;Energy Plant Template&lt;/strong&gt; kann maximal ein &lt;strong&gt;Borehole Field Model (&quot;Ghx_Many&quot;)&lt;/strong&gt; verwendet werden.&lt;/p&gt; &lt;p&gt;Die Koordinaten der einzelnen &lt;strong&gt;Boreholes&lt;/strong&gt; können in der Ebene &lt;strong&gt;&quot;boreholes&quot;&lt;/strong&gt; definiert werden. Die Bohrungen lassen sich zu einem spezifischen &lt;strong&gt;Borehole Field&lt;/strong&gt; gruppieren, sodass die zugehörige Geometrie und die Feldparameter automatisch der ausgewählten &lt;strong&gt;Energy Plant&lt;/strong&gt; zugeordnet werden.&lt;/p&gt;    &lt;p&gt;The &lt;strong&gt;mirror points&lt;/strong&gt; (mir=True) are used to transform the geometry of symmetric borehole fields into a local coordinate system:&lt;/p&gt;
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;&lt;p&gt;Pro &lt;strong&gt;Energy Plant Template&lt;/strong&gt; kann maximal ein &lt;strong&gt;Borehole Field Model (&quot;GHX_MANY&quot;)&lt;/strong&gt; verwendet werden.&lt;/p&gt; &lt;p&gt;Die Koordinaten der einzelnen &lt;strong&gt;Boreholes&lt;/strong&gt; können in der Ebene &lt;strong&gt;&quot;boreholes&quot;&lt;/strong&gt; definiert werden. Die Bohrungen lassen sich zu einem spezifischen &lt;strong&gt;Borehole Field&lt;/strong&gt; gruppieren, sodass die zugehörige Geometrie und die Feldparameter automatisch der ausgewählten &lt;strong&gt;Energy Plant&lt;/strong&gt; zugeordnet werden.&lt;/p&gt;    &lt;p&gt;The &lt;strong&gt;mirror points&lt;/strong&gt; (mir=True) are used to transform the geometry of symmetric borehole fields into a local coordinate system:&lt;/p&gt;
     &lt;p&gt;&lt;strong&gt;No mirror points (Type 0):&lt;/strong&gt; The geometry is translated directly onto the calculated &lt;strong&gt;geometric centroid&lt;/strong&gt; without any rotation.&lt;/p&gt;
     &lt;p&gt;&lt;strong&gt;2 mirror points (Type 1):&lt;/strong&gt; The borehole field is aligned with the connecting line. The &lt;strong&gt;midpoint&lt;/strong&gt; forms the origin (0,0). X-coordinates remain relative (positive/negative), while Y-coordinates are mirrored to the positive side.&lt;/p&gt;
     &lt;p&gt;&lt;strong&gt;3 mirror points (Type 2 &amp; 3):&lt;/strong&gt; Alignment is performed at the shared vertex counter-clockwise. For angles of &lt;strong&gt;90° (Type 2)&lt;/strong&gt; or &lt;strong&gt;45° (Type 3)&lt;/strong&gt;, only boreholes within this sector slice are kept and projected into the first quadrant (X&gt;0, Y&gt;0).&lt;/p&gt;
  &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="331"/>
+        <location filename="../utility_functions/translations.py" line="343"/>
         <source>boreholes</source>
         <translation type="unfinished">Boreholes</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="329"/>
+        <location filename="../utility_functions/translations.py" line="341"/>
         <source>group</source>
         <translation type="unfinished">Group</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="330"/>
+        <location filename="../utility_functions/translations.py" line="342"/>
         <source>plant_id</source>
         <translation type="unfinished">Energy plant ID</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="314"/>
+        <location filename="../utility_functions/translations.py" line="326"/>
         <source>Water</source>
         <translation type="unfinished">Water</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="315"/>
+        <location filename="../utility_functions/translations.py" line="327"/>
         <source>Freezium</source>
         <translation type="unfinished">Freezium</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="316"/>
+        <location filename="../utility_functions/translations.py" line="328"/>
         <source>Ethylene_Glycol</source>
         <translation type="unfinished">Ethylene Glycol</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="317"/>
+        <location filename="../utility_functions/translations.py" line="329"/>
         <source>Propylene_Glycol</source>
         <translation type="unfinished">Propylene Glycol</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="318"/>
+        <location filename="../utility_functions/translations.py" line="330"/>
         <source>Ethanol</source>
         <translation type="unfinished">Ethanol</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="319"/>
+        <location filename="../utility_functions/translations.py" line="331"/>
         <source>Methanol</source>
         <translation type="unfinished">Methanol</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="320"/>
+        <location filename="../utility_functions/translations.py" line="332"/>
         <source>Glycerol</source>
         <translation type="unfinished">Glycerol</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="321"/>
+        <location filename="../utility_functions/translations.py" line="333"/>
         <source>Ammonia</source>
         <translation type="unfinished">Ammonia</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="322"/>
+        <location filename="../utility_functions/translations.py" line="334"/>
         <source>Potassium_Carbonate</source>
         <translation type="unfinished">Potassium Carbonate</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="323"/>
+        <location filename="../utility_functions/translations.py" line="335"/>
         <source>Calcium_Chloride</source>
         <translation type="unfinished">Calcium Chloride</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="324"/>
+        <location filename="../utility_functions/translations.py" line="336"/>
         <source>Magnesium_Chloride</source>
         <translation type="unfinished">Magnesium Chloride</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="325"/>
+        <location filename="../utility_functions/translations.py" line="337"/>
         <source>Sodium_Chloride</source>
         <translation type="unfinished">Sodium Chloride</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="326"/>
+        <location filename="../utility_functions/translations.py" line="338"/>
         <source>Potassium_Acetate</source>
         <translation type="unfinished">Potassium Acetate</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="792"/>
+        <location filename="../districts.py" line="799"/>
         <source>@default</source>
         <comment>t_ref</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="311"/>
+        <location filename="../utility_functions/translations.py" line="323"/>
         <source>t_ref</source>
         <translation type="unfinished">Reference temperature, °C</translation>
     </message>
@@ -3637,17 +3637,17 @@
         <translation type="unfinished">Special characters are not allowed ({}). Please use only letters, numbers, spaces, parentheses () and underscores _.</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="264"/>
+        <location filename="../utility_functions/translations.py" line="276"/>
         <source>simulation_time</source>
         <translation type="unfinished">Simulation time</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="265"/>
+        <location filename="../utility_functions/translations.py" line="277"/>
         <source>dt_substation</source>
         <translation type="unfinished">Temperature difference substation</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="266"/>
+        <location filename="../utility_functions/translations.py" line="278"/>
         <source>pressure_loss</source>
         <translation type="unfinished">Pressure loss</translation>
     </message>
@@ -3706,27 +3706,27 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="231"/>
+        <location filename="../utility_functions/translations.py" line="243"/>
         <source>sync_temporal_controler</source>
         <translation type="unfinished">Synchronization with temporal controler</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="232"/>
+        <location filename="../utility_functions/translations.py" line="244"/>
         <source>heat_balance</source>
         <translation type="unfinished">Heat balance</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="233"/>
+        <location filename="../utility_functions/translations.py" line="245"/>
         <source>mass_balance</source>
         <translation type="unfinished">Mass balance</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="234"/>
+        <location filename="../utility_functions/translations.py" line="246"/>
         <source>Qamb</source>
         <translation type="unfinished">Heat loss to ambient</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="235"/>
+        <location filename="../utility_functions/translations.py" line="247"/>
         <source>time</source>
         <translation type="unfinished">Time</translation>
     </message>
@@ -3737,18 +3737,18 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="236"/>
+        <location filename="../utility_functions/translations.py" line="248"/>
         <source>energy</source>
         <translation type="unfinished">Energy</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1295"/>
+        <location filename="../districts.py" line="1320"/>
         <source>@default</source>
         <comment>info_boreholefield</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1296"/>
+        <location filename="../districts.py" line="1321"/>
         <source>@default</source>
         <comment>boreholefield_settings</comment>
         <translation type="unfinished">Mirror</translation>
@@ -3760,46 +3760,236 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="404"/>
+        <location filename="../utility_functions/translations.py" line="416"/>
         <source>import_districts_project_zip</source>
         <translation type="unfinished">Projectimport</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="206"/>
+        <location filename="../utility_functions/translations.py" line="218"/>
         <source>secondary_network</source>
         <translation type="unfinished">Secondary network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="137"/>
+        <location filename="../utility_functions/translations.py" line="149"/>
         <source>heating_load_w</source>
         <translation type="unfinished">Heating load, W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="138"/>
+        <location filename="../utility_functions/translations.py" line="150"/>
         <source>cooling_load_w</source>
         <translation type="unfinished">Cooling load, W</translation>
     </message>
     <message>
-        <location filename="../utility_functions/translations.py" line="207"/>
+        <location filename="../utility_functions/translations.py" line="219"/>
         <source>hc_network</source>
         <translation type="unfinished">Heating/cooling network</translation>
     </message>
     <message>
-        <location filename="../utility_functions/workers.py" line="104"/>
+        <location filename="../utility_functions/workers.py" line="114"/>
         <source>@default</source>
         <comment>path_not_exists</comment>
         <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../calibrate_customers.py" line="131"/>
+        <source>@default</source>
+        <comment>new_parametric_run</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../calibrate_customers.py" line="309"/>
+        <source>@default</source>
+        <comment>ID</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="934"/>
+        <source>@default</source>
+        <comment>customer_model_calibration</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="976"/>
+        <source>@default</source>
+        <comment>parametric_runs</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="958"/>
+        <source>@default</source>
+        <comment>used</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="981"/>
+        <source>@default</source>
+        <comment>parmrun_results</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="993"/>
+        <source>@default</source>
+        <comment>calibrate_selected_customers</comment>
+        <translation type="obsolete">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="995"/>
+        <source>@default</source>
+        <comment>open_selected_results</comment>
+        <translation type="obsolete">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="997"/>
+        <source>@default</source>
+        <comment>save_selected_results_invoke</comment>
+        <translation type="obsolete">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="118"/>
+        <source>parametric_runs</source>
+        <translation type="unfinished">Parametric Runs</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="119"/>
+        <source>used</source>
+        <translation type="unfinished">Used</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="120"/>
+        <source>calibrate_selected_customers</source>
+        <translation type="obsolete">Calibrate selected customers</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="121"/>
+        <source>open_selected_results</source>
+        <translation type="obsolete">Open selected results</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="122"/>
+        <source>save_selected_results_invoke</source>
+        <translation type="obsolete">Save selected results</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="120"/>
+        <source>parmrun_results</source>
+        <translation type="unfinished">Results</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="121"/>
+        <source>customer_model_calibration</source>
+        <translation type="unfinished">Customer model calibration</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="122"/>
+        <source>new_parametric_run</source>
+        <translation type="unfinished">New Parametric Runs</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="939"/>
+        <source>@default</source>
+        <comment>info_calibration</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="123"/>
+        <source>info_calibration</source>
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
+&lt;p&gt;
+    The &lt;strong&gt;customer substations&lt;/strong&gt; can be calibrated using
+    &lt;strong&gt;measurement data&lt;/strong&gt; or detailed &lt;strong&gt;simulation results&lt;/strong&gt; with the help of &lt;strong&gt;IDA Districts&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+    Calibration is used both for the &lt;strong&gt;parameterization of customer templates&lt;/strong&gt;
+    and for adjusting other &lt;strong&gt;system components&lt;/strong&gt;. Input data can be provided
+    as &lt;strong&gt;source files containing time series&lt;/strong&gt; or as &lt;strong&gt;constants for
+    annual energy consumption&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+    The &lt;strong&gt;template table&lt;/strong&gt; lists all available
+    &lt;strong&gt;consumer templates&lt;/strong&gt; and shows if it is used in the network. &lt;strong&gt;Parametric Runs&lt;/strong&gt; can be created
+    for these templates for calibration purposes, or existing Parametric Runs can be
+    adapted. The calibrated templates can then be assigned to the corresponding
+    &lt;strong&gt;customer&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+    The &lt;strong&gt;selected customers&lt;/strong&gt; in the customer table can be calibrated.
+    The resulting data is then displayed in the &lt;strong&gt;results table&lt;/strong&gt;,
+    categorized according to the &lt;strong&gt;Parametric Runs&lt;/strong&gt; used.
+&lt;/p&gt;
+
+&lt;p&gt;
+    The desired &lt;strong&gt;results&lt;/strong&gt; can then be transferred to the database
+    of the &lt;strong&gt;customer layer&lt;/strong&gt;. The assignment of the simulation results
+    to the corresponding layer fields is defined through the
+    &lt;strong&gt;parameter mapping&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+    The &lt;strong&gt;input parameters&lt;/strong&gt; of the Parametric Runs can be assigned to
+    a field of the layer. The assignment is defined in the
+    &lt;strong&gt;“Mapping Expression”&lt;/strong&gt; field using the &quot;Mapping directions&quot;
+    &lt;strong&gt;&amp;lt;--&lt;/strong&gt; or &lt;strong&gt;&amp;lt;--&amp;gt;&lt;/strong&gt;.
+&lt;/p&gt;
+&lt;/div&gt;
+</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="952"/>
+        <source>@default</source>
+        <comment>tooltip_openParmrunTemplate</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="971"/>
+        <source>@default</source>
+        <comment>tooltip_startCallibration</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="990"/>
+        <source>@default</source>
+        <comment>tooltip_openParmrunResult</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="994"/>
+        <source>@default</source>
+        <comment>tooltip_saveParmrunResult</comment>
+        <translation type="unfinished">Mirror</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="124"/>
+        <source>tooltip_openParmrunTemplate</source>
+        <translation type="unfinished">Open Parametric Runs in IDA Districts.</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="125"/>
+        <source>tooltip_startCallibration</source>
+        <translation type="unfinished">Start calibration using IDA Districts.</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="126"/>
+        <source>tooltip_openParmrunResult</source>
+        <translation type="unfinished">Open Parametric Runs results in IDA Districts.</translation>
+    </message>
+    <message>
+        <location filename="../utility_functions/translations.py" line="127"/>
+        <source>tooltip_saveParmrunResult</source>
+        <translation type="unfinished">Save Parametric Runs results to layer &quot;Customers&quot;.</translation>
     </message>
 </context>
 <context>
     <name>BuildNetworkModelDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="573"/>
+        <location filename="../ida_mosim_dialog.py" line="574"/>
         <source>build_network_model</source>
         <translation type="unfinished">Build network model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="568"/>
+        <location filename="../ida_mosim_dialog.py" line="569"/>
         <source>reinvoke_feature_templates</source>
         <translation type="unfinished">Reinvoke feature templates</translation>
     </message>
@@ -4022,37 +4212,37 @@ li.checked::marker { content: &quot;\2612&quot;; }
 <context>
     <name>Districts</name>
     <message>
-        <location filename="../districts.py" line="333"/>
+        <location filename="../districts.py" line="340"/>
         <source>&amp;Districts Modeler</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="324"/>
+        <location filename="../districts.py" line="331"/>
         <source>Districts Modeler</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts.py" line="355"/>
+        <location filename="../districts.py" line="362"/>
         <source>add_child_version</source>
         <translation type="unfinished">Add child version</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="357"/>
+        <location filename="../districts.py" line="364"/>
         <source>save_version_as</source>
         <translation type="unfinished">Save version as</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="359"/>
+        <location filename="../districts.py" line="366"/>
         <source>rename_version</source>
         <translation type="unfinished">Rename version</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="361"/>
+        <location filename="../districts.py" line="368"/>
         <source>delete_item</source>
         <translation type="unfinished">Delete item</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="363"/>
+        <location filename="../districts.py" line="370"/>
         <source>load_version</source>
         <translation type="unfinished">Load version</translation>
     </message>
@@ -4205,7 +4395,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="unfinished">Modeling &amp;&amp; simulation</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1698"/>
+        <location filename="../districts_dialog_base.ui" line="1708"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;btn_help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Help</translation>
     </message>
@@ -4300,37 +4490,37 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="unfinished">Modeling</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1393"/>
+        <location filename="../districts_dialog_base.ui" line="1403"/>
         <source>simulation</source>
         <translation type="unfinished">Simulation</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1464"/>
+        <location filename="../districts_dialog_base.ui" line="1474"/>
         <source>result_visualization</source>
         <translation type="unfinished">Results &amp;&amp; visualization</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1523"/>
+        <location filename="../districts_dialog_base.ui" line="1533"/>
         <source>load_results</source>
         <translation type="unfinished">Load results</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1470"/>
+        <location filename="../districts_dialog_base.ui" line="1480"/>
         <source>reports</source>
         <translation type="unfinished">Reports</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1576"/>
+        <location filename="../districts_dialog_base.ui" line="1586"/>
         <source>diagrams</source>
         <translation type="unfinished">Diagrams</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1639"/>
+        <location filename="../districts_dialog_base.ui" line="1649"/>
         <source>map</source>
         <translation type="unfinished">Map</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1727"/>
+        <location filename="../districts_dialog_base.ui" line="1737"/>
         <source>Status_message</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4704,7 +4894,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="unfinished">Parameter mapping</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1376"/>
+        <location filename="../districts_dialog_base.ui" line="1386"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4720,27 +4910,27 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p&gt;Additionally, &lt;strong&gt;parameter mapping&lt;/strong&gt; can be used to customize &lt;strong&gt;feature model parameters&lt;/strong&gt; based on &lt;strong&gt;feature attributes&lt;/strong&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1401"/>
+        <location filename="../districts_dialog_base.ui" line="1411"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_run_simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Run network model</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1411"/>
+        <location filename="../districts_dialog_base.ui" line="1421"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_feature_models&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Feature models</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1421"/>
+        <location filename="../districts_dialog_base.ui" line="1431"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_build_network&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Build network model</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1431"/>
+        <location filename="../districts_dialog_base.ui" line="1441"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_open_network&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Open network model</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1446"/>
+        <location filename="../districts_dialog_base.ui" line="1456"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4757,32 +4947,32 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/ul&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1478"/>
+        <location filename="../districts_dialog_base.ui" line="1488"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_network_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Network report</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1531"/>
+        <location filename="../districts_dialog_base.ui" line="1541"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_load_results&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Load results</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1584"/>
+        <location filename="../districts_dialog_base.ui" line="1594"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_path_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Path report</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1594"/>
+        <location filename="../districts_dialog_base.ui" line="1604"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_plot_feature_load_profile&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Display feature loads as well as mass and heat balances for selected networks in charts.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1647"/>
+        <location filename="../districts_dialog_base.ui" line="1657"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_show_data_on_map&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Show data on map</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1506"/>
+        <location filename="../districts_dialog_base.ui" line="1516"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4796,7 +4986,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p&gt;The displayed KPIs can be defined and selected in the &lt;strong&gt;Requested Outputs&lt;/strong&gt; section.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1559"/>
+        <location filename="../districts_dialog_base.ui" line="1569"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4809,7 +4999,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p&gt;Additionally, the simulation results can be &lt;strong&gt;interpolated&lt;/strong&gt; based on a defined &lt;strong&gt;fixed time step&lt;/strong&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1622"/>
+        <location filename="../districts_dialog_base.ui" line="1632"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4824,7 +5014,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 </translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1675"/>
+        <location filename="../districts_dialog_base.ui" line="1685"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5108,9 +5298,19 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">Define climate data</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1361"/>
+        <location filename="../districts_dialog_base.ui" line="1351"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_climateVersionData&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Set climate data per project variant.</translation>
+    </message>
+    <message>
+        <location filename="../districts_dialog_base.ui" line="1361"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_boreholefields&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">Borehole field mapping</translation>
+    </message>
+    <message>
+        <location filename="../districts_dialog_base.ui" line="1371"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_calibration&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">Customer model calibration</translation>
     </message>
 </context>
 <context>
@@ -5280,37 +5480,37 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>InvokeFeaturesDlg</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1278"/>
+        <location filename="../utility_functions/invoke.py" line="37"/>
         <source>invoke_feature_models_from_template</source>
         <translation type="unfinished">Invoke feature models from template</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1286"/>
+        <location filename="../utility_functions/invoke.py" line="45"/>
         <source>invoke_selected_feature</source>
         <translation type="unfinished">Invoke selected feature</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1289"/>
+        <location filename="../utility_functions/invoke.py" line="48"/>
         <source>invoke_all_features</source>
         <translation type="unfinished">Invoke all features</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1303"/>
+        <location filename="../utility_functions/invoke.py" line="62"/>
         <source>feature_is_invoked</source>
         <translation type="unfinished">Feature is invoked</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1309"/>
+        <location filename="../utility_functions/invoke.py" line="68"/>
         <source>open_invoked_feature</source>
         <translation type="unfinished">Open invoked feature</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1311"/>
+        <location filename="../utility_functions/invoke.py" line="70"/>
         <source>simulate_invoked_features</source>
         <translation type="unfinished">Simulate invoked features</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1313"/>
+        <location filename="../utility_functions/invoke.py" line="72"/>
         <source>plot_selected_features_load_energy</source>
         <translation type="unfinished">Plot selected features load and energy</translation>
     </message>
@@ -5349,37 +5549,37 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>ModellingSettings</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1393"/>
+        <location filename="../ida_mosim_dialog.py" line="1308"/>
         <source>modelling_settings</source>
         <translation type="unfinished">Modeling settings</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1398"/>
+        <location filename="../ida_mosim_dialog.py" line="1313"/>
         <source>finite_difference_pipe_model</source>
         <translation type="unfinished">Finite difference pipe model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1406"/>
+        <location filename="../ida_mosim_dialog.py" line="1321"/>
         <source>meter_per_node</source>
         <translation type="unfinished">Meter per node, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1430"/>
+        <location filename="../ida_mosim_dialog.py" line="1345"/>
         <source>node_volume</source>
         <translation type="unfinished">Junction, volume, m3</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1446"/>
+        <location filename="../ida_mosim_dialog.py" line="1361"/>
         <source>ambient_temperatur_settings</source>
         <translation type="unfinished">Ambient temperatur settings</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1460"/>
+        <location filename="../ida_mosim_dialog.py" line="1375"/>
         <source>ground_thermal_conductivity</source>
         <translation type="unfinished">Thermal conductivity of the soil/trench, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1463"/>
+        <location filename="../ida_mosim_dialog.py" line="1378"/>
         <source>ground_surface_layer_temperature_model</source>
         <translation type="unfinished">Ground surface layer temperature model</translation>
     </message>
@@ -5394,62 +5594,62 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">Phase shift of monthly minimum temperatur, days</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1467"/>
+        <location filename="../ida_mosim_dialog.py" line="1382"/>
         <source>surface_layer_density</source>
         <translation type="unfinished">Surface layer density, kg/m3</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1470"/>
+        <location filename="../ida_mosim_dialog.py" line="1385"/>
         <source>specific_heat_capacity_surface_layer</source>
         <translation type="unfinished">Specific heat capacity of the surface layer, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1473"/>
+        <location filename="../ida_mosim_dialog.py" line="1388"/>
         <source>thermal_conductivity_surface_layer</source>
         <translation type="unfinished">Thermal conductivity surface layer, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1476"/>
+        <location filename="../ida_mosim_dialog.py" line="1391"/>
         <source>surface_layer_depth</source>
         <translation type="unfinished">Surface layer thickness, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1480"/>
+        <location filename="../ida_mosim_dialog.py" line="1395"/>
         <source>ground_temperatur_timeseries</source>
         <translation type="unfinished">Ground temperatur timeseries</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1484"/>
+        <location filename="../ida_mosim_dialog.py" line="1399"/>
         <source>constant_ground_temperatur</source>
         <translation type="unfinished">Constant ground temperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1534"/>
+        <location filename="../ida_mosim_dialog.py" line="1449"/>
         <source>duct_model</source>
         <translation type="unfinished">Duct model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1537"/>
+        <location filename="../ida_mosim_dialog.py" line="1452"/>
         <source>duct_temperatur_timeseries</source>
         <translation type="unfinished">Duct temperatur timeseries</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1540"/>
+        <location filename="../ida_mosim_dialog.py" line="1455"/>
         <source>constant_duct_temperatur</source>
         <translation type="unfinished">Constant duct temperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1564"/>
+        <location filename="../ida_mosim_dialog.py" line="1479"/>
         <source>ambient_air_temperatur</source>
         <translation type="unfinished">Ambient air temperature</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1572"/>
+        <location filename="../ida_mosim_dialog.py" line="1487"/>
         <source>ambient_air_model</source>
         <translation type="unfinished">Ambient air model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1422"/>
+        <location filename="../ida_mosim_dialog.py" line="1337"/>
         <source>node_model</source>
         <translation type="unfinished">Junction model</translation>
     </message>
@@ -5533,32 +5733,32 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>RequestedOutputsDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="347"/>
+        <location filename="../ida_mosim_dialog.py" line="348"/>
         <source>energy_plants</source>
         <translation type="unfinished">Energy plants</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="259"/>
+        <location filename="../ida_mosim_dialog.py" line="260"/>
         <source>plant_power</source>
         <translation type="unfinished">Plant power, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="262"/>
+        <location filename="../ida_mosim_dialog.py" line="263"/>
         <source>plant_connection_temp</source>
         <translation type="unfinished">Plant connection temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="265"/>
+        <location filename="../ida_mosim_dialog.py" line="266"/>
         <source>plant_pressure</source>
         <translation type="unfinished">Plant pressure, Pa</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="268"/>
+        <location filename="../ida_mosim_dialog.py" line="269"/>
         <source>plant_massflow</source>
         <translation type="unfinished">Plant massflow, kg/s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="291"/>
+        <location filename="../ida_mosim_dialog.py" line="292"/>
         <source>customers</source>
         <translation type="unfinished">Customers</translation>
     </message>
@@ -5593,107 +5793,107 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">Minimum return temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="401"/>
+        <location filename="../ida_mosim_dialog.py" line="402"/>
         <source>network</source>
         <translation type="unfinished">Network</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="419"/>
+        <location filename="../ida_mosim_dialog.py" line="420"/>
         <source>system</source>
         <translation type="unfinished">System</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="475"/>
+        <location filename="../ida_mosim_dialog.py" line="476"/>
         <source>dt_output_hr</source>
         <translation type="unfinished">Timestep for outputs, hr</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="484"/>
+        <location filename="../ida_mosim_dialog.py" line="485"/>
         <source>cancel</source>
         <translation type="unfinished">Cancel</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="101"/>
+        <location filename="../ida_mosim_dialog.py" line="102"/>
         <source>requested_outputs</source>
         <translation type="unfinished">Requested outputs</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="107"/>
+        <location filename="../ida_mosim_dialog.py" line="108"/>
         <source>temporal_results</source>
         <translation type="unfinished">Temporal results</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="122"/>
+        <location filename="../ida_mosim_dialog.py" line="123"/>
         <source>substation_power</source>
         <translation type="unfinished">Substation power, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="125"/>
+        <location filename="../ida_mosim_dialog.py" line="126"/>
         <source>substation_connection_temperatures</source>
         <translation type="unfinished">Substation connection temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="128"/>
+        <location filename="../ida_mosim_dialog.py" line="129"/>
         <source>substation_pressure</source>
         <translation type="unfinished">Substation pressure, Pa</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="131"/>
+        <location filename="../ida_mosim_dialog.py" line="132"/>
         <source>substation_massflow</source>
         <translation type="unfinished">Substation massflow, kg/s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="134"/>
+        <location filename="../ida_mosim_dialog.py" line="135"/>
         <source>heat_balance_building</source>
         <translation type="unfinished">Heat balance of the building, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="137"/>
+        <location filename="../ida_mosim_dialog.py" line="138"/>
         <source>room_air_temperature</source>
         <translation type="unfinished">Room air temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="157"/>
+        <location filename="../ida_mosim_dialog.py" line="158"/>
         <source>massflows_pipes</source>
         <translation type="unfinished">Massflow in pipes, kg/s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="160"/>
+        <location filename="../ida_mosim_dialog.py" line="161"/>
         <source>velocity_pipes</source>
         <translation type="unfinished">Velocity in pipes, m/s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="163"/>
+        <location filename="../ida_mosim_dialog.py" line="164"/>
         <source>pressure_distribution</source>
         <translation type="unfinished">Pressure in pipes, Pa</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="166"/>
+        <location filename="../ida_mosim_dialog.py" line="167"/>
         <source>temperature_pipes</source>
         <translation type="unfinished">Temperature in pipes, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="169"/>
+        <location filename="../ida_mosim_dialog.py" line="170"/>
         <source>qamb_pipes</source>
         <translation type="unfinished">Heat transfer to ambient, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="280"/>
+        <location filename="../ida_mosim_dialog.py" line="281"/>
         <source>kpi_s</source>
         <translation type="unfinished">KPI`s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="371"/>
+        <location filename="../ida_mosim_dialog.py" line="372"/>
         <source>qsup_heat</source>
         <translation type="unfinished">Heat demand, kWh/a</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="374"/>
+        <location filename="../ida_mosim_dialog.py" line="375"/>
         <source>qsup_cold</source>
         <translation type="unfinished">Cooling demand, kWh/a</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="377"/>
+        <location filename="../ida_mosim_dialog.py" line="378"/>
         <source>qsup_energy</source>
         <translation type="unfinished">Energy demand, kWh/a</translation>
     </message>
@@ -5708,62 +5908,62 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">Maximum pressure head at energy plants, Pa</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="407"/>
+        <location filename="../ida_mosim_dialog.py" line="408"/>
         <source>qamb_lines</source>
         <translation type="unfinished">Annual heat transfer to ambient, kWh/a</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="425"/>
+        <location filename="../ida_mosim_dialog.py" line="426"/>
         <source>specific_heat_supply</source>
         <translation type="unfinished">Specific heating demand, kWh/(m2 ERA a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="428"/>
+        <location filename="../ida_mosim_dialog.py" line="429"/>
         <source>specific_cold_supply</source>
         <translation type="unfinished">Specific cooling demand, kWh/(m2 ERA a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="431"/>
+        <location filename="../ida_mosim_dialog.py" line="432"/>
         <source>specific_energy_supply</source>
         <translation type="unfinished">Specific energy demand, kWh/(m2 ERA a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="435"/>
+        <location filename="../ida_mosim_dialog.py" line="436"/>
         <source>density_heat_supply</source>
         <translation type="unfinished">Heat density per site area, kWh/(m2 a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="438"/>
+        <location filename="../ida_mosim_dialog.py" line="439"/>
         <source>density_cold_supply</source>
         <translation type="unfinished">Cooling density per site area, kWh/(m2 a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="441"/>
+        <location filename="../ida_mosim_dialog.py" line="442"/>
         <source>density_energy_supply</source>
         <translation type="unfinished">Energy density per site area, kWh/(m2 a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="445"/>
+        <location filename="../ida_mosim_dialog.py" line="446"/>
         <source>line_density_heat_supply</source>
         <translation type="unfinished">Linear heat density, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="448"/>
+        <location filename="../ida_mosim_dialog.py" line="449"/>
         <source>line_density_cold_supply</source>
         <translation type="unfinished">Linear cooling density, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="451"/>
+        <location filename="../ida_mosim_dialog.py" line="452"/>
         <source>line_density_energy_supply</source>
         <translation type="unfinished">Linear energy density, kWh/(m route a)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="455"/>
+        <location filename="../ida_mosim_dialog.py" line="456"/>
         <source>effWidth</source>
         <translation type="unfinished">Effective Width, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="482"/>
+        <location filename="../ida_mosim_dialog.py" line="483"/>
         <source>ok</source>
         <translation type="unfinished">Ok</translation>
     </message>
@@ -5773,107 +5973,107 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">Heat transfer of network to ambient, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="190"/>
+        <location filename="../ida_mosim_dialog.py" line="191"/>
         <source>heatbalance_system</source>
         <translation type="unfinished">Heat balance of the system, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="193"/>
+        <location filename="../ida_mosim_dialog.py" line="194"/>
         <source>massbalance_system</source>
         <translation type="unfinished">Massbalance of the system, kg/s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="197"/>
+        <location filename="../ida_mosim_dialog.py" line="198"/>
         <source>mean_supply_temp_customer</source>
         <translation type="unfinished">Mean supply temperature of the customers, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="200"/>
+        <location filename="../ida_mosim_dialog.py" line="201"/>
         <source>maximum_supply_temp_customer</source>
         <translation type="unfinished">Maximum supply temperature of the customers, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="203"/>
+        <location filename="../ida_mosim_dialog.py" line="204"/>
         <source>minimum_supply_temp_customer</source>
         <translation type="unfinished">Minimum supply temperature of the customers, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="206"/>
+        <location filename="../ida_mosim_dialog.py" line="207"/>
         <source>mean_supply_temp_plant</source>
         <translation type="unfinished">Mean supply temperature of the energy plants, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="209"/>
+        <location filename="../ida_mosim_dialog.py" line="210"/>
         <source>maximum_supply_temp_plant</source>
         <translation type="unfinished">Maximum supply temperature of the energy plants, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="212"/>
+        <location filename="../ida_mosim_dialog.py" line="213"/>
         <source>minimum_supply_temp_plant</source>
         <translation type="unfinished">Minimum supply temperature of the energy plants, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="352"/>
+        <location filename="../ida_mosim_dialog.py" line="353"/>
         <source>mean_supply_temp</source>
         <translation type="unfinished">Mean supply temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="355"/>
+        <location filename="../ida_mosim_dialog.py" line="356"/>
         <source>maximum_supply_temp</source>
         <translation type="unfinished">Maximum supply temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="358"/>
+        <location filename="../ida_mosim_dialog.py" line="359"/>
         <source>minimum_supply_temp</source>
         <translation type="unfinished">Minimum supply temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="361"/>
+        <location filename="../ida_mosim_dialog.py" line="362"/>
         <source>mean_return_temp</source>
         <translation type="unfinished">Mean return temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="364"/>
+        <location filename="../ida_mosim_dialog.py" line="365"/>
         <source>maximum_return_temp</source>
         <translation type="unfinished">Maximum return temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="367"/>
+        <location filename="../ida_mosim_dialog.py" line="368"/>
         <source>minimum_return_temp</source>
         <translation type="unfinished">Minimum return temperature, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="215"/>
+        <location filename="../ida_mosim_dialog.py" line="216"/>
         <source>mean_return_temp_customer</source>
         <translation type="unfinished">Mean return temperature of the customers, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="218"/>
+        <location filename="../ida_mosim_dialog.py" line="219"/>
         <source>maximum_return_temp_customer</source>
         <translation type="unfinished">Maximum return temperature of the customers, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="221"/>
+        <location filename="../ida_mosim_dialog.py" line="222"/>
         <source>minimum_retrun_temp_customer</source>
         <translation type="unfinished">Minimum return temperature of the customers, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="224"/>
+        <location filename="../ida_mosim_dialog.py" line="225"/>
         <source>mean_return_temp_plant</source>
         <translation type="unfinished">Mean return temperature of the energy plants, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="227"/>
+        <location filename="../ida_mosim_dialog.py" line="228"/>
         <source>maximum_return_temp_plant</source>
         <translation type="unfinished">Maximum return temperature of the energy plants, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="230"/>
+        <location filename="../ida_mosim_dialog.py" line="231"/>
         <source>minimum_return_temp_plant</source>
         <translation type="unfinished">Minimum return temperature of the energy plants, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="410"/>
+        <location filename="../ida_mosim_dialog.py" line="411"/>
         <source>network_volume</source>
         <translation type="unfinished">Network volume, m3</translation>
     </message>
@@ -5881,57 +6081,57 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>RunNetworkModelDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="692"/>
+        <location filename="../ida_mosim_dialog.py" line="693"/>
         <source>run_network_model</source>
         <translation type="unfinished">Run network model</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="710"/>
+        <location filename="../ida_mosim_dialog.py" line="711"/>
         <source>simulation</source>
         <translation type="unfinished">Simulation</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="746"/>
+        <location filename="../ida_mosim_dialog.py" line="747"/>
         <source>periodic</source>
         <translation type="unfinished">Periodic</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="747"/>
+        <location filename="../ida_mosim_dialog.py" line="748"/>
         <source>dynamic</source>
         <translation type="unfinished">Dynamic</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="728"/>
+        <location filename="../ida_mosim_dialog.py" line="729"/>
         <source>maximal_timestep</source>
         <translation type="unfinished">Maximal timesteps, hr</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="735"/>
+        <location filename="../ida_mosim_dialog.py" line="736"/>
         <source>startup</source>
         <translation type="unfinished">Startup</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="795"/>
+        <location filename="../ida_mosim_dialog.py" line="796"/>
         <source>from</source>
         <translation type="unfinished">From</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="808"/>
+        <location filename="../ida_mosim_dialog.py" line="809"/>
         <source>to</source>
         <translation type="unfinished">To</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="780"/>
+        <location filename="../ida_mosim_dialog.py" line="781"/>
         <source>no_periods</source>
         <translation type="unfinished">Number of periods</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="789"/>
+        <location filename="../ida_mosim_dialog.py" line="790"/>
         <source>simulation_time</source>
         <translation type="unfinished">Simulation time</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="845"/>
+        <location filename="../ida_mosim_dialog.py" line="846"/>
         <source>run_network</source>
         <translation type="unfinished">Run network</translation>
     </message>
@@ -5939,72 +6139,72 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>SensorSignalsDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="34"/>
+        <location filename="../ida_mosim_dialog.py" line="35"/>
         <source>sensor_signals_dlg</source>
         <translation type="unfinished">Sensor signals</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="51"/>
+        <location filename="../ida_mosim_dialog.py" line="52"/>
         <source>sensor_source</source>
         <translation type="unfinished">Source</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="64"/>
+        <location filename="../ida_mosim_dialog.py" line="65"/>
         <source>sensor_id</source>
         <translation type="unfinished">Sensor ID</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="64"/>
+        <location filename="../ida_mosim_dialog.py" line="65"/>
         <source>type</source>
         <translation type="unfinished">Feature type</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="64"/>
+        <location filename="../ida_mosim_dialog.py" line="65"/>
         <source>templates</source>
         <translation type="unfinished">Templates</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="56"/>
+        <location filename="../ida_mosim_dialog.py" line="57"/>
         <source>connection_types</source>
         <translation type="unfinished">Connection Types</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="56"/>
+        <location filename="../ida_mosim_dialog.py" line="57"/>
         <source>connections</source>
         <translation type="unfinished">Connections</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="56"/>
+        <location filename="../ida_mosim_dialog.py" line="57"/>
         <source>measure</source>
         <translation type="unfinished">Measure</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="56"/>
+        <location filename="../ida_mosim_dialog.py" line="57"/>
         <source>apply_function</source>
         <translation type="unfinished">Applied function</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="56"/>
+        <location filename="../ida_mosim_dialog.py" line="57"/>
         <source>test_value</source>
         <translation type="unfinished">Test value</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="64"/>
+        <location filename="../ida_mosim_dialog.py" line="65"/>
         <source>description</source>
         <translation type="unfinished">Description</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="59"/>
+        <location filename="../ida_mosim_dialog.py" line="60"/>
         <source>sensor_target</source>
         <translation type="unfinished">Target</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="68"/>
+        <location filename="../ida_mosim_dialog.py" line="69"/>
         <source>ok</source>
         <translation type="unfinished">Ok</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="70"/>
+        <location filename="../ida_mosim_dialog.py" line="71"/>
         <source>cancel</source>
         <translation type="unfinished">Cancel</translation>
     </message>

@@ -1060,6 +1060,8 @@ class Districts:
         #print('Create sensor signals for comunication between plants, customers and supervisory control')
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.updateSensor=UpdateSensors(config=self.config,cur=self.cur,plugin_dir=self.plugin_dir,dlg_main=self.dlg)
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
@@ -1131,6 +1133,7 @@ class Districts:
                     QThreadPool.globalInstance().start(worker_openNetwork) 
                     worker_openNetwork.signals.error.connect(show_error_message)
                     worker_openNetwork.signals.progress.connect(self.dlg.update_progress)
+                    worker_openNetwork.signals.finished.connect(self.dlg.update_finished)
                     """
                     self.dlg_openModel=OpenModelDialog(self.dlg,mode)
                     self.dlg_openModel.combo_submodels.addItem(tr('@default','check_all_items'))
@@ -1287,9 +1290,28 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
 
+    def showCalibration(self):                      
+        if self.conn:
+            if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
+                self.dlg_calibrateCustomers=CalibrateCustomers(self.config,self.conn,self.plugin_dir)
+                self.dlg_calibrateCustomers.btn_startCallibration.clicked.connect(lambda: startCalibration(self.dlg_calibrateCustomers,self.conn,self.config,self.plugin_dir))
+                self.dlg_calibrateCustomers.btn_saveCallibration.clicked.connect(lambda: saveCalibValues(self.dlg_calibrateCustomers,self.config,self.conn,self.cur))
+                self.dlg_calibrateCustomers.btn_openTemplate.clicked.connect(lambda: openTemplateParmrun(self.dlg_calibrateCustomers,self.plugin_dir,self.conn))
+                self.dlg_calibrateCustomers.btn_showCallibCust.clicked.connect(lambda: openResult(self.dlg_calibrateCustomers,self.plugin_dir,self.conn,self.cur))
+                loadCustomerCalibrationData(self.dlg_calibrateCustomers,self.config,self.conn)
+                self.dlg_calibrateCustomers.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+
     def showBoreholeFieldSettings(self):
         if self.conn:
             if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
                 headers=[tr('@default',"id"),tr('@default',"epid"),tr('@default',"drilling_depth"),tr('@default',"drilling_radius"), tr('@default',"borehole_heat_resistance"),
                     tr('@default',"heat_resistance_between_pipe_innergrout"),tr('@default',"heat_resistance_between_pipe_earth"), tr('@default',"heat_resistance_between_innergrout_outergrout"),tr('@default',"heat_resistance_between_grout_earth"),tr('@default',"heat_resistance_between_grouting_earth"),
@@ -1437,6 +1459,7 @@ class Districts:
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
             self.dlg.btn_runModel.clicked.connect(self.showRunModel)
+            self.dlg.btn_calibration.clicked.connect(self.showCalibration)
             
             #results and visualization
             self.dlg.btn_loadResults.clicked.connect(self.showLoadResults)

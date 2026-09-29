@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import QTableWidgetItem,QTableWidget, QTabWidget
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QTableWidget, QTabWidget, QPushButton, QHBoxLayout, QRadioButton, QProgressBar, QVBoxLayout
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from qgis.utils import iface
 from qgis.core import  Qgis, QgsMessageLog, QgsCredentials, QgsDataSourceUri, QgsExpression, QgsOptionalExpression, QgsAttributeEditorField, QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
@@ -13,7 +13,7 @@ from .sensor_signals import *
 from .util import *
 from .layer_visualization import *
 from .workers import *
-from ..ida_mosim_dialog import InvokeFeaturesDlg
+#from ..ida_mosim_dialog import InvokeFeaturesDlg
 from ..calibrate_customers import *
 from ..boreholes import *
 
@@ -30,6 +30,113 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
 import traceback
 
+class InvokeFeaturesDlg(QDialog):
+    def __init__(self):
+        """Constructor."""
+        super().__init__()
+        self.setWindowTitle(self.tr("invoke_feature_models_from_template"))
+        self.type=""        
+        
+        #-------------Invoke---------------
+               
+        #invoke buttons       
+        layout_invoke_btn = QHBoxLayout()      
+        
+        self.btn_invokeOne=QPushButton(self.tr("invoke_selected_feature"))
+        layout_invoke_btn.addWidget(self.btn_invokeOne)
+        
+        self.btn_invokeAll=QPushButton(self.tr("invoke_all_features"))
+        layout_invoke_btn.addWidget(self.btn_invokeAll)
+        
+        #radio buttons
+        layout_rbtn = QHBoxLayout()
+        self.rbtn_customers = QRadioButton(tr('@default','customer'))
+        self.rbtn_customers.setChecked(True)
+        self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
+           
+        layout_rbtn.addWidget(self.rbtn_customers)
+        layout_rbtn.addWidget(self.rbtn_plants)
+        
+        #table
+        self.tableWidget_customer = QTableWidget(0,2)   
+        self.tableWidget_customer.setHorizontalHeaderLabels([tr('@default','id'),self.tr("feature_is_invoked")])      
+
+        #---------------ok/Open buttons     
+        layout_buttons = QHBoxLayout()
+        self.btn_ok=QPushButton(tr('@default','ok'))
+        layout_buttons.addWidget(self.btn_ok)
+        self.btn_openInvoked=QPushButton(self.tr("open_invoked_feature"))
+        layout_buttons.addWidget(self.btn_openInvoked)      
+        self.btn_simulateInvoked=QPushButton(self.tr("simulate_invoked_features"))
+        layout_buttons.addWidget(self.btn_simulateInvoked)      
+        self.btn_showFeatureLoad=QPushButton(self.tr("plot_selected_features_load_energy"))
+        layout_buttons.addWidget(self.btn_showFeatureLoad)    
+
+        #progress bar
+        self.progress=QProgressBar()        
+        
+        #---------------set layouts together-------------------
+        layout_win = QVBoxLayout()
+        layout_win.addLayout(layout_invoke_btn)
+        layout_win.addLayout(layout_rbtn)
+        layout_win.addWidget(self.tableWidget_customer)
+        layout_win.addLayout(layout_buttons)
+        layout_win.addWidget(self.progress)
+        
+        self.setLayout(layout_win)         
+        
+    def show_error_message(self, message):
+        # Show the error message in a messageBar
+        #iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        pass
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+
+    def show_plots(self,plot):
+        if plot:
+            self.ax.set_title('Load profiles {}'.format(self.type))
+            self.ax2.set_title('Cumulated energy {}'.format(self.type))
+            self.ax.set_xlabel('Time, h')
+            self.ax2.set_xlabel('Time, h')
+            self.ax.set_ylabel('Power, W')
+            self.ax2.set_ylabel('Energy, kWh')
+        
+            self.fig.legend()
+            self.fig2.legend()
+            self.fig.show()            
+            self.fig2.show()  
+        
+    def plot_data(self, data):
+        # Plotting in the main thread, which is non-blocking
+        time=data[0]['time']
+        valuesPowerInt=data[0]['data']
+        label=data[0]['label']
+        self.ax.plot(time, valuesPowerInt,label=label)
+        time=data[1]['time']
+        valuesEnergyInt=data[1]['data']
+        label=data[1]['label']
+        self.ax2.plot(time, valuesEnergyInt,label=label)
+        
+    def plot_total_data(self, data):
+        try:
+            fig1, ax1 = plt.subplots(layout='constrained')
+            time=data[0]['time']
+            power_sum=data[0]['data']
+            ax1.plot(time, power_sum, label='Total power, W')
+            time=data[1]['time']
+            energy_sum=data[1]['data']
+            ax1.plot(time, energy_sum, label='Total energy, kWh')
+            ax1.set_title('Total load profiles')
+            plt.legend()
+            fig1.show()
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
+            
 class WorkerInvokeFeatures(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
@@ -183,7 +290,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype']) # nosec B608
                     cur.execute(sql)
                     liqtype='|'+cur.fetchone()['liquid']+'|'
-                    replaceDict={':FEATURE': {'Ghx_Many': {
+                    replaceDict={':FEATURE': {'GHX_MANY': {
                         'MIR': mir,
                         'X': x,
                         'Y' : y,'NHOLE': nholes,'NGROUPS':ngroups,'NG':ng,
