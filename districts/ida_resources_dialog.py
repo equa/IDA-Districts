@@ -8,7 +8,178 @@ from .utility_functions.utility import *
 
 import traceback
 
+class ExportResourcesDialog(QDialog):
+    def __init__(self,cur,config):
+        super().__init__()
 
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "ExportResources_dialog.ui")
+        uic.loadUi(ui_path, self)
+        self.cur=cur
+        self.config=config
+        self.table_columns={}
+        self.tables={
+            self.tableWidget_connections : 'connections',
+            self.tableWidget_materials : 'materials',
+            self.tableWidget_customer_templates : 'customer_templates',
+            self.tableWidget_energy_plant_templates : 'energy_plant_templates'}
+            
+                
+        self.tabWidget.setCurrentWidget(self.tab_connections) 
+        
+        #rbtn connections
+        self.rbtn_connections.toggled.connect(self.onClickedRadioConnections)
+        self.rbtn_conntypes.toggled.connect(self.onClickedRadioConnectiontypes)
+        self.rbtn_conn_bundles.toggled.connect(self.onClickedRadioConnectionbundles)
+
+        self.rbtn_materials.toggled.connect(self.onClickedRadioMaterials)
+        self.rbtn_constructions.toggled.connect(self.onClickedRadioConstructions)
+        self.rbtn_pipes.toggled.connect(self.onClickedRadioPipes)
+        self.rbtn_pipe_bundles.toggled.connect(self.onClickedRadioPipebundles)
+
+        self.rbtn_customers.toggled.connect(self.onClickedRadioCustomerTemplates)
+        self.rbtn_energy_plants.toggled.connect(self.onClickedRadioEnergyplantsTemplates)
+        
+        #btn connections
+        self.btn_select_all_connections.clicked.connect(lambda: self.select_all(True))
+        self.btn_select_all_pipes.clicked.connect(lambda: self.select_all(True))
+        self.btn_select_all_templates.clicked.connect(lambda: self.select_all(True))
+
+        self.btn_unselect_all_connections.clicked.connect(lambda: self.select_all(False))
+        self.btn_unselect_all_pipes.clicked.connect(lambda: self.select_all(False))
+        self.btn_unselect_all_templates.clicked.connect(lambda: self.select_all(False))
+        
+        #load data
+        self.loadTableData(self.tableWidget_connections,self.tables[self.tableWidget_connections])
+        self.loadTableData(self.tableWidget_connection_types,'connection_types')
+        self.loadTableData(self.tableWidget_connection_bundles,'conn_bundle_types')
+
+        self.loadTableData(self.tableWidget_materials,self.tables[self.tableWidget_materials])
+        self.loadTableData(self.tableWidget_constructions,'pipe_constructions')
+        self.loadTableData(self.tableWidget_pipes,'pipes')
+        self.loadTableData(self.tableWidget_pipe_bundles,'pipe_bundle_types')
+
+        self.loadTableData(self.tableWidget_customer_templates,self.tables[self.tableWidget_customer_templates])
+        self.loadTableData(self.tableWidget_energy_plant_templates,self.tables[self.tableWidget_energy_plant_templates])
+        
+        self.rbtn_connections.setChecked(True)
+        self.rbtn_materials.setChecked(True)
+        self.rbtn_customers.setChecked(True)
+        
+    def select_all(self,check):
+        tab_name = self.tabWidget.currentWidget().objectName()
+        if tab_name=='tab_connections':
+            if self.rbtn_connections.isChecked():
+                self.checkTableEntries(self.tableWidget_connections,check)
+            elif self.rbtn_conntypes.isChecked():
+                self.checkTableEntries(self.tableWidget_connection_types,check)
+            else:
+                self.checkTableEntries(self.tableWidget_connection_bundles,check)
+        elif tab_name=='tab_pipes':
+            if self.rbtn_materials.isChecked():
+                self.checkTableEntries(self.tableWidget_materials,check)
+            elif self.rbtn_constructions.isChecked():
+                self.checkTableEntries(self.tableWidget_constructions,check)
+            elif self.rbtn_pipes.isChecked():
+                self.checkTableEntries(self.tableWidget_pipes,check)
+            else:
+                self.checkTableEntries(self.tableWidget_pipe_bundles,check)
+        else:
+            if self.rbtn_customers.isChecked():
+                self.checkTableEntries(self.tableWidget_customer_templates,check)
+            else:
+                self.checkTableEntries(self.tableWidget_energy_plant_templates,check)
+            
+    def checkTableEntries(self,table,check=True):        
+        for row in range(table.rowCount()):
+            checkbox = table.cellWidget(row, 0)
+
+            if checkbox is not None:
+                checkbox.setChecked(check)
+    
+    def loadTableData(self,table,db_table):
+        table.setRowCount(0)
+        sql="""SELECT * FROM {} ORDER BY id;""".format(db_table)
+        self.cur.execute(sql)
+        result = self.cur.fetchall()
+        if result:
+            self.table_columns[table]=['selection']+list(result[0].keys())
+            table.setColumnCount(len(self.table_columns[table]))
+            table.setHorizontalHeaderLabels([tr('@default',i) for i in self.table_columns[table]])
+            for i,entry in enumerate(result):
+                table.insertRow(i)
+                checkbox = QCheckBox()
+                table.setCellWidget(i, 0, checkbox)
+                for j,col in enumerate(self.table_columns[table][1:],1):
+                    table.setItem(i,j,QTableWidgetItem(str(entry[self.table_columns[table][j]])))         
+       
+    #connections
+    def onClickedRadioConnections(self):
+        if self.rbtn_connections.isChecked():
+            self.tableWidget_connections.show()
+            self.tableWidget_connection_types.hide()
+            self.tableWidget_connection_bundles.hide()
+ 
+    def onClickedRadioConnectiontypes(self):
+        if self.rbtn_conntypes.isChecked():
+            self.tableWidget_connection_types.show()
+            self.tableWidget_connections.hide()
+            self.tableWidget_connection_bundles.hide()
+
+    def onClickedRadioConnectionbundles(self):
+        if self.rbtn_conn_bundles.isChecked():
+            self.tableWidget_connection_bundles.show()
+            self.tableWidget_connections.hide()
+            self.tableWidget_connection_types.hide()
+
+    #pipes
+    def onClickedRadioMaterials(self):
+        if self.rbtn_materials.isChecked():
+            self.tableWidget_materials.show()
+            self.tableWidget_constructions.hide()
+            self.tableWidget_pipes.hide()
+            self.tableWidget_pipe_bundles.hide()
+
+    def onClickedRadioConstructions(self):
+        if self.rbtn_constructions.isChecked():
+            self.tableWidget_constructions.show()
+            self.tableWidget_materials.hide()
+            self.tableWidget_pipes.hide()
+            self.tableWidget_pipe_bundles.hide()
+
+    def onClickedRadioPipes(self):
+        if self.rbtn_pipes.isChecked():
+            self.tableWidget_pipes.show()
+            self.tableWidget_materials.hide()
+            self.tableWidget_constructions.hide()
+            self.tableWidget_pipe_bundles.hide()
+
+    def onClickedRadioPipebundles(self):
+        if self.rbtn_pipe_bundles.isChecked():
+            self.tableWidget_pipe_bundles.show()
+            self.tableWidget_materials.hide()
+            self.tableWidget_constructions.hide()
+            self.tableWidget_pipes.hide()
+
+    #templates
+    def onClickedRadioCustomerTemplates(self):
+        if self.rbtn_customers.isChecked():
+            self.tableWidget_customer_templates.show()
+            self.tableWidget_energy_plant_templates.hide()
+
+    def onClickedRadioEnergyplantsTemplates(self):
+        if self.rbtn_energy_plants.isChecked():
+            self.tableWidget_energy_plant_templates.show()
+            self.tableWidget_customer_templates.hide()
+  
+                
+    def fileDialog(self):
+        dir=os.path.dirname(self.lineEdit_filePath.text())
+        filename, _filter = QFileDialog.getOpenFileName(
+            self, self.tr("select_climate_data"),dir, "PRN files (*.prn)")
+        if filename:
+            self.lineEdit_filePath.setText(standardizePath(filename,trailingBackSlash=False))
+            
 class ClimateDialog(QDialog):
     def __init__(self,data):
         super().__init__()

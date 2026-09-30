@@ -574,6 +574,27 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
 
+    def show_exportResources(self):
+        """ show export resources dialog"""
+        if self.conn:
+            self.dlg_exportResources=ExportResourcesDialog(self.cur,self.config)
+            self.dlg_exportResources.btn_export_selection.clicked.connect(lambda: exportResources(self.dlg_exportResources,self))
+            self.dlg_exportResources.btn_export_all.clicked.connect(lambda: exportResources(self.dlg_exportResources,self,export_all=True))
+            self.dlg_exportResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_exportResources))
+            self.dlg_exportResources.show()     
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+
+    def show_importResources(self):
+        """ show import resources dialog"""
+        if self.conn:
+            self.dlg_importResources=ImportResourcesDialog()
+            self.dlg_importResources.btn_ok.clicked.connect(lambda: importResources(self.dlg_importResources,self))
+            self.dlg_importResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_importResources))
+            self.dlg_importResources.show()     
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
+
     def showExportProject(self):
         if self.conn:
             self.dlg_export = ExportProjectDialog()
@@ -1426,6 +1447,8 @@ class Districts:
             self.dlg.btn_importNetworkTopologyFromLayer.clicked.connect(self.importNetworkTopologyFromLayer)
 
             #resources
+            self.dlg.btn_exportResources.clicked.connect(self.show_exportResources)
+            self.dlg.btn_importResources.clicked.connect(self.show_importResources)
             self.dlg.btn_climateTemplate.clicked.connect(self.show_manageClimateTemplate)
             self.dlg.btn_defaults_lines.clicked.connect(self.show_DefaultsLinesDialog)
             self.dlg.btn_defaults_customers.clicked.connect(self.show_DefaultsCustomersDialog)

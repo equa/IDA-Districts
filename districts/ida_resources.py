@@ -17,6 +17,38 @@ import traceback
 import pandas as pd
 import numpy as np
 
+def sqlInsertQuery(dlg,table,row,db_table):
+    return """INSERT INTO {} ({}) VALUES ({});""".format(
+                db_table,
+                ','.join(dlg.table_columns[table][2:]),
+                ','.join([table.item(row,col).text().replace('None','NULL') 
+                            if isNumber(table.item(row,col).text()) or table.item(row,col).text() in ('True','False','None') else 
+                        f"'{table.item(row,col).text()}'" 
+                            for col in range(2,table.columnCount())]))
+                            
+def exportResources(dlg,main,export_all=False):
+    print('export resources')
+    print(export_all)
+    
+    #connections, materials, customer_templates, energy_plant_templates
+    sql={'connections' : {}, 'connection_types' : {}, 'materials' : {}, 'customer_templates' : {},'energy_plant_templates' : {}}
+    for table,db_table in dlg.tables.items():
+        for row in range(table.rowCount()):
+            if table.cellWidget(row,0).isChecked():
+                sql[db_table][table.item(row,1).text()] = sqlInsertQuery(dlg,table,row,db_table)
+                
+    #connection types
+    for row in range(dlg.tableWidget_connection_types.rowCount()):
+        if dlg.tableWidget_connection_types.cellWidget(row,0).isChecked():
+            print(row)
+            sql['connection_types'][dlg.tableWidget_connection_types.item(row,1).text()]=sqlInsertQuery(dlg,dlg.tableWidget_connection_types,row,'connection_types')
+            
+            #check for connections
+            
+            #check for connection_type_connections
+            
+    print(sql)
+    
 def calculateKusudaSettings(file,modellingSettings):
     # --------------------------------------------------
     # Read climate file

@@ -122,6 +122,9 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_help.setIcon(QIcon(":/images/themes/default/mActionHelpContents.svg"))
         
         #resource icons
+        self.btn_exportResources.setIcon(QIcon(":/images/themes/default/mActionSharingExport.svg"))
+        self.btn_importResources.setIcon(QIcon(":/images/themes/default/mActionSharingImport.svg"))
+        
         btn_size=30
         self.btn_manageEnergyPlantTemplates.setIcon(QIcon(os.path.join(plugin_dir, "icons/Plant.png")))
         self.btn_manageEnergyPlantTemplates.setIconSize(QSize(btn_size, btn_size))

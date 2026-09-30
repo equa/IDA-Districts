@@ -669,6 +669,46 @@ li.checked::marker { content: &quot;\2612&quot;; }
        <string>data_center</string>
       </attribute>
       <layout class="QVBoxLayout" name="layout_data_center">
+	   <item>
+		<layout class="QHBoxLayout" name="layout_resource_handling">
+		 <item>
+			<spacer name="horizontalSpacer_resource_handling">
+				<property name="orientation">
+					<enum>Qt::Orientation::Horizontal</enum>
+				</property>
+				<property name="sizeType">
+					<enum>QSizePolicy::Policy::Expanding</enum>
+				</property>
+				<property name="sizeHint" stdset="0">
+					<size>
+						<width>40</width>
+						<height>20</height>
+					</size>
+				</property>
+			</spacer>
+		 </item>
+         <item>
+          <widget class="QPushButton" name="btn_exportResources">
+           <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_exportResources&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+          </widget>
+		 </item>
+		 <item>
+		  <widget class="QPushButton" name="btn_importResources">
+           <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_importResources&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+          </widget>
+         </item>
+		</layout>
+	   </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
