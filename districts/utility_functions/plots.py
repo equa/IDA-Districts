@@ -300,7 +300,17 @@ ORDER BY time;
 
         plt.tight_layout()
         if show_plot:
-            plt.show()
+            plot_window = fig.canvas.manager.window
+
+            # Make the Matplotlib window owned by QGIS
+            plot_window.setParent(
+                iface.mainWindow(),
+                Qt.WindowType.Window
+            )
+
+            plot_window.show()
+            plot_window.raise_()
+            plot_window.activateWindow()
         
         if save_plot:
             filename=districtsModelerTempDir()+table_name
