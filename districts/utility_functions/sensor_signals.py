@@ -691,7 +691,7 @@ at_names_mapping AS (
 target_mapping AS (
     SELECT 
         t.sensor_id, 
-        ARRAY_AGG(t.sensor_id::text || '_X_X_X_1' ORDER BY t.sensor_id) AS irefs_target,
+        ARRAY_AGG(t.sensor_id::text || '_X_X_X_{}' ORDER BY t.sensor_id) AS irefs_target,
         'results'::text AS target_template_name
     FROM public.sensor_target t
     WHERE t.type = 4  
@@ -713,7 +713,7 @@ SELECT
     s.measure, 
     m.measure AS measure_name, 
     -- HIER werden nun alle iRefs pro Sensor gesammelt und als Text-Array zusammengefasst:
-    ARRAY_AGG(sub.sensor_id || '_' || sub.feature_id || '_' || sub.conn_type_id || '_' || sub.connection_id || '_1') AS irefs_source,
+    ARRAY_AGG(sub.sensor_id || '_' || sub.feature_id || '_' || sub.conn_type_id || '_' || sub.connection_id || '_{}') AS irefs_source,
     t_map.irefs_target, 
     s.test_value,
     s.description AS description_source, 
@@ -747,6 +747,7 @@ ORDER BY sub.sensor_id;""".format( # nosec B608
     config['versionName'],config['versionName'],config['versionName'],network,network, # nosec B608
     config['versionName'],config['versionName'],config['versionName'],network,network, # nosec B608
     config['versionName'],config['versionName'], # nosec B608
+    network, network, # nosec B608
     ','.join([str(i) for i in source_types])) # nosec B608
     #print(sql)   
     if execute_query:
