@@ -580,7 +580,6 @@ def openClimateMacro(main):
     QThreadPool.globalInstance().start(main.worker_openClimate) 
     main.worker_openClimate.signals.error.connect(show_error_message)
     main.worker_openClimate.signals.progress.connect(main.dlg.update_progress)  
-    main.worker_openClimate.signals.finished.connect(main.dlg.modelOpeningFinished)  
     #print('--open climate macro finished--')
     
 
@@ -755,7 +754,6 @@ def openTemplate(main,type,dlg):
         QThreadPool.globalInstance().start(main.worker_openTemplate) 
         main.worker_openTemplate.signals.error.connect(show_error_message)
         main.worker_openTemplate.signals.progress.connect(main.dlg.update_progress)  
-        main.worker_openTemplate.signals.finished.connect(main.dlg.modelOpeningFinished)  
         
         #print('finished open template')
     else:
