@@ -487,8 +487,8 @@ class Districts:
         )
 
         if folder:
-            lineEdit.setText(standardizePath(folder))
-
+            lineEdit.setText(standardizePath(folder)) 
+    
     def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
         #print(default_path)
         if self.conn:
@@ -578,8 +578,9 @@ class Districts:
         """ show export resources dialog"""
         if self.conn:
             self.dlg_exportResources=ExportResourcesDialog(self.cur,self.config)
-            self.dlg_exportResources.btn_export_selection.clicked.connect(lambda: exportResources(self.dlg_exportResources,self))
-            self.dlg_exportResources.btn_export_all.clicked.connect(lambda: exportResources(self.dlg_exportResources,self,export_all=True))
+            self.dlg_exportResources.btn_filechoser.clicked.connect(lambda: self.folderDialog(self.dlg_exportResources, self.dlg_exportResources.lineEdit_pathExport.text(),self.dlg_exportResources.lineEdit_pathExport))
+            self.dlg_exportResources.btn_export_selection.clicked.connect(lambda: exportResources(self.dlg_exportResources,self,close_dialog=True))
+            self.dlg_exportResources.btn_export_all.clicked.connect(lambda: exportResources(self.dlg_exportResources,self,export_all=True,close_dialog=True))
             self.dlg_exportResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_exportResources))
             self.dlg_exportResources.show()     
         else:
@@ -588,8 +589,10 @@ class Districts:
     def show_importResources(self):
         """ show import resources dialog"""
         if self.conn:
-            self.dlg_importResources=ImportResourcesDialog()
-            self.dlg_importResources.btn_ok.clicked.connect(lambda: importResources(self.dlg_importResources,self))
+            self.dlg_importResources=ImportResourcesDialog(self.cur,self.config)
+            self.dlg_importResources.btn_filechoser.clicked.connect(lambda: self.fileDialog(self.dlg_importResources,'',"ZIP files (*.zip)"))
+            self.dlg_importResources.btn_import_selection.clicked.connect(lambda: importResources(self.dlg_importResources,self))
+            self.dlg_importResources.btn_import_all.clicked.connect(lambda: importResources(self.dlg_importResources,self,import_all=True))
             self.dlg_importResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_importResources))
             self.dlg_importResources.show()     
         else:
