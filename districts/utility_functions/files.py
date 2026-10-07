@@ -697,15 +697,15 @@ def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,r
             for line in myfile:
                 for oldString,newString in zip(list_oldString,list_newString):
                     line=line.replace(quotes+oldString+quotes,quotes+newString+quotes)                
-                    filedata.append(line)  
+                filedata.append(line)  
         extension=src_file.split('.')[-1]
         if replaceDict and extension == 'idm':
             filedata=replaceKeywordsInFiledata(filedata,replaceDict)
         writeToFileFromList(filedata,dst_dir,dst_file)
 
-def moveFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False):
+def moveFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False,doubleQuotes=True):
     """move a file within given directory and replace strings in a list"""
-    copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=replaceDict)
+    copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=replaceDict,doubleQuotes=doubleQuotes)
     if os.path.exists(src_file):
         os.remove(src_file)
 
