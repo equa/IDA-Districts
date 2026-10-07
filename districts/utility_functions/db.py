@@ -265,9 +265,10 @@ EXECUTE FUNCTION restrict_column_alterations();"""
     cur.execute(sql)
         
 def setSeqIdToMax(seq,table,col,cur):
-    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}) + 1);""".format(seq,col,table) # nosec B608
+    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}));""".format(seq,col,table) # nosec B608
     #print(sql)
     cur.execute(sql)
+    return cur.fetchone()['setval']
 
 def getTimeDiff(cur,config,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
@@ -545,13 +546,13 @@ def getClimateData(cur,config,errorMsg):
         cur.execute(sql)
         return cur.fetchone()
 
-def getMaxTableValue(cur,config,table,colmn):
-    sql="""SELECT max("{}") AS value FROM "{}".{};""".format(colmn,config['versionName'],table) # nosec B608
+def getMaxTableValue(cur,version,table,colmn):
+    sql="""SELECT max("{}") AS value FROM "{}".{};""".format(colmn,version,table) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     
-def getMinTableValue(cur,config,table,colmn):
-    sql="""SELECT min("{}") AS value FROM "{}".{};""".format(colmn,config['versionName'],table) # nosec B608
+def getMinTableValue(cur,version,table,colmn):
+    sql="""SELECT min("{}") AS value FROM "{}".{};""".format(colmn,version,table) # nosec B608
     cur.execute(sql)
     return cur.fetchone()['value']
     

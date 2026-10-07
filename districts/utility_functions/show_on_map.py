@@ -221,8 +221,8 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                     min_value = getMinTimeTableValue(data['size']['var_function'], cur, config, data['size']['table_name'], data['size']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
                     max_value = getMaxTimeTableValue(data['size']['var_function'], cur, config, data['size']['table_name'], data['size']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
                 else:
-                    min_value = getMinTableValue(cur, config, data['size']['table_name'], data['size']['name'])
-                    max_value = getMaxTableValue(cur, config, data['size']['table_name'], data['size']['name'])
+                    min_value = getMinTableValue(cur, config['versionName'], data['size']['table_name'], data['size']['name'])
+                    max_value = getMaxTableValue(cur, config['versionName'], data['size']['table_name'], data['size']['name'])
 
                 scale_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
                     'size_' + data['size']['name'].split('$')[0],
@@ -239,8 +239,8 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                     min_value = getMinTimeTableValue(data['rotation']['var_function'], cur, config, data['rotation']['table_name'], data['rotation']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
                     max_value = getMaxTimeTableValue(data['rotation']['var_function'], cur, config, data['rotation']['table_name'], data['rotation']['name'].split('$')[0], data['time']['starttime'], data['time']['endtime'])
                 else:
-                    min_value = getMinTableValue(cur, config, data['rotation']['table_name'], data['rotation']['name'])
-                    max_value = getMaxTableValue(cur, config, data['rotation']['table_name'], data['rotation']['name'])
+                    min_value = getMinTableValue(cur, config['versionName'], data['rotation']['table_name'], data['rotation']['name'])
+                    max_value = getMaxTableValue(cur, config['versionName'], data['rotation']['table_name'], data['rotation']['name'])
 
                 rotation_expr = """coalesce(scale_exp("{}", {}, {}, {}, {}, 0.57), 0)""".format(
                     'rotation_' + data['rotation']['name'].split('$')[0],
