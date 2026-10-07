@@ -452,7 +452,7 @@ COPY public.invoked_sensor_source_signals (id, type, sensor_id, templates, multi
 --
 
 COPY public.invoked_sensor_target_signals (id, type, sensor_id, templates, multi_signal, test_value, description) FROM stdin;
-1	2	{1}	1	false	1.0	weak point control
+1	2	1	{1}	false	1.0	weak point control
 \.
 
 
