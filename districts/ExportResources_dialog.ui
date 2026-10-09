@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ClimateDialog</class>
- <widget class="QDialog" name="ClimateDialog">
+ <class>ExportResourceDialog</class>
+ <widget class="QDialog" name="ExportResourceDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>491</width>
-    <height>464</height>
+    <height>527</height>
    </rect>
   </property>
   <property name="windowTitle">

@@ -1,5 +1,5 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QFileDialog, QDialog, QTableWidgetItem, QCheckBox, QComboBox, QHeaderView, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QComboBox, QTableView, QTabWidget
+from qgis.PyQt.QtWidgets import QButtonGroup, QFileDialog, QDialog, QTableWidgetItem, QCheckBox, QComboBox, QHeaderView, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QComboBox, QTableView, QTabWidget
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsMessageLog, Qgis
 
@@ -20,9 +20,7 @@ class ExportResourcesDialog(QDialog):
         self.table_columns={}
         self.tables={
             self.tableWidget_connections : 'connections',
-            self.tableWidget_materials : 'materials',
-            self.tableWidget_customer_templates : 'customer_templates',
-            self.tableWidget_energy_plant_templates : 'energy_plant_templates'}
+            self.tableWidget_materials : 'materials'}
             
                 
         self.tabWidget.setCurrentWidget(self.tab_connections) 
@@ -59,8 +57,8 @@ class ExportResourcesDialog(QDialog):
         self.loadTableData(self.tableWidget_pipes,'pipes')
         self.loadTableData(self.tableWidget_pipe_bundles,'pipe_bundle_types')
 
-        self.loadTableData(self.tableWidget_customer_templates,self.tables[self.tableWidget_customer_templates])
-        self.loadTableData(self.tableWidget_energy_plant_templates,self.tables[self.tableWidget_energy_plant_templates])
+        self.loadTableData(self.tableWidget_customer_templates,'customer_templates')
+        self.loadTableData(self.tableWidget_energy_plant_templates,'energy_plant_templates')
         
         self.rbtn_connections.setChecked(True)
         self.rbtn_materials.setChecked(True)
@@ -176,25 +174,31 @@ class ExportResourcesDialog(QDialog):
             self.tableWidget_customer_templates.hide()
             
 class ImportResourcesDialog(QDialog):
-    def __init__(self,cur,config):
+    def __init__(self,config,projectNames):
         super().__init__()
 
         # Load UI
         ui_path = os.path.join(os.path.dirname(__file__), "ImportResources_dialog.ui")
         uic.loadUi(ui_path, self)
-        self.cur=cur
+        self.conn=''
+        self.cur=''
         self.config=config
+        self.projectNames=projectNames
         self.table_columns={}
         self.tables={
             self.tableWidget_connections : 'connections',
-            self.tableWidget_materials : 'materials',
-            self.tableWidget_customer_templates : 'customer_templates',
-            self.tableWidget_energy_plant_templates : 'energy_plant_templates'}
+            self.tableWidget_materials : 'materials'}
             
                 
         self.tabWidget.setCurrentWidget(self.tab_connections) 
         
         #rbtn connections
+        self.radio_group_import = QButtonGroup(self)
+        self.radio_group_import.setExclusive(True)
+
+        self.radio_group_import.addButton(self.rbtn_file)
+        self.radio_group_import.addButton(self.rbtn_db)
+        
         self.rbtn_connections.toggled.connect(self.onClickedRadioConnections)
         self.rbtn_conntypes.toggled.connect(self.onClickedRadioConnectiontypes)
         self.rbtn_conn_bundles.toggled.connect(self.onClickedRadioConnectionbundles)
@@ -205,7 +209,10 @@ class ImportResourcesDialog(QDialog):
         self.rbtn_pipe_bundles.toggled.connect(self.onClickedRadioPipebundles)
 
         self.rbtn_customers.toggled.connect(self.onClickedRadioCustomerTemplates)
-        self.rbtn_energy_plants.toggled.connect(self.onClickedRadioEnergyplantsTemplates)    
+        self.rbtn_energy_plants.toggled.connect(self.onClickedRadioEnergyplantsTemplates)   
+
+        #combobox
+        self.comboBox_db.currentTextChanged.connect(self.dbConnect)
 
         #btn tables
         self.btn_select_all_connections.clicked.connect(lambda: self.select_all(True))
@@ -216,6 +223,15 @@ class ImportResourcesDialog(QDialog):
         self.btn_unselect_all_pipes.clicked.connect(lambda: self.select_all(False))
         self.btn_unselect_all_templates.clicked.connect(lambda: self.select_all(False))
         
+        self.rbtn_connections.setChecked(True)
+        self.rbtn_materials.setChecked(True)
+        self.rbtn_customers.setChecked(True)
+        
+        self.rbtn_file.toggled.connect(self.onClickedRadioFileImport)
+        self.rbtn_db.toggled.connect(self.onClickedRadioDBImport)
+        self.rbtn_file.setChecked(True)
+
+    def loadTablesData(self):
         #load data
         self.loadTableData(self.tableWidget_connections,self.tables[self.tableWidget_connections])
         self.loadTableData(self.tableWidget_connection_types,'connection_types')
@@ -226,16 +242,8 @@ class ImportResourcesDialog(QDialog):
         self.loadTableData(self.tableWidget_pipes,'pipes')
         self.loadTableData(self.tableWidget_pipe_bundles,'pipe_bundle_types')
 
-        self.loadTableData(self.tableWidget_customer_templates,self.tables[self.tableWidget_customer_templates])
-        self.loadTableData(self.tableWidget_energy_plant_templates,self.tables[self.tableWidget_energy_plant_templates])
-        
-        self.rbtn_connections.setChecked(True)
-        self.rbtn_materials.setChecked(True)
-        self.rbtn_customers.setChecked(True)
-        
-        self.rbtn_file.toggled.connect(self.onClickedRadioFileImport)
-        self.rbtn_db.toggled.connect(self.onClickedRadioDBImport)
-        self.rbtn_file.setChecked(True)
+        self.loadTableData(self.tableWidget_customer_templates,'customer_templates')
+        self.loadTableData(self.tableWidget_energy_plant_templates,'energy_plant_templates')
         
     def select_all(self,check):
         tab_name = self.tabWidget.currentWidget().objectName()
@@ -294,10 +302,22 @@ class ImportResourcesDialog(QDialog):
             self.groupBox_db.hide()
             self.btn_import_selection.setEnabled(False)            
 
+    def dbConnect(self,projectName):
+        if projectName:
+            self.conn=dbConnectPerName(self.config,projectName,True)
+            if self.conn:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
+                self.loadTablesData()
+            
     def onClickedRadioDBImport(self):
         if self.rbtn_db.isChecked():
             self.groupBox_file.hide()
-            self.groupBox_db.show()   
+
+            self.comboBox_db.addItems(self.projectNames)
+            if self.comboBox_db.currentText():
+                self.dbConnect(self.comboBox_db.currentText())
+            
+            self.groupBox_db.show()    
             self.btn_import_selection.setEnabled(True)              
             
     #connections

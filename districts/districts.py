@@ -579,8 +579,8 @@ class Districts:
         if self.conn:
             self.dlg_exportResources=ExportResourcesDialog(self.cur,self.config)
             self.dlg_exportResources.btn_filechoser.clicked.connect(lambda: self.folderDialog(self.dlg_exportResources, self.dlg_exportResources.lineEdit_pathExport.text(),self.dlg_exportResources.lineEdit_pathExport))
-            self.dlg_exportResources.btn_export_selection.clicked.connect(lambda: exportResources(self.dlg_exportResources,self,close_dialog=True))
-            self.dlg_exportResources.btn_export_all.clicked.connect(lambda: exportResources(self.dlg_exportResources,self,export_all=True,close_dialog=True))
+            self.dlg_exportResources.btn_export_selection.clicked.connect(lambda: exportResources(self.dlg_exportResources,self.cur,self.config,self.dlg.selectProject.currentText(),close_dialog=True))
+            self.dlg_exportResources.btn_export_all.clicked.connect(lambda: exportResources(self.dlg_exportResources,self.cur,self.config,self.dlg.selectProject.currentText(),export_all=True,close_dialog=True))
             self.dlg_exportResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_exportResources))
             self.dlg_exportResources.show()     
         else:
@@ -589,7 +589,7 @@ class Districts:
     def show_importResources(self):
         """ show import resources dialog"""
         if self.conn:
-            self.dlg_importResources=ImportResourcesDialog(self.cur,self.config)
+            self.dlg_importResources=ImportResourcesDialog(self.config,[self.dlg.selectProject.itemText(i) for i in range(self.dlg.selectProject.count())])
             self.dlg_importResources.btn_filechoser.clicked.connect(lambda: self.fileDialog(self.dlg_importResources,'',"ZIP files (*.zip)"))
             self.dlg_importResources.btn_import_selection.clicked.connect(lambda: importResources(self.dlg_importResources,self))
             self.dlg_importResources.btn_import_all.clicked.connect(lambda: importResources(self.dlg_importResources,self,import_all=True))
