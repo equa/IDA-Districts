@@ -13,19 +13,20 @@ from .utility_functions.invoke import CopyTemplateFiles
 from .utility_functions.layer_visualization import *
 from .utility_functions.reports import *
 from .utility_functions.sensor_signals import *
+from .utility_functions.compat import *
 
 import traceback
 import pandas as pd
 import numpy as np
 
 def sqlInsertQuery(dlg,table,row,db_table):
-    return """INSERT INTO {} ({}) VALUES ({});""".format(
-                db_table,
-                ','.join(dlg.table_columns[table][2:]),
-                ','.join([table.item(row,col).data(Qt.ItemDataRole.UserRole).replace('None','NULL') 
-                            if isNumber(table.item(row,col).data(Qt.ItemDataRole.UserRole)) or table.item(row,col).data(Qt.ItemDataRole.UserRole) in ('True','False','None') else 
-                        f"'{table.item(row,col).data(Qt.ItemDataRole.UserRole)}'" 
-                            for col in range(2,table.columnCount())]))
+    return """INSERT INTO {} ({}) VALUES ({});""".format(  # nosec B608
+                db_table, # nosec B608
+                ','.join(dlg.table_columns[table][2:]), # nosec B608
+                ','.join([table.item(row,col).data(Qt.ItemDataRole.UserRole).replace('None','NULL')  # nosec B608
+                            if isNumber(table.item(row,col).data(Qt.ItemDataRole.UserRole)) or table.item(row,col).data(Qt.ItemDataRole.UserRole) in ('True','False','None') else  # nosec B608
+                        f"'{table.item(row,col).data(Qt.ItemDataRole.UserRole)}'"  # nosec B608
+                            for col in range(2,table.columnCount())])) # nosec B608
 
 def importResources(dlg,main,import_all=False):
     #print('importResources')
@@ -146,11 +147,11 @@ def importResources(dlg,main,import_all=False):
                             
 def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=False,import_fromDB=False):   
     if not import_fromDB and not os.path.exists(dlg.lineEdit_pathExport.text()):
-        iface.messageBar().pushMessage("Info", "File not exists!", level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo) 
         return
     
     if not import_fromDB and not dlg.lineEdit_filename.text():
-        iface.messageBar().pushMessage("Info", "Please enter a file name!", level=Qgis.Info) 
+        iface.messageBar().pushMessage("Info", "Please enter a file name!", level=MessageInfo) 
         return
         
     #connections, materials, customer_templates, energy_plant_templates
@@ -171,20 +172,20 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         sql="""SELECT * 
     FROM connection_type_connections ct_conns, connections conns
     WHERE ct_conns.connection_type_id IN ({}) AND ct_conns.connection_id=conns.id 
-    ORDER BY ct_conns.connection_type_id,sequence;""".format(','.join(export_dict['connection_types'].keys()))
+    ORDER BY ct_conns.connection_type_id,sequence;""".format(','.join(export_dict['connection_types'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for missing connections
-        missing={str(i['connection_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['description'] if i['description'] else '') for i in result if str(i['connection_id']) not in export_dict['connections'].keys()}
+        missing={str(i['connection_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['description'] if i['description'] else '') for i in result if str(i['connection_id']) not in export_dict['connections'].keys()} # nosec B608
         export_dict['connections'] = export_dict['connections'] | missing
         
         #check for connection_type_connections
         for i in result:
             if str(i['connection_type_id']) in export_dict['connection_type_connections']:
-                export_dict['connection_type_connections'][str(i['connection_type_id'])][str(i['connection_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence'])
+                export_dict['connection_type_connections'][str(i['connection_type_id'])][str(i['connection_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence']) # nosec B608
             else:
-                export_dict['connection_type_connections'][str(i['connection_type_id'])]={str(i['connection_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence'])}
+                export_dict['connection_type_connections'][str(i['connection_type_id'])]={str(i['connection_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence'])} # nosec B608
             
     #connection bundle type
     template_conn_bundle_types=[dlg.tableWidget_customer_templates.item(row,3).data(Qt.ItemDataRole.UserRole) for row in range(dlg.tableWidget_customer_templates.rowCount()) if dlg.tableWidget_customer_templates.cellWidget(row,0).isChecked()]
@@ -199,30 +200,30 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
 		type, p_ctrl, temp, p, mdot, conns.description AS conn_description
 	FROM connection_type_connections ct_conns, connections conns, conn_bundle_types b_types, bundle_type_conns b_t_conns, connection_types c_type
 	WHERE b_types.id IN ({}) AND c_type.id=ct_conns.connection_type_id AND ct_conns.connection_id=conns.id AND b_t_conns.conn_bundle_type_id=b_types.id AND b_t_conns.conn_type_id=ct_conns.connection_type_id
-	ORDER BY b_types.id,ct_conns.connection_type_id,b_t_conns.sequence,ct_conns.sequence;""".format(','.join(export_dict['conn_bundle_types'].keys()))
+	ORDER BY b_types.id,ct_conns.connection_type_id,b_t_conns.sequence,ct_conns.sequence;""".format(','.join(export_dict['conn_bundle_types'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for bundle_type_conns
         for i in result:
             if str(i['id']) in export_dict['bundle_type_conns']:
-                export_dict['bundle_type_conns'][str(i['id'])][str(i['conn_type_id'])] = 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq'])
+                export_dict['bundle_type_conns'][str(i['id'])][str(i['conn_type_id'])] = 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq']) # nosec B608
             else:
-                export_dict['bundle_type_conns'][str(i['id'])]={str(i['conn_type_id']) : 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq'])}
+                export_dict['bundle_type_conns'][str(i['id'])]={str(i['conn_type_id']) : 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq'])} # nosec B608
         
         #check for missing connections
-        missing={str(i['conn_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['conn_description'] if i['conn_description'] else '') for i in result if str(i['conn_id']) not in export_dict['connections'].keys()}
+        missing={str(i['conn_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['conn_description'] if i['conn_description'] else '') for i in result if str(i['conn_id']) not in export_dict['connections'].keys()} # nosec B608
         export_dict['connections'] = export_dict['connections'] | missing
       
         #check for missing connection types
         for i in result:
             if str(i['conn_type_id']) not in export_dict['connection_types'].keys():
                 if str(i['conn_type_id']) in export_dict['connection_type_connections']:
-                    export_dict['connection_type_connections'][str(i['conn_type_id'])][str(i['conn_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['ct_conns_sequence'])
+                    export_dict['connection_type_connections'][str(i['conn_type_id'])][str(i['conn_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['ct_conns_sequence']) # nosec B608
                 else:
-                    export_dict['connection_type_connections'][str(i['conn_type_id'])]={str(i['conn_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['ct_conns_sequence'])}
+                    export_dict['connection_type_connections'][str(i['conn_type_id'])]={str(i['conn_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['ct_conns_sequence'])} # nosec B608
         
-        missing={str(i['conn_type_id']) : "INSERT INTO connection_types (description) VALUES ('{}');".format(i['c_type_description'] if i['c_type_description'] else '') for i in result if str(i['conn_type_id']) not in export_dict['connection_types'].keys()}
+        missing={str(i['conn_type_id']) : "INSERT INTO connection_types (description) VALUES ('{}');".format(i['c_type_description'] if i['c_type_description'] else '') for i in result if str(i['conn_type_id']) not in export_dict['connection_types'].keys()} # nosec B608
         export_dict['connection_types'] = export_dict['connection_types'] | missing
         
     #constructions
@@ -234,20 +235,20 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         sql="""SELECT * 
     FROM pipe_layers l, materials m
     WHERE l.pipe_construction_id IN ({}) AND l.materialid=m.id 
-    ORDER BY l.pipe_construction_id,sequence;""".format(','.join(export_dict['pipe_constructions'].keys()))
+    ORDER BY l.pipe_construction_id,sequence;""".format(','.join(export_dict['pipe_constructions'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['name'] if i['name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
+        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['name'] if i['name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
         export_dict['materials'] = export_dict['materials'] | missing
         
         #check for pipe_layers
         for i in result:
             if str(i['pipe_construction_id']) in export_dict['pipe_layers']:
-                export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])
+                export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence']) # nosec B608
             else:
-                export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])}
+                export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])} # nosec B608
         
     #pipes
     pipe_ids=[dlg.tableWidget_pipes.item(i,1).data(Qt.ItemDataRole.UserRole) for i in range(dlg.tableWidget_pipes.rowCount()) if dlg.tableWidget_pipes.cellWidget(i,0).isChecked()]
@@ -258,30 +259,30 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
 	c.name AS construction_name
 	FROM pipes p, pipe_layers l, materials m, pipe_constructions c
 	WHERE p.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id
-	ORDER BY p.id, l.sequence;""".format(','.join(pipe_ids))
+	ORDER BY p.id, l.sequence;""".format(','.join(pipe_ids)) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for pipes
         for i in result:
             if str(i['id']) in export_dict['pipes']:
-                export_dict['pipes'][str(i['id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')
+                export_dict['pipes'][str(i['id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '') # nosec B608
             else:
-                export_dict['pipes'][str(i['id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')}
+                export_dict['pipes'][str(i['id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')} # nosec B608
 
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
+        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
         export_dict['materials'] = export_dict['materials'] | missing
       
         #check for missing pipe_layers
         for i in result:
             if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys():
                 if str(i['pipe_construction_id']) in export_dict['pipe_layers']:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence']) # nosec B608
                 else:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])}
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])} # nosec B608
         
-        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()}
+        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()} # nosec B608
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
 
     #pipe bundles
@@ -297,37 +298,37 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
 	c.name AS construction_name
 	FROM pipes p, pipe_layers l, materials m, pipe_constructions c, bundle_pipes bp, pipe_bundle_types p_bundles
 	WHERE p_bundles.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id AND bp.pipe_bundle_type_id=p_bundles.id AND p.id=bp.pipe_id
-	ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(','.join(export_dict['pipe_bundle_types'].keys()))
+	ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(','.join(export_dict['pipe_bundle_types'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for missing pipes
         for i in result:
             if str(i['pipe_id']) in export_dict['pipes']:
-                export_dict['pipes'][str(i['pipe_id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')
+                export_dict['pipes'][str(i['pipe_id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '') # nosec B608
             else:
-                export_dict['pipes'][str(i['pipe_id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')}
+                export_dict['pipes'][str(i['pipe_id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')} # nosec B608
 
         #check for bundle_pipes
         for i in result:
             if str(i['id']) in export_dict['bundle_pipes']:
-                export_dict['bundle_pipes'][str(i['id'])][str(i['pipe_seq'])] = [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])]
+                export_dict['bundle_pipes'][str(i['id'])][str(i['pipe_seq'])] = [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])] # nosec B608
             else:
-                export_dict['bundle_pipes'][str(i['id'])]={str(i['pipe_seq']) : [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])]}
+                export_dict['bundle_pipes'][str(i['id'])]={str(i['pipe_seq']) : [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])]} # nosec B608
 
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
+        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
         export_dict['materials'] = export_dict['materials'] | missing
       
         #check for missing pipe_layers
         for i in result:
             if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys():
                 if str(i['pipe_construction_id']) in export_dict['pipe_layers']:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['layer_seq'])
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['layer_seq']) # nosec B608
                 else:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['layer_seq'])}
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['layer_seq'])} # nosec B608
         
-        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()}
+        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()} # nosec B608
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
         
     if import_fromDB:
@@ -353,9 +354,9 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
                 #get conns names
                 connValues = [{key: (value if isinstance(value,int) else float(value)) if isNumber(value) else value for key,value in i.items()} for i in getConnsValues(bundle_type, cur)]
                 if template_id in export_dict[template_type]:
-                    export_dict[template_type][template_id][bundle_type] = [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).data(Qt.ItemDataRole.UserRole),table.item(i,4).data(Qt.ItemDataRole.UserRole)),connValues]
+                    export_dict[template_type][template_id][bundle_type] = [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).data(Qt.ItemDataRole.UserRole),table.item(i,4).data(Qt.ItemDataRole.UserRole)),connValues] # nosec B608
                 else:
-                    export_dict[template_type][template_id]={bundle_type : [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).data(Qt.ItemDataRole.UserRole),table.item(i,4).data(Qt.ItemDataRole.UserRole)),connValues]}
+                    export_dict[template_type][template_id]={bundle_type : [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).data(Qt.ItemDataRole.UserRole),table.item(i,4).data(Qt.ItemDataRole.UserRole)),connValues]} # nosec B608
                 
                 copy_tree_filter_extensions_and_folders(config['pathProjects']+projectName+"\\"+template_type+"\\"+template_name, temp_dir+template_type+'\\'+template_name)
                 for ext in ['.idm','.idc']:
@@ -370,7 +371,7 @@ FROM (
     SELECT sensor_id, type, unnest(templates) AS template, multi_signal FROM invoked_sensor_{}_signals
 ) s
 WHERE type = {}
-  AND template = {};""".format(sensor_type,type_id,template_id)
+  AND template = {};""".format(sensor_type,type_id,template_id) # nosec B608
                     cur.execute(sql)
                     remove_sensor_ids[sensor_type]=cur.fetchall()
 

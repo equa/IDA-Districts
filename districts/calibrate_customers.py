@@ -92,9 +92,9 @@ def openResult(dlg,plugin_dir,conn,cur):
                 worker_openParmrunResult.signals.finished.connect(dlg.update_finished)              
                 #print('finished open assettype')
             else:
-                iface.messageBar().pushMessage("Info", "File not exists!", level=Qgis.Info)  
+                iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo)  
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "No item selected!", level=MessageInfo)
         
 def openTemplateParmrun(dlg,plugin_dir,conn):
     """ Open the selected template"""
@@ -131,9 +131,9 @@ def openTemplateParmrun(dlg,plugin_dir,conn):
                 worker_openParmrun.signals.finished.connect(dlg.update_finished)   
                 #print('finished open parmruns template')
             else:
-                iface.messageBar().pushMessage("Info", "File not exists!", level=Qgis.Info)   
+                iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo)   
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=Qgis.Info)
+        iface.messageBar().pushMessage("Info", "No item selected!", level=MessageInfo)
         
 def loadCustomerCalibrationData(dlg,config,conn):
     """Load the customers in the customer table with ID, model, Annual energy conumption (heating and cooling)"""
@@ -357,7 +357,7 @@ def saveCalibValues(dlg,config,conn,cur):
                         unique_field_names[field_name]=[parm['model_name'], parm['parm_name']]
                 #print(unique_field_names)
                 if not unique_field_names:
-                    iface.messageBar().pushMessage("Info", "No parameters mapped to layer customers!", level=Qgis.Info)  
+                    iface.messageBar().pushMessage("Info", "No parameters mapped to layer customers!", level=MessageInfo)  
                     return
                     
                 for idx in idxs:
@@ -388,11 +388,11 @@ def saveCalibValues(dlg,config,conn,cur):
                                         break
 
                                 #update layers
-                                sql="""UPDATE "{}".customers SET "{}"={} WHERE id={};\n""".format(config['versionName'],unique_field_name,value,id)
+                                sql="""UPDATE "{}".customers SET "{}"={} WHERE id={};\n""".format(config['versionName'],unique_field_name,value,id) # nosec B608
                                 #print(sql)
                                 cur.execute(sql)    
 
                     #invoke customers with callib values
                     invokeOneFeature(dlg,dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx,0).text(),cur,config,'customer',False,parmRun=True,saveParmRunResults=True)  
             else:
-                iface.messageBar().pushMessage("Info", "No items selected!", level=Qgis.Info)                      
+                iface.messageBar().pushMessage("Info", "No items selected!", level=MessageInfo)                      

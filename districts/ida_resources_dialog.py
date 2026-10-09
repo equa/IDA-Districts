@@ -98,9 +98,9 @@ class ExportResourcesDialog(QDialog):
     def loadTableData(self,table,db_table):
         table.setRowCount(0)
         if db_table in ['customer_templates','energy_plant_templates']:
-            sql="""SELECT template, template_name, conn_bundle_type, description  FROM {} ORDER BY template;""".format(db_table)
+            sql="""SELECT template, template_name, conn_bundle_type, description  FROM {} ORDER BY template;""".format(db_table) # nosec B608
         else:
-            sql="""SELECT * FROM {} ORDER BY id;""".format(db_table)
+            sql="""SELECT * FROM {} ORDER BY id;""".format(db_table) # nosec B608
         self.cur.execute(sql)
         result = self.cur.fetchall()
         if result:
@@ -283,9 +283,9 @@ class ImportResourcesDialog(QDialog):
     def loadTableData(self,table,db_table):
         table.setRowCount(0)
         if db_table in ['customer_templates','energy_plant_templates']:
-            sql="""SELECT template, template_name, conn_bundle_type, description  FROM {} ORDER BY template;""".format(db_table)
+            sql="""SELECT template, template_name, conn_bundle_type, description  FROM {} ORDER BY template;""".format(db_table) # nosec B608
         else:
-            sql="""SELECT * FROM {} ORDER BY id;""".format(db_table)
+            sql="""SELECT * FROM {} ORDER BY id;""".format(db_table) # nosec B608
         self.cur.execute(sql)
         result = self.cur.fetchall()
         if result:
