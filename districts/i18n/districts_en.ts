@@ -5019,7 +5019,11 @@ li.checked::marker { content: &quot;\2612&quot;; }
 
 &lt;p&gt;&lt;strong&gt;Sensor signals&lt;/strong&gt; including &lt;strong&gt;temperature&lt;/strong&gt;, &lt;strong&gt;mass flow&lt;/strong&gt;, &lt;strong&gt;pressure&lt;/strong&gt;, or &lt;strong&gt;loads&lt;/strong&gt; from connections, as well as customized signals, can be collected.&lt;/p&gt;
 
-&lt;p&gt;Additionally, &lt;strong&gt;parameter mapping&lt;/strong&gt; can be used to customize &lt;strong&gt;feature model parameters&lt;/strong&gt; based on &lt;strong&gt;feature attributes&lt;/strong&gt;.&lt;/p&gt;</translation>
+&lt;p&gt;Additionally, &lt;strong&gt;parameter mapping&lt;/strong&gt; can be used to customize &lt;strong&gt;feature model parameters&lt;/strong&gt; based on &lt;strong&gt;feature attributes&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;Using &lt;strong&gt;Borehole field mapping&lt;/strong&gt;, parameters and borehole coordinates can be transferred to the simulation model.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Substations&lt;/strong&gt; can be &lt;strong&gt;calibrated&lt;/strong&gt; using measurement data or detailed simulation results.&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../districts_dialog_base.ui" line="1451"/>

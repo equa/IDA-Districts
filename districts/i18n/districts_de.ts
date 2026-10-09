@@ -3885,7 +3885,7 @@
     &lt;p&gt;
         Die &lt;strong&gt;Übergabestationen der Abnehmer&lt;/strong&gt; können anhand von
         &lt;strong&gt;Messdaten&lt;/strong&gt; oder detaillierten &lt;strong&gt;Simulationsergebnissen&lt;/strong&gt;
-        mittels &lt;strongIDA Districts&lt;/strong kalibriert werden.
+        mittels &lt;strong&gt;IDA Districts&lt;/strong&gt; kalibriert werden.
     &lt;/p&gt;
 
 &lt;p&gt;
@@ -4960,7 +4960,11 @@ li.checked::marker { content: &quot;\2612&quot;; }
 
 &lt;p&gt;&lt;strong&gt;Sensorsignale&lt;/strong&gt; wie &lt;strong&gt;Temperatur&lt;/strong&gt;, &lt;strong&gt;Massenstrom&lt;/strong&gt;, &lt;strong&gt;Druck&lt;/strong&gt; oder &lt;strong&gt;Lasten&lt;/strong&gt; aus Anschlüssen sowie benutzerdefinierte Signale können erfasst werden.&lt;/p&gt;
 
-&lt;p&gt;Zusätzlich kann ein &lt;strong&gt;Parameter-Mapping&lt;/strong&gt; verwendet werden, um &lt;strong&gt;Feature-Modellparameter&lt;/strong&gt; basierend auf &lt;strong&gt;Feature-Attributen&lt;/strong&gt; zu konfigurieren.&lt;/p&gt;</translation>
+&lt;p&gt;Zusätzlich kann ein &lt;strong&gt;Parameter-Mapping&lt;/strong&gt; verwendet werden, um &lt;strong&gt;Feature-Modellparameter&lt;/strong&gt; basierend auf &lt;strong&gt;Feature-Attributen&lt;/strong&gt; zu konfigurieren oder Ergebnisse der &lt;strong&gt;Abnehmermodellkalibrierung&lt;/strong&gt; in den Feature-Attributen zu speichern.&lt;/p&gt;
+
+&lt;p&gt;Mittels &lt;strong&gt;Erdsondenfeld Parameterzuordnung&lt;/strong&gt; können Parameter und Erdsondenkoordinaten in das Simulationsmodell übernommen werden.&lt;/p&gt;
+
+&lt;p&gt; &lt;strong&gt;Übergabestationen&lt;/strong&gt; können anhand von Messdaten oder detaillierter Simulation &lt;strong&gt;kalibriert&lt;/strong&gt; werden.&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../districts_dialog_base.ui" line="1451"/>
