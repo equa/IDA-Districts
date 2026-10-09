@@ -36,6 +36,9 @@ class SensorSignalsDialog(QDialog):
         myBoldFont=QtGui.QFont('Arial', 12)
         myBoldFont.setBold(True)
 
+        #info
+        info_sensors=QTextEdit(tr('@default','info_sensors'))
+        
         #action buttons     
         layout_action_buttons = QHBoxLayout()
         self.btn_add=QPushButton("")
@@ -76,6 +79,7 @@ class SensorSignalsDialog(QDialog):
         
         #set layouts together        
         layout_win = QVBoxLayout()
+        layout_win.addWidget(info_sensors)
         layout_win.addLayout(layout_action_buttons)
         layout_win.addWidget(label_source)
         layout_win.addWidget(self.tableWidget_source)
@@ -1043,7 +1047,6 @@ class FeatureModelParmDlg(QDialog):
         layout_rbtn.addWidget(self.rbtn_customers)
         layout_rbtn.addWidget(self.rbtn_plants)
         
-        layout_list=QHBoxLayout()
         #list widget for layer attributes
         layout_listWidget_featureFields = QVBoxLayout()
         label_listWidget_featureFields=QLabel(tr('@default',"fields"))
@@ -1052,9 +1055,7 @@ class FeatureModelParmDlg(QDialog):
         layout_listWidget_featureFields.addWidget(self.listWidget_featureFields)
         self.listWidget_featureFields.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
         
-        label_list_helptext=QLabel(tr('@default','info_feature_parm_mapping'))
-        layout_list.addLayout(layout_listWidget_featureFields)
-        layout_list.addWidget(label_list_helptext)
+        info_feature_parm_mapping=QTextEdit(tr('@default','info_feature_parm_mapping'))
        
         #---------------ok/cancel buttons     
         layout_buttons_conns = QHBoxLayout()
@@ -1080,8 +1081,9 @@ class FeatureModelParmDlg(QDialog):
         
         #---------------set layouts together-------------------
         layout_win = QVBoxLayout()
+        layout_win.addWidget(info_feature_parm_mapping)
         layout_win.addLayout(layout_rbtn)
-        layout_win.addLayout(layout_list)
+        layout_win.addLayout(layout_listWidget_featureFields)
         layout_win.addLayout(layout_buttons_conns)
         layout_win.addWidget(self.tableWidget_parameters)
         layout_win.addLayout(layout_buttons)

@@ -56,14 +56,14 @@ def updateParmruns(dlg,result):
             file_name = '_'.join(os.path.splitext(os.path.basename(file))[0].split('_')[1:])
             parmRuns=getParmRuns("","",file)
             for row in range(0,dlg.tableWidget_customer.rowCount()):
-                if dlg.tableWidget_customer.item(row,1).text()==file_name:
+                if dlg.tableWidget_customer.item(row,1).data(Qt.ItemDataRole.UserRole)==file_name:
                     comboBox = QComboBox()
                     comboBox.addItems(parmRuns)
                     dlg.tableWidget_customer.setCellWidget(row, 2, comboBox)
 
             parmRuns.append(tr('@default','new_parametric_run'))
             for row in range(0,dlg.tableWidget_templates.rowCount()):
-                if dlg.tableWidget_templates.item(row,1).text()==file_name:
+                if dlg.tableWidget_templates.item(row,1).data(Qt.ItemDataRole.UserRole)==file_name:
                     comboBox = QComboBox()
                     comboBox.addItems(parmRuns)
                     dlg.tableWidget_templates.setCellWidget(row, 2, comboBox)
@@ -71,29 +71,26 @@ def updateParmruns(dlg,result):
 def openResult(dlg,plugin_dir,conn,cur):
     """ Open the selected result"""
     #print('Open result')
-    #print(idx)
     idxs=dlg.tableWidget_customer.selectedIndexes()
             
-    if not idxs:
-        if conn:
-            cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor) 
-            for idx in idxs:
-                id=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx.row(),0).text()
-                parmRun_name=[dlg.tableWidget_customer.cellWidget(idx, 2).currentText() for idx in range(0,dlg.tableWidget_customer.rowCount()) if dlg.tableWidget_customer.item(idx, 0).text()==id][0]
-                #print(parmRun_name)
+    if idxs:
+        for idx in idxs:
+            id=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx.row(),0).text()
+            parmRun_name=[dlg.tableWidget_customer.cellWidget(idx, 2).currentText() for idx in range(0,dlg.tableWidget_customer.rowCount()) if dlg.tableWidget_customer.item(idx, 0).text()==id][0]
+            #print(parmRun_name)
 
-                name='Customer_'+id
-                dir=dlg.config['pathProjects']+"{}\\versions\\{}\\invoked_customers\\".format(dlg.config['projectName'], dlg.config['versionName'])            
-                file=dir+"{}.idm".format(name)
-                if os.path.exists(file):
-                    script="""(:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
+            name='Customer_'+id
+            dir=dlg.config['pathProjects']+"{}\\versions\\{}\\invoked_customers\\".format(dlg.config['projectName'], dlg.config['versionName'])            
+            file=dir+"{}.idm".format(name)
+            if os.path.exists(file):
+                script="""(:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
 (open-as parm_name 'form)""".format(parmRun_name)
-                    worker_openParmrunResult = WorkerOpenModelCmd(file,dlg.config,script=script)
-                    QThreadPool.globalInstance().start(worker_openParmrunResult) 
-                    worker_openParmrunResult.signals.error.connect(dlg.show_error_message)
-                    worker_openParmrunResult.signals.progress.connect(dlg.update_progress)   
-                    worker_openParmrunResult.signals.finished.connect(dlg.update_finished)              
-                    #print('finished open assettype')
+                worker_openParmrunResult = WorkerOpenModelCmd(file,dlg.config,script=script)
+                QThreadPool.globalInstance().start(worker_openParmrunResult) 
+                worker_openParmrunResult.signals.error.connect(dlg.show_error_message)
+                worker_openParmrunResult.signals.progress.connect(dlg.update_progress)   
+                worker_openParmrunResult.signals.finished.connect(dlg.update_finished)              
+                #print('finished open assettype')
             else:
                 iface.messageBar().pushMessage("Info", "File not exists!", level=Qgis.Info)  
     else:
@@ -106,7 +103,7 @@ def openTemplateParmrun(dlg,plugin_dir,conn):
     if row_index!=-1:
         if conn:
             template_id=dlg.tableWidget_templates.item(row_index, 0).text()
-            template_name=dlg.tableWidget_templates.item(row_index, 1).text()
+            template_name=dlg.tableWidget_templates.item(row_index, 1).data(Qt.ItemDataRole.UserRole)
             parmRun_name=dlg.tableWidget_templates.cellWidget(row_index, 2).currentText()
 
             name=template_id+'_'+template_name
@@ -163,7 +160,9 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,0,item)
             
-            item=QTableWidgetItem(template['template_name'])
+            item=QTableWidgetItem()
+            item.setText(tr('@default',template['template_name']))
+            item.setData(Qt.ItemDataRole.UserRole ,template['template_name'])
             item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,1,item)
             
@@ -174,7 +173,9 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             comboBox.addItems(parm_items)
             dlg.tableWidget_templates.setCellWidget(i, 2, comboBox)
                 
-            item=QTableWidgetItem(str(template['used']))
+            item=QTableWidgetItem()
+            item.setText(tr('@default',str(template['used'])))
+            item.setData(Qt.ItemDataRole.UserRole ,str(template['used']))
             item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_templates.setItem(i,3,item)
 
@@ -196,6 +197,9 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             dlg.tableWidget_customer.setItem(i,0,item)
             
             item=QTableWidgetItem(customer['template_name'])
+            item=QTableWidgetItem()
+            item.setText(tr('@default',customer['template_name']))
+            item.setData(Qt.ItemDataRole.UserRole ,customer['template_name'])
             item.setFlags(ItemIsSelectable | ItemIsEnabled)
             dlg.tableWidget_customer.setItem(i,1,item)
             

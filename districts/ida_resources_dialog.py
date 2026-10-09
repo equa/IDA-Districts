@@ -112,7 +112,11 @@ class ExportResourcesDialog(QDialog):
                 checkbox = QCheckBox()
                 table.setCellWidget(i, 0, checkbox)
                 for j,col in enumerate(self.table_columns[table][1:],1):
-                    table.setItem(i,j,QTableWidgetItem(str(entry[self.table_columns[table][j]])))         
+                    item=QTableWidgetItem()
+                    item.setText(tr('@default',str(entry[self.table_columns[table][j]])))
+                    item.setData(Qt.ItemDataRole.UserRole ,str(entry[self.table_columns[table][j]]))
+                    item.setFlags(ItemIsSelectable | ItemIsEnabled)
+                    table.setItem(i,j,item)           
        
     #connections
     def onClickedRadioConnections(self):
@@ -293,7 +297,11 @@ class ImportResourcesDialog(QDialog):
                 checkbox = QCheckBox()
                 table.setCellWidget(i, 0, checkbox)
                 for j,col in enumerate(self.table_columns[table][1:],1):
-                    table.setItem(i,j,QTableWidgetItem(str(entry[self.table_columns[table][j]])))         
+                    item=QTableWidgetItem()
+                    item.setText(tr('@default',str(entry[self.table_columns[table][j]])))
+                    item.setData(Qt.ItemDataRole.UserRole ,str(entry[self.table_columns[table][j]]))
+                    item.setFlags(ItemIsSelectable | ItemIsEnabled)
+                    table.setItem(i,j,item)            
        
     #import
     def onClickedRadioFileImport(self):

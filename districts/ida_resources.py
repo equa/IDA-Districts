@@ -22,9 +22,9 @@ def sqlInsertQuery(dlg,table,row,db_table):
     return """INSERT INTO {} ({}) VALUES ({});""".format(
                 db_table,
                 ','.join(dlg.table_columns[table][2:]),
-                ','.join([table.item(row,col).text().replace('None','NULL') 
-                            if isNumber(table.item(row,col).text()) or table.item(row,col).text() in ('True','False','None') else 
-                        f"'{table.item(row,col).text()}'" 
+                ','.join([table.item(row,col).data(Qt.ItemDataRole.UserRole).replace('None','NULL') 
+                            if isNumber(table.item(row,col).data(Qt.ItemDataRole.UserRole)) or table.item(row,col).data(Qt.ItemDataRole.UserRole) in ('True','False','None') else 
+                        f"'{table.item(row,col).data(Qt.ItemDataRole.UserRole)}'" 
                             for col in range(2,table.columnCount())]))
 
 def importResources(dlg,main,import_all=False):
@@ -160,12 +160,12 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
     for table,db_table in dlg.tables.items():
         for row in range(table.rowCount()):
             if table.cellWidget(row,0).isChecked() or export_all:
-                export_dict[db_table][table.item(row,1).text()] = sqlInsertQuery(dlg,table,row,db_table)
+                export_dict[db_table][table.item(row,1).data(Qt.ItemDataRole.UserRole)] = sqlInsertQuery(dlg,table,row,db_table)
                 
     #connection types
     for row in range(dlg.tableWidget_connection_types.rowCount()):
         if dlg.tableWidget_connection_types.cellWidget(row,0).isChecked() or export_all:
-            export_dict['connection_types'][dlg.tableWidget_connection_types.item(row,1).text()]=sqlInsertQuery(dlg,dlg.tableWidget_connection_types,row,'connection_types')
+            export_dict['connection_types'][dlg.tableWidget_connection_types.item(row,1).data(Qt.ItemDataRole.UserRole)]=sqlInsertQuery(dlg,dlg.tableWidget_connection_types,row,'connection_types')
             
     if export_dict['connection_types']:
         sql="""SELECT * 
@@ -187,11 +187,11 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
                 export_dict['connection_type_connections'][str(i['connection_type_id'])]={str(i['connection_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence'])}
             
     #connection bundle type
-    template_conn_bundle_types=[dlg.tableWidget_customer_templates.item(row,3).text() for row in range(dlg.tableWidget_customer_templates.rowCount()) if dlg.tableWidget_customer_templates.cellWidget(row,0).isChecked()]
-    template_conn_bundle_types+=[dlg.tableWidget_energy_plant_templates.item(row,3).text() for row in range(dlg.tableWidget_energy_plant_templates.rowCount()) if dlg.tableWidget_energy_plant_templates.cellWidget(row,0).isChecked()]
+    template_conn_bundle_types=[dlg.tableWidget_customer_templates.item(row,3).data(Qt.ItemDataRole.UserRole) for row in range(dlg.tableWidget_customer_templates.rowCount()) if dlg.tableWidget_customer_templates.cellWidget(row,0).isChecked()]
+    template_conn_bundle_types+=[dlg.tableWidget_energy_plant_templates.item(row,3).data(Qt.ItemDataRole.UserRole) for row in range(dlg.tableWidget_energy_plant_templates.rowCount()) if dlg.tableWidget_energy_plant_templates.cellWidget(row,0).isChecked()]
     for row in range(dlg.tableWidget_connection_bundles.rowCount()):
-        if dlg.tableWidget_connection_bundles.cellWidget(row,0).isChecked() or export_all or dlg.tableWidget_connection_bundles.item(row,1).text() in template_conn_bundle_types:
-            export_dict['conn_bundle_types'][dlg.tableWidget_connection_bundles.item(row,1).text()]=sqlInsertQuery(dlg,dlg.tableWidget_connection_bundles,row,'conn_bundle_types')
+        if dlg.tableWidget_connection_bundles.cellWidget(row,0).isChecked() or export_all or dlg.tableWidget_connection_bundles.item(row,1).data(Qt.ItemDataRole.UserRole) in template_conn_bundle_types:
+            export_dict['conn_bundle_types'][dlg.tableWidget_connection_bundles.item(row,1).data(Qt.ItemDataRole.UserRole)]=sqlInsertQuery(dlg,dlg.tableWidget_connection_bundles,row,'conn_bundle_types')
             
     if export_dict['conn_bundle_types']:
         sql="""SELECT b_types.id, b_t_conns.sequence AS b_t_conns_seq, b_t_conns.conn_type_id, b_t_conns.description AS b_t_conns_description, c_type.description AS c_type_description,
@@ -228,7 +228,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
     #constructions
     for row in range(dlg.tableWidget_constructions.rowCount()):
         if dlg.tableWidget_constructions.cellWidget(row,0).isChecked() or export_all:
-            export_dict['pipe_constructions'][dlg.tableWidget_constructions.item(row,1).text()]=sqlInsertQuery(dlg,dlg.tableWidget_constructions,row,'pipe_constructions')
+            export_dict['pipe_constructions'][dlg.tableWidget_constructions.item(row,1).data(Qt.ItemDataRole.UserRole)]=sqlInsertQuery(dlg,dlg.tableWidget_constructions,row,'pipe_constructions')
             
     if export_dict['pipe_constructions']:
         sql="""SELECT * 
@@ -250,7 +250,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
                 export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])}
         
     #pipes
-    pipe_ids=[dlg.tableWidget_pipes.item(i,1).text() for i in range(dlg.tableWidget_pipes.rowCount()) if dlg.tableWidget_pipes.cellWidget(i,0).isChecked()]
+    pipe_ids=[dlg.tableWidget_pipes.item(i,1).data(Qt.ItemDataRole.UserRole) for i in range(dlg.tableWidget_pipes.rowCount()) if dlg.tableWidget_pipes.cellWidget(i,0).isChecked()]
     if pipe_ids:
         sql="""SELECT p.id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
 	l.materialid, l.thickness, l.sequence, 
@@ -287,7 +287,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
     #pipe bundles
     for row in range(dlg.tableWidget_pipe_bundles.rowCount()):
         if dlg.tableWidget_pipe_bundles.cellWidget(row,0).isChecked() or export_all:
-            export_dict['pipe_bundle_types'][dlg.tableWidget_pipe_bundles.item(row,1).text()]=sqlInsertQuery(dlg,dlg.tableWidget_pipe_bundles,row,'pipe_bundle_types')
+            export_dict['pipe_bundle_types'][dlg.tableWidget_pipe_bundles.item(row,1).data(Qt.ItemDataRole.UserRole)]=sqlInsertQuery(dlg,dlg.tableWidget_pipe_bundles,row,'pipe_bundle_types')
             
     if export_dict['pipe_bundle_types']:
         sql="""SELECT p_bundles.id, p_bundles.description, bp.sequence AS pipe_seq, x, y ,ambient ,
@@ -347,15 +347,15 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
     for table,template_type in [(dlg.tableWidget_customer_templates,'customer_templates'),(dlg.tableWidget_energy_plant_templates,'energy_plant_templates')]:
         for i in range(table.rowCount()):
             if table.cellWidget(i,0).isChecked():
-                template_id=table.item(i,1).text()
-                bundle_type=table.item(i,3).text()
-                template_name=template_id +'_'+ table.item(i,2).text()
+                template_id=table.item(i,1).data(Qt.ItemDataRole.UserRole)
+                bundle_type=table.item(i,3).data(Qt.ItemDataRole.UserRole)
+                template_name=template_id +'_'+ table.item(i,2).data(Qt.ItemDataRole.UserRole)
                 #get conns names
                 connValues = [{key: (value if isinstance(value,int) else float(value)) if isNumber(value) else value for key,value in i.items()} for i in getConnsValues(bundle_type, cur)]
                 if template_id in export_dict[template_type]:
-                    export_dict[template_type][template_id][bundle_type] = [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).text(),table.item(i,4).text()),connValues]
+                    export_dict[template_type][template_id][bundle_type] = [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).data(Qt.ItemDataRole.UserRole),table.item(i,4).data(Qt.ItemDataRole.UserRole)),connValues]
                 else:
-                    export_dict[template_type][template_id]={bundle_type : [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).text(),table.item(i,4).text()),connValues]}
+                    export_dict[template_type][template_id]={bundle_type : [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).data(Qt.ItemDataRole.UserRole),table.item(i,4).data(Qt.ItemDataRole.UserRole)),connValues]}
                 
                 copy_tree_filter_extensions_and_folders(config['pathProjects']+projectName+"\\"+template_type+"\\"+template_name, temp_dir+template_type+'\\'+template_name)
                 for ext in ['.idm','.idc']:

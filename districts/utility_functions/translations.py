@@ -21,6 +21,10 @@ def _register_translation_keys():
     tr("simulation_results")
     tr("check_special_characters")
     tr("selection")
+    tr("true")
+    tr("True")
+    tr("false")
+    tr("False")
     
     #project
     tr("project")
@@ -550,6 +554,10 @@ def _register_translation_keys():
     tr('pipes_saved_successfully')
     tr('pipe_bundles_saved_successfully')
     tr('data_saved_successfully')
+    
+    #sensors
+    tr('info_sensors')
+    
     
     
 
