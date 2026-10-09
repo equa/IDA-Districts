@@ -12,13 +12,14 @@ from .utility_functions.workers import *
 from .utility_functions.invoke import CopyTemplateFiles
 from .utility_functions.layer_visualization import *
 from .utility_functions.reports import *
+from .utility_functions.sensor_signals import *
 
 import traceback
 import pandas as pd
 import numpy as np
 
 def sqlInsertQuery(dlg,table,row,db_table):
-    return """INSERT INTO {} ({}) VALUES ({})\n;""".format(
+    return """INSERT INTO {} ({}) VALUES ({});""".format(
                 db_table,
                 ','.join(dlg.table_columns[table][2:]),
                 ','.join([table.item(row,col).text().replace('None','NULL') 
@@ -27,11 +28,11 @@ def sqlInsertQuery(dlg,table,row,db_table):
                             for col in range(2,table.columnCount())]))
 
 def importResources(dlg,main,import_all=False):
-    print('importResources')
+    #print('importResources')
     
     if dlg.rbtn_file.isChecked():
         file=dlg.lineEditFileName.text()
-        print(file)
+        #print(file)
         
         if zipfile.is_zipfile(file):
             #print("Valid ZIP file")
@@ -47,76 +48,108 @@ def importResources(dlg,main,import_all=False):
             with zipfile.ZipFile(file, 'r') as zip_ref:
                 zip_ref.extractall(temp_folder)
     else:
-        temp_folder=exportResources(dlg,main,export_all=import_all)
+        temp_folder=exportResources(dlg,dlg.cur,dlg.config,dlg.comboBox_db.currentText(),export_all=import_all,import_fromDB=True)
         
     if not os.path.exists(temp_folder):
         iface.messageBar().pushMessage("Critical", "File to import the data!", level=Qgis.Error) 
         return
         
-    print(temp_folder)
+    #print(temp_folder)
     import_dict=strToDict(readFileToString(temp_folder+'export_dict.txt',skipFirstLine=False))
-    print(import_dict)
+    #print(import_dict)
     
     db_import=""
     
     dict_keys={}
     for table in ['connections','connection_types','conn_bundle_types','materials','pipe_constructions','pipe_bundle_types']:
         if import_dict[table]:
-            sql="SELECT last_value FROM {}_id_seq;".format(table)
-            print(sql)
-            main.cur.execute(sql)
-            seq_id=main.cur.fetchone()['last_value']
-            print(seq_id)
+            seq_id=setSeqIdToMax(table+'_id_seq',table,'id',main.cur)
             db_import+=''.join(import_dict[table].values())
-            dict_keys[table]={i: int(i)+seq_id for i in import_dict[table]}
-            print(dict_keys) 
+            dict_keys[table]={i: counter+seq_id for counter,i in enumerate(import_dict[table],1)}
         
     #connection_type_connections
+    setSeqIdToMax('connection_type_connections_id_seq','connection_type_connections','id',main.cur)
     for connection_type_key, connection_type_value in import_dict['connection_type_connections'].items():
         for connections_key, connections_value in connection_type_value.items():
             db_import+=connections_value.replace('$connection_type_id$',str(dict_keys['connection_types'][connection_type_key])).replace('$connection_id$',str(dict_keys['connections'][connections_key]))
 
     #bundle_type_conns
+    setSeqIdToMax('bundle_type_conns_id_seq','bundle_type_conns','id',main.cur)
     for bundle_type_key, bundle_type_value in import_dict['bundle_type_conns'].items():
         for connection_type_key, connection_type_value in bundle_type_value.items():
             db_import+=connection_type_value.replace('$conn_bundle_type_id$',str(dict_keys['conn_bundle_types'][bundle_type_key])).replace('$conn_type_id$',str(dict_keys['connection_types'][connection_type_key]))
 
     #pipe_layers
+    setSeqIdToMax('pipe_layers_id_seq','pipe_layers','id',main.cur)
     for pipe_construction_key, pipe_construction_value in import_dict['pipe_layers'].items():
         for material_key, material_value in pipe_construction_value.items():
             db_import+=material_value.replace('$pipe_construction_id$',str(dict_keys['pipe_constructions'][pipe_construction_key])).replace('$materialid$',str(dict_keys['materials'][material_key]))
             
     
     #pipes
+    pipes_max_id=setSeqIdToMax('pipes_id_seq','pipes','id',main.cur)
     for pipe_key, pipe_value in import_dict['pipes'].items():
         for construction_key, construction_value in pipe_value.items():
-            db_import+=construction_value.replace('$pipe_construction_id$',str(dict_keys['pipe_constructions'][pipe_key]))
-            sql="SELECT last_value FROM pipes_id_seq;".format(table)
-            print(sql)
-            main.cur.execute(sql)
-            seq_id=main.cur.fetchone()['last_value']
-            print(seq_id)
-            dict_keys['pipes']={i: int(i)+seq_id for i in import_dict['pipes']}
+            db_import+=construction_value.replace('$pipe_construction_id$',str(dict_keys['pipe_constructions'][construction_key]))
+            dict_keys['pipes']={i: pipes_max_id for i in import_dict['pipes']}
+            pipes_max_id+=1
     
     #bundle_pipes
+    setSeqIdToMax('bundle_pipes_id_seq','bundle_pipes','id',main.cur)
     for pipe_bundle_key, pipe_bundle_value in import_dict['bundle_pipes'].items():
-        for pipe_key, pipe_value in pipe_bundle_value.items():
-            db_import+=pipe_value.replace('$pipe_bundle_type_id$',str(dict_keys['pipe_bundle_types'][pipe_bundle_key])).replace('$pipe_id$',str(dict_keys['pipes'][pipe_key]))
-            
-    print(db_import)
-        
-    
+        for pipe_seq_key, pipe_seq_value in pipe_bundle_value.items():
+            db_import+=pipe_seq_value[1].replace('$pipe_bundle_type_id$',str(dict_keys['pipe_bundle_types'][pipe_bundle_key])).replace('$pipe_id$',str(dict_keys['pipes'][pipe_seq_value[0]]))
+
+    #templates
+    for template_type in ['customer_templates','energy_plant_templates']:
+        setSeqIdToMax(template_type+'_id_seq',template_type,'id',main.cur)
+        template_max_id=getMaxTableValue(main.cur,'public',template_type,'template')+1
+        for template_key, template_value in import_dict[template_type].items():
+            for bundle_type_key, bundle_type_value in template_value.items():
+                #print(bundle_type_key)
+                db_import+=bundle_type_value[1].replace('$template$',str(template_max_id)).replace('$conn_bundle_type$',str(dict_keys['conn_bundle_types'][bundle_type_key]))
+                
+                template_name=bundle_type_value[0]
+                target_name=str(template_max_id)+'_'+'_'.join(template_name.split('_')[1:])
+                
+                connValues_old=bundle_type_value[2]
+                
+                connNames={"{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq']): 
+                        "{}_{}_{}_{}".format(dict_keys['conn_bundle_types'][str(conn['conn_bundle_type_id'])],conn['conn_type_seq'],dict_keys['connection_types'][str(conn['conn_type_id'])],conn['conn_seq']) 
+                    for conn in connValues_old}
+
+                source_file=temp_folder+template_type+'\\'+template_name
+                target_folder = main.config['pathProjects']+main.config['projectName']+"\\"+template_type+"\\"
+                target_file=target_folder+target_name
+                list_oldString=[template_name]+list(connNames.keys())
+                list_newString=[target_name]+list(connNames.values())
+                copyFileReplaceStr(source_file+'.idc',target_folder,target_file+'.idc',list_oldString,list_newString,doubleQuotes=False)
+                copyFileReplaceStr(source_file+'.idm',target_folder,target_file+'.idm',list_oldString,list_newString,doubleQuotes=False)
+                    
+                new_path=main.config['pathProjects']+main.config['projectName']+"\\"+template_type+"\\"+target_name                    
+                copy_tree_filter_extensions_and_folders(temp_folder+template_type+'\\'+template_name , new_path)
+                for ext in ['.idm','.idc']:
+                    moveFileReplaceStr(new_path+'\\'+template_name+ext,new_path,new_path+'\\'+target_name+ext,list_oldString,list_newString,doubleQuotes=False)
+         
+                template_max_id+=1
+
+    #print(db_import)
+    if db_import:
+        main.cur.execute(db_import)       
+        main.dlg.statusMessage.setText('Resources are imported successfully!')
+        main.dlg.progress.setValue(100)
+    else:
+        main.dlg.statusMessage.setText('No import data available!')
+        main.dlg.progress.setValue(0)
     closeDialog(dlg)
-    main.dlg.statusMessage.setText('Resources are imported successfully!')
-    main.dlg.progress.setValue(100)
     
                             
-def exportResources(dlg,main,export_all=False,close_dialog=False):   
-    if not os.path.exists(dlg.lineEdit_pathExport.text()):
+def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=False,import_fromDB=False):   
+    if not import_fromDB and not os.path.exists(dlg.lineEdit_pathExport.text()):
         iface.messageBar().pushMessage("Info", "File not exists!", level=Qgis.Info) 
         return
     
-    if not dlg.lineEdit_filename.text():
+    if not import_fromDB and not dlg.lineEdit_filename.text():
         iface.messageBar().pushMessage("Info", "Please enter a file name!", level=Qgis.Info) 
         return
         
@@ -139,19 +172,19 @@ def exportResources(dlg,main,export_all=False,close_dialog=False):
     FROM connection_type_connections ct_conns, connections conns
     WHERE ct_conns.connection_type_id IN ({}) AND ct_conns.connection_id=conns.id 
     ORDER BY ct_conns.connection_type_id,sequence;""".format(','.join(export_dict['connection_types'].keys()))
-        main.cur.execute(sql)
-        result=main.cur.fetchall()
+        cur.execute(sql)
+        result=cur.fetchall()
         
         #check for missing connections
-        missing={str(i['connection_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');\n".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['description'] if i['description'] else '') for i in result if str(i['connection_id']) not in export_dict['connections'].keys()}
+        missing={str(i['connection_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['description'] if i['description'] else '') for i in result if str(i['connection_id']) not in export_dict['connections'].keys()}
         export_dict['connections'] = export_dict['connections'] | missing
         
         #check for connection_type_connections
         for i in result:
             if str(i['connection_type_id']) in export_dict['connection_type_connections']:
-                export_dict['connection_type_connections'][str(i['connection_type_id'])][str(i['connection_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);\n'.format(i['sequence'])
+                export_dict['connection_type_connections'][str(i['connection_type_id'])][str(i['connection_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence'])
             else:
-                export_dict['connection_type_connections'][str(i['connection_type_id'])]={str(i['connection_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);\n'.format(i['sequence'])}
+                export_dict['connection_type_connections'][str(i['connection_type_id'])]={str(i['connection_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['sequence'])}
             
     #connection bundle type
     template_conn_bundle_types=[dlg.tableWidget_customer_templates.item(row,3).text() for row in range(dlg.tableWidget_customer_templates.rowCount()) if dlg.tableWidget_customer_templates.cellWidget(row,0).isChecked()]
@@ -165,31 +198,31 @@ def exportResources(dlg,main,export_all=False,close_dialog=False):
 		ct_conns.sequence AS ct_conns_sequence, conns.id AS conn_id,
 		type, p_ctrl, temp, p, mdot, conns.description AS conn_description
 	FROM connection_type_connections ct_conns, connections conns, conn_bundle_types b_types, bundle_type_conns b_t_conns, connection_types c_type
-	WHERE b_types.id IN ({}) AND c_type.id=ct_conns.connection_type_id AND ct_conns.connection_id=conns.id AND b_t_conns.conn_bundle_type_id=b_types.id AND b_t_conns.conn_bundle_type_id=ct_conns.connection_type_id
+	WHERE b_types.id IN ({}) AND c_type.id=ct_conns.connection_type_id AND ct_conns.connection_id=conns.id AND b_t_conns.conn_bundle_type_id=b_types.id AND b_t_conns.conn_type_id=ct_conns.connection_type_id
 	ORDER BY b_types.id,ct_conns.connection_type_id,b_t_conns.sequence,ct_conns.sequence;""".format(','.join(export_dict['conn_bundle_types'].keys()))
-        main.cur.execute(sql)
-        result=main.cur.fetchall()
+        cur.execute(sql)
+        result=cur.fetchall()
         
         #check for bundle_type_conns
         for i in result:
             if str(i['id']) in export_dict['bundle_type_conns']:
-                export_dict['bundle_type_conns'][str(i['id'])][str(i['conn_type_id'])] = 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);\n'.format(i['b_t_conns_seq'])
+                export_dict['bundle_type_conns'][str(i['id'])][str(i['conn_type_id'])] = 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq'])
             else:
-                export_dict['bundle_type_conns'][str(i['id'])]={str(i['conn_type_id']) : 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);\n'.format(i['b_t_conns_seq'])}
+                export_dict['bundle_type_conns'][str(i['id'])]={str(i['conn_type_id']) : 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq'])}
         
         #check for missing connections
-        missing={str(i['conn_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');\n".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['conn_description'] if i['conn_description'] else '') for i in result if str(i['conn_id']) not in export_dict['connections'].keys()}
+        missing={str(i['conn_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['conn_description'] if i['conn_description'] else '') for i in result if str(i['conn_id']) not in export_dict['connections'].keys()}
         export_dict['connections'] = export_dict['connections'] | missing
       
         #check for missing connection types
         for i in result:
             if str(i['conn_type_id']) not in export_dict['connection_types'].keys():
                 if str(i['conn_type_id']) in export_dict['connection_type_connections']:
-                    export_dict['connection_type_connections'][str(i['conn_type_id'])][str(i['conn_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);\n'.format(i['ct_conns_sequence'])
+                    export_dict['connection_type_connections'][str(i['conn_type_id'])][str(i['conn_id'])] = 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['ct_conns_sequence'])
                 else:
-                    export_dict['connection_type_connections'][str(i['conn_type_id'])]={str(i['conn_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);\n'.format(i['ct_conns_sequence'])}
+                    export_dict['connection_type_connections'][str(i['conn_type_id'])]={str(i['conn_id']) : 'INSERT INTO connection_type_connections (connection_type_id,sequence,connection_id) VALUES ($connection_type_id$,{},$connection_id$);'.format(i['ct_conns_sequence'])}
         
-        missing={str(i['conn_type_id']) : "INSERT INTO connection_types (description) VALUES ('{}');\n".format(i['c_type_description'] if i['c_type_description'] else '') for i in result if str(i['conn_type_id']) not in export_dict['connection_types'].keys()}
+        missing={str(i['conn_type_id']) : "INSERT INTO connection_types (description) VALUES ('{}');".format(i['c_type_description'] if i['c_type_description'] else '') for i in result if str(i['conn_type_id']) not in export_dict['connection_types'].keys()}
         export_dict['connection_types'] = export_dict['connection_types'] | missing
         
     #constructions
@@ -202,23 +235,22 @@ def exportResources(dlg,main,export_all=False,close_dialog=False):
     FROM pipe_layers l, materials m
     WHERE l.pipe_construction_id IN ({}) AND l.materialid=m.id 
     ORDER BY l.pipe_construction_id,sequence;""".format(','.join(export_dict['pipe_constructions'].keys()))
-        main.cur.execute(sql)
-        result=main.cur.fetchall()
+        cur.execute(sql)
+        result=cur.fetchall()
         
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ({},{},{},{});\n".format(i['name'] if i['name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
+        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['name'] if i['name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
         export_dict['materials'] = export_dict['materials'] | missing
         
         #check for pipe_layers
         for i in result:
             if str(i['pipe_construction_id']) in export_dict['pipe_layers']:
-                export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});\n'.format(i['thickness'],i['sequence'])
+                export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])
             else:
-                export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});\n'.format(i['thickness'],i['sequence'])}
+                export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])}
         
     #pipes
     pipe_ids=[dlg.tableWidget_pipes.item(i,1).text() for i in range(dlg.tableWidget_pipes.rowCount()) if dlg.tableWidget_pipes.cellWidget(i,0).isChecked()]
-    print(pipe_ids)    
     if pipe_ids:
         sql="""SELECT p.id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
 	l.materialid, l.thickness, l.sequence, 
@@ -227,29 +259,29 @@ def exportResources(dlg,main,export_all=False,close_dialog=False):
 	FROM pipes p, pipe_layers l, materials m, pipe_constructions c
 	WHERE p.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id
 	ORDER BY p.id, l.sequence;""".format(','.join(pipe_ids))
-        main.cur.execute(sql)
-        result=main.cur.fetchall()
+        cur.execute(sql)
+        result=cur.fetchall()
         
         #check for pipes
         for i in result:
             if str(i['id']) in export_dict['pipes']:
-                export_dict['pipes'][str(i['id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,'{}');\n".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'],i['pipe_description'] if i['pipe_description'] else '')
+                export_dict['pipes'][str(i['id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')
             else:
-                export_dict['pipes'][str(i['id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,'{}');\n".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'],i['pipe_description'] if i['pipe_description'] else '')}
+                export_dict['pipes'][str(i['id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')}
 
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ({},{},{},{});\n".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
+        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
         export_dict['materials'] = export_dict['materials'] | missing
       
         #check for missing pipe_layers
         for i in result:
             if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys():
                 if str(i['pipe_construction_id']) in export_dict['pipe_layers']:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});\n'.format(i['thickness'],i['sequence'])
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])
                 else:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});\n'.format(i['thickness'],i['sequence'])}
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence'])}
         
-        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');\n".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()}
+        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()}
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
 
     #pipe bundles
@@ -266,65 +298,96 @@ def exportResources(dlg,main,export_all=False,close_dialog=False):
 	FROM pipes p, pipe_layers l, materials m, pipe_constructions c, bundle_pipes bp, pipe_bundle_types p_bundles
 	WHERE p_bundles.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id AND bp.pipe_bundle_type_id=p_bundles.id AND p.id=bp.pipe_id
 	ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(','.join(export_dict['pipe_bundle_types'].keys()))
-        main.cur.execute(sql)
-        result=main.cur.fetchall()
+        cur.execute(sql)
+        result=cur.fetchall()
         
         #check for missing pipes
         for i in result:
             if str(i['pipe_id']) in export_dict['pipes']:
-                export_dict['pipes'][str(i['pipe_id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,'{}');\n".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'],i['pipe_description'] if i['pipe_description'] else '')
+                export_dict['pipes'][str(i['pipe_id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')
             else:
-                export_dict['pipes'][str(i['pipe_id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,'{}');\n".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'],i['pipe_description'] if i['pipe_description'] else '')}
+                export_dict['pipes'][str(i['pipe_id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')}
 
         #check for bundle_pipes
         for i in result:
             if str(i['id']) in export_dict['bundle_pipes']:
-                export_dict['bundle_pipes'][str(i['id'])][str(i['pipe_id'])] = 'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});\n'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])
+                export_dict['bundle_pipes'][str(i['id'])][str(i['pipe_seq'])] = [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])]
             else:
-                export_dict['bundle_pipes'][str(i['id'])]={str(i['pipe_id']) : 'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});\n'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])}
+                export_dict['bundle_pipes'][str(i['id'])]={str(i['pipe_seq']) : [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])]}
 
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ({},{},{},{});\n".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
+        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()}
         export_dict['materials'] = export_dict['materials'] | missing
       
         #check for missing pipe_layers
         for i in result:
             if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys():
                 if str(i['pipe_construction_id']) in export_dict['pipe_layers']:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});\n'.format(i['thickness'],i['layer_seq'])
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])][str(i['materialid'])] = 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['layer_seq'])
                 else:
-                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});\n'.format(i['thickness'],i['layer_seq'])}
+                    export_dict['pipe_layers'][str(i['pipe_construction_id'])]={str(i['materialid']) : 'INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['layer_seq'])}
         
-        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');\n".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()}
+        missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()}
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
         
-    export_file_name=os.path.join(dlg.lineEdit_pathExport.text(),dlg.lineEdit_filename.text())
+    if import_fromDB:
+        temp_name='resource_export'
+        export_file_name=''   
+        #create temp folder
+        createDir(districtsModelerTempDir(),temp_name,delete=True)
+        temp_dir = districtsModelerTempDir()+temp_name+'\\'
+    else:
+        export_file_name=os.path.join(dlg.lineEdit_pathExport.text(),dlg.lineEdit_filename.text())   
+        #create temp folder
+        createDir(districtsModelerTempDir(),dlg.lineEdit_filename.text(),delete=True)
+        temp_dir = districtsModelerTempDir()+dlg.lineEdit_filename.text()+'\\'
+        
     
-    #create temp folder
-    createDir(districtsModelerTempDir(),dlg.lineEdit_filename.text(),delete=True)
-    temp_dir = districtsModelerTempDir()+dlg.lineEdit_filename.text()+'\\'
+    #templates
+    for table,template_type in [(dlg.tableWidget_customer_templates,'customer_templates'),(dlg.tableWidget_energy_plant_templates,'energy_plant_templates')]:
+        for i in range(table.rowCount()):
+            if table.cellWidget(i,0).isChecked():
+                template_id=table.item(i,1).text()
+                bundle_type=table.item(i,3).text()
+                template_name=template_id +'_'+ table.item(i,2).text()
+                #get conns names
+                connValues = [{key: (value if isinstance(value,int) else float(value)) if isNumber(value) else value for key,value in i.items()} for i in getConnsValues(bundle_type, cur)]
+                if template_id in export_dict[template_type]:
+                    export_dict[template_type][template_id][bundle_type] = [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).text(),table.item(i,4).text()),connValues]
+                else:
+                    export_dict[template_type][template_id]={bundle_type : [template_name,"INSERT INTO {} (template,template_name,conn_bundle_type,description) VALUES ($template$,'{}',$conn_bundle_type$,'{}');".format(template_type,table.item(i,2).text(),table.item(i,4).text()),connValues]}
+                
+                copy_tree_filter_extensions_and_folders(config['pathProjects']+projectName+"\\"+template_type+"\\"+template_name, temp_dir+template_type+'\\'+template_name)
+                for ext in ['.idm','.idc']:
+                    src_file = config['pathProjects']+projectName+"\\"+template_type+"\\"+template_name+ext
+                    copyFile(src_file,temp_dir+template_type,temp_dir+template_type+'\\'+template_name+ext)
+                    
+                type_id=getTypeIdByName(template_type.replace('_templates',''))
+                remove_sensor_ids={}
+                for sensor_type in ['source','target']:
+                    sql="""SELECT sensor_id, type, template, multi_signal
+FROM (
+    SELECT sensor_id, type, unnest(templates) AS template, multi_signal FROM invoked_sensor_{}_signals
+) s
+WHERE type = {}
+  AND template = {};""".format(sensor_type,type_id,template_id)
+                    cur.execute(sql)
+                    remove_sensor_ids[sensor_type]=cur.fetchall()
+
+                #print(remove_sensor_ids)
+                templatesensorSignals(cur,config,temp_dir+template_type,template_name,type_id,[],[],remove_sensor_ids['source'],remove_sensor_ids['target'])
+                
     
-    #save template files
-    for type_name in ['customer_templates','energy_plant_templates']:
-        if export_dict[type_name]:
-            createDir(temp_dir,type_name)
-        for template in export_dict[type_name]:
-            table=[key for key,value in dlg.tables.items() if value==type_name][0]
-            template_name=template +'_'+ [table.item(i,2).text() for i in range(table.rowCount()) if table.item(i,1).text()==template][0]
-            for ext in ['.idm','.idc']:
-                src_file = main.config['pathProjects']+main.config['projectName']+"\\"+type_name+"\\"+template_name+ext
-                copyFile(src_file,temp_dir+type_name,temp_dir+type_name+'\\'+template_name+ext)
-            copy_tree_filter_extensions_and_folders(main.config['pathProjects']+main.config['projectName']+"\\"+type_name+"\\"+template_name, temp_dir+type_name+'\\'+template_name)
-    
-    print(export_dict)
+    #print(export_dict)
     writeToFile(str(export_dict),temp_dir,temp_dir+'\\export_dict.txt')
         
     #write zip to target folder
-    shutil.make_archive(
-        export_file_name,            # target folder without .zip
-        "zip",          # format
-        temp_dir     # source folder
-    )
+    if export_file_name:
+        shutil.make_archive(
+            export_file_name,            # target folder without .zip
+            "zip",          # format
+            temp_dir     # source folder
+        )
     
     if close_dialog:
         closeDialog(dlg)
