@@ -20,6 +20,7 @@ def _register_translation_keys():
     tr("ids")
     tr("simulation_results")
     tr("check_special_characters")
+    tr("selection")
     
     #project
     tr("project")
@@ -143,6 +144,7 @@ def _register_translation_keys():
     #fields 
     tr("id")
     tr("template")
+    tr("template_name")
     tr("network")
     tr("submodel")
     tr("load_w")
@@ -444,16 +446,25 @@ def _register_translation_keys():
     tr("connection_types")
     tr("connection_type_id")
     tr("connection_type_connections")
-
+    
+    #variables
+    tr("p_ctrl")
+    tr("temp")
+    tr("p")
+    tr("mdot")
+    
     #connection bundles dialog
     tr("connection_bundles")
     tr("connection_bundle_id")
+    tr("conn_bundle_type")
 
     #pipe bundle dialog
     tr("pipe_bundle")
     tr("pipe_bundle_id")
+    tr("invest_costs")
     tr("investment_costs")
     tr("operating_costs")
+    tr("operation_costs")
     tr("x_coord")
     tr("y_coord")
     tr("ambient")
@@ -466,7 +477,14 @@ def _register_translation_keys():
     tr("pipe_construction_id")
     tr("absolute_roughness")
     tr("inner_diameter")
+    tr("innerpipediameter")
+    tr("piperoughnessfactor")
     tr("pipe_costs")
+    
+    #materials
+    tr("thermal_conductivity_w7mkelvin")
+    tr("specific_heat_j7kgkelvin")
+    tr("density_kg7m3")
 
     #defaults dialog
     tr("defaults_layer_lines")
