@@ -731,7 +731,7 @@
         <translation type="unfinished">Ideale Wärmequelle</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="1374"/>
+        <location filename="../ida_resources.py" line="1375"/>
         <source>@default</source>
         <comment>no_selection</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -858,7 +858,7 @@
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1052"/>
+        <location filename="../ida_mosim_dialog.py" line="839"/>
         <source>@default</source>
         <comment>fields</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -1157,13 +1157,13 @@
         <translation type="unfinished">BGF setzen</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1034"/>
+        <location filename="../ida_mosim_dialog.py" line="821"/>
         <source>@default</source>
         <comment>title_feature_model_parameter_mapping</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1058"/>
+        <location filename="../ida_mosim_dialog.py" line="845"/>
         <source>@default</source>
         <comment>info_feature_parm_mapping</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -1175,37 +1175,37 @@
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1073"/>
+        <location filename="../ida_mosim_dialog.py" line="860"/>
         <source>@default</source>
         <comment>mapping_expression</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1073"/>
+        <location filename="../ida_mosim_dialog.py" line="860"/>
         <source>@default</source>
         <comment>mapping_direction</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1073"/>
+        <location filename="../ida_mosim_dialog.py" line="860"/>
         <source>@default</source>
         <comment>parameter_name</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1073"/>
+        <location filename="../ida_mosim_dialog.py" line="860"/>
         <source>@default</source>
         <comment>model_name</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1073"/>
+        <location filename="../ida_mosim_dialog.py" line="860"/>
         <source>@default</source>
         <comment>macro_name</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="828"/>
+        <location filename="../ida_resources.py" line="829"/>
         <source>@default</source>
         <comment>description</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -1776,7 +1776,7 @@
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="828"/>
+        <location filename="../ida_resources.py" line="829"/>
         <source>@default</source>
         <comment>connection_bundles</comment>
         <translation type="unfinished">Anschlussbündel</translation>
@@ -1902,7 +1902,7 @@
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="551"/>
+        <location filename="../ida_mosim_dialog.py" line="338"/>
         <source>@default</source>
         <comment>networks</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -2093,7 +2093,7 @@
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="828"/>
+        <location filename="../ida_resources.py" line="829"/>
         <source>@default</source>
         <comment>template</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -2120,7 +2120,7 @@
         <translation type="unfinished">Vorgabewerte für Layer: &quot;Energiezentralen&quot;</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="835"/>
+        <location filename="../ida_resources.py" line="836"/>
         <source>@default</source>
         <comment>templates</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -2137,13 +2137,13 @@
         <translation type="unfinished">Vorlagen</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="1210"/>
+        <location filename="../ida_resources.py" line="1211"/>
         <source>@default</source>
         <comment>file_not_found!</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="1229"/>
+        <location filename="../ida_resources.py" line="1230"/>
         <source>@default</source>
         <comment>please_enter_number_table_row</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -2199,13 +2199,13 @@
         <translation type="unfinished">Daten wurden erfolgreich gespeichert!</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="1385"/>
+        <location filename="../ida_resources.py" line="1386"/>
         <source>@default</source>
         <comment>data_saved_successfully</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="1221"/>
+        <location filename="../ida_resources.py" line="1222"/>
         <source>@default</source>
         <comment>connections_saved_successfully</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -3614,7 +3614,7 @@
         <translation type="unfinished">Referenztemperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_resources.py" line="860"/>
+        <location filename="../ida_resources.py" line="861"/>
         <source>@default</source>
         <comment>check_special_characters</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -3791,25 +3791,25 @@
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="938"/>
+        <location filename="../ida_mosim_dialog.py" line="725"/>
         <source>@default</source>
         <comment>customer_model_calibration</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="980"/>
+        <location filename="../ida_mosim_dialog.py" line="767"/>
         <source>@default</source>
         <comment>parametric_runs</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="962"/>
+        <location filename="../ida_mosim_dialog.py" line="749"/>
         <source>@default</source>
         <comment>used</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="985"/>
+        <location filename="../ida_mosim_dialog.py" line="772"/>
         <source>@default</source>
         <comment>parmrun_results</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -3873,7 +3873,7 @@
         <translation type="unfinished">Neues Parametric Runs</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="943"/>
+        <location filename="../ida_mosim_dialog.py" line="730"/>
         <source>@default</source>
         <comment>info_calibration</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -3927,25 +3927,25 @@
 </translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="956"/>
+        <location filename="../ida_mosim_dialog.py" line="743"/>
         <source>@default</source>
         <comment>tooltip_openParmrunTemplate</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="975"/>
+        <location filename="../ida_mosim_dialog.py" line="762"/>
         <source>@default</source>
         <comment>tooltip_startCallibration</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="994"/>
+        <location filename="../ida_mosim_dialog.py" line="781"/>
         <source>@default</source>
         <comment>tooltip_openParmrunResult</comment>
         <translation type="unfinished">Spiegelung</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="998"/>
+        <location filename="../ida_mosim_dialog.py" line="785"/>
         <source>@default</source>
         <comment>tooltip_saveParmrunResult</comment>
         <translation type="unfinished">Spiegelung</translation>
@@ -4093,12 +4093,12 @@
 <context>
     <name>BuildNetworkModelDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="578"/>
+        <location filename="../ida_mosim_dialog.py" line="365"/>
         <source>build_network_model</source>
         <translation type="unfinished">Netzmodell erstellen</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="573"/>
+        <location filename="../ida_mosim_dialog.py" line="360"/>
         <source>reinvoke_feature_templates</source>
         <translation type="unfinished">Feature-Vorlagen erneut erstellen</translation>
     </message>
@@ -5616,37 +5616,37 @@ li.checked::marker { content: &quot;\2612&quot;; }
 <context>
     <name>ModellingSettings</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1309"/>
+        <location filename="../ida_mosim_dialog.py" line="1096"/>
         <source>modelling_settings</source>
         <translation type="unfinished">Modellierungseinstellungen</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1314"/>
+        <location filename="../ida_mosim_dialog.py" line="1101"/>
         <source>finite_difference_pipe_model</source>
         <translation type="unfinished">Finite-Differenzen-Rohrmodell</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1322"/>
+        <location filename="../ida_mosim_dialog.py" line="1109"/>
         <source>meter_per_node</source>
         <translation type="unfinished">Meter pro Knoten, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1346"/>
+        <location filename="../ida_mosim_dialog.py" line="1133"/>
         <source>node_volume</source>
         <translation type="unfinished">Verbindungsstückvolumen, m3</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1362"/>
+        <location filename="../ida_mosim_dialog.py" line="1149"/>
         <source>ambient_temperatur_settings</source>
         <translation type="unfinished">Umgebungstemperatur-Einstellungen</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1376"/>
+        <location filename="../ida_mosim_dialog.py" line="1163"/>
         <source>ground_thermal_conductivity</source>
         <translation type="unfinished">Thermische Leitfähigkeit des Untergrundes, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1379"/>
+        <location filename="../ida_mosim_dialog.py" line="1166"/>
         <source>ground_surface_layer_temperature_model</source>
         <translation type="unfinished">Erdreich-Oberflächentemperaturmodell</translation>
     </message>
@@ -5661,62 +5661,62 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Phasenverschiebung der monatlichen Minimumtemperatur, Tage</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1383"/>
+        <location filename="../ida_mosim_dialog.py" line="1170"/>
         <source>surface_layer_density</source>
         <translation type="unfinished">Dichte der Oberflächenschicht, kg/m3</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1386"/>
+        <location filename="../ida_mosim_dialog.py" line="1173"/>
         <source>specific_heat_capacity_surface_layer</source>
         <translation type="unfinished">Spezifische Wärmekapazität der Oberflächenschicht, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1389"/>
+        <location filename="../ida_mosim_dialog.py" line="1176"/>
         <source>thermal_conductivity_surface_layer</source>
         <translation type="unfinished">Wärmeleitfähigkeit der Oberflächenschicht, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1392"/>
+        <location filename="../ida_mosim_dialog.py" line="1179"/>
         <source>surface_layer_depth</source>
         <translation type="unfinished">Dicke der Oberflächenschicht, m</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1396"/>
+        <location filename="../ida_mosim_dialog.py" line="1183"/>
         <source>ground_temperatur_timeseries</source>
         <translation type="unfinished">Zeitreihe der Bodentemperatur</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1400"/>
+        <location filename="../ida_mosim_dialog.py" line="1187"/>
         <source>constant_ground_temperatur</source>
         <translation type="unfinished">Konstante Bodentemperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1450"/>
+        <location filename="../ida_mosim_dialog.py" line="1237"/>
         <source>duct_model</source>
         <translation type="unfinished">Schachtmodell</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1453"/>
+        <location filename="../ida_mosim_dialog.py" line="1240"/>
         <source>duct_temperatur_timeseries</source>
         <translation type="unfinished">Zeitreihe der Schachttemperatur</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1456"/>
+        <location filename="../ida_mosim_dialog.py" line="1243"/>
         <source>constant_duct_temperatur</source>
         <translation type="unfinished">Konstante Schachttemperatur, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1480"/>
+        <location filename="../ida_mosim_dialog.py" line="1267"/>
         <source>ambient_air_temperatur</source>
         <translation type="unfinished">Umgebungslufttemperatur</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1488"/>
+        <location filename="../ida_mosim_dialog.py" line="1275"/>
         <source>ambient_air_model</source>
         <translation type="unfinished">Modell der Umgebungsluft</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="1338"/>
+        <location filename="../ida_mosim_dialog.py" line="1125"/>
         <source>node_model</source>
         <translation type="unfinished">Verbindungsstücke Modell</translation>
     </message>
@@ -5783,362 +5783,701 @@ li.checked::marker { content: &quot;\2612&quot;; }
     </message>
 </context>
 <context>
-    <name>RequestedOutputsDialog</name>
+    <name>RequestedOuputsDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="352"/>
-        <source>energy_plants</source>
-        <translation type="unfinished">Energiezentralen</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="264"/>
-        <source>plant_power</source>
-        <translation type="unfinished">Anlagen Leistung, W</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="267"/>
-        <source>plant_connection_temp</source>
-        <translation type="unfinished">Anlagen Anschlusstemperaturen, °c</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="270"/>
-        <source>plant_pressure</source>
-        <translation type="unfinished">Anlagen Druck; Pa</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="273"/>
-        <source>plant_massflow</source>
-        <translation type="unfinished">Anlagen Massenstrom, kg/s</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="296"/>
-        <source>customers</source>
-        <translation type="unfinished">Abnehmer</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="406"/>
-        <source>network</source>
-        <translation type="unfinished">Netz</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="424"/>
-        <source>system</source>
-        <translation type="unfinished">System</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="480"/>
-        <source>dt_output_hr</source>
-        <translation type="unfinished">Zeitschritt für Ausgabe, hr</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="489"/>
-        <source>cancel</source>
-        <translation type="unfinished">Abbrechen</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="106"/>
-        <source>requested_outputs</source>
+        <location filename="../RequestedOutputs_dialog.ui" line="14"/>
+        <source>requested_ouputs</source>
         <translation type="unfinished">Ausgabeparameter</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="112"/>
-        <source>temporal_results</source>
-        <translation type="unfinished">Zeitabhängige Ergebnisse</translation>
+        <location filename="../RequestedOutputs_dialog.ui" line="28"/>
+        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;info_requested_ouputs&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
+&lt;p&gt;&lt;strong&gt;Ausgabeparameter&lt;/strong&gt; können sowohl für &lt;strong&gt;Zeitreihen&lt;/strong&gt; als auch für &lt;strong&gt;Key Performance Indicators (KPIs)&lt;/strong&gt; festgelegt werden. Die Auswahl erfolgt getrennt für &lt;strong&gt;Abnehmer&lt;/strong&gt;, &lt;strong&gt;Energiezentralen&lt;/strong&gt;, das &lt;strong&gt;Wärmenetz&lt;/strong&gt; und das &lt;strong&gt;Gesamtsystem&lt;/strong&gt;. Zusätzlich kann der &lt;strong&gt;Simulationszeitschritt für die Ergebnisausgabe&lt;/strong&gt; definiert werden.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Ergebnisdarstellung:&lt;/strong&gt; Die Simulationsergebnisse können direkt im &lt;strong&gt;Results-Macro&lt;/strong&gt; des Gesamtsimulationsmodells eingesehen werden. Nach dem Laden der Ergebnisse in die Datenbank stehen weitere Auswertungs- und Visualisierungsmöglichkeiten im Reiter &lt;strong&gt;„Ergebnisse &amp;amp; Visualisierung“&lt;/strong&gt; zur Verfügung.&lt;/p&gt;
+
+&lt;p&gt;Die verfügbaren Visualisierungen umfassen:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Druck- und Temperaturverläufe:&lt;/strong&gt; Darstellung des Drucks bzw. der Temperatur entlang einer Netztrasse.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Lastprofile:&lt;/strong&gt; Zeitlicher Verlauf der Lasten von Abnehmern und Energiezentralen.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Wärme- und Massenbilanzen:&lt;/strong&gt; Grafische Darstellung der zeitlichen Entwicklung der Wärme- und Massenströme im Netz.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Netzanimationen:&lt;/strong&gt; Räumlich und zeitlich aufgelöste Visualisierung des Netzverhaltens auf der Karte.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Darüber hinaus können die berechneten &lt;strong&gt;KPIs&lt;/strong&gt; in einem &lt;strong&gt;Netzbericht&lt;/strong&gt; dargestellt werden, um die wesentlichen Kennzahlen des Systems übersichtlich zusammenzufassen und zu bewerten.&lt;/p&gt;
+&lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="127"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="44"/>
+        <source>temporal</source>
+        <translation type="unfinished">Zeitreihen</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="51"/>
+        <source>kpis</source>
+        <translation type="unfinished">KPIs</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="64"/>
+        <source>tab_customers</source>
+        <translation type="unfinished">Abnehmer</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="581"/>
+        <source>select_all</source>
+        <translation type="unfinished">Alle auswählen</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="588"/>
+        <source>unselect_all</source>
+        <translation type="unfinished">Alle abwählen</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="110"/>
         <source>substation_power</source>
         <translation type="unfinished">Abnehmer Leistung, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="130"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="117"/>
         <source>substation_connection_temperatures</source>
         <translation type="unfinished">Abnehmer Anschlusstemperaturen, °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="133"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="124"/>
         <source>substation_pressure</source>
         <translation type="unfinished">Abnehmer Druck, Pa</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="136"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="131"/>
         <source>substation_massflow</source>
         <translation type="unfinished">Abnehmer Massenstrom, kg/s</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="139"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="138"/>
         <source>heat_balance_building</source>
         <translation type="unfinished">Wärmebilanz des Gebäudes, W</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="142"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="145"/>
         <source>room_air_temperature</source>
         <translation type="unfinished">Raumlufttemperatur. °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="162"/>
-        <source>massflows_pipes</source>
-        <translation type="unfinished">Massenstrom in Rohren, kg/s</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="165"/>
-        <source>velocity_pipes</source>
-        <translation type="unfinished">Strömungsgeschwindigkeit in Rohren, m/s</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="168"/>
-        <source>pressure_distribution</source>
-        <translation type="unfinished">Rohrdruck, Pa</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="171"/>
-        <source>temperature_pipes</source>
-        <translation type="unfinished">Temperatur in Rohren, °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="285"/>
-        <source>kpi_s</source>
-        <translation type="unfinished">KPI`s</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="376"/>
-        <source>qsup_heat</source>
-        <translation type="unfinished">Wärmebedarf, kWh/a</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="379"/>
-        <source>qsup_cold</source>
-        <translation type="unfinished">Kühlbedarf, kWh/a</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="382"/>
-        <source>qsup_energy</source>
-        <translation type="unfinished">Energiebedarf, kWh/a</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="412"/>
-        <source>qamb_lines</source>
-        <translation type="unfinished">Transmissionswärmestrom, kWh/a</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="430"/>
-        <source>specific_heat_supply</source>
-        <translation type="unfinished">spezifischer Wärmebedarf, kWh/(m2 EBF a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="433"/>
-        <source>specific_cold_supply</source>
-        <translation type="unfinished">spezifischer Kühlbedarf, kWh/(m2 EBF a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="436"/>
-        <source>specific_energy_supply</source>
-        <translation type="unfinished">spezifischer Energiebedarf, kWh/(m2 EBF a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="440"/>
-        <source>density_heat_supply</source>
-        <translation type="unfinished">Wärmedichte je Standortfläche, kWh/(m2 a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="443"/>
-        <source>density_cold_supply</source>
-        <translation type="unfinished">Kältedichte je Standortfläche, kWh/(m2 a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="446"/>
-        <source>density_energy_supply</source>
-        <translation type="unfinished">Energiedichte je Standortfläche, kWh/(m2 a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="450"/>
-        <source>line_density_heat_supply</source>
-        <translation type="unfinished">Lineare Wärmedichte, kWh/(m Trasse a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="453"/>
-        <source>line_density_cold_supply</source>
-        <translation type="unfinished">Lineare Wärmedichte, kWh/(m Trasse a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="456"/>
-        <source>line_density_energy_supply</source>
-        <translation type="unfinished">Lineare Energiedichte, kWh/(m Trasse a)</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="460"/>
-        <source>effWidth</source>
-        <translation type="unfinished">Effektive Breite, m</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="487"/>
-        <source>ok</source>
-        <translation type="unfinished">Ok</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="195"/>
-        <source>heatbalance_system</source>
-        <translation type="unfinished">Wärmebilanz, W</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="198"/>
-        <source>massbalance_system</source>
-        <translation type="unfinished">Massenbilanz, kg/s</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="202"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="633"/>
         <source>mean_supply_temp_customer</source>
         <translation type="unfinished">Mittlere Vorlauf Temp. (AN), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="205"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="640"/>
         <source>maximum_supply_temp_customer</source>
         <translation type="unfinished">Maximale Vorlauf Temp. (AN), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="208"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="647"/>
         <source>minimum_supply_temp_customer</source>
         <translation type="unfinished">Minimale Vorlauf Temp. (AN), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="211"/>
-        <source>mean_supply_temp_plant</source>
-        <translation type="unfinished">Mittlere Vorlauf Temp. (EZ), °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="214"/>
-        <source>maximum_supply_temp_plant</source>
-        <translation type="unfinished">Maximale Vorlauf Temp. (EZ), °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="217"/>
-        <source>minimum_supply_temp_plant</source>
-        <translation type="unfinished">Minimale Vorlauf Temp. (EZ), °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="357"/>
-        <source>mean_supply_temp</source>
-        <translation type="unfinished">Mittlere Vorlauf Temp., °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="360"/>
-        <source>maximum_supply_temp</source>
-        <translation type="unfinished">Maximale Vorlauf Temp., °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="363"/>
-        <source>minimum_supply_temp</source>
-        <translation type="unfinished">Minimale Vorlauf Temp., °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="366"/>
-        <source>mean_return_temp</source>
-        <translation type="unfinished">Mittlere Rücklauf Temp., °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="369"/>
-        <source>maximum_return_temp</source>
-        <translation type="unfinished">Maximale Rücklauf Temp., °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="372"/>
-        <source>minimum_return_temp</source>
-        <translation type="unfinished">Minimale Rücklauf Temp., °C</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="174"/>
-        <source>qamb_pipes</source>
-        <translation type="unfinished">Transmissionswärmestrom, W</translation>
-    </message>
-    <message>
-        <location filename="../ida_mosim_dialog.py" line="220"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="675"/>
         <source>mean_return_temp_customer</source>
         <translation type="unfinished">Mittlere Rücklauf Temp. (AN), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="223"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="682"/>
         <source>maximum_return_temp_customer</source>
         <translation type="unfinished">Maximale Rücklauf Temp. (AN), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="226"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="689"/>
         <source>minimum_retrun_temp_customer</source>
         <translation type="unfinished">Minimale Rücklauf Temp. (AN), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="229"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="398"/>
+        <source>qsup_heat</source>
+        <translation type="unfinished">Wärmebedarf, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="405"/>
+        <source>qsup_cold</source>
+        <translation type="unfinished">Kühlbedarf, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="412"/>
+        <source>qsup_energy</source>
+        <translation type="unfinished">Energiebedarf, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="257"/>
+        <source>tab_energy_plants</source>
+        <translation type="unfinished">Energiezentralen</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="303"/>
+        <source>plant_power</source>
+        <translation type="unfinished">Anlagen Leistung, W</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="310"/>
+        <source>plant_connection_temp</source>
+        <translation type="unfinished">Anlagen Anschlusstemperaturen, °c</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="317"/>
+        <source>plant_pressure</source>
+        <translation type="unfinished">Anlagen Druck; Pa</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="324"/>
+        <source>plant_massflow</source>
+        <translation type="unfinished">Anlagen Massenstrom, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="356"/>
+        <source>mean_supply_temp</source>
+        <translation type="unfinished">Mittlere Vorlauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="363"/>
+        <source>maximum_supply_temp</source>
+        <translation type="unfinished">Maximale Vorlauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="370"/>
+        <source>minimum_supply_temp</source>
+        <translation type="unfinished">Minimale Vorlauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="377"/>
+        <source>mean_return_temp</source>
+        <translation type="unfinished">Mittlere Rücklauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="384"/>
+        <source>maximum_return_temp</source>
+        <translation type="unfinished">Maximale Rücklauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="391"/>
+        <source>minimum_return_temp</source>
+        <translation type="unfinished">Minimale Rücklauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="436"/>
+        <source>tab_network</source>
+        <translation type="unfinished">Netz</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="482"/>
+        <source>temperature_pipes</source>
+        <translation type="unfinished">Temperatur in Rohren, °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="489"/>
+        <source>massflows_pipes</source>
+        <translation type="unfinished">Massenstrom in Rohren, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="496"/>
+        <source>velocity_pipes</source>
+        <translation type="unfinished">Strömungsgeschwindigkeit in Rohren, m/s</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="503"/>
+        <source>pressure_distribution</source>
+        <translation type="unfinished">Rohrdruck, Pa</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="510"/>
+        <source>qamb_pipes</source>
+        <translation type="unfinished">Transmissionswärmestrom, W</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="542"/>
+        <source>qamb_lines</source>
+        <translation type="unfinished">Transmissionswärmestrom, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="549"/>
+        <source>network_volume</source>
+        <translation type="unfinished">Netzvolumen, m3</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="573"/>
+        <source>tab_system</source>
+        <translation type="unfinished">System</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="619"/>
+        <source>heatbalance_system</source>
+        <translation type="unfinished">Wärmebilanz, W</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="626"/>
+        <source>massbalance_system</source>
+        <translation type="unfinished">Massenbilanz, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="654"/>
+        <source>mean_supply_temp_plant</source>
+        <translation type="unfinished">Mittlere Vorlauf Temp. (EZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="661"/>
+        <source>maximum_supply_temp_plant</source>
+        <translation type="unfinished">Maximale Vorlauf Temp. (EZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="668"/>
+        <source>minimum_supply_temp_plant</source>
+        <translation type="unfinished">Minimale Vorlauf Temp. (EZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="696"/>
         <source>mean_return_temp_plant</source>
         <translation type="unfinished">Mittlere Rücklauf Temp. (AZ), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="232"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="703"/>
         <source>maximum_return_temp_plant</source>
         <translation type="unfinished">Maximale Rücklauf Temp. (AZ), °C</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="235"/>
+        <location filename="../RequestedOutputs_dialog.ui" line="710"/>
         <source>minimum_return_temp_plant</source>
         <translation type="unfinished">Minimale Rücklauf Temp. (AZ), °C</translation>
     </message>
     <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="742"/>
+        <source>specific_heat_supply</source>
+        <translation type="unfinished">spezifischer Wärmebedarf, kWh/(m2 EBF a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="749"/>
+        <source>specific_cold_supply</source>
+        <translation type="unfinished">spezifischer Kühlbedarf, kWh/(m2 EBF a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="756"/>
+        <source>specific_energy_supply</source>
+        <translation type="unfinished">spezifischer Energiebedarf, kWh/(m2 EBF a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="763"/>
+        <source>density_heat_supply</source>
+        <translation type="unfinished">Wärmedichte je Standortfläche, kWh/(m2 a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="770"/>
+        <source>density_cold_supply</source>
+        <translation type="unfinished">Kältedichte je Standortfläche, kWh/(m2 a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="777"/>
+        <source>density_energy_supply</source>
+        <translation type="unfinished">Energiedichte je Standortfläche, kWh/(m2 a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="784"/>
+        <source>line_density_heat_supply</source>
+        <translation type="unfinished">Lineare Wärmedichte, kWh/(m Trasse a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="791"/>
+        <source>line_density_cold_supply</source>
+        <translation type="unfinished">Lineare Wärmedichte, kWh/(m Trasse a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="798"/>
+        <source>line_density_energy_supply</source>
+        <translation type="unfinished">Lineare Energiedichte, kWh/(m Trasse a)</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="805"/>
+        <source>effWidth</source>
+        <translation type="unfinished">Effektive Breite, m</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="834"/>
+        <source>dt_output_hr</source>
+        <translation type="unfinished">Zeitschritt für Ausgabe, hr</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="852"/>
+        <source>ok</source>
+        <translation type="unfinished">Ok</translation>
+    </message>
+    <message>
+        <location filename="../RequestedOutputs_dialog.ui" line="859"/>
+        <source>cancel</source>
+        <translation type="unfinished">Abbrechen</translation>
+    </message>
+</context>
+<context>
+    <name>RequestedOutputsDialog</name>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="352"/>
+        <source>energy_plants</source>
+        <translation type="obsolete">Energiezentralen</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="264"/>
+        <source>plant_power</source>
+        <translation type="obsolete">Anlagen Leistung, W</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="267"/>
+        <source>plant_connection_temp</source>
+        <translation type="obsolete">Anlagen Anschlusstemperaturen, °c</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="270"/>
+        <source>plant_pressure</source>
+        <translation type="obsolete">Anlagen Druck; Pa</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="273"/>
+        <source>plant_massflow</source>
+        <translation type="obsolete">Anlagen Massenstrom, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="296"/>
+        <source>customers</source>
+        <translation type="obsolete">Abnehmer</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="406"/>
+        <source>network</source>
+        <translation type="obsolete">Netz</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="424"/>
+        <source>system</source>
+        <translation type="obsolete">System</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="480"/>
+        <source>dt_output_hr</source>
+        <translation type="obsolete">Zeitschritt für Ausgabe, hr</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="489"/>
+        <source>cancel</source>
+        <translation type="obsolete">Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="106"/>
+        <source>requested_outputs</source>
+        <translation type="obsolete">Ausgabeparameter</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="112"/>
+        <source>temporal_results</source>
+        <translation type="obsolete">Zeitabhängige Ergebnisse</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="127"/>
+        <source>substation_power</source>
+        <translation type="obsolete">Abnehmer Leistung, W</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="130"/>
+        <source>substation_connection_temperatures</source>
+        <translation type="obsolete">Abnehmer Anschlusstemperaturen, °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="133"/>
+        <source>substation_pressure</source>
+        <translation type="obsolete">Abnehmer Druck, Pa</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="136"/>
+        <source>substation_massflow</source>
+        <translation type="obsolete">Abnehmer Massenstrom, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="139"/>
+        <source>heat_balance_building</source>
+        <translation type="obsolete">Wärmebilanz des Gebäudes, W</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="142"/>
+        <source>room_air_temperature</source>
+        <translation type="obsolete">Raumlufttemperatur. °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="162"/>
+        <source>massflows_pipes</source>
+        <translation type="obsolete">Massenstrom in Rohren, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="165"/>
+        <source>velocity_pipes</source>
+        <translation type="obsolete">Strömungsgeschwindigkeit in Rohren, m/s</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="168"/>
+        <source>pressure_distribution</source>
+        <translation type="obsolete">Rohrdruck, Pa</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="171"/>
+        <source>temperature_pipes</source>
+        <translation type="obsolete">Temperatur in Rohren, °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="285"/>
+        <source>kpi_s</source>
+        <translation type="obsolete">KPI`s</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="376"/>
+        <source>qsup_heat</source>
+        <translation type="obsolete">Wärmebedarf, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="379"/>
+        <source>qsup_cold</source>
+        <translation type="obsolete">Kühlbedarf, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="382"/>
+        <source>qsup_energy</source>
+        <translation type="obsolete">Energiebedarf, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="412"/>
+        <source>qamb_lines</source>
+        <translation type="obsolete">Transmissionswärmestrom, kWh/a</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="430"/>
+        <source>specific_heat_supply</source>
+        <translation type="obsolete">spezifischer Wärmebedarf, kWh/(m2 EBF a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="433"/>
+        <source>specific_cold_supply</source>
+        <translation type="obsolete">spezifischer Kühlbedarf, kWh/(m2 EBF a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="436"/>
+        <source>specific_energy_supply</source>
+        <translation type="obsolete">spezifischer Energiebedarf, kWh/(m2 EBF a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="440"/>
+        <source>density_heat_supply</source>
+        <translation type="obsolete">Wärmedichte je Standortfläche, kWh/(m2 a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="443"/>
+        <source>density_cold_supply</source>
+        <translation type="obsolete">Kältedichte je Standortfläche, kWh/(m2 a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="446"/>
+        <source>density_energy_supply</source>
+        <translation type="obsolete">Energiedichte je Standortfläche, kWh/(m2 a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="450"/>
+        <source>line_density_heat_supply</source>
+        <translation type="obsolete">Lineare Wärmedichte, kWh/(m Trasse a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="453"/>
+        <source>line_density_cold_supply</source>
+        <translation type="obsolete">Lineare Wärmedichte, kWh/(m Trasse a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="456"/>
+        <source>line_density_energy_supply</source>
+        <translation type="obsolete">Lineare Energiedichte, kWh/(m Trasse a)</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="460"/>
+        <source>effWidth</source>
+        <translation type="obsolete">Effektive Breite, m</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="487"/>
+        <source>ok</source>
+        <translation type="obsolete">Ok</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="195"/>
+        <source>heatbalance_system</source>
+        <translation type="obsolete">Wärmebilanz, W</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="198"/>
+        <source>massbalance_system</source>
+        <translation type="obsolete">Massenbilanz, kg/s</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="202"/>
+        <source>mean_supply_temp_customer</source>
+        <translation type="obsolete">Mittlere Vorlauf Temp. (AN), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="205"/>
+        <source>maximum_supply_temp_customer</source>
+        <translation type="obsolete">Maximale Vorlauf Temp. (AN), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="208"/>
+        <source>minimum_supply_temp_customer</source>
+        <translation type="obsolete">Minimale Vorlauf Temp. (AN), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="211"/>
+        <source>mean_supply_temp_plant</source>
+        <translation type="obsolete">Mittlere Vorlauf Temp. (EZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="214"/>
+        <source>maximum_supply_temp_plant</source>
+        <translation type="obsolete">Maximale Vorlauf Temp. (EZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="217"/>
+        <source>minimum_supply_temp_plant</source>
+        <translation type="obsolete">Minimale Vorlauf Temp. (EZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="357"/>
+        <source>mean_supply_temp</source>
+        <translation type="obsolete">Mittlere Vorlauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="360"/>
+        <source>maximum_supply_temp</source>
+        <translation type="obsolete">Maximale Vorlauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="363"/>
+        <source>minimum_supply_temp</source>
+        <translation type="obsolete">Minimale Vorlauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="366"/>
+        <source>mean_return_temp</source>
+        <translation type="obsolete">Mittlere Rücklauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="369"/>
+        <source>maximum_return_temp</source>
+        <translation type="obsolete">Maximale Rücklauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="372"/>
+        <source>minimum_return_temp</source>
+        <translation type="obsolete">Minimale Rücklauf Temp., °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="174"/>
+        <source>qamb_pipes</source>
+        <translation type="obsolete">Transmissionswärmestrom, W</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="220"/>
+        <source>mean_return_temp_customer</source>
+        <translation type="obsolete">Mittlere Rücklauf Temp. (AN), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="223"/>
+        <source>maximum_return_temp_customer</source>
+        <translation type="obsolete">Maximale Rücklauf Temp. (AN), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="226"/>
+        <source>minimum_retrun_temp_customer</source>
+        <translation type="obsolete">Minimale Rücklauf Temp. (AN), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="229"/>
+        <source>mean_return_temp_plant</source>
+        <translation type="obsolete">Mittlere Rücklauf Temp. (AZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="232"/>
+        <source>maximum_return_temp_plant</source>
+        <translation type="obsolete">Maximale Rücklauf Temp. (AZ), °C</translation>
+    </message>
+    <message>
+        <location filename="../ida_mosim_dialog.py" line="235"/>
+        <source>minimum_return_temp_plant</source>
+        <translation type="obsolete">Minimale Rücklauf Temp. (AZ), °C</translation>
+    </message>
+    <message>
         <location filename="../ida_mosim_dialog.py" line="415"/>
         <source>network_volume</source>
-        <translation type="unfinished">Netzvolumen, m3</translation>
+        <translation type="obsolete">Netzvolumen, m3</translation>
     </message>
 </context>
 <context>
     <name>RunNetworkModelDialog</name>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="697"/>
+        <location filename="../ida_mosim_dialog.py" line="484"/>
         <source>run_network_model</source>
         <translation type="unfinished">Netzmodell simulieren</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="715"/>
+        <location filename="../ida_mosim_dialog.py" line="502"/>
         <source>simulation</source>
         <translation type="unfinished">Simulation</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="751"/>
+        <location filename="../ida_mosim_dialog.py" line="538"/>
         <source>periodic</source>
         <translation type="unfinished">Periodisch</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="752"/>
+        <location filename="../ida_mosim_dialog.py" line="539"/>
         <source>dynamic</source>
         <translation type="unfinished">Dynamisch</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="733"/>
+        <location filename="../ida_mosim_dialog.py" line="520"/>
         <source>maximal_timestep</source>
         <translation type="unfinished">Maximaler Zeitschritt, hr</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="740"/>
+        <location filename="../ida_mosim_dialog.py" line="527"/>
         <source>startup</source>
         <translation type="unfinished">Startup</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="800"/>
+        <location filename="../ida_mosim_dialog.py" line="587"/>
         <source>from</source>
         <translation type="unfinished">Start</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="813"/>
+        <location filename="../ida_mosim_dialog.py" line="600"/>
         <source>to</source>
         <translation type="unfinished">Ende</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="785"/>
+        <location filename="../ida_mosim_dialog.py" line="572"/>
         <source>no_periods</source>
         <translation type="unfinished">Anzahl an Perioden</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="794"/>
+        <location filename="../ida_mosim_dialog.py" line="581"/>
         <source>simulation_time</source>
         <translation type="unfinished">Simulationszeit</translation>
     </message>
     <message>
-        <location filename="../ida_mosim_dialog.py" line="850"/>
+        <location filename="../ida_mosim_dialog.py" line="637"/>
         <source>run_network</source>
         <translation type="unfinished">Simulieren</translation>
     </message>

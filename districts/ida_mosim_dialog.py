@@ -101,442 +101,229 @@ class SensorSignalsDialog(QDialog):
 
 class RequestedOutputsDialog(QDialog):
     def __init__(self,requestedOutputs):
-        """Constructor."""
         super().__init__()
-        self.setWindowTitle(self.tr("requested_outputs")) 
+
         self.process_running=False
         self.requestedOutputs_old=requestedOutputs.copy()
         
-        #------------------temporal results----------------------
-        #titel
-        label_temporal =QLabel(self.tr("temporal_results"))
-        font=label_temporal.font()
-        font.setPointSize(15)
-        label_temporal.setFont(font)
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "RequestedOutputs_dialog.ui")
+        uic.loadUi(ui_path, self)
         
-        #--Customers--
-        #titel
-        label_customer_title =QLabel(self.tr("customers"))
-        font=label_customer_title.font()
-        font.setPointSize(12)
-        label_customer_title.setFont(font)
-        
-        #checkbox for drop old features
-        layout_customer_checkbox = QVBoxLayout()      
-        
-        self.checkBoxSubstationPower=QCheckBox(self.tr("substation_power"))
+        #------------------temporal results----------------------        
+        #--Customers--  
         if requestedOutputs['power_c']:
             self.checkBoxSubstationPower.setChecked(True)
-        self.checkBoxSubstationConnTemp=QCheckBox(self.tr("substation_connection_temperatures"))
         if requestedOutputs['temp_c']:
             self.checkBoxSubstationConnTemp.setChecked(True)
-        self.checkBoxSubstationPressure=QCheckBox(self.tr("substation_pressure"))
         if requestedOutputs['p_c']:
             self.checkBoxSubstationPressure.setChecked(True)
-        self.checkBoxSubstationMassflow=QCheckBox(self.tr("substation_massflow"))
         if requestedOutputs['mdot_c']:
             self.checkBoxSubstationMassflow.setChecked(True)
-        self.checkBoxSubstationHeatbalance=QCheckBox(self.tr("heat_balance_building"))
         if requestedOutputs['heatbalance_c']:
             self.checkBoxSubstationHeatbalance.setChecked(True)
-        self.checkBoxSubstationTair=QCheckBox(self.tr("room_air_temperature"))
         if requestedOutputs['troom_c']:
             self.checkBoxSubstationTair.setChecked(True)
-        layout_customer_checkbox.addWidget(self.checkBoxSubstationPower)
-        layout_customer_checkbox.addWidget(self.checkBoxSubstationConnTemp)
-        layout_customer_checkbox.addWidget(self.checkBoxSubstationPressure)
-        layout_customer_checkbox.addWidget(self.checkBoxSubstationMassflow)
-        layout_customer_checkbox.addWidget(self.checkBoxSubstationHeatbalance)
-        layout_customer_checkbox.addWidget(self.checkBoxSubstationTair)
+            
+        #------------------Energy plants----------------------      
+        if requestedOutputs['power_ep']:
+            self.checkBoxPlantPower.setChecked(True)
+        if requestedOutputs['temp_ep']:
+            self.checkBoxPlantConnTemp.setChecked(True)
+        if requestedOutputs['p_ep']:
+            self.checkBoxPlantPressure.setChecked(True)
+        if requestedOutputs['mdot_ep']:
+            self.checkBoxPlantMassflow.setChecked(True)
         
         #------------------Network----------------------
-        #titel
-        label_network_title =QLabel(self.tr("network"))
-        font=label_network_title.font()
-        font.setPointSize(12)
-        label_network_title.setFont(font)
-        
-        #checkboxes 
-        layout_network_checkbox = QVBoxLayout()      
-        #print(requestedOutputs)
-        self.checkBoxMdotNode=QCheckBox(self.tr("massflows_pipes"))
-        if requestedOutputs['mdot_lines']:
-            self.checkBoxMdotNode.setChecked(True)
-        self.checkBoxVPipe=QCheckBox(self.tr("velocity_pipes"))
-        if requestedOutputs['v_lines']:
-            self.checkBoxVPipe.setChecked(True)
-        self.checkBoxPressureDistribution=QCheckBox(self.tr("pressure_distribution"))
         if requestedOutputs['p_lines']:
             self.checkBoxPressureDistribution.setChecked(True)
-        self.checkBoxTempPipe=QCheckBox(self.tr("temperature_pipes"))
+        if requestedOutputs['mdot_lines']:
+            self.checkBoxMdotNode.setChecked(True)
+        if requestedOutputs['v_lines']:
+            self.checkBoxVPipe.setChecked(True)
         if requestedOutputs['temp_lines']:
             self.checkBoxTempPipe.setChecked(True)
-        self.checkBoxQambPipe=QCheckBox(self.tr("qamb_pipes"))
         if requestedOutputs['qamb_lines']:
             self.checkBoxQambPipe.setChecked(True)
             
-        layout_network_checkbox.addWidget(self.checkBoxPressureDistribution)
-        layout_network_checkbox.addWidget(self.checkBoxMdotNode)
-        layout_network_checkbox.addWidget(self.checkBoxVPipe)
-        layout_network_checkbox.addWidget(self.checkBoxTempPipe)
-        layout_network_checkbox.addWidget(self.checkBoxQambPipe)
-        layout_network_checkbox.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-
         #------------------System----------------------
-        #titel
-        label_system_title =QLabel(self.tr("system"))
-        font=label_system_title.font()
-        font.setPointSize(12)
-        label_system_title.setFont(font)
-        
-        #checkboxes 
-        layout_system_checkbox = QVBoxLayout()  
-        self.heatbalance_system=QCheckBox(self.tr("heatbalance_system"))
         if requestedOutputs['heatbalance_system']:
             self.heatbalance_system.setChecked(True)
-        self.massbalance_system=QCheckBox(self.tr("massbalance_system"))
         if requestedOutputs['massbalance_system']:
             self.massbalance_system.setChecked(True)
-
-        self.checkBoxMeanSupplyTempCSystem=QCheckBox(self.tr("mean_supply_temp_customer"))
         if requestedOutputs['tsup_mean_c_system']:
             self.checkBoxMeanSupplyTempCSystem.setChecked(True)
-        self.checkBoxMaxSupplyTempCSystem=QCheckBox(self.tr("maximum_supply_temp_customer"))
         if requestedOutputs['tsup_max_c_system']:
             self.checkBoxMaxSupplyTempCSystem.setChecked(True)
-        self.checkBoxMinSupplyTempCSystem=QCheckBox(self.tr("minimum_supply_temp_customer"))
         if requestedOutputs['tsup_min_c_system']:
             self.checkBoxMinSupplyTempCSystem.setChecked(True)
-        self.checkBoxMeanSupplyTempEpSystem=QCheckBox(self.tr("mean_supply_temp_plant"))
         if requestedOutputs['tsup_mean_ep_system']:
             self.checkBoxMeanSupplyTempEpSystem.setChecked(True)
-        self.checkBoxMaxSupplyTempEpSystem=QCheckBox(self.tr("maximum_supply_temp_plant"))
         if requestedOutputs['tsup_max_ep_system']:
             self.checkBoxMaxSupplyTempEpSystem.setChecked(True)
-        self.checkBoxMinSupplyTempEpSystem=QCheckBox(self.tr("minimum_supply_temp_plant"))
         if requestedOutputs['tsup_min_ep_system']:
             self.checkBoxMinSupplyTempEpSystem.setChecked(True)
-        self.checkBoxMeanReturnTempCSystem=QCheckBox(self.tr("mean_return_temp_customer"))
         if requestedOutputs['tret_mean_c_system']:
             self.checkBoxMeanReturnTempCSystem.setChecked(True)
-        self.checkBoxMaxReturnTempCSystem=QCheckBox(self.tr("maximum_return_temp_customer"))
         if requestedOutputs['tret_max_c_system']:
             self.checkBoxMaxReturnTempCSystem.setChecked(True)
-        self.checkBoxMinReturnTempCSystem=QCheckBox(self.tr("minimum_retrun_temp_customer"))
         if requestedOutputs['tret_min_c_system']:
             self.checkBoxMinReturnTempCSystem.setChecked(True)
-        self.checkBoxMeanReturnTempEpSystem=QCheckBox(self.tr("mean_return_temp_plant"))
         if requestedOutputs['tret_mean_ep_system']:
             self.checkBoxMeanReturnTempEpSystem.setChecked(True)
-        self.checkBoxMaxReturnTempEpSystem=QCheckBox(self.tr("maximum_return_temp_plant"))
         if requestedOutputs['tret_max_ep_system']:
             self.checkBoxMaxReturnTempEpSystem.setChecked(True)
-        self.checkBoxMinReturnTempEpSystem=QCheckBox(self.tr("minimum_return_temp_plant"))
         if requestedOutputs['tret_min_ep_system']:
             self.checkBoxMinReturnTempEpSystem.setChecked(True)
             
-        layout_system_checkbox.addWidget(self.heatbalance_system)
-        layout_system_checkbox.addWidget(self.massbalance_system)
-        layout_system_checkbox.addWidget(self.checkBoxMeanSupplyTempCSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMaxSupplyTempCSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMinSupplyTempCSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMeanSupplyTempEpSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMaxSupplyTempEpSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMinSupplyTempEpSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMeanReturnTempCSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMaxReturnTempCSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMinReturnTempCSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMeanReturnTempEpSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMaxReturnTempEpSystem)
-        layout_system_checkbox.addWidget(self.checkBoxMinReturnTempEpSystem)
-        
-        #------------------Energy plants----------------------
-        #titel
-        label_plants_title =QLabel(self.tr("energy_plants"))
-        font=label_plants_title.font()
-        font.setPointSize(12)
-        label_plants_title.setFont(font)
-        
-        #checkbox for drop old features
-        layout_plants_checkbox = QVBoxLayout()      
-        
-        self.checkBoxPlantPower=QCheckBox(self.tr("plant_power"))
-        if requestedOutputs['power_ep']:
-            self.checkBoxPlantPower.setChecked(True)
-        self.checkBoxPlantConnTemp=QCheckBox(self.tr("plant_connection_temp"))
-        if requestedOutputs['temp_ep']:
-            self.checkBoxPlantConnTemp.setChecked(True)
-        self.checkBoxPlantPressure=QCheckBox(self.tr("plant_pressure"))
-        if requestedOutputs['p_ep']:
-            self.checkBoxPlantPressure.setChecked(True)
-        self.checkBoxPlantMassflow=QCheckBox(self.tr("plant_massflow"))
-        if requestedOutputs['mdot_ep']:
-            self.checkBoxPlantMassflow.setChecked(True)
-        layout_plants_checkbox.addWidget(self.checkBoxPlantPower)
-        layout_plants_checkbox.addWidget(self.checkBoxPlantConnTemp)
-        layout_plants_checkbox.addWidget(self.checkBoxPlantPressure)
-        layout_plants_checkbox.addWidget(self.checkBoxPlantMassflow)
-        layout_plants_checkbox.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-        
-        #------------------KPI`s----------------------
-        #titel
-        label_kpi_title =QLabel(self.tr("kpi_s"))
-        font=label_kpi_title.font()
-        font.setPointSize(15)
-        label_kpi_title.setFont(font)
-        
-        layout_outputs_kpi_c = QVBoxLayout()
-        layout_outputs_kpi_ep = QVBoxLayout()
-        layout_outputs_kpi_lines_system = QVBoxLayout()
-        
+        #------------------KPI`s----------------------            
         #customer
-        #title
-        label_customer_title_ =QLabel(self.tr("customers"))
-        font=label_customer_title_.font()
-        font.setPointSize(12)
-        label_customer_title_.setFont(font)
-        layout_outputs_kpi_c.addWidget(label_customer_title_)
-        
-        self.checkBoxMeanSupplyTempC=QCheckBox(self.tr("mean_supply_temp"))
         if requestedOutputs['tsup_mean_c_kpi']:
             self.checkBoxMeanSupplyTempC.setChecked(True)
-        self.checkBoxMaxSupplyTempC=QCheckBox(self.tr("maximum_supply_temp"))
         if requestedOutputs['tsup_max_c_kpi']:
             self.checkBoxMaxSupplyTempC.setChecked(True)
-        self.checkBoxMinSupplyTempC=QCheckBox(self.tr("minimum_supply_temp"))
         if requestedOutputs['tsup_min_c_kpi']:
             self.checkBoxMinSupplyTempC.setChecked(True)
-        self.checkBoxMeanRetTempC=QCheckBox(self.tr("mean_return_temp"))
         if requestedOutputs['tret_mean_c_kpi']:
             self.checkBoxMeanRetTempC.setChecked(True)
-        self.checkBoxMaxRetTempC=QCheckBox(self.tr("maximum_return_temp"))
         if requestedOutputs['tret_max_c_kpi']:
             self.checkBoxMaxRetTempC.setChecked(True)
-        self.checkBoxMinRetTempC=QCheckBox(self.tr("minimum_return_temp"))
         if requestedOutputs['tret_min_c_kpi']:
             self.checkBoxMinRetTempC.setChecked(True)
-        
-        self.checkBoxQsupHeatC=QCheckBox(self.tr("qsup_heat"))
         if requestedOutputs['qsup_heat_c_kpi']:
             self.checkBoxQsupHeatC.setChecked(True)
-        self.checkBoxQsupColdC=QCheckBox(self.tr("qsup_cold"))
         if requestedOutputs['qsup_cold_c_kpi']:
             self.checkBoxQsupColdC.setChecked(True)
-        self.checkBoxQsupEnergyC=QCheckBox(self.tr("qsup_energy"))
         if requestedOutputs['qsup_c_kpi']:
             self.checkBoxQsupEnergyC.setChecked(True)
-        
-        #self.checkBoxDpMinC=QCheckBox(self.tr("dp_min"))
-        #if requestedOutputs['dpmin_c_kpi']:
-        #    self.checkBoxDpMinC.setChecked(True)
-        
-        layout_outputs_kpi_c.addWidget(self.checkBoxMeanSupplyTempC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxMaxSupplyTempC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxMinSupplyTempC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxMeanRetTempC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxMaxRetTempC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxMinRetTempC)
-
-        layout_outputs_kpi_c.addWidget(self.checkBoxQsupHeatC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxQsupColdC)
-        layout_outputs_kpi_c.addWidget(self.checkBoxQsupEnergyC)
-
-        #layout_outputs_kpi_c.addWidget(self.checkBoxDpMinC)
-        layout_outputs_kpi_c.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-
+            
         #Energy plant
-        #titel
-        label_plants_title_ =QLabel(self.tr("energy_plants"))
-        font=label_plants_title_.font()
-        font.setPointSize(12)
-        label_plants_title_.setFont(font)
-        layout_outputs_kpi_ep.addWidget(label_plants_title_)
-        self.checkBoxMeanSupplyTempEp=QCheckBox(self.tr("mean_supply_temp"))
         if requestedOutputs['tsup_mean_ep_kpi']:
             self.checkBoxMeanSupplyTempEp.setChecked(True)
-        self.checkBoxMaxSupplyTempEp=QCheckBox(self.tr("maximum_supply_temp"))
         if requestedOutputs['tsup_max_ep_kpi']:
             self.checkBoxMaxSupplyTempEp.setChecked(True)
-        self.checkBoxMinSupplyTempEp=QCheckBox(self.tr("minimum_supply_temp"))
         if requestedOutputs['tsup_min_ep_kpi']:
             self.checkBoxMinSupplyTempEp.setChecked(True)
-        self.checkBoxMeanRetTempEp=QCheckBox(self.tr("mean_return_temp"))
         if requestedOutputs['tret_mean_ep_kpi']:
             self.checkBoxMeanRetTempEp.setChecked(True)
-        self.checkBoxMaxRetTempEp=QCheckBox(self.tr("maximum_return_temp"))
         if requestedOutputs['tret_max_ep_kpi']:
             self.checkBoxMaxRetTempEp.setChecked(True)
-        self.checkBoxMinRetTempEp=QCheckBox(self.tr("minimum_return_temp"))
         if requestedOutputs['tret_min_ep_kpi']:
             self.checkBoxMinRetTempEp.setChecked(True)
-        
-        self.checkBoxQsupHeatEp=QCheckBox(self.tr("qsup_heat"))
         if requestedOutputs['qsup_heat_ep_kpi']:
             self.checkBoxQsupHeatEp.setChecked(True)
-        self.checkBoxQsupColdEp=QCheckBox(self.tr("qsup_cold"))
         if requestedOutputs['qsup_cold_ep_kpi']:
             self.checkBoxQsupColdEp.setChecked(True)
-        self.checkBoxQsupEnergyEp=QCheckBox(self.tr("qsup_energy"))
         if requestedOutputs['qsup_ep_kpi']:
             self.checkBoxQsupEnergyEp.setChecked(True)
-        
-        #self.checkBoxDpMaxEp=QCheckBox(self.tr("dp_max"))
-        #if requestedOutputs['dpmax_ep_kpi']:
-        #    self.checkBoxDpMaxEp.setChecked(True)
-
-        layout_outputs_kpi_ep.addWidget(self.checkBoxMeanSupplyTempEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxMaxSupplyTempEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxMinSupplyTempEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxMeanRetTempEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxMaxRetTempEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxMinRetTempEp)
-
-        layout_outputs_kpi_ep.addWidget(self.checkBoxQsupHeatEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxQsupColdEp)
-        layout_outputs_kpi_ep.addWidget(self.checkBoxQsupEnergyEp)
-
-        layout_outputs_kpi_ep.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-         
+            
         #lines
-        #title
-        label_network_title_ =QLabel(self.tr("network"))
-        font=label_network_title_.font()
-        font.setPointSize(12)
-        label_network_title_.setFont(font)
-        layout_outputs_kpi_lines_system.addWidget(label_network_title_)
-        
-        self.checkBoxQambLines=QCheckBox(self.tr("qamb_lines"))
         if requestedOutputs['qamb_kpi']:
             self.checkBoxQambLines.setChecked(True)
-        self.checkBoxVolumeLines=QCheckBox(self.tr("network_volume"))
         if requestedOutputs['volume_kpi']:
             self.checkBoxVolumeLines.setChecked(True)
             
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQambLines)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxVolumeLines)
-
         #System
-        #titel
-        label_system_title_ =QLabel(self.tr("system"))
-        font=label_system_title_.font()
-        font.setPointSize(12)
-        label_system_title_.setFont(font)
-        layout_outputs_kpi_lines_system.addWidget(label_system_title_)
-        
-        self.checkBoxQsupHeatSpec=QCheckBox(self.tr("specific_heat_supply"))
         if requestedOutputs['qsup_heat_spec_c_kpi']:
             self.checkBoxQsupHeatSpec.setChecked(True)
-        self.checkBoxQsupColdSpec=QCheckBox(self.tr("specific_cold_supply"))
         if requestedOutputs['qsup_cold_spec_c_kpi']:
             self.checkBoxQsupColdSpec.setChecked(True)
-        self.checkBoxQsupEnergySpec=QCheckBox(self.tr("specific_energy_supply"))
         if requestedOutputs['qsup_spec_c_kpi']:
-            self.checkBoxQsupEnergySpec.setChecked(True)
-        
-        self.checkBoxQsupHeatDensity=QCheckBox(self.tr("density_heat_supply"))
+            self.checkBoxQsupEnergySpec.setChecked(True)      
         if requestedOutputs['qsup_heat_density_c_kpi']:
             self.checkBoxQsupHeatDensity.setChecked(True)
-        self.checkBoxQsupColdDensity=QCheckBox(self.tr("density_cold_supply"))
         if requestedOutputs['qsup_cold_density_c_kpi']:
             self.checkBoxQsupColdDensity.setChecked(True)
-        self.checkBoxQsupEnergyDensity=QCheckBox(self.tr("density_energy_supply"))
         if requestedOutputs['qsup_density_c_kpi']:
-            self.checkBoxQsupEnergyDensity.setChecked(True)
-        
-        self.checkBoxQsupHeatLineDensity=QCheckBox(self.tr("line_density_heat_supply"))
+            self.checkBoxQsupEnergyDensity.setChecked(True)   
         if requestedOutputs['qsup_heat_linedensity_c_kpi']:
             self.checkBoxQsupHeatLineDensity.setChecked(True)
-        self.checkBoxQsupColdLineDensity=QCheckBox(self.tr("line_density_cold_supply"))
         if requestedOutputs['qsup_cold_linedensity_c_kpi']:
             self.checkBoxQsupColdLineDensity.setChecked(True)
-        self.checkBoxQsupEnergyLineDensity=QCheckBox(self.tr("line_density_energy_supply"))
         if requestedOutputs['qsup_linedensity_c_kpi']:
             self.checkBoxQsupEnergyLineDensity.setChecked(True)
-        
-        self.checkBoxQEffWidth=QCheckBox(self.tr("effWidth"))
         if requestedOutputs['eff_width']:
             self.checkBoxQEffWidth.setChecked(True)
+            
+        self.outputTimestep.setValue(float(requestedOutputs['dt_outputs']))
+        self.progress.setValue(0)
+            
+        #rbtn temporal/kpis
+        self.rbtn_temporal.toggled.connect(self.onClickedRadio)
+        self.rbtn_kpis.toggled.connect(self.onClickedRadio)
         
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupHeatSpec)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupColdSpec)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupEnergySpec)
+        self.rbtn_temporal.setChecked(True)
+        
+        #btn select/unselect
+        self.btn_select_all_customers.clicked.connect(lambda: self.select_all(True))
+        self.btn_select_all_ep.clicked.connect(lambda: self.select_all(True))
+        self.btn_select_all_network.clicked.connect(lambda: self.select_all(True))
+        self.btn_select_all_system.clicked.connect(lambda: self.select_all(True))
 
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupHeatDensity)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupColdDensity)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupEnergyDensity)
-
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupHeatLineDensity)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupColdLineDensity)
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQsupEnergyLineDensity)
-
-        layout_outputs_kpi_lines_system.addWidget(self.checkBoxQEffWidth)
-        
-        #timestep for output
-        layout_outputTimestep = QHBoxLayout()      
-        label_outputTimestep =QLabel(self.tr("dt_output_hr"))
-        self.outputTimestep=QLineEdit(requestedOutputs['dt_outputs'])
-        layout_outputTimestep.addWidget(label_outputTimestep)
-        layout_outputTimestep.addWidget(self.outputTimestep)
-        
-        #buttons     
-        layout_buttons = QHBoxLayout()
-        self.btn_ok=QPushButton(self.tr("ok"))
-        layout_buttons.addWidget(self.btn_ok)
-        self.btn_cancel=QPushButton(self.tr("cancel"))
-        layout_buttons.addWidget(self.btn_cancel)
-        
-        #progress bar
-        self.progress=QProgressBar()
-        
-        #---------------set layouts together-------------------
-        layout_win = QVBoxLayout()
-        #temporal
-        layout_win.addWidget(label_temporal)
-        layout_outputs_c_ep_lines = QHBoxLayout()
-        layout_outputs_c_ep = QVBoxLayout()
-        layout_outputs_lines = QVBoxLayout()
-        layout_outputs_system = QVBoxLayout()
-        
-        
-        layout_outputs_c_ep.addWidget(label_customer_title)
-        layout_outputs_c_ep.addLayout(layout_customer_checkbox)
-        layout_outputs_c_ep.addWidget(label_plants_title)
-        layout_outputs_c_ep.addLayout(layout_plants_checkbox)
-        layout_outputs_lines.addWidget(label_network_title)
-        layout_outputs_lines.addLayout(layout_network_checkbox)
-        layout_outputs_system.addWidget(label_system_title)
-        layout_outputs_system.addLayout(layout_system_checkbox)
-        
-        layout_outputs_c_ep_lines.addLayout(layout_outputs_c_ep)
-        layout_outputs_c_ep_lines.addLayout(layout_outputs_lines)
-        layout_outputs_c_ep_lines.addLayout(layout_outputs_system)
-           
-        layout_win.addLayout(layout_outputs_c_ep_lines)
-        
-        #kpi
-        layout_win.addWidget(label_kpi_title)
-        layout_outputs_kpi = QHBoxLayout()
-        layout_outputs_kpi.addLayout(layout_outputs_kpi_ep)
-        layout_outputs_kpi.addLayout(layout_outputs_kpi_c)
-        layout_outputs_kpi.addLayout(layout_outputs_kpi_lines_system)
-        layout_win.addLayout(layout_outputs_kpi)
-
-        layout_win.addLayout(layout_outputTimestep)
-        layout_win.addLayout(layout_buttons)
-        layout_win.addWidget(self.progress)
-        
-        self.setLayout(layout_win)
-        
+        self.btn_unselect_all_customers.clicked.connect(lambda: self.select_all(False))
+        self.btn_unselect_all_ep.clicked.connect(lambda: self.select_all(False))
+        self.btn_unselect_all_network.clicked.connect(lambda: self.select_all(False))
+        self.btn_unselect_all_system.clicked.connect(lambda: self.select_all(False))
+            
+    def onClickedRadio(self):
+        if self.rbtn_temporal.isChecked():
+            self.groupBox_customer_temporal.show()
+            self.groupBox_ep_temporal.show()
+            self.groupBox_network_temporal.show()
+            self.groupBox_system_temporal.show()
+            self.groupBox_customer_kpis.hide()
+            self.groupBox_ep_kpis.hide()
+            self.groupBox_network_kpis.hide()
+            self.groupBox_system_kpis.hide()
+        else:
+            self.groupBox_customer_temporal.hide()
+            self.groupBox_ep_temporal.hide()
+            self.groupBox_network_temporal.hide()
+            self.groupBox_system_temporal.hide()  
+            self.groupBox_customer_kpis.show()
+            self.groupBox_ep_kpis.show()
+            self.groupBox_network_kpis.show()
+            self.groupBox_system_kpis.show()
+            
+    def select_all(self,check):
+        tab_name = self.tabWidget.currentWidget().objectName()        
+        if tab_name=='tab_customers':
+            if self.rbtn_temporal.isChecked():
+                checkboxes = self.groupBox_customer_temporal.findChildren(QCheckBox)
+            else:
+                checkboxes = self.groupBox_customer_kpis.findChildren(QCheckBox)
+            for checkbox in checkboxes:
+                checkbox.setChecked(check)
+        elif tab_name=='tab_energy_plants':
+            if self.rbtn_temporal.isChecked():
+                checkboxes = self.groupBox_ep_temporal.findChildren(QCheckBox)
+            else:
+                checkboxes = self.groupBox_ep_kpis.findChildren(QCheckBox)
+            for checkbox in checkboxes:
+                checkbox.setChecked(check)
+        elif tab_name=='tab_network':
+            if self.rbtn_temporal.isChecked():
+                checkboxes = self.groupBox_network_temporal.findChildren(QCheckBox)
+            else:
+                checkboxes = self.groupBox_network_kpis.findChildren(QCheckBox)
+            for checkbox in checkboxes:
+                checkbox.setChecked(check)
+        else:
+            if self.rbtn_temporal.isChecked():
+                checkboxes = self.groupBox_system_temporal.findChildren(QCheckBox)
+            else:
+                checkboxes = self.groupBox_system_kpis.findChildren(QCheckBox)
+            for checkbox in checkboxes:
+                checkbox.setChecked(check)
+    
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
     def update_finished(self,message):
         self.process_running=False
-        closeDialog(self)
+        closeDialog(self)            
+            
 
 class BuildNetworkModelDialog(QDialog):
     def __init__(self,dlg_main):

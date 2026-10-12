@@ -1022,10 +1022,7 @@ class WorkerSetRequestedOutputs(QRunnable):
             self.requestedOutputs['eff_width']=False
             
         #-------------------timestep for outputs----------------------
-        if is_number(self.dlg.outputTimestep.text()):
-            self.requestedOutputs['dt_outputs']=self.dlg.outputTimestep.text()
-        else:
-            self.signals.error.emit("Timestep for Output is not a number!")
+        self.requestedOutputs['dt_outputs']=str(self.dlg.outputTimestep.value())
             
         writeRequestedOutputs(self.config,self.requestedOutputs)
         #print(self.requestedOutputs)
