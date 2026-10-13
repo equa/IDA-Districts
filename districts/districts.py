@@ -781,13 +781,18 @@ class Districts:
 
     def showImportMeasurements(self):                  
         if self.conn:
-            self.dlg_importMeasurements=ImportMeasuremntsDialog()
-            
-            self.dlg_importMeasurements.btn_file_source.clicked.connect(lambda: dataSourceDialog(self.dlg_importMeasurements,tr('@default','select_file'),'file'))
-            self.dlg_importMeasurements.btn_dir_source.clicked.connect(lambda: dataSourceDialog(self.dlg_importMeasurements,tr('@default','select_directory'),'directory'))
-            self.dlg_importMeasurements.btn_import.clicked.connect(lambda: importMeasurementData(self.dlg_importMeasurements,self.config,self.cur,self.plugin_dir,self.conn))
-            self.dlg_importMeasurements.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_importMeasurements))
-            self.dlg_importMeasurements.show()
+            if self.config['versionName']:
+                self.dlg_importMeasurements=ImportMeasuremntsDialog()
+                
+                self.dlg_importMeasurements.btn_file_source.clicked.connect(lambda: dataSourceDialog(self.dlg_importMeasurements,tr('@default','select_file'),'file'))
+                self.dlg_importMeasurements.btn_dir_source.clicked.connect(lambda: dataSourceDialog(self.dlg_importMeasurements,tr('@default','select_directory'),'directory'))
+                self.dlg_importMeasurements.btn_import.clicked.connect(lambda: importMeasurementData(self.dlg_importMeasurements,self.config,self.cur,self.plugin_dir,self.conn))
+                self.dlg_importMeasurements.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_importMeasurements))
+                self.dlg_importMeasurements.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
         
     def manageConnectionTypes(self):
         if self.conn:

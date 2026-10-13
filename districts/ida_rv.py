@@ -20,7 +20,7 @@ def getSourceVars(source):
         #print(os.listdir(source))
         vars=readFileToList(source+'/'+os.listdir(source)[0])[0].split()
         #print(vars)
-    return [var.lower() for var in vars if var not in ['#','time','order']]
+    return [var.lower() for var in vars if var not in ['#time','#','time','order']]
         
 def dataSourceDialog(dlg,title,open_type):
     if open_type=='file':
@@ -90,7 +90,6 @@ def checkImportData(dlg,source,cur,config,feature_type):
 def importMeasurementData(dlg,config,cur,plugin_dir,conn):
     source=dlg.lineEditSourceName.text()
     feature_type='customers' if dlg.rbtn_customers.isChecked() else ('energy_plants' if dlg.rbtn_plants.isChecked() else 'lines')
-    #print(feature_type)
     if not checkImportData(dlg,source,cur,config,feature_type):
         return False
         
