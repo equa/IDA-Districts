@@ -439,6 +439,7 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
 
         renderer = QgsCategorizedSymbolRenderer(field_name, categories)
         vlayer.setRenderer(renderer)
+        vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
 
     vlayer.triggerRepaint()
     

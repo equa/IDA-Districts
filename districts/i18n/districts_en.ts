@@ -7127,7 +7127,11 @@ li.unchecked::marker { content: &quot;\2610&quot;; }
 li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;info_setLoadAtttribute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt; 
+  &lt;p&gt;
+    The &lt;strong&gt;design capacity&lt;/strong&gt; is calculated using the &lt;strong&gt;specific heating load&lt;/strong&gt; and the &lt;strong&gt;building area&lt;/strong&gt; specified in the &lt;strong&gt;&quot;Buildings&quot;&lt;/strong&gt; layer.
+  &lt;/p&gt;
+&lt;/div&gt;</translation>
     </message>
 </context>
 <context>

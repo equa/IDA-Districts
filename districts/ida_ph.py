@@ -182,7 +182,7 @@ class GFAAttributeDialog(QDialog):
         self.label_newAttribute.setHidden(showExistingAttribute)
         self.lineEdit_newAttribute.setHidden(showExistingAttribute)
         
-def loadBuildingsLayer(uri,config,view,username):
+def loadBuildingsLayer(uri,config,view,username,plugin_dir):
     uri.setDataSource(config['versionName'], "buildings", "geom")
     vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"buildings"), "postgres")
         
@@ -259,6 +259,8 @@ def loadBuildingsLayer(uri,config,view,username):
 
     # Apply the 3D renderer to the layer
     vlayer.setRenderer3D(renderer3d)
+    
+    vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
 
     # Refresh the map canvas to apply changes
     iface.mapCanvas().refresh()
@@ -704,7 +706,7 @@ def loadVersionLayers(config,cur,plugin_dir):
 
     view = iface.layerTreeView()
     loadTopologyLayers(config['versionName'],uri,config,auth_cfg.config("username"))   
-    loadBuildingsLayer(uri,config,view,auth_cfg.config("username"))    
+    loadBuildingsLayer(uri,config,view,auth_cfg.config("username"),plugin_dir)    
     try: 
         #uri.setDataSource(config['versionName'], "submodels", "geom")
         #vlayer = QgsVectorLayer(uri.uri(False), "submodels", "postgres")
@@ -716,12 +718,14 @@ def loadVersionLayers(config,cur,plugin_dir):
 
         uri.setDataSource(config['versionName'], "streets", "geom")
         vlayer = QgsVectorLayer(uri.uri(False), tr('@default',"streets"), "postgres")
+        vlayer.setCustomProperty("original_layer_name", 'streets')
         QgsProject.instance().addMapLayer(vlayer) 
         single_symbol_renderer = vlayer.renderer()
         symbol = single_symbol_renderer.symbol()
         symbol.setColor(QColor.fromRgb(131, 131, 131))
         symbol.setWidth(0.75)  
         view.refreshLayerSymbology(vlayer.id())
+        vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
         
         
     except:
