@@ -397,6 +397,7 @@ class TableDialog(QDialog):
         layout_info = QHBoxLayout()
         if info:
             self.textEdit=QTextEdit(tr('@default',info))
+            self.textEdit.setReadOnly(True)
             layout_info.addWidget(self.textEdit)
         
         layout_buttons_table.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))

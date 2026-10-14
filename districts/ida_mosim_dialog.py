@@ -38,6 +38,7 @@ class SensorSignalsDialog(QDialog):
 
         #info
         info_sensors=QTextEdit(tr('@default','info_sensors'))
+        info_sensors.setReadOnly(True)
         
         #action buttons     
         layout_action_buttons = QHBoxLayout()
@@ -109,6 +110,7 @@ class RequestedOutputsDialog(QDialog):
         # Load UI
         ui_path = os.path.join(os.path.dirname(__file__), "RequestedOutputs_dialog.ui")
         uic.loadUi(ui_path, self)
+        self.info_requested_ouputs.setReadOnly(True)
         
         #------------------temporal results----------------------        
         #--Customers--  
@@ -728,6 +730,8 @@ class CalibrateCustomers(QDialog):
         self.process_running=False
         
         self.textEdit=QTextEdit(tr('@default','info_calibration'))
+        self.textEdit.setReadOnly(True)
+
             
         #table templates
         layout_templates = QVBoxLayout()
@@ -843,6 +847,8 @@ class FeatureModelParmDlg(QDialog):
         self.listWidget_featureFields.itemDoubleClicked.connect(self.mapAttributesDoubleClick)
         
         info_feature_parm_mapping=QTextEdit(tr('@default','info_feature_parm_mapping'))
+        info_feature_parm_mapping.setReadOnly(True)
+
        
         #---------------ok/cancel buttons     
         layout_buttons_conns = QHBoxLayout()

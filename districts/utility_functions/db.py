@@ -265,7 +265,7 @@ EXECUTE FUNCTION restrict_column_alterations();"""
     cur.execute(sql)
         
 def setSeqIdToMax(seq,table,col,cur):
-    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 0) FROM {}));""".format(seq,col,table) # nosec B608
+    sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 1) FROM {}));""".format(seq,col,table) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchone()['setval']

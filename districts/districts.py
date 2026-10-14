@@ -503,39 +503,44 @@ class Districts:
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)           
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)        
 
-    def importBuildingsFromOSM(self,dlg):
+    def openImportOSMDlg(self):
         if self.conn:
             if self.config['versionName']:
-                osmBuildingsFileName=dlg.lineEditFileName.text()
-                clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()     
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_osm_import=ImportOSMDlg()
+                self.dlg_osm_import.btn_import.clicked.connect(lambda: self.importFromOSM(self.dlg_osm_import))
+                self.dlg_osm_import.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_osm_import))
+                
+                self.dlg_osm_import.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)           
+
+    def importFromOSM(self,dlg):
+        if self.conn:
+            if self.config['versionName']:
+                if not dlg.checkBox_buildings.isChecked() and not dlg.checkBox_streets.isChecked():
+                    self.iface.messageBar().pushMessage("Info", 'Please select an import option!', level=MessageInfo)
+                    return
+                importType='both' if dlg.checkBox_buildings.isChecked() and dlg.checkBox_streets.isChecked() else ('buildings' if dlg.checkBox_buildings.isChecked() else 'streets')
+                clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()
+                
+                dlg.progress.setValue(1)
                 dlg.process_running=True
-                self.worker_importBuildings = WorkerOSMBuildingsImport(filePath=osmBuildingsFileName,clearOldFeatures=clearOldBuildings,config=self.config,plugin_dir=self.plugin_dir)
-                QThreadPool.globalInstance().start(self.worker_importBuildings)
-                self.worker_importBuildings.signals.error.connect(show_error_message)
-                self.worker_importBuildings.signals.progress.connect(dlg.update_progress)    
-                self.worker_importBuildings.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))    
+                self.worker_importOSM = WorkerOSMImport(clearOldFeatures=clearOldBuildings,config=self.config,plugin_dir=self.plugin_dir,importType=importType,bbox=get_overpass_bbox())
+                QThreadPool.globalInstance().start(self.worker_importOSM)
+                self.worker_importOSM.signals.error.connect(show_error_message)
+                self.worker_importOSM.signals.progress.connect(dlg.update_progress)    
+                self.worker_importOSM.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))    
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
   
-    def importStreetsFromOSM(self,dlg):
-        if self.conn:
-            if self.config['versionName']:
-                osmStreetFileName=dlg.lineEditFileName.text()
-                clearOldStreets=dlg.checkBoxClearOldFeatures.isChecked() 
-                dlg.process_running=True
-                self.worker_importStreets = WorkerOSMStreetsImport(filePath=osmStreetFileName,clearOldFeatures=clearOldStreets,config=self.config,plugin_dir=self.plugin_dir)
-                QThreadPool.globalInstance().start(self.worker_importStreets) 
-                self.worker_importStreets.signals.error.connect(show_error_message)
-                self.worker_importStreets.signals.progress.connect(dlg.update_progress)
-                self.worker_importStreets.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))
-            else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
-        else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+
         
     def importElevationData(self,dlg):
         if self.conn:
@@ -1448,8 +1453,7 @@ class Districts:
             self.dlg.signals.close.connect(self.closeDlg)
             
             #import connections
-            self.dlg.btn_importStreetsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path="",title=tr('@default','osm_streets'),ok_fn=self.importStreetsFromOSM,extensions='*.osm'))
-            self.dlg.btn_importBuildingsFromOSM.clicked.connect(lambda: self.openImportDlg(default_path="",title=tr('@default','osm_buildings'),ok_fn=self.importBuildingsFromOSM,extensions='*.osm'))
+            self.dlg.btn_importFromOSM.clicked.connect(self.openImportOSMDlg)
             self.dlg.btn_importElevationData.clicked.connect(lambda: self.openImportDlg(default_path="",title=tr('@default','elevation_data'),ok_fn=self.importElevationData,extensions='*.hgt;*.tif;*.tiff'))
             self.dlg.btn_importPointLayer.clicked.connect(self.importPointLayer)
             self.dlg.btn_importNetworkTopologyFromLayer.clicked.connect(self.importNetworkTopologyFromLayer)

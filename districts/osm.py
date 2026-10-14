@@ -6,215 +6,339 @@ from .utility_functions.workers import *
 from qgis.core import Qgis, QgsMessageLog
 import traceback
 
-       
-class WorkerOSMBuildingsImport(QRunnable):
-    """Import buildings from OSM"""
-    def __init__(self,*args,**kwargs):
-        super().__init__()
-        #print("Import buildings from OSM")
-        self.signals=APISignals()
-        self.config=kwargs['config']
-        self.clearOldFeatures=kwargs['clearOldFeatures']
-        self.filePath=kwargs['filePath']
-        self.conn=""
-        self.cur=""
-        self.plugin_dir=kwargs['plugin_dir']
-        self.conn = dbConnect(self.config,True)
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)        
+import json
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
-            configProject=loadProjectConfig(self.config,signals=self.signals)
-            self.srid=configProject['srid']
-            #print(self.srid)
-                
-    @pyqtSlot()
-    def run(self):
-        #print('Import building data')
-        self.signals.progress.emit(1)
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsProject,
+)
+
+
+def get_overpass_bbox():
+    # Current visible map extent
+    canvas = iface.mapCanvas()
+    extent = canvas.extent()
+
+    # Transform from the map canvas CRS to WGS 84
+    source_crs = canvas.mapSettings().destinationCrs()
+    target_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+
+    transform = QgsCoordinateTransform(
+        source_crs,
+        target_crs,
+        QgsProject.instance().transformContext(),
+    )
+
+    extent_wgs84 = transform.transformBoundingBox(extent)
+
+    # Overpass bbox order: south, west, north, east
+    return (
+        extent_wgs84.yMinimum(),
+        extent_wgs84.xMinimum(),
+        extent_wgs84.yMaximum(),
+        extent_wgs84.xMaximum(),
+    )
         
-        nodes=readOSMNodes(self.filePath)
-        self.signals.progress.emit(20)
-        buildings=self.readOSMBuildings(nodes)
-        self.signals.progress.emit(50)
-        if self.clearOldFeatures:
-            sql='TRUNCATE "'+self.config['versionName']+'".customers,"'+self.config['versionName']+'".buildings;'# nosec B608
-            self.cur.execute(sql)      
-        sql=""
-        max_cid=getMaxIdSchema(self.cur,'customers',self.config['versionName'])
-        for counter,b in enumerate(buildings,max_cid):
-            if len(b.geom.split(","))>2:
-                #insert into buildings
+class WorkerOSMImport(QRunnable):
+
+    def __init__(
+        self,
+        config,
+        clearOldFeatures,
+        filePath=None,
+        plugin_dir=None,
+        importType="both",
+        bbox=None,
+    ):
+        super().__init__()
+
+        self.config = config
+        self.clearOldFeatures = clearOldFeatures
+        self.filePath = filePath
+        self.plugin_dir = plugin_dir
+
+        # "buildings", "streets", or "both"
+        self.importType = importType
+        self.bbox = bbox
+
+        self.signals = APISignals()
+
+        # Retain your existing project configuration setup.
+        self.srid = None
+        
+        self.OVERPASS_URLS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter")
+    
+        self.signals.progress.emit(0)
+
+    
+    def build_overpass_query(
+        self, south, west, north, east, feature_type
+    ):
+        bbox = f"({south},{west},{north},{east})"
+
+        if feature_type == "buildings":
+            selector = f'way["building"]{bbox};'
+        elif feature_type == "streets":
+            selector = f'way["highway"]{bbox};'
+        else:
+            raise ValueError(
+                f"Unknown OSM feature type: {feature_type}"
+            )
+
+        return f"""
+        [out:json][timeout:60];
+        {selector}
+        out body geom;
+        """
+
+    def download_osm(
+        self, south, west, north, east,
+        feature_type, retries=3
+    ):
+        query = self.build_overpass_query(
+            south, west, north, east, feature_type
+        )
+
+        last_error = None
+
+        for url in self.OVERPASS_URLS:
+            for attempt in range(retries + 1):
+                request = urllib.request.Request(
+                    url,
+                    data=urllib.parse.urlencode(
+                        {"data": query}
+                    ).encode("utf-8"),
+                    headers={
+                        "User-Agent": "DistrictsModeler",
+                        "Accept": "application/json",
+                    },
+                    method="POST",
+                )
+
                 try:
-                    sql+='INSERT INTO "'+self.config['versionName']+"""\".buildings(id,geom,b_id,substation_id,z_id,submodel,z_bh_m,z_height_m) VALUES ("""+str(counter+1)+""",ST_Multi(ST_Transform(ST_GeomFromText('"""+b.geom+"',4326),"+self.srid+")),"+str(counter+1)+','+str(counter+1)+',1,1,0,'+b.height+");"# nosec B608
-                    
-                    #insert customers
-                    sql+='INSERT INTO "'+self.config['versionName']+"""\".customers(id,template,geom) VALUES ("""+str(counter+1)+""",1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"# nosec B608
+                    with urllib.request.urlopen(
+                        request, timeout=120
+                    ) as response:
+                        data = json.loads(
+                            response.read().decode("utf-8")
+                        )
+
+                    elements = data.get("elements", [])
+
+                    return elements
+
                 except:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
-                        MessageCritical
+                        MessageInfo
                     )
-            self.signals.progress.emit(int(49*counter/len(buildings)))
-            
-        #print(sql)
-        self.cur.execute(sql) 
-        
-        self.signals.progress.emit(100)  
-        self.signals.finished.emit('customers')  
-                 
-    def readOSMBuildings(self,nodes):
-        #print("read OSM buildings")
-        buildings=[]
-        latitudes=[]
-        longitudes=[]
-        height="0"
-        bid=0
-        data=readFileToList(self.filePath)
-        for i in range(len(data)):
-            try:
-                if "k=\"building\"" in data[i]:# v=\"yes" in data[i] or "k=\"building\" v=\"house" in data[i] or "k=\"building\" v=\"construction" in data[i] or "k=\"building\" v=\"hospital" in data[i] or "k=\"building\" v=\"church" in data[i] or "k=\"building\" v=\"apartments" in data[i] or "k=\"building\" v=\"terrace" in data[i] or "k=\"building\" v=\"residential" in data[i] or "k=\"building\" v=\"university" in data[i] or "k=\"building\" v=\"school" in data[i] or "k=\"building\" v=\"office" in data[i] or "k=\"building\" v=\"commercial" in data[i] or "k=\"building\" v=\"industrial" in data[i] or "k=\"building\" v=\"kindergarden" in data[i] or "k=\"building\" v=\"public" in data[i] or "k=\"building\" v=\"supermarket" in data[i] or "k=\"building\" v=\"civic" in data[i] or "k=\"building\" v=\"retail" in data[i] or "k=\"building\" v=\"hotel" in data[i] or "k=\"building\" v=\"dormitory" in data[i] or "building:height" in data[i]:
-                    bid+=1
-                    j=i
-                    add=True
-                    if "height" in data[i]:
-                        height=data[i].split("v=\"")[1].split("\"")[0]
-                    else:
-                        height="0"
-                    while not "<way" in data[j] and not "<node" in data[j]:
-                        j-=1
-                        if "<node" in data[j]:
-                            add=False
-                        if "<nd ref=" in data[j]:
-                            data_split=data[j].split("\"")
-                            id=data_split[1]
-                            for node in nodes:
-                                if node.id==id:
-                                    latitudes.append(node.latitude) 
-                                    longitudes.append(node.longitude) 
-                    if add:
-                        buildings.append(OSMBuilding(bid,latitudes,longitudes,height))
-                    latitudes=[]
-                    longitudes=[]
-            except:
-                QgsMessageLog.logMessage(
-                    traceback.format_exc(),
-                    "Districts",
-                    MessageCritical
-                )
-        return buildings
-                    
-class WorkerOSMStreetsImport(QRunnable):
-    """Import streets from OSM"""
-    def __init__(self,*args,**kwargs):
-        super().__init__()
-        #print("Import streets from OSM")
-        self.signals=APISignals()
-        self.config=kwargs['config']
-        self.clearOldFeatures=kwargs['clearOldFeatures']
-        self.filePath=kwargs['filePath']
-        self.conn=""
-        self.cur=""
-        self.plugin_dir=kwargs['plugin_dir']
-        self.conn = dbConnect(self.config,True)
-        if self.conn:
-            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)        
 
-            configProject=loadProjectConfig(self.config,signals=self.signals)
-            self.srid=configProject['srid']
-            #print(self.srid)
-                
-    @pyqtSlot()
+                if attempt < retries:
+                    time.sleep(2 ** (attempt + 1))
+
+        raise RuntimeError(
+            f"All Overpass endpoints failed for "
+            f"{feature_type}. Last error: {last_error}"
+        )
+
+    def download_osm_features(self):
+        south, west, north, east = self.bbox
+
+        if self.importType not in (
+            "buildings", "streets", "both"
+        ):
+            raise ValueError(
+                "importType must be buildings, streets, or both"
+            )
+
+        result = {}
+
+        if self.importType in ("buildings", "both"):
+            result["buildings"] = self.download_osm(
+                south, west, north, east, "buildings"
+            )
+
+        if self.importType in ("streets", "both"):
+            result["streets"] = self.download_osm(
+                south, west, north, east, "streets"
+            )
+
+        return result
+
+    @staticmethod
+    def way_to_wkt(element, polygon=False):
+        coords = element.get("geometry", [])
+
+        if len(coords) < (4 if polygon else 2):
+            return None
+
+        points = [
+            (p["lon"], p["lat"])
+            for p in coords
+        ]
+
+        if polygon and points[0] != points[-1]:
+            return None
+
+        coordinates = ",".join(
+            f"{lon} {lat}" for lon, lat in points
+        )
+
+        if polygon:
+            return f"POLYGON(({coordinates}))"
+
+        return f"LINESTRING({coordinates})"
+
     def run(self):
-        #print('Import building data')
-        self.signals.progress.emit(1)
-        
-        nodes=readOSMNodes(self.filePath)
-        self.signals.progress.emit(20)  
-        streets=self.readOSMStreets(nodes)
-        self.signals.progress.emit(50)  
-        sql=''
-        if self.clearOldFeatures:
-            sql+='TRUNCATE "'+self.config['versionName']+'".streets;'# nosec B608
-        
-        for counter,street in enumerate(streets,1):
-            sql+='INSERT INTO "'+self.config['versionName']+"""".streets(geom) VALUES (ST_Transform(ST_GeomFromText('"""+street.geom+"',4326),"+self.srid+"));"# nosec B608
-            self.signals.progress.emit(int(49*counter/len(streets)))
-        if sql:
-            self.cur.execute(sql)
-        self.signals.progress.emit(100)  
-        self.signals.finished.emit('streets') 
+        try:
+            conn = None
+            cur = None
 
-    def readOSMStreets(self,nodes):
-        #print("read OSM streets")
-        streets=[]
-        latitudes=[]
-        longitudes=[]
-        sid=0
-        data=readFileToList(self.filePath)
-        for i in range(len(data)):
-            try:
-                if """k="highway" v="track\"""" in data[i] or "k=\"highway\" v=\"residential\"" in data[i] or "k=\"highway\" v=\"service\"" in data[i] or "k=\"highway\" v=\"primary\"" in data[i] or """k="highway" v="path\""""  in data[i] or "k=\"highway\" v=\"secondary\"" in data[i] or "k=\"highway\" v=\"tertiary\"" in data[i] or "k=\"highway\" v=\"unclassified\"" in data[i] or "k=\"highway\" v=\"living_street\"" in data[i]:
-                    sid+=1
-                    j=i
-                    while not "<way" in data[j]:
-                        j-=1
-                        if "<nd ref=" in data[j]:
-                            data_split=data[j].split("\"")
-                            id=data_split[1]
-                            for node in nodes:
-                                if node.id==id:
-                                    latitudes.append(node.latitude) 
-                                    longitudes.append(node.longitude) 
-                    streets.append(OSMStreet(sid,latitudes,longitudes))
-                    latitudes=[]
-                    longitudes=[]
-            except:
-                QgsMessageLog.logMessage(
-                    traceback.format_exc(),
-                    "Districts",
-                    MessageCritical
-                )
-        return streets
-        
-def readOSMNodes(osmStreetFileName):
-    #print("read OSM Nodes")
-    nodes=[]
-    if os.path.exists(osmStreetFileName):
-        with open(osmStreetFileName, "r") as myfile:   
-            for line in myfile: 
-                if " lat=" in line and " lon=" in line:
-                    data=line.split("\"")
-                    id=data[1]
-                    latitude=data[15]
-                    longitude=data[17]
-                    nodes.append(OSMNode(id,latitude,longitude))
-    return nodes
-        
-    
-class OSMNode(object):
-    """A node of a OSM street with latitude and longitude"""
-    def __init__(self,id,latitude,longitude):
-        self.id=id
-        self.latitude=latitude
-        self.longitude=longitude
-        
-class OSMStreet(object):
-    """A OSM street with id and geometry"""
-    def __init__(self,id,list_latitudes,list_longitudes):
-        self.geom="LINESTRING("      
-        self.geom+=",".join(j+" "+i for i,j in zip(list_latitudes,list_longitudes))
-        self.geom+=")"  
-        self.id=id
+            self.signals.progress.emit(1)
+
+            # Use your plugin's existing DB functions.
+            conn = dbConnect(self.config, True)
+            cur = conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor
+            )
+
+            # Use your existing configuration loader.
+            # Adjust this unpacking to match your function's
+            # actual return structure.
+            project_config = loadProjectConfig(
+                self.config
+            )
+
+            self.srid=project_config['srid']
+
+            osm_data = self.download_osm_features()
+            buildings = osm_data.get("buildings", [])
+            streets = osm_data.get("streets", [])
             
-class OSMBuilding(object):
-    """A OSM building with id and geometry"""
-    def __init__(self,id,list_latitudes,list_longitudes,height):
-        self.geom="POLYGON(("      
-        self.geom+=",".join(j+" "+i for i,j in zip(list_latitudes,list_longitudes))
-        if list_latitudes[0]==list_latitudes[-1] and list_longitudes[0]==list_longitudes[-1]:
-            self.geom+="))"  
-        else:
-            self.geom+=","+ list_longitudes[0]+ " " +list_latitudes[0] +"))"
-        self.id=id
-        self.height=height
+
+            # Clear only the tables selected for import.
+            if self.clearOldFeatures:
+                if self.importType in ("buildings", "both"):
+                    cur.execute(
+                        f'TRUNCATE TABLE "{self.config['versionName']}".customers, '
+                        f'"{self.config['versionName']}".buildings CASCADE'
+                    )
+
+                if self.importType in ("streets", "both"):
+                    cur.execute(
+                        f'TRUNCATE TABLE "{self.config['versionName']}".streets CASCADE'
+                    )
+
+            # ------------------------------------------------
+            # BUILDINGS
+            # ------------------------------------------------
+            if self.importType in ("buildings", "both"):
+                self.signals.progress.emit(10)
+                max_seq=setSeqIdToMax('{}.buildings_id_seq'.format(self.config['versionName']),'{}.buildings'.format(self.config['versionName']),'id',cur)
+                max_seq+= 0 if max_seq==1 else 1 
+                max_id=1 if self.clearOldFeatures else getMaxTableValue(cur,self.config['versionName'],'buildings','b_id')+1
+                sql=''
+                
+                for counter,element in enumerate(buildings,0):
+                    wkt = self.way_to_wkt(
+                        element, polygon=True
+                    )
+                    if not wkt:
+                        continue
+
+                    tags = element.get("tags", {})
+                    osm_id = element["id"]
+
+                    # Estimate building height from OSM tags.
+                    height = tags.get("height")
+                    if height is not None:
+                        try:
+                            height = float(
+                                str(height).replace(" m", "")
+                            )
+                        except (TypeError, ValueError):
+                            height = None
+
+                    if height is None:
+                        levels = tags.get("building:levels")
+                        try:
+                            height = (
+                                float(levels) * 3.0
+                                if levels is not None else 'NULL'
+                            )
+                        except (TypeError, ValueError):
+                            height = 'NULL'
+
+
+                    sql+='''INSERT INTO "{}".buildings (id, geom, b_id, substation_id, z_id, submodel, z_bh_m, z_height_m)
+VALUES (
+    {},
+    ST_Multi(ST_Transform(
+        ST_GeomFromText('{}', 4326),
+        {}
+    )),
+    {}, {}, 1, 1, 0, {}
+);\n'''.format(self.config['versionName'],
+        counter+max_seq,
+        wkt,
+        self.srid,
+        counter+max_id, counter+max_id,
+        height)
+
+                    sql+='''INSERT INTO "{}".customers (id, template, geom)
+VALUES (
+    {}, 1,
+    ST_Transform(
+        ST_Force3D(
+            ST_Centroid(
+                ST_GeomFromText('{}', 4326)
+            )
+        ),
+        {}
+    )
+);\n'''.format(self.config['versionName'],
+        counter+max_id,
+        wkt,
+        self.srid)
+                cur.execute(sql)
+
+            # ------------------------------------------------
+            # STREETS
+            # ------------------------------------------------
+            progress = 55 if self.importType=='both' else 5
+            if self.importType in ("streets", "both"):
+                self.signals.progress.emit(progress)
+                sql=''
+                for element in streets:
+                    wkt = self.way_to_wkt(
+                        element, polygon=False
+                    )
+                    if not wkt:
+                        continue
+                    sql+='''INSERT INTO "{}".streets (geom)
+                        VALUES (
+                            ST_Transform(
+                                ST_GeomFromText('{}', 4326),
+                                {}
+                            )
+                        );\n'''.format(self.config['versionName'],wkt, self.srid)
+                cur.execute(sql)
+
+            conn.commit()
+            self.signals.progress.emit(100)
+            self.signals.finished.emit('buildings and streets' if self.importType=='both' else self.importType)
+        except:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )

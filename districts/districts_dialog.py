@@ -162,6 +162,9 @@ class DistrictsDialog(QtWidgets.QDialog):
 
         
         #import icons
+        self.btn_importFromOSM.setIcon(QIcon(":/images/themes/default/mActionSharingImport.svg"))
+        self.btn_importFromOSM.setIconSize(QSize(20, 20))
+        
         btn_size=30
         self.btn_importElevationData.setIcon(QIcon(":/images/themes/default/mActionElevationProfile.svg"))
         self.btn_importElevationData.setIconSize(QSize(btn_size, btn_size))
@@ -172,10 +175,6 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_importMeasurements.setIcon(QIcon(":/images/themes/default/mActionMeasure.svg"))  
         self.btn_importMeasurements.setIconSize(QSize(btn_size, btn_size))
         
-        self.btn_importStreetsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/streets.png")))
-        self.btn_importStreetsFromOSM.setIconSize(QSize(btn_size, btn_size))
-        self.btn_importBuildingsFromOSM.setIcon(QIcon(os.path.join(plugin_dir, "icons/Customer.png")))
-        self.btn_importBuildingsFromOSM.setIconSize(QSize(btn_size, btn_size))
 
         #preprocessing
         self.btn_manageNetworks.setIcon(QIcon(os.path.join(plugin_dir, "icons/Manage Networks.png")))

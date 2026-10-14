@@ -1318,13 +1318,13 @@
         <translation type="unfinished">Ok</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="643"/>
+        <location filename="../districts.py" line="648"/>
         <source>@default</source>
         <comment>delete_project</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="644"/>
+        <location filename="../districts.py" line="649"/>
         <source>@default</source>
         <comment>ask_delete_project</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1367,7 +1367,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="650"/>
+        <location filename="../districts.py" line="655"/>
         <source>@default</source>
         <comment>no_project_selected</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1389,19 +1389,19 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="998"/>
+        <location filename="../districts.py" line="1008"/>
         <source>@default</source>
         <comment>project_loaded</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1032"/>
+        <location filename="../districts.py" line="1042"/>
         <source>@default</source>
         <comment>db_connected</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1036"/>
+        <location filename="../districts.py" line="1046"/>
         <source>@default</source>
         <comment>db_disconnected</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1522,7 +1522,7 @@
         <translation type="unfinished">Export</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="959"/>
+        <location filename="../districts.py" line="969"/>
         <source>@default</source>
         <comment>settings_saved</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1541,16 +1541,16 @@
         <location filename="../districts.py" line="1446"/>
         <source>@default</source>
         <comment>osm_streets</comment>
-        <translation type="unfinished">Mirror</translation>
+        <translation type="obsolete">Mirror</translation>
     </message>
     <message>
         <location filename="../districts.py" line="1447"/>
         <source>@default</source>
         <comment>osm_buildings</comment>
-        <translation type="unfinished">Mirror</translation>
+        <translation type="obsolete">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1448"/>
+        <location filename="../districts.py" line="1457"/>
         <source>@default</source>
         <comment>elevation_data</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1687,37 +1687,37 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="794"/>
+        <location filename="../districts.py" line="804"/>
         <source>@default</source>
         <comment>connection_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="798"/>
+        <location filename="../districts.py" line="808"/>
         <source>@default</source>
         <comment>type</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="773"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>massflow_set_asboundary_condition</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="773"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>design_temperature</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="773"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>design_pressure</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="773"/>
+        <location filename="../districts.py" line="778"/>
         <source>@default</source>
         <comment>design_massflow</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1792,7 +1792,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="794"/>
+        <location filename="../districts.py" line="804"/>
         <source>@default</source>
         <comment>connection_type_id</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1810,61 +1810,61 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="798"/>
+        <location filename="../districts.py" line="808"/>
         <source>@default</source>
         <comment>connection_bundle_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>pipe_bundle_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>investment_costs</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>operating_costs</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>x_coord</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>y_coord</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>ambient</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="806"/>
+        <location filename="../districts.py" line="816"/>
         <source>@default</source>
         <comment>materials</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="814"/>
+        <location filename="../districts.py" line="824"/>
         <source>@default</source>
         <comment>name</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="806"/>
+        <location filename="../districts.py" line="816"/>
         <source>@default</source>
         <comment>thermal_conductivity</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1882,7 +1882,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="810"/>
+        <location filename="../districts.py" line="820"/>
         <source>@default</source>
         <comment>construction_id</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1900,7 +1900,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="814"/>
+        <location filename="../districts.py" line="824"/>
         <source>@default</source>
         <comment>pipes</comment>
         <translation type="unfinished">Mirror</translation>
@@ -1918,13 +1918,13 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="814"/>
+        <location filename="../districts.py" line="824"/>
         <source>@default</source>
         <comment>pipe_construction_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="814"/>
+        <location filename="../districts.py" line="824"/>
         <source>@default</source>
         <comment>pipe_costs</comment>
         <translation type="unfinished">Mirror</translation>
@@ -2057,13 +2057,13 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="802"/>
+        <location filename="../districts.py" line="812"/>
         <source>@default</source>
         <comment>pipe_id</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="810"/>
+        <location filename="../districts.py" line="820"/>
         <source>@default</source>
         <comment>constructions</comment>
         <translation type="unfinished">Mirror</translation>
@@ -2099,13 +2099,13 @@
         <translation type="unfinished">Constructions</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="740"/>
+        <location filename="../districts.py" line="745"/>
         <source>@default</source>
         <comment>defaults_layer_lines</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="751"/>
+        <location filename="../districts.py" line="756"/>
         <source>@default</source>
         <comment>defaults_layer_customers</comment>
         <translation type="unfinished">Mirror</translation>
@@ -2117,7 +2117,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="761"/>
+        <location filename="../districts.py" line="766"/>
         <source>@default</source>
         <comment>defaults_layer_energy_plants</comment>
         <translation type="unfinished">Mirror</translation>
@@ -2229,7 +2229,7 @@
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../ida_import_dialog.py" line="524"/>
+        <location filename="../ida_import_dialog.py" line="551"/>
         <source>@default</source>
         <comment>drop_old_features</comment>
         <translation type="unfinished">Mirror</translation>
@@ -3119,163 +3119,163 @@
         <translation type="unfinished">Project &quot;{}&quot; is deleted!</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="615"/>
+        <location filename="../districts.py" line="620"/>
         <source>@default</source>
         <comment>import_districts_project_zip</comment>
         <translation type="unfinished">Projectimport</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1340"/>
+        <location filename="../districts.py" line="1350"/>
         <source>@default</source>
         <comment>epid</comment>
         <translation type="unfinished">Energyplant ID</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1340"/>
+        <location filename="../districts.py" line="1350"/>
         <source>@default</source>
         <comment>drilling_depth</comment>
         <translation type="unfinished">Drilling (Borehole) Depth, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1340"/>
+        <location filename="../districts.py" line="1350"/>
         <source>@default</source>
         <comment>drilling_radius</comment>
         <translation type="unfinished">Drilling (Borehole) Radius, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1340"/>
+        <location filename="../districts.py" line="1350"/>
         <source>@default</source>
         <comment>borehole_heat_resistance</comment>
         <translation type="unfinished">Borehole heat resistance (RB). If RB set to zero, give detailed heat resistances</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1341"/>
+        <location filename="../districts.py" line="1351"/>
         <source>@default</source>
         <comment>heat_resistance_between_pipe_innergrout</comment>
         <translation type="unfinished">Heat resistance between pipe and inner grout, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1341"/>
+        <location filename="../districts.py" line="1351"/>
         <source>@default</source>
         <comment>heat_resistance_between_pipe_earth</comment>
         <translation type="unfinished">Heat resistance between pipe and earth, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1341"/>
+        <location filename="../districts.py" line="1351"/>
         <source>@default</source>
         <comment>heat_resistance_between_innergrout_outergrout</comment>
         <translation type="unfinished">Heat resistance between inner and outer grout, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1341"/>
+        <location filename="../districts.py" line="1351"/>
         <source>@default</source>
         <comment>heat_resistance_between_grout_earth</comment>
         <translation type="unfinished">Heat resistance between grout and earth, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1341"/>
+        <location filename="../districts.py" line="1351"/>
         <source>@default</source>
         <comment>heat_resistance_between_grouting_earth</comment>
         <translation type="unfinished">Heat resistance between groutring and earth, (m2 K)/W</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1342"/>
+        <location filename="../districts.py" line="1352"/>
         <source>@default</source>
         <comment>heat_capacity_ground</comment>
         <translation type="unfinished">Heat capacity of ground, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1342"/>
+        <location filename="../districts.py" line="1352"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_ground</comment>
         <translation type="unfinished">Heat transfer coefficient of ground, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1342"/>
+        <location filename="../districts.py" line="1352"/>
         <source>@default</source>
         <comment>density_ground</comment>
         <translation type="unfinished">Density of ground, kg/m3</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1343"/>
+        <location filename="../districts.py" line="1353"/>
         <source>@default</source>
         <comment>heat_capacity_grout</comment>
         <translation type="unfinished">Heat capacity of grout, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1343"/>
+        <location filename="../districts.py" line="1353"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_grout</comment>
         <translation type="unfinished">Heat transfer coefficient of grout, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1343"/>
+        <location filename="../districts.py" line="1353"/>
         <source>@default</source>
         <comment>density_grout</comment>
         <translation type="unfinished">Density of grout, kg/m3</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1344"/>
+        <location filename="../districts.py" line="1354"/>
         <source>@default</source>
         <comment>radius_pipe</comment>
         <translation type="unfinished">Radius of pipe, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1344"/>
+        <location filename="../districts.py" line="1354"/>
         <source>@default</source>
         <comment>thickness_pipe_wall</comment>
         <translation type="unfinished">Thickness of Pipwe wall, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1344"/>
+        <location filename="../districts.py" line="1354"/>
         <source>@default</source>
         <comment>heat_capacity_pipe_wall</comment>
         <translation type="unfinished">Heat capacity of pipe, J/(kg K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1344"/>
+        <location filename="../districts.py" line="1354"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_pipe</comment>
         <translation type="unfinished">Heat transfer coefficient of pipe, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1345"/>
+        <location filename="../districts.py" line="1355"/>
         <source>@default</source>
         <comment>liquid_type</comment>
         <translation type="unfinished">Type of liquid</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1345"/>
+        <location filename="../districts.py" line="1355"/>
         <source>@default</source>
         <comment>liquid_freezing_point</comment>
         <translation type="unfinished">Freezing point of liquid, °C</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1345"/>
+        <location filename="../districts.py" line="1355"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_liquid</comment>
         <translation type="unfinished">Heat transfer coefficient of liquid, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1346"/>
+        <location filename="../districts.py" line="1356"/>
         <source>@default</source>
         <comment>length_surface_casting</comment>
         <translation type="unfinished">Thickness of surface casting, m</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1346"/>
+        <location filename="../districts.py" line="1356"/>
         <source>@default</source>
         <comment>heat_transfer_coefficient_surface</comment>
         <translation type="unfinished">Heat transfer coefficient of surface layer, W/(m K)</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1346"/>
+        <location filename="../districts.py" line="1356"/>
         <source>@default</source>
         <comment>density_surface</comment>
         <translation type="unfinished">Density of surface layer, kg/m3</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1346"/>
+        <location filename="../districts.py" line="1356"/>
         <source>@default</source>
         <comment>heat_capacity_surface</comment>
         <translation type="unfinished">Heat capacity of surface layer, J/(kg K)</translation>
@@ -3287,61 +3287,61 @@
         <translation type="obsolete">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1347"/>
+        <location filename="../districts.py" line="1357"/>
         <source>@default</source>
         <comment>distance_borehole_boundary</comment>
         <translation type="unfinished">Distance from the borehole to the boundary of the calculation region</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1347"/>
+        <location filename="../districts.py" line="1357"/>
         <source>@default</source>
         <comment>no_earthrings</comment>
         <translation type="unfinished">Number of earth rings around borehole</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1347"/>
+        <location filename="../districts.py" line="1357"/>
         <source>@default</source>
         <comment>no_borehole_nodes</comment>
         <translation type="unfinished">Number of nodes in borehole</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1347"/>
+        <location filename="../districts.py" line="1357"/>
         <source>@default</source>
         <comment>total_no_nodes_z</comment>
         <translation type="unfinished">Total number of nodes in extended domain in z-direction</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1348"/>
+        <location filename="../districts.py" line="1358"/>
         <source>@default</source>
         <comment>no_points_direction1</comment>
         <translation type="unfinished">Number of points in direction 1 of rectangulat result plane</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1348"/>
+        <location filename="../districts.py" line="1358"/>
         <source>@default</source>
         <comment>no_points_direction2</comment>
         <translation type="unfinished">Number of points in direction 2 of rectangulat result plane</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1348"/>
+        <location filename="../districts.py" line="1358"/>
         <source>@default</source>
         <comment>no_points_direction3</comment>
         <translation type="unfinished">Number of points in direction 3 of cubes</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1348"/>
+        <location filename="../districts.py" line="1358"/>
         <source>@default</source>
         <comment>timestep_outputs</comment>
         <translation type="unfinished">Timestep for output of temperature field, hr</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1349"/>
+        <location filename="../districts.py" line="1359"/>
         <source>@default</source>
         <comment>yearly_mean_temp</comment>
         <translation type="unfinished">Yearly mean temperature, °C</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1349"/>
+        <location filename="../districts.py" line="1359"/>
         <source>@default</source>
         <comment>temp_gradient_ground</comment>
         <translation type="unfinished">Temperature gradient in ground, K</translation>
@@ -3626,7 +3626,7 @@
         <translation type="unfinished">Potassium Acetate</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="823"/>
+        <location filename="../districts.py" line="833"/>
         <source>@default</source>
         <comment>t_ref</comment>
         <translation type="unfinished">Mirror</translation>
@@ -3753,13 +3753,13 @@
         <translation type="unfinished">Energy</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1350"/>
+        <location filename="../districts.py" line="1360"/>
         <source>@default</source>
         <comment>info_boreholefield</comment>
         <translation type="unfinished">Mirror</translation>
     </message>
     <message>
-        <location filename="../districts.py" line="1351"/>
+        <location filename="../districts.py" line="1361"/>
         <source>@default</source>
         <comment>boreholefield_settings</comment>
         <translation type="unfinished">Mirror</translation>
@@ -4457,7 +4457,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Elevation data</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1016"/>
+        <location filename="../districts_dialog_base.ui" line="1006"/>
         <source>Climate</source>
         <translation type="unfinished">Climate</translation>
     </message>
@@ -4467,7 +4467,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Climate data</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="588"/>
+        <location filename="../districts_dialog_base.ui" line="578"/>
         <source>shp_geopackage_data</source>
         <translation type="unfinished">Shp &amp;&amp; geopackage data</translation>
     </message>
@@ -4482,7 +4482,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Network import</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="450"/>
+        <location filename="../districts_dialog_base.ui" line="440"/>
         <source>prn_data</source>
         <translation type="unfinished">Prn data</translation>
     </message>
@@ -4492,22 +4492,22 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Measurement import</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="669"/>
+        <location filename="../districts_dialog_base.ui" line="659"/>
         <source>data_center</source>
         <translation type="unfinished">Resources</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1172"/>
+        <location filename="../districts_dialog_base.ui" line="1162"/>
         <source>preprocessing</source>
         <translation type="unfinished">Preprocessing</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1297"/>
+        <location filename="../districts_dialog_base.ui" line="1287"/>
         <source>modeling_simulation</source>
         <translation type="unfinished">Modeling &amp;&amp; simulation</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1748"/>
+        <location filename="../districts_dialog_base.ui" line="1738"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;btn_help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Help</translation>
     </message>
@@ -4532,7 +4532,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Buildings and streets can be extracted from an OpenStreetMap (https://www.openstreetmap.org) file.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="518"/>
+        <location filename="../districts_dialog_base.ui" line="508"/>
         <source>elevation_data</source>
         <translation type="unfinished">Elevation data</translation>
     </message>
@@ -4557,12 +4557,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Temporal data can be imported to an QGIS layer, which can be e.g. measurement data or simulation results.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="717"/>
+        <location filename="../districts_dialog_base.ui" line="707"/>
         <source>connections</source>
         <translation type="unfinished">Connections</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="845"/>
+        <location filename="../districts_dialog_base.ui" line="835"/>
         <source>pipes</source>
         <translation type="unfinished">Pipes</translation>
     </message>
@@ -4572,72 +4572,72 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="obsolete">Pipe bundle type</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="943"/>
+        <location filename="../districts_dialog_base.ui" line="933"/>
         <source>defaults</source>
         <translation type="unfinished">Defaults</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1090"/>
+        <location filename="../districts_dialog_base.ui" line="1080"/>
         <source>templates</source>
         <translation type="unfinished">Templates</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1184"/>
+        <location filename="../districts_dialog_base.ui" line="1174"/>
         <source>manage_networks</source>
         <translation type="unfinished">Manage networks</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1226"/>
+        <location filename="../districts_dialog_base.ui" line="1216"/>
         <source>topology</source>
         <translation type="unfinished">Topology</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1303"/>
+        <location filename="../districts_dialog_base.ui" line="1293"/>
         <source>settings</source>
         <translation type="unfinished">Settings</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1353"/>
+        <location filename="../districts_dialog_base.ui" line="1343"/>
         <source>modeling</source>
         <translation type="unfinished">Modeling</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1443"/>
+        <location filename="../districts_dialog_base.ui" line="1433"/>
         <source>simulation</source>
         <translation type="unfinished">Simulation</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1514"/>
+        <location filename="../districts_dialog_base.ui" line="1504"/>
         <source>result_visualization</source>
         <translation type="unfinished">Results &amp;&amp; visualization</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1573"/>
+        <location filename="../districts_dialog_base.ui" line="1563"/>
         <source>load_results</source>
         <translation type="unfinished">Load results</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1520"/>
+        <location filename="../districts_dialog_base.ui" line="1510"/>
         <source>reports</source>
         <translation type="unfinished">Reports</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1626"/>
+        <location filename="../districts_dialog_base.ui" line="1616"/>
         <source>diagrams</source>
         <translation type="unfinished">Diagrams</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1689"/>
+        <location filename="../districts_dialog_base.ui" line="1679"/>
         <source>map</source>
         <translation type="unfinished">Map</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1777"/>
+        <location filename="../districts_dialog_base.ui" line="1767"/>
         <source>Status_message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1067"/>
+        <location filename="../districts_dialog_base.ui" line="1057"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4656,7 +4656,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="418"/>
+        <location filename="../districts_dialog_base.ui" line="408"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4678,14 +4678,14 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/head&gt;
 &lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;
-Buildings and streets can be extracted from an 
-&lt;a href=&quot;https://www.openstreetmap.org&quot;&gt;OpenStreetMap&lt;/a&gt; file.
+
+&lt;a href=&quot;https://www.openstreetmap.org&quot;&gt;OpenStreetMap&lt;/a&gt; data for buildings and streets can be imported.
 &lt;/p&gt;
 &lt;/body&gt;
 &lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="501"/>
+        <location filename="../districts_dialog_base.ui" line="491"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4699,7 +4699,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="649"/>
+        <location filename="../districts_dialog_base.ui" line="639"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4713,7 +4713,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="569"/>
+        <location filename="../districts_dialog_base.ui" line="559"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4725,7 +4725,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="unfinished">&lt;p&gt;&lt;strong&gt;Elevation data&lt;/strong&gt; of the terrain can be imported from files such as &lt;strong&gt;.tiff&lt;/strong&gt;, &lt;strong&gt;.tif&lt;/strong&gt;, or &lt;strong&gt;.hgt&lt;/strong&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="817"/>
+        <location filename="../districts_dialog_base.ui" line="807"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4755,7 +4755,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="920"/>
+        <location filename="../districts_dialog_base.ui" line="910"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4770,7 +4770,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="999"/>
+        <location filename="../districts_dialog_base.ui" line="989"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4784,7 +4784,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1142"/>
+        <location filename="../districts_dialog_base.ui" line="1132"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4800,80 +4800,80 @@ li.checked::marker { content: &quot;\2612&quot;; }
     <message>
         <location filename="../districts_dialog_base.ui" line="333"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_streets&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished">Import streets</translation>
+        <translation type="obsolete">Import streets</translation>
     </message>
     <message>
         <location filename="../districts_dialog_base.ui" line="349"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_buildings&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished">Import buildings</translation>
+        <translation type="obsolete">Import buildings</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="596"/>
+        <location filename="../districts_dialog_base.ui" line="586"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_network&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Import network from file.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="606"/>
+        <location filename="../districts_dialog_base.ui" line="596"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_featurepoints&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Import feature points from files.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="725"/>
+        <location filename="../districts_dialog_base.ui" line="715"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_connections&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Connections</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="735"/>
+        <location filename="../districts_dialog_base.ui" line="725"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_connection_types&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Connection types</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="745"/>
+        <location filename="../districts_dialog_base.ui" line="735"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_connection_type_bundles&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Connection type bundles</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="853"/>
+        <location filename="../districts_dialog_base.ui" line="843"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipes_material&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Materials</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="863"/>
+        <location filename="../districts_dialog_base.ui" line="853"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipes_construction&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Constructions</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="873"/>
+        <location filename="../districts_dialog_base.ui" line="863"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipes_pipes&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Pipes</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="883"/>
+        <location filename="../districts_dialog_base.ui" line="873"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipes_bundles&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Pipe bundles</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="951"/>
+        <location filename="../districts_dialog_base.ui" line="941"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_default_customers&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Customer defaults</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="961"/>
+        <location filename="../districts_dialog_base.ui" line="951"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_default_plants&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Energy plant defaults</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="971"/>
+        <location filename="../districts_dialog_base.ui" line="961"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_default_lines&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Route defaults</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1098"/>
+        <location filename="../districts_dialog_base.ui" line="1088"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_template_customers&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Customer templates</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1108"/>
+        <location filename="../districts_dialog_base.ui" line="1098"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_template_plants&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Energy plant templates</translation>
     </message>
@@ -4897,12 +4897,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;Buildings and streets can be extracted from an OpenStreetMap (https://www.openstreetmap.org) file.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1190"/>
+        <location filename="../districts_dialog_base.ui" line="1180"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_manageNetworks&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Manage networks</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1203"/>
+        <location filename="../districts_dialog_base.ui" line="1193"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4914,27 +4914,27 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <translation type="unfinished">&lt;p&gt;&lt;strong&gt;Multiple networks&lt;/strong&gt; can be modeled, either independently or interconnected at certain feature points. When using the &lt;strong&gt;Generate Network Topology&lt;/strong&gt; option, lines from overlapping networks are not split.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1264"/>
+        <location filename="../districts_dialog_base.ui" line="1254"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipeSizing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Pipe sizing</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1244"/>
+        <location filename="../districts_dialog_base.ui" line="1234"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_mapConnectionTypes2Lines&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Map connection types to lines</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1254"/>
+        <location filename="../districts_dialog_base.ui" line="1244"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipeLayingAlgorithmn&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Pipe laying algorithmn</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1234"/>
+        <location filename="../districts_dialog_base.ui" line="1224"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_generateTopology&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Generate network topology</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1279"/>
+        <location filename="../districts_dialog_base.ui" line="1269"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4967,17 +4967,17 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1311"/>
+        <location filename="../districts_dialog_base.ui" line="1301"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_general_settings&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">General modeling settings</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1321"/>
+        <location filename="../districts_dialog_base.ui" line="1311"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_requested_outputs&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Requested outputs</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1336"/>
+        <location filename="../districts_dialog_base.ui" line="1326"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -4991,22 +4991,22 @@ li.checked::marker { content: &quot;\2612&quot;; }
 </translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1361"/>
+        <location filename="../districts_dialog_base.ui" line="1351"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_sensors&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Sensors</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1371"/>
+        <location filename="../districts_dialog_base.ui" line="1361"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_supervisory&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Supervisory control</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1381"/>
+        <location filename="../districts_dialog_base.ui" line="1371"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_parameter_mapping&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Parameter mapping</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1426"/>
+        <location filename="../districts_dialog_base.ui" line="1416"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5026,27 +5026,27 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p&gt;&lt;strong&gt;Substations&lt;/strong&gt; can be &lt;strong&gt;calibrated&lt;/strong&gt; using measurement data or detailed simulation results.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1451"/>
+        <location filename="../districts_dialog_base.ui" line="1441"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_run_simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Run network model</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1461"/>
+        <location filename="../districts_dialog_base.ui" line="1451"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_feature_models&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Feature models</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1471"/>
+        <location filename="../districts_dialog_base.ui" line="1461"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_build_network&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Build network model</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1481"/>
+        <location filename="../districts_dialog_base.ui" line="1471"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_open_network&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Open network model</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1496"/>
+        <location filename="../districts_dialog_base.ui" line="1486"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5063,32 +5063,32 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/ul&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1528"/>
+        <location filename="../districts_dialog_base.ui" line="1518"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_network_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Network report</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1581"/>
+        <location filename="../districts_dialog_base.ui" line="1571"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_load_results&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Load results</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1634"/>
+        <location filename="../districts_dialog_base.ui" line="1624"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_path_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Path report</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1644"/>
+        <location filename="../districts_dialog_base.ui" line="1634"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_plot_feature_load_profile&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Display feature loads as well as mass and heat balances for selected networks in charts.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1697"/>
+        <location filename="../districts_dialog_base.ui" line="1687"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_show_data_on_map&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Show data on map</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1556"/>
+        <location filename="../districts_dialog_base.ui" line="1546"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5102,7 +5102,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p&gt;The displayed KPIs can be defined and selected in the &lt;strong&gt;Requested Outputs&lt;/strong&gt; section.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1609"/>
+        <location filename="../districts_dialog_base.ui" line="1599"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5115,7 +5115,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;p&gt;Additionally, the simulation results can be &lt;strong&gt;interpolated&lt;/strong&gt; based on a defined &lt;strong&gt;fixed time step&lt;/strong&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1672"/>
+        <location filename="../districts_dialog_base.ui" line="1662"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5130,7 +5130,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
 </translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1725"/>
+        <location filename="../districts_dialog_base.ui" line="1715"/>
         <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
@@ -5399,44 +5399,49 @@ p, li { white-space: pre-wrap; }
 &lt;p&gt;The values can be visualized using &lt;strong&gt;color coding&lt;/strong&gt;, &lt;strong&gt;point or line size&lt;/strong&gt;, &lt;strong&gt;scaling symbols&lt;/strong&gt;, or &lt;strong&gt;labels&lt;/strong&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="458"/>
+        <location filename="../districts_dialog_base.ui" line="448"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_prn_data&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Load time series data in .prn format</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="526"/>
+        <location filename="../districts_dialog_base.ui" line="516"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_elevation_data&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Load elevation data</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1024"/>
+        <location filename="../districts_dialog_base.ui" line="1014"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_climate&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Define climate data</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1391"/>
+        <location filename="../districts_dialog_base.ui" line="1381"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_climateVersionData&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Set climate data per project variant.</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1401"/>
+        <location filename="../districts_dialog_base.ui" line="1391"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_boreholefields&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Borehole field mapping</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="1411"/>
+        <location filename="../districts_dialog_base.ui" line="1401"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_calibration&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Customer model calibration</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="693"/>
+        <location filename="../districts_dialog_base.ui" line="683"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_exportResources&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Export project resources</translation>
     </message>
     <message>
-        <location filename="../districts_dialog_base.ui" line="703"/>
+        <location filename="../districts_dialog_base.ui" line="693"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_importResources&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished">Import project resources</translation>
+    </message>
+    <message>
+        <location filename="../districts_dialog_base.ui" line="339"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_osm&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">OpenStreetMap dat import</translation>
     </message>
 </context>
 <context>
@@ -5723,6 +5728,55 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <location filename="../utility_functions/dialog.py" line="125"/>
         <source>close</source>
         <translation type="unfinished">Close</translation>
+    </message>
+</context>
+<context>
+    <name>ImportOsmDialog</name>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="14"/>
+        <source>import_osm</source>
+        <translation type="unfinished">Import openStreetMap data</translation>
+    </message>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="28"/>
+        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Segoe UI&apos;; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;info_import_osm&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished">&lt;div align=&quot;justify&quot;&gt;
+&lt;p&gt;&lt;strong&gt;Buildings and roads&lt;/strong&gt; can be imported directly from &lt;strong&gt;&lt;a href=&quot;https://www.openstreetmap.org&quot;&gt;OpenStreetMap (OSM)&lt;/a&gt;&lt;/strong&gt;. The import covers the &lt;strong&gt;currently visible map extent&lt;/strong&gt; in QGIS.&lt;/p&gt;
+
+&lt;p&gt;For each imported building, the corresponding &lt;strong&gt;customer substation&lt;/strong&gt; is automatically placed at the geometric centroid of the building footprint. This provides the spatial basis for subsequent modeling and simulation of the district energy network.&lt;/p&gt;
+&lt;/div&gt;</translation>
+    </message>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="42"/>
+        <source>buildings</source>
+        <translation type="unfinished">Buildings</translation>
+    </message>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="52"/>
+        <source>streets</source>
+        <translation type="unfinished">Streets</translation>
+    </message>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="64"/>
+        <source>drop_old_features</source>
+        <translation type="unfinished">Drop old features</translation>
+    </message>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="91"/>
+        <source>import</source>
+        <translation type="unfinished">Import</translation>
+    </message>
+    <message>
+        <location filename="../import_osm_dialog.ui" line="98"/>
+        <source>cancel</source>
+        <translation type="unfinished">Cancel</translation>
     </message>
 </context>
 <context>

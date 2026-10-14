@@ -499,11 +499,12 @@ def refreshMap():
     
 def zoomToLayer(layerName):
     """Zoom extends to layer with layerName"""
-    vLayer = QgsProject.instance().mapLayersByName(tr('@default',layerName))[0]
-    canvas = iface.mapCanvas()
-    extent = vLayer.extent()
-    canvas.setExtent(extent)
-    refreshMap()
+    vLayer = QgsProject.instance().mapLayersByName(tr('@default',layerName))
+    if vLayer:
+        canvas = iface.mapCanvas()
+        extent = vLayer[0].extent()
+        canvas.setExtent(extent)
+        refreshMap()
     
 def checkStringSize(str,limit):
     """check if the string size is within the limit """

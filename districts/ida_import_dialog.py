@@ -503,6 +503,36 @@ class ImportPointLayer(QDialog):
         layout_win.addLayout(layout_buttons)
         
         self.setLayout(layout_win)
+
+class ImportOSMDlg(QtWidgets.QDialog):
+    def __init__(self):
+        super().__init__()
+
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "import_osm_dialog.ui")
+        uic.loadUi(ui_path, self)
+        self.progress.setValue(0)
+        self.info_import_osm.setOpenExternalLinks(True)
+        self.info_import_osm.setReadOnly(True)
+
+        
+    def update_progress(self,progress):
+        self.progress.setValue(progress)
+
+    def update_finished(self,feature,main_dlg):
+        #print(feature)
+        refreshMap()
+        for layer_name in feature.split(' and '):
+            zoomToLayer(tr('@default',layer_name))
+            
+            if layer_name=='streets':
+                layer = QgsProject.instance().mapLayersByName(tr('@default','streets'))
+                if layer:
+                    node = QgsProject.instance().layerTreeRoot().findLayer(layer[0].id())
+                    if node:
+                        node.setItemVisibilityChecked(True)
+        main_dlg.statusMessage.setText('Import {} completed!'.format(feature))
+        self.process_running=False    
         
 class ImportGeoDataDlg(QDialog):
     def __init__(self,title='',default_path=''):        

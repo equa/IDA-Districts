@@ -96,16 +96,16 @@ def zoomToLayer(layer_name):
     canvas = iface.mapCanvas()
 
     # Get the layer you want to zoom to (replace with your layer name)
-    layer = QgsProject.instance().mapLayersByName(tr('@default',layer_name))[0]
+    layer = QgsProject.instance().mapLayersByName(tr('@default',layer_name))
+    if layer:
+        # Get the extent of the layer
+        layer_extent = layer[0].extent()
 
-    # Get the extent of the layer
-    layer_extent = layer.extent()
+        # Set the canvas to zoom to the layer's extent
+        canvas.setExtent(layer_extent)
 
-    # Set the canvas to zoom to the layer's extent
-    canvas.setExtent(layer_extent)
-
-    # Refresh the canvas to apply the change
-    canvas.refresh()
+        # Refresh the canvas to apply the change
+        canvas.refresh()
 
 def setEditorWidgetListType(list_type_dict):
     """{layer: [col_names]}"""
