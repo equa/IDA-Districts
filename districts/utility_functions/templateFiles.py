@@ -648,7 +648,7 @@ class ExchangeConntypeFiles:
                 
         counter_emeter=0
         for meter in meters:
-            filedata.append("""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(300+counter_emeter*35,meter['name'],meter['name']))    
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:Components/DistrictsNmf/symbols/flowmeter2.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(300+counter_emeter*35,meter['name'],meter['name']))    
             counter_emeter+=1                
         writeToFileFromList(filedata,dir,dir+'\\'+name+'.idc') 
         #print('exchange conn bundle type finished')
@@ -1045,7 +1045,7 @@ class WriteTemplateFiles:
                 counter_mdot+=1
         counter_emeter=0
         for meter in meters:
-            data+="""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:eo.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(300+counter_emeter*35,meter['name'],meter['name'])    
+            data+="""\n(EQUATION-FRAME :AT (({} 346)) :R (13.5 13.0) :ICON "sys:Components/DistrictsNmf/symbols/flowmeter2.ids" :SLOT ("{}_Flowmeter2") :NAME "{}_Flowmeter2" :DATA :EO) """.format(300+counter_emeter*35,meter['name'],meter['name'])    
             counter_emeter+=1
         writeToFile(data,dir,dir+"""\\{}\\{}.idc""".format(name,name))         
     
