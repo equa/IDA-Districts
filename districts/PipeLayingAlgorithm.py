@@ -1,22 +1,20 @@
-from qgis.PyQt.QtCore import Qt, QSettings, QTranslator, QCoreApplication, QObject, QRunnable, pyqtSignal, pyqtSlot
-from qgis.core import QgsMessageLog, Qgis, QgsAuthMethodConfig,QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
-
-from .utility_functions.layer_visualization import *
-from .utility_functions.db import *
-from .utility_functions.files import *
-from .utility_functions.utility import *
-from .utility_functions.topology import *
-from .utility_functions.error_handling import *
-
-import time
-
-import os.path
 import os
-import sys
-import psycopg2
-import psycopg2.extras
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import time
 import traceback
+
+import psycopg2.extras
+from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, QgsMessageLog
+
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import dbConnect
+from .utility_functions.files import loadProjectConfig
+from .utility_functions.layer_visualization import showTempTables
+from .utility_functions.topology import (
+    checkLineDirectionPipeLaying,
+    redrawSubnetworkIncludingLines,
+    updateSubmodels,
+)
 
         
 class WorkerPipeLayingSignals(QObject):
@@ -175,8 +173,10 @@ class WorkerPipeLaying(QRunnable):
                     self.networkHelp(self.config['versionName'],plants,mode)
                     self.connectPlantsNetwork(self.config['versionName'],plants,mode)
                     self.connectCustomersNetwork(self.config['versionName'],mode,connectionModes)
+                    if self.is_killed: #abort algorithm, but finish network topology with existing pipes
+                        break
                 self.finishNetworkTopology(self.config['versionName'])
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -190,10 +190,7 @@ class WorkerPipeLaying(QRunnable):
                 self.conn.close()  
                 
     def pauseResume(self):
-        if self.is_paused==False:
-            self.is_paused = True
-        else:
-            self.is_paused = False
+        self.is_paused = not self.is_paused
         #print(self.is_paused)
         
     def kill(self):
@@ -270,7 +267,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         #print(sql) 
         
         self.cur.execute(sql)
-        if self.cur.fetchone()['exists']==True:
+        if self.cur.fetchone()['exists']:
             #print('Height layer exists')
             #print('Update point layers')
             for f in ['customers','energy_plants']:
@@ -337,29 +334,13 @@ UPDATE temp.lines l SET geom=sub.geom
         self.cur.execute(sql)
         sql="""UPDATE temp.junctions SET type=4 WHERE n_connections=3;"""
         self.cur.execute(sql)
-    
-    def getAndCheckConnType(self,conn_types):
-        counter=0
-        conn_type=[]
-        for i in conn_types:
-            if counter==0:
-                conn_type=conn_types[i]
-            else:
-                for c_t in conn_type:
-                   if c_t not in conn_types[i]:
-                        conn_type.remove(c_t)
-            counter+=1
-        if conn_type:
-           return conn_type[0]
-        else:
-           return []
        
     def mergeLines(self):
         "merge lines and delete nodes with 2 connections"
         #print("merge lines")
         i=10000000
         flag=True
-        while flag==True:
+        while flag:
             sql="SELECT nc.jid, nc.lid FROM temp.junctions j, temp.junction_connections nc WHERE j.n_connections=2 AND j.id=nc.jid ORDER BY j.id LIMIT 2;"
             #print(sql)
             self.cur.execute(sql) 
@@ -458,12 +439,12 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         if mode=='cooling' and self.checkbox_tsup_min:
             plantConnConstr=plantConnConstr+f" AND ep.{self.tsup_min_col} <= " + self.tsup_min
         sql="""With sub AS(
-            	SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist FROM temp.streets_help st, temp.energy_plants ep WHERE {}=ANY(ep.network) GROUP BY ep.id
+                SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))) AS min_dist FROM temp.streets_help st, temp.energy_plants ep WHERE {}=ANY(ep.network) GROUP BY ep.id
             )
             INSERT INTO temp.streets_help(geom) 
-            	SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom))
-            	FROM sub, temp.streets_help st, temp.energy_plants ep
-            	WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(self.network,plantConnConstr) # nosec B608
+                SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom))
+                FROM sub, temp.streets_help st, temp.energy_plants ep
+                WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(self.network,plantConnConstr) # nosec B608
         #print("""insert energy plant connections: {}""".format(sql));
         self.cur.execute(sql);
 
@@ -510,14 +491,14 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             for i in range(0,numberofid):
                 sql="""With sub AS(
                         With sub AS(
-                            		SELECT c.id AS id, Max(heat_e_kwh / ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist FROM temp.streets_help st, temp.customers c WHERE c.id NOT IN (SELECT c.id FROM temp.streets_help st,temp.customers c WHERE st_dwithin(c.geom,st.geom,{})) GROUP BY c.id ORDER BY min_dist DESC LIMIT 1
-                            	)
-                            	SELECT min(st_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS length,sub.id FROM temp.streets_help st, temp.customers c, sub WHERE c.id=sub.id GROUP BY sub.id
+                                    SELECT c.id AS id, Max(heat_e_kwh / ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist FROM temp.streets_help st, temp.customers c WHERE c.id NOT IN (SELECT c.id FROM temp.streets_help st,temp.customers c WHERE st_dwithin(c.geom,st.geom,{})) GROUP BY c.id ORDER BY min_dist DESC LIMIT 1
+                                )
+                                SELECT min(st_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS length,sub.id FROM temp.streets_help st, temp.customers c, sub WHERE c.id=sub.id GROUP BY sub.id
                             )
                             INSERT INTO temp.streets_help(geom) 
-                            	SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) AS line
-                            		FROM sub, temp.customers c, temp.streets_help st
-                            		WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(self.tolerance,customerConnConstr) # nosec B608
+                                SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) AS line
+                                    FROM sub, temp.customers c, temp.streets_help st
+                                    WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(self.tolerance,customerConnConstr) # nosec B608
                 #print("""insert customer connections: {}""".format(sql))
                 self.cur.execute(sql)
                 
@@ -700,19 +681,16 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
             customer_count=customer_sum
             customer_sum *=2
             
-        while flag==True:
+        while flag:
             flag=False
             #prove single connection
-            while flag==False:
-                while self.is_paused: #pause algorithm
+            while not flag:
+                while self.is_paused and not self.is_killed: #pause algorithm
                     time.sleep(0.1)
-                    if self.is_killed: #abort algorithm, but finish network topology with existing pipes
-                        #print('abort pipe laying')
-                        self.finishNetworkTopology(version,srid)
-                if self.is_killed: #abort algorithm, but finish network topology with existing pipes
+                if self.is_killed: #abort algorithm; run() finishes the network topology with existing pipes
                     #print('abort pipe laying')
-                    self.finishNetworkTopology(version,srid)
-                    
+                    return
+
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode) # nosec B608
                 #print(sql) 
                 self.cur.execute(sql)  
@@ -753,7 +731,7 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
             count=0
             #cid with the highest linear energy density per tree!!!
             #loop over connected trees
-            sql="""	SELECT nh.lid
+            sql="""    SELECT nh.lid
     FROM temp.network_help nh, temp.lines_{} l
     WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,{})
     GROUP BY nh.lid;""".format(mode,mode,self.tolerance) # nosec B608
@@ -761,7 +739,7 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
             self.cur.execute(sql)  
             trees=self.cur.fetchall()
             counter_tree=0
-            while counter_tree<len(trees) and flag==False and linearEnergyDensityMin>0 and (self.checkbox_linearHeatDensity_min or self.checkbox_linearColdDensity_min):
+            while counter_tree<len(trees) and not flag and linearEnergyDensityMin>0 and (self.checkbox_linearHeatDensity_min or self.checkbox_linearColdDensity_min):
                 tree=trees[counter_tree]
                 counter_tree += 1
                 lid=tree['lid']
@@ -810,7 +788,7 @@ SELECT sub.cid, {} AS energy, nh.epid
                 customers=self.cur.fetchall()
                 counter_customers=0
                 # sum up energy and calculate total length of all customers
-                while counter_customers<len(customers) and flag==False:
+                while counter_customers<len(customers) and not flag:
                     customer=customers[counter_customers]
                     counter_customers += 1
                     cid=customer['cid']

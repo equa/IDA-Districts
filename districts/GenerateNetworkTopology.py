@@ -1,20 +1,21 @@
-from qgis.PyQt.QtCore import Qt, QCoreApplication, QObject, QRunnable, pyqtSignal, pyqtSlot
-from qgis.core import QgsMessageLog,Qgis,QgsAuthMethodConfig,QgsProject,QgsVectorLayer,QgsDataSourceUri,QgsCategorizedSymbolRenderer,QgsSymbol,QgsRendererCategory
-
-from .utility_functions.db import *
-from .utility_functions.files import *
-from .utility_functions.topology import *
-from .utility_functions.error_handling import *
-from .utility_functions.layer_visualization import *
-
-import time
-import os.path
-import os
-import sys
-import psycopg2
-import psycopg2.extras
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import traceback
+
+import psycopg2.extras
+from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, QgsMessageLog, QgsProject
+
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import dbConnect, setSeqIdToMax
+from .utility_functions.error_handling import checkGenerateTopologyLayerData, checkLoopInConnections
+from .utility_functions.files import loadProjectConfig
+from .utility_functions.layer_visualization import showTempTables
+from .utility_functions.topology import (
+    checkLineDirectionTopology,
+    getLayerAttributesName,
+    setSubnetwork,
+    updateSubmodels,
+)
+from .utility_functions.translations import tr
 
 
 
@@ -155,7 +156,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
             try:
                 if self.showTempTables:
                     showTempTables(uri,self.config,self.plugin_dir,self.signals,self.cur)
-            except:
+            except Exception:
                 #print('Show temp layers failed')
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
@@ -202,7 +203,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
 SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv 
     WHERE sub.conn_counter=1 AND shv.id=sub.id AND sub.id NOT IN (
         SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,temp.energy_plants ep
-            WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{}) AND {} = ANY(c.network)
+            WHERE (ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{})) AND {} = ANY(c.network)
             GROUP BY shv.id);""".format(self.tolerance,self.tolerance,network)  # nosec B608
         #print(sql)
         self.cur.execute(sql)      
@@ -221,15 +222,15 @@ SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv
     def insertCustomerToEnds(self,version,network):
         """Insert customers at network ends (1 connection in vertices table) if there is no customers or plant"""
         sql="""WITH sub AS( --get vertices id`s and count it
-	WITH sub AS( 
-		SELECT source AS id,count(source) AS connections FROM temp.streets_help GROUP BY source 
-		UNION ALL   
-		SELECT target AS id,count(target) AS connections FROM temp.streets_help GROUP BY target 
-	)SELECT id,sum(connections) AS conn FROM sub GROUP BY id
+    WITH sub AS(
+        SELECT source AS id,count(source) AS connections FROM temp.streets_help GROUP BY source
+        UNION ALL
+        SELECT target AS id,count(target) AS connections FROM temp.streets_help GROUP BY target
+    )SELECT id,sum(connections) AS conn FROM sub GROUP BY id
 )
-INSERT INTO temp.customers(geom,template,network) 
-	SELECT ST_Force3D(shv.the_geom),{},array[{}] FROM sub,temp.streets_help_vertices_pgr shv 
-		WHERE sub.conn=1 AND shv.id=sub.id AND sub.id NOT IN (
+INSERT INTO temp.customers(geom,template,network)
+    SELECT ST_Force3D(shv.the_geom),{},array[{}] FROM sub,temp.streets_help_vertices_pgr shv
+        WHERE sub.conn=1 AND shv.id=sub.id AND sub.id NOT IN (
             SELECT shv.id FROM temp.streets_help_vertices_pgr shv,temp.customers c,temp.energy_plants ep 
                 WHERE ST_dWithIN(shv.the_geom,c.geom,{}) OR ST_dWithIN(shv.the_geom,ep.geom,{})
                 GROUP BY shv.id);""".format(self.addCustomers_template_customers,network,self.tolerance,self.tolerance)  # nosec B608
@@ -274,7 +275,7 @@ INSERT INTO temp.customers(geom,template,network)
     ) AS exists;""".format(version)  # nosec B608
         #print(sql) 
         self.cur.execute(sql)
-        if self.cur.fetchone()['exists']==True:
+        if self.cur.fetchone()['exists']:
             #print('Height layer exists')
             #print('Update point layers')
             for f in ['customers','energy_plants']:
@@ -353,22 +354,6 @@ UPDATE temp.lines l SET geom=sub.geom
         self.cur.execute(sql)
         sql="""UPDATE temp.junctions a SET zeta=b.zeta FROM (SELECT zeta,geom FROM "{}".junctions) b WHERE ST_dWithin(a.geom,b.geom,{});""".format(self.config['versionName'],self.tolerance) # nosec B608
         self.cur.execute(sql)
-    
-    def getAndCheckConnType(self,conn_types):
-        counter=0
-        conn_type=[]
-        for i in conn_types:
-            if counter==0:
-                conn_type=conn_types[i]
-            else:
-                for c_t in conn_type:
-                   if c_t not in conn_types[i]:
-                        conn_type.remove(c_t)
-            counter+=1
-        if conn_type:
-           return conn_type[0]
-        else:
-           return []
        
     def mergeLines(self,version,network):
         "merge lines and delete nodes with 2 connections"
@@ -377,10 +362,10 @@ UPDATE temp.lines l SET geom=sub.geom
         self.cur.execute("SELECT last_value FROM temp.lines_id_seq;")
         i=self.cur.fetchone()['last_value']
         flag=True
-        while flag==True:
+        while flag:
             inserted_jids=','.join(str(j) for j in self.inserted_jids)
             if inserted_jids:
-                inserted_jids="AND j.id NOT IN (SELECT jt.id FROM a.junctions j, temp.junctions jt WHERE st_dwithin(j.geom,jt.geom,"+self.tolerance+") AND j.id IN ("+inserted_jids+")) "  # nosec B608
+                inserted_jids="""AND j.id NOT IN (SELECT jt.id FROM "{}".junctions j, temp.junctions jt WHERE st_dwithin(j.geom,jt.geom,{}) AND j.id IN ({})) """.format(version,self.tolerance,inserted_jids)  # nosec B608
             sql="""WITH sub AS(
     SELECT nc.jid, array_agg(nc.lid) AS a
         FROM temp.junctions j, temp.junction_connections nc
@@ -557,9 +542,9 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
         ids=self.cur.fetchall()
         #print(ids)
         setSeqIdToMax('temp.network_help_id_seq','temp.network_help','id',self.cur)
-        for id in ids:
+        for row in ids:
             if mode=="junctions":
-                self.inserted_jids.append(d_id)
+                self.inserted_jids.append(row['f_id'])
             sql="""WITH sub AS(
     WITH sub AS(
         SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.type, nh.network, nh.pipe_bundle_type_id
@@ -568,7 +553,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
     )
     SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,type, network ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
 )
-INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,id['f_id'],id['nh_id']) # nosec B608
+INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,row['f_id'],row['nh_id']) # nosec B608
             #print(sql)
             self.cur.execute(sql)
     
