@@ -1,10 +1,26 @@
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis
 
-from .utility_functions.files import *
-from .utility_functions.db import *
-from .utility_functions.dialog import *
-from .utility_functions.topology import *
+import os
+import psycopg2
+import numpy as np
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import (
+    StringIteratorIO, clean_csv_value, dbConnect, getMaxIdSchema, getNetworkBySubmodel,
+)
+from .utility_functions.dialog import checkState
+from .utility_functions.files import (
+    loadModellingSettings, loadNetworkSimData, loadProjectConfig, readFileToString,
+)
+from .utility_functions.ida_components import (
+    getCompClass, getCompName, getIDAListComponents, propertyListCompsIDM,
+)
+from .utility_functions.topology import (
+    getConnsValues, getPMT2muxIdentFromConnValues, getPMT2muxIdents, getUsedConnBundleTypes,
+    getUsedConnTypeIdents, getUsedPipeBundleSequences,
+)
+from .utility_functions.translations import tr
+from .utility_functions.utility import getDatetimeFromString, interpolateTimeData
 from .utility_functions.workers import APISignals
 
 import datetime
@@ -98,12 +114,12 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_{}${} CASCADE;
 CREATE TABLE "{}".customer_s_{}${}
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"${}" numeric,
-	CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "${}" numeric,
+    CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],output,conn_name,self.config['versionName'],output,conn_name,srid,output,output,conn_name)  # nosec B608
                             for output in c_conn_outputs for conn_name in conn_names])
                         tables+=["customer_s_{}${}".format(output,conn_name) for output in c_conn_outputs for conn_name in conn_names]
@@ -112,12 +128,12 @@ CREATE TABLE "{}".customer_s_{}${}
                         sql+='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_{}${} CASCADE;
 CREATE TABLE "{}".customer_s_{}${}
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"${}" numeric,
-	CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "${}" numeric,
+    CONSTRAINT customer_s_{}${}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],i,ident,self.config['versionName'],i,ident,srid,i,i,ident)  # nosec B608
                             for i in c_power_outputs for ident in conn_t_power_names])
                         tables+=["customer_s_{}${}".format(i,ident) for i in c_power_outputs for ident in conn_t_power_names]
@@ -127,12 +143,12 @@ CREATE TABLE "{}".customer_s_{}${}
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_troom CASCADE;
 CREATE TABLE "{}".customer_s_troom
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$troom" numeric,
-	CONSTRAINT customer_s_troom_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$troom" numeric,
+    CONSTRAINT customer_s_troom_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_troom')   
 
@@ -141,90 +157,90 @@ CREATE TABLE "{}".customer_s_troom
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_electricity CASCADE;
 CREATE TABLE "{}".customer_s_electricity
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$electricity" numeric,
-	CONSTRAINT customer_s_electricity_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$electricity" numeric,
+    CONSTRAINT customer_s_electricity_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_electricity')
 
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_transmission CASCADE;
 CREATE TABLE "{}".customer_s_transmission
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$transmission" numeric,
-	CONSTRAINT customer_s_transmission_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$transmission" numeric,
+    CONSTRAINT customer_s_transmission_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_transmission')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_heating CASCADE;
 CREATE TABLE "{}".customer_s_heating
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$heating" numeric,
-	CONSTRAINT customer_s_heating_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$heating" numeric,
+    CONSTRAINT customer_s_heating_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_heating')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_gains CASCADE;
 CREATE TABLE "{}".customer_s_gains
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$gains" numeric,
-	CONSTRAINT customer_s_gains_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$gains" numeric,
+    CONSTRAINT customer_s_gains_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_gains')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_leakage CASCADE;
 CREATE TABLE "{}".customer_s_leakage
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$leakage" numeric,
-	CONSTRAINT customer_s_leakage_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$leakage" numeric,
+    CONSTRAINT customer_s_leakage_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_leakage')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_occupancy CASCADE;
 CREATE TABLE "{}".customer_s_occupancy
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$occupancy" numeric,
-	CONSTRAINT customer_s_occupancy_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$occupancy" numeric,
+    CONSTRAINT customer_s_occupancy_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_occupancy')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_solar CASCADE;
 CREATE TABLE "{}".customer_s_solar
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$solar" numeric,
-	CONSTRAINT customer_s_solar_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$solar" numeric,
+    CONSTRAINT customer_s_solar_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_solar')
                             sql+="""\nDROP TABLE IF EXISTS "{}".customer_s_ventilation CASCADE;
 CREATE TABLE "{}".customer_s_ventilation
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$ventilation" numeric,
-	CONSTRAINT customer_s_ventilation_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$ventilation" numeric,
+    CONSTRAINT customer_s_ventilation_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_ventilation')
                             
@@ -334,12 +350,12 @@ CREATE TABLE "{}".customer_s_ventilation
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".energy_plant_s_{}${} CASCADE;
 CREATE TABLE "{}".energy_plant_s_{}${}
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"${}" numeric,
-	CONSTRAINT energy_plant_s_{}${}_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "${}" numeric,
+    CONSTRAINT energy_plant_s_{}${}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],output,conn_name,self.config['versionName'],output,conn_name,srid,output,output,conn_name)  # nosec B608
                             for output in ep_conn_outputs for conn_name in conn_names])
                         tables+=["energy_plant_s_{}${}".format(output,conn_name) for output in ep_conn_outputs for conn_name in conn_names]
@@ -349,12 +365,12 @@ CREATE TABLE "{}".energy_plant_s_{}${}
                             sql+='\n'.join(["""DROP TABLE IF EXISTS "{}".energy_plant_s_power${} CASCADE;
 CREATE TABLE "{}".energy_plant_s_power${}
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(PointZ,{}),
-	"$power" numeric,
-	CONSTRAINT energy_plant_s_power${}_pkey PRIMARY KEY (id)
+    geom geometry(PointZ,{}),
+    "$power" numeric,
+    CONSTRAINT energy_plant_s_power${}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],ident,self.config['versionName'],ident,srid,ident)  # nosec B608
                                 for ident in conn_t_power_names])
                             tables+=["energy_plant_s_power${}".format(ident) for ident in conn_t_power_names]
@@ -425,26 +441,26 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_s_{}${} CASCADE;
 CREATE TABLE "{}".line_s_{}${}
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(LineStringZ,{}),
-	segment integer,
-	"${}" numeric,
-	CONSTRAINT line_s_{}${}_pkey PRIMARY KEY (id)
+    geom geometry(LineStringZ,{}),
+    segment integer,
+    "${}" numeric,
+    CONSTRAINT line_s_{}${}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],output,seq,self.config['versionName'],output,seq,srid,output,output,seq)  # nosec B608
                             for output in line_outputs for seq in pipe_sequences if output!='qamb'])
                         if 'qamb' in line_outputs:
                             sql+="""\nDROP TABLE IF EXISTS "{}".line_s_qamb CASCADE;
 CREATE TABLE "{}".line_s_qamb
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(LineStringZ,{}),
-	segment integer,
-	"$qamb" numeric,
-	CONSTRAINT line_s_qamb_pkey PRIMARY KEY (id)
+    geom geometry(LineStringZ,{}),
+    segment integer,
+    "$qamb" numeric,
+    CONSTRAINT line_s_qamb_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
 
                         #print(sql)
@@ -580,7 +596,7 @@ CREATE TABLE "{}".line_s_qamb
                                     
                                 try:
                                     kpis[kpi]=last_line.split()[-1]
-                                except:
+                                except Exception:
                                     QgsMessageLog.logMessage(
                                         traceback.format_exc(),
                                         "Districts",
@@ -661,9 +677,9 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                                 sql="""\nDROP TABLE IF EXISTS "{}".heatbalance_{}_s CASCADE;
 CREATE TABLE "{}".heatbalance_{}_s
 (
-	id serial,
+    id serial,
     time timestamp,{}
-	CONSTRAINT heatbalance_{}_s_pkey PRIMARY KEY (id)
+    CONSTRAINT heatbalance_{}_s_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],network,self.config['versionName'],network,''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()]),network) # nosec B608
                                 #print(sql)
                                 self.cur.execute(sql)
@@ -715,9 +731,9 @@ CREATE TABLE "{}".heatbalance_{}_s
                                 sql="""\nDROP TABLE IF EXISTS "{}".massbalance_{}_s CASCADE;
 CREATE TABLE "{}".massbalance_{}_s
 (
-	id serial,
+    id serial,
     time timestamp,{}
-	CONSTRAINT massbalance_s_{}_pkey PRIMARY KEY (id)
+    CONSTRAINT massbalance_s_{}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],network,self.config['versionName'],network,''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()]),network) # nosec B608
                                 #print(sql)
                                 self.cur.execute(sql)
@@ -727,7 +743,7 @@ CREATE TABLE "{}".massbalance_{}_s
                         self.signals.progress.emit(99)
                         
                         
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",

@@ -2,20 +2,25 @@ from qgis.utils import iface
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QStatusBar,QDialog,QSpacerItem,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
+from qgis.PyQt.QtWidgets import QStatusBar, QDialog, QSpacerItem, QGroupBox, QButtonGroup, QSpinBox, QShortcut, QListWidgetItem, QListWidget, QTabWidget, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar, QRadioButton
 from qgis.PyQt import QtCore,QtGui
 from qgis.PyQt.QtGui import QIcon
 
-from .utility_functions.dialog import *
-from .utility_functions.files import *
-from .utility_functions.db import *
-from .calibrate_customers import *
+from qgis.PyQt.QtWidgets import QSizePolicy, QTextEdit
+from .calibrate_customers import updateParmruns
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import (
+    dbConnect, getFeatureSubmodels, getLineNetworks, getLineSubmodels, getSupervisorySubmodel, getTableAttr,
+    getUsedNetworkSubmodels,
+)
+from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
+from .utility_functions.files import loadNetworkSimData
+from .utility_functions.translations import tr
 
 import os
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from qgis.utils import iface
 from qgis.core import Qgis,QgsMessageLog
 from qgis.PyQt.QtGui import QKeySequence
 import matplotlib.pyplot as plt   
@@ -1033,7 +1038,7 @@ class FeatureDecouplingDlg(QDialog):
         else:
             type='energy_plant'
 
-        sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,template)# nosec B608
+        sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,self.feature_template.currentText())# nosec B608
         #print(sql)
         self.cur.execute(sql)
         template_id=self.cur.fetchone()['template']
@@ -1062,7 +1067,7 @@ class FeatureDecouplingDlg(QDialog):
                 sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.config['versionName'],type,self.config['versionName']) # nosec B608
             else:
                 iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=MessageCritical)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

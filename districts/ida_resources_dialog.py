@@ -1,10 +1,16 @@
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QButtonGroup, QFileDialog, QDialog, QTableWidgetItem, QCheckBox, QComboBox, QHeaderView, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QComboBox, QTableView, QTabWidget
+from qgis.PyQt.QtWidgets import QButtonGroup, QFileDialog, QDialog, QTableWidgetItem, QCheckBox, QComboBox, QHeaderView, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QTableView, QTabWidget
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsMessageLog, Qgis
 
-from .utility_functions.dialog import *
-from .utility_functions.utility import *
+import os
+import psycopg2
+from qgis.PyQt import uic
+from .utility_functions.compat import ItemIsEnabled, ItemIsSelectable, MessageCritical
+from .utility_functions.db import dbConnectPerName
+from .utility_functions.dialog import qt_item_flag
+from .utility_functions.translations import tr
+from .utility_functions.utility import standardizePath
 
 import traceback
 
@@ -478,7 +484,7 @@ class ConnectionsDialog(QDialog):
             self.tableWidget.setItem(row,4,item)
             try:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],'',self.traceTableValues[row][2],self.traceTableValues[row][3],self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],True,self.traceTableValues[row][8],self.traceTableValues[row][9]]
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -493,7 +499,7 @@ class ConnectionsDialog(QDialog):
             self.tableWidget.setItem(row,5,item)
             try:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],'',self.traceTableValues[row][4],self.traceTableValues[row][5],self.traceTableValues[row][6],False,self.traceTableValues[row][8],self.traceTableValues[row][9]]
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -512,7 +518,7 @@ class ConnectionsDialog(QDialog):
                 self.traceTableValues[row][3]=self.tableWidget.item(row,5).text()
             if self.tableWidget.item(row,3) and self.traceTableValues[row][4]!=self.tableWidget.item(row,3).text(): #T
                 self.traceTableValues[row][5]=self.tableWidget.item(row,3).text()
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

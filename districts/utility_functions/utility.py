@@ -3,8 +3,8 @@ from qgis.PyQt.QtCore import QSettings
 from qgis.PyQt import QtCore
 from qgis.utils import iface
 
-from .translations import *
-from .compat import *
+from .compat import MessageCritical, MessageInfo
+from .translations import tr
 
 from datetime import datetime 
 from scipy.interpolate import interp1d
@@ -19,7 +19,6 @@ import ntpath
 import traceback
 
 
-import ast
 import operator as op
 
 def checkSpecialCharacters(s):
@@ -215,7 +214,6 @@ def load_plugin_settings():
         #db
         "host": settings.value("host", "localhost"),
         "port": settings.value("port", "5432"),
-        "autosave": settings.value("autosave", False, type=bool),
         "auth_id": settings.value("auth_id", ""),
         #project
         "projectName": settings.value("projectName",""),
@@ -308,7 +306,7 @@ def isNumber(input):
             return True
         else:
             return False
-    except:
+    except Exception:
         return False
         
 def interpolateTimeData(dt,file_data):
@@ -372,14 +370,14 @@ def isInt(str):
     try:
         int(str)
         return True
-    except:
+    except Exception:
         return False
 
 def isFloat(str):
     try:
         float(str)
         return True
-    except:
+    except Exception:
         return False 
 
 def strToDict(s: str) -> dict:
@@ -405,7 +403,7 @@ def strToDict(s: str) -> dict:
             return result
         else:
             return {}
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -418,7 +416,7 @@ def strToDict(s: str) -> dict:
         result = json.loads(s_clean)
         if isinstance(result, dict):
             return result
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -572,7 +570,7 @@ def is_number(s):
     try:
         float(s)
         return True
-    except:
+    except Exception:
         return False
         
 def is_date(date):
@@ -583,7 +581,7 @@ def is_date(date):
             return True
         else:
             return False
-    except:
+    except Exception:
         return False
     
             

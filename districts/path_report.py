@@ -1,9 +1,15 @@
 from qgis.core import Qgis, QgsMessageLog
 
-from .utility_functions.db import *
-from .utility_functions.topology import *
+import psycopg2
+from qgis.PyQt.QtCore import QRunnable, pyqtSlot
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import dbConnect, getNetworkSubmodels
+from .utility_functions.topology import (
+    getConnBundleByFeature, getConnTypeSeqFromBundle, getConnsValues, getPMT2muxIdentFromConnValues,
+)
+from .utility_functions.translations import tr
+from .utility_functions.workers import APISignals
 
-from .utility_functions.workers import *
 import traceback
 
 class WorkerPathReport(QRunnable):
@@ -162,8 +168,8 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
             if self.dlg.rbtn_maxValue.isChecked():
                 sql="""WITH sub AS(
     WITH sub AS(
-		SELECT id FROM "{}".{}s WHERE {}=ANY (network)
-	)
+        SELECT id FROM "{}".{}s WHERE {}=ANY (network)
+    )
     SELECT var_f1.fid, max(var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}")) as dvar, var_f1.time 
         FROM "{}".{}_s_{}${} var_f1, "{}".energy_plant_s_{}${} var_ep1, "{}".{}_s_{}${} var_f2, "{}".energy_plant_s_{}${} var_ep2, sub
         WHERE var_f1.time=var_ep1.time AND var_f1.time=var_f2.time AND var_f1.time=var_ep2.time AND var_ep1.fid={} AND var_ep1.fid=var_ep2.fid AND var_f1.fid=var_f2.fid AND var_f1.fid IN (sub.id){}
@@ -193,7 +199,7 @@ SELECT var_f1.fid, var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}") A
         self.config['versionName'],f_type, quantity_var, p_f_sup_ident,self.config['versionName'],f_type, quantity_var, p_f_ret_ident,self.config['versionName'], quantity_var, p_ep_sup_ident,self.config['versionName'], quantity_var, p_ep_ret_ident, # nosec B608
         self.dlg.date_input.text(),self.dlg.main_plant.currentText(), ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
     
-            #print(sql)
+            print(sql)
             self.cur.execute(sql)
             
             self.dlg.weak_point=self.cur.fetchone()
@@ -284,7 +290,7 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
             else:
                 self.signals.finished.emit('failed')
                 self.signals.progress.emit(0)  
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

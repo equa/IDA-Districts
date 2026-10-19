@@ -7,17 +7,17 @@ from qgis.core import (
     QgsLayoutTableColumn,
     QgsLayoutFrame,
     QgsLayoutSize,
-    QgsLayoutPoint,
     QgsUnitTypes,
     QgsTextFormat,
     QgsLayoutItemPicture
 )
 
-from .files import *
-from .translations import *
-from .topology import *
-from .show_on_map import *
-from .db import *
+from qgis.utils import iface
+from .compat import MessageCritical
+from .db import getBuildingsEra, getNetworkLength, getNetworkVolume, getNetworks, getPipeInfo
+from .files import districtsModelerTempDir, loadProjectConfig, loadSimulatedOutputs
+from .show_on_map import renderMapPlot, showOnMapMemoryLayer
+from .translations import tr
 
 import tempfile
 import os 
@@ -457,7 +457,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                 frame.attemptMove(QgsLayoutPoint(20, y_layout, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
                 y_layout +=table.totalHeight() + 5
 
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -704,7 +704,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     if not osm_existed:
         try:
             project.removeMapLayer(layer_osm)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

@@ -3,11 +3,14 @@ from qgis.PyQt import uic, QtWidgets, QtCore
 from qgis.PyQt.QtWidgets import QTextEdit, QTextBrowser, QDialog, QSpacerItem, QSizePolicy, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar
 from qgis.utils import iface
 from qgis.core import Qgis, QgsMessageLog
-from qgis.PyQt.QtGui import QIcon, QPixmap
+from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
+from qgis.PyQt.QtSvg import QSvgRenderer
 
-from .db import *
-from .utility import *
-from .compat import *
+import os
+from .compat import ItemIsEnabled, ItemIsSelectable, MessageCritical, MessageInfo
+from .db import getDropDownItems, getMaxId
+from .translations import tr
+from .utility import get_districts_plugin_dir
 
 import copy
 import traceback
@@ -325,7 +328,7 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
                     dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
             #print(dlg.traceTableValues)
             #print('--finished trace values of row 0--')
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -359,7 +362,7 @@ def deleteTableRow (dlg):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
             
 class TableDialog(QDialog):
     def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type='',info=False):

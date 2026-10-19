@@ -1,8 +1,12 @@
 import sys
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT 
-from .utility_functions.db import *
-from .utility_functions.workers import *
+import os
+from qgis.PyQt.QtCore import QRunnable, pyqtSlot
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import dbConnect, getMaxIdSchema
+from .utility_functions.files import loadProjectConfig, readFileToList
+from .utility_functions.workers import APISignals
 from qgis.core import Qgis, QgsMessageLog
 import traceback
 
@@ -49,7 +53,7 @@ class WorkerOSMBuildingsImport(QRunnable):
                     
                     #insert customers
                     sql+='INSERT INTO "'+self.config['versionName']+"""\".customers(id,template,geom) VALUES ("""+str(counter+1)+""",1,ST_Transform(ST_Force3D(ST_Centroid(ST_GeomFromText('"""+b.geom+"',4326))),"+self.srid+"));"# nosec B608
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -81,7 +85,7 @@ class WorkerOSMBuildingsImport(QRunnable):
                         height=data[i].split("v=\"")[1].split("\"")[0]
                     else:
                         height="0"
-                    while not "<way" in data[j] and not "<node" in data[j]:
+                    while "<way" not in data[j] and "<node" not in data[j]:
                         j-=1
                         if "<node" in data[j]:
                             add=False
@@ -96,7 +100,7 @@ class WorkerOSMBuildingsImport(QRunnable):
                         buildings.append(OSMBuilding(bid,latitudes,longitudes,height))
                     latitudes=[]
                     longitudes=[]
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -157,7 +161,7 @@ class WorkerOSMStreetsImport(QRunnable):
                 if """k="highway" v="track\"""" in data[i] or "k=\"highway\" v=\"residential\"" in data[i] or "k=\"highway\" v=\"service\"" in data[i] or "k=\"highway\" v=\"primary\"" in data[i] or """k="highway" v="path\""""  in data[i] or "k=\"highway\" v=\"secondary\"" in data[i] or "k=\"highway\" v=\"tertiary\"" in data[i] or "k=\"highway\" v=\"unclassified\"" in data[i] or "k=\"highway\" v=\"living_street\"" in data[i]:
                     sid+=1
                     j=i
-                    while not "<way" in data[j]:
+                    while "<way" not in data[j]:
                         j-=1
                         if "<nd ref=" in data[j]:
                             data_split=data[j].split("\"")
@@ -169,7 +173,7 @@ class WorkerOSMStreetsImport(QRunnable):
                     streets.append(OSMStreet(sid,latitudes,longitudes))
                     latitudes=[]
                     longitudes=[]
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",

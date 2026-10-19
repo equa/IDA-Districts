@@ -1,9 +1,34 @@
 from qgis.PyQt.QtCore import QThreadPool
 
-from .utility_functions.compat import *
-from .utility_functions.files import *
-from .utility_functions.dialog import *
-from .utility_functions.workers import *
+import os
+import psycopg2
+import re
+from qgis.PyQt.QtWidgets import QComboBox, QTableWidgetItem
+from qgis.utils import iface
+from .cosim import writeCosimMacroIdc, writeCosimMacroIdm
+from .utility_functions.compat import ItemIsEditable, MessageCritical, MessageInfo, MessageWarning
+from .utility_functions.db import (
+    dbConnect, getDropDownItems, getMaxIdAcrossSchemas, getTableIds, getTemplateNamesFilteredByCustomerIds,
+    getUsedSubmodels,
+)
+from .utility_functions.dialog import closeDialog
+from .utility_functions.files import (
+    copyFile, getResourcesFromFileDataList, loadInvokedOutputs, loadRequestedOutputs, readFileToList,
+    readFileToString, writeModellingSettings, writeNetworkSimData, writePropertyListIDMToFile,
+    writeSimulatedOutputs, writeToFileFromList,
+)
+from .utility_functions.ida_components import (
+    getCompClass, getCompName, getIDAListComponents, getSimData, propertyListCompsIDM,
+)
+from .utility_functions.invoke import invokeOneFeature
+from .utility_functions.sensor_signals import getSensorData, getSensorDecData
+from .utility_functions.templateFiles import CopyDecoupledTemplateMacro, readDecoupledFeatureSensorSignals
+from .utility_functions.topology import getConnsValuesByFeature, getConnsValuesIdentTypeDict, getPMT2muxName
+from .utility_functions.translations import tr
+from .utility_functions.utility import copy_tree_filter_extensions_and_folders, is_number
+from .utility_functions.workers import (
+    WorkerOpenModelCmd, WorkerOpenRunScriptAPI, WorkerSimulateAPI, show_error_message,
+)
 from .supervisory_control import Supervisory_control
 from qgis.core import Qgis, QgsMessageLog
 
@@ -54,7 +79,7 @@ def addBoreholefieldTableRow(dlg,main):
         # Add items to the comboBox, storing the original key as user data
         for original_key, translated_text in items.items():
             comboBox.addItem(translated_text, original_key) # The second argument is the userData
-    except:
+    except Exception:
         comboBox.addItems(dropdownItems)
     dlg.tableWidget.setCellWidget(0, 20, comboBox) #liquid
     dlg.tableWidget.setItem(0,21,QTableWidgetItem('0')) #Tfreeze
@@ -165,7 +190,7 @@ def showBoreholeFieldSettingsData(dlg,main):
             # Add items to the comboBox, storing the original key as user data
             for original_key, translated_text in items.items():
                 comboBox.addItem(translated_text, original_key) # The second argument is the userData
-        except:
+        except Exception:
             comboBox.addItems(dropdownItems)
             
         sql="SELECT liquid FROM liquids WHERE id = {};".format(i['liqtype']) # nosec B608

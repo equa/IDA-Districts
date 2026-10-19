@@ -10,7 +10,6 @@ import getpass
 import xmlrpc.client
 from optparse import OptionParser
 
-standard_library.install_aliases()
 
 # Configuration
 PROTOCOL = 'https'
@@ -49,10 +48,12 @@ def main(parameters, arguments):
         #print("HTTP/HTTPS headers: %s" % err.headers)
         #print("Error code: %d" % err.errcode)
         #print("Error message: %s" % err.errmsg)
+        pass
     except xmlrpc.client.Fault as err:
         #print("A fault occurred")
         #print("Fault code: %d" % err.faultCode)
         #print("Fault string: %s" % err.faultString)
+        pass
 
 
 def hide_password(url, start=6):

@@ -1,15 +1,35 @@
-from qgis.core import QgsProperty, QgsVectorLayer, QgsProject, QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, QgsVectorLayer, Qgis, QgsMessageLog
+from qgis.core import QgsProperty, QgsVectorLayer, QgsProject, QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, Qgis, QgsMessageLog
 from qgis.PyQt.QtWidgets import QButtonGroup
 
 from qgis.PyQt.QtCore import QThreadPool
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor, QStandardItem
 
-from .utility_functions.dialog import *
-from .utility_functions.workers import *
-from .utility_functions.layer_visualization import *
-from .utility_functions.reports import *
-from .utility_functions.files import *
+import os
+import psycopg2
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QDialog
+from .utility_functions.compat import (
+    MessageCritical, MessageInfo, PolygonPropertyExtrusionHeight, PolygonPropertyHeight,
+)
+from .utility_functions.db import (
+    checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getProjectVersionNames, getTableAttr,
+    setDistrictsModelerVersion2DB,
+)
+from .utility_functions.dialog import closeDialog
+from .utility_functions.files import createDir, districtsModelerTempDir, loadProjectConfig, writeProjectConfig
+from .utility_functions.layer_visualization import (
+    extract_group_fields, loadBoreholesLayer, loadLayersConfig, loadProjectLayers, loadTopologyLayers,
+    removeLayers, setupCustomerGFAValue, setupCustomerLoadValue, setupFeatureLayerDialog, setupVersionForm,
+    updateTableSrid, valueRelationPipeBundleType, versionLayersAliasNames, writeLayersConfig,
+)
+from .utility_functions.reports import setupCustomerDataSheet
+from .utility_functions.translations import tr
+from .utility_functions.utility import (
+    checkString, copy_tree_filter_extensions_and_folders, get_districts_plugin_dir, load_plugin_settings,
+    write_plugin_settings, zoomToLayer,
+)
+from .utility_functions.workers import WorkerExportProject, WorkerImportProject, WorkerLoadVersion
 
 import datetime
 import tempfile
@@ -22,7 +42,6 @@ from qgis._3d import (
     QgsPolygon3DSymbol,
     QgsPhongMaterialSettings
 )
-from qgis.PyQt.QtGui import QColor
 
 class ShowLoadAttributeDialog:
     def __init__(self,fid):
@@ -57,11 +76,11 @@ def setLoadAttribute(dlg,fid):
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
     sql+="""WITH sub AS(
-	SELECT b_id,substation_id,sum(ST_Area(geom))*{} AS load FROM "{}".buildings GROUP BY b_id,substation_id
+    SELECT b_id,substation_id,sum(ST_Area(geom))*{} AS load FROM "{}".buildings GROUP BY b_id,substation_id
 )
 UPDATE "{}".customers c SET {} = sub.load 
-	FROM sub
-	WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
+    FROM sub
+    WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
     #print(sql)
     dlg.cur.execute(sql)
     
@@ -88,11 +107,11 @@ def setGFAAttribute(dlg,fid):
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
     sql+="""WITH sub AS(
-	SELECT b_id,substation_id,sum(ST_Area(geom)) AS gfa FROM "{}".buildings GROUP BY b_id,substation_id
+    SELECT b_id,substation_id,sum(ST_Area(geom)) AS gfa FROM "{}".buildings GROUP BY b_id,substation_id
 )
 UPDATE "{}".customers c SET {} = sub.gfa 
-	FROM sub
-	WHERE c.id=sub.substation_id{};""".format(dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
+    FROM sub
+    WHERE c.id=sub.substation_id{};""".format(dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
     #print(sql)
     dlg.cur.execute(sql)
     
@@ -432,7 +451,7 @@ def treeItem_delete(item,dlg,main):
         sql = 'DROP SCHEMA "'+item.text()+'" CASCADE;'
         #print(sql)
         main.cur.execute(sql)
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -464,7 +483,7 @@ def treeItem_delete(item,dlg,main):
         write_plugin_settings(main.config)
         removeLayers() 
         main.dlg.update_progress(100)
-    except:
+    except Exception:
         main.dlg.update_progress(0)
 
     if item.parent():
@@ -483,7 +502,7 @@ def getVersionData(cur):
         cur.execute(sql)
         for version in cur.fetchall():
             data.append({'unique_id': version['id'], 'parent_id': version['id_base'], 'name': version['name'], 'description': version['description']})
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -662,7 +681,7 @@ WHERE pg_stat_activity.datname = '{}'
         #print(dir)
         try:
             shutil.rmtree(dir)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -679,7 +698,7 @@ WHERE pg_stat_activity.datname = '{}'
             importData(data,model)
         try: 
            dlg.close()
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -724,7 +743,7 @@ def loadVersionLayers(config,cur,plugin_dir):
         view.refreshLayerSymbology(vlayer.id())
         
         
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -768,7 +787,7 @@ def finishedImportProject(dlg=None,main=None,projectName=''):
             removeLayers()
         main.dlg.statusMessage.setText('New project created!')
         main.process_running=False
-    if dlg==None:
+    if dlg is None:
         main.config['versionName']=''
         
     setDistrictsModelerVersion2DB(main.cur,main.config)
@@ -819,7 +838,7 @@ def finishedLoadVersion(main):
 def loadVersion(main=None,item=None):
     #print('loadVersion')
     if main and main.conn:
-        if item==None:
+        if item is None:
             item=get_item_by_text(main.config['versionName'],main)
             
         auth_cfg = QgsAuthMethodConfig()

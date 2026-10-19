@@ -1,17 +1,23 @@
 from qgis.PyQt.QtCore import Qt, QThreadPool
-from qgis.PyQt.QtWidgets import QDialog,QSpacerItem,QSizePolicy,QGroupBox,QMessageBox,QButtonGroup, QInputDialog, QTableWidgetItem,QTableWidget, QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QComboBox, QProgressBar, QComboBox, QCheckBox, QRadioButton, QListWidget
+from qgis.PyQt.QtWidgets import QDialog, QSpacerItem, QSizePolicy, QGroupBox, QMessageBox, QButtonGroup, QInputDialog, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QComboBox, QProgressBar, QCheckBox, QRadioButton, QListWidget
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface 
 from qgis.PyQt import QtGui, QtCore
 from qgis.PyQt.QtGui import QIcon
 
-from .utility_functions.db import *
-from .utility_functions.topology import *
-from .utility_functions.dialog import *
-from .utility_functions.error_handling import *
-from .utility_functions.layer_visualization import *
+from .pipe_sizing import WorkerPipeSizing, rejectPipeSizingResults
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import (
+    dbConnect, dropDBTriggers, featureCount, getNetworks, getPipeBundleNames, getPlantIds, getTableAttr,
+    getTableNumericAttr, getTemplateNames, getTemplatesInfo, insertDBTriggers, streetsCount,
+)
+from .utility_functions.dialog import CheckableComboBox, checkState, qt_item_flag
+from .utility_functions.error_handling import checkIntersectingFeatures
+from .utility_functions.layer_visualization import removeTempLayers
+from .utility_functions.topology import checkNetwork, getNetworkSequences, saveTempTables
+from .utility_functions.translations import tr
+from .utility_functions.utility import refreshMap
 from .PipeLayingAlgorithm import WorkerPipeLaying 
-from .pipe_sizing import * 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
 import psycopg2
@@ -118,7 +124,7 @@ class PipeLayingDialog(QDialog):
         self.heating_template_customer =QComboBox()
         try:
             templates=getTemplatesInfo('customer',self.cur)
-        except:
+        except Exception:
             templates=[]
         self.heating_template_customer.addItems(['keep type']+[i['name'] for i in templates])
         self.heating_template_customer.setCurrentText('keep type')
@@ -247,7 +253,7 @@ class PipeLayingDialog(QDialog):
         self.cooling_template_customer =QComboBox()
         try:
             templates=getTemplatesInfo('customer',self.cur)
-        except:
+        except Exception:
             templates=[]
         self.cooling_template_customer.addItems(['keep type']+[i['name'] for i in templates])
         self.cooling_template_customer.setCurrentText('keep type')
@@ -355,7 +361,7 @@ class PipeLayingDialog(QDialog):
         self.hc_template_customer =QComboBox()
         try:
             templates=getTemplatesInfo('customer',self.cur)
-        except:
+        except Exception:
             templates=[]
         self.hc_template_customer.addItems(['keep type']+[i['name'] for i in templates])
         self.hc_template_customer.setCurrentText('keep type')
@@ -518,7 +524,7 @@ class PipeLayingDialog(QDialog):
         try:
             type=text.split(':')[0]
             templates=getTemplatesInfo('customer',type,self.cur)
-        except:
+        except Exception:
             templates=[]
         self.hc_template_customer.clear()
         self.hc_template_customer.addItems(['keep type']+[i['name'] for i in templates])
@@ -535,7 +541,7 @@ class PipeLayingDialog(QDialog):
     def cooling_template_customers_state_changed(self,text):
         try:
             templates=getTemplatesInfo('customer',self.cur)
-        except:
+        except Exception:
             templates=[]
         self.cooling_template_customer.clear()
         self.cooling_template_customer.addItems(['keep type']+[i['name'] for i in templates])
@@ -966,7 +972,7 @@ class NetworkTopologyDialog(QDialog):
             
     def override_template_state(self,s):
         #print('override template state')
-        if True==s:
+        if s:
             #print('checked')
             self.label_overrideTemplate_customer.setHidden(False)
             self.label_overrideTemplate_pipeBundle.setHidden(False)
@@ -981,7 +987,7 @@ class NetworkTopologyDialog(QDialog):
        
     def keep_template_state(self,s):
         #print('keep template state')
-        if True==s:
+        if s:
             #print('checked')
             self.label_overrideTemplate_customer.setHidden(True)
             self.label_overrideTemplate_pipeBundle.setHidden(True)
@@ -1519,9 +1525,9 @@ class MapFeaturesDialog(QDialog):
         
     def getTypeTableName(self):
         """ return the table name: devide or plant from the sender"""
-        if self.rbtn_plants.isChecked()==True:
+        if self.rbtn_plants.isChecked():
             return 'energy_plants'
-        elif self.rbtn_customers.isChecked()==True:
+        elif self.rbtn_customers.isChecked():
             return 'customers'
                  
     def updatePlantsCustomersLists(self,s):

@@ -11,9 +11,9 @@ from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import QWidget
 from qgis.PyQt.QtGui import QPainter
 
-from .utility_functions.compat import *
-from .utility_functions.utility import *
-from .utility_functions.dialog import *
+from qgis.utils import iface
+from .utility_functions.compat import MessageCritical, get_event_pos
+from .utility_functions.utility import getAuthNames, load_plugin_settings
 import sys
 
 current_dir = os.path.dirname(__file__)

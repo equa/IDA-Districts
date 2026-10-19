@@ -5,10 +5,10 @@ from qgis.PyQt.QtWidgets import QDialog,QTreeView,QPushButton,QRadioButton, QHBo
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import Qt
 
-from .utility_functions.translations import *
-from .utility_functions.dialog import *
-from .utility_functions.utility import *
-from .utility_functions.files import *
+from .utility_functions.compat import MessageCritical
+from .utility_functions.dialog import checkState, uncheckState
+from .utility_functions.translations import tr
+from .utility_functions.utility import get_districts_plugin_dir, standardizePath
 
 
 class IDA_Districts_NameDialog(QDialog):
@@ -214,7 +214,7 @@ class NewProjectDlg(QDialog):
         templates_ida_dir = os.path.join(self.config['pathDistricts'], 'Samples','districts')
         try:
             templates_ida =[folder for folder in os.listdir(templates_ida_dir) if os.path.isdir(os.path.join(templates_ida_dir, folder))]
-        except:
+        except Exception:
             templates_ida=[]
 
         items = {

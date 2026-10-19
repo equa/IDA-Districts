@@ -13,26 +13,27 @@ import os
 from pathlib import Path
 import tempfile
 
-from .files import *
-from .utility import *
-from .compat import *
+import traceback
+from .compat import MessageCritical, MessageInfo, MessageWarning
+from .translations import tr
+from .utility import getDistrictsModelerVersion, sanitize_pg_identifier
 
 #from .dialog import *
 #from .layer_visualization import *
 
 def cleanupResultsSensors(cur):
     sql="""DELETE FROM sensors
-	WHERE id IN (
-	    SELECT sensor_id
-	    FROM sensor_target
-	    WHERE type = 4
-	);"""
+    WHERE id IN (
+        SELECT sensor_id
+        FROM sensor_target
+        WHERE type = 4
+    );"""
     cur.execute(sql)
     
 def getNetworkVolume(cur,config,networks=None):
     sql="""SELECT sum(innerpipediameter * innerpipediameter*3.1415/4*ST_length(l.geom)) as volume_m3
-	FROM "{}".lines l, bundle_pipes bp, pipes p
-	WHERE bp.pipe_bundle_type_id=l.pipe_bundle_type_id AND p.id=bp.pipe_id{};""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
+    FROM "{}".lines l, bundle_pipes bp, pipes p
+    WHERE bp.pipe_bundle_type_id=l.pipe_bundle_type_id AND p.id=bp.pipe_id{};""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['volume_m3'])  
     
@@ -43,17 +44,17 @@ def getNetworkLength(cur,config,networks=None):
     
 def getBuildingsEra(cur,config):
     sql="""SELECT sum(ST_area(b.geom)) AS era
-	FROM "{}".buildings b, "{}".customers c 
-	WHERE ST_dWithIn(b.geom,c.geom,0.001);""".format(config['versionName'],config['versionName']) # nosec B608
+    FROM "{}".buildings b, "{}".customers c 
+    WHERE ST_dWithIn(b.geom,c.geom,0.001);""".format(config['versionName'],config['versionName']) # nosec B608
     cur.execute(sql)
     return float(cur.fetchone()['era'])
     
 def getPipeInfo(cur,config,networks=None):
     sql="""SELECT p.name,sum(ST_length(l.geom)) AS length, innerpipediameter,sum(p.costs*ST_length(l.geom)) as costs
-	FROM "{}".lines l, bundle_pipes bp, pipes p
-	WHERE l.pipe_bundle_type_id=bp.pipe_bundle_type_id AND bp.pipe_id=p.id {}
-	GROUP BY bp.pipe_id,p.name,innerpipediameter
-	ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
+    FROM "{}".lines l, bundle_pipes bp, pipes p
+    WHERE l.pipe_bundle_type_id=bp.pipe_bundle_type_id AND bp.pipe_id=p.id {}
+    GROUP BY bp.pipe_id,p.name,innerpipediameter
+    ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -77,7 +78,7 @@ def setDistrictsModelerVersion2DB(cur,config):
         sql="""TRUNCATE db_info;
 INSERT INTO db_info (id,version) VALUES(1,'{}');""".format(getDistrictsModelerVersion(config)) # nosec B608
         cur.execute(sql)  
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -459,13 +460,13 @@ def getTemplateNamesFilteredByCustomerIds(cur,config,cids):
     return template_names
 
 def getPlantIds(cur,config,network=None):
-    sql="""SELECT id FROM "{}".energy_plants{};""".format(config['versionName'],'' if network==None else ' WHERE {} = ANY (network)'.format(network)) # nosec B608
+    sql="""SELECT id FROM "{}".energy_plants{};""".format(config['versionName'],'' if network is None else ' WHERE {} = ANY (network)'.format(network)) # nosec B608
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids
     
 def getLineIds(cur,config,network=None):
-    sql="""SELECT id FROM "{}".lines{};""".format(config['versionName'],'' if network==None else ' WHERE network IN ({})'.format(','.join(network))) # nosec B608
+    sql="""SELECT id FROM "{}".lines{};""".format(config['versionName'],'' if network is None else ' WHERE network IN ({})'.format(','.join(network))) # nosec B608
     cur.execute(sql)
     ids=[str(i['id']) for i in cur.fetchall()]
     return ids
@@ -477,7 +478,7 @@ def getUsedBuildingSubmodels(cur,config):
     return submodels
     
 def getFeatureIdsPerSubmodelAndTypename(submodel,type,cur,config):
-    sql="""SELECT id FROM "{}".{}s WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
+    sql="""SELECT id FROM "{}".{}s WHERE submodel={};""".format(config['versionName'],type,submodel) # nosec B608
     cur.execute(sql)
     return [id['id'] for id in cur.fetchall()]
 
@@ -743,7 +744,7 @@ def getMaxId(cur,table_name):
     sql="SELECT max(id) AS max FROM public.{};".format(table_name) # nosec B608
     cur.execute(sql)
     id=cur.fetchone()
-    if id['max']!=None:
+    if id['max'] is not None:
         return id['max']
     else:
         return 0
@@ -753,7 +754,7 @@ def getMaxIdSchema(cur,table_name,schema):
     sql="""SELECT max(id) AS max_id FROM "{}".{};""".format(schema,table_name) # nosec B608
     cur.execute(sql)
     id=cur.fetchone()
-    if id['max_id']!=None:
+    if id['max_id'] is not None:
         return id['max_id']
     else:
         return 0
@@ -783,7 +784,7 @@ def dbConnect(config,errorMsg):
             password=auth_cfg.config("password"),
             connect_timeout=5)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    except:
+    except Exception:
         #print("DB connection has failed")
         if errorMsg:
             iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password, user name or project does not exists!", level=MessageCritical)
@@ -819,7 +820,7 @@ def dbConnectPerName(config,dbName,errorMsg):
             password=auth_cfg.config("password"),
             connect_timeout=1)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    except:
+    except Exception:
         #print("DB connection has failed")
         if errorMsg:
             iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=MessageCritical)
@@ -850,7 +851,7 @@ def getTemplateNameByTemplateId(cur,template_id,feature_type):
     cur.execute(sql)
     try:
         return cur.fetchone()['template_name']
-    except:
+    except Exception:
         return ''
     
 def loadProjectNamesCheckDistricts(cur,config):
@@ -960,9 +961,9 @@ def getDropDownItemNames(cur,dropdowns):
 def getConnValue(cur,bundle,sequence):
     """Sequence of connection_id"""
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, b_t_conns.conn_type_id
-	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
-	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.sequence={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle, sequence) # nosec B608
+    FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+    WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.sequence={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+    ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle, sequence) # nosec B608
     #print(sql)
     cur.execute(sql)
     return cur.fetchall()

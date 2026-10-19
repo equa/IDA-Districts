@@ -1,14 +1,26 @@
-from .db import *
-from .files import *
-from .macros import *
+import copy
+from .db import getDecoupledFeatureCompPerFeature, getFeatureDecIds, getUsedSubmodels
+from .files import (
+    copyFile, copyFileReplaceStr, createDir, createSubDir, getResourcesFromFileDataList,
+    loadRequestedOutputs, moveFileReplaceStr, readFileToList, readFileToString, writeMacroSFIdc,
+    writeMacroSFIdm, writePropertyListIDCToFile, writePropertyListIDMToFile, writeToFile,
+    writeToFileFromList,
+)
+from .ida_components import (
+    getCompClass, getCompImportPos, getCompName, getCompTemplate, getDataExFeature, getIDAListComponents,
+    propertyListCompsIDC, propertyListCompsIDM,
+)
+from .invoke import invokeOneFeature
+from .macros import writeSensorMacroIdc, writeSensorMacroIdm
+from .sensor_signals import getSensorIrefsFeatureSource, getSensorIrefsFeatureTarget, getSensorIrefsSource
+from .topology import getConnsValues, getConnsValuesByFeature, getMeterName, getPMT2muxName
+from .utility import getIDADistrictsVersion, getIDAVersion
 import os.path
 import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os
 
-from .invoke import *
-from .topology import *
 
 def readDecoupledFeatureSensorSignals(submodel,dir,config,cur,sensor_data):
     target_dir=dir+"\\network_"+str(submodel)
@@ -132,7 +144,7 @@ class CopyDecoupledTemplateMacro:
             #print(feature)
             try:
                 self.import_counter[str(feature['submodel'])]=self.import_counter[str(feature['submodel'])]
-            except:
+            except Exception:
                 self.import_counter[str(feature['submodel'])]=0
             f_idc_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idc"
             f_idm_target=target_dir+'\\'+(feature['feature'].capitalize()+"_" if mode=='network' else 'substation b')+str(feature['id'])+".idm"
@@ -424,11 +436,11 @@ class ExchangeConntypeFiles:
                 del data[-1]
                 for conn in connValues:
                     name_pmtmux="{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'])
-                    if conn['p']!=None:
+                    if conn['p'] is not None:
                         variable="P"
                         var_value=conn['p']
                         
-                    if conn['mdot']!=None:
+                    if conn['mdot'] is not None:
                         variable="M"
                         inverse_value=-1 if conn['type'] in [1,3,5,7,9] else 1
                         var_value=conn['mdot'] * inverse_value
@@ -443,7 +455,7 @@ class ExchangeConntypeFiles:
                 data.append("(CONNECTIONS\n")
                 for value in connValues:
                     name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-                    if value['p']!=None:
+                    if value['p'] is not None:
                         name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                         variable="P"
                     else:
@@ -457,11 +469,11 @@ class ExchangeConntypeFiles:
         if not connections:  
             for conn in connValues:
                 name_pmtmux="{}_{}_{}_{}".format(conn['conn_bundle_type_id'],conn['conn_type_seq'],conn['conn_type_id'],conn['conn_seq'])
-                if conn['p']!=None:
+                if conn['p'] is not None:
                     variable="P"
                     var_value=conn['p']
                     
-                if conn['mdot']!=None:
+                if conn['mdot'] is not None:
                     variable="M"
                     inverse_value=-1 if conn['type'] in [1,3,5,7,9] else 1
                     var_value=conn['mdot'] * inverse_value
@@ -475,7 +487,7 @@ class ExchangeConntypeFiles:
             data.append("(CONNECTIONS\n")
             for value in connValues:
                 name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-                if value['p']!=None:
+                if value['p'] is not None:
                     name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                     variable="P"
                 else:
@@ -493,7 +505,7 @@ class ExchangeConntypeFiles:
         counter_mdot=0
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            if value['p']!=None:
+            if value['p'] is not None:
                 name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="p"
                 y=240+counter_p*40
@@ -526,6 +538,7 @@ class ExchangeConntypeFiles:
         meters=[]
         meter={'name':'','n_sup':0,'n_ret':0,'sup_conn':[],'ret_conn':[],'p':True}
         conn_type_old=0        
+        meter_name_old_old=''
         i=0
         p_old=True
         p_old_old=True
@@ -538,7 +551,7 @@ class ExchangeConntypeFiles:
             else:
                 pmt_l={}
             filedata.insert(2,"""((MODEL :N "PMT2mux_{}" :T PMT2\\m\\u\\x){})\n""".format(name_pmtmux,pmt_l))
-            if value['mdot']!=None:
+            if value['mdot'] is not None:
                 meter['p']=False
             if value['type'] in [1,3,5,7,9]:
                 meter['n_sup']+=1
@@ -554,7 +567,7 @@ class ExchangeConntypeFiles:
                 elif value['type']==2:
                     meters.append({'name': meter_name_old_old,'n_sup':meter['n_sup'],'n_ret':meter['n_ret']-1,'sup_conn':meter['sup_conn'],'ret_conn':meter['sup_conn'][:-1],'p': p_old_old})
                     meter={'name':'','n_sup':0,'n_ret':1,'sup_conn':[],'ret_conn': [meter['ret_conn'][-1]],'p':True}
-                if value['mdot']!=None:
+                if value['mdot'] is not None:
                     meter['p']=False
             i+=1
             conn_type_old=value['conn_type_id']
@@ -629,7 +642,7 @@ class ExchangeConntypeFiles:
         counter_mdot=0
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            if value['p']!=None:
+            if value['p'] is not None:
                 name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="P"
                 y=37+counter_p*45
@@ -772,7 +785,7 @@ class CopyTemplateMacro:
         else:
             try: 
                 self.invokedFeatureOutputs=invokedOutputs[type]
-            except:
+            except Exception:
                 self.invokedFeatureOutputs={}
         self.decoupled_counter=0        
         for feature in cur.fetchall():
@@ -862,8 +875,8 @@ class CopyTemplateMacro:
  ((CONNECTOR :N |term_b|)
   (:VAR :N |inStream(T)| :V 70.0{})))\n""".format(
                     pmt2_name[0][0],
-                    """ :B (:SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(submodel,cosim[0],self.decoupled_counter*2+1) if not pmt2_name[0][1]==None else '',
-                    """ :B (:SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(submodel,cosim[0],self.decoupled_counter*2+1) if pmt2_name[0][1]==None else '',
+                    """ :B (:SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(submodel,cosim[0],self.decoupled_counter*2+1) if not pmt2_name[0][1] is None else '',
+                    """ :B (:SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(submodel,cosim[0],self.decoupled_counter*2+1) if pmt2_name[0][1] is None else '',
                     """ :B (:SYSTEM "Co-simulation-macro" "{}<--{}" |data_var| {})""".format(submodel,cosim[0],self.decoupled_counter*2+2)
                     ))
                 counter+=1
@@ -931,7 +944,8 @@ class WriteTemplateFiles:
         i=0
         p_old=True
         p_old_old=True
-        
+        meter_name_old_old=''
+
         #print('***********************************************')
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         #print(requestedOutputs)
@@ -945,7 +959,7 @@ class WriteTemplateFiles:
                 data+='({}\n{})'.format(pmtmux,pmt_l)
             else:
                 data+='\n{}'.format(pmtmux)
-            if value['mdot']!=None:
+            if value['mdot'] is not None:
                 meter['p']=False
             if value['type'] in [1,3,5,7,9]:
                 meter['n_sup']+=1
@@ -961,7 +975,7 @@ class WriteTemplateFiles:
                 elif value['type'] in [2,4,6,8,10]:
                     meters.append({'name': meter_name_old_old,'n_sup':meter['n_sup'],'n_ret':meter['n_ret']-1,'sup_conn':meter['sup_conn'],'ret_conn':meter['sup_conn'][:-1],'p': p_old_old})
                     meter={'name':'','n_sup':0,'n_ret':1,'sup_conn':[],'ret_conn': [meter['ret_conn'][-1]],'p':True}
-                if value['mdot']!=None:
+                if value['mdot'] is not None:
                     meter['p']=False
             i+=1
             sequence_old=value['conn_type_seq']
@@ -1003,7 +1017,7 @@ class WriteTemplateFiles:
                 power_output="""\n (:VAR :N P :V 2665 :L "Connection type sequence_{}" :AS "power")""".format(meter['name'].split('_')[1])
             else:
                 power_output=''
-            if power_output or temp_output or flow_output_sup or requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer':
+            if power_output or temp_output_sup or temp_output_ret or flow_output_sup or requestedOutputs['p_ep'] and self.type=='energy_plant' or requestedOutputs['p_c'] and self.type=='customer':
                 data+="""\n(OUTPUT-FILE :N "Connection type sequence_{}" :T OUTPUT-FILE)""".format(meter['name'].split('_')[1])
             data+="""\n((:EO :N "{}_Flowmeter2" :T FLOWMETER2){}
  (:PAR :N N_SUP :V {})
@@ -1031,7 +1045,7 @@ class WriteTemplateFiles:
         counter_mdot=0
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            if value['p']!=None:
+            if value['p'] is not None:
                 y=37+counter_p*45
                 data+="""\n(CONNECTION-LINE :AT ((10 {}) (50 {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK (:SELF (0.0 0.094) "{}") :LAST-LINK ("PMT2mux_{}" (0 0.278) |term_b|))""".format(y,y,name_pmtmux,name_pmtmux)
                 y=45+counter_p*45
@@ -1079,11 +1093,11 @@ class WriteTemplateFiles:
         data+=")"  
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            if value['p']!=None:
+            if value['p'] is not None:
                 variable="P"
                 var_value=value['p']
                 
-            if value['mdot']!=None:
+            if value['mdot'] is not None:
                 variable="M"
                 inverse_value=-1 if value['type'] in [1,3,5,7,9] else 1
                 var_value=value['mdot']*inverse_value
@@ -1100,7 +1114,7 @@ class WriteTemplateFiles:
         data+="""\n(CONNECTIONS"""
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            if value['p']!=None:
+            if value['p'] is not None:
                 name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="P"
             else:
@@ -1129,7 +1143,7 @@ class WriteTemplateFiles:
         counter_mdot=0
         for value in connValues:
             name_pmtmux="{}_{}_{}_{}".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
-            if value['p']!=None:
+            if value['p'] is not None:
                 name_const="{}_{}_{}_{}_P".format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq'])
                 variable="p"
                 y=240+counter_p*40

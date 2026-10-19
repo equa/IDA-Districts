@@ -3,19 +3,28 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThread
 from qgis.utils import iface
 from qgis.core import  Qgis, QgsMessageLog, QgsCredentials, QgsDataSourceUri, QgsExpression, QgsOptionalExpression, QgsAttributeEditorField, QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 
-from .db import *
-from .files import *
-from .topology import *
-from .macros import *
-from .dialog import *
-from .ida_components import *  
-from .sensor_signals import *
-from .util import *
-from .layer_visualization import *
-from .workers import *
+import os
+import shutil
+from qgis.PyQt.QtCore import QRunnable, pyqtSlot
+from qgis.PyQt.QtWidgets import QDialog
+from ..boreholes import getTransformedBoreholeInfo
+from .compat import MessageCritical, MessageInfo
+from .db import dbConnect
+from .dialog import closeDialog
+from .files import (
+    copyFileReplaceStr, createDir, createSubDir, delSFAndConnsAddLinks, getSFLinkRefs, getSFList,
+    loadInvokedOutputs, loadRequestedOutputs, readAndReplaceFileToList, readFileToList, readFileToString,
+    replaceKeywordsInFiledata, replaceKeywordsInPList, writeInvokedOutputs, writePropertyListIDMToFile,
+    writeToFileFromList,
+)
+from .ida_components import getIDAListComponents, pListToCompString, propertyListCompsIDM
+from .sensor_signals import delSensorConnection, delSensorConnectionPList
+from .translations import tr
+from .utility import getIDADistrictsVersion, getIDAVersion, getTypeIdByName, safe_eval
+from .workers import (
+    APISignals, WorkerOpenModelCmd, WorkerPlotInvokedFeatureLoad, WorkerSimulateFilesAPI, show_error_message,
+)
 #from ..ida_mosim_dialog import InvokeFeaturesDlg
-from ..calibrate_customers import *
-from ..boreholes import *
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -130,7 +139,7 @@ class InvokeFeaturesDlg(QDialog):
             ax1.set_title('Total load profiles')
             plt.legend()
             fig1.show()
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -219,7 +228,7 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
         closeDialog(dlg)
    
 def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False,signals=False):
-    """Invoke the selected feature. Copy the files from the templates to ida_mosim\invoked_"feature"s
+    """Invoke the selected feature. Copy the files from the templates to ida_mosim\\invoked_"feature"s
         If dlg is not given the id is the idx"""    
     #print('idx='+str(idx))
     if idx !=-1:
@@ -270,7 +279,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     for i in boreholes:
                         try:
                             ng_dict[i['group']]=ng_dict[i['group']]+1
-                        except:
+                        except Exception:
                             ng_dict[i['group']]=1
                     #print(ng_dict)
 
@@ -323,7 +332,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                 #print(mapping_expression)
                 try:
                     mapping_expression=safe_eval(mapping_expression)
-                except:
+                except Exception:
                     #print('Failed eval!')
                     signals.error.emit("Failed to evaluate mapping expression for feature id={}: {}".format(id,mapping_expression))
                 #print('++++++++'+parm['model_name'])
@@ -331,10 +340,10 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     #print(parm['model_name'])
                     try:
                         replaceDict[parm['macro_name']][parm['model_name']][parm['parm_name']]= mapping_expression
-                    except:
+                    except Exception:
                         try:
                             replaceDict[parm['macro_name']].update({parm['model_name']:{parm['parm_name']: mapping_expression}})
-                        except:
+                        except Exception:
                             replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
             
             #print(replaceDict)
@@ -348,7 +357,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                 if invoked:
                     dlg.tableWidget_customer.setItem(idx,1,QTableWidgetItem('Yes'))
                     dlg.tableWidget_customer.viewport().update()
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -585,7 +594,7 @@ class CopyTemplateFiles:
                 #print(sql)
                 try:
                     cur.execute(sql)
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -619,7 +628,7 @@ class CopyTemplateFiles:
             try:
                 i[0][':N']='"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if i[0][':SF']==j['sf']][0])
                 filedata+=["""\n{}""".format(pListToCompString(i,0))]
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",

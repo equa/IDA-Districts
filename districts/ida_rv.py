@@ -2,14 +2,23 @@ from qgis.utils import iface
 from qgis.PyQt.QtCore import Qt,QThreadPool
 from qgis.PyQt.QtWidgets import QListWidgetItem,QFileDialog
 
-from .utility_functions.workers import *
-from .utility_functions.show_on_map import *
-from .utility_functions.plots import *
-from .utility_functions.dialog import *
-from .utility_functions.translations import *
+import os
+import numpy as np
+from qgis.PyQt.QtWidgets import QTableWidgetItem
+from .load_results import WorkerLoadResults
+from .path_report import WorkerPathReport
+from .utility_functions.compat import MessageInfo
+from .utility_functions.db import StringIteratorIO, checkTableNameExists, clean_csv_value, getMaxIdSchema
+from .utility_functions.dialog import checkState, closeDialog, qt_item_flag, uncheckState
+from .utility_functions.files import (
+    loadModellingSettings, loadProjectConfig, loadSimulatedOutputs, readFileToList,
+)
+from .utility_functions.plots import matplotlibBalancePlots, matplotlibPowerPlots
+from .utility_functions.show_on_map import WorkerShowOnMap
+from .utility_functions.translations import tr
+from .utility_functions.utility import isNumber, is_number
+from .utility_functions.workers import show_error_message
 
-from .load_results import *
-from .path_report import *
 from datetime import datetime, timedelta
 
 def getSourceVars(source):
@@ -357,7 +366,7 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
     simulatedOutputs=loadSimulatedOutputs(config)
     
     if dlg.rbtn_customer.isChecked() or dlg.rbtn_energy_plant.isChecked():
-        if simulatedOutputs['power_c']==True:
+        if simulatedOutputs['power_c']:
             selected_items=dlg.listWidget_ids.selectedItems()
             if selected_items:
                 for item in dlg.listWidget_ids.selectedItems():
@@ -370,7 +379,7 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
             iface.messageBar().pushMessage("Info", "The customer`s load is not yet simulated in the current project version!", level=MessageInfo)
         
     networks=[dlg.combo_networks.itemText(i) for i in range(dlg.combo_networks.count()) if dlg.combo_networks.itemChecked(i)]               
-    if simulatedOutputs['heatbalance_system']==True:
+    if simulatedOutputs['heatbalance_system']:
         if dlg.rbtn_heatbalance.isChecked():
             if networks:
                 matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='heatbalance',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
@@ -378,7 +387,7 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
                 iface.messageBar().pushMessage("Info", "No network is selected!", level=MessageInfo)
     else:
         iface.messageBar().pushMessage("Info", "The heat balance is not yet simulated in the current project version!", level=MessageInfo)
-    if simulatedOutputs['massbalance_system']==True:
+    if simulatedOutputs['massbalance_system']:
         if dlg.rbtn_massbalance.isChecked():
             if networks:
                 matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='massbalance',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())

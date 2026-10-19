@@ -3,17 +3,38 @@ from qgis.PyQt.QtCore import Qt, QThreadPool
 from qgis.core import QgsDataSourceUri, QgsAuthMethodConfig, Qgis, QgsMessageLog
 from qgis.utils import iface
 
-from .update_boundaries import *
-from .ida_mosim import *
-from .utility_functions.db import *
-from .utility_functions.dialog import *
+import os
+import shutil
+import zipfile
+from pathlib import Path
+from qgis.core import QgsApplication
+from .update_boundaries import updateTemplateBoundaryValues
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import (
+    delIfNotInDBIds, getClimateData, getDropDownItems, getMaxId, getMaxTableValue, rowCountDB, setSeqIdToMax,
+)
+from .utility_functions.dialog import (
+    TableDialog, addTableRowTrace, checkIDADistrictsInstallation, closeDialog, copyTableRow,
+    deleteTableRowTrace, getMaxTableId, get_item_flag, qt_item_flag,
+)
+from .utility_functions.files import (
+    copyFile, copyFileReplaceStr, createDir, districtsModelerTempDir, loadModellingSettings,
+    moveFileReplaceStr, readFileToString, writeModellingSettings, writePropertyListIDMToFile, writeToFile,
+)
+from .utility_functions.ida_components import (
+    getCompClass, getCompName, getCompTemplate, getIDAListComponents, propertyListCompsIDM, setCompValue,
+)
+from .utility_functions.layer_visualization import loadProjectLayers, removeLayers, setupFeatureLayerDialog
+from .utility_functions.sensor_signals import templatesensorSignals
+from .utility_functions.topology import getConnsValues, getTemplatesByConnBundleType, getTemplatesByConnType
+from .utility_functions.translations import tr
+from .utility_functions.utility import (
+    checkSpecialCharacters, copy_tree_filter_extensions_and_folders, getTypeIdByName, isFloat, isNumber,
+    rmtree_long_path, strToDict,
+)
+from .utility_functions.workers import WorkerOpenModelCmd, show_error_message
 from .utility_functions.templateFiles import ExchangeConntypeFiles,WriteTemplateFiles, RenameTemplateFiles
-from .utility_functions.workers import *
 from .utility_functions.invoke import CopyTemplateFiles
-from .utility_functions.layer_visualization import *
-from .utility_functions.reports import *
-from .utility_functions.sensor_signals import *
-from .utility_functions.compat import *
 
 import traceback
 import pandas as pd
@@ -177,7 +198,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         result=cur.fetchall()
         
         #check for missing connections
-        missing={str(i['connection_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['description'] if i['description'] else '') for i in result if str(i['connection_id']) not in export_dict['connections'].keys()} # nosec B608
+        missing={str(i['connection_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p'] is None else i['p'],'NULL' if i['mdot'] is None else i['mdot'],i['description'] if i['description'] else '') for i in result if str(i['connection_id']) not in export_dict['connections'].keys()} # nosec B608
         export_dict['connections'] = export_dict['connections'] | missing
         
         #check for connection_type_connections
@@ -196,11 +217,11 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
             
     if export_dict['conn_bundle_types']:
         sql="""SELECT b_types.id, b_t_conns.sequence AS b_t_conns_seq, b_t_conns.conn_type_id, b_t_conns.description AS b_t_conns_description, c_type.description AS c_type_description,
-		ct_conns.sequence AS ct_conns_sequence, conns.id AS conn_id,
-		type, p_ctrl, temp, p, mdot, conns.description AS conn_description
-	FROM connection_type_connections ct_conns, connections conns, conn_bundle_types b_types, bundle_type_conns b_t_conns, connection_types c_type
-	WHERE b_types.id IN ({}) AND c_type.id=ct_conns.connection_type_id AND ct_conns.connection_id=conns.id AND b_t_conns.conn_bundle_type_id=b_types.id AND b_t_conns.conn_type_id=ct_conns.connection_type_id
-	ORDER BY b_types.id,ct_conns.connection_type_id,b_t_conns.sequence,ct_conns.sequence;""".format(','.join(export_dict['conn_bundle_types'].keys())) # nosec B608
+        ct_conns.sequence AS ct_conns_sequence, conns.id AS conn_id,
+        type, p_ctrl, temp, p, mdot, conns.description AS conn_description
+    FROM connection_type_connections ct_conns, connections conns, conn_bundle_types b_types, bundle_type_conns b_t_conns, connection_types c_type
+    WHERE b_types.id IN ({}) AND c_type.id=ct_conns.connection_type_id AND ct_conns.connection_id=conns.id AND b_t_conns.conn_bundle_type_id=b_types.id AND b_t_conns.conn_type_id=ct_conns.connection_type_id
+    ORDER BY b_types.id,ct_conns.connection_type_id,b_t_conns.sequence,ct_conns.sequence;""".format(','.join(export_dict['conn_bundle_types'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
@@ -212,7 +233,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
                 export_dict['bundle_type_conns'][str(i['id'])]={str(i['conn_type_id']) : 'INSERT INTO bundle_type_conns (conn_bundle_type_id,sequence,conn_type_id) VALUES ($conn_bundle_type_id$,{},$conn_type_id$);'.format(i['b_t_conns_seq'])} # nosec B608
         
         #check for missing connections
-        missing={str(i['conn_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p']==None else i['p'],'NULL' if i['mdot']==None else i['mdot'],i['conn_description'] if i['conn_description'] else '') for i in result if str(i['conn_id']) not in export_dict['connections'].keys()} # nosec B608
+        missing={str(i['conn_id']) : "INSERT INTO connections (type,p_ctrl,temp,p,mdot,description) VALUES ({},{},{},{},{},'{}');".format(i['type'],i['p_ctrl'],i['temp'],'NULL' if i['p'] is None else i['p'],'NULL' if i['mdot'] is None else i['mdot'],i['conn_description'] if i['conn_description'] else '') for i in result if str(i['conn_id']) not in export_dict['connections'].keys()} # nosec B608
         export_dict['connections'] = export_dict['connections'] | missing
       
         #check for missing connection types
@@ -254,12 +275,12 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
     pipe_ids=[dlg.tableWidget_pipes.item(i,1).data(Qt.ItemDataRole.UserRole) for i in range(dlg.tableWidget_pipes.rowCount()) if dlg.tableWidget_pipes.cellWidget(i,0).isChecked()]
     if pipe_ids:
         sql="""SELECT p.id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
-	l.materialid, l.thickness, l.sequence, 
-	m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3,
-	c.name AS construction_name
-	FROM pipes p, pipe_layers l, materials m, pipe_constructions c
-	WHERE p.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id
-	ORDER BY p.id, l.sequence;""".format(','.join(pipe_ids)) # nosec B608
+    l.materialid, l.thickness, l.sequence, 
+    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3,
+    c.name AS construction_name
+    FROM pipes p, pipe_layers l, materials m, pipe_constructions c
+    WHERE p.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id
+    ORDER BY p.id, l.sequence;""".format(','.join(pipe_ids)) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
@@ -292,13 +313,13 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
             
     if export_dict['pipe_bundle_types']:
         sql="""SELECT p_bundles.id, p_bundles.description, bp.sequence AS pipe_seq, x, y ,ambient ,
-	p.id AS pipe_id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
-	l.materialid, l.thickness, l.sequence AS layer_seq, 
-	m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3,
-	c.name AS construction_name
-	FROM pipes p, pipe_layers l, materials m, pipe_constructions c, bundle_pipes bp, pipe_bundle_types p_bundles
-	WHERE p_bundles.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id AND bp.pipe_bundle_type_id=p_bundles.id AND p.id=bp.pipe_id
-	ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(','.join(export_dict['pipe_bundle_types'].keys())) # nosec B608
+    p.id AS pipe_id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
+    l.materialid, l.thickness, l.sequence AS layer_seq, 
+    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3,
+    c.name AS construction_name
+    FROM pipes p, pipe_layers l, materials m, pipe_constructions c, bundle_pipes bp, pipe_bundle_types p_bundles
+    WHERE p_bundles.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id AND bp.pipe_bundle_type_id=p_bundles.id AND p.id=bp.pipe_id
+    ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(','.join(export_dict['pipe_bundle_types'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
@@ -551,7 +572,7 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.statusMessage.setText('Climate data is successfully updated!')
         main.dlg.update_progress(100)
         closeDialog(dlg)
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -884,7 +905,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     #print(sql)
     try:
         cur.execute(sql)
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -988,7 +1009,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
     #print('show table content')
-    sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns==None else columns[1:-1],table)# nosec B608
+    sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns is None else columns[1:-1],table)# nosec B608
     cur=conn.cursor()
     cur.execute(sql) 
     data = cur.fetchall()
@@ -1013,7 +1034,7 @@ def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=
                 if dlg.trace_type:
                     traceTableValues[rowPosition][col]=[currentText,'']
             else:
-                if row[col]==None:
+                if row[col] is None:
                     value=''
                 else:
                     value=str(row[col])
@@ -1173,7 +1194,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
         sql+='\n'.join(dict(sorted(row_dict.items())).values())
         #print(sql)
         main.cur.execute(sql)
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -1207,7 +1228,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
                         try:
                             os.rename(file_src, file_tar)
                             os.rename(templates_dir+'{}'.format(dlg.traceTableValues[row][1][0]), templates_dir+'{}'.format(dlg.traceTableValues[row][1][1]))
-                        except:
+                        except Exception:
                             iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=MessageCritical)     
     main.dlg.statusMessage.setText(tr('@default','data_saved_successfully'))
     dlg.close()
@@ -1304,7 +1325,7 @@ def showConnectionsContent(dlg,dropdowns,conn,cur_dict):
                 comboBox.currentIndexChanged.connect(dlg.changedDropdownItem)            
             elif col==2:
                 checkBox=QCheckBox()
-                if row[col]==True:
+                if row[col]:
                     checkBox.setChecked(True)
                 checkBox.stateChanged.connect(dlg.changedCheckboxState)
                 dlg.tableWidget.setCellWidget(rowCount, col, checkBox)
@@ -1312,18 +1333,18 @@ def showConnectionsContent(dlg,dropdowns,conn,cur_dict):
                 #print('--else--')
                 #print(col)
                 #print(row[col])
-                item=QTableWidgetItem('' if row[col]==None else str(row[col]))
+                item=QTableWidgetItem('' if row[col] is None else str(row[col]))
                 if col == 0:
                     item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
-                elif col == 4 and row[2]==True:
+                elif col == 4 and row[2]:
                     item.setFlags(item.flags() & ~qt_item_flag("ItemIsEnabled"))
 
-                elif col == 5 and row[2]==False:
+                elif col == 5 and row[2] is not None and not row[2]:
                     item.setFlags(item.flags() & ~qt_item_flag("ItemIsEnabled"))
 
                 dlg.tableWidget.setItem(rowCount , col, item)
         
-        dlg.traceTableValues[rowCount]= ['' if row[4]==None else str(row[4]),'','' if row[5]==None else str(row[5]),'',str(row[3]),'',row[2],'',str(row[1]),''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
+        dlg.traceTableValues[rowCount]= ['' if row[4] is None else str(row[4]),'','' if row[5] is None else str(row[5]),'',str(row[3]),'',row[2],'',str(row[1]),''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
         rowCount+=1
     #print(dlg.traceTableValues)
         
@@ -1346,7 +1367,7 @@ def showDefaults(dlg,defaults,template_name,cur,config):
                 
                 try:
                     items={key : text.split(':')[0]+':'+tr("@default",text.split(':')[1]) for key,text in dropdownItems[0].items()}
-                except:
+                except Exception:
                     items={key : tr("@default",text) for key,text in dropdownItems[0].items()}
                 
                 # Add items to the combobox, storing the original key as user data
@@ -1360,12 +1381,12 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
         value=""
         try:
             value=dlg.input[input].currentText()
-        except:
+        except Exception:
             if dlg.input[input].text().isnumeric():
                 value=dlg.input[input].text()
         try:
             value=value.split(':')[0]
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

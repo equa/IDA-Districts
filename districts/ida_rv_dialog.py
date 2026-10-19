@@ -1,12 +1,23 @@
-from qgis.PyQt.QtWidgets import QTextEdit,QDialog,QGroupBox, QButtonGroup,QSpinBox,QShortcut,QListWidgetItem,QListWidget, QTabWidget, QTableWidgetItem,QTableWidget,QTreeView,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox, QProgressBar, QCheckBox,QRadioButton
+from qgis.PyQt.QtWidgets import QTextEdit, QDialog, QGroupBox, QButtonGroup, QSpinBox, QShortcut, QListWidgetItem, QListWidget, QTabWidget, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar, QRadioButton
 from qgis.utils import iface
 from qgis.core import Qgis, QgsMessageLog, QgsWkbTypes, QgsProperty, QgsSymbolLayer, QgsLineSymbol, QgsSymbol, QgsGraduatedSymbolRenderer, QgsStyle, QgsTemplatedLineSymbolLayerBase, QgsMarkerSymbol, QgsSimpleMarkerSymbolLayer, QgsMarkerLineSymbolLayer, QgsRuleBasedRenderer, QgsClassificationQuantile, QgsTextFormat, QgsInterval, QgsDateTimeRange, QgsTemporalNavigationObject, QgsVectorLayerSimpleLabeling, QgsPalLayerSettings
 
-from .utility_functions.dialog import *
-from .utility_functions.translations import *
-from .utility_functions.topology import *
-from .utility_functions.show_on_map import *
-from .utility_functions.thermal_properties import *
+import os
+import numpy as np
+from qgis.PyQt import QtCore, QtWidgets, uic
+from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsProject
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import getNetworkInfo, getPlantIds, getResultVars, getTableAttr
+from .utility_functions.dialog import CheckableComboBox, addTableRow, checkState
+from .utility_functions.files import loadModellingSettings
+from .utility_functions.show_on_map import renderMapPlot
+from .utility_functions.thermal_properties import MelinderFluidEstimator
+from .utility_functions.topology import (
+    getConnBundlesByType, getConnSequencesByConnType, getConnTypesByConnBundleType, getConnTypesByFeature,
+)
+from .utility_functions.translations import tr
+from .utility_functions.utility import getDatetimeFromString
 
 from decimal import Decimal
 from qgis.PyQt.QtGui import QFont, QColor
@@ -536,7 +547,7 @@ class ShowOnMapDialog(QDialog):
         try:
             # convenience
             layer = worker.temp_layer
-        except:
+        except Exception:
             layer=None
 
         # 0) make sure layer exists
@@ -556,7 +567,7 @@ class ShowOnMapDialog(QDialog):
             try:
                 layer.commitChanges()
                 #print("Committed pending edits.")
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -784,12 +795,12 @@ class ShowOnMapDialog(QDialog):
                 if current_max_time<time['min']:
                     self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                     self.endtime.setText(str(time['max']))
-            except:
+            except Exception:
                 self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
                 self.starttime.setText(str(time['min']))
                 self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                 self.endtime.setText(str(time['max']))
-        except:
+        except Exception:
             self.label_starttime.setText('Start time, h')
             self.label_endtime.setText('End time, h')
             
@@ -808,12 +819,12 @@ class ShowOnMapDialog(QDialog):
                 if current_max_time<time['min']:
                     self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                     self.endtime.setText(str(time['max']))
-            except:
+            except Exception:
                 self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
                 self.starttime.setText(str(time['min']))
                 self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                 self.endtime.setText(str(time['max']))
-        except:
+        except Exception:
             self.label_starttime.setText('Start time, h')
             self.label_endtime.setText('End time, h')
             
@@ -832,12 +843,12 @@ class ShowOnMapDialog(QDialog):
                 if current_max_time<time['min']:
                     self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                     self.endtime.setText(str(time['max']))
-            except:
+            except Exception:
                 self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
                 self.starttime.setText(str(time['min']))
                 self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
                 self.endtime.setText(str(time['max']))
-        except:
+        except Exception:
             self.label_starttime.setText('Start time, h')
             self.label_endtime.setText('End time, h')
 

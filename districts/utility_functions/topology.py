@@ -1,9 +1,11 @@
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT     
 import psycopg2.extras
-from .utility import *
-from .db import *
-from .layer_visualization import *
+from qgis.core import QgsProject
+from .db import dropDBTriggers, insertDBTriggers
+from .layer_visualization import removeTempLayers
+from .translations import tr
+from .utility import getTemplateNameById, getTypeIdByName, getTypeNameById
 from qgis.PyQt.QtWidgets import QMessageBox
 
 def saveTempTables(cur,config):
@@ -173,17 +175,17 @@ def getConnSequencesByConnType(cur,conn_type):
     
 def getConnTypeConnValues(cur,ids):
     sql="""SELECT conn_t_conns.connection_type_id, conn_t_conns.connection_id , conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
-	FROM connections conns, connection_type_connections conn_t_conns
-	WHERE conn_t_conns.connection_id=conns.id AND conn_t_conns.connection_type_id IN ({})
-	ORDER BY conn_t_conns.sequence;""".format(','.join([str(id) for id in ids])) # nosec B608
+    FROM connections conns, connection_type_connections conn_t_conns
+    WHERE conn_t_conns.connection_id=conns.id AND conn_t_conns.connection_type_id IN ({})
+    ORDER BY conn_t_conns.sequence;""".format(','.join([str(id) for id in ids])) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
 def getConnValues(bundle,conn_id,cur):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id
-	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
-	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id {}
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle,'AND conns.id='+conn_id if not conn_id=='X' else '') # nosec B608
+    FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+    WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id {}
+    ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle,'AND conns.id='+conn_id if not conn_id=='X' else '') # nosec B608
     cur.execute(sql)
     return cur.fetchone()
 
@@ -192,9 +194,9 @@ def getConnsValuesByFeature(type_id,feature_id,cur,config):
     
 def getConnsValues(bundle,cur):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_type_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id, conns.p_ctrl
-	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
-	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
+    FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+    WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+    ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     
@@ -219,9 +221,6 @@ def getConnTypesByConnBundleType(cur,config,c_b_type):
     sql="""SELECT conn_type_id FROM bundle_type_conns WHERE conn_bundle_type_id={} ORDER BY sequence;""".format(c_b_type) # nosec B608
     cur.execute(sql)
     return [str(i['conn_type_id']) for i in cur.fetchall()]
-    
-def getBundleValuesByFeature(type_id,feature_id,cur,config):
-    return getConnValues(getConnBundleByFeature(type_id,feature_id,cur,config),conn_id,cur)
     
 def getConnTypeSeqFromBundle(cur,config,c_b_type,conn_type):
     sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type) # nosec B608
@@ -289,15 +288,15 @@ def getConntypesByTemplate(feature,template,cur):
     sql="""SELECT conn_b_t.conn_type_id
     FROM {}_templates t, bundle_type_conns conn_b_t
     WHERE conn_b_t.conn_bundle_type_id=conn_bundle_type AND t.template={}
-	ORDER BY conn_b_t.sequence;""".format(feature,template) # nosec B608
+    ORDER BY conn_b_t.sequence;""".format(feature,template) # nosec B608
     cur.execute(sql)
     return [i['conn_type_id'] for i in cur.fetchall()]
     
 def getConnsByConntype(conntypes,cur,directions=['1']):
     sql="""SELECT conns.id
     FROM connection_type_connections conn_t_conns, connections conns
-	WHERE conns.type IN ({}) AND conns.id=conn_t_conns.connection_id AND conn_t_conns.connection_type_id IN ({})
-	ORDER BY sequence;""".format(','.join(directions),','.join([str(i) for i in conntypes])) # nosec B608
+    WHERE conns.type IN ({}) AND conns.id=conn_t_conns.connection_id AND conn_t_conns.connection_type_id IN ({})
+    ORDER BY sequence;""".format(','.join(directions),','.join([str(i) for i in conntypes])) # nosec B608
     cur.execute(sql)
     return [i['id'] for i in cur.fetchall()]
 
@@ -354,8 +353,8 @@ def getConnsValuesByTemplate(feature,template,cur,config):
     
 def getMeterName(cur,conn_bundle_type,conn_type):
     sql="""SELECT conn_bundle_type_id, sequence
-	FROM bundle_type_conns
-	WHERE conn_bundle_type_id = {} AND conn_type_id={};""".format(conn_bundle_type,conn_type) # nosec B608
+    FROM bundle_type_conns
+    WHERE conn_bundle_type_id = {} AND conn_type_id={};""".format(conn_bundle_type,conn_type) # nosec B608
     cur.execute(sql)
     connValues=cur.fetchall()
     if connValues:
@@ -366,9 +365,9 @@ def getMeterName(cur,conn_bundle_type,conn_type):
         
 def getPMT2muxName(cur,conn_bundle_type,connection_id):
     sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence AS conn_t_seq, b_t_conns.conn_type_id, conn_t_conns.sequence AS conn_seq, conns.temp
-	FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
-	WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
-	ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type,connection_id) # nosec B608
+    FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
+    WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.connection_id={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
+    ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(conn_bundle_type,connection_id) # nosec B608
     cur.execute(sql)
     connValues=cur.fetchall()
     if connValues:
@@ -387,7 +386,7 @@ def getConnsValuesIdentTypeDict(cur,conn_bundle_type):
 def getPMT2muxIdentFromConnValues(connValues,conn_seq,conn_t_seq=1):
     try:
         return ["{}_{}_{}_{}".format(connValue['conn_bundle_type_id'],connValue['conn_type_seq'],connValue['conn_type_id'],connValue['conn_seq']) for connValue in connValues if conn_seq==connValue['conn_seq'] and connValue['conn_type_seq']==conn_t_seq][0]
-    except:
+    except Exception:
         return ''
         
 def checkLineDirectionTopology(cur,version,tolerance,signals,network):
@@ -464,7 +463,7 @@ SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo) # nosec B608
                 sql='UPDATE temp.streets_help SET geom = ST_Reverse(geom) WHERE id={};'.format(lid) # nosec B608
                 #print(sql)
                 cur.execute(sql)
-        except:
+        except Exception:
             signals.error.emit("Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.")
             #print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
             pass

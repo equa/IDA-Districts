@@ -2,12 +2,24 @@ import psycopg2
 import psycopg2.extras
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from .utility_functions.files import *
-from .utility_functions.db import *
-from .utility_functions.dialog import *
-from .utility_functions.topology import *
+from .update_sensors import getStoredSensorTableValues, writeSensorsToDB
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import (
+    dbConnect, getLineIds, getMaxId, getTemplateNameByTemplateId, getTemplateNames, getUsedFeatureTemplates,
+    getUsedFilteredFeatureTemplates,
+)
+from .utility_functions.files import (
+    readFileToString, writePropertyListIDMToFile, writeRequestedOutputs, writeToFileFromList,
+)
+from .utility_functions.ida_components import (
+    getCompClass, getCompName, getCompPerName, getCompTemplate, getIDAListComponents, propertyListCompsIDM,
+)
+from .utility_functions.topology import (
+    getConnBundleByTemplate, getConnsByConntype, getConnsValues, getConntypesByTemplate, getUsedConnTypes,
+    getUsedConnectionsFilteredByDirection,
+)
+from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
 from .utility_functions.workers import APISignals
-from .update_sensors import *
 
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis
@@ -136,7 +148,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
  (:VAR :N OUTSIGNAL :L "Qsup_c_kpi_outputfile" :AS "Qsup_c")
  (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 :MACRO "Qsup_c_pos" TOTENERGY) (2 :MACRO "Qsup_c_neg" TOTENERGY)))))\n""")
             filedata.append("""(OUTPUT-FILE :N "Qsup_c_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -254,7 +266,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
  (:VAR :N OUTSIGNAL :L "Qsup_ep_kpi_outputfile" :AS "Qsup_ep")
  (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 :MACRO "Qsup_ep_pos" TOTENERGY) (2 :MACRO "Qsup_ep_neg" TOTENERGY)))))\n""")
             filedata.append("""(OUTPUT-FILE :N "Qsup_ep_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -392,7 +404,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
             filedata.append("""\n(CONNECTION-LINE :AT (({} 84) ({} 84) ({} 96) ({} 96)) :FIRST-LINK ("Qsup_c_sepsign" (1 0.781) NEGSIGNALLINK) :LAST-LINK ("Qsup_c_neg" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-33))
         if requestedOutputs['qsup_c_kpi'] or requestedOutputs['qsup_spec_c_kpi'] or requestedOutputs['qsup_density_c_kpi'] or requestedOutputs['qsup_linedensity_c_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 75)) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Qsup_c_sum") :NAME "Qsup_c_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -472,7 +484,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
             filedata.append("""\n(CONNECTION-LINE :AT (({} 184) ({} 184) ({} 196) ({} 196)) :FIRST-LINK ("Qsup_ep_sepsign" (1 0.781) NEGSIGNALLINK) :LAST-LINK ("Qsup_ep_neg" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-50,x_coord-44,x_coord-44,x_coord-33))
         if requestedOutputs['qsup_ep_kpi']:
             filedata.append("""\n(EQUATION-FRAME :AT (({} 175)) :R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("Qsup_ep_sum") :NAME "Qsup_ep_sum" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """.format(x_coord+23))
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -1154,7 +1166,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         try:
                                             del i[':L']
                                             del i[':AS']
-                                        except:
+                                        except Exception:
                                             QgsMessageLog.logMessage(
                                                 traceback.format_exc(),
                                                 "Districts",
@@ -1171,7 +1183,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                     if getCompName(i)=='|TRoom|':
                                         try:
                                             del i[':L']
-                                        except:
+                                        except Exception:
                                             QgsMessageLog.logMessage(
                                                 traceback.format_exc(),
                                                 "Districts",
@@ -1302,7 +1314,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                         else:
                             data_idm.append(comp)
                         writePropertyListIDMToFile(data_idm,dir+t_name,fname,self.config)
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",

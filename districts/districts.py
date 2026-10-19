@@ -28,34 +28,84 @@ from qgis.PyQt.QtCore import Qt,QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon,QPixmap
 from qgis.core import QgsRasterLayer, QgsMapSettings, QgsMapRendererParallelJob, QgsCoordinateTransform, QgsProject, Qgis, QgsMessageLog
 from qgis.PyQt.QtGui import QImage
-from qgis.PyQt.QtCore import Qt  # Qt.GlobalColor lives here
 from functools import partial
 from qgis.PyQt.QtWidgets import QShortcut  
 
 # Import the code for the dialog
-from .utility_functions.switch_debug_mode import *
-from .utility_functions.compat import *
-from .districts_dialog import *
-from .ida_ph_dialog import *
-from .ida_resources_dialog import *
-from .ida_pp_dialog import *
-from .ida_mosim_dialog import *
-from .ida_pp import *
-from .ida_ph import *
-from .ida_mosim import *
-from .ida_resources import *
-from .ida_import import *
-from .ida_import_dialog import *
-from .ida_rv import *
-from .ida_rv_dialog import *
-from .osm import *
-from .load_results import *
-from .elevation_data import *
-from .update_sensors import *
-from .utility_functions.dialog import *
-from .utility_functions.db import *
-from .utility_functions.invoke import *
-from .utility_functions.files import *
+import psycopg2
+from qgis.PyQt.QtCore import QThreadPool
+from qgis.PyQt.QtGui import QKeySequence
+from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.core import QgsApplication, QgsAuthMethodConfig
+from qgis.utils import iface
+from .calibrate_customers import (
+    loadCustomerCalibrationData, openResult, openTemplateParmrun, saveCalibValues, startCalibration,
+)
+from .districts_dialog import DistrictsDialog, DistrictsSettingsDialog
+from .elevation_data import WorkerImportElevationData
+from .ida_import import generatePipebundleTyps, getImportLayer, importLayerToDb, setLayerListAttributes
+from .ida_import_dialog import (
+    ImportGeoDataDlg, ImportNetworkTopologyFromLayer, ImportPointLayer, PipeBundleEditor,
+)
+from .ida_mosim import (
+    addBoreholefieldTableRow, buildModel, openSupervisoryCtrl, runModel, setBoreholeFieldSettings,
+    setModellingSettings, setRequestedOutputs, showBoreholeFieldSettingsData,
+)
+from .ida_mosim_dialog import (
+    BuildNetworkModelDialog, CalibrateCustomers, FeatureModelParmDlg, ModellingSettings,
+    RequestedOutputsDialog, RunNetworkModelDialog,
+)
+from .ida_ph import (
+    addBaseVersion, createNewProject, deleteProject, exportProject, finishedImportProject, getDescription,
+    getVersionData, importData, loadVersion, saveProjectConfigSettings, showProjectConfigData, treeItem_add,
+    treeItem_delete, treeItem_load, treeItem_rename, treeItem_saveAs,
+)
+from .ida_ph_dialog import (
+    ApproveDialog, ExportProjectDialog, IDA_Districts_NameDialog, NewProjectDlg, ProjectConfigDialog,
+)
+from .ida_pp_dialog import MapFeaturesDialog, NetworkTopologyDialog, PipeLayingDialog, PipeSizingDlg
+from .ida_resources import (
+    addConnectionsTableRow, exportResources, importResources, openClimateMacro, saveConnectionsTable,
+    showConnectionsContent, showDefaults, show_TableCurrentRowDialog, show_TableDialog, show_templateDialog,
+    writeClimateDataToDB, writeDefaultsToDB,
+)
+from .ida_resources_dialog import (
+    ClimateDialog, ConnectionsDialog, DefaultsDialog, ExportResourcesDialog, ImportResourcesDialog,
+)
+from .ida_rv import (
+    addID, addSelectedIDs, dataSourceDialog, deleteIDs, importMeasurementData, loadFeatureIds, loadResults,
+    plotLoadProfiles, runPathReports, showOnMap,
+)
+from .ida_rv_dialog import (
+    IDADistrictsPathReportsDialog, ImportMeasuremntsDialog, LoadResultsDialog, NetworkReportDialog,
+    PlotLoadProfilesDialog, ShowOnMapDialog,
+)
+from .osm import WorkerOSMBuildingsImport, WorkerOSMStreetsImport
+from .pipe_sizing import loadPipes, rejectPipeSizingResults, savePipeSizingResults, startPipeSizing
+from .update_sensors import UpdateSensors
+from .utility_functions.compat import ApplicationShortcut, MessageCritical, MessageInfo, QAction
+from .utility_functions.db import (
+    connectDBPostgres, dbConnect, getClimateData, getNetworks, getUsedNetworkSubmodels,
+    updateProjectNamesList,
+)
+from .utility_functions.dialog import (
+    TableDialog, addParmTableRow, checkIDADistrictsInstallation, closeDialog, deleteSelectedTableRow,
+    deleteTableRow, deleteTableRowTrace, load_image,
+)
+from .utility_functions.files import (
+    districtsModelerTempDir, getBuildingFileSubmodels, getNetworkFileSubmodels, loadModellingSettings,
+    loadProjectConfig, loadRequestedOutputs,
+)
+from .utility_functions.invoke import InvokeFeatures, setFeatureParm
+from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer, removeLayers
+from .utility_functions.reports import networkReport
+from .utility_functions.switch_debug_mode import switchDebugMode
+from .utility_functions.topology import getLayerAttributesName
+from .utility_functions.translations import tr
+from .utility_functions.utility import (
+    checkToolPaths, load_plugin_settings, standardizePath, write_plugin_settings,
+)
+from .utility_functions.workers import WorkerImportProject, WorkerOpenModelCmd, show_error_message
 import os.path
 import webbrowser
 import traceback
@@ -189,7 +239,7 @@ class Districts:
                     return
 
             #print(f"Tab not found: {tab_name}")
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                                     traceback.format_exc(),
                                     "Districts",
@@ -404,7 +454,7 @@ class Districts:
             item=self.model.itemFromIndex(self.dlg.treeViewVersions.selectedIndexes()[0])
             #print(item)
             self.deleteVersionDialog(item)
-        except:
+        except Exception:
             iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
             #print('No item selected!')
 
@@ -440,7 +490,7 @@ class Districts:
             mdlIdx=self.dlg.treeViewVersions.selectedIndexes()[0]
             item=self.model.itemFromIndex(mdlIdx)
             treeItem_load(item, mdlIdx,self)
-        except:
+        except Exception:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
             #print('No item selected!')
 
@@ -454,7 +504,7 @@ class Districts:
                 index = index.parent()
                 level += 1
             self.treeItem_renameDialog(level, mdlIdx,item)
-        except:
+        except Exception:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
             #print('No item selected!')
 
@@ -720,7 +770,7 @@ class Districts:
                 url="https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_help/Districts_Modeler_help/Districts_Modeling-Simulation/"
             elif tab_name=='tab_results_visualization':
                 url="https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_help/Districts_Modeler_help/Districts_Results-Visualization/"
-        except:
+        except Exception:
             url = "https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_GS/"
         webbrowser.open(url)
 
@@ -930,7 +980,7 @@ class Districts:
             #print(dlg.auth_dict)
             authId=dlg.auth_dict[dlg.comboBox_AuthId.currentText()]
             settings.setValue("auth_id", authId)
-        except:
+        except Exception:
             authId=''
             settings.setValue("auth_id", authId)
         settings.endGroup()
@@ -996,7 +1046,7 @@ class Districts:
             self.projectConfig = loadProjectConfig(self.config) 
             self.dlg.btn_sridProject.setText('EPSG: '+str(self.projectConfig['srid']))
             self.dlg.statusMessage.setText(tr('@default','project_loaded').format(self.config['projectName']))
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -1410,7 +1460,7 @@ class Districts:
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
+        if self.first_start:
             self.first_start = False
             self.dlg = DistrictsDialog(self.plugin_dir)
             
@@ -1425,7 +1475,7 @@ class Districts:
             
             try: 
                 self.dlg.btn_sridProject.setText('EPSG: '+str(self.projectConfig['srid']))
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                                     traceback.format_exc(),
                                     "Districts",

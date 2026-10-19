@@ -1,7 +1,14 @@
-from .files import *
-from .translations import *
-from .db import *
-from .reports import *
+import os
+from qgis.core import (
+    QgsAction, QgsApplication, QgsAttributeEditorAction, QgsAuthMethodConfig, QgsProperty,
+    QgsSimpleMarkerSymbolLayer, QgsSymbolLayer,
+)
+from .compat import MessageCritical
+from .db import getNetworks, getPlantIds, getTemplatesInfo
+from .files import loadProjectConfig
+from .reports import setupCustomerDataSheet
+from .translations import tr
+from .utility import strToDict
 from qgis.core import  Qgis, QgsMessageLog, QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
@@ -164,7 +171,7 @@ def updateTableSrid(versions,cur,srid):
             #print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -180,7 +187,7 @@ def updateTableSrid(versions,cur,srid):
         #print(sql_temp.replace("%table%",table))
         try:
             cur.execute(sql_temp.replace("%table%",table))
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -478,7 +485,7 @@ def showTempTables(uri,config,plugin_dir,signals,cur):
         QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
 
         loadProjectLayers('temp',uri,config,plugin_dir,cur,auth_cfg.config("username"))  
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -617,7 +624,7 @@ def updateNetworkDependingFields(cur,config):
         constraint_expression_dict = getConstraintExpressionDict(networks_array_constraint)
         setFieldConstraints(constraint_expression_dict)
         setFieldDefaultValues(getDefaultValueDict(network_default, energy_plant_template,customer_template,line_type))
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -634,7 +641,7 @@ def featureLayerGroups(vlayerName,cur,config):
             return {tr('@default',i[colmn]):i[colmn] for i in cur.fetchall()}
         else:
             return {tr('@default','network')+': '+str(i[colmn]) : i[colmn] for i in cur.fetchall()}
-    except:
+    except Exception:
         return {}
     
 def featureLayerGroupIds(vlayerName,cur,config):
@@ -645,7 +652,7 @@ def featureLayerGroupIds(vlayerName,cur,config):
         #print(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]    
-    except:
+    except Exception:
         return []
         
 def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
