@@ -1113,35 +1113,42 @@ if filenames:
 
 layoutItemPolygon = QgsLayoutItemPolygon(polygon, layout)
 layout.addLayoutItem(layoutItemPolygon)
-picture_height=0
+max_picture_width=170  # content width between the 20mm and 190mm margins
+page_height=297
+page_margin=20
+current_page=0
+current_y=needed_table_height+165
 for filename in filenames:
-    #Create a layout picture item
-    picture = QgsLayoutItemPicture(layout)
-    # Set the image file path
-    picture.setPicturePath(filename+'.svg')
-    svg_width_mm, svg_height_mm = get_svg_size(filename+'.svg')
-    picture.attemptMove(QgsLayoutPoint(20, needed_table_height+165+picture_height))  # position in mm
+    if os.path.exists(filename):
+        #Create a layout picture item
+        picture = QgsLayoutItemPicture(layout)
+        # Set the image file path
+        picture.setPicturePath(filename)
+        svg_width_mm, svg_height_mm = get_svg_size(filename)
 
-    # Set size from SVG
-    if svg_width_mm and svg_height_mm:
-        scale = 0.8
-        if needed_table_height+165+picture_height+svg_height_mm * scale >297:
-        # Create a new page
+        # Scale SVG to the content width, keeping its aspect ratio
+        if svg_width_mm and svg_height_mm:
+            picture_width = max_picture_width
+            picture_height = svg_height_mm * picture_width / svg_width_mm
+        else:
+            # fallback size
+            picture_width = 80
+            picture_height = 50
+
+        if current_y+picture_height > page_height-page_margin:
+            # Create a new page and continue at its top
             new_page = QgsLayoutItemPage(layout)
-
-            # Optional: set size and orientation (default is A4 Portrait)
             new_page.setPageSize('A4', QgsLayoutItemPage.Orientation.Portrait)
             layout.pageCollection().addPage(new_page)
-        picture.attemptResize(QgsLayoutSize(svg_width_mm*scale, svg_height_mm*scale))
-        picture_height+=svg_height_mm * scale+5
-    else:
-        # fallback size
-        picture.attemptResize(QgsLayoutSize(80, 50))
-        picture_height+=55
-    #Set position and size (optional)
+            current_page += 1
+            current_y = page_margin
 
-    #Add picture to layout
-    layout.addLayoutItem(picture)
+        picture.attemptResize(QgsLayoutSize(picture_width, picture_height))
+        picture.attemptMove(QgsLayoutPoint(20, current_y), page=current_page)  # position in mm
+        current_y += picture_height+5
+
+        #Add picture to layout
+        layout.addLayoutItem(picture)
 
 export_path=districtsModelerTempDir()
 #print(export_path)

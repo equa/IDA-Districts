@@ -47,7 +47,7 @@ def matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer',show_p
     scaling=0.001
     for p_table_name in p_table_names:
         #try:
-        #print(p_table_name)
+        print(p_table_name)
         sql = """
 SELECT
     time,
@@ -57,7 +57,7 @@ FROM "{}"."{}"
 WHERE fid={}
 ORDER BY time;
         """.format(config['versionName'], p_table_name, id) # nosec B608               
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         data=cur.fetchall()
         
@@ -161,14 +161,20 @@ ORDER BY time;
         
         # ax2-Legende (Energy + ggf. QGIS Zeit-Linie) oben rechts
         ax2.legend(loc='upper right')
+        print('finished')
 
+        if save_plot and not show_plot:
+            # Render larger than the 170 mm report width; scaling it down there gives ~7pt fonts
+            font_scale=1.4
+            fig.set_size_inches(font_scale*170/25.4, font_scale*110/25.4)
 
         plt.tight_layout()
         if show_plot:
             plt.show()
-        
+
         if save_plot:
-            filename=districtsModelerTempDir()+p_table_name
+            filename=districtsModelerTempDir()+p_table_name+'.svg'
+            print(filename)
             fig.savefig(filename, format='svg')
             filenames.append(filename)
             
