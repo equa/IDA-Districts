@@ -14,6 +14,8 @@ def _register_translation_keys():
     tr("variables")
     tr("alias")
     tr("sequence")
+    tr("no_pipe")
+    tr("no_pipe_bundles_found")
     tr("name")
     tr("networks")
     tr("templates")
@@ -201,6 +203,7 @@ def _register_translation_keys():
     #buttons
     tr("set_load_attribute")
     tr("set_gfa_attribute")
+    tr("style_pipe_diameter")
     tr("customer_data_sheet")
     tr("disconnect")
     tr("import")

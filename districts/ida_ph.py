@@ -1,4 +1,4 @@
-from qgis.core import QgsProperty, QgsVectorLayer, QgsProject, QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, Qgis, QgsMessageLog
+from qgis.core import QgsProperty, QgsVectorLayer, QgsProject, QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, Qgis, QgsMessageLog, QgsStyle
 from qgis.PyQt.QtWidgets import QButtonGroup
 
 from qgis.PyQt.QtCore import QThreadPool
@@ -20,8 +20,9 @@ from .utility_functions.dialog import closeDialog
 from .utility_functions.files import createDir, districtsModelerTempDir, loadProjectConfig, writeProjectConfig
 from .utility_functions.layer_visualization import (
     extract_group_fields, loadBoreholesLayer, loadLayersConfig, loadProjectLayers, loadTopologyLayers,
-    removeLayers, setupCustomerGFAValue, setupCustomerLoadValue, setupFeatureLayerDialog, setupVersionForm,
-    updateTableSrid, valueRelationPipeBundleType, versionLayersAliasNames, writeLayersConfig,
+    removeLayers, setupCustomerGFAValue, setupCustomerLoadValue, setupFeatureLayerDialog, setupPipeDiameterStyleAction,
+    setupVersionForm, stylePipeDiameter, updateTableSrid, valueRelationPipeBundleType, versionLayersAliasNames,
+    writeLayersConfig,
 )
 from .utility_functions.reports import setupCustomerDataSheet
 from .utility_functions.translations import tr
@@ -59,6 +60,22 @@ class ShowGFAAttributeDialog:
         self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
         self.dlg.show()
     
+class ShowPipeDiameterStyleDialog:
+    def __init__(self):
+        self.dlg=PipeDiameterStyleDialog()
+
+        self.dlg.btn_ok.clicked.connect(lambda: setPipeDiameterStyle(self.dlg))
+        self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
+        self.dlg.exec()
+
+def setPipeDiameterStyle(dlg):
+    if not stylePipeDiameter(dlg.cur, sequence=dlg.spinBox_sequence.value(), only_used=dlg.checkBox_onlyUsed.isChecked(),
+                             show_labels=dlg.checkBox_showLabels.isChecked(), ramp_name=dlg.comboBox_colorRamp.currentText(),
+                             invert_ramp=dlg.checkBox_invertRamp.isChecked()):
+        iface.messageBar().pushMessage(tr('@default','style_pipe_diameter'), tr('@default','no_pipe_bundles_found'), level=MessageInfo, duration=5)
+        return
+    closeDialog(dlg)
+
 def setLoadAttribute(dlg,fid):
     sql=""
     if dlg.radioButton_existingAttribute.isChecked():
@@ -161,6 +178,31 @@ class LoadAttributeDialog(QDialog):
         self.label_newAttribute.setHidden(showExistingAttribute)
         self.lineEdit_newAttribute.setHidden(showExistingAttribute)
         
+class PipeDiameterStyleDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.config=load_plugin_settings()
+        self.conn=dbConnect(self.config,True)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "districts_stylePipeDiameter.ui")
+        uic.loadUi(ui_path, self)
+
+        ramp_names=QgsStyle.defaultStyle().colorRampNames()
+        if 'Turbo' not in ramp_names:
+            ramp_names=['Turbo']+ramp_names
+        self.comboBox_colorRamp.addItems(ramp_names)
+        self.comboBox_colorRamp.setCurrentText('Turbo')
+
+        # limit the sequence to the pipe sequences existing in the pipe bundles
+        self.cur.execute("""SELECT min(sequence) AS min, max(sequence) AS max FROM public.bundle_pipes;""")
+        row=self.cur.fetchone()
+        if row and row['max'] is not None:
+            self.spinBox_sequence.setRange(int(row['min']),int(row['max']))
+
 class GFAAttributeDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -765,6 +807,7 @@ def loadVersionLayers(config,cur,plugin_dir):
     setupCustomerDataSheet(config,plugin_dir,loadProjectConfig(config))
     setupCustomerLoadValue(config,plugin_dir,loadProjectConfig(config))
     setupCustomerGFAValue(config,plugin_dir,loadProjectConfig(config))
+    setupPipeDiameterStyleAction()
       
     valueRelationPipeBundleType()    
     zoomToLayer('customers')
