@@ -135,7 +135,7 @@ class WorkerOSMImport(QRunnable):
 
                     return elements
 
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -336,7 +336,7 @@ VALUES (
             conn.commit()
             self.signals.progress.emit(100)
             self.signals.finished.emit('buildings and streets' if self.importType=='both' else self.importType)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

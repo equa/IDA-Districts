@@ -1,4 +1,5 @@
-from .db import *
+from .compat import MessageCritical, MessageInfo
+from .db import featureCount
 
 import psycopg2
 import psycopg2.extras

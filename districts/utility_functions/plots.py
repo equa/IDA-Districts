@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from qgis.utils import iface
 from qgis.core import QgsMessageLog, Qgis
 
-from .topology import *
-from .files import *
+from qgis.PyQt.QtCore import Qt
+from .compat import MessageCritical
+from .db import getDBColumnInfo
+from .files import districtsModelerTempDir
+from .topology import getFeatureConnbundletypeSequences
+from .translations import tr
 
 import datetime
 import tempfile
@@ -44,7 +47,7 @@ def matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer',show_p
     scaling=0.001
     for p_table_name in p_table_names:
         #try:
-        #print(p_table_name)
+        print(p_table_name)
         sql = """
 SELECT
     time,
@@ -54,7 +57,7 @@ FROM "{}"."{}"
 WHERE fid={}
 ORDER BY time;
         """.format(config['versionName'], p_table_name, id) # nosec B608               
-        #print(sql)
+        print(sql)
         cur.execute(sql)
         data=cur.fetchall()
         
@@ -131,8 +134,9 @@ ORDER BY time;
             canvas_obj = iface.mapCanvas()
             temporal_controller = canvas_obj.temporalController()
             
-            # Define the lambda function
-            bound_update_func = lambda _range=None, c=temporal_controller, t=timeline_bar, cv=canvas: update_timeline(c, t, cv)
+            # Define the update function
+            def bound_update_func(_range=None, c=temporal_controller, t=timeline_bar, cv=canvas):
+                update_timeline(c, t, cv)
             temporal_controller.updateTemporalRange.connect(bound_update_func)
             
             # GARBAGE COLLECTION PROTECTION:
@@ -144,7 +148,7 @@ ORDER BY time;
                 if hasattr(canvas, 'manager') and hasattr(canvas.manager, 'window'):
                     plot_window = canvas.manager.window
                     plot_window.destroyed.connect(lambda: cleanup_plot(temporal_controller, bound_update_func))
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -157,14 +161,20 @@ ORDER BY time;
         
         # ax2-Legende (Energy + ggf. QGIS Zeit-Linie) oben rechts
         ax2.legend(loc='upper right')
+        print('finished')
 
+        if save_plot and not show_plot:
+            # Render larger than the 170 mm report width; scaling it down there gives ~7pt fonts
+            font_scale=1.4
+            fig.set_size_inches(font_scale*170/25.4, font_scale*110/25.4)
 
         plt.tight_layout()
         if show_plot:
             plt.show()
-        
+
         if save_plot:
-            filename=districtsModelerTempDir()+p_table_name
+            filename=districtsModelerTempDir()+p_table_name+'.svg'
+            print(filename)
             fig.savefig(filename, format='svg')
             filenames.append(filename)
             
@@ -172,6 +182,7 @@ ORDER BY time;
 
 def matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='heatbalance',show_plot=True,save_plot=False,sync_temporalControler=False):
     scaling=0.001 if balance_type=='heatbalance' else 1
+    filenames=[]
     for network in networks:
         #print(network)
         table_name=balance_type+'_{}_s'.format(network)
@@ -278,8 +289,9 @@ ORDER BY time;
             canvas_obj = iface.mapCanvas()
             temporal_controller = canvas_obj.temporalController()
             
-            # Define the lambda function
-            bound_update_func = lambda _range=None, c=temporal_controller, t=timeline_bar, cv=canvas: update_timeline_balance(c, t, cv)
+            # Define the update function
+            def bound_update_func(_range=None, c=temporal_controller, t=timeline_bar, cv=canvas):
+                update_timeline_balance(c, t, cv)
             temporal_controller.updateTemporalRange.connect(bound_update_func)
             
             # GARBAGE COLLECTION PROTECTION:
@@ -291,7 +303,7 @@ ORDER BY time;
                 if hasattr(canvas, 'manager') and hasattr(canvas.manager, 'window'):
                     plot_window = canvas.manager.window
                     plot_window.destroyed.connect(lambda: cleanup_plot(temporal_controller, bound_update_func))
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -316,8 +328,6 @@ ORDER BY time;
             filename=districtsModelerTempDir()+table_name
             fig.savefig(filename, format='svg')
             filenames.append(filename)
-        else:
-            filenames=[]
             
     return filenames
     
@@ -337,7 +347,7 @@ def update_timeline(controller, timeline_bar, canvas):
         
         # Redraw the plot canvas efficiently
         canvas.draw_idle()
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -371,7 +381,7 @@ def update_timeline_balance(controller, timeline_bar, canvas):
         
         # Redraw the plot canvas efficiently
         canvas.draw_idle()
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -382,7 +392,7 @@ def cleanup_plot(controller, update_func_ref):
     """Disconnects the temporal signal safely when the dialog window is closed."""
     try:
         controller.updateTemporalRange.disconnect(update_func_ref)
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",

@@ -17,7 +17,6 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
 import numpy as np
-from .utility_functions.db import *
 
 
 # ---------------------------

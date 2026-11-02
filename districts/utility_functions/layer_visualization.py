@@ -1,7 +1,14 @@
-from .files import *
-from .translations import *
-from .db import *
-from .reports import *
+import os
+from qgis.core import (
+    QgsAction, QgsApplication, QgsAttributeEditorAction, QgsAuthMethodConfig, QgsPalLayerSettings, QgsProperty,
+    QgsSimpleMarkerSymbolLayer, QgsStyle, QgsSymbolLayer, QgsVectorLayerSimpleLabeling,
+)
+from .compat import MessageCritical
+from .db import getNetworks, getPlantIds, getTemplatesInfo
+from .files import loadProjectConfig
+from .reports import setupCustomerDataSheet
+from .translations import tr
+from .utility import strToDict
 from qgis.core import  Qgis, QgsMessageLog, QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
@@ -58,7 +65,8 @@ def setupFeatureLayerDialog(layer_name,cur,config,plugin_dir):
     setupCustomerLoadValue(config,plugin_dir,loadProjectConfig(config))
     setupCustomerGFAValue(config,plugin_dir,loadProjectConfig(config))
     if layer_name=='lines':
-        valueRelationPipeBundleType() 
+        valueRelationPipeBundleType()
+        setupPipeDiameterStyleAction()
         
 def loadLayersConfig(config,plugin_dir,project_name):
     layers_config=''
@@ -164,7 +172,7 @@ def updateTableSrid(versions,cur,srid):
             #print(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -180,7 +188,7 @@ def updateTableSrid(versions,cur,srid):
         #print(sql_temp.replace("%table%",table))
         try:
             cur.execute(sql_temp.replace("%table%",table))
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -239,7 +247,84 @@ def valueRelationPipeBundleType():
     widget_setup = QgsEditorWidgetSetup('ValueRelation',config)
     fields = QgsProject.instance().mapLayersByName(tr('@default','lines'))[0].fields()
     field_idx = fields.indexOf('pipe_bundle_type_id')
-    QgsProject.instance().mapLayersByName(tr('@default','lines'))[0].setEditorWidgetSetup(field_idx, widget_setup)   
+    QgsProject.instance().mapLayersByName(tr('@default','lines'))[0].setEditorWidgetSetup(field_idx, widget_setup)
+
+def setupPipeDiameterStyleAction():
+    """action in lines (layer and form) to style the lines by the inner pipe diameter"""
+    layer = QgsProject.instance().mapLayersByName(tr('@default', 'lines'))[0]
+    action_text = """from districts.ida_ph import *
+ShowPipeDiameterStyleDialog()"""
+    styleAction = QgsAction(Qgis.AttributeActionType.GenericPython, tr('@default', 'style_pipe_diameter'), action_text, None, capture=False,
+                            shortTitle=tr('@default', 'style_pipe_diameter'), actionScopes={'Feature', 'Layer'})
+    layer.actions().addAction(styleAction)
+
+    form_config = layer.editFormConfig()
+    rootContainer = form_config.invisibleRootContainer()
+    rootContainer.addChildElement(QgsAttributeEditorAction(styleAction, rootContainer))
+    layer.setEditFormConfig(form_config)
+
+def turboColor(t):
+    """Turbo colormap (polynomial approximation), t in [0, 1]"""
+    r = 0.13572138 + t * (4.61539260 + t * (-42.66032258 + t * (132.13108234 + t * (-152.94239396 + t * 59.28637943))))
+    g = 0.09140261 + t * (2.19418839 + t * (4.84296658 + t * (-14.18503333 + t * (4.27729857 + t * 2.82956604))))
+    b = 0.10667330 + t * (12.64194608 + t * (-60.58204836 + t * (110.36276771 + t * (-89.90310912 + t * 27.34824973))))
+    return QColor.fromRgbF(*(min(max(c, 0.0), 1.0) for c in (r, g, b)))
+
+def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_name='Turbo', invert_ramp=False, width=0.75):
+    """Categorizes the lines by the inner diameter of the pipe with the given sequence in the pipe bundle.
+    The colors follow the color ramp continuously between the smallest and the largest diameter."""
+    layer = QgsProject.instance().mapLayersByName(tr('@default', 'lines'))[0]
+
+    cur.execute("""SELECT bp.pipe_bundle_type_id, p.innerpipediameter::float8 AS d FROM public.bundle_pipes bp
+    JOIN public.pipes p ON p.id = bp.pipe_id WHERE bp.sequence = %s AND p.innerpipediameter IS NOT NULL;""", (int(sequence),))
+    d_by_bundle = {int(row['pipe_bundle_type_id']): float(row['d']) for row in cur.fetchall()}
+
+    if only_used:
+        used = {int(v) for v in layer.uniqueValues(layer.fields().indexOf('pipe_bundle_type_id')) if v is not None and str(v) != 'NULL'}
+        d_by_bundle = {b: d for b, d in d_by_bundle.items() if b in used}
+    if not d_by_bundle:
+        return False
+    diameters = sorted(set(d_by_bundle.values()))
+
+    ramp = QgsStyle.defaultStyle().colorRamp(ramp_name)
+
+    def rampColor(t):
+        if invert_ramp:
+            t = 1.0 - t
+        return ramp.color(t) if ramp else turboColor(t)
+
+    # pipe_bundle_type_id -> inner diameter
+    expr = "map_get(map({}), to_string(\"pipe_bundle_type_id\"))".format(
+        ', '.join("'{}', {!r}".format(b, d) for b, d in d_by_bundle.items()))
+
+    d_min, d_max = diameters[0], diameters[-1]
+    categories = []
+    for d in diameters:
+        t = (d - d_min) / (d_max - d_min) if d_max > d_min else 0.5
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.setWidth(width)
+        symbol.setColor(rampColor(t))
+        categories.append(QgsRendererCategory(d, symbol, 'd_i = {:g} mm'.format(round(d * 1000, 1))))
+
+    # lines without pipe bundle or without pipe in this sequence
+    symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+    symbol.setWidth(width)
+    symbol.setColor(QColor('#bdbdbd'))
+    categories.append(QgsRendererCategory('', symbol, '{} ({} {})'.format(tr('@default', 'no_pipe'), tr('@default', 'sequence'), sequence)))
+
+    layer.setRenderer(QgsCategorizedSymbolRenderer(expr, categories))
+
+    if show_labels:
+        pal = QgsPalLayerSettings()
+        pal.isExpression = True
+        pal.fieldName = "format_number(({}) * 1000, 1)".format(expr)
+        pal.placement = Qgis.LabelPlacement.Line
+        layer.setLabeling(QgsVectorLayerSimpleLabeling(pal))
+    layer.setLabelsEnabled(show_labels)
+
+    layer.triggerRepaint()
+    iface.layerTreeView().refreshLayerSymbology(layer.id())
+    return True
 
 def extract_group_fields(layer, layersConfig, vlayerName):
     """
@@ -479,7 +564,7 @@ def showTempTables(uri,config,plugin_dir,signals,cur):
         QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
 
         loadProjectLayers('temp',uri,config,plugin_dir,cur,auth_cfg.config("username"))  
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -618,7 +703,7 @@ def updateNetworkDependingFields(cur,config):
         constraint_expression_dict = getConstraintExpressionDict(networks_array_constraint)
         setFieldConstraints(constraint_expression_dict)
         setFieldDefaultValues(getDefaultValueDict(network_default, energy_plant_template,customer_template,line_type))
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -635,7 +720,7 @@ def featureLayerGroups(vlayerName,cur,config):
             return {tr('@default',i[colmn]):i[colmn] for i in cur.fetchall()}
         else:
             return {tr('@default','network')+': '+str(i[colmn]) : i[colmn] for i in cur.fetchall()}
-    except:
+    except Exception:
         return {}
     
 def featureLayerGroupIds(vlayerName,cur,config):
@@ -646,7 +731,7 @@ def featureLayerGroupIds(vlayerName,cur,config):
         #print(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]    
-    except:
+    except Exception:
         return []
         
 def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):

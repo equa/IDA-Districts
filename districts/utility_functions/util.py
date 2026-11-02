@@ -4,7 +4,7 @@ import time
 from win32 import win32process
 import sys
 import os
-from .files import *
+from .compat import MessageCritical
 import traceback
 
 from qgis.core import QgsMessageLog, Qgis
@@ -118,7 +118,7 @@ class Util_api:
       size = 32000
       doc_str = ctypes.create_string_buffer(size) 
       poll_result = False
-      while poll_result == False:
+      while poll_result is not None and not poll_result:
         time.sleep(time_interval)
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
         try:
@@ -129,7 +129,7 @@ class Util_api:
               poll_result = poll_result2[0]['value']
             else:
               return ""
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -174,7 +174,7 @@ class Util_api:
       size = 32000
       doc_str = ctypes.create_string_buffer(size) 
       poll_result = False
-      while poll_result == False:
+      while poll_result is not None and not poll_result:
         time.sleep(time_interval)
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
         poll_result2 = json.loads(doc_str.value.decode("utf-8"))

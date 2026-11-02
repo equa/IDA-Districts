@@ -11,9 +11,9 @@ from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import QWidget
 from qgis.PyQt.QtGui import QPainter
 
-from .utility_functions.compat import *
-from .utility_functions.utility import *
-from .utility_functions.dialog import *
+from qgis.utils import iface
+from .utility_functions.compat import MessageCritical, get_event_pos
+from .utility_functions.utility import getAuthNames, load_plugin_settings
 import sys
 
 current_dir = os.path.dirname(__file__)
@@ -217,8 +217,10 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_featureModels.setIcon(QIcon(os.path.join(plugin_dir, "icons/FeatureModels.png")))
         self.btn_featureModels.setIconSize(QSize(btn_size, btn_size))   
         self.btn_runModel.setIcon(QIcon(":/images/themes/default/mTemporalNavigationAnimated.svg"))
-        self.btn_runModel.setIconSize(QSize(btn_size, btn_size))   
-        
+        self.btn_runModel.setIconSize(QSize(btn_size, btn_size))
+        self.btn_staticPipeSizing.setIcon(QIcon(":/images/themes/default/mActionReload.svg"))
+        self.btn_staticPipeSizing.setIconSize(QSize(btn_size, btn_size))
+
         #results & visualization
         btn_size=100
         self.btn_loadResults.setIcon(QIcon(":/images/themes/default/dbmanager.svg"))

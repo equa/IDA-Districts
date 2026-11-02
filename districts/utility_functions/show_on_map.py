@@ -4,9 +4,17 @@ from qgis.core import QgsMessageLog, QgsInterval, QgsDateTimeRange, QgsTemporalN
 from qgis.PyQt.QtWidgets import QShortcut,QListWidgetItem,QFileDialog,QStackedWidget,QListView,QLineEdit,QDialog,QTableWidgetItem
 from qgis.PyQt.QtGui import QFont, QColor
 
-from .db import *
-from .workers import *
-from .compat import *
+import numpy as np
+from qgis.PyQt.QtCore import QRunnable, pyqtSlot
+from qgis.core import QgsProject
+from .compat import MessageCritical, sip
+from .db import (
+    dbConnect, getAvergageByMode, getMaxTableValue, getMaxTimeTableValue, getMinTableValue,
+    getMinTimeTableValue,
+)
+from .files import loadProjectConfig
+from .utility import getDatetimeFromString
+from .workers import APISignals2
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -255,7 +263,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
             except Exception:
                 renderer.setSymbol(base_symbol)
 
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -266,7 +274,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
     try:
         #print("Applying renderer to layer...")
         layer.setRenderer(renderer)
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -322,7 +330,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
     layer.triggerRepaint()
     try:
         iface.layerTreeView().refreshLayerSymbology(layer.id())
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -505,22 +513,22 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
     lid_seg integer NOT NULL,
     geom geometry(LineStringZ,{})
 );
-SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
+SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific_dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
                 #print(sql)
                 self.cur.execute(sql)
             
                 #load var data to the coresponding visualization table using averaged values for merged segments
-                if vars['color']['mode']=='var' and vars['color']['var_function']!='specific dp' :
+                if vars['color']['mode']=='var' and vars['color']['var_function']!='specific_dp' :
                     sql="""DROP TABLE IF EXISTS "{}".line_s_{}_vis CASCADE;
 CREATE TABLE "{}".line_s_{}_vis
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(LineStringZ,{}),
-	segment integer,
-	"${}" numeric,
-	CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
+    geom geometry(LineStringZ,{}),
+    segment integer,
+    "${}" numeric,
+    CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name']) # nosec B608
                     
                     if vars['color']['name'].split('$')[0]=='p': #linear interpolation using pressure values at start and end of the line
@@ -555,13 +563,13 @@ CREATE TABLE "{}".line_s_{}_vis
                         sql="""DROP TABLE IF EXISTS "{}".line_s_{}_vis CASCADE;
 CREATE TABLE "{}".line_s_{}_vis
 (
-	id serial,
+    id serial,
     fid integer,
     time timestamp,
-	geom geometry(LineStringZ,{}),
-	segment integer,
-	"${}" numeric, -- use $ in order not to have a conflict the var column with oder columns
-	CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
+    geom geometry(LineStringZ,{}),
+    segment integer,
+    "${}" numeric, -- use $ in order not to have a conflict the var column with oder columns
+    CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['size']['name'],srid,vars['size']['name'].split('$')[0],vars['size']['name']) # nosec B608
                         sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
     SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
@@ -659,7 +667,7 @@ ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['
 FROM "{}".{}
 WHERE time >= '{}'
 ORDER BY fid{},time ASC;""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '') # nosec B608
-        elif var['var_function']=='specific dp':
+        elif var['var_function']=='specific_dp':
             sql="""WITH length_per_fid AS (
     SELECT lid AS fid, st_length(geom) AS len, geom
     FROM {}.line_seg_vis
@@ -699,7 +707,7 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
             self.showOnMap()
             self.signals.progress.emit(100)  
             self.signals.finished.emit('Data has been successfully visualized on map!',self)  
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

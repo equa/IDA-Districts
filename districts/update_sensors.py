@@ -3,10 +3,22 @@ from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis      
 
 from .ida_mosim_dialog import SensorSignalsDialog
-from .utility_functions.sensor_signals import *
-from .utility_functions.db import *
-from .utility_functions.translations import *
-from .utility_functions.dialog import *
+import psycopg2
+from qgis.PyQt.QtCore import QThreadPool
+from qgis.PyQt.QtWidgets import QComboBox, QTableWidgetItem
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import (
+    cleanupResultsSensors, dbConnect, getFilteredDropDownItemNames, getFilteredDropDownItems,
+    getTemplateName, getTemplatesInfo,
+)
+from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
+from .utility_functions.sensor_signals import (
+    getAddedSensorSourceData, getAddedSensorTargetData, getRemovedSensorSourceData,
+    getRemovedSensorTargetData, templatesensorSignals, writeInvokedSensorSourceSignals,
+    writeInvokedSensorTargetSignals,
+)
+from .utility_functions.translations import tr
+from .utility_functions.utility import getTemplateNameById, getTypeIdByName
 from .supervisory_control import Supervisory_control
 from .utility_functions.workers import APISignals,show_error_message
      
@@ -78,9 +90,9 @@ SELECT
 FROM sensor_source ss
 CROSS JOIN (
     SELECT DISTINCT b_t_conns.conn_type_id,st.source_id
-    	FROM {}_templates ft, source_template st, bundle_type_conns b_t_conns 
-		WHERE ft.template=st.template AND st.active
-      	AND b_t_conns.conn_bundle_type_id = ft.conn_bundle_type
+        FROM {}_templates ft, source_template st, bundle_type_conns b_t_conns 
+        WHERE ft.template=st.template AND st.active
+          AND b_t_conns.conn_bundle_type_id = ft.conn_bundle_type
 ) c
 WHERE ss.type = {} AND ss.sensor_id=c.source_id
   AND NOT EXISTS (
@@ -99,7 +111,7 @@ WHERE EXISTS (
 AND NOT EXISTS (
     SELECT 1
     FROM {}_templates ft, bundle_type_conns b_t_conns, source_template st
-  	WHERE b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND b_t_conns.conn_type_id = sct.conn_type AND ft.template=st.template AND st.active AND st.source_id = sct.source_id
+      WHERE b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND b_t_conns.conn_type_id = sct.conn_type AND ft.template=st.template AND st.active AND st.source_id = sct.source_id
 );""".format(type_name,type_id,type_id,type_name) # nosec B608
             #print(sql)
             self.cur.execute(sql)
@@ -138,7 +150,7 @@ AND NOT EXISTS (
     SELECT 1
     FROM {}_templates ft, bundle_type_conns b_t_conns, connection_type_connections conn_type_conns, source_conn_type sct
     WHERE conn_type_conns.connection_id = sc.connection_id AND b_t_conns.conn_bundle_type_id = ft.conn_bundle_type AND conn_type_conns.connection_type_id = b_t_conns.conn_type_id 
-		AND sct.active AND sct.source_id = sc.source_id AND b_t_conns.conn_type_id =sct.conn_type
+        AND sct.active AND sct.source_id = sc.source_id AND b_t_conns.conn_type_id =sct.conn_type
 );""".format(type_name,type_id,type_id,type_name) # nosec B608
             #print(sql)
             self.cur.execute(sql)
@@ -184,12 +196,12 @@ AND EXISTS (
              
     def collectSensortemplatesTableData(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 2)
-        if dropDown!=None:
+        if dropDown is not None:
             self.sensorData[int(sensor_id)][sensor]['templates']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemData(i) != 'check_all_items']                 
                     
-    def insertIntoSensorSourceConntypesTable(self,table,row,sensor_id):
+    def insertIntoSensorSourceConntypesTable(self,table,row,sensor_id,sensor):
         dropDown=table.cellWidget(row, 3)
-        if dropDown!=None:
+        if dropDown is not None:
             self.sensorData[int(sensor_id)][sensor]['conn_types']=[{dropDown.itemText(i).split(':')[0] : dropDown.itemChecked(i)} for i in range(dropDown.count()) if dropDown.itemData(i) != 'check_all_items']                  
                     
     def insertIntoSensorSourceConnsTable(self,table,row,sensor_id):
@@ -203,7 +215,7 @@ AND EXISTS (
         
         try:
             maxId=max([int(self.dlg.tableWidget_source.item(i,0).text())+1 for i in range(self.dlg.tableWidget_source.rowCount())])     
-        except:
+        except Exception:
             maxId=1
         
         #source table
@@ -319,7 +331,7 @@ AND EXISTS (
 
         try:
             items={key : text.split(':')[0]+':'+tr("@default",text.split(':')[1]) for key,text in dropdownItems[1].items()}
-        except:
+        except Exception:
             items={key : tr("@default",text) for key,text in dropdownItems[1].items()}
         comboBox = QComboBox()
         
@@ -401,7 +413,7 @@ AND EXISTS (
     def getCheckedItemsFromTable(self,dropDown):
         items=[]
         for i in range(dropDown.count()):
-            if dropDown.itemData(i) != 'check_all_items' and dropDown.itemChecked(i)==True:
+            if dropDown.itemData(i) != 'check_all_items' and dropDown.itemChecked(i):
                 items.append(dropDown.itemText(i).split(':')[0])
         return items
         
@@ -409,7 +421,7 @@ AND EXISTS (
         #print('set templates')
         #print(type)
         dropDown=table.cellWidget(row, col)
-        if dropDown!=None:
+        if dropDown is not None:
             templates=self.getCheckedItemsFromTable(dropDown)
             #print(templates)
             if templates:
@@ -427,7 +439,7 @@ AND EXISTS (
     def setDropDowntemplatesTarget(self,table,col,row,type):
         #print('set templates target')
         dropDown=table.cellWidget(row, col)
-        if dropDown!=None:
+        if dropDown is not None:
             templates=self.getCheckedItemsFromTable(dropDown)
             if templates:
                 dropdownItems=[i['name'] for i in getTemplatesInfo(type,self.cur)]
@@ -445,7 +457,7 @@ AND EXISTS (
         #print('set conn types')
         dropDown=table.cellWidget(row, 2)
         #print(str(row) +';'+str(col))
-        if dropDown!=None:
+        if dropDown is not None:
             #print('+++++++++++++++++++++++')
             templates=[]
             for i in range(dropDown.count()):
@@ -474,7 +486,7 @@ AND EXISTS (
         #print('set conns')
         dropDown=table.cellWidget(row, col-1)
         #print(str(row) +';'+str(col))
-        if dropDown!=None:
+        if dropDown is not None:
             #print('+++++++++++++++++++++++')
             #print(dropDown.itemText(0))
             conn_types=[]
@@ -528,7 +540,7 @@ AND EXISTS (
         for i in range(len(templates)):
             try:
                 comboBoxCheckable.setItemChecked(i+1,templates[i]['active'] if checkActive else False)
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -542,10 +554,10 @@ AND EXISTS (
         #print('--setCheckableDropDownItemsTable--')
         oldDropdown=table.cellWidget(row, col)
         oldTrueItems=[]
-        if oldDropdown!=None:
+        if oldDropdown is not None:
             for i in range(oldDropdown.count()):
                 if table.cellWidget(row, col).__class__.__name__=='CheckableComboBox':
-                    if oldDropdown.itemChecked(i)==True:
+                    if oldDropdown.itemChecked(i):
                         oldTrueItems.append(oldDropdown.itemText(i))
         #print(oldTrueItems)
         comboBoxCheckable = CheckableComboBox()
@@ -556,7 +568,7 @@ AND EXISTS (
             # Add items to the comboBoxCheckable, storing the original key as user data
             for original_key, translated_text in items.items():
                 comboBoxCheckable.addItem(translated_text, original_key) # The second argument is the userData
-        except:
+        except Exception:
             comboBoxCheckable.addItems(dropdownItems)
             
                 
@@ -665,7 +677,7 @@ def getStoredSensorTableValues(cur):
         try:
             loadedSensorData[sensor_data['sensor_id']]['target']['description']=sensor_data['description_target']
             loadedSensorData=getFilteredTemplates(cur,sensor_data['target_type_name'],sensor_data['sensor_id'],'target',loadedSensorData=loadedSensorData)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -920,7 +932,7 @@ class WorkerSensors(QRunnable):
             self.processingSensorSignals()
             self.signals.progress.emit(100)  
             self.signals.finished.emit('Sensor signals successfully updated!')  
-        except:
+        except Exception:
             self.signals.progress.emit(0)
             QgsMessageLog.logMessage(
                 traceback.format_exc(),

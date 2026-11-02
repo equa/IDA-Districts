@@ -1,14 +1,22 @@
 from qgis.PyQt.QtCore import QSettings, QTimer, QEventLoop
-from .util import *
-from .topology import *
-from .files import *
-from .utility import *
-from .db import *
-from .compat import *
-from ..upgrade import *
+import psycopg2
+import shutil
+from ..upgrade import upgradeVersionDB
+from .compat import MessageCritical
+from .db import dbConnect, dbConnectProvidePwdUser, dropDBTriggers, insertDBTriggers
+from .files import (
+    copyFile, createDir, districtsModelerTempDir, loadProjectConfig, readFileToList, readFileToString,
+    replace_in_folder, writeToFile,
+)
+from .translations import tr
+from .util import Util_api
+from .utility import (
+    copy_tree_filter_extensions_and_folders, getTemplateNameById, getTypeIdByName, getTypeNameById,
+    rmtree_long_path, sanitize_pg_identifier, strToDict, write_plugin_settings,
+)
 import os
 import numpy as np
-from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable
+from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable, QThreadPool
 from qgis.utils import iface
 import subprocess
 import time
@@ -25,7 +33,7 @@ def wait(ms):
         
 def process_wait(dlg,max_sec=60):
     counter=0
-    while dlg.process_running==True and counter<max_sec:
+    while dlg.process_running and counter<max_sec:
         wait(1000)
         counter+=1
         #print('-wait: '+str(counter)+'s')
@@ -33,6 +41,37 @@ def process_wait(dlg,max_sec=60):
 def show_error_message(message):
     # Show the error message in a messageBar
     iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+
+class WorkerDoneSignals(QObject):
+    done=pyqtSignal()
+
+class WorkerDoneTracker(QRunnable):
+    """Runs a worker and emits done when its run returns or raises, independent of the signals the worker emits itself."""
+    def __init__(self, worker):
+        super().__init__()
+        self.worker=worker
+        self.signals=WorkerDoneSignals()
+
+    def run(self):
+        try:
+            self.worker.run()
+        finally:
+            self.signals.done.emit()
+
+def startWorkers(workers, btn):
+    """Starts the workers in the global thread pool; btn stays disabled until all of them are done."""
+    btn.setEnabled(False)
+    btn.workers_running=len(workers)
+
+    def onDone():
+        btn.workers_running-=1
+        if btn.workers_running==0:
+            btn.setEnabled(True)
+
+    for worker in workers:
+        tracker=WorkerDoneTracker(worker)
+        tracker.signals.done.connect(onDone)
+        QThreadPool.globalInstance().start(tracker)
 
 class APIPlotinvokedFeatureSignals(QObject):
     progress=pyqtSignal(int)
@@ -212,7 +251,7 @@ class WorkerImportProject(QRunnable):
                 return False
             try:
                 copyFile(src_dir+'layersConfig.txt',target_dir,target_dir+'\\layersConfig.txt')
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -521,7 +560,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                             try:
                                 power_sum=np.add(power_sum,valuesPowerInt)
                                 energy_sum=np.add(energy_sum,valuesEnergyInt)
-                            except:
+                            except Exception:
                                 self.signals.error.emit("Different simulation periods are used!")
 
                         #plotting
@@ -530,7 +569,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                         
                         self.progress_value=int(count/len(self.rows)*98)
                         self.signals.progress.emit(self.progress_value)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -591,7 +630,7 @@ class WorkerSimulateFilesAPI(QRunnable):
                     self.signals.error.emit("Sim model does not exist!")
             self.signals.progress.emit(100)
             #print('simulation-finished')
-        except:
+        except Exception:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
 
@@ -636,7 +675,7 @@ class WorkerSimulateAPI(QRunnable):
             else:
                 self.signals.error.emit("Sim model does not exist!")
             #print('++++simulation-finished++++')
-        except:
+        except Exception:
             self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
         self.signals.finished.emit("finished")
 
@@ -686,7 +725,7 @@ class WorkerOpenAPI(QRunnable):
             result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
             #print('++finished++')
             self.signals.progress.emit(100)
-        except:
+        except Exception:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature!")  
             
@@ -803,6 +842,6 @@ class WorkerOpenRunScriptAPI(QRunnable):
                     self.finished_fn(self.finished_fn_args)
                 self.signals.progress.emit(100)
 
-        except:
+        except Exception:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature or run the script!")     

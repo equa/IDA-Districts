@@ -5,11 +5,18 @@ from qgis.PyQt.QtWidgets import QTableWidgetItem,QWidget,QPushButton,QCheckBox,Q
 from qgis.PyQt.QtCore import Qt
 from qgis.core import Qgis, QgsMessageLog
 
-from .utility_functions.invoke import *
-from .utility_functions.files import *
-from .utility_functions.workers import *
-from .utility_functions.dialog import *
-from .utility_functions.compat import *
+from qgis.PyQt.QtWidgets import QTableWidget
+from qgis.core import QgsProject
+from qgis.utils import iface
+from .utility_functions.compat import ItemIsEnabled, ItemIsSelectable, MessageInfo, SelectRows
+from .utility_functions.files import readFileToList
+from .utility_functions.ida_components import (
+    getBestParmRunsInputs, getParmRunsInputNames, getParmRunsInputNamesTargets, getParmRunsOutputNames,
+    getParmRunsOutputNamesTargets,
+)
+from .utility_functions.invoke import invokeOneFeature
+from .utility_functions.translations import tr
+from .utility_functions.workers import WorkerOpenModelCmd, process_wait
 
 import psycopg2
 import psycopg2.extras

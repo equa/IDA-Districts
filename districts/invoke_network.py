@@ -1,23 +1,33 @@
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import Qgis, QgsMessageLog
 
-from .outputs import *
-from .ida_resources import *
-from .utility_functions.dialog import *
-from .utility_functions.util import *
-from .utility_functions.db import *
-from .utility_functions.files import *
-from .utility_functions.macros import *
-from .utility_functions.topology import *
-from .utility_functions.ida_components import *
-from .utility_functions.sensor_signals import *
+import os
+from qgis.PyQt.QtCore import QRunnable, pyqtSlot
+from .cosim import writeCosimMacroIdc, writeCosimMacroIdm
+from .ida_resources import updateClimateTemplate
+from .invoke_sensors import (
+    sensorMacroIdcData, sensorMacroIdmData, sensorProjectIdmConns, sensorProjectIdmMacro,
+)
+from .outputs import addRequestedOutputsSensors, writeMacroResultsIdc, writeMacroResultsIdm
+from .update_sensors import removeResultSensors
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import cleanupResultsSensors, dbConnect, getClimateData, getUsedSubmodels
+from .utility_functions.dialog import checkState
+from .utility_functions.files import (
+    copyFile, createDir, loadInvokedOutputs, loadModellingSettings, loadNetworkSimData, loadProjectConfig,
+    loadRequestedOutputs, removeFilesInDir, writeInvokedOutputs, writeMacroSFIdc, writeMacroSFIdm,
+    writeToFile,
+)
+from .utility_functions.ida_components import getSimData
+from .utility_functions.sensor_signals import getResultSensorData, getSensorData, getSensorDecData
+from .utility_functions.templateFiles import (
+    CopyDecoupledTemplateMacro, CopyTemplateMacro, readDecoupledFeatureSensorSignals,
+)
+from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
+from .utility_functions.workers import APISignals
 from .utility_functions.workers import WorkerOpenAPI
-from .utility_functions.templateFiles import *
-from .utility_functions.invoke import *
 from .supervisory_control import Supervisory_control, CopySupervisoryControl
 
-from .invoke_sensors import *
-from .cosim import *
 
 from multiprocessing import Process
 
@@ -319,7 +329,7 @@ class InvokeNetworkModel:
                 self.signals.progress.emit(100)  
                 self.signals.finished.emit('Network model has been build successfully!')
 
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",
@@ -626,6 +636,7 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
         seq_old=0
         seq_counter=0
         seq_lids=[]
+        lids=[]
         for conn in conns:
             try:
                 #print(conn)
@@ -1116,12 +1127,12 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
         """ insert customers; take the macro template and copy it to the IDA project"""
         #print('****************insert customers******************')
         sql="""SELECT c.id AS cid, CASE WHEN {} = ANY(l.submodel) THEN 'same-model' ELSE 'decoupled' END AS model, ST_asText(c.geom) AS point,ca.conn_bundle_type, ca.template_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM "{}".customers c, customer_templates ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
-	WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.template=c.template AND
+    FROM "{}".customers c, customer_templates ca, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".customer_connections c_conns, "{}".lines l
+    WHERE c.id=c_conns.cid AND l.id=c_conns.lid AND ca.template=c.template AND
         (c.submodel={} OR {} != c.submodel AND {} = ANY (l.submodel)) AND c.network && ARRAY[{}] AND
         conn_b_t.conn_bundle_type_id=ca.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id
-	ORDER BY c.id,conn_b_t.sequence;""".format(submodel, self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks])) # nosec B608
+    ORDER BY c.id,conn_b_t.sequence;""".format(submodel, self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks])) # nosec B608
         #print(sql)
         self.cur.execute(sql)
         iref=""
@@ -1130,6 +1141,7 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
         y_old=""
         template_name_old=""
         cid_old=0
+        customer_old=None
         iref_old=""
         cid=-1
         for customer in self.cur.fetchall():
@@ -1183,12 +1195,12 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
     def insertPlants(self,submodel,idm,idc,sensor_dec_data,networks):
         """ insert plants; take the macro template and copy it to the IDA project"""
         sql="""SELECT ep.id AS epid, ST_asText(ep.geom) AS point, epa.template_name, conn_b_t.conn_bundle_type_id,conn_b_t.sequence AS conn_bundl_type_seq, conn_t_conns.connection_type_id, conn_t_conns.sequence AS conn_type_seq, conn.temp
-	FROM "{}".energy_plants ep, energy_plant_templates epa, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".lines l, "{}".energy_plant_connections ep_conns
-	WHERE l.id=ep_conns.lid AND ep.id=ep_conns.epid AND epa.template=ep.template AND 
+    FROM "{}".energy_plants ep, energy_plant_templates epa, bundle_type_conns conn_b_t, connection_type_connections conn_t_conns, connections conn, "{}".lines l, "{}".energy_plant_connections ep_conns
+    WHERE l.id=ep_conns.lid AND ep.id=ep_conns.epid AND epa.template=ep.template AND 
         (ep.submodel={} OR {} != ep.submodel AND {} = ANY (l.submodel)) AND
         conn_b_t.conn_bundle_type_id=epa.conn_bundle_type AND conn_t_conns.connection_type_id=conn_b_t.conn_type_id AND
         conn_t_conns.connection_id=conn.id AND ep.network && ARRAY[{}]
-	ORDER BY ep.id,conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))# nosec B608
+    ORDER BY ep.id,conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],submodel,submodel,submodel,','.join([str(i) for i in networks]))# nosec B608
         #print(sql)
         self.cur.execute(sql)
         epid=""

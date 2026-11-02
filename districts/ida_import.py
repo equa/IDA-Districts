@@ -2,10 +2,13 @@ from qgis.utils import iface
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import QgsField, QgsProject, Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QVariant
-from .utility_functions.dialog import *
-from .utility_functions.topology import *
-from .utility_functions.db import *
-from .utility_functions.utility import *
+import psycopg2
+from .utility_functions.compat import MessageCritical, MessageInfo, MessageWarning
+from .utility_functions.db import getMaxIdSchema
+from .utility_functions.dialog import closeDialog
+from .utility_functions.topology import getLayerAttributesName
+from .utility_functions.translations import tr
+from .utility_functions.utility import isFloat, isInt, safe_eval, strToDict
 import math
 import copy
 import ast
@@ -115,13 +118,14 @@ SELECT  p.id::text, p.innerpipediameter::text, p.piperoughnessfactor::text, sub.
         exclude=False
         pipe_counter=0
         coord_list=[]
+        y_old=pipe_id_old=ambient_old=None
         for bundle_pipe in main.cur.fetchall():
             #print(bundle_pipe)
             coord_list.append([bundle_pipe['x'],bundle_pipe['y']])
             if pipe_counter!=0 and (y_old!=bundle_pipe['y'] or pipe_id_old!=bundle_pipe['pipe_id'] or ambient_old!=bundle_pipe['ambient']):
                 exclude=True
             if bundle_pipe['sequence']==1:
-                if exclude==False:
+                if not exclude:
                     #check if distance is constant between pipes
                     dist_old=-1
                     for coord in coord_list:
@@ -133,7 +137,7 @@ SELECT  p.id::text, p.innerpipediameter::text, p.piperoughnessfactor::text, sub.
                         if dist_old!=-1 and dist_old!=dist:
                             exclude=True
                         dist_old=dist
-                    if exclude==False:
+                    if not exclude:
                         pipe_bundles.append([bundle_pipe['pipe_id'],str(pipe_counter+1),str(dist_old),str(bundle_pipe['y']),bundle_pipe['ambient']])
                         pipe_bundles_dict[str([bundle_pipe['pipe_id'],str(pipe_counter+1),str(dist_old),str(bundle_pipe['y']),bundle_pipe['ambient']])]=bundle_pipe['pipe_bundle_type_id']
                     else:
@@ -202,7 +206,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                         for layer_constr in mappedAttributesValues['layer_constr']:
                             try:
                                 mappedAttributesValues['layer_constr'][layer_constr][1]=str(safe_eval(mappedAttributesValues['layer_constr'][layer_constr][1]))
-                            except:
+                            except Exception:
                                 QgsMessageLog.logMessage(
                                     traceback.format_exc(),
                                     "Districts",
@@ -215,7 +219,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                                 mappedAttributesValues[mappedAttribute]=dict[mappedAttributesValues[mappedAttribute].split('}')[1].strip()[1:-1].replace('"','').replace("'",'')]
                             else:
                                 mappedAttributesValues[mappedAttribute]=str(safe_eval(mappedAttributesValues[mappedAttribute]))
-                        except:
+                        except Exception:
                             QgsMessageLog.logMessage(
                                 traceback.format_exc(),
                                 "Districts",
@@ -356,7 +360,7 @@ def importLayerToDb(type,dlg,main):
                 try:
                     layer_srid=layer.crs().authid().split(':')[1]            
                     #print(layer_srid)
-                except:
+                except Exception:
                     iface.messageBar().pushMessage("Info", "Please set a valid layer srid!", level=MessageWarning)
                     return False
 
@@ -375,7 +379,7 @@ def importLayerToDb(type,dlg,main):
                     ids=[i['id'] for i in main.cur.fetchall()]
                 
                 #check if id is mapped
-                if not 'id' in attributes:
+                if 'id' not in attributes:
                     dlg_question = QMessageBox(dlg)
                     dlg_question.setWindowTitle('Identifier is missing!')
                     dlg_question.setText("""The id is not mapped in "{}". Do you want to use a serial id instead?""".format(layer_name))
@@ -413,7 +417,7 @@ def importLayerToDb(type,dlg,main):
                         #print(attribute)
                         try:
                             values.append(str(safe_eval(mappedAttributesValues[attribute])))
-                        except:
+                        except Exception:
                             QgsMessageLog.logMessage(
                                 traceback.format_exc(),
                                 "Districts",

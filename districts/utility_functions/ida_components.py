@@ -1,7 +1,8 @@
 from qgis.core import QgsMessageLog, Qgis
 
-from .utility import *
-from .db import *
+from .compat import MessageCritical
+from .db import getSupervisorySubmodel
+from .utility import alt_count, getNTPTimeFromString, listToBracketsString, safe_eval
 
 import re
 import ast
@@ -194,12 +195,12 @@ def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
                                     exportSignalDict[sensor_id]=[{'iref':iref,'counter': j['counter']+1} for i in exportSignalDict[sensor_id] for j in i if j['iref']==iref]
                                 else:
                                     exportSignalDict[sensor_id]=exportSignalDict[sensor_id]+[{'iref':iref,'counter':1}]
-                            except:
+                            except Exception:
                                 exportSignalDict[sensor_id]=[{'iref':iref,'counter':1}]
     for k in dict(sorted(exportSignalDict.items())):
-        exportVars.extend(["""({} :SYSTEM "Sensor-macro" "Sensor_{}" INSIGNAL {})""".format(next(counter),iref,l) 
+        exportVars.extend(["""({} :SYSTEM "Sensor-macro" "Sensor_{}" INSIGNAL {})""".format(next(counter),iref,sig_nr) 
             for m in exportSignalDict[k]
-            for l in range(1,m['counter']+1) for iref in m['iref']])
+            for sig_nr in range(1,m['counter']+1) for iref in m['iref']])
     #print(exportVars)
     return exportVars
 
@@ -238,7 +239,7 @@ def propertyListIDM(seq):
                                 value+=listToBracketsString(seq[i+1])
                             else:
                                 value+=seq[i+1]
-                        except:
+                        except Exception:
                             QgsMessageLog.logMessage(
                                 traceback.format_exc(),
                                 "Districts",
@@ -259,7 +260,7 @@ def propertyListIDM(seq):
                         dict_[key]=value
                     else:
                         dict_[seq[i]]=seq[i+1]#.asList()
-                except:
+                except Exception:
                     dict_[seq[i]]=seq[i+1]
                 #print(dict)
                 i+=2
@@ -295,7 +296,7 @@ def propertyListIDC(seq):
                             value_list.append(seq[i+1])
                         else:
                             value+=seq[i+1]
-                    except:
+                    except Exception:
                         QgsMessageLog.logMessage(
                             traceback.format_exc(),
                             "Districts",
@@ -330,7 +331,7 @@ def propertyListIDC(seq):
                     dict_[key]=value
                 else:
                     dict_[seq[i]]=seq[i+1]#.asList()
-            except:
+            except Exception:
                 dict_[seq[i]]=seq[i+1]
             #print(dict_)
             i+=2
@@ -372,7 +373,7 @@ def getModelInterfaces(model):
     models={'|hx|': {'import':['|mLiqB|','|TsupB|','|PhiHxLimit_var|','|TbSet_var|'],'export':['|TbOut|']}}
     try:
         return models[model] 
-    except:
+    except Exception:
         return ''                 
 
 def checkFeatureSubmodel(id,submodel,feature,feature_ids_per_submodel,cur,config):
@@ -415,12 +416,12 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                         ':IMPORT': (link_data['import'] if network_side else link_data['export']),
                         ':EXPORT':(link_data['export'] if network_side else link_data['import']),
                         ':CONN-IDC':conn_idc}]
-            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Source_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_source'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,config) and network_side==False or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,config) and network_side)]:
+            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Source_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_source'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,config) and not network_side or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['source_type'],feature_ids_per_submodel,cur,config) and network_side)]:
                 data_ex+=[{':N':model_name,':T': 'OUT',
                     ':IMPORT': [],
                     ':EXPORT': [link],
                     ':CONN-IDC':conn_idc}]
-            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_target'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,config) and network_side==False or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,config) and network_side)]:
+            if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_data for j in i['irefs_target'] if j.split('_')[1]==str(feature_id) and (model_name_connected not in dec_models and checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,config) and not network_side or model_name_connected in dec_models and not checkFeatureSubmodel(j.split('_')[1],submodel,i['target_type'],feature_ids_per_submodel,cur,config) and network_side)]:
                 data_ex+=[{':N':model_name,':T': 'IN',
                     ':IMPORT': [link],
                     ':EXPORT': [],
@@ -553,36 +554,36 @@ def setCompValue(pList,value):
 def getCompClass(pList):    
     try:
         return pList[':C']
-    except:
+    except Exception:
         return pList[0][':C']
         
 def getCompName(pList):    
     try:
         return pList[':N']
-    except:
+    except Exception:
         try:
             return pList[0][':N']
-        except:
+        except Exception:
             return ''
             
 def renameCompName(pList,new_name):    
     try:
         pList[':N']=new_name
         return pList
-    except:
+    except Exception:
         try:
             pList[0][':N']=new_name
             return
-        except:
+        except Exception:
             return ''
 
 def getCompTemplate(pList):    
     try:
         return pList[':T']
-    except:
+    except Exception:
         try:
             return pList[0][':T']
-        except:
+        except Exception:
             return ''
             
 def getModelType(line):
@@ -597,7 +598,7 @@ def getModelType(line):
 def getParName(line,model_language):
     try:
         return line.split(':N {}'.format('|' if model_language=='MODELICA' else ''))[1].strip().split('|' if model_language=='MODELICA' else ' ')[0]
-    except:
+    except Exception:
         #Modelica names just with upper case have no '|'
         return line.split(':N ')[1].strip().split(' ')[0]
     
@@ -615,7 +616,7 @@ def getParmRunsInputNames(file_data):
                 openCloseBracketsCounter+=countOpenCloseBrackets(file_data[i])
                 try:
                     input_names.append(file_data[i].split(':PAR :N "')[1].split('"')[0])
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -638,7 +639,7 @@ def getParmRunsOutputNames(file_data):
                 openCloseBracketsCounter+=countOpenCloseBrackets(file_data[i])
                 try:
                     output_names.append(file_data[i].split(':PAR :N "')[1].split('"')[0])
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -661,7 +662,7 @@ def getParmRunsInputNamesTargets(file_data):
                 openCloseBracketsCounter+=countOpenCloseBrackets(file_data[i])
                 try:
                     input_names_target[file_data[i].split(':PAR :N "')[1].split('"')[0]]=(file_data[i].split('TARGET (')[1].split(')')[0].split()[-2:])
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -684,7 +685,7 @@ def getParmRunsOutputNamesTargets(file_data):
                 openCloseBracketsCounter+=countOpenCloseBrackets(file_data[i])
                 try:
                     output_names_target[file_data[i].split(':PAR :N "')[1].split('"')[0]]=(file_data[i].split('TARGET (')[1].split(')')[0].split()[-2:])
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -712,7 +713,7 @@ def getBestParmRunsInputs (file_data):
                 if error[0]<min_error[0]:
                     min_error=error
                     min_inputs=inputs
-            except:
+            except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
                     "Districts",

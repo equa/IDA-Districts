@@ -3,8 +3,14 @@ from qgis.core import Qgis, QgsMessageLog
 import sys
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT 
-from .utility_functions.db import *
-from .utility_functions.workers import *
+import os
+from qgis.PyQt.QtCore import QRunnable, pyqtSlot
+from qgis.core import QgsApplication, QgsAuthMethodConfig
+from .utility_functions.compat import MessageCritical
+from .utility_functions.db import dbConnect
+from .utility_functions.files import loadProjectConfig
+from .utility_functions.utility import sanitize_pg_identifier
+from .utility_functions.workers import APISignals
 import subprocess   
 import traceback
        
@@ -55,7 +61,7 @@ class WorkerImportElevationData(QRunnable):
             os.environ['PGPASSWORD'] = self.password
 
             schema = sanitize_pg_identifier(self.config['versionName'])
-            if self.clearOldTerrain == True or not "True" in str(self.cur.fetchone()):
+            if self.clearOldTerrain or "True" not in str(self.cur.fetchone()):
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain;'.format(self.config['versionName']))# nosec B608
                 self.cur.execute('DROP TABLE IF EXISTS "{}".terrain1;'.format(self.config['versionName']))# nosec B608
                 self.signals.progress.emit(5)
@@ -132,7 +138,7 @@ class WorkerImportElevationData(QRunnable):
 
             self.signals.progress.emit(100)
             self.signals.finished.emit('Import elevation data completed!')
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

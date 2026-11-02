@@ -1,5 +1,5 @@
-from .files import *
-from .utility import *
+from .files import writeToFile
+from .utility import getIDADistrictsVersion, getIDAVersion
 import os
 
 def updateClimateMacroIdm(dir,name,config):

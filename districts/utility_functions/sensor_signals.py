@@ -1,7 +1,12 @@
-from .db import *
-from .files import *
-from .macros import *
-from .dialog import *
+import os
+from .db import (
+    getDrawnSubmodels, getFeatureIdFromName, getSubmodelPerFeatureIdTypename, getSupervisorySubmodel,
+    getTableIds,
+)
+from .files import readFileToList, writeToFileFromList
+from .ida_components import getCompClass, getCompName, getFeatureIdsPerSubmodel
+from .translations import tr
+from .utility import getIDADistrictsVersion, getIDAVersion, getTypeNameById
 
 
 import psycopg2
@@ -9,19 +14,18 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from qgis.PyQt.QtWidgets import QTableWidgetItem
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,QThreadPool, pyqtSlot, QRunnable
-from .util import *
 from .workers import WorkerOpenAPI
     
 def getSubmodelFromSensorSource(cur,config,sensor,source):
     try:
         return str((getSupervisorySubmodel(cur,config) if sensor['source_type']==3 else getSubmodelPerFeatureIdTypename(source.split('_')[1],sensor['source_type_name'],cur,config))['submodel'])
-    except:
+    except Exception:
         return str(getDrawnSubmodels(cur,config)[0])
         
 def getSubmodelFromSensorTarget(cur,config,sensor,target):
     try:
         return str((getSupervisorySubmodel(cur,config) if sensor['target_type']==3 else getSubmodelPerFeatureIdTypename(target.split('_')[1],sensor['target_type_name'],cur,config))['submodel'])
-    except:
+    except Exception:
         return str(getDrawnSubmodels(cur,config)[0]) 
         
 def getSensorDecData(sensor_data,feature_dec_irefs,cur,config):
@@ -93,12 +97,12 @@ def getCosimCounter(sensor_dec_data,iref,submodel,cur,config):
         if iref==i['iref']:
             try:
                 return counters[i['submodel']]+1
-            except:
+            except Exception:
                 return 1
         if not (function==6 and source_type==3) or i['iref'].split('_')[1] in [str(k['id']) for k in getFeatureIdsPerSubmodel(submodel,cur,config) if k['feature']==target_type]:
             try:
                 counters[i['submodel']]=counters[i['submodel']]+1
-            except:
+            except Exception:
                 counters[i['submodel']]=1
 
 def getCosimVarCounter(sensor_dec_data,iref,submodel):
@@ -215,7 +219,7 @@ SELECT
     s.source_template_names,
     s.description AS source_description,
     t.target_template_names,
-	t.target_type_name
+    t.target_type_name
 FROM source s
 JOIN target t
     ON t.sensor_id = s.sensor_id;""".format(getTypeNameById(type)[:-1],template) # nosec B608
@@ -419,10 +423,10 @@ def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
 def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter="",networks=None):
     network_filter=" AND f.network && ARRAY[{}]".format(','.join([i for i in networks])) if networks else ""
     sql="""WITH sub AS(
-	WITH sub AS(
-		WITH sub AS(
-			WITH sub AS(
-			     --customer (type:1); temp,mass,p(measure:1,2,3) 
+    WITH sub AS(
+        WITH sub AS(
+            WITH sub AS(
+                 --customer (type:1); temp,mass,p(measure:1,2,3) 
                 (SELECT s.sensor_id, f.id::text  AS feature_id, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
                         FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct, 
@@ -434,7 +438,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                             AND s_c.connection_id=c_t_conns.connection_id AND c_t_conns.connection_type_id=b_t_conns.conn_type_id AND s_c.source_id=s.sensor_id AND s.type=1
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
-				UNION
+                UNION
                 --plant (type:2); temp,mass,p(measure:1,2,3) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text, c_t_conns.connection_id::text
                         FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, connection_type_connections c_t_conns, sensor_source s,
@@ -448,7 +452,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id, c_t_conns.connection_id
                         ORDER BY s.sensor_id, f.id)
                 UNION
-				--customer (type:1); power(measure:4) 
+                --customer (type:1); power(measure:4) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
                         FROM "{}".customers f, customer_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
                             (SELECT source_id, conn_type FROM source_conn_type WHERE active=True GROUP BY source_id,conn_type) s_ct
@@ -456,7 +460,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                             AND b_t_conns.conn_type_id=s_ct.conn_type AND s.sensor_id=s_ct.source_id AND s.measure=4 AND s.type=1
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
                         ORDER BY s.sensor_id, f.id)
-				UNION
+                UNION
                 --plant (type:2); power(measure:4) 
                 (SELECT s.sensor_id, f.id::text, b_t_conns.conn_bundle_type_id::text, b_t_conns.conn_type_id::text,'X'
                         FROM "{}".energy_plants f, energy_plant_templates f_t, bundle_type_conns b_t_conns, sensor_source s,
@@ -466,40 +470,40 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                         GROUP BY s.sensor_id, f.id, b_t_conns.conn_bundle_type_id, b_t_conns.conn_type_id
                         ORDER BY s.sensor_id, f.id)
                 UNION
-				--customer; custom (measure:5) 
+                --customer; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
                         FROM  sensor_source s,"{}".customers f, source_template st
                         WHERE st.source_id=s.sensor_id AND st.active AND st.template=f.template AND s.measure=5 AND s.type=1{}
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
-				UNION
-				--plant; custom (measure:5) 
+                UNION
+                --plant; custom (measure:5) 
                 (SELECT s.sensor_id, f.id::text, 'X', 'X','X'
                         FROM  sensor_source s,"{}".energy_plants f, source_template st
                         WHERE st.source_id=s.sensor_id AND st.active AND st.template=f.template AND s.measure=5 AND s.type=2{}
                         GROUP BY s.sensor_id, f.id
                         ORDER BY s.sensor_id, f.id)
-				--supervisory ctrl source ;customer target; custom (measure:5) 
+                --supervisory ctrl source ;customer target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
                         FROM sensor_source s, sensor_target t,target_template t_t, "{}".customers f
                         WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=1{}
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
-				--supervisory ctrl source ;energy_plants target; custom (measure:5) 
+                --supervisory ctrl source ;energy_plants target; custom (measure:5) 
                 UNION
                 (SELECT s.sensor_id, CASE WHEN s.function=6 THEN f.id::text ELSE 'X' END AS feature_id, 'X', 'X','X'
                         FROM sensor_source s, sensor_target t,target_template t_t, "{}".energy_plants f
                         WHERE s.type=3 AND s.sensor_id=t.sensor_id AND t_t.target_id=t.sensor_id AND t_t.active =True AND f.template = t_t.template AND t.type=2{}
                         GROUP BY s.sensor_id,s.function,f.id
                         ORDER BY s.sensor_id,f.id)
-			)
+            )
             SELECT sub.sensor_id, s.function, s.type, sub.feature_id,
                 replace(replace(ARRAY_AGG(sub.sensor_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source 
                 FROM sub, sensor_source s WHERE s.sensor_id=sub.sensor_id GROUP BY s.function,sub.sensor_id,sub.feature_id,conn_type_id, s.type
 
-		)		        
-		SELECT sub.sensor_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.template_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
+        )                
+        SELECT sub.sensor_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.template_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
             FROM sub,
                 (SELECT at.type, f.feature_id, at.template_name 
                                         FROM
@@ -511,8 +515,8 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                                             SELECT 2 AS type,id::text AS feature_id,template FROM "{}".energy_plants) f
                                         WHERE at.type=f.type AND at.template=f.template) at_names
             GROUP BY at_names.type,at_names.feature_id,at_names.template_name,sub.type,sub.sensor_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')) 
-	)
-	SELECT b.sensor_id, sub.type,b.function, CASE WHEN sub.function=6 AND a.target_type=3 THEN b.irefs_source ELSE a.irefs_target END AS irefs_target, b.irefs_source, c.source_template_name, d.target_template_name
+    )
+    SELECT b.sensor_id, sub.type,b.function, CASE WHEN sub.function=6 AND a.target_type=3 THEN b.irefs_source ELSE a.irefs_target END AS irefs_target, b.irefs_source, c.source_template_name, d.target_template_name
         FROM sub,
             (--Customer target irefs
                 SELECT t.sensor_id, ARRAY_AGG(t.sensor_id::text||'_'||f.id::text||'_X_X'::text ORDER BY t.sensor_id,f.id) AS irefs_target, t.type AS target_type
@@ -532,7 +536,7 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                 GROUP BY t.sensor_id,t.type
             ) a,
             (WITH sub AS (SELECT sub.sensor_id, sub.function, sub.irefs_source FROM sub GROUP BY sub.sensor_id, sub.function, sub.irefs_source)
-            SELECT  sub.sensor_id, sub.function, ARRAY_AGG(sub.irefs_source ORDER BY CASE WHEN split_part(irefs_source,'_',1) ~ '^[0-9\.]+$' THEN split_part(irefs_source,'_',1)::integer ELSE 0 END) AS irefs_source FROM sub GROUP BY sub.sensor_id, sub.function) b,
+            SELECT  sub.sensor_id, sub.function, ARRAY_AGG(sub.irefs_source ORDER BY CASE WHEN split_part(irefs_source,'_',1) ~ '^[0-9\\.]+$' THEN split_part(irefs_source,'_',1)::integer ELSE 0 END) AS irefs_source FROM sub GROUP BY sub.sensor_id, sub.function) b,
             (WITH sub2 AS(WITH sub1 AS (SELECT sub.sensor_id, sub.function, sub.feature_id,sub.type,sub.template_name FROM sub 
                                         WHERE (sub.at_names_type=sub.type AND sub.at_names_feature_id=sub.feature_id) OR sub.type=3
                                         GROUP BY sub.template_name,sub.type,sub.sensor_id, sub.function,sub.feature_id)
@@ -564,7 +568,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     sub.irefs_source,sub.irefs_target, s.test_value,s.description AS description_source, t.description AS description_target
     FROM sub, sensor_source s, sensor_target t, signal_function s_f, measure m, type type1, type type2
     WHERE s.sensor_id=sub.sensor_id AND t.sensor_id=s.sensor_id AND m.id=s.measure 
-	AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
+    AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
     GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
     ORDER BY sub.sensor_id;""".format( # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
@@ -759,7 +763,7 @@ ORDER BY sub.sensor_id;""".format( # nosec B608
 def delSensorDescription(file_data):
     data=[]
     for line in file_data:
-        if not """<meta name=\\"sensor-description\\">""" in line:
+        if """<meta name=\\"sensor-description\\">""" not in line:
             data.append(line)
     return data
         
@@ -950,7 +954,7 @@ SELECT count(sub.template) FROM sub WHERE sub.template={};""".format(type,templa
             writeToFileFromList(file_data,dir,file)            
 
     def removeHCModeConnection(self,file_data):
-        return [line for line in file_data if not '|HCMode|' in line]
+        return [line for line in file_data if '|HCMode|' not in line]
         
     def removeHCModeLink(self,file_data,remove_sensor_target_ids):
         counter=0

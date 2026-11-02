@@ -1,11 +1,17 @@
 from qgis.PyQt.QtWidgets import  QTextEdit,QDialog, QTableWidgetItem,QButtonGroup,QComboBox,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QProgressBar, QCheckBox, QRadioButton, QListWidget
-from qgis.PyQt import QtGui, QtCore
+from qgis.PyQt import QtGui, QtCore, QtWidgets, uic
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 
-from .utility_functions.db import *
-from .utility_functions.dialog import *
-from .utility_functions.layer_visualization import *
-from .utility_functions.translations import *
+import os
+import psycopg2
+from qgis.PyQt.QtWidgets import QTableWidget
+from qgis.utils import iface
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import dbConnect, getDropDownItems
+from .utility_functions.dialog import get_item_flag
+from .utility_functions.layer_visualization import getDHCLayerNames, zoomToLayer
+from .utility_functions.translations import tr
+from .utility_functions.utility import refreshMap
 
 import traceback
 
@@ -113,7 +119,7 @@ class PipeBundleEditor(QDialog):
         self.setLayout(layout_win)
     
     def constrTableTextChanged(self,s):
-        if self.activeTable['general']==True:
+        if self.activeTable['general']:
             table=self.tableWidget
         else:
             table=self.tableWidget_pipe
@@ -128,7 +134,7 @@ class PipeBundleEditor(QDialog):
             #print(thickness)
             self.mappedAttributes['layer_constr'][seq_constr]=[material, thickness]
             #print(self.mappedAttributes)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
@@ -183,13 +189,13 @@ class PipeBundleEditor(QDialog):
 
     def mapAttributesDoubleClick(self,s):
         #print(s.text())
-        if self.activeTable['general']==True:
+        if self.activeTable['general']:
             table=self.tableWidget
         else:
             table=self.tableWidget_pipe
         table_index=table.currentRow()
         if table_index!=-1:
-            if self.activeTable['general']==True:
+            if self.activeTable['general']:
                 if table_index not in [1,4]: 
                     self.mappedAttributes[table.item(table_index,2).text()]=self.mappedAttributes[table.item(table_index,2).text()]+'"'+s.text()+'"'
                     table.setItem(table_index,0,QTableWidgetItem(self.mappedAttributes[table.item(table_index,2).text()]))
@@ -200,7 +206,7 @@ class PipeBundleEditor(QDialog):
                 material=table.cellWidget(table_index, 1).currentText()
                 try:
                     self.mappedAttributes['layer_constr'][seq_constr]=[material, self.mappedAttributes['layer_constr'][seq_constr][1]+'"'+s.text()+'"']
-                except:
+                except Exception:
                     self.mappedAttributes['layer_constr'][seq_constr]=[material, '"'+s.text()+'"']
                 table.setItem(table_index,2,QTableWidgetItem(self.mappedAttributes['layer_constr'][seq_constr][1]))
         else:

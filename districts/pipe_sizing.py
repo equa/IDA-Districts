@@ -5,10 +5,13 @@ from qgis.PyQt import QtCore
 from qgis.PyQt.QtCore import Qt,QThreadPool
 from qgis.core import Qgis, QgsMessageLog, QgsVectorLayer, QgsDataSourceUri, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsAuthMethodConfig
  
-from .utility_functions.topology import *
-from .utility_functions.utility import *
-from .utility_functions.db import *
-from .utility_functions.layer_visualization import *
+from qgis.core import QgsApplication, QgsEditorWidgetSetup, QgsProject
+from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.db import dbColumnIsNumeric, dbConnect, getMaxId, getPipeBundleTypesDB, getTableAttr
+from .utility_functions.layer_visualization import removeTempLayers, setLayersHidden
+from .utility_functions.topology import saveTempTables
+from .utility_functions.translations import tr
+from .utility_functions.utility import checkListNumbers, isFloat, isNumber, refreshMap
 from .utility_functions.workers import APISignals
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
@@ -124,11 +127,11 @@ class WorkerPipeSizing(QRunnable):
             for i in range(self.dlg.table_circuits.rowCount()):
                 try:
                     pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,0).currentText()]=pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,0).currentText()]+[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,1).text())]]
-                except:
+                except Exception:
                     pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,0).currentText()]=[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,1).text())]]
                 try:
-                    pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]+[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
-                except:
+                    pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]+[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
+                except Exception:
                     pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
             pipe_boundary_dict=dict(sorted(pipe_boundary_dict.items()))
             #print(pipe_boundary_dict)
@@ -186,7 +189,7 @@ class WorkerPipeSizing(QRunnable):
                             self.signals.error.emit("No proper pipe available for line ID = {} with inner diameter: ".format(line['id'])+str(z[1]))
                             return False
                         i+=1
-                    except:
+                    except Exception:
                         self.signals.error.emit("Load value is not set for line ID = {} and is therefore omitted in sizing process.".format(line['id']))
                 #print(pipe_bundle)  
                 
@@ -209,7 +212,7 @@ class WorkerPipeSizing(QRunnable):
             
             self.dlg.new_pipe_bundles=new_pipe_bundles
             self.signals.progress.emit(100)
-        except:
+        except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",

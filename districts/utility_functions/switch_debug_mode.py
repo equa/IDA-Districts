@@ -1,4 +1,4 @@
-from .files import *
+from .files import replace_in_folder
 
 def switchDebugMode(debug,plugin_dir):
     if debug:

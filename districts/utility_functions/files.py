@@ -1,7 +1,14 @@
 import os
 import shutil
-from .utility import *
-from .ida_components import *
+from .compat import MessageCritical
+from .db import getUsedFeatureTemplates
+from .ida_components import (
+    countOpenCloseBrackets, getCompClass, getCompName, getCompTemplate, getIDAListComponents, getModelType,
+    getParName, modelLanguage, pListToCompString,
+)
+from .utility import (
+    getIDADistrictsVersion, getIDAVersion, listToBracketsString, rmtree_long_path, safe_eval, strToDict,
+)
 from qgis.core import Qgis, QgsMessageLog
 
 import tempfile
@@ -56,7 +63,7 @@ def replace_in_files(folder_path, filename, replace_string, new_string):
                         pass
                         #print(f"Kein Treffer in: {file_path}")
 
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(
                         traceback.format_exc(),
                         "Districts",
@@ -73,7 +80,7 @@ def replace_in_file(file_path, old_string, new_string):
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(content)
             #print(f"Updated: {file_path}")
-    except:
+    except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
             "Districts",
@@ -98,7 +105,7 @@ def writeMacroSFIdm(config,cur,dir):
         cur.execute(sql)
         sf_ids=cur.fetchall()     
         #print(sf_ids)
-        filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars']!=None]
+        filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars'] is not None]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
     #print(dir)
                 
@@ -450,7 +457,7 @@ def getUsedtemplatesFDict(plugin_dir,cur,config):
                 entry=line.split(':N "')[1].split('"')[0]
                 try:
                     sf[key]=sf[key]+[entry]
-                except:
+                except Exception:
                     sf[key]=[entry]
                     
     sf={i: set(sf[i])for i in sf}
@@ -505,7 +512,7 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                         #print('counter = 0')
                         if not exchangeParmValue:
                             data[-1]=data[-1].rstrip()[:-1]+"\n"
-                        data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,par,modelicaLabelling,replaceDict[replace[0]][parDict]) 
+                        data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,parDict,modelicaLabelling,replaceDict[replace[0]][parDict]) 
                             for parDict in replaceDict[replace[0]] if parDict not in parms]
                         data[-1]=data[-1].rstrip()+')\n'                    
 
@@ -561,7 +568,7 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                     path=sf_names_dict[sf_name]['path']
                 try:
                     link_dict[model_name][model_link]={'sf_name': sf_name, 'sf_link': sf_link,'path':path}
-                except:
+                except Exception:
                     link_dict[model_name]={model_link:{'sf_name': sf_name, 'sf_link': sf_link,'path':path}}
         #print(link_dict)    
            
@@ -574,7 +581,7 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                 #print('++++++++update++++++++++++')
                 try:
                     var_names=[j.split()[0][1:] for j in link_dict[getCompName(comp)] if len(j.split())>1]
-                except:
+                except Exception:
                     var_names=[]
                 #print(var_names)
                 new_comp=[]
@@ -603,7 +610,7 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                                         #print(binding_name)
                                         try:
                                             new_bindings.append([binding[0],':SYSTEM','"sf-macro"', '"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding_name]['path']][0]),link_dict[getCompName(comp)][binding_name]['sf_link']])
-                                        except:
+                                        except Exception:
                                             new_bindings.append(binding)
                                     else:
                                         new_bindings.append(binding)
@@ -612,7 +619,7 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                                 i[':B']="#S(MS-SPARSE {} VALUE {})".format(i[':B'].split('MS-SPARSE ')[1].split(' VALUE ')[0],listToBracketsString(new_bindings))
                                 
                             new_comp.append(i)
-                        except:
+                        except Exception:
                             new_comp.append(i)  
                     else:
                         new_comp.append(i)  
