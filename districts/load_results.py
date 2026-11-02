@@ -45,6 +45,8 @@ class WorkerLoadResults(QRunnable):
     def loadResults(self):
         #print('-***-')
         networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
+        #the time column of the IDA .prn files holds the hours since Jan 1 of the simulated year (not since calc_time_from)
+        start_datetime=getDatetimeFromString(networkSimData['calc_time_from']).replace(month=1,day=1,hour=0,minute=0,second=0)
 
         srid=loadProjectConfig(self.config)['srid']
         modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
@@ -280,7 +282,6 @@ CREATE TABLE "{}".customer_s_ventilation
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
                                         #print(file_data)
-                                        start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
                             
                             if 'troom' in c_outputs:
@@ -294,7 +295,6 @@ CREATE TABLE "{}".customer_s_ventilation
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
                                     #print(file_data)
-                                    start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                     col_var_dict={2: {'var': 'troom','name': '','table_name': 'customer_s_troom'}}
                                     self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
                                 
@@ -308,7 +308,6 @@ CREATE TABLE "{}".customer_s_ventilation
                                         #print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                     #print(file_data)
-                                    start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                     self.copy_string_iterator_c_heatbalance_sData(file_data,id['id'],start_datetime)
                             self.signals.progress.emit(int(5+counter / len(cids) *28))
                         #update point geometry
@@ -409,7 +408,6 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                             #print(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                         #print(file_data)
-                                        start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
                             self.signals.progress.emit(int(33+counter / len(epids) *33))
                         #update point geometry
@@ -495,7 +493,6 @@ CREATE TABLE "{}".line_s_qamb
                                         file_data[:, 2:]=np.abs(file_data[:, 2:])
                                         #print(file_data)
                                     
-                                    start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                             
                                     if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
@@ -650,7 +647,6 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                                 #print(col_dict)
                                 file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                 
-                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         
                                 if self.dlg.checkbox_timestep.checkState() == checkState():
                                     #linear interpolation
@@ -704,7 +700,6 @@ CREATE TABLE "{}".heatbalance_{}_s
 
                                 file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                 
-                                start_datetime=getDatetimeFromString(networkSimData['calc_time_from'])
                                         
                                 if self.dlg.checkbox_timestep.checkState() == checkState():
                                     #linear interpolation

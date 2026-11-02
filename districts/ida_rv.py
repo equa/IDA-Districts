@@ -139,8 +139,8 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
         vars_data={var['colmn']:[] for var in var_dict}
         #print(vars_data)
         
-        # Base datetime: Jan 1 of the current year
-        base_time = datetime(datetime.now().year, 1, 1)
+        # Base datetime: Jan 1 of the simulated year
+        base_time = datetime(getDatetimeFromString(loadNetworkSimData(plugin_dir,config)['calc_time_from']).year, 1, 1)
         for i,line in enumerate(filedata):
             if i>0:
                 data=line.strip().split()
