@@ -47,6 +47,7 @@ class WorkerLoadResults(QRunnable):
         networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
         #the time column of the IDA .prn files holds the hours since Jan 1 of the simulated year (not since calc_time_from)
         start_datetime=getDatetimeFromString(networkSimData['calc_time_from']).replace(month=1,day=1,hour=0,minute=0,second=0)
+        self.reported_errors=set()
 
         srid=loadProjectConfig(self.config)['srid']
         modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
@@ -236,10 +237,10 @@ CREATE TABLE "{}".customer_s_ventilation
                         
                         #load data
                         #get cid`s
-                        sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
+                        sql="""SELECT f.id , b_t_conns.conn_bundle_type_id, t.template::text || '_' || t.template_name AS template_name
     FROM "{}".customers f, bundle_type_conns b_t_conns, customer_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
-    GROUP BY f.id , b_t_conns.conn_bundle_type_id
+    GROUP BY f.id , b_t_conns.conn_bundle_type_id, t.template, t.template_name
     ORDER BY f.id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
                         cids=self.cur.fetchall()
@@ -258,6 +259,7 @@ CREATE TABLE "{}".customer_s_ventilation
                                 for seq in conn_type_seq:
                                     fname=dir_path+'customer_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
                                     #print(fname)
+                                    self.checkConnTypeSeqOutputFile(fname,'customer',id,seq,b_t_connValues_dict[id['conn_bundle_type_id']],c_conn_outputs,bool(c_power_outputs))
                                     if os.path.exists(fname):
                                         with open(fname, "r") as myfile:
                                             col_var_dict={}
@@ -323,7 +325,7 @@ CREATE TABLE "{}".customer_s_ventilation
                     ep_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output]]
                     if ep_outputs:
                         used_b_types=getUsedConnBundleTypes('energy_plant',self.cur,self.config)
-                        ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power']]
+                        ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power','qsup']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('energy_plant',self.cur,self.config)
                         tables=[]
@@ -364,10 +366,10 @@ CREATE TABLE "{}".energy_plant_s_power${}
                             
                         #load data
                         #get epid`s
-                        sql="""SELECT f.id , b_t_conns.conn_bundle_type_id
+                        sql="""SELECT f.id , b_t_conns.conn_bundle_type_id, t.template::text || '_' || t.template_name AS template_name
     FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
-    GROUP BY f.id , b_t_conns.conn_bundle_type_id;""".format(self.config['versionName'],submodel_id) # nosec B608
+    GROUP BY f.id , b_t_conns.conn_bundle_type_id, t.template, t.template_name;""".format(self.config['versionName'],submodel_id) # nosec B608
                         #print(sql)
                         self.cur.execute(sql)
                         epids=self.cur.fetchall()
@@ -384,6 +386,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                 for seq in conn_type_seq:
                                     fname=dir_path+'energy_plant_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
                                     #print(fname)
+                                    self.checkConnTypeSeqOutputFile(fname,'energy_plant',id,seq,b_t_connValues_dict[id['conn_bundle_type_id']],ep_conn_outputs,'power' in ep_outputs)
                                     if os.path.exists(fname):
                                         with open(fname, "r") as myfile:
                                             col_var_dict={}
@@ -729,6 +732,38 @@ CREATE TABLE "{}".massbalance_{}_s
                         MessageCritical
                     )
                         
+    def checkConnTypeSeqOutputFile(self,fname,feature_type,feature,seq,connValues,conn_outputs,power_output):
+        """Log a QGIS error, if the connection type output file is missing or does not contain all requested variables"""
+        expected_vars=['{}_{}'.format(output,connValue['conn_seq']) for connValue in connValues if connValue['conn_type_seq']==seq for output in conn_outputs]
+        if power_output:
+            expected_vars.append('power')
+        if not expected_vars:
+            return
+        #only one message per template, connection type sequence and error
+        feature_name='{} template {} (e.g. {} {})'.format(tr('@default',feature_type),feature['template_name'],tr('@default',feature_type),feature['id'])
+        if not os.path.exists(fname):
+            error_key=(feature_type,feature['template_name'],seq,'file')
+            if error_key in self.reported_errors:
+                return
+            self.reported_errors.add(error_key)
+            QgsMessageLog.logMessage(
+                "{}: output file 'Connection type sequence_{}.prn' not found ({})".format(feature_name,seq,fname),
+                "Districts",
+                MessageCritical
+            )
+            return
+        with open(fname, "r") as myfile:
+            header=[var.lstrip('#') for var in myfile.readline().split()]
+        missing_vars=[var for var in expected_vars if var not in header]
+        error_key=(feature_type,feature['template_name'],seq,tuple(missing_vars))
+        if missing_vars and error_key not in self.reported_errors:
+            self.reported_errors.add(error_key)
+            QgsMessageLog.logMessage(
+                "{}: variables missing in output file 'Connection type sequence_{}.prn': {}".format(feature_name,seq,', '.join(missing_vars)),
+                "Districts",
+                MessageCritical
+            )
+
     def copy_string_iterator_system_balance_sData(self, sdata,start_datetime,col_names,table_name) -> None:
         with self.conn.cursor() as cursor:
             max_id=getMaxIdSchema(self.cur,table_name,self.config['versionName'])+1
