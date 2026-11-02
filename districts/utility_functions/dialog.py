@@ -66,6 +66,16 @@ def uncheckState():
         checked = Qt.Unchecked
     return checked
 
+def runWithButtonDisabled(btn, fn, *args):
+    """Disables btn while fn prepares its workers; if fn started them with workers.startWorkers, btn stays disabled until they are done."""
+    btn.setEnabled(False)
+    QtWidgets.QApplication.processEvents()
+    try:
+        return fn(*args)
+    finally:
+        if not getattr(btn, 'workers_running', 0):
+            btn.setEnabled(True)
+
 class IDADistrictsPleaseContactDialog(QDialog):
     """
     Dialog informing the user that the requested functionality

@@ -774,7 +774,7 @@ class ShowOnMapDialog(QDialog):
         self.color_function.clear()
         self.color_function.addItems(self.function_items)
         if s.split('$')[0]=='p':
-            self.color_function.addItem('specific dp')
+            self.color_function.addItem('specific_dp')
                 
         if s.split('$')[0]=='mdot' and self.rbtn_lines.isChecked():
             self.hideSizeLayout()

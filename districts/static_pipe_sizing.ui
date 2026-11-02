@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>StaticPipeSizingDialog</class>
+ <widget class="QDialog" name="StaticPipeSizingDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>560</width>
+    <height>860</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Static pipe sizing</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_main">
+   <item>
+    <widget class="QTextEdit" name="textEdit_info">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>190</height>
+      </size>
+     </property>
+     <property name="html">
+      <string>&lt;p&gt;&lt;b&gt;Static pipe sizing&lt;/b&gt;&lt;/p&gt;
+&lt;p&gt;Iterative sizing of the pipe dimensions with the dynamic network simulation. Every iteration:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;build the network model (pipe bundles of the lines),&lt;/li&gt;
+&lt;li&gt;run the simulation (settings of &lt;i&gt;run simulation&lt;/i&gt;) and load the results,&lt;/li&gt;
+&lt;li&gt;flow tracing: mass flow of every customer per line (c_lid) and differential pressure at the substations,&lt;/li&gt;
+&lt;li&gt;optional pre-sizing with the specific pressure loss setpoint, then balancing of the customers by reducing pipe dimensions,&lt;/li&gt;
+&lt;li&gt;the new pipe bundles are written to the lines (missing bundle types are created).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The loop stops when the pipe dimensions do not change anymore, when a state repeats or after the maximal number of iterations. Every pipe is checked against the maximal specific pressure loss at its peak mass flow over the whole simulation period, so lines are not undersized.&lt;/p&gt;
+&lt;p&gt;&lt;b&gt;Version:&lt;/b&gt; either a new child version of the loaded version is created and loaded before the first iteration (the loaded version keeps its pipes), or the pipes of the loaded version are overridden. The mass flows are kept constant within an iteration, the next simulation shows the real effect.&lt;/p&gt;</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_version">
+     <property name="title">
+      <string>Version</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_version">
+      <item row="0" column="0" colspan="2">
+       <widget class="QRadioButton" name="rbtn_newVersion">
+        <property name="text">
+         <string>Create a new child version of the loaded version and size the pipes there</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_versionName">
+        <property name="text">
+         <string>Name of the new version</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="lineEdit_versionName">
+        <property name="placeholderText">
+         <string>a-z, 0-9 and _ only</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_versionDescription">
+        <property name="text">
+         <string>Description</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="lineEdit_versionDescription"/>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QRadioButton" name="rbtn_overrideVersion">
+        <property name="text">
+         <string>Override the pipes of the loaded version</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_network">
+     <property name="title">
+      <string>Network</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_network">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_network">
+        <property name="text">
+         <string>Network</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="combo_network"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_submodel">
+        <property name="text">
+         <string>Submodel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QComboBox" name="combo_submodel"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_timeMode">
+        <property name="text">
+         <string>Time step per customer</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="combo_timeMode">
+        <item>
+         <property name="text">
+          <string>max. pressure loss along the path</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>max. mass flow at the substation</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>global critical time step</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_epAggregate">
+        <property name="text">
+         <string>Several energy plants</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="combo_epAggregate">
+        <item>
+         <property name="text">
+          <string>max. pressure loss of the supplying plants</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>weighted with the mass flow shares</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_minShare">
+        <property name="text">
+         <string>Min. share of a plant [%]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QDoubleSpinBox" name="spin_minShare">
+        <property name="decimals">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <double>100.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_balancing">
+     <property name="title">
+      <string>Balancing of the customers</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_balancing">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_tolAbove">
+        <property name="text">
+         <string>Tolerance exceedance [Pa]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QDoubleSpinBox" name="spin_tolAbove">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <double>1000000.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>100.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>500.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_tolBelow">
+        <property name="text">
+         <string>Tolerance undershoot [Pa]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QDoubleSpinBox" name="spin_tolBelow">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <double>1000000.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>100.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>0.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBox_weighted">
+        <property name="text">
+         <string>Weight the pressure loss of a line with the mass flow share of the customer</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_sizing">
+     <property name="title">
+      <string>Pipe sizing</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_sizing">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="checkBox_presize">
+        <property name="text">
+         <string>Pre-sizing with setpoint [Pa/m per pipe]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QDoubleSpinBox" name="spin_dpSpezSetpoint">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <double>10000.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>10.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>100.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBox_presizeOnly">
+        <property name="text">
+         <string>Only pre-sizing (no balancing of the customers)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="checkBox_dpSpezMax">
+        <property name="text">
+         <string>Max. specific pressure loss at peak flow [Pa/m per pipe]</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="spin_dpSpezMax">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <double>10000.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>10.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>300.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="checkBox_vMax">
+        <property name="text">
+         <string>Max. velocity at peak flow [m/s]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QDoubleSpinBox" name="spin_vMax">
+        <property name="decimals">
+         <number>2</number>
+        </property>
+        <property name="maximum">
+         <double>20.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="value">
+         <double>2.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_iteration">
+     <property name="title">
+      <string>Iteration</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_iteration">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_maxIter">
+        <property name="text">
+         <string>Max. number of iterations</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QSpinBox" name="spin_maxIter">
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="value">
+         <number>5</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBox_buildFirst">
+        <property name="text">
+         <string>Build the network model before the first simulation</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkbox_reinvokeFeatures">
+        <property name="text">
+         <string>Reinvoke the feature templates when building the network model</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPlainTextEdit" name="textEdit_log">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Progress of the iterations</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QProgressBar" name="progress">
+     <property name="value">
+      <number>0</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_buttons">
+     <item>
+      <widget class="QPushButton" name="btn_start">
+       <property name="text">
+        <string>Start</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_stop">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Stop after this step</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_cancel">
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

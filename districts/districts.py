@@ -82,6 +82,7 @@ from .ida_rv_dialog import (
 )
 from .osm import WorkerOSMBuildingsImport, WorkerOSMStreetsImport
 from .pipe_sizing import loadPipes, rejectPipeSizingResults, savePipeSizingResults, startPipeSizing
+from .static_pipe_sizing import StaticPipeSizingDialog
 from .update_sensors import UpdateSensors
 from .utility_functions.compat import ApplicationShortcut, MessageCritical, MessageInfo, QAction
 from .utility_functions.db import (
@@ -90,7 +91,7 @@ from .utility_functions.db import (
 )
 from .utility_functions.dialog import (
     TableDialog, addParmTableRow, checkIDADistrictsInstallation, closeDialog, deleteSelectedTableRow,
-    deleteTableRow, deleteTableRowTrace, load_image,
+    deleteTableRow, deleteTableRowTrace, load_image, runWithButtonDisabled,
 )
 from .utility_functions.files import (
     districtsModelerTempDir, getBuildingFileSubmodels, getNetworkFileSubmodels, loadModellingSettings,
@@ -1180,7 +1181,7 @@ class Districts:
                         self.dlg_buildModel.combo_submodels.setItemChecked(i+1,False)
                 self.dlg_buildModel.show()
                 self.dlg_buildModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildModel))
-                self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: buildModel(self.dlg_buildModel,self))
+                self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: runWithButtonDisabled(self.dlg_buildModel.btn_buildNetworkModel,buildModel,self.dlg_buildModel,self))
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
         else:
@@ -1246,11 +1247,26 @@ class Districts:
                         self.dlg_runModel.combo_submodels.setItemChecked(int(i)+1,False)
                 self.dlg_runModel.show()
                 self.dlg_runModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_runModel))
-                self.dlg_runModel.btn_runModel.clicked.connect(lambda: runModel(self.dlg_runModel,self.plugin_dir,self.config))
+                self.dlg_runModel.btn_runModel.clicked.connect(lambda: runWithButtonDisabled(self.dlg_runModel.btn_runModel,runModel,self.dlg_runModel,self.plugin_dir,self.config))
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
         else:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+
+    def showStaticPipeSizing(self):
+        """Static pipe sizing: loop of building the network model, simulation, loading results and pipe sizing"""
+        if self.conn:
+            if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_staticPipeSizing=StaticPipeSizingDialog(self)
+                self.dlg_staticPipeSizing.fillCombos(self.cur,self.config)
+                self.dlg_staticPipeSizing.show()
+            else:
+                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+        else:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
 
     def showLoadResults(self):
         """ show load results; loop over submodels"""
@@ -1269,7 +1285,7 @@ class Districts:
                     self. dlg_loadResults.combo_submodels.setItemChecked(int(i)+1,True if count==1 else False)
                 self.dlg_loadResults.show()
                 self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
-                self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: loadResults(self.dlg_loadResults,self))
+                self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: runWithButtonDisabled(self.dlg_loadResults.btn_loadResults,loadResults,self.dlg_loadResults,self))
             else:
                 self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
         else:
@@ -1281,7 +1297,7 @@ class Districts:
                 if not checkIDADistrictsInstallation(self.config):
                     return
                 self.dlg_pathReports=IDADistrictsPathReportsDialog(self.cur,self.config,self.dlg)
-                self.dlg_pathReports.btn_ok.clicked.connect(lambda: runPathReports(self.dlg_pathReports,self))
+                self.dlg_pathReports.btn_ok.clicked.connect(lambda: runWithButtonDisabled(self.dlg_pathReports.btn_ok,runPathReports,self.dlg_pathReports,self))
                 self.dlg_pathReports.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_pathReports))
                 self.dlg_pathReports.btn_addSelectedIDs.clicked.connect(lambda: addSelectedIDs(self.dlg_pathReports))
                 self.dlg_pathReports.btn_deleteIDs.clicked.connect(lambda: deleteIDs(self.dlg_pathReports))
@@ -1535,6 +1551,7 @@ class Districts:
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
             self.dlg.btn_runModel.clicked.connect(self.showRunModel)
+            self.dlg.btn_staticPipeSizing.clicked.connect(self.showStaticPipeSizing)
             self.dlg.btn_calibration.clicked.connect(self.showCalibration)
             
             #results and visualization

@@ -27,7 +27,7 @@ from .utility_functions.topology import getConnsValuesByFeature, getConnsValuesI
 from .utility_functions.translations import tr
 from .utility_functions.utility import copy_tree_filter_extensions_and_folders, is_number
 from .utility_functions.workers import (
-    WorkerOpenModelCmd, WorkerOpenRunScriptAPI, WorkerSimulateAPI, show_error_message,
+    WorkerOpenModelCmd, WorkerOpenRunScriptAPI, WorkerSimulateAPI, show_error_message, startWorkers,
 )
 from .supervisory_control import Supervisory_control
 from qgis.core import Qgis, QgsMessageLog
@@ -331,10 +331,10 @@ def runModel(dlg,plugin_dir,config):
                     writeSimulatedOutputs(config,requestedOutputs)
                     
                     worker_runNetwork[i] = WorkerSimulateAPI(fname,plugin_dir,config)
-                    QThreadPool.globalInstance().start(worker_runNetwork[i]) 
                     worker_runNetwork[i].signals.error.connect(dlg.show_error_message)
-                    worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)   
-                    worker_runNetwork[i].signals.finished.connect(dlg.update_finished)   
+                    worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)
+                    worker_runNetwork[i].signals.finished.connect(dlg.update_finished)
+            startWorkers(list(worker_runNetwork.values()),dlg.btn_runModel)
         else:
             iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=MessageInfo)
 
@@ -349,10 +349,10 @@ def buildModel(dlg,main):
     #print(submodels)
     if networks and submodels:
         main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
-        QThreadPool.globalInstance().start(main.worker_invokeNetwork) 
         main.worker_invokeNetwork.signals.error.connect(show_error_message)
-        main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)   
-        main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)   
+        main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)
+        main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)
+        startWorkers([main.worker_invokeNetwork],dlg.btn_buildNetworkModel)
     else:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=MessageInfo)
 

@@ -16,7 +16,7 @@ from .utility import (
 )
 import os
 import numpy as np
-from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable
+from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable, QThreadPool
 from qgis.utils import iface
 import subprocess
 import time
@@ -41,6 +41,37 @@ def process_wait(dlg,max_sec=60):
 def show_error_message(message):
     # Show the error message in a messageBar
     iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+
+class WorkerDoneSignals(QObject):
+    done=pyqtSignal()
+
+class WorkerDoneTracker(QRunnable):
+    """Runs a worker and emits done when its run returns or raises, independent of the signals the worker emits itself."""
+    def __init__(self, worker):
+        super().__init__()
+        self.worker=worker
+        self.signals=WorkerDoneSignals()
+
+    def run(self):
+        try:
+            self.worker.run()
+        finally:
+            self.signals.done.emit()
+
+def startWorkers(workers, btn):
+    """Starts the workers in the global thread pool; btn stays disabled until all of them are done."""
+    btn.setEnabled(False)
+    btn.workers_running=len(workers)
+
+    def onDone():
+        btn.workers_running-=1
+        if btn.workers_running==0:
+            btn.setEnabled(True)
+
+    for worker in workers:
+        tracker=WorkerDoneTracker(worker)
+        tracker.signals.done.connect(onDone)
+        QThreadPool.globalInstance().start(tracker)
 
 class APIPlotinvokedFeatureSignals(QObject):
     progress=pyqtSignal(int)

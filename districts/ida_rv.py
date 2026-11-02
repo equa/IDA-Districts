@@ -17,7 +17,7 @@ from .utility_functions.plots import matplotlibBalancePlots, matplotlibPowerPlot
 from .utility_functions.show_on_map import WorkerShowOnMap
 from .utility_functions.translations import tr
 from .utility_functions.utility import isNumber, is_number
-from .utility_functions.workers import show_error_message
+from .utility_functions.workers import show_error_message, startWorkers
 
 from datetime import datetime, timedelta
 
@@ -347,10 +347,10 @@ def loadResults(dlg,main):
         
     if submodels:
         main.worker_loadResults = WorkerLoadResults(config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,submodels=submodels,simulatedOutputs=simulatedOutputs)
-        QThreadPool.globalInstance().start(main.worker_loadResults) 
         main.worker_loadResults.signals.error.connect(show_error_message)
-        main.worker_loadResults.signals.progress.connect(dlg.update_progress)   
-        main.worker_loadResults.signals.finished.connect(dlg.update_finished)   
+        main.worker_loadResults.signals.progress.connect(dlg.update_progress)
+        main.worker_loadResults.signals.finished.connect(dlg.update_finished)
+        startWorkers([main.worker_loadResults],dlg.btn_loadResults)
     else:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
   
@@ -359,8 +359,8 @@ def runPathReports(dlg,main):
             
     main.worker_pathReport.signals.error.connect(show_error_message)
     main.worker_pathReport.signals.progress.connect(dlg.update_progress)  
-    main.worker_pathReport.signals.finished.connect(dlg.update_finished)  
-    QThreadPool.globalInstance().start(main.worker_pathReport)   
+    main.worker_pathReport.signals.finished.connect(dlg.update_finished)
+    startWorkers([main.worker_pathReport],dlg.btn_ok)
                     
 def plotLoadProfiles(dlg,plugin_dir,config,cur):
     simulatedOutputs=loadSimulatedOutputs(config)

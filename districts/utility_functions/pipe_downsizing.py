@@ -23,7 +23,7 @@ import json
 import math
 from collections import defaultdict
 
-from .flow_tracing import getCustomerLineMdot, getFeatureConnTables, getTimeSeries
+from .flow_tracing import getCustomerLineMdot
 
 
 def waterProperties(temp):
@@ -83,7 +83,8 @@ def getPipeBundles(cur):
 
 
 def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(70.0, 40.0)):
-    """Returns {lid: {'length', 'bundle', 'pipes': {seq: {'pipe_id', 'mdot', 'temp'}}}} at the given time."""
+    """Returns {lid: {'length', 'bundle', 'pipes': {seq: {'pipe_id', 'mdot', 'temp', 'mdot_max'}}}} at the given time;
+    mdot_max is the maximal absolute mass flow of the pipe over all time steps (peak load for the pipe sizing)."""
     v = config['versionName']
     cur.execute("""SELECT l.id, ST_3DLength(l.geom) AS length, l.pipe_bundle_type_id, bp.sequence, bp.pipe_id
     FROM "{}".lines l, public.bundle_pipes bp
@@ -91,7 +92,7 @@ def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(7
     lines = {}
     for row in cur.fetchall():
         line = lines.setdefault(row['id'], {'length': float(row['length']), 'bundle': row['pipe_bundle_type_id'], 'pipes': {}})
-        line['pipes'][row['sequence']] = {'pipe_id': int(row['pipe_id']), 'mdot': 0.0, 'temp': None}
+        line['pipes'][row['sequence']] = {'pipe_id': int(row['pipe_id']), 'mdot': 0.0, 'temp': None, 'mdot_max': 0.0}
 
     cur.execute("""SELECT table_name FROM information_schema.tables WHERE table_schema = %s;""", (v,))
     tables = {row['table_name'] for row in cur.fetchall()}
@@ -104,30 +105,37 @@ def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(7
             for row in cur.fetchall():
                 if row['fid'] in lines and seq in lines[row['fid']]['pipes'] and row['val'] is not None:
                     lines[row['fid']]['pipes'][seq][var] = float(row['val'])
+        table = 'line_s_mdot${}'.format(seq)
+        if table in tables:
+            cur.execute("""SELECT fid, MAX(ABS(val)) AS val FROM (SELECT fid, time, AVG("$mdot") AS val FROM "{}"."{}" GROUP BY fid, time) s GROUP BY fid;""".format(v, table))  # nosec B608
+            for row in cur.fetchall():
+                if row['fid'] in lines and seq in lines[row['fid']]['pipes'] and row['val'] is not None:
+                    lines[row['fid']]['pipes'][seq]['mdot_max'] = float(row['val'])
         for line in lines.values():
             if seq in line['pipes'] and line['pipes'][seq]['temp'] is None:
                 line['pipes'][seq]['temp'] = default_temps[min(i, len(default_temps) - 1)]
     return lines
 
 
-def lineSpecificPressureLoss(line, catalog, pipe_ids=None):
-    """Returns (dp_spez supply + return [Pa/m], max. velocity [m/s]); pipe_ids={seq: pipe_id} overrides the actual pipes."""
+def lineSpecificPressureLoss(line, catalog, pipe_ids=None, peak=False):
+    """Returns (dp_spez supply + return [Pa/m], max. velocity [m/s]); pipe_ids={seq: pipe_id} overrides the actual pipes.
+    peak=True -> with the larger of mdot and the peak mass flow mdot_max of the pipe."""
     dp_spez = 0.0
     v_max = 0.0
     for seq, pipe in line['pipes'].items():
         p = catalog[pipe_ids[seq] if pipe_ids else pipe['pipe_id']]
-        r, v = specificPressureLoss(pipe['mdot'], p['d'], p['k'], pipe['temp'])
+        r, v = specificPressureLoss(max(abs(pipe['mdot']), pipe.get('mdot_max', 0.0)) if peak else pipe['mdot'], p['d'], p['k'], pipe['temp'])
         dp_spez += r
         v_max = max(v_max, v)
     return dp_spez, v_max
 
 
-def getCustomerDp(cur, config, time, network=1):
-    """Returns {cid: p_sup - p_ret} at the substations (result tables derived from the customer templates)."""
-    c_tables = getFeatureConnTables(cur, config, 'customer', 'p', network)
-    p_sup = getTimeSeries(cur, config, {cid: t[0] for cid, t in c_tables.items()}, '$p', time).get(time, {})
-    p_ret = getTimeSeries(cur, config, {cid: t[1] for cid, t in c_tables.items()}, '$p', time).get(time, {})
-    return {cid: p - p_ret[cid] for cid, p in p_sup.items() if cid in p_ret}
+def linePipeSpecificPressureLoss(line, catalog, pipe_ids=None, peak=False):
+    """Returns {seq: dp_spez [Pa/m]} of every pipe of the line; pipe_ids={seq: pipe_id} overrides the actual pipes.
+    peak=True -> with the larger of mdot and the peak mass flow mdot_max of the pipe."""
+    return {seq: specificPressureLoss(max(abs(pipe['mdot']), pipe.get('mdot_max', 0.0)) if peak else pipe['mdot'],
+        catalog[pipe_ids[seq] if pipe_ids else pipe['pipe_id']]['d'], catalog[pipe_ids[seq] if pipe_ids else pipe['pipe_id']]['k'],
+        pipe['temp'])[0] for seq, pipe in line['pipes'].items()}
 
 
 def buildCLid(c_lid_mdot, dp_c, dp_spez):
@@ -137,13 +145,23 @@ def buildCLid(c_lid_mdot, dp_c, dp_spez):
 
 def getCustomerLinePressure(cur, config, network=1, **kwargs):
     """Flow tracing (see flow_tracing.getCustomerLineMdot) extended by dp of the customers and dp_spez of the lines.
+    The mass flow of a line (dp_spez, pipe sizing) is the sum of the customer mass flows in c_lid, so with
+    time_mode='customer' every customer contributes with its flow at the time of its maximal network pressure
+    loss; dp of a customer is taken at the same time. Temperatures are taken at the global critical time.
     Returns the result dict of getCustomerLineMdot with c_lid = {cid: [dp, {lid: [dp_spez, mdot]}]}
     and additionally 'c_lid_mdot', 'lines', 'catalog', 'dp_spez'."""
     res = getCustomerLineMdot(cur, config, network=network, **kwargs)
     catalog = getPipeCatalog(cur)
     lines = getLineData(cur, config, res['time'], network)
+    mdot_design = defaultdict(float)
+    for lids in res['c_lid'].values():
+        for lid, m in lids.items():
+            mdot_design[lid] += m
+    for lid, line in lines.items():
+        for pipe in line['pipes'].values():
+            pipe['mdot'] = mdot_design.get(lid, 0.0)
     dp_spez = {lid: lineSpecificPressureLoss(line, catalog)[0] for lid, line in lines.items()}
-    dp_c = getCustomerDp(cur, config, res['time'], network)
+    dp_c = res['dp_c']
     res['c_lid_mdot'] = res['c_lid']
     res['c_lid'] = buildCLid(res['c_lid_mdot'], dp_c, dp_spez)
     res.update({'lines': lines, 'catalog': catalog, 'dp_spez': dp_spez})
@@ -153,12 +171,16 @@ def getCustomerLinePressure(cur, config, network=1, **kwargs):
 def presizePipes(c_lid, lines, catalog, dp_spez_setpoint):
     """Pre-sizing: for every line the smallest pipe of the same construction whose specific pressure loss [Pa/m]
     does not exceed dp_spez_setpoint in each pipe (supply and return get the same dimension; largest pipe if none
-    fits). The mass flow of a line is the sum of the customer mass flows in c_lid = {cid: [dp, {lid: [dp_spez, mdot]}]}.
+    fits). The mass flow of a line is the sum of the customer mass flows in c_lid = {cid: [dp, {lid: [dp_spez, mdot]}]},
+    but at least the peak mass flow of the line over all time steps (mdot_max), so that no line is undersized
+    for operating states which are not represented in c_lid (e.g. a second energy plant switched on).
     Lines without mass flow keep their pipes. Returns {lid: {seq: pipe_id}}."""
     mdot = defaultdict(float)
     for _, lids in c_lid.values():
         for lid, (_, m) in lids.items():
             mdot[lid] += m
+    for lid, line in lines.items():
+        mdot[lid] = max([mdot[lid]] + [pipe.get('mdot_max', 0.0) for pipe in line['pipes'].values()])
     pipes = {}
     for lid, line in lines.items():
         pipes[lid] = {seq: pipe['pipe_id'] for seq, pipe in line['pipes'].items()}
@@ -173,7 +195,7 @@ def presizePipes(c_lid, lines, catalog, dp_spez_setpoint):
     return pipes
 
 
-def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0, dp_target=None, cid_weak=None, weighted=False, v_max=None, dp_spez_max=None,
+def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0, dp_target=None, cid_weak=None, weighted=False, v_max=None, dp_spez_max=300.0,
         dp_spez_setpoint=None, presize_only=False, max_iter=1000):
     """Iterative reduction of pipe diameters until dp of all customers is within dp_target ... dp_target + tol_above
     (dp_target default: minimal dp of all customers). The mass flows are kept constant.
@@ -185,7 +207,11 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
     weighted:    False -> the additional pressure loss of a line is subtracted completely from dp of every
                  customer supplied via the line; True -> weighted with the share mdot_line / mdot_customer
                  (for customers supplied via parallel strands).
-    v_max, dp_spez_max: optional limits [m/s], [Pa/m] for the new pipe.
+    v_max:       optional limit of the velocity [m/s] for a reduced pipe (at the peak mass flow).
+    dp_spez_max: maximal specific pressure loss [Pa/m per pipe] at the peak mass flow of the pipe (mdot_max over all
+                 time steps, at least the c_lid flow), default 300 Pa/m, None -> no limit (lines can be undersized):
+                 pipes are not reduced beyond it, lines exceeding it are enlarged to the smallest pipe that meets it
+                 (after the pre-sizing, 'presize' entries with reason 'dp_spez_max') and dp_spez_setpoint is limited to it.
     cid_weak:    weak point customer (default: customer with the minimal dp after the pre-sizing); the lines
                  supplying it are not changed.
     dp_spez_setpoint: optional pre-sizing [Pa/m per pipe] (see presizePipes) before the iteration; dp of the
@@ -205,8 +231,9 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
             line_customers[lid][cid] = m / mdot_tot if mdot_tot else 0.0
 
     presize = []
-    if dp_spez_setpoint:
-        for lid, new in presizePipes(c_lid, lines, catalog, dp_spez_setpoint).items():
+
+    def applyPresize(new_pipes, reason):
+        for lid, new in new_pipes.items():
             if new == pipes[lid]:
                 continue
             dp_spez_new = lineSpecificPressureLoss(lines[lid], catalog, new)[0]
@@ -214,10 +241,18 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
             for c, share in line_customers[lid].items():
                 if c in dp:
                     dp[c] -= ddp * (share if weighted else 1.0)
-            presize.append({'lid': lid, 'pipes_old': [catalog[p]['name'] for p in pipes[lid].values()], 'pipes_new': [catalog[p]['name'] for p in new.values()],
+            presize.append({'lid': lid, 'reason': reason, 'pipes_old': [catalog[p]['name'] for p in pipes[lid].values()], 'pipes_new': [catalog[p]['name'] for p in new.values()],
                 'dp_spez_old': dp_spez[lid], 'dp_spez_new': dp_spez_new, 'ddp_line': ddp, 'customers': sorted(line_customers[lid])})
             pipes[lid] = new
             dp_spez[lid] = dp_spez_new
+
+    if dp_spez_setpoint:
+        applyPresize(presizePipes(c_lid, lines, catalog, min(dp_spez_setpoint, dp_spez_max) if dp_spez_max else dp_spez_setpoint), 'setpoint')
+    if dp_spez_max:
+        # lines whose pipes exceed the maximal specific pressure loss are enlarged
+        too_small = [lid for lid in lines if max(linePipeSpecificPressureLoss(lines[lid], catalog, pipes[lid], peak=True).values(), default=0.0) > dp_spez_max]
+        presized = presizePipes(c_lid, {lid: lines[lid] for lid in too_small}, catalog, dp_spez_max)
+        applyPresize({lid: new for lid, new in presized.items() if catalog[next(iter(new.values()))]['d'] > catalog[next(iter(pipes[lid].values()))]['d']}, 'dp_spez_max')
 
     if cid_weak is None:
         cid_weak = min(dp, key=dp.get)
@@ -228,8 +263,8 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
     history = []
     blocked = set()
     converged = False
-    if presize_only and not dp_spez_setpoint:
-        raise ValueError('presize_only needs dp_spez_setpoint')
+    if presize_only and not (dp_spez_setpoint or dp_spez_max):
+        raise ValueError('presize_only needs dp_spez_setpoint or dp_spez_max')
     for it in range(1, (0 if presize_only else max_iter) + 1):
         if max(dp.values()) - dp_target <= tol_above:
             converged = True
@@ -240,8 +275,9 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
                 new = {seq: getNextSmallerPipe(pid, catalog) for seq, pid in pipes[lid].items()}
                 if None in new.values():
                     continue
-                dp_spez_new, v_new = lineSpecificPressureLoss(lines[lid], catalog, new)
-                if (v_max and v_new > v_max) or (dp_spez_max and dp_spez_new > dp_spez_max):
+                dp_spez_new = lineSpecificPressureLoss(lines[lid], catalog, new)[0]
+                v_new = lineSpecificPressureLoss(lines[lid], catalog, new, peak=True)[1]
+                if (v_max and v_new > v_max) or (dp_spez_max and max(linePipeSpecificPressureLoss(lines[lid], catalog, new, peak=True).values()) > dp_spez_max):
                     continue
                 ddp = (dp_spez_new - dp_spez[lid]) * lines[lid]['length']
                 delta = {c: ddp * (share if weighted else 1.0) for c, share in line_customers[lid].items() if c in dp}
@@ -328,20 +364,18 @@ def getOrCreatePipeBundles(cur, lines, pipes):
     return line_bundles, new_bundle_ids
 
 
-def createVersionWithPipes(cur, config, plugin_dir, lines, pipes, new_version, description='', username=None, password=None):
-    """Creates a child version of config['versionName'] (like 'add version' in the project handling dialog) and
-    assigns the new pipe bundles to the lines of the new version. Missing pipe bundle types are created.
-    Needs a DB user with write permissions and the PostgreSQL binaries (pg_dump, psql) of config['pathPostgresql'].
-    Note: the result tables of the base version are copied as well, they do not match the new pipes until
-    the new version is simulated.
-    Returns (line_bundles, new_bundle_ids)."""
+def createChildVersion(cur, config, plugin_dir, new_version, description='', username=None, password=None):
+    """Creates a child version of config['versionName'] like 'add version' in the project handling dialog
+    (schema copy with pg_dump / psql, entry in public.versionhandling, copy of the version directory).
+    The entry in versionhandling is only made if the schema was created. config['versionName'] is not changed.
+    Needs a DB user with write permissions and the PostgreSQL binaries of config['pathPostgresql']."""
     from .db import copy_schema
     from .utility import sanitize_pg_identifier
     from ..ida_ph import checkIfVersionIsNew, copyVersionFiles
 
     base_version = config['versionName']
-    if sanitize_pg_identifier(new_version) != new_version:
-        raise ValueError('Invalid version name: {}'.format(new_version))
+    if not new_version or sanitize_pg_identifier(new_version) != new_version:
+        raise ValueError('Invalid version name "{}" (only a-z, 0-9 and _)'.format(new_version))
     if not checkIfVersionIsNew(cur, new_version):
         raise ValueError('Version {} does already exist'.format(new_version))
     if username is None or password is None:
@@ -350,14 +384,26 @@ def createVersionWithPipes(cur, config, plugin_dir, lines, pipes, new_version, d
         QgsApplication.authManager().loadAuthenticationConfig(config['auth_id'], auth_cfg, True)
         username, password = auth_cfg.config('username'), auth_cfg.config('password')
 
-    line_bundles, new_bundle_ids = getOrCreatePipeBundles(cur, lines, pipes)
-
+    copy_schema(base_version, new_version, config, cur, plugin_dir, username, password)
+    cur.execute("""SELECT nspname FROM pg_namespace WHERE nspname IN (%s, %s);""", (base_version, new_version))
+    schemas = {row['nspname'] for row in cur.fetchall()}
+    if schemas != {base_version, new_version}:
+        raise RuntimeError('Copying version {} to {} failed, existing schemas: {}'.format(base_version, new_version, sorted(schemas)))
     cur.execute("""SELECT id FROM public.versionhandling WHERE name = %s;""", (base_version,))
     row = cur.fetchone()
     cur.execute("""INSERT INTO public.versionhandling (name, id_base, description) VALUES (%s, %s, %s);""", (new_version, row['id'] if row else 0, description))
-    copy_schema(base_version, new_version, config, cur, plugin_dir, username, password)
     copyVersionFiles(config, plugin_dir, base_version, new_version)
 
+
+def createVersionWithPipes(cur, config, plugin_dir, lines, pipes, new_version, description='', username=None, password=None):
+    """Creates a child version of config['versionName'] (like 'add version' in the project handling dialog) and
+    assigns the new pipe bundles to the lines of the new version. Missing pipe bundle types are created.
+    Needs a DB user with write permissions and the PostgreSQL binaries (pg_dump, psql) of config['pathPostgresql'].
+    Note: the result tables of the base version are copied as well, they do not match the new pipes until
+    the new version is simulated.
+    Returns (line_bundles, new_bundle_ids)."""
+    createChildVersion(cur, config, plugin_dir, new_version, description, username, password)
+    line_bundles, new_bundle_ids = getOrCreatePipeBundles(cur, lines, pipes)
     for lid, bid in line_bundles.items():
         cur.execute("""UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;""".format(new_version), (bid, lid))  # nosec B608
     return line_bundles, new_bundle_ids

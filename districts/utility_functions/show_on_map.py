@@ -513,12 +513,12 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
     lid_seg integer NOT NULL,
     geom geometry(LineStringZ,{})
 );
-SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
+SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific_dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
                 #print(sql)
                 self.cur.execute(sql)
             
                 #load var data to the coresponding visualization table using averaged values for merged segments
-                if vars['color']['mode']=='var' and vars['color']['var_function']!='specific dp' :
+                if vars['color']['mode']=='var' and vars['color']['var_function']!='specific_dp' :
                     sql="""DROP TABLE IF EXISTS "{}".line_s_{}_vis CASCADE;
 CREATE TABLE "{}".line_s_{}_vis
 (
@@ -667,7 +667,7 @@ ORDER BY fid{},time DESC""".format(',segment' if var['name'].split('$')[0] in ['
 FROM "{}".{}
 WHERE time >= '{}'
 ORDER BY fid{},time ASC;""".format(',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '',var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],',segment' if var['name'].split('$')[0] in ['p','temp'] and 'line_' in var['table_name'] else '') # nosec B608
-        elif var['var_function']=='specific dp':
+        elif var['var_function']=='specific_dp':
             sql="""WITH length_per_fid AS (
     SELECT lid AS fid, st_length(geom) AS len, geom
     FROM {}.line_seg_vis

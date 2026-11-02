@@ -255,6 +255,7 @@ def _register_translation_keys():
     tr("Qamb")
     tr("time")
     tr("energy")
+    tr("specific_dp")
     
     #pipe laying algroithm dialog
     tr("pipe_laying_algorithm")
