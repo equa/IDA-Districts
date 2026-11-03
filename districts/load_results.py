@@ -468,11 +468,14 @@ CREATE TABLE "{}".line_s_qamb
                         self.cur.execute(sql)
 
                         #load data
-                        #get lids
-                        sql="""SELECT id FROM "{}".lines WHERE {}=ANY(submodel) ORDER BY id;""".format(self.config['versionName'],submodel_id) # nosec B608
+                        #get lids with the pipe sequences of their pipe bundle (the columns of the IDA output files are ordered by bundle pipe sequence)
+                        sql="""SELECT l.id, ARRAY_AGG(bp.sequence ORDER BY bp.sequence) AS sequences
+    FROM "{}".lines l, bundle_pipes bp
+    WHERE {}=ANY(l.submodel) AND bp.pipe_bundle_type_id=l.pipe_bundle_type_id
+    GROUP BY l.id ORDER BY l.id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
                         lids=self.cur.fetchall()
-                        
+
                         for counter_of,output in enumerate(line_outputs,1):
                             #print('+++++++++'+output+'++++++++++++')
                             #get connection sequence
@@ -519,13 +522,15 @@ CREATE TABLE "{}".line_s_qamb
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                             
                                     if output=='qamb':
-                                        table_names=['line_s_qamb']
+                                        line_table_names=['line_s_qamb']
                                     else:
-                                        table_names=['line_s_'+output+'$'+str(i) for i in pipe_sequences]
-                                    #print(table_names)
-                                    self.copy_string_iterator_sData(file_data,id['id'],table_names,value_per_conn_seq,start_datetime,'linestring')
+                                        #only the pipes of this bundle, the number of pipes per bundle may vary over the network (e.g. heating and cooling network with different extension)
+                                        line_table_names=['line_s_'+output+'$'+str(i) for i in id['sequences']]
+                                    #print(line_table_names)
+                                    self.copy_string_iterator_sData(file_data,id['id'],line_table_names,value_per_conn_seq,start_datetime,'linestring')
                                 self.signals.progress.emit(int(66+counter_l / len(lids)*30/len(line_outputs)+counter_of/len(line_outputs)*30))
-                            
+
+                            table_names=['line_s_qamb'] if output=='qamb' else ['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                             self.createResultLayerIndex(table_names,'line')
 
                             #update line geometry

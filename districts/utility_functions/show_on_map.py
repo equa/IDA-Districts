@@ -120,8 +120,12 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                     frac = i_cls / (num_classes - 1) if num_classes > 1 else 0.0
                     color = ramp.color(frac)
 
+                    # classes by absolute value; the last class includes the max value
+                    upper_op = '<=' if i_cls == num_classes - 1 else '<'
+                    expr_abs = f'abs("{attr}") >= {lower} AND abs("{attr}") {upper_op} {upper}'
+
                     # Positive flows
-                    expr_pos = f'("{attr}" >= {lower} AND "{attr}" < {upper} AND "{attr}" > 0)'
+                    expr_pos = f'({expr_abs} AND "{attr}" > 0)'
                     line_sym_pos = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
 
                     marker_line_pos = QgsMarkerLineSymbolLayer()
@@ -150,7 +154,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                     root_rule.appendChild(rule_pos)
 
                     # Negative flows
-                    expr_neg = f'("{attr}" >= -{upper} AND "{attr}" < -{lower} AND "{attr}" < 0)'
+                    expr_neg = f'({expr_abs} AND "{attr}" < 0)'
                     line_sym_neg = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
 
                     marker_line_neg = QgsMarkerLineSymbolLayer()
@@ -175,6 +179,14 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                     rule_neg.setFilterExpression(expr_neg)
                     rule_neg.setLabel("")  # hidden
                     root_rule.appendChild(rule_neg)
+
+                # no flow: line without arrow
+                if vmin == 0:
+                    line_sym_zero = QgsLineSymbol.createSimple({'color': ramp.color(0.0).name(), 'width': '0.7'})
+                    rule_zero = QgsRuleBasedRenderer.Rule(line_sym_zero)
+                    rule_zero.setFilterExpression(f'"{attr}" = 0')
+                    rule_zero.setLabel("0")
+                    root_rule.appendChild(rule_zero)
 
                 renderer = QgsRuleBasedRenderer(root_rule)
 
