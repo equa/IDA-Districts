@@ -7,7 +7,7 @@ from qgis.core import Qgis, QgsMessageLog, QgsVectorLayer, QgsDataSourceUri, Qgs
  
 from qgis.core import QgsApplication, QgsEditorWidgetSetup, QgsProject
 from .utility_functions.compat import MessageCritical, MessageInfo
-from .utility_functions.db import dbColumnIsNumeric, dbConnect, getMaxId, getPipeBundleTypesDB, getTableAttr
+from .utility_functions.db import dbColumnIsNumeric, dbConnect, dropDBTriggers, getMaxId, getPipeBundleTypesDB, getTableAttr, insertDBTriggers
 from .utility_functions.layer_visualization import removeTempLayers, setLayersHidden
 from .utility_functions.topology import saveTempTables
 from .utility_functions.translations import tr
@@ -313,7 +313,11 @@ CREATE TABLE temp.lines (
 INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['versionName'],config['versionName']) # nosec B608
         #print(sql)
         cur.execute(sql)
-        
+
+        #remember sized network and mode for saving the results
+        dlg.sized_network=network
+        dlg.sized_with_topology=dlg.rbtn_customers.isChecked()
+
         if dlg.rbtn_customers.isChecked():
             #create topology: add peak power columns (and) number of customers if consider simulaneity 
             dlg.execute([network])   
@@ -415,8 +419,11 @@ def savePipeSizingResults(config,conn,dlg):
     cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
     
+    network=getattr(dlg,'sized_network',dlg.combo_network_models.currentText())
+    with_topology=getattr(dlg,'sized_with_topology',dlg.rbtn_customers.isChecked())
+
     #remove added load columns in temp.lines
-    if dlg.rbtn_customers.isChecked():
+    if with_topology:
         energy_columns=[dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(dlg.table_circuits.rowCount())]+['no_customer']
         table_columns=getTableAttr(cur,config,'line')
         energy_columns = [col for col in energy_columns if col not in table_columns]
@@ -432,10 +439,17 @@ BEGIN
 END $$;""".format(i,i) for i in energy_columns]) # nosec B608
         #print(sql)
         cur.execute(sql)
-    
-    saveTempTables(cur,config)
+        #topology was regenerated for the sized network only -> replace only this network, keep all others
+        saveTempTables(cur,config,[network])
+    else:
+        #temp.lines is a copy of all lines -> only write back the sized pipe bundles (other temp tables are not part of the sizing)
+        sql="""UPDATE "{}".lines l SET pipe_bundle_type_id=t.pipe_bundle_type_id FROM temp.lines t WHERE t.id=l.id AND t.network={};""".format(config['versionName'],network) # nosec B608
+        dropDBTriggers(cur,config) #child versions are not updated
+        cur.execute(sql)
+        insertDBTriggers(cur,config)
+        removeTempLayers()
 
-    dlg.new_pipe_bundles=[]   
+    dlg.new_pipe_bundles=[]
     
     removeTempLayers()
     

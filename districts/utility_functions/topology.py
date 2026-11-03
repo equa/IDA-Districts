@@ -8,7 +8,11 @@ from .translations import tr
 from .utility import getTemplateNameById, getTypeIdByName, getTypeNameById
 from qgis.PyQt.QtWidgets import QMessageBox
 
-def saveTempTables(cur,config):
+def saveTempTables(cur,config,networks=None):
+    """Write temp tables to version schema. If networks is given, only the features of these networks are replaced and all other networks are kept."""
+    if networks:
+        saveTempTablesNetworks(cur,config,networks)
+        return
     dropDBTriggers(cur,config) #child versions are not updated
     sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName']) # nosec B608
     sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(config['versionName']) # nosec B608
@@ -25,9 +29,48 @@ def saveTempTables(cur,config):
 
     #print(sql)
     cur.execute(sql)  
-    insertDBTriggers(cur,config) 
+    insertDBTriggers(cur,config)
     removeTempLayers()
-    
+
+def saveTempTablesNetworks(cur,config,networks):
+    """Replace only the features of the given networks in the version schema by the temp tables (temp tables must contain only these networks)"""
+    v=config['versionName']
+    nets=','.join([str(i) for i in networks])
+    dropDBTriggers(cur,config) #child versions are not updated
+    #delete features of the networks in the version schema
+    sql="""DELETE FROM "{v}".junction_connections WHERE lid IN (SELECT id FROM "{v}".lines WHERE network IN ({n})) OR jid IN (SELECT id FROM "{v}".junctions WHERE network IN ({n}));
+DELETE FROM "{v}".customer_connections WHERE lid IN (SELECT id FROM "{v}".lines WHERE network IN ({n}));
+DELETE FROM "{v}".energy_plant_connections WHERE lid IN (SELECT id FROM "{v}".lines WHERE network IN ({n}));
+DELETE FROM "{v}".junctions WHERE network IN ({n});
+DELETE FROM "{v}".lines WHERE network IN ({n});
+DELETE FROM "{v}".customers WHERE id IN (SELECT id FROM temp.customers) OR network && ARRAY[{n}];
+DELETE FROM "{v}".energy_plants WHERE id IN (SELECT id FROM temp.energy_plants) OR network && ARRAY[{n}];\n""".format(v=v,n=nets) # nosec B608
+    #remap temp ids which collide with ids of other networks
+    for table,refs in [('lines',[('junction_connections','lid'),('customer_connections','lid'),('energy_plant_connections','lid')]),
+                       ('junctions',[('junction_connections','jid')]),
+                       ('customers',[('customer_connections','cid')]),
+                       ('energy_plants',[('energy_plant_connections','epid')])]:
+        sql+="""SELECT setval(pg_get_serial_sequence('"{v}".{t}','id'), GREATEST((SELECT COALESCE(MAX(id),0) FROM "{v}".{t}),(SELECT COALESCE(MAX(id),0) FROM temp.{t}),1));
+DROP TABLE IF EXISTS pg_temp.id_map;
+CREATE TEMP TABLE id_map AS SELECT t.id AS old_id, nextval(pg_get_serial_sequence('"{v}".{t}','id')) AS new_id FROM temp.{t} t WHERE t.id IN (SELECT id FROM "{v}".{t});
+UPDATE temp.{t} t SET id=m.new_id FROM id_map m WHERE t.id=m.old_id;\n""".format(v=v,t=table) # nosec B608
+        for ref_table,ref_col in refs:
+            sql+="""UPDATE temp.{rt} r SET {rc}=m.new_id FROM id_map m WHERE r.{rc}=m.old_id;\n""".format(rt=ref_table,rc=ref_col) # nosec B608
+    sql+="DROP TABLE IF EXISTS pg_temp.id_map;\n"
+    #insert features of the networks
+    for table in ['lines','customers','energy_plants','junctions']:
+        sql+="""INSERT INTO "{v}".{t} SELECT * FROM temp.{t} ORDER BY id;\n""".format(v=v,t=table) # nosec B608
+    #connections get new ids (ids of other networks are kept)
+    for table,cols in [('junction_connections','jid,lid'),('customer_connections','cid,c_seq,lid'),('energy_plant_connections','epid,ep_seq,lid')]:
+        sql+="""SELECT setval(pg_get_serial_sequence('"{v}".{t}','id'), (SELECT COALESCE(MAX(id),0)+1 FROM "{v}".{t}), false);
+INSERT INTO "{v}".{t} ({c}) SELECT {c} FROM temp.{t} ORDER BY id;\n""".format(v=v,t=table,c=cols) # nosec B608
+    for table in ['lines','customers','energy_plants','junctions']:
+        sql+="""SELECT setval(pg_get_serial_sequence('"{v}".{t}','id'), (SELECT COALESCE(MAX(id),0)+1 FROM "{v}".{t}), false);\n""".format(v=v,t=table) # nosec B608
+    #print(sql)
+    cur.execute(sql)
+    insertDBTriggers(cur,config)
+    removeTempLayers()
+
 def getLayerAttributesName(layer=False,layerName=False):
     attributes=[]
     if not layer:
