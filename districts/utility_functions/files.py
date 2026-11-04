@@ -147,27 +147,17 @@ def readFileToList(file):
     return data
         
 def loadProjectConfig(config,project_name=None,signals=False):
-    project_config=''
     name=project_name if project_name else config['projectName']
-    if name:
-        config_f="{}{}\\configProject.txt".format(config['pathProjects'],name)
-        #print(config_f)
-        if os.path.exists(config_f):
-            #print(config_f)
-            with open(config_f, "r") as myfile:   
-                for line in myfile:        
-                    project_config+=line
-        else:
-            #print('Failed to load project config!')
-            if signals:
-                signals.error.emit('Failed to load project config!')
-            return {'srid':''}
-        project_config=strToDict(project_config)
-    else:
-        #print('No project name')
-        pass
-    #print(project_config)    
-    return project_config
+    if not name:
+        # no project selected: same result as for a missing config file (callers access ['srid'])
+        return {'srid':''}
+    config_f="{}{}\\configProject.txt".format(config['pathProjects'],name)
+    if not os.path.exists(config_f):
+        if signals:
+            signals.error.emit('Failed to load project config!')
+        return {'srid':''}
+    with open(config_f, "r") as myfile:
+        return strToDict(myfile.read())
             
 def writeProjectConfig(config,db_name,configProject):
     config_path=config_f="{}{}".format(config['pathProjects'],db_name)

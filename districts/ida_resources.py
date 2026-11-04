@@ -1,13 +1,12 @@
 from qgis.PyQt.QtWidgets import QTableWidgetItem, QComboBox, QCheckBox
 from qgis.PyQt.QtCore import Qt, QThreadPool
-from qgis.core import QgsDataSourceUri, QgsAuthMethodConfig, Qgis, QgsMessageLog
+from qgis.core import Qgis, QgsMessageLog
 from qgis.utils import iface
 
 import os
 import shutil
 import zipfile
 from pathlib import Path
-from qgis.core import QgsApplication
 from .update_boundaries import updateTemplateBoundaryValues
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import (
@@ -24,7 +23,8 @@ from .utility_functions.files import (
 from .utility_functions.ida_components import (
     getCompClass, getCompName, getCompTemplate, getIDAListComponents, propertyListCompsIDM, setCompValue,
 )
-from .utility_functions.layer_visualization import loadProjectLayers, removeLayers, setupFeatureLayerDialog
+from .ida_ph import loadVersionLayers
+from .utility_functions.layer_visualization import setupFeatureLayerDialog
 from .utility_functions.sensor_signals import templatesensorSignals
 from .utility_functions.topology import getConnsValues, getTemplatesByConnBundleType, getTemplatesByConnType
 from .utility_functions.translations import tr
@@ -421,59 +421,69 @@ def calculateKusudaSettings(file,modellingSettings):
     # --------------------------------------------------
     # Read climate file
     # --------------------------------------------------
+    
+    # Parse the header line ourselves, so that variants like "#Time",
+    # "# Time" or "Time" all give the same column names (with a whitespace
+    # separator, "# Time" would otherwise produce an extra column "#" and
+    # shift all column names by one).
+    with open(file, "r", encoding="utf-8", errors="replace") as f:
+        first_line = f.readline()
+    header_tokens = first_line.strip().lstrip("#").split()
+    try:
+        float(header_tokens[0])
+        has_header = False
+    except (ValueError, IndexError):
+        has_header = True
 
-    # Try reading with header
-    df = pd.read_csv(file, sep=r"\s+")
+    df = pd.read_csv(
+        file,
+        sep=r"\s+",
+        header=None,
+        skiprows=1 if has_header else 0
+    )
 
-    # If no recognizable header exists,
-    # assume:
-    #   column 0 = time
-    #   column 1 = ambient air temperature
-    if "#Time" not in df.columns and "TAir" not in df.columns:
-
-        df = pd.read_csv(
-            file,
-            sep=r"\s+",
-            header=None
-        )
-
-        df = df.rename(
-            columns={
-                0: "#Time",
-                1: "TAir"
-            }
-        )
-
-    else:
-
-        # Handle possible variations
-        time_col = df.columns[0]
-
-        tair_col = None
-        for c in df.columns:
-            if c.lower() in ["tair", "tair", "airtemp", "temperature"]:
-                tair_col = c
+    if has_header:
+        # column 0 = time (whatever it is called)
+        tair_idx = None
+        for i, c in enumerate(header_tokens):
+            if c.lower() in ["tair", "airtemp", "temperature"]:
+                tair_idx = i
                 break
 
-        if tair_col is None:
+        if tair_idx is None or tair_idx >= len(df.columns):
             raise ValueError("Could not identify air temperature column.")
+    else:
+        # If no header exists, assume:
+        #   column 0 = time
+        #   column 1 = ambient air temperature
+        tair_idx = 1
 
-        df = df.rename(
-            columns={
-                time_col: "#Time",
-                tair_col: "TAir"
-            }
-        )
+    df = df.rename(
+        columns={
+            0: "#Time",
+            tair_idx: "TAir"
+        }
+    )
 
     # --------------------------------------------------
     # Create datetime index
     # --------------------------------------------------
 
-    start = pd.Timestamp("2026-01-01 00:00:00")
-    df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
+    # The climate file covers one year (8760 h, or 8784 h in a leap year),
+    # optionally with an extra endpoint that duplicates the start of the
+    # next year. Determine the period from the data instead of a fixed year.
+    t = df["#Time"].astype(float)
+    t0 = t.iloc[0]
+    dt = t.diff().median() if len(t) > 1 else 1.0
+    period_h = 8784 if (t.iloc[-1] - t0 + dt) >= 8784 else 8760
 
     # Remove only the extra endpoint of the next year
-    df = df[df["datetime"] < "2027-01-01"]
+    df = df[(t - t0) < period_h].copy()
+
+    # Dummy calendar year: leap year for 8784 h data, otherwise non-leap.
+    # Only the hour offsets matter (daily blocks, day of year).
+    start = pd.Timestamp("2024-01-01 00:00:00" if period_h == 8784 else "2026-01-01 00:00:00")
+    df["datetime"] = start + pd.to_timedelta(df["#Time"], unit="h")
 
     df = df.set_index("datetime")
 
@@ -622,10 +632,11 @@ def updateClimateMacro(data,dir,config,modellingSettings):
                 new_comp.append(i)
             idm.append(new_comp)
         elif getCompTemplate(comp)=='|kusuda|':
-            #print(comp)
+            print(comp)
             new_comp=[]
             for i in comp:
                 if getCompName(i)=='|TSurfMean|':
+                    print(modellingSettings['kusuda_tsurfmean'])
                     i=setCompValue(i,modellingSettings['kusuda_tsurfmean'])
                 elif getCompName(i)=='|TSurfAmpl|':
                     i=setCompValue(i,modellingSettings['kusuda_tsurfampl'])
@@ -857,7 +868,8 @@ def show_templateDialog(main=False,type=False):
     title=tr('@default','templates')+': '+tr('@default',type)
     table='{}_templates'.format(type)
     
-    dlg = TableDialog(title,headers,True,False,save_as,trace,type=getTypeIdByName(type))    
+    dlg = TableDialog(title,headers,True,False,save_as,trace,type=getTypeIdByName(type))
+    main.dlg_templates = dlg  # keep a reference (a dialog without parent is deleted by the garbage collector)
     dlg.btn_open.clicked.connect(lambda: openTemplate(main,type,dlg))
 
     dlg.btn_add.clicked.connect(lambda: addTableRowTrace(dlg,dropdowns,trace,deactivated,main.cur))
@@ -930,6 +942,8 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         
     elif trace:
         #print(dlg.traceTableValues)
+        # e.g. the empty project template has no template folders
+        os.makedirs(config['pathProjects']+config['projectName']+"\\{}_templates".format(table_name), exist_ok=True)
         for traceValue in dlg.traceTableValues:
             writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
         
@@ -962,13 +976,10 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
                 if os.path.exists(dir+'\\'+file):
                     shutil.rmtree(dir+'\\'+file)
         
-        auth_cfg = QgsAuthMethodConfig()
-        QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
- 
-        uri = QgsDataSourceUri()
-        uri.setConnection(config['host'], config['port'], config['projectName'], auth_cfg.config("username"), auth_cfg.config("password"))
-        removeLayers()
-        loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))
+        # reload all layers of the version (the templates are shown in the forms/renderers of customers and energy plants);
+        # loadProjectLayers alone would drop the buildings, streets and terrain layers
+        if config['versionName']:
+            loadVersionLayers(config,cur,plugin_dir)
     dlg.close()
 
 def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,trace=False):
@@ -985,7 +996,8 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
     if id!=-1:
         id=dlg.tableWidget.item(id, 0).text()
         title=tr('@default',openFnArg[0])+': ' + id
-        dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace,type=getTypeIdByName(openFnArg[7]))           
+        dlg = TableDialog(title,headers,openFnArg[6],False,save_as,trace,type=getTypeIdByName(openFnArg[7]))
+        main.dlg_tableRow = dlg  # keep a reference (a dialog without parent is deleted by the garbage collector)
         if openFnArg[6]:
             dlg.btn_open.clicked.connect(lambda: openFnArg[6](openFnArg[7],dlg,id))
         if columns[0]=='time_h':
@@ -1117,6 +1129,7 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
         importBtn=True
         
     dlg = TableDialog(title,headers,openBtn,importFn,True,trace)
+    main.dlg_table = dlg  # keep a reference (a dialog without parent is deleted by the garbage collector)
     dlg.btn_saveAs.clicked.connect(lambda: copyTableRow(main.cur,dlg,dlg.tableWidget.currentRow(),dropdowns,openFn,openFnArg))
     if openFn:
         dlg.btn_open.clicked.connect(lambda: openFn(main,table,columns,dropdowns,dlg,dlg.tableWidget.currentRow(),openFnArg,trace=trace))
@@ -1255,6 +1268,8 @@ def checkConnsInputValues(dlg):
 def addConnectionsTableRow(dlg,dropdowns,row,cur):
     """Insert table row"""
     rowPosition = 0
+    # no itemChanged while the row is built: its trace values are added at the end
+    dlg.tableWidget.blockSignals(True)
     dlg.tableWidget.insertRow(rowPosition)
     dropdownItems=getDropDownItems(cur,dropdowns)
     values=[]
@@ -1283,7 +1298,8 @@ def addConnectionsTableRow(dlg,dropdowns,row,cur):
             else:
                 item=QTableWidgetItem('')
                 dlg.tableWidget.setItem(0,col,item)
-    #add row to dlg.traceTableValues in order to trace the changed values     
+    dlg.tableWidget.blockSignals(False)
+    #add row to dlg.traceTableValues in order to trace the changed values
     for row in reversed(sorted(dlg.traceTableValues)):
         dlg.traceTableValues[row+1]=dlg.traceTableValues[row]
     #print(dlg.traceTableValues)

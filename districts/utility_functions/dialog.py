@@ -294,6 +294,8 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
     rowPosition = 0
     traceTableValues=copy.deepcopy(dlg.traceTableValues)
     #print('-------insert row---------------')
+    # no itemChanged/currentTextChanged while the row is built: its trace values are added at the end
+    dlg.tableWidget.blockSignals(True)
     dlg.tableWidget.insertRow(rowPosition)
     dropdownItems=getDropDownItems(cur,dropdowns)
     for col in range(dlg.tableWidget.columnCount()):
@@ -313,8 +315,9 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
                 item.setFlags(ItemIsSelectable | ItemIsEnabled)
 
             dlg.tableWidget.setItem(0,col,item)
-            
-    #add row to dlg.traceTableValues in order to trace the changed values     
+    dlg.tableWidget.blockSignals(False)
+
+    #add row to dlg.traceTableValues in order to trace the changed values
     if trace:
         #print('----------trace-------'+str(trace))
         for row in reversed(sorted(traceTableValues)):

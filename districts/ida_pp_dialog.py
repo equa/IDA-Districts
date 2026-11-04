@@ -505,16 +505,14 @@ class PipeLayingDialog(QDialog):
         self.setLayout(layout_win)
         
     def heating_type_lines_state_changed(self,text):
-        type=text.split(':')[0]
-        templates=getTemplatesInfo('line',type,self.cur)
+        templates=getTemplatesInfo('line',self.cur)
         self.heating_type_lines.clear()
         self.heating_type_lines.addItems([i['name'] for i in templates])
         if templates:
             self.heating_type_lines.setCurrentText(templates[0]['name'])
 
     def hc_type_lines_state_changed(self,text):
-        type=text.split(':')[0]
-        templates=getTemplatesInfo('line',type,self.cur)
+        templates=getTemplatesInfo('line',self.cur)
         self.hc_type_lines.clear()
         self.hc_type_lines.addItems([i['name'] for i in templates])
         if templates:
@@ -522,8 +520,7 @@ class PipeLayingDialog(QDialog):
 
     def hc_template_customers_state_changed(self,text):
         try:
-            type=text.split(':')[0]
-            templates=getTemplatesInfo('customer',type,self.cur)
+            templates=getTemplatesInfo('customer',self.cur)
         except Exception:
             templates=[]
         self.hc_template_customer.clear()
@@ -531,8 +528,7 @@ class PipeLayingDialog(QDialog):
         self.hc_template_customer.setCurrentText('keep type')
 
     def cooling_type_lines_state_changed(self,text):
-        type=text.split(':')[0]
-        templates=getTemplatesInfo('line',type,self.cur)
+        templates=getTemplatesInfo('line',self.cur)
         self.cooling_type_lines.clear()
         self.cooling_type_lines.addItems([i['name'] for i in templates])
         if templates:

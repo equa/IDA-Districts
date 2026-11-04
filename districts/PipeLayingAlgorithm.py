@@ -16,7 +16,12 @@ from .utility_functions.topology import (
     updateSubmodels,
 )
 
-        
+
+def selectedId(text):
+    """id of a combo box entry 'id:name' ('' if nothing is selected/available)"""
+    return text.split(':')[0].strip()
+
+
 class WorkerPipeLayingSignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
@@ -50,22 +55,9 @@ class WorkerPipeLaying(QRunnable):
         self.heat_demand_min=kwargs['heat_demand_min']
         self.heating_load_min=kwargs['heating_load_min']
         #print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        self.heating_lines_type=kwargs['heating_type_lines'].split(':')
-        if self.heating_lines_type:
-            self.heating_lines_type=self.heating_lines_type[0]
-        else:
-            self.signals.error.emit("No line type selected or available!")
-        self.heating_pipe_bundle=kwargs['pipe_bundle_heating'].split(':')
-        if self.heating_pipe_bundle:
-            self.heating_pipe_bundle=self.heating_pipe_bundle[0]
-        else:
-            self.signals.error.emit("No pipe bundle selected or available!")
-        #print(self.heating_lines_type)
-        self.heating_customer_template=kwargs['heating_template_customer'].split(':')
-        if self.heating_customer_template:
-            self.heating_customer_template=self.heating_customer_template[0]
-        else:
-            self.signals.error.emit("No customer template selected or available!")
+        self.heating_lines_type=selectedId(kwargs['heating_type_lines'])
+        self.heating_pipe_bundle=selectedId(kwargs['pipe_bundle_heating'])
+        self.heating_customer_template=selectedId(kwargs['heating_template_customer'])
         self.linearHeatDensity_min=kwargs['linearHeatDensity_min']
         self.check_heating_network_costs=kwargs['check_heating_network_costs']
         self.heat_loss=kwargs['heat_loss']
@@ -88,45 +80,18 @@ class WorkerPipeLaying(QRunnable):
         self.tsup_min=kwargs['tsup_min']
         self.cold_demand_min=kwargs['cold_demand_min']
         self.cooling_load_min=kwargs['cooling_load_min']
-        self.cooling_lines_type=kwargs['cooling_type_lines'].split(':')
-        if self.cooling_lines_type:
-            self.cooling_lines_type=self.cooling_lines_type[0]
-        else:
-            self.signals.error.emit("No line type selected or available!")
-        self.cooling_pipe_bundle=kwargs['pipe_bundle_cooling'].split(':')
-        if self.cooling_pipe_bundle:
-            self.cooling_pipe_bundle=self.cooling_pipe_bundle[0]
-        else:
-            self.signals.error.emit("No pipe bundle selected or available!")
-        #print(self.cooling_lines_type)
-        self.cooling_customer_template=kwargs['cooling_template_customer'].split(':')
-        if self.cooling_customer_template:
-            self.cooling_customer_template=self.cooling_customer_template[0]
-        else:
-            self.signals.error.emit("No customer template selected or available!")
-        self.cooling_customer_template=kwargs['cooling_template_customer']
+        self.cooling_lines_type=selectedId(kwargs['cooling_type_lines'])
+        self.cooling_pipe_bundle=selectedId(kwargs['pipe_bundle_cooling'])
+        self.cooling_customer_template=selectedId(kwargs['cooling_template_customer'])
         self.linearColdDensity_min=kwargs['linearColdDensity_min']
         self.check_cooling_network_costs=kwargs['check_cooling_network_costs']
         self.cold_loss=kwargs['cold_loss']
         self.cold_costs=kwargs['cold_costs']
         self.amortization_period_cold=kwargs['amortization_period_cold']
         
-        self.hc_lines_type=kwargs['hc_type_lines'].split(':')
-        if self.hc_lines_type:
-            self.hc_lines_type=self.hc_lines_type[0]
-        else:
-            self.signals.error.emit("No line type selected or available!")
-        self.hc_pipe_bundle=kwargs['pipe_bundle_hc'].split(':')
-        if self.hc_pipe_bundle:
-            self.hc_pipe_bundle=self.hc_pipe_bundle[0]
-        else:
-            self.signals.error.emit("No pipe bundle selected or available!")
-        #print(self.hc_lines_type)
-        self.hc_customer_template=kwargs['hc_template_customer'].split(':')
-        if self.hc_customer_template:
-            self.hc_customer_template=self.hc_customer_template[0]
-        else:
-            self.signals.error.emit("No customer template selected or available!")
+        self.hc_lines_type=selectedId(kwargs['hc_type_lines'])
+        self.hc_pipe_bundle=selectedId(kwargs['pipe_bundle_hc'])
+        self.hc_customer_template=selectedId(kwargs['hc_template_customer'])
         self.customer_connection_mode=kwargs['customer_connection_mode']
         self.keep_unconnected_customers=kwargs['keep_unconnected_customers']
         self.is_killed = False
@@ -144,12 +109,43 @@ class WorkerPipeLaying(QRunnable):
     
         self.password=auth_cfg.config("password")
         self.username=auth_cfg.config("username")
-        
+
+    def missingSelections(self):
+        """error messages for line types, pipe bundles and customer templates which are needed
+        for the selected networks but not selected/available"""
+        modes=[]
+        if self.check_heating_network:
+            modes.append(('heating',self.heating_lines_type,self.heating_pipe_bundle,self.heating_customer_template))
+        if self.check_cooling_network:
+            modes.append(('cooling',self.cooling_lines_type,self.cooling_pipe_bundle,self.cooling_customer_template))
+        if self.check_heating_network and self.check_cooling_network:
+            modes.append(('heating and cooling',self.hc_lines_type,self.hc_pipe_bundle,self.hc_customer_template))
+        messages=[]
+        for mode,lines_type,pipe_bundle,customer_template in modes:
+            if not lines_type:
+                messages.append("No line type selected or available ({} network)!".format(mode))
+            if not pipe_bundle:
+                messages.append("No pipe bundle selected or available ({} network)!".format(mode))
+            if not customer_template:
+                messages.append("No customer template selected or available ({} network)!".format(mode))
+        return messages
+
     @pyqtSlot()
     def run(self):
         #print('start pipe laying')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
+        missing=self.missingSelections()
+        if missing:
+            for message in missing:
+                self.signals.error.emit(message)
+            self.signals.progress.emit(0)
+            self.signals.finished.emit('error')
+            return
+        # the SQL of transformNetworksIntoHC contains the settings of all modes (also of the not generated networks)
+        for attr in ['heating_lines_type','heating_pipe_bundle','cooling_lines_type','cooling_pipe_bundle','hc_lines_type','hc_pipe_bundle']:
+            if not getattr(self,attr):
+                setattr(self,attr,'NULL')
         os.environ['PGPASSWORD'] = self.password
         try:
             self.conn = dbConnect(self.config,True)
@@ -176,13 +172,18 @@ class WorkerPipeLaying(QRunnable):
                     if self.is_killed: #abort algorithm, but finish network topology with existing pipes
                         break
                 self.finishNetworkTopology(self.config['versionName'])
+            else:
+                self.signals.progress.emit(0)
+                self.signals.finished.emit('error')
         except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
                 MessageCritical
             )
+            self.signals.error.emit("Pipe laying failed (see message log 'Districts')!")
             self.signals.progress.emit(0)
+            self.signals.finished.emit('error')
         finally:
             if self.cur:
                 self.cur.close()
@@ -568,9 +569,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 )
                 WITH (
                     OIDS=FALSE
-                );
-                ALTER TABLE temp.network_help
-                    OWNER TO postgres;""".format(self.srid) # nosec B608
+                );""".format(self.srid) # nosec B608
         self.cur.execute(sql)    
         #print(sql) 
               

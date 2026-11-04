@@ -912,6 +912,7 @@ class WriteTemplateFiles:
         self.plugin_dir=plugin_dir
         self.type=type
         self.dir=self.config['pathProjects']+self.config['projectName']+"\\{}_templates".format(type)
+        os.makedirs(self.dir, exist_ok=True)
         #print('bundle: {}'.format(bundle))
         connValues=getConnsValues(bundle,self.cur)
         #print(connValues)

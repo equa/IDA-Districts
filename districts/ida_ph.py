@@ -87,9 +87,10 @@ def setLoadAttribute(dlg,fid):
         layersConfig=loadLayersConfig(dlg.config,get_districts_plugin_dir(),dlg.config['projectName'])
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
         if layer:
-            data = extract_group_fields(layer[0], layersConfig, layer[0].customProperty("original_layer_name"))
-            data['physical_data'].append(attribute_name)
-            layersConfig[layer[0].name()]=data
+            layer_name=layer[0].customProperty("original_layer_name") or 'customers'
+            data = extract_group_fields(layer[0], layersConfig, layer_name)
+            data.setdefault('physical_data',[]).append(attribute_name)
+            layersConfig[layer_name]=data
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
     sql+="""WITH sub AS(
@@ -321,7 +322,7 @@ def loadBuildingsLayer(uri,config,view,username,plugin_dir):
     # Apply the 3D renderer to the layer
     vlayer.setRenderer3D(renderer3d)
     
-    vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
+    vlayer.editFormConfigChanged.connect(lambda layer=vlayer: on_form_changed(config,plugin_dir,config['projectName'],layer))
 
     # Refresh the map canvas to apply changes
     iface.mapCanvas().refresh()
@@ -650,7 +651,7 @@ def showProjectConfigData(dlg,main):
     if main.conn:
         main.projectConfig=loadProjectConfig(main.config)       
         #print(main.projectConfig)
-        if main.projectConfig:
+        if main.projectConfig.get('srid'):
             dlg.srid.setText(main.projectConfig['srid'])
         else:
             iface.messageBar().pushMessage("Warning", "Project config not found!", level=MessageInfo)        
@@ -740,14 +741,8 @@ WHERE pg_stat_activity.datname = '{}'
             removeLayers()
             data=[]
             importData(data,model)
-        try: 
-           dlg.close()
-        except Exception:
-            QgsMessageLog.logMessage(
-                traceback.format_exc(),
-                "Districts",
-                MessageCritical
-            )
+        if dlg is not None:
+            dlg.close()
         main_dlg.update_progress(100)
         main_dlg.statusMessage.setText(tr('@default','project_deleted').format(projectName))
 
@@ -786,7 +781,7 @@ def loadVersionLayers(config,cur,plugin_dir):
         symbol.setColor(QColor.fromRgb(131, 131, 131))
         symbol.setWidth(0.75)  
         view.refreshLayerSymbology(vlayer.id())
-        vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
+        vlayer.editFormConfigChanged.connect(lambda layer=vlayer: on_form_changed(config,plugin_dir,config['projectName'],layer))
         
         
     except Exception:

@@ -2,7 +2,7 @@ from qgis.PyQt.QtCore import QSettings, QTimer, QEventLoop
 import psycopg2
 import shutil
 from ..upgrade import upgradeVersionDB
-from .compat import MessageCritical
+from .compat import MessageCritical, MessageInfo
 from .db import dbConnect, dbConnectProvidePwdUser, dropDBTriggers, insertDBTriggers
 from .files import (
     copyFile, createDir, districtsModelerTempDir, loadProjectConfig, readFileToList, readFileToString,
@@ -41,6 +41,32 @@ def process_wait(dlg,max_sec=60):
 def show_error_message(message):
     # Show the error message in a messageBar
     iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+
+def runPsqlFile(config,username,dbname,sql_file,env):
+    """Execute sql_file with psql. Errors are logged in the message log 'Districts'.
+    Returns an error summary for the message bar or None if psql reported no error."""
+    cmd = [
+        f"{config['pathPostgresql']}bin\\psql",
+        f"--dbname=postgresql://{username}@{config['host']}:{config['port']}/{dbname}",
+        "--quiet",
+        "-f",
+        sql_file
+    ]
+    try:
+        result = subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) # nosec B603
+    except OSError as e:
+        QgsMessageLog.logMessage("psql could not be started ({}): {}".format(cmd[0], e), "Districts", MessageCritical)
+        return "psql could not be started (PostgreSQL path in the plugin settings?)"
+    stderr = result.stderr.decode('utf-8', errors='replace')
+    errors = [line for line in stderr.splitlines() if 'ERROR:' in line or 'FATAL:' in line]
+    if result.returncode != 0 or errors:
+        QgsMessageLog.logMessage(
+            "psql {} (exit code {}):\n{}".format(os.path.basename(sql_file), result.returncode, stderr.strip()),
+            "Districts",
+            MessageCritical
+        )
+        return "{} error(s) in {} (see message log 'Districts')".format(len(errors) or 1, os.path.basename(sql_file))
+    return None
 
 class WorkerDoneSignals(QObject):
     done=pyqtSignal()
@@ -312,48 +338,48 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 
             temp_dir = QgsProcessingUtils.tempFolder()+'\\'
             #create tables in new schema
-            filedata=""
-            if os.path.exists(src_dir+('db_tables.sql' if self.project_name else name+'.sql')):
-                with open(src_dir+('db_tables.sql' if self.project_name else name+'.sql'), "r") as myfile:
-                    for line in myfile:
-                        filedata=filedata+line
-                newdata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
-                newdata = filedata.replace("$districts_path$", os.path.normpath(self.config['pathDistricts']).replace('\\','\\\\'))
-                
-                with open(temp_dir+('db_tables_.sql' if self.project_name else name+'_.sql'),'w') as myfile:
-                    myfile.write(newdata)   
-            
-            self.signals.progress.emit(77)
             env = os.environ.copy()
             env["PGPASSWORD"] = self.password
-
             dbname = sanitize_pg_identifier(db_info['projectName'])
-            
-            cmd = [
-                f"{self.config['pathPostgresql']}bin\\psql",
-                f"--dbname=postgresql://{self.username}@{self.config['host']}:{self.config['port']}/{dbname}",
-                "-f",
-                temp_dir + ('db_tables_.sql' if self.project_name else name + '_.sql')
-            ]
 
-            #print(cmd)
-            subprocess.call(cmd, env=env) # nosec B603
-            
+            def prepareSqlFile(src_file):
+                """copy src_file to the temp folder with the paths replaced (None if src_file does not exist)"""
+                if not os.path.exists(src_file):
+                    return None
+                with open(src_file, "r") as myfile:
+                    filedata=myfile.read()
+                filedata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
+                filedata = filedata.replace("$districts_path$", os.path.normpath(self.config['pathDistricts']).replace('\\','\\\\'))
+                temp_file=temp_dir+Path(src_file).stem+'_.sql'
+                with open(temp_file,'w') as myfile:
+                    myfile.write(filedata)
+                return temp_file
+
+            sql_file=prepareSqlFile(src_dir+('db_tables.sql' if self.project_name else name+'.sql'))
+            self.signals.progress.emit(77)
+            if sql_file:
+                error=runPsqlFile(self.config,self.username,dbname,sql_file,env)
+                if error:
+                    self.signals.error.emit(error)
+            else:
+                self.signals.error.emit("No database tables found in "+src_dir)
+
             self.signals.progress.emit(79)
             filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt") # nosec B608
             self.cur.execute(filedata)
-            self.signals.progress.emit(80)            
+            self.signals.progress.emit(80)
             if self.project_name and not self.no_db_results:
-                cmd = [
-                    f"{self.config['pathPostgresql']}bin\\psql",
-                    f"--dbname=postgresql://{self.username}@{self.config['host']}:{self.config['port']}/{dbname}",
-                    "-f",
-                    temp_dir + "db_results.sql"
-                ]
-
-                #print(cmd)
-
-                subprocess.call(cmd, env=env) # nosec B603
+                sql_file=prepareSqlFile(src_dir+'db_results.sql')
+                if sql_file:
+                    error=runPsqlFile(self.config,self.username,dbname,sql_file,env)
+                    if error:
+                        self.signals.error.emit(error)
+                else:
+                    QgsMessageLog.logMessage(
+                        "The template {} contains no database results (db_results.sql)".format(name),
+                        "Districts",
+                        MessageInfo
+                    )
             self.conn.close()
 
         else:
@@ -613,7 +639,8 @@ class WorkerSimulateFilesAPI(QRunnable):
                     #run sim
                     script="""((RUN-SIMULATION [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
-(close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
+(close (:call find-view [@ :SYSTEM] 'schema t))
+(exit-ida))""".format(file_path.replace('\\','\\\\'))
                     #print(script)
                     self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
                     #print('save doc')

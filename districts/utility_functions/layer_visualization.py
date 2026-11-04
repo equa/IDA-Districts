@@ -344,7 +344,8 @@ def extract_group_fields(layer, layersConfig, vlayerName):
     else:
         tab_name_map = {}
 
-    result = {}
+    # keep the configured groups without fields (they have no tab in the form)
+    result = {group: [] for group in layersConfig.get(vlayerName, {})}
 
     def walk(container, current_group="general"):
 
@@ -379,9 +380,9 @@ def extract_group_fields(layer, layersConfig, vlayerName):
     return result
 
 
-def on_form_changed(config,plugin_dir,project_name):
+def on_form_changed(config,plugin_dir,project_name,layer):
+    """Store the form groups of the layer whose edit form config changed"""
     layersConfig=loadLayersConfig(config,plugin_dir,project_name)
-    layer = iface.activeLayer()
     data = extract_group_fields(layer, layersConfig, layer.customProperty("original_layer_name"))
     #print(data)
     layersConfig[layer.customProperty("original_layer_name")]=data
@@ -524,7 +525,7 @@ def loadBoreholesLayer(version,uri,config,plugin_dir,cur,username):
 
         renderer = QgsCategorizedSymbolRenderer(field_name, categories)
         vlayer.setRenderer(renderer)
-        vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
+        vlayer.editFormConfigChanged.connect(lambda layer=vlayer: on_form_changed(config,plugin_dir,config['projectName'],layer))
 
     vlayer.triggerRepaint()
     
@@ -671,7 +672,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
                 cat = QgsRendererCategory(id, symbol, category)
                 categorized_renderer.addCategory(cat)       
             vlayer.setRenderer(categorized_renderer)
-            vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
+            vlayer.editFormConfigChanged.connect(lambda layer=vlayer: on_form_changed(config,plugin_dir,config['projectName'],layer))
             
         #set map values
         mapValueLinesNetwork(cur,config)
@@ -796,7 +797,7 @@ def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
         cat = QgsRendererCategory(id, symbol, category)
         categorized_renderer.addCategory(cat)       
     vlayer.setRenderer(categorized_renderer)
-    vlayer.editFormConfigChanged.connect(lambda: on_form_changed(config,plugin_dir,config['projectName']))
+    vlayer.editFormConfigChanged.connect(lambda layer=vlayer: on_form_changed(config,plugin_dir,config['projectName'],layer))
         
     #set map values
     if vlayerName=='lines':

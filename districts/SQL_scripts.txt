@@ -700,7 +700,6 @@ BEGIN
 	END LOOP;	
 END;
 $$ LANGUAGE 'plpgsql' STRICT;
-ALTER FUNCTION set_building_height() OWNER TO postgres;
 
 CREATE OR REPLACE FUNCTION public.createFloors()
     RETURNS void
@@ -776,8 +775,6 @@ RETURN pid;
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_pointtoid(geometry, double precision, text, integer)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_pointtoid(geometry, double precision, text, integer)
     IS 'pgRouting internal function';
@@ -800,8 +797,6 @@ ELSE ST_EndPoint($1)
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_endpoint(geometry)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_endpoint(geometry)
     IS 'pgRouting internal function';
@@ -824,8 +819,6 @@ ELSE ST_StartPoint($1)
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_startpoint(geometry)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_startpoint(geometry)
     IS 'pgRouting internal function';
@@ -863,8 +856,6 @@ END;
 
 $BODY$;
 
-ALTER FUNCTION public._pgr_getcolumnname(text, text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_getcolumnname(text, text, integer, text)
     IS 'pgRouting internal function';
@@ -928,8 +919,6 @@ BEGIN
  END
 $BODY$;
 
-ALTER FUNCTION public._pgr_checkverttab(text, text[], integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_checkverttab(text, text[], integer, text)
     IS 'pgRouting internal function';
@@ -965,8 +954,6 @@ END;
 
 $BODY$;
 
-ALTER FUNCTION public._pgr_createindex(text, text, text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_createindex(text, text, text, integer, text)
     IS 'pgRouting internal function';
@@ -1044,8 +1031,6 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_iscolumnindexed(text, text, text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_iscolumnindexed(text, text, text, integer, text)
     IS 'pgRouting internal function';
@@ -1106,8 +1091,6 @@ END;
 
 $BODY$;
 
-ALTER FUNCTION public._pgr_createindex(text, text, text, text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_createindex(text, text, text, text, integer, text)
     IS 'pgRouting internal function';
@@ -1171,8 +1154,6 @@ begin
 end;
 $BODY$;
 
-ALTER FUNCTION public._pgr_versionless(text, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_versionless(text, text)
     IS 'pgRouting internal function';
@@ -1209,8 +1190,6 @@ begin
 end;
 $BODY$;
 
-ALTER FUNCTION public._pgr_quote_ident(text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_quote_ident(text)
     IS 'pgRouting internal function';
@@ -1253,8 +1232,6 @@ END;
 
 $BODY$;
 
-ALTER FUNCTION public._pgr_getcolumntype(text, text, text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_getcolumntype(text, text, text, integer, text)
     IS 'pgRouting internal function';
@@ -1297,8 +1274,6 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_getcolumnname(text, text, text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_getcolumnname(text, text, text, integer, text)
     IS 'pgRouting internal function';
@@ -1339,8 +1314,6 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_onerror(boolean, integer, text, text, text, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_onerror(boolean, integer, text, text, text, text)
     IS 'pgRouting internal function';
@@ -1369,8 +1342,6 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_msg(integer, text, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_msg(integer, text, text)
     IS 'pgRouting internal function';
@@ -1468,8 +1439,6 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public._pgr_gettablename(text, integer, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public._pgr_gettablename(text, integer, text)
     IS 'pgRouting internal function';
@@ -1781,8 +1750,6 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public.pgr_analyzegraph(text, double precision, text, text, text, text, text)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public.pgr_analyzegraph(text, double precision, text, text, text, text, text)
     IS 'pgr_analyzeGraph
@@ -2055,8 +2022,6 @@ END;
 
 $BODY$;
 
-ALTER FUNCTION public.pgr_createtopology(text, double precision, text, text, text, text, text, boolean)
-    OWNER TO postgres;
 
 COMMENT ON FUNCTION public.pgr_createtopology(text, double precision, text, text, text, text, text, boolean)
     IS 'pgr_createTopology

@@ -664,10 +664,10 @@ li.checked::marker { content: &quot;\2612&quot;; }
 		 <item>
 			<spacer name="horizontalSpacer_resource_handling">
 				<property name="orientation">
-					<enum>Qt::Orientation::Horizontal</enum>
+					<enum>Qt::Horizontal</enum>
 				</property>
 				<property name="sizeType">
-					<enum>QSizePolicy::Policy::Expanding</enum>
+					<enum>QSizePolicy::Expanding</enum>
 				</property>
 				<property name="sizeHint" stdset="0">
 					<size>

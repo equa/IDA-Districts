@@ -827,6 +827,7 @@ class Districts:
             checkBoxes=[2]
             columns='(id,type,p_ctrl,temp,p,mdot,description)'
             dlg = ConnectionsDialog(tr('@default','connections'),[tr('@default','connection_id'),tr('@default','type'),tr('@default','massflow_set_asboundary_condition'),tr('@default','design_temperature'),tr('@default','design_pressure'),tr('@default','design_massflow'),tr('@default','description')])
+            self.dlg_connections = dlg  # keep a reference (a dialog without parent is deleted by the garbage collector)
             dlg.btn_ok.clicked.connect(lambda: saveConnectionsTable(dlg,'connections',columns,dropdowns,False,checkBoxes,self))
             dlg.btn_cancel.clicked.connect(lambda: closeDialog(dlg))
             dlg.btn_delete.clicked.connect(lambda: deleteTableRowTrace(dlg,True))
@@ -1032,6 +1033,13 @@ class Districts:
         
     def loadProject(self):
         #print('--load project--')
+        if not self.config['projectName']:
+            # no project selected (e.g. the last project was deleted): nothing to connect to
+            self.setTreeViewModel([])
+            self.dlg.labelActiveProject.setText('')
+            self.dlg.label_activeVersion.setText('')
+            self.dlg.btn_sridProject.setText('EPSG: ')
+            return
         self.conn=dbConnect(self.config,True)
         #print(self.config)
         #print(self.conn)

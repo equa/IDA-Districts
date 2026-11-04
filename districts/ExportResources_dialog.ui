@@ -136,7 +136,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item>
             <spacer name="horizontalSpacer">
              <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
+              <enum>Qt::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -219,7 +219,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item>
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
+              <enum>Qt::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -287,7 +287,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item>
             <spacer name="horizontalSpacer_3">
              <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
+              <enum>Qt::Horizontal</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
