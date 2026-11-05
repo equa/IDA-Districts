@@ -241,7 +241,8 @@ def load_image(path,label,scale=False,size=False):
         
 def addParmTableRow(dlg,cur,config):
     
-    maxId=getMaxId(cur,'model_parms')+1
+    # rows added but not yet saved (also of the other type) are not in the DB yet -> also consider their ids
+    maxId=max(getMaxId(cur,'model_parms'),dlg.maxUsedId())+1
     dlg.tableWidget_parameters.insertRow(0)
         
     item = QTableWidgetItem(str(maxId))

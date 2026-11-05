@@ -828,7 +828,8 @@ class FeatureModelParmDlg(QDialog):
         """Constructor."""
         super().__init__()
         self.setWindowTitle(tr('@default',"title_feature_model_parameter_mapping")) 
-        self.loadedMappingParms={}
+        self.loadedMappingParms={}  # {type: {id: parameters}} as stored in the DB
+        self.editedMappingParms={}  # {type: {id: parameters}} unsaved table state of the type not shown
         self.cur=cur
         self.config=config
         
@@ -837,12 +838,13 @@ class FeatureModelParmDlg(QDialog):
         self.rbtn_customers = QRadioButton(tr('@default','customers'))
         self.rbtn_customers.setChecked(True)
         self.rbtn_plants = QRadioButton(tr('@default','energy_plants'))
+        self.currentType=self.currentParmType()
         self.rbtn_customers.toggled.connect(self.onClickedRadio)
         self.rbtn_plants.toggled.connect(self.onClickedRadio)
-        
+
         layout_rbtn.addWidget(self.rbtn_customers)
         layout_rbtn.addWidget(self.rbtn_plants)
-        
+
         #list widget for layer attributes
         layout_listWidget_featureFields = QVBoxLayout()
         label_listWidget_featureFields=QLabel(tr('@default',"fields"))
@@ -898,42 +900,81 @@ class FeatureModelParmDlg(QDialog):
         else:
             iface.messageBar().pushMessage("Info", "No model parameter selected!", level=MessageInfo)
             
+    def currentParmType(self):
+        """model_parms.type of the selected radio button: 1 customers, 2 energy plants"""
+        return 1 if self.rbtn_customers.isChecked() else 2
+
     def onClickedRadio(self,s):
-        #print(s)
-        self.loadedMappingParms={}
+        # toggled is emitted by both radio buttons -> only react once per type change
+        new_type=self.currentParmType()
+        if new_type==self.currentType:
+            return
+        # keep the (unsaved) table content of the previous type until the dialog is saved
+        self.editedMappingParms[self.currentType]=self.readTable()
+        self.currentType=new_type
         self.loadParm()
         self.loadFieldAttributes()
-        
+
     def loadFieldAttributes(self):
         self.listWidget_featureFields.clear()
         attrs=getTableAttr(self.cur,self.config,'customer' if self.rbtn_customers.isChecked() else 'energy_plant')
         self.listWidget_featureFields.addItems(attrs)
 
     def loadParm(self):
-        self.tableWidget_parameters.setRowCount(0)
+        """Fill the table with the parameters of the current type: the edited state if the type was shown before, else from the DB"""
+        parm_type=self.currentType
+        if parm_type not in self.loadedMappingParms:
+            sql="""SELECT * FROM model_parms WHERE type={} ORDER BY id;""".format(parm_type) # nosec B608
+            self.cur.execute(sql)
+            self.loadedMappingParms[parm_type]={parm['id'] : {'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction'],'description' : parm['description']} for parm in self.cur.fetchall()}
+        rows=self.editedMappingParms.get(parm_type,self.loadedMappingParms[parm_type])
 
-        sql="""SELECT * FROM model_parms WHERE type={} ORDER BY id;""".format(1 if self.rbtn_customers.isChecked() else 2) # nosec B608
-        self.cur.execute(sql)
         table=self.tableWidget_parameters
-        for i,parm in enumerate(self.cur.fetchall()):
-            self.loadedMappingParms[parm['id']]={'parm_name' : parm['parm_name'],'model_name' : parm['model_name'],'mapping_expression' : parm['mapping_expression'],'macro_name' : parm['macro_name'],'mapping_direction' : parm['mapping_direction'],'description' : parm['description']}
+        table.setRowCount(0)
+        for i,(parm_id,parm) in enumerate(rows.items()):
             table.insertRow(i)
-            item = QTableWidgetItem(str(parm['id']))
+            item = QTableWidgetItem(str(parm_id))
             item.setFlags(item.flags() & ~qt_item_flag("ItemIsEditable"))
 
             table.setItem(i,0,item)
             table.setItem(i,1,QTableWidgetItem(parm['mapping_expression']))
-                        
+
             comboBox = QComboBox()
             comboBox.addItems(['<-->','<--','-->'])
             #comboBox.addItems(['-->'])
             comboBox.setCurrentText(parm['mapping_direction'])
-            table.setCellWidget(i, 2, comboBox)  
-            
+            table.setCellWidget(i, 2, comboBox)
+
             table.setItem(i,3,QTableWidgetItem(parm['parm_name']))
             table.setItem(i,4,QTableWidgetItem(parm['model_name']))
-            table.setItem(i,5,QTableWidgetItem(parm['macro_name'])) 
-            table.setItem(i,6,QTableWidgetItem(parm['description'])) 
+            table.setItem(i,5,QTableWidgetItem(parm['macro_name']))
+            table.setItem(i,6,QTableWidgetItem(parm['description']))
+
+    def readTable(self):
+        """Return the table content as {id: parameters} (in table order)"""
+        table=self.tableWidget_parameters
+        def text(row,col):
+            item=table.item(row,col)
+            return item.text() if item else ''
+        rows={}
+        for row in range(table.rowCount()):
+            rows[int(text(row,0))]={'parm_name' : text(row,3),'model_name' : text(row,4),'mapping_expression' : text(row,1),'macro_name' : text(row,5),'mapping_direction' : table.cellWidget(row,2).currentText(),'description' : text(row,6)}
+        return rows
+
+    def mappingParmsByType(self):
+        """Return {type: {id: parameters}} of all types which were shown in the dialog (edited state)"""
+        edited=dict(self.editedMappingParms)
+        edited[self.currentType]=self.readTable()
+        return edited
+
+    def maxUsedId(self):
+        """Highest id in the table or kept (unsaved) for the other type"""
+        return max([0]+[parm_id for rows in self.mappingParmsByType().values() for parm_id in rows])
+
+    def markSaved(self):
+        """After saving: the edited state is the new DB state"""
+        self.loadedMappingParms=self.mappingParmsByType()
+        self.editedMappingParms={}
 
 class FeatureDecouplingDlg(QDialog):
     def __init__(self,plugin_dir,cur,config):

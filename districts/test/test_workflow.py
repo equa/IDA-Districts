@@ -590,6 +590,19 @@ class TestWorkflow:
         plugin = wf.plugin
         plugin.showDataOnMap()
         dlg = plugin.dlg_showOnMap
+        customer_ids = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+        assert len(set(customer_ids)) == 2, "new rows got the same id: {}".format(customer_ids)
+        # unsaved customer rows are kept when switching to energy plants and back, new ids stay unique
+        dlg.rbtn_plants.setChecked(True)
+        plant_rows = table.rowCount()
+        addParmTableRow(dlg, plugin.cur, plugin.config)
+        assert int(table.item(0, 0).text()) > max(customer_ids)
+        dlg.rbtn_customers.setChecked(True)
+        assert sorted(int(table.item(row, 0).text()) for row in range(table.rowCount())) == sorted(customer_ids)
+        dlg.rbtn_plants.setChecked(True)
+        assert table.rowCount() == plant_rows + 1
+        table.removeRow(0)  # don't save the empty energy plant mapping
+        dlg.rbtn_customers.setChecked(True)
         dlg.rbtn_lines.setChecked(True)
         dlg.checkbox_varColor.setChecked(True)
         dlg.featureGroupChanged(dlg.rbtn_lines)
