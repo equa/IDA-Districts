@@ -1,7 +1,7 @@
 from qgis.core import QgsProperty, QgsVectorLayer, QgsProject, QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, Qgis, QgsMessageLog, QgsStyle
 from qgis.PyQt.QtWidgets import QButtonGroup
 
-from qgis.PyQt.QtCore import QThreadPool
+from qgis.PyQt.QtCore import QRunnable, QThreadPool
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor, QStandardItem
 
@@ -16,7 +16,7 @@ from .utility_functions.db import (
     checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getProjectVersionNames, getTableAttr,
     setDistrictsModelerVersion2DB,
 )
-from .utility_functions.dialog import closeDialog
+from .utility_functions.dialog import closeDialog, closeOtherDistrictsDialogs
 from .utility_functions.files import createDir, districtsModelerTempDir, loadProjectConfig, writeProjectConfig
 from .utility_functions.layer_visualization import (
     extract_group_fields, loadBoreholesLayer, loadLayersConfig, loadProjectLayers, loadTopologyLayers, on_form_changed,
@@ -30,7 +30,10 @@ from .utility_functions.utility import (
     checkString, copy_tree_filter_extensions_and_folders, get_districts_plugin_dir, load_plugin_settings,
     write_plugin_settings, zoomToLayer,
 )
-from .utility_functions.workers import WorkerExportProject, WorkerImportProject, WorkerLoadVersion
+from .utility_functions.workers import (
+    closeConnectionOnFinish,
+    APISignals, WorkerExportProject, WorkerImportProject, WorkerLoadVersion, startWorkers,
+)
 
 import datetime
 import tempfile
@@ -144,6 +147,7 @@ class LoadAttributeDialog(QDialog):
 
         self.config=load_plugin_settings()
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         
@@ -185,6 +189,7 @@ class PipeDiameterStyleDialog(QDialog):
 
         self.config=load_plugin_settings()
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
@@ -210,6 +215,7 @@ class GFAAttributeDialog(QDialog):
 
         self.config=load_plugin_settings()
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         
@@ -350,52 +356,66 @@ def treeItem_add(level, mdlIdx,dlg,main):
         if newVersionName:
             if checkString(versionName):
                 main.dlg.update_progress(1)
-                #Creating version --> new schema in project        
-                idBase=0
                 item = main.model.itemFromIndex(mdlIdx)
-
-                if item:
-                    baseName=item.text()
-                    sql="SELECT id FROM public.versionhandling WHERE name = '"+baseName+"';" # nosec B608
-                    #print(sql)
-                    main.cur.execute(sql)
-                    for base in main.cur.fetchall():
-                        idBase = base['id']    
-                else:
-                    baseName=''
-                sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\','+str(idBase)+',\''+description+'\');' # nosec B608
-                #print(sql)
-                main.cur.execute(sql)
-
-                temp_key = QStandardItem(versionName)
-                temp_value1 = QStandardItem('')
-                main.model.itemFromIndex(mdlIdx).appendRow([temp_key, temp_value1])
-                    
+                if not item:
+                    return
+                #Creating version --> new schema in project, copied in a worker so QGIS does not block
                 auth_cfg = QgsAuthMethodConfig()
                 QgsApplication.authManager().loadAuthenticationConfig(main.config["auth_id"], auth_cfg, True)
-                copy_schema(item.text(),versionName,main.config,main.cur,main.plugin_dir,auth_cfg.config("username"), auth_cfg.config("password"))       
-                
-                data=getVersionData(main.cur)
-                importData(main.model,data)
-                main.dlg.treeViewVersions.expandAll()   
-                main.config['versionName']=versionName
-                write_plugin_settings(main.config)
-                
-                copyVersionFiles(main.config,main.plugin_dir,baseName,versionName)
-                
-                loadVersion(main=main)
-                item=get_item_by_text(versionName,main)
-                highlight_item(item,main.model.invisibleRootItem())
-                main.dlg.treeViewVersions.viewport().update()
-                main.dlg.statusMessage.setText('New child version created: '+versionName)
-                main.dlg.update_progress(100)
-                closeDialog(dlg)
+                main.worker_addVersion = WorkerAddChildVersion(cur=main.cur,config=main.config,plugin_dir=main.plugin_dir,baseName=item.text(),versionName=versionName,description=description,
+                    username=auth_cfg.config("username"),password=auth_cfg.config("password"))
+                main.worker_addVersion.signals.progress.connect(main.dlg.update_progress)
+                main.worker_addVersion.signals.error.connect(lambda message: finishedAddChildVersionError(message,main))
+                main.worker_addVersion.signals.finished.connect(lambda: finishedAddChildVersion(versionName,dlg,main))
+                startWorkers([main.worker_addVersion],dlg.btn_ok)
         else:
             main.dlg.update_progress(0)
             iface.messageBar().pushMessage("Info", "Base version {} does already exist!".format(versionName), level=MessageInfo)
     else:
         main.dlg.update_progress(0)
         iface.messageBar().pushMessage("Info", "Please enter a version name!", level=MessageInfo)
+
+class WorkerAddChildVersion(QRunnable):
+    """Copies the schema and the version directory of baseName to the new child version versionName."""
+    def __init__(self,cur,config,plugin_dir,baseName,versionName,description,username,password):
+        super().__init__()
+        self.signals=APISignals()
+        self.cur=cur
+        # the base is the clicked version, not necessarily the loaded one
+        self.config=dict(config,versionName=baseName)
+        self.plugin_dir=plugin_dir
+        self.versionName=versionName
+        self.description=description
+        self.username=username
+        self.password=password
+
+    def run(self):
+        from .utility_functions.pipe_downsizing import createChildVersion
+        try:
+            self.signals.progress.emit(10)
+            createChildVersion(self.cur,self.config,self.plugin_dir,self.versionName,self.description,self.username,self.password)
+            self.signals.progress.emit(50)
+            self.signals.finished.emit(self.versionName)
+        except Exception as e:
+            QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
+            self.signals.error.emit(str(e))
+
+def finishedAddChildVersion(versionName,dlg,main):
+    importData(main.model,getVersionData(main.cur))
+    main.dlg.treeViewVersions.expandAll()
+    main.config['versionName']=versionName
+    write_plugin_settings(main.config)
+    loadVersion(main=main)
+    item=get_item_by_text(versionName,main)
+    highlight_item(item,main.model.invisibleRootItem())
+    main.dlg.treeViewVersions.viewport().update()
+    main.dlg.statusMessage.setText('New child version created: '+versionName)
+    main.dlg.update_progress(100)
+    closeDialog(dlg)
+
+def finishedAddChildVersionError(message,main):
+    main.dlg.update_progress(0)
+    iface.messageBar().pushMessage("Error", "Creating the child version has failed: {} See message log 'Districts' for details.".format(message), level=MessageCritical)
 
 def treeItem_saveAs(level, mdlIdx,main,dlg):
     """Function to save project version As and add base item to treeview"""
@@ -491,6 +511,16 @@ def treeItem_rename(level,mdlIdx,main,dlg):
 def treeItem_delete(item,dlg,main):
     """Function to delete project version and removes it from the tree"""
     #print('--treeItem_delete--')
+    # disable the delete button while the version is deleted (closed on success, re-enabled on error)
+    dlg.btn_ok.setEnabled(False)
+    dlg.btn_ok.repaint()
+    try:
+        _treeItem_delete(item,dlg,main)
+    except Exception:
+        dlg.btn_ok.setEnabled(True)
+        raise
+
+def _treeItem_delete(item,dlg,main):
     main.dlg.update_progress(1)
     try:
         sql = 'DROP SCHEMA "'+item.text()+'" CASCADE;'
@@ -704,6 +734,18 @@ def importData(model, data, root=None):
             
 def deleteProject(projectName,main_dlg,cur_postgres,plugin_dir,config,model,dlg=None):
     """Drop selected DB """
+    if dlg is not None:
+        # disable the delete button while the project is deleted (closed on success, re-enabled on error)
+        dlg.btn_ok.setEnabled(False)
+        dlg.btn_ok.repaint()
+    try:
+        _deleteProject(projectName,main_dlg,cur_postgres,config,model,dlg)
+    except Exception:
+        if dlg is not None:
+            dlg.btn_ok.setEnabled(True)
+        raise
+
+def _deleteProject(projectName,main_dlg,cur_postgres,config,model,dlg):
     index=main_dlg.selectProject.findText(projectName)
     if index!=-1:
         #print('Delete DB: {}'.format(projectName))
@@ -880,6 +922,8 @@ def finishedLoadVersion(main):
 def loadVersion(main=None,item=None):
     #print('loadVersion')
     if main and main.conn:
+        # dialogs opened for the previous version are no longer valid
+        closeOtherDistrictsDialogs(main.dlg)
         if item is None:
             item=get_item_by_text(main.config['versionName'],main)
             
@@ -905,49 +949,59 @@ def loadVersion(main=None,item=None):
     
 def createNewProject(dlg,main):
     #print('--create new project--')
+    if dlg.process_running:
+        return
+    # disable the create button while the project is created (re-enabled on invalid input or worker error)
+    dlg.btn_ok.setEnabled(False)
     dlg.update_progress(0)
-    if checkString(dlg.project_name.text()):
-        if checkDBName(dlg.project_name.text(),main.dlg.projectNames):
-            dlg.update_progress(1)
-            main.config['projectName']=dlg.project_name.text()
-            if dlg.selectTemplate.currentData() in ['db_default_values','empty_project']:
-                main.config['versionName']=''
-                versionNames=[]
-            else:
-                main.config['versionName']='base1'
-                versionNames=['base1']
-            #print(main.plugin_dir)
-            project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
-            if dlg.selectTemplate.currentData() in ['db_default_values','empty_project','heating_network']:
-                filename=main.plugin_dir+'\\templates\\'+dlg.selectTemplate.currentData()
-                filename=filename.replace('/','\\')
-            else:
-                filename=main.config['pathDistricts']+'samples\\districts\\'+dlg.selectTemplate.currentData()
-                filename=filename.replace('/','\\')
-            #print(filename)
+    if not main.cur_postgres or main.dlg.projectNames is None:
+        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+        dlg.btn_ok.setEnabled(True)
+        return
+    if not (checkString(dlg.project_name.text()) and checkDBName(dlg.project_name.text(),main.dlg.projectNames)):
+        dlg.btn_ok.setEnabled(True)
+        return
+    dlg.update_progress(1)
+    main.config['projectName']=dlg.project_name.text()
+    if dlg.selectTemplate.currentData() in ['db_default_values','empty_project']:
+        main.config['versionName']=''
+        versionNames=[]
+    else:
+        main.config['versionName']='base1'
+        versionNames=['base1']
+    #print(main.plugin_dir)
+    project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
+    if dlg.selectTemplate.currentData() in ['db_default_values','empty_project','heating_network']:
+        filename=main.plugin_dir+'\\templates\\'+dlg.selectTemplate.currentData()
+        filename=filename.replace('/','\\')
+    else:
+        filename=main.config['pathDistricts']+'samples\\districts\\'+dlg.selectTemplate.currentData()
+        filename=filename.replace('/','\\')
+    #print(filename)
 
-            if dlg.checkbox_DBResults.isChecked():
-                no_db_results=False
-            else:
-                no_db_results=True
-            if dlg.checkbox_prn.isChecked():
-                filter_extensions=[]
-            else:
-                filter_extensions=['.prn']
-            filter_folders=[]
-            if not dlg.checkbox_invokedFeatures.isChecked():
-                filter_folders.append('invoked_customers')
-                filter_folders.append('invoked_energy_plants')
-                
-            auth_cfg = QgsAuthMethodConfig()
-            QgsApplication.authManager().loadAuthenticationConfig(main.config["auth_id"], auth_cfg, True)  
-            dlg.update_progress(10)
-            main.worker_newProject = WorkerImportProject(versionNames=versionNames,projectNames=main.dlg.projectNames,project_name=main.config['projectName'],filename=filename,config=main.config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),plugin_dir=main.plugin_dir,cur=main.cur_postgres,dlg=dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
-            main.worker_newProject.signals.progress.connect(dlg.update_progress)
-            main.worker_newProject.signals.error.connect(dlg.show_error_message)
-            main.worker_newProject.signals.finished.connect(lambda: finishedImportProject(dlg=dlg,main=main))                
-            QThreadPool.globalInstance().start(main.worker_newProject)    
-            
+    if dlg.checkbox_DBResults.isChecked():
+        no_db_results=False
+    else:
+        no_db_results=True
+    if dlg.checkbox_prn.isChecked():
+        filter_extensions=[]
+    else:
+        filter_extensions=['.prn']
+    filter_folders=[]
+    if not dlg.checkbox_invokedFeatures.isChecked():
+        filter_folders.append('invoked_customers')
+        filter_folders.append('invoked_energy_plants')
+        
+    auth_cfg = QgsAuthMethodConfig()
+    QgsApplication.authManager().loadAuthenticationConfig(main.config["auth_id"], auth_cfg, True)  
+    dlg.update_progress(10)
+    main.worker_newProject = WorkerImportProject(versionNames=versionNames,projectNames=main.dlg.projectNames,project_name=main.config['projectName'],filename=filename,config=main.config,password=auth_cfg.config("password"),username=auth_cfg.config("username"),plugin_dir=main.plugin_dir,cur=main.cur_postgres,dlg=dlg,filter_extensions=filter_extensions,filter_folders=filter_folders,no_db_results=no_db_results)
+    main.worker_newProject.signals.progress.connect(dlg.update_progress)
+    main.worker_newProject.signals.error.connect(dlg.show_error_message)
+    main.worker_newProject.signals.failed.connect(lambda: dlg.btn_ok.setEnabled(True))
+    main.worker_newProject.signals.finished.connect(lambda: finishedImportProject(dlg=dlg,main=main))                
+    QThreadPool.globalInstance().start(main.worker_newProject)    
+    
 def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=None,exportInvokedFeatures=None,exportDBResults=None,main_dlg=None,autosave=None):
     """Export the DB to a sql file and write the data center and modelling files to the folders + dDB description file --> zip"""
     #print("Export project")

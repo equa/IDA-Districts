@@ -8,7 +8,7 @@ from .utility_functions.topology import (
     getConnBundleByFeature, getConnTypeSeqFromBundle, getConnsValues, getPMT2muxIdentFromConnValues,
 )
 from .utility_functions.translations import tr
-from .utility_functions.workers import APISignals
+from .utility_functions.workers import closesOwnConnection, APISignals
 
 import traceback
 
@@ -96,7 +96,8 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
     def generatePathReport(self):
         """Just fo supply and return line. Todo update to all connection types"""
         #print('generate path diagram')
-        self.conn=dbConnect(self.config,False)
+        if not self.conn or self.conn.closed:  # reuse the connection of __init__
+            self.conn=dbConnect(self.config,False)
         if self.dlg.rbtn_pathTemp.isChecked():
             quantity='temperature'
             quantity_var='temp'
@@ -277,6 +278,7 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
             return True
         
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         #print('generate pah report')
         self.progress_value=1

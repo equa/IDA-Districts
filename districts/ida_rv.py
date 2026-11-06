@@ -275,8 +275,8 @@ def showOnMap(dlg,main,networkReportDlg=None):
             
     main.worker_showOnMap.signals.error.connect(show_error_message)
     main.worker_showOnMap.signals.progress.connect(dlg.update_progress)  
-    main.worker_showOnMap.signals.finished.connect(dlg.update_finished)  
-    QThreadPool.globalInstance().start(main.worker_showOnMap) 
+    main.worker_showOnMap.signals.finished.connect(dlg.update_finished)
+    startWorkers([main.worker_showOnMap],dlg.btn_showOnMap)
         
 def getType(dlg):
     if dlg.rbtn_customer.isChecked():

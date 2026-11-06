@@ -11,12 +11,13 @@ from .utility_functions.db import (
     dbConnect, dropDBTriggers, featureCount, getNetworks, getPipeBundleNames, getPlantIds, getTableAttr,
     getTableNumericAttr, getTemplateNames, getTemplatesInfo, insertDBTriggers, streetsCount,
 )
-from .utility_functions.dialog import CheckableComboBox, checkState, qt_item_flag
+from .utility_functions.dialog import CheckableComboBox, checkState, qt_item_flag, runWithButtonDisabled
 from .utility_functions.error_handling import checkIntersectingFeatures
 from .utility_functions.layer_visualization import removeTempLayers
 from .utility_functions.topology import checkNetwork, getNetworkSequences, saveTempTables
 from .utility_functions.translations import tr
 from .utility_functions.utility import refreshMap
+from .utility_functions.workers import closeConnection, closeConnectionOnFinish, startWorkers
 from .PipeLayingAlgorithm import WorkerPipeLaying 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
@@ -43,6 +44,7 @@ class PipeLayingDialog(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.setWindowTitle(tr('@default',"pipe_laying_algorithm"))      
         columns=getTableAttr(self.cur,self.config,'customer')
@@ -387,9 +389,9 @@ class PipeLayingDialog(QDialog):
         #action buttons
         layout_actionButtons = QHBoxLayout()
         
-        btn_start=QPushButton(tr('@default',"start"))
-        btn_start.pressed.connect(self.execute)
-        layout_actionButtons.addWidget(btn_start)
+        self.btn_start=QPushButton(tr('@default',"start"))
+        self.btn_start.pressed.connect(lambda: runWithButtonDisabled(self.btn_start,self.execute))
+        layout_actionButtons.addWidget(self.btn_start)
         
         self.btn_stop=QPushButton(tr('@default',"stop"))
         layout_actionButtons.addWidget(self.btn_stop)
@@ -397,9 +399,10 @@ class PipeLayingDialog(QDialog):
         self.btn_pause=QPushButton(tr('@default',"pause_resume"))
         layout_actionButtons.addWidget(self.btn_pause)
         
-        #progress bar
+        #progress bar and current step
         self.progress=QProgressBar()
-        
+        self.label_status=QLabel('')
+
         #save reject buttons
         layout_saveButtons = QHBoxLayout()
         btn_save=QPushButton(tr('@default',"save"))
@@ -498,6 +501,7 @@ class PipeLayingDialog(QDialog):
         layout_win.addLayout(layout_tolerance)
         layout_win.addLayout(layout_networks)
         layout_win.addLayout(layout_actionButtons)
+        layout_win.addWidget(self.label_status)
         layout_win.addWidget(self.progress)
         layout_win.addLayout(layout_saveButtons)
         layout_win.addStretch()
@@ -569,10 +573,13 @@ class PipeLayingDialog(QDialog):
                 amortization_period_cold=self.amortization_period_cold.text(),hc_template_customer=self.hc_template_customer.currentText(),
                 customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),config=self.config,plugin_dir=self.plugin_dir)
             self.worker.signals.progress.connect(self.update_progress)
-            self.worker.signals.error.connect(self.show_error_message)       
-            self.worker.signals.finished.connect(self.update_finished)       
+            self.worker.signals.error.connect(self.show_error_message)
+            self.worker.signals.status.connect(self.label_status.setText)
+            self.worker.signals.finished.connect(self.update_finished)
+            self.progress.setValue(0)
+            self.label_status.setText('Starting')
             #execute
-            QThreadPool.globalInstance().start(self.worker) 
+            startWorkers([self.worker],self.btn_start)
             self.btn_stop.pressed.connect(self.worker.kill)
             self.btn_pause.pressed.connect(self.worker.pauseResume)
         
@@ -700,6 +707,7 @@ class NetworkTopologyDialog(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.setWindowTitle(tr('@default',"generate_topology"))
         #todo get values from data center
@@ -844,9 +852,9 @@ class NetworkTopologyDialog(QDialog):
         #buttons
         layout_buttons = QHBoxLayout()
         
-        btn_start=QPushButton(tr('@default',"start"))
-        btn_start.pressed.connect(self.execute)
-        layout_buttons.addWidget(btn_start)
+        self.btn_start=QPushButton(tr('@default',"start"))
+        self.btn_start.pressed.connect(lambda: runWithButtonDisabled(self.btn_start,self.execute))
+        layout_buttons.addWidget(self.btn_start)
                
         btn_save=QPushButton(tr('@default',"save"))
         btn_save.pressed.connect(self.saveResults)
@@ -856,9 +864,10 @@ class NetworkTopologyDialog(QDialog):
         btn_reject.pressed.connect(self.rejectResults)
         layout_buttons.addWidget(btn_reject)
         
-        #progress bar
+        #progress bar and current step
         self.progress=QProgressBar()
-        
+        self.label_status=QLabel('')
+
         #set layouts together
         layout_overrideTemplate = QHBoxLayout()
         layout_overrideTemplate.addLayout(layout_overrideTemplate_label)
@@ -894,6 +903,7 @@ class NetworkTopologyDialog(QDialog):
         layout_win.addLayout(layout_additional_options)
         layout_win.addLayout(layout_tolerance)
         layout_win.addLayout(layout_networks)
+        layout_win.addWidget(self.label_status)
         layout_win.addWidget(self.progress)
         layout_win.addLayout(layout_buttons)
         layout_win.addStretch()
@@ -921,8 +931,11 @@ class NetworkTopologyDialog(QDialog):
                     showTempTables=True)
                 self.worker.signals.error.connect(self.show_error_message)
                 self.worker.signals.progress.connect(self.update_progress)
+                self.worker.signals.status.connect(self.label_status.setText)
                 self.worker.signals.finished.connect(self.update_finished)
-                QThreadPool.globalInstance().start(self.worker)  
+                self.progress.setValue(0)
+                self.label_status.setText('Starting')
+                startWorkers([self.worker],self.btn_start)
                 
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -1036,6 +1049,7 @@ class PipeSizingDlg(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.process_running=False
         self.pipes={}
@@ -1319,7 +1333,8 @@ class PipeSizingDlg(QDialog):
         # Show the error message in a messageBar
         iface.messageBar().pushMessage("Error", message, level=MessageCritical)
         
-    def execute(self,networks):  
+    def execute(self,networks):
+        """Start the topology worker (self.worker); returns True if it was started"""
         if self.conn:
             if checkNetwork(self.cur,self.config['versionName'],networks):                 
                 self.worker = WorkerGenerateNetworkTopology(config=self.config,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=False, deleteUnconnectedCustomers=False, deleteUnconnectedLines=False,
@@ -1332,7 +1347,9 @@ class PipeSizingDlg(QDialog):
                     showTempTables=False)
                 self.worker.signals.error.connect(self.show_error_message)
                 self.worker.signals.progress.connect(self.update_progress)
-                QThreadPool.globalInstance().start(self.worker) 
+                startWorkers([self.worker],self.btn_start)
+                return True
+        return False
 
     def doSizing(self,cur,config,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles):
         #print('++do-sizing++')
@@ -1340,8 +1357,9 @@ class PipeSizingDlg(QDialog):
         self.worker_pipeSizing.signals.error.connect(dlg.show_error_message)
         self.worker_pipeSizing.signals.progress.connect(dlg.update_progress)
         self.worker_pipeSizing.signals.finished.connect(self.update_finished)
-        QThreadPool.globalInstance().start(self.worker_pipeSizing) 
-        pass
+        # the connection of startPipeSizing is only used for this sizing run
+        self.worker_pipeSizing.signals.finished.connect(lambda *_: closeConnection(cur.connection))
+        startWorkers([self.worker_pipeSizing],self.btn_start)
         
 class MapFeaturesDialog(QDialog):
     def __init__(self,config,plugin_dir):     
@@ -1350,6 +1368,7 @@ class MapFeaturesDialog(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.setWindowTitle(self.tr("map_energy_plants_customers_connection_types_to_lines"))
         myBoldFont=QtGui.QFont('Arial', 12)

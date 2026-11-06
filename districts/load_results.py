@@ -21,7 +21,7 @@ from .utility_functions.topology import (
 )
 from .utility_functions.translations import tr
 from .utility_functions.utility import getDatetimeFromString, interpolateTimeData
-from .utility_functions.workers import APISignals
+from .utility_functions.workers import closesOwnConnection, APISignals
 
 import datetime
 import re
@@ -50,6 +50,7 @@ class WorkerLoadResults(QRunnable):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         #print('run worker load results')
         self.progress_value=1

@@ -4,14 +4,13 @@ from qgis.core import QgsMessageLog, Qgis
 
 from .ida_mosim_dialog import SensorSignalsDialog
 import psycopg2
-from qgis.PyQt.QtCore import QThreadPool
 from qgis.PyQt.QtWidgets import QComboBox, QTableWidgetItem
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import (
     cleanupResultsSensors, dbConnect, getFilteredDropDownItemNames, getFilteredDropDownItems,
     getTemplateName, getTemplatesInfo,
 )
-from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
+from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag, runWithButtonDisabled
 from .utility_functions.sensor_signals import (
     getAddedSensorSourceData, getAddedSensorTargetData, getRemovedSensorSourceData,
     getRemovedSensorTargetData, templatesensorSignals, writeInvokedSensorSourceSignals,
@@ -20,7 +19,7 @@ from .utility_functions.sensor_signals import (
 from .utility_functions.translations import tr
 from .utility_functions.utility import getTemplateNameById, getTypeIdByName
 from .supervisory_control import Supervisory_control
-from .utility_functions.workers import APISignals,show_error_message
+from .utility_functions.workers import APISignals,show_error_message,startWorkers
      
 import traceback
      
@@ -34,7 +33,7 @@ class UpdateSensors():
         self.sensorData={} #{'source' : {'type' : sensor_data['type'],'templates' : [],'ids' : [],'conn_types' : [],'conns' : [],'measure' : sensor_data['measure'],'function' : sensor_data['function'],'test_value' : sensor_data['test_value'],'description' : sensor_data['description_source']}, 'target': {'type' : sensor_data['target_type'],'templates' : [],'ids' : [],'target' : None,'description' : ''}}
         
         self.dlg=SensorSignalsDialog(self.config,self.plugin_dir,self.dlg_main)
-        self.dlg.btn_ok.clicked.connect(self.runSensorSignals)
+        self.dlg.btn_ok.clicked.connect(lambda: runWithButtonDisabled(self.dlg.btn_ok,self.runSensorSignals))
         self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
         self.dlg.btn_add.clicked.connect(self.addSensor)
         self.dlg.btn_del.clicked.connect(self.delSensor)
@@ -644,11 +643,12 @@ AND EXISTS (
         self.measureChanged(self.dlg.tableWidget_source,selected_index,column,row)
 
     def runSensorSignals(self):
+        """OK: write the sensors and update the sensor signals in a worker (btn_ok stays disabled until it is done)"""
         self.worker_sensors = WorkerSensors(config=self.config,plugin_dir=self.plugin_dir,dlg=self.dlg,loadedSensorData=self.loadedSensorData,sensorData=self.sensorData)
-        QThreadPool.globalInstance().start(self.worker_sensors) 
         self.worker_sensors.signals.error.connect(show_error_message)
-        self.worker_sensors.signals.progress.connect(self.dlg.update_progress)   
-        self.worker_sensors.signals.finished.connect(self.dlg.update_finished)   
+        self.worker_sensors.signals.progress.connect(self.dlg.update_progress)
+        self.worker_sensors.signals.finished.connect(self.dlg.update_finished)
+        startWorkers([self.worker_sensors],self.dlg.btn_ok)
         
 
 def getStoredSensorTableValues(cur):
@@ -931,14 +931,19 @@ class WorkerSensors(QRunnable):
             self.signals.progress.emit(50)  
             self.processingSensorSignals()
             self.signals.progress.emit(100)  
-            self.signals.finished.emit('Sensor signals successfully updated!')  
-        except Exception:
+            self.signals.finished.emit('Sensor signals successfully updated!')
+        except Exception as e:
             self.signals.progress.emit(0)
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
                 MessageCritical
             )
+            self.signals.error.emit("Updating the sensor signals failed: "+str(e))
+            self.dlg.process_running=False
+        finally:
+            if self.conn:
+                self.conn.close()
             
         
     def processingSensorSignals(self):

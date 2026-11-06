@@ -750,15 +750,12 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Get current project
 project = QgsProject.instance()
-plugin_dir = QgsApplication.qgisSettingsDirPath() + "python\\plugins\\districts"
+plugin_dir = os.path.join(QgsApplication.qgisSettingsDirPath(), "python", "plugins", "districts")
 manager = project.layoutManager()       
 projectName="{}"
 versionName="{}"
 srid={}
 config={}
-
-conn=dbConnect(config,True)
-cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
 # Remove existing layout with the same name
 layouts_list = manager.printLayouts()
@@ -1088,10 +1085,16 @@ layout.refresh()
 
 #----simulation_results diagram-----------
 #print([%id%])
+# DB connection only for the plots: closed again, otherwise it stays open in the action namespace of QGIS
+conn=dbConnect(config,True)
 try:
+    cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
     filenames=matplotlibPowerPlots(plugin_dir,config,cur,[%id%],feature_type='customer',show_plot=False,save_plot=True)
 except:
     filenames=[]
+finally:
+    if conn:
+        conn.close()
 #print(filenames)
 if filenames:
     # Polygon example

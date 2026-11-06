@@ -19,18 +19,21 @@ from xml.etree import ElementTree
 import pytest
 from qgis.core import Qgis, QgsFeature, QgsGeometry, QgsPointXY, QgsProject
 from qgis.PyQt import sip
-from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QDialog, QTableWidgetItem
+from qgis.PyQt.QtCore import QSettings, Qt
+from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QDialog, QMessageBox, QTableWidgetItem
 
-from districts.ida_mosim import buildModel, runModel, setRequestedOutputs
+from districts.ida_mosim import buildModel, checkTopologyBeforeBuild, runModel, setRequestedOutputs
 from districts.ida_ph import ShowLoadAttributeDialog, addBaseVersion, createNewProject, deleteProject, setLoadAttribute
-from districts.ida_ph_dialog import IDA_Districts_NameDialog
+from districts.ida_ph_dialog import ApproveDialog, IDA_Districts_NameDialog
 from districts.ida_rv import loadResults, runPathReports, showOnMap
-from districts.pipe_sizing import savePipeSizingResults, startPipeSizing
+from districts.pipe_sizing import savePipeSizingResults
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.invoke import setFeatureParm
+from districts.utility_functions.sensor_signals import getSensorData
+from districts.utility_functions.topology import checkNetworkTopology, getUnconnectedFeatures
 from districts.utility_functions.translations import tr
 
-from .conftest import wait, wait_for_process
+from .conftest import wait, wait_for_process, wait_until
 
 pytestmark = [pytest.mark.e2e]
 
@@ -60,6 +63,8 @@ CONNECTION_TYPES = {1: ('1 sup temp 70; 1 ret temp 30', [(1, 1), (2, 2)]),  # id
 CONNECTION_BUNDLES = {1: ('1 type: type 1', [(1, 1, 'customer')]),  # id: description, [(sequence, type, description)]
                       2: ('1 type: type 2', [(1, 2, 'energy plant')])}
 TEMPLATES = {'customer': (1, 'simple_consumer', 1), 'energy_plant': (1, 'heat_source', 2)}  # id, name, connection bundle
+# simulatable templates imported from a project of the template 'DB default values'
+IMPORTED_TEMPLATES = {'customer': 'simplified_consumer', 'energy_plant': 'ideal_heat_source'}
 
 
 def only_for(wf, *templates):
@@ -158,6 +163,18 @@ def select_row_by_id(dlg, value):
     raise AssertionError("no row with id {} in '{}'".format(value, dlg.windowTitle()))
 
 
+def plugin_state(plugin):
+    """diagnostics for a dialog that did not open (no DB connection / no version loaded)"""
+    bar = plugin.iface.messageBar()
+    messages = []
+    if hasattr(bar, 'get_messages'):  # pytest-qgis mock message bar
+        for level in (Qgis.MessageLevel.Info, Qgis.MessageLevel.Warning):
+            messages += [str(m) for m in bar.get_messages(level)]
+    return "conn={!r}, projectName={!r}, versionName={!r}, settings versionName={!r}, messages={}".format(
+        plugin.conn, plugin.config.get('projectName'), plugin.config.get('versionName'),
+        QSettings().value('districts/versionName'), messages)
+
+
 def public_rows(plugin, table):
     plugin.cur.execute('SELECT * FROM public.{} ORDER BY id;'.format(table))  # nosec B608
     return plugin.cur.fetchall()
@@ -179,33 +196,80 @@ def osm_offline(monkeypatch, samples_dir):
     monkeypatch.setattr(districts.districts, 'get_overpass_bbox', lambda: bbox)
 
 
-@pytest.fixture(scope="class", params=[HEATING, EMPTY, DB_DEFAULTS], ids=["heating", "empty", "db_defaults"])
-def wf(request, districts_plugin, errors):
-    """State of one workflow run (one project per template)."""
-    template = request.param
-    state = SimpleNamespace(
-        template=template,
-        plugin=districts_plugin,
-        project_name="autotest_" + time.strftime("%m%d%H%M%S", time.localtime()) + "_" + template.replace(" ", "_").lower(),
-        simulated=False,
-    )
-    yield state
+def project_name_for(suffix):
+    return "autotest_" + time.strftime("%m%d%H%M%S", time.localtime()) + "_" + suffix.replace(" ", "_").lower()
 
-    if request.config.getoption("--keep-projects"):
-        return
-    plugin = districts_plugin
+
+def create_project(plugin, errors, project_name, template):
+    """Create a project with the 'new project' dialog (the project is loaded afterwards)."""
+    plugin.showCreateNewProject()
+    dlg = plugin.dlg_createNewProject
+    dlg.project_name.setText(project_name)
+    dlg.selectTemplate.setCurrentText(tr('@default', TEMPLATE_KEYS[template]))
+    assert dlg.selectTemplate.currentData() == TEMPLATE_KEYS[template]
+
+    heating = template == HEATING
+    dlg.checkbox_db_defaultValues.setCheckState(uncheckState() if heating else checkState())
+    dlg.checkbox_invokedFeatures.setCheckState(checkState() if heating else uncheckState())
+    dlg.checkbox_prn.setCheckState(checkState() if heating else uncheckState())
+    dlg.checkbox_DBResults.setCheckState(checkState() if heating else uncheckState())
+
+    createNewProject(dlg, plugin)
+    assert not dlg.btn_ok.isEnabled()  # no second project creation while the first is running
+    wait_for_process(dlg, timeout=60)
+    errors.check()
+    assert plugin.config['projectName'] == project_name
+    assert project_name in plugin.dlg.projectNames
+
+
+def delete_project(plugin, errors, project_name):
     errors.clear()
-    if state.project_name in (plugin.dlg.projectNames or []):
-        deleteProject(state.project_name, plugin.dlg, plugin.cur_postgres, plugin.plugin_dir, plugin.config, plugin.model)
+    if project_name in (plugin.dlg.projectNames or []):
+        dlg = ApproveDialog(tr('@default', 'delete_project'), project_name)
+        dlg.show()
+        deleteProject(project_name, plugin.dlg, plugin.cur_postgres, plugin.plugin_dir, plugin.config, plugin.model, dlg=dlg)
+        assert not dlg.btn_ok.isEnabled()  # no second delete while the first is running
+        assert not dlg.isVisible()
         wait(500)
     # DB and project folder of an aborted project creation
-    plugin.cur_postgres.execute('DROP DATABASE IF EXISTS "{}" WITH (FORCE);'.format(state.project_name))  # nosec B608
-    shutil.rmtree(os.path.join(plugin.config['pathProjects'], state.project_name), ignore_errors=True)
+    plugin.cur_postgres.execute('DROP DATABASE IF EXISTS "{}" WITH (FORCE);'.format(project_name))  # nosec B608
+    shutil.rmtree(os.path.join(plugin.config['pathProjects'], project_name), ignore_errors=True)
     # errors while deleting the project must not fail the first step of the next template
     cleanup_errors = errors.all()
     errors.clear()
     if cleanup_errors:
-        warnings.warn("critical messages while deleting {}:\n{}".format(state.project_name, "\n".join(cleanup_errors)))
+        warnings.warn("critical messages while deleting {}:\n{}".format(project_name, "\n".join(cleanup_errors)))
+
+
+@pytest.fixture(scope="session")
+def resource_source_project(request, districts_plugin, errors):
+    """Project (template 'DB default values') whose customer and energy plant templates are imported
+    into the empty project, like a user takes over resources from an existing project."""
+    project_name = project_name_for("resources")
+    create_project(districts_plugin, errors, project_name, DB_DEFAULTS)
+    yield project_name
+    if not request.config.getoption("--keep-projects"):
+        delete_project(districts_plugin, errors, project_name)
+
+
+@pytest.fixture(scope="class", params=[HEATING, EMPTY, DB_DEFAULTS], ids=["heating", "empty", "db_defaults"])
+def wf(request, districts_plugin, errors):
+    """State of one workflow run (one project per template)."""
+    template = request.param
+    if template == EMPTY:
+        # created before the empty project, which is then the loaded project
+        request.getfixturevalue("resource_source_project")
+    state = SimpleNamespace(
+        template=template,
+        plugin=districts_plugin,
+        project_name=project_name_for(template),
+        simulated=False,
+        imported_templates={},  # template type: template id (empty project)
+    )
+    yield state
+
+    if not request.config.getoption("--keep-projects"):
+        delete_project(districts_plugin, errors, state.project_name)
 
 
 @pytest.mark.incremental
@@ -213,24 +277,7 @@ class TestWorkflow:
 
     # ---------------- project handling ----------------
     def test_create_project(self, wf, errors):
-        plugin = wf.plugin
-        plugin.showCreateNewProject()
-        dlg = plugin.dlg_createNewProject
-        dlg.project_name.setText(wf.project_name)
-        dlg.selectTemplate.setCurrentText(tr('@default', TEMPLATE_KEYS[wf.template]))
-        assert dlg.selectTemplate.currentData() == TEMPLATE_KEYS[wf.template]
-
-        heating = wf.template == HEATING
-        dlg.checkbox_db_defaultValues.setCheckState(uncheckState() if heating else checkState())
-        dlg.checkbox_invokedFeatures.setCheckState(checkState() if heating else uncheckState())
-        dlg.checkbox_prn.setCheckState(checkState() if heating else uncheckState())
-        dlg.checkbox_DBResults.setCheckState(checkState() if heating else uncheckState())
-
-        createNewProject(dlg, plugin)
-        wait_for_process(dlg, timeout=60)
-        errors.check()
-        assert plugin.config['projectName'] == wf.project_name
-        assert wf.project_name in plugin.dlg.projectNames
+        create_project(wf.plugin, errors, wf.project_name, wf.template)
 
     def test_add_base_version(self, wf, errors):
         only_for(wf, EMPTY, DB_DEFAULTS)
@@ -414,12 +461,65 @@ class TestWorkflow:
                              template_type + '_templates', '{}_{}.idm'.format(template_id, name))
         assert os.path.exists(model), "template model not written: " + model
 
+    def test_import_templates(self, wf, errors, request):
+        """The generated templates are skeletons to be completed in IDA: import simulatable templates
+        (with their connection bundles, types and connections) from another project."""
+        only_for(wf, EMPTY)
+        # not as a test argument: pytest sets up argument fixtures before only_for skips the test, i.e. the
+        # session fixture would create (and load!) the resources project in the middle of the heating run.
+        # For the empty project wf has already created it (before the empty project was created and loaded).
+        resource_source_project = request.getfixturevalue('resource_source_project')
+        plugin = wf.plugin
+        plugin.show_importResources()
+        dlg = plugin.dlg_importResources
+        dlg.rbtn_db.setChecked(True)
+        dlg.comboBox_db.setCurrentText(resource_source_project)
+        wait(200)
+        assert dlg.comboBox_db.currentText() == resource_source_project
+        for template_type, name in IMPORTED_TEMPLATES.items():
+            table = getattr(dlg, 'tableWidget_{}_templates'.format(template_type))
+            rows = [r for r in range(table.rowCount()) if table.item(r, 2).data(Qt.ItemDataRole.UserRole) == name]
+            assert rows, "template '{}' not found in {}".format(name, resource_source_project)
+            table.cellWidget(rows[0], 0).setChecked(True)
+        dlg.btn_import_selection.click()
+        wait(500)
+        errors.check()
+        assert not dlg.isVisible(), "import dialog still open"
+
+        for template_type, name in IMPORTED_TEMPLATES.items():
+            plugin.cur.execute('SELECT template FROM public.{}_templates WHERE template_name=%s;'.format(template_type),  # nosec B608
+                               (name,))
+            row = plugin.cur.fetchone()
+            assert row, "template '{}' not imported".format(name)
+            wf.imported_templates[template_type] = row['template']
+            model = os.path.join(plugin.config['pathProjects'], plugin.config['projectName'],
+                                 template_type + '_templates', '{}_{}.idm'.format(row['template'], name))
+            assert os.path.exists(model), "template model not imported: " + model
+
+    def test_assign_imported_energy_plant_template(self, wf, errors):
+        """like a user: change the template of the main energy plant in the attribute form"""
+        only_for(wf, EMPTY)
+        plugin = wf.plugin
+        layer = QgsProject.instance().mapLayersByName(tr('@default', 'energy_plants'))[0]
+        template = wf.imported_templates['energy_plant']
+        idx = layer.fields().indexOf('template')
+        layer.startEditing()
+        for feature in layer.getFeatures():
+            layer.changeAttributeValue(feature.id(), idx, template)
+        assert layer.commitChanges(), layer.commitErrors()
+        errors.check()
+        assert count(plugin, 'energy_plants', 'WHERE template<>{}'.format(template)) == 0
+
     def test_pipe_laying_algorithm(self, wf, errors):
         only_for(wf, EMPTY, DB_DEFAULTS)
         plugin = wf.plugin
         plugin.pipeLayingAlgorithm()
         dlg = plugin.dlg_pipeLayingAlgorithm
         dlg.check_heating_network.setCheckState(checkState())
+        customer_template = wf.imported_templates.get('customer')
+        if customer_template:
+            # the connected customers get the imported template
+            select_id(dlg.heating_template_customer, customer_template)
         dlg.execute()
         wait_for_process(dlg, timeout=120)
         dlg.saveResults()
@@ -427,11 +527,14 @@ class TestWorkflow:
         closeDialog(dlg)
         errors.check()
         assert count(plugin, 'lines') > 0
+        if customer_template:
+            assert count(plugin, 'customers', 'WHERE template<>{}'.format(customer_template)) == 0
 
     def test_generate_network_topology(self, wf, errors):
         only_for(wf, HEATING)
         plugin = wf.plugin
         plugin.generateNetworkTopology()
+        assert hasattr(plugin, 'window_topology'), "topology dialog not opened: {}".format(plugin_state(plugin))
         dlg = plugin.window_topology
         dlg.rbtn_override_templates.setChecked(True)
         for checkbox in [dlg.check_del_network_ends, dlg.check_connectCustomers, dlg.check_connectPlants,
@@ -470,8 +573,10 @@ class TestWorkflow:
         dlg.table_circuits.cellWidget(0, 5).setCurrentText('load_w')
         for row in range(dlg.table_sequences.rowCount()):
             dlg.table_sequences.cellWidget(row, 1).setAllItemsChecked(checked=True)
-        startPipeSizing(plugin.config, dlg, plugin.plugin_dir)
+        dlg.btn_start.pressed.emit()  # like the user: startPipeSizing via runWithButtonDisabled
+        assert not dlg.btn_start.isEnabled()  # no second sizing run while the first is running
         wait_for_process(dlg, timeout=60)
+        wait_until(lambda: dlg.btn_start.isEnabled(), 10, "start button not enabled again after pipe sizing")
         savePipeSizingResults(plugin.config, plugin.conn, dlg)
         wait(500)
         closeDialog(dlg)
@@ -511,8 +616,89 @@ class TestWorkflow:
             table.item(0, 3).setText(model_parm)
             table.item(0, 4).setText(model)
             table.item(0, 5).setText(scope)
+        customer_ids = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
+        assert len(set(customer_ids)) == 2, "new rows got the same id: {}".format(customer_ids)
+        # unsaved customer rows are kept when switching to energy plants and back, new ids stay unique
+        dlg.rbtn_plants.setChecked(True)
+        plant_rows = table.rowCount()
+        addParmTableRow(dlg, plugin.cur, plugin.config)
+        assert int(table.item(0, 0).text()) > max(customer_ids)
+        dlg.rbtn_customers.setChecked(True)
+        assert sorted(int(table.item(row, 0).text()) for row in range(table.rowCount())) == sorted(customer_ids)
+        dlg.rbtn_plants.setChecked(True)
+        assert table.rowCount() == plant_rows + 1
+        table.removeRow(0)  # don't save the empty energy plant mapping
+        dlg.rbtn_customers.setChecked(True)
         setFeatureParm(dlg, plugin.conn, plugin.config, plugin.plugin_dir)
         closeDialog(dlg)
+        errors.check()
+
+    def test_topology_check_before_build(self, wf, errors, monkeypatch):
+        """The build checks the network topology first: an edited customer makes it invalid and the user is
+        asked to update the topology (opens the topology dialog with the network selected) or to cancel."""
+        only_for(wf, *NETWORK_TEMPLATES)
+        plugin = wf.plugin
+        version = plugin.config['versionName']
+        assert checkNetworkTopology(plugin.cur, version, ['1']) == []
+
+        def answer(button_text):
+            def fake_exec(box, *args):
+                questions.append(box.text())
+                [b for b in box.buttons() if b.text().replace('&', '') == button_text][0].click()
+                return 0
+            monkeypatch.setattr(QMessageBox, "exec", fake_exec)
+
+        plugin.cur.execute('SELECT min(id) AS id FROM "{}".customers;'.format(version))  # nosec B608
+        cid = plugin.cur.fetchone()['id']
+        move = 'UPDATE "{}".customers SET geom=ST_Translate(geom,{},0) WHERE id={};'  # nosec B608
+        plugin.cur.execute(move.format(version, 5, cid))
+        try:
+            problems = checkNetworkTopology(plugin.cur, version, ['1'])
+            assert problems and problems[0]['ids'], problems
+
+            questions = []
+            answer('Cancel')
+            assert checkTopologyBeforeBuild(plugin, ['1']) is None
+            assert len(questions) == 1 and 'not match' in questions[0]
+
+            answer('Update topology')
+            assert checkTopologyBeforeBuild(plugin, ['1']) is None
+            dlg = plugin.window_topology
+            combo = dlg.combo_network_models
+            assert [combo.itemText(i) for i in range(combo.count()) if combo.itemChecked(i)] == ['1']
+            closeDialog(dlg)
+        finally:
+            plugin.cur.execute(move.format(version, -5, cid))
+        assert checkNetworkTopology(plugin.cur, version, ['1']) == []
+
+        # valid topology with an unconnected customer (far away from the lines): warning, the customer can be
+        # neglected in the model or the model can be built anyway
+        assert getUnconnectedFeatures(plugin.cur, version, ['1']) == []
+        plugin.cur.execute("""INSERT INTO "{0}".customers (geom,template,network,submodel)
+            SELECT ST_Translate(geom,5000,5000),template,network,submodel FROM "{0}".customers WHERE id={1}
+            RETURNING id;""".format(version, cid))  # nosec B608
+        new_cid = plugin.cur.fetchone()['id']
+        try:
+            unconnected = getUnconnectedFeatures(plugin.cur, version, ['1'])
+            assert unconnected == [{'text': unconnected[0]['text'], 'count': 1, 'ids': [new_cid], 'table': 'customers'}]
+            assert checkNetworkTopology(plugin.cur, version, ['1']) == []
+            questions = []
+            answer('Neglect in model')
+            exclude = checkTopologyBeforeBuild(plugin, ['1'])
+            assert exclude == {'customers': [new_cid]}
+            assert 'not connected' in questions[0] and str(new_cid) in questions[0]
+            # neglected customers are removed from the sensor signals
+            for sensor in getSensorData(plugin.cur, plugin.config, networks=['1'], exclude_features=exclude):
+                for iref in list(sensor['irefs_source'] or []) + list(sensor['irefs_target'] or []):
+                    parts = str(iref).split('_')
+                    assert not (len(parts) > 1 and parts[1] == str(new_cid) and 1 in (sensor['source_type'], sensor['target_type'])), sensor
+            answer('Build anyway')
+            assert checkTopologyBeforeBuild(plugin, ['1']) == {}
+            answer('Cancel')
+            assert checkTopologyBeforeBuild(plugin, ['1']) is None
+        finally:
+            plugin.cur.execute('DELETE FROM "{}".customers WHERE id={};'.format(version, new_cid))  # nosec B608
+        assert getUnconnectedFeatures(plugin.cur, version, ['1']) == []
         errors.check()
 
     def test_build_network_model(self, wf, errors):
@@ -590,19 +776,6 @@ class TestWorkflow:
         plugin = wf.plugin
         plugin.showDataOnMap()
         dlg = plugin.dlg_showOnMap
-        customer_ids = [int(table.item(row, 0).text()) for row in range(table.rowCount())]
-        assert len(set(customer_ids)) == 2, "new rows got the same id: {}".format(customer_ids)
-        # unsaved customer rows are kept when switching to energy plants and back, new ids stay unique
-        dlg.rbtn_plants.setChecked(True)
-        plant_rows = table.rowCount()
-        addParmTableRow(dlg, plugin.cur, plugin.config)
-        assert int(table.item(0, 0).text()) > max(customer_ids)
-        dlg.rbtn_customers.setChecked(True)
-        assert sorted(int(table.item(row, 0).text()) for row in range(table.rowCount())) == sorted(customer_ids)
-        dlg.rbtn_plants.setChecked(True)
-        assert table.rowCount() == plant_rows + 1
-        table.removeRow(0)  # don't save the empty energy plant mapping
-        dlg.rbtn_customers.setChecked(True)
         dlg.rbtn_lines.setChecked(True)
         dlg.checkbox_varColor.setChecked(True)
         dlg.featureGroupChanged(dlg.rbtn_lines)

@@ -420,8 +420,12 @@ def writeInvokedSensorTargetSignals (cur,config,add_target_idsValues):
         #print(sql)
         cur.execute(sql) 
 
-def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter="",networks=None):
+def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_types=[1,2,3],filter="",networks=None,exclude_features=None):
+    """exclude_features: {'customers': [ids], 'energy_plants': [ids]} features which are neglected (e.g. not connected to the network)"""
     network_filter=" AND f.network && ARRAY[{}]".format(','.join([i for i in networks])) if networks else ""
+    exclude_features=exclude_features or {}
+    c_filter=network_filter+(" AND f.id NOT IN ({})".format(','.join(str(int(i)) for i in exclude_features['customers'])) if exclude_features.get('customers') else "")
+    p_filter=network_filter+(" AND f.id NOT IN ({})".format(','.join(str(int(i)) for i in exclude_features['energy_plants'])) if exclude_features.get('energy_plants') else "")
     sql="""WITH sub AS(
     WITH sub AS(
         WITH sub AS(
@@ -581,9 +585,10 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
     GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
     ORDER BY sub.sensor_id;""".format( # nosec B608
-    config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
-    config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
-    config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
+    #feature blocks: customers and energy plants alternating
+    config['versionName'], c_filter, config['versionName'], p_filter, config['versionName'], c_filter, config['versionName'], p_filter, config['versionName'], c_filter, # nosec B608
+    config['versionName'], p_filter, config['versionName'], c_filter, config['versionName'], p_filter, # nosec B608
+    config['versionName'], c_filter, config['versionName'], p_filter, # nosec B608
     ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter, # nosec B608
     version=config['versionName'], source_types=','.join([str(i) for i in source_types]), target_types=','.join([str(i) for i in target_types])) # nosec B608
     #print(sql)   

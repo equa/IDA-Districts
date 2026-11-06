@@ -10,7 +10,7 @@ from qgis.PyQt.QtWidgets import QSizePolicy, QTextEdit
 from .calibrate_customers import updateParmruns
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import (
-    dbConnect, getFeatureSubmodels, getLineNetworks, getLineSubmodels, getSupervisorySubmodel, getTableAttr,
+    getFeatureSubmodels, getLineNetworks, getLineSubmodels, getSupervisorySubmodel, getTableAttr,
     getUsedNetworkSubmodels,
 )
 from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
@@ -33,8 +33,6 @@ class SensorSignalsDialog(QDialog):
         super().__init__()
         self.plugin_dir=plugin_dir
         self.config=config
-        self.conn=dbConnect(self.config,True)
-        self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.process_running=False
         self.dlg_main=dlg_main
         self.setWindowTitle(self.tr("sensor_signals_dlg"))

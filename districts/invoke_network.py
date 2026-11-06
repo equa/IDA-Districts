@@ -24,7 +24,7 @@ from .utility_functions.templateFiles import (
     CopyDecoupledTemplateMacro, CopyTemplateMacro, readDecoupledFeatureSensorSignals,
 )
 from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
-from .utility_functions.workers import APISignals
+from .utility_functions.workers import closesOwnConnection, APISignals
 from .utility_functions.workers import WorkerOpenAPI
 from .supervisory_control import Supervisory_control, CopySupervisoryControl
 
@@ -51,6 +51,7 @@ class WorkerBuildNetworkModel(QRunnable):
         self.conn = dbConnect(self.config,True)
         self.networks=kwargs['networks']
         self.submodels=kwargs['submodels']
+        self.exclude_features=kwargs.get('exclude_features')
         self.main=kwargs['main']
         self.dlg.process_running=True
 
@@ -58,6 +59,7 @@ class WorkerBuildNetworkModel(QRunnable):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         #print('run worker invoke network')
         self.progress_value=1
@@ -66,7 +68,8 @@ class WorkerBuildNetworkModel(QRunnable):
         self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         self.modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
         self.networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
-        InvokeNetworkModel(self.main,self.config,self.plugin_dir,self.requestedOutputs,self.modellingSettings,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == checkState(),self.signals)
+        InvokeNetworkModel(self.main,self.config,self.plugin_dir,self.requestedOutputs,self.modellingSettings,self.networks,self.submodels,self.networkSimData,self.dlg.checkbox_reinvokeFeatures.checkState() == checkState(),self.signals,
+            exclude_features=self.exclude_features)
         
 class PageSettings:
     def __init__(self,cur,submodel,versionName,networks):
@@ -185,7 +188,9 @@ class InvokeNetworkModel:
                 self.setStepProgress(step,done/total,'{}/{}'.format(done,total))
         return progress_fn
 
-    def __init__(self,main,config,plugin_dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
+    def __init__(self,main,config,plugin_dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals,exclude_features=None):
+        """exclude_features: {'customers': [ids], 'energy_plants': [ids]} features which are neglected in the model
+        (not connected to the network: they are no model components, here they are also removed from the sensor signals)"""
         #print('**********invoke network*********')
         #print(submodels)
         self.plugin_dir=plugin_dir
@@ -237,7 +242,7 @@ class InvokeNetworkModel:
                 added_sensor_info=addRequestedOutputsSensors(self.cur,self.config,requestedOutputs)
                 #print('---added-----')
                 filter=''
-                sensor_data=getSensorData(self.cur,self.config,target_types=[1,2,3],filter=filter,networks=networks)     
+                sensor_data=getSensorData(self.cur,self.config,target_types=[1,2,3],filter=filter,networks=networks,exclude_features=exclude_features)
                 for network in networks:
                     sensor_data+=getResultSensorData(self.cur,self.config,network=network)
                 #print('---sensor-data-----')
@@ -301,7 +306,7 @@ class InvokeNetworkModel:
                     if submodel==str(self.cur.fetchone()['submodel']):
                         #print("""*-*-*-*-copy supervisory*-*-*-*-""")
                         if not os.path.exists(self.config['pathProjects']+self.config['projectName']+'\\versions\\{}\\supervisory_control\\supervisory_control.idm'.format(self.config['versionName'])):
-                            Supervisory_control(self.plugin_dir,self.config)                     
+                            Supervisory_control(self.plugin_dir,self.config,exclude_features=exclude_features)                     
                         resources.extend(CopySupervisoryControl(self.config['pathProjects']+self.config['projectName'],self.config,self.cur,submodel).resources)
                     self.setStepProgress('sensors')
 

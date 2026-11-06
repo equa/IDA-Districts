@@ -9,9 +9,11 @@ from .utility_functions.db import dbConnect, setSeqIdToMax
 from .utility_functions.error_handling import checkGenerateTopologyLayerData, checkLoopInConnections
 from .utility_functions.files import loadProjectConfig
 from .utility_functions.layer_visualization import showTempTables
+from .utility_functions.workers import runInMainThread
 from .utility_functions.topology import (
     checkLineDirectionTopology,
     getLayerAttributesName,
+    nodeLines,
     setSubnetwork,
     updateSubmodels,
 )
@@ -22,6 +24,7 @@ from .utility_functions.translations import tr
 class GenerateNetworkTopologySignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
+    status=pyqtSignal(str)
     finished=pyqtSignal(str)
 
 class WorkerGenerateNetworkTopology(QRunnable):
@@ -87,75 +90,92 @@ class WorkerGenerateNetworkTopology(QRunnable):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.networks=checkGenerateTopologyLayerData(self.config,self.cur,self.networks,self.connectPlants,self.connectCustomers)
           
+    def status(self,text):
+        """show text as the current step in the dialog (with the network if several are generated)"""
+        if len(self.networks or [])>1 and self.network:
+            text='Network {}: {}'.format(self.network,text)
+        self.signals.status.emit(text)
+
+    def setProgress(self,value):
+        """emit the progress (0-100) if it has increased"""
+        value=int(value)
+        if value>self.progress_value:
+            self.progress_value=value
+            self.signals.progress.emit(value)
+
+    def networkProgress(self,fraction):
+        """progress within the current network, fraction 0-1 of network_progress (start, end)"""
+        start,end=self.network_progress
+        self.setProgress(start+(end-start)*min(fraction,1))
+
     @pyqtSlot()
     def run(self):
         #print('Generate network topology')
-        self.progress_value=1
-        self.signals.progress.emit(self.progress_value)
+        self.progress_value=0
+        self.network=None
+        self.setProgress(1)
 
-        if self.networks and self.conn:
+        if not (self.networks and self.conn):
+            self.status('No network to generate')
+            self.signals.finished.emit('error')
+            return
+        try:
             srid=loadProjectConfig(self.config,signals=self.signals)['srid']
-            
+
+            self.status('Preparing the temporary tables')
             setSubnetwork(self.cur,self.config,self.redraw_submodels_polygons,srid)
             self.prepareDB_pipeLaying_modeTables(self.config['versionName'],srid)
-            
+            self.setProgress(3)
+
             #split lines per plant, junction and customer
+            self.status('Splitting the lines at energy plants and customers')
             self.splitLinesPerPlantsJunctionsCustomers(self.config['versionName'],'energy_plants')
             self.splitLinesPerPlantsJunctionsCustomers(self.config['versionName'],'customers')
-        
-            #print(self.networks)
-            progress_value=1
-            n_networks=len(self.networks)
-            #print(n_networks)
-            for network in self.networks:
-                #print('*************')
-                #print(network)
-                
+            self.setProgress(5)
+
+            # each network gets an equal share of 5-90%
+            for i,network in enumerate(self.networks):
+                self.network=network
+                self.network_progress=(5+85*i/len(self.networks),5+85*(i+1)/len(self.networks))
+
                 if self.generateTopology(self.config['versionName'],srid,network):
                     return
-                progress_value+=20/n_networks
-                #print(int(progress_value))
-                self.signals.progress.emit(int(progress_value))
+                self.networkProgress(0.45)
                 if self.deleteUnconnectedNetworkEnds:
+                    self.status('Deleting unconnected network ends')
                     self.deleteNetworkEnds(network)
-                progress_value+=4/n_networks
-                #print(int(progress_value))
-                self.signals.progress.emit(int(progress_value))
+                self.networkProgress(0.5)
                 if self.addCustomers:
+                    self.status('Adding customers at the network ends')
                     self.insertCustomerToEnds(self.config['versionName'],network)
-                progress_value+=10/n_networks
-                #print(int(progress_value))
-                self.signals.progress.emit(int(progress_value))
-                #print(self.deleteUnconnectedCustomers)
+                self.networkProgress(0.55)
                 if self.deleteUnconnectedCustomers:
+                    self.status('Deleting unconnected customers')
                     self.delUnconnCust()
-                progress_value+=5/n_networks
-                self.signals.progress.emit(int(progress_value))
-                #print(self.deleteUnconnectedLines)
+                self.networkProgress(0.57)
                 if self.deleteUnconnectedLines:
+                    self.status('Deleting unconnected lines')
                     self.delUnconnLines()
-                progress_value+=5/n_networks
-                self.signals.progress.emit(int(progress_value))
+                self.networkProgress(0.6)
+                self.status('Checking the line directions')
                 checkLineDirectionTopology(self.cur,self.config['versionName'],self.tolerance,self.signals,network)
-                progress_value+=20/n_networks
-                self.signals.progress.emit(int(progress_value))
+                self.networkProgress(0.7)
+                self.status('Inserting lines and junctions')
                 self.insertLinesFromTopology(self.config['versionName'],network)
-                progress_value+=5/n_networks
-                self.signals.progress.emit(int(progress_value))
                 self.insertJunctions(self.config['versionName'],network)
-                progress_value+=5/n_networks
-                self.signals.progress.emit(int(progress_value))
-                #print(int(progress_value))
-                progress_value=self.finishNetworkTopology(self.config['versionName'],network,progress_value,n_networks,srid)
-            
+                self.networkProgress(0.75)
+                self.finishNetworkTopology(self.config['versionName'],network,srid)
+            self.network=None
+
             uri = QgsDataSourceUri()
             uri.setConnection(self.config['host'], self.config['port'], self.config['projectName'], self.username, self.password)
             #print(uri)
-            self.signals.progress.emit(95)
+            self.setProgress(95)
             #print('finished pipe laying')
             try:
                 if self.showTempTables:
-                    showTempTables(uri,self.config,self.plugin_dir,self.signals,self.cur)
+                    self.status('Loading the result layers')
+                    runInMainThread(showTempTables,uri,self.config,self.plugin_dir,self.signals,self.cur)
             except Exception:
                 #print('Show temp layers failed')
                 QgsMessageLog.logMessage(
@@ -163,10 +183,21 @@ class WorkerGenerateNetworkTopology(QRunnable):
                     "Districts",
                     MessageCritical
                 )
-            self.signals.progress.emit(100)
+            self.setProgress(100)
+            self.status('Finished: please save or reject the results')
             self.signals.finished.emit('finished')
+        except Exception:
+            QgsMessageLog.logMessage(
+                traceback.format_exc(),
+                "Districts",
+                MessageCritical
+            )
+            self.signals.error.emit("Generating the network topology has failed (see message log 'Districts')!")
+            self.status('Failed (see message log \'Districts\')')
+            self.signals.finished.emit('error')
+        finally:
             self.cur.close()
-            self.conn.close()    
+            self.conn.close()
 
                     
     def delUnconnCust(self):
@@ -237,27 +268,22 @@ INSERT INTO temp.customers(geom,template,network)
         #print(sql)
         self.cur.execute(sql)
         
-    def finishNetworkTopology(self,version,network,progress_value,n_networks,srid):
-        progress_value+=1/n_networks
-        self.signals.progress.emit(int(progress_value))
+    def finishNetworkTopology(self,version,network,srid):
+        self.status('Connecting lines, junctions, customers and energy plants')
         self.insertJunctionConnections(network)
-        progress_value+=2/n_networks
-        self.signals.progress.emit(int(progress_value))
+        self.networkProgress(0.78)
         self.insertCustomerConnections(network)
-        progress_value+=4/n_networks
-        self.signals.progress.emit(int(progress_value))
+        self.networkProgress(0.8)
         self.insertPlantConnections(version,network)
-        progress_value+=4/n_networks
-        self.signals.progress.emit(int(progress_value))
         self.updateJunctionConnections(network)
-        progress_value+=4/n_networks
-        self.signals.progress.emit(int(progress_value))
+        self.networkProgress(0.82)
+        self.status('Merging lines at junctions with two connections')
         self.mergeLines(version,network)
-        progress_value+=5/n_networks
-        self.signals.progress.emit(int(progress_value))
+        self.networkProgress(0.95)
+        self.status('Updating heights and submodels')
         self.updateHeight(version,srid)
         updateSubmodels(self.cur,self.config)
-        return progress_value
+        self.networkProgress(1)
 
     def removeLayers(self):
         layers = QgsProject.instance().mapLayers().values()
@@ -361,8 +387,12 @@ UPDATE temp.lines l SET geom=sub.geom
         self.cur.execute("""SELECT setval('temp.lines_id_seq', (SELECT MAX(id) FROM temp.lines));""")
         self.cur.execute("SELECT last_value FROM temp.lines_id_seq;")
         i=self.cur.fetchone()['last_value']
+        i_start=i
+        self.cur.execute("SELECT count(*) AS n FROM temp.junctions WHERE n_connections=2;")
+        n_merge=max(self.cur.fetchone()['n'],1)
         flag=True
         while flag:
+            self.networkProgress(0.82+0.13*(i-i_start)/n_merge)
             inserted_jids=','.join(str(j) for j in self.inserted_jids)
             if inserted_jids:
                 inserted_jids="""AND j.id NOT IN (SELECT jt.id FROM "{}".junctions j, temp.junctions jt WHERE st_dwithin(j.geom,jt.geom,{}) AND j.id IN ({})) """.format(version,self.tolerance,inserted_jids)  # nosec B608
@@ -504,6 +534,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geo
             self.cur.execute(sql)
         
         if checkLoopInConnections(self.cur,self.config['versionName'],'temp.streets_help','energy_plant'):
+            # the ids of the message come from the temp tables (as before)
             self.signals.error.emit(''.join(['Energy plant :{} has a loop in connection! '.format(i['id']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant')]))
             return False
         return ep_lines
@@ -527,8 +558,9 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
             sql='\n'.join(["""INSERT INTO temp.streets_help(geom) VALUES ('{}');""".format(i['geom']) for i in customer_lines]) # nosec B608
             self.cur.execute(sql)
 
-        if checkLoopInConnections(self.cur,'temp','temp.streets_help','customer'):
-            self.signals.error.emit(''.join(['Customer :{} has a loop in connection! '.format(i['id']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','customer')]))
+        loops=checkLoopInConnections(self.cur,'temp','temp.streets_help','customer')
+        if loops:
+            self.signals.error.emit(''.join(['Customer :{} has a loop in connection! '.format(i['id']) for i in loops]))
             return False
         return customer_lines
 
@@ -572,38 +604,24 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
         self.cur.execute(sql) 
 
         if self.connectPlants:
+            self.status('Connecting the energy plants to the network')
             ep_lines=self.connectPlantsNetwork(self.config['versionName'],network)
+        self.networkProgress(0.05)
         if self.connectCustomers:
+            self.status('Connecting the customers to the network')
             customer_lines=self.connectCustomersNetwork(self.config['versionName'],network)
-                    
-        sql="DROP SCHEMA IF EXISTS streets_help_topo CASCADE;"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="CREATE EXTENSION IF NOT EXISTS postgis_topology;"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="TRUNCATE topology.topology CASCADE;"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="""SELECT topology.CreateTopology('streets_help_topo', {},{});""".format(srid,self.tolerance) # nosec B608
-        self.cur.execute(sql)    
-        #print(sql) 
-        sql="ALTER TABLE temp.streets_help DROP COLUMN IF EXISTS topo_geom;"
-        self.cur.execute(sql)    
-        #print(sql) 
-        sql="SELECT topology.AddTopoGeometryColumn('streets_help_topo','temp','streets_help','topo_geom','LINESTRING');"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance) # nosec B608
-        self.cur.execute(sql) 
+        self.networkProgress(0.15)
 
-        sql="TRUNCATE temp.streets_help;"
-        #print(sql)
-        self.cur.execute(sql)    
-        sql="INSERT INTO temp.streets_help (geom,type) SELECT geom,{} FROM streets_help_topo.edge_data;".format(0) # nosec B608
-        #print(sql)  
-        self.cur.execute(sql) 
-        
+        # split the lines and connections at their intersections (formerly a PostGIS topology)
+        self.status('Splitting the lines at their intersections')
+        sql="ALTER TABLE temp.streets_help DROP COLUMN IF EXISTS topo_geom;"
+        self.cur.execute(sql)
+        nodeLines(self.cur,'temp.streets_help',self.tolerance)
+        sql="UPDATE temp.streets_help SET type=0;"
+        self.cur.execute(sql)
+        self.networkProgress(0.25)
+        self.status('Building the network graph')
+
         if self.connectCustomers and customer_lines: 
             sql="""UPDATE temp.streets_help a 
     SET pipe_bundle_type_id={}

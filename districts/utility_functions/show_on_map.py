@@ -14,7 +14,7 @@ from .db import (
 )
 from .files import loadProjectConfig
 from .utility import getDatetimeFromString
-from .workers import APISignals2
+from .workers import closesOwnConnection, APISignals2
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -711,6 +711,7 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
             self.signals.finished.emit('',self)
  
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         #print('Show data on map')
         self.progress_value=1

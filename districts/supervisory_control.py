@@ -43,12 +43,13 @@ class CopySupervisoryControl:
         copyNestedSupervisoryMacros(source_dir+'\\Supervisory_control\\Supervisory_control',target_dir)
 
 class Supervisory_control():
-    def __init__(self,plugin_dir,config,update_sensors=False):
+    def __init__(self,plugin_dir,config,update_sensors=False,exclude_features=None):
         """1) Check for new sensor sources and targets --> moved to sensors dialog
-           2) Check if a supervisory control is already there 
-                --if not create a directory and an IDA file with a supervisory control macro 
+           2) Check if a supervisory control is already there
+                --if not create a directory and an IDA file with a supervisory control macro
                 --if yes add to IDA files
-           3) Open IDA file"""
+           3) Open IDA file
+           exclude_features: {'customers': [ids], 'energy_plants': [ids]} neglected features (see getSensorData)"""
         #print('++++++++++++++Supervisory+++++++++++++++++++')
         self.config=config
         self.conn=dbConnect(self.config,True)
@@ -67,8 +68,8 @@ class Supervisory_control():
             #1)
             
             #get sensor data
-            sensor_data_source=getSensorData(self.cur,self.config,source_types=[3])
-            sensor_data_target=getSensorData(self.cur,self.config,target_types=[3])
+            sensor_data_source=getSensorData(self.cur,self.config,source_types=[3],exclude_features=exclude_features)
+            sensor_data_target=getSensorData(self.cur,self.config,target_types=[3],exclude_features=exclude_features)
 
             if update_sensors:
                 #print('--update_sensors--')
@@ -104,8 +105,8 @@ class Supervisory_control():
                     add_sensor_source_idsValues=[]
                     add_sensor_target_idsValues=[]
                 else:
-                    add_sensor_source_idsValues=getSensorData(self.cur,self.config,source_types=[3])
-                    add_sensor_target_idsValues=getSensorData(self.cur,self.config,target_types=[3])
+                    add_sensor_source_idsValues=getSensorData(self.cur,self.config,source_types=[3],exclude_features=exclude_features)
+                    add_sensor_target_idsValues=getSensorData(self.cur,self.config,target_types=[3],exclude_features=exclude_features)
                 
             #print('++++++Supervisory sensor data+++++++++')
             #print(add_sensor_source_idsValues)

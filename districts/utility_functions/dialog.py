@@ -73,6 +73,8 @@ def runWithButtonDisabled(btn, fn, *args):
     try:
         return fn(*args)
     finally:
+        # drop the clicks queued while fn blocked the event loop, before btn can accept them again
+        QtWidgets.QApplication.processEvents()
         if not getattr(btn, 'workers_running', 0):
             btn.setEnabled(True)
 
@@ -557,6 +559,23 @@ class CheckableComboBox(QComboBox):
 def closeDialog(dlg):
     """ close dialog window"""
     dlg.close()
+
+def closeOtherDistrictsDialogs(main_dlg):
+    """Close all open districts dialogs except the main dialog and its detached (floating) tabs,
+    e.g. after loading another project or version (the open dialogs refer to the old project/version)."""
+    from qgis.PyQt.QtWidgets import QApplication
+    package = __name__.split('.')[0]
+    for widget in QApplication.topLevelWidgets():
+        try:
+            if widget is main_dlg or not isinstance(widget, QDialog) or not widget.isVisible():
+                continue
+            cls = type(widget)
+            if not cls.__module__.startswith(package + '.') or cls.__name__ == 'FloatingTabDialog':
+                continue
+            widget.close()
+        except RuntimeError:
+            # the underlying C++ object has already been deleted
+            continue
     
 def getMaxTableId(table):
     """ Count the rows without empty key rows"""

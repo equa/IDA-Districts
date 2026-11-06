@@ -1,7 +1,9 @@
 import os
+import threading
 import time
 import traceback
 
+import psycopg2.extensions
 import psycopg2.extras
 from qgis.PyQt.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, QgsMessageLog
@@ -10,8 +12,10 @@ from .utility_functions.compat import MessageCritical
 from .utility_functions.db import dbConnect
 from .utility_functions.files import loadProjectConfig
 from .utility_functions.layer_visualization import showTempTables
+from .utility_functions.workers import runInMainThread
 from .utility_functions.topology import (
     checkLineDirectionPipeLaying,
+    nodeLines,
     redrawSubnetworkIncludingLines,
     updateSubmodels,
 )
@@ -25,6 +29,7 @@ def selectedId(text):
 class WorkerPipeLayingSignals(QObject):
     progress=pyqtSignal(int)
     error=pyqtSignal(str)
+    status=pyqtSignal(str)
     finished=pyqtSignal(str)
 
 class WorkerPipeLaying(QRunnable):
@@ -96,6 +101,13 @@ class WorkerPipeLaying(QRunnable):
         self.keep_unconnected_customers=kwargs['keep_unconnected_customers']
         self.is_killed = False
         self.is_paused = False
+        # while the network is prepared (no pipes laid yet), kill cancels the running query
+        self.preparing = False
+        self.prepare_lock = threading.Lock()
+        self.progress_value = 0
+        self.mode_progress = (5,85)
+        self.mode = None
+        self.last_status = ''
         self.config=kwargs['config']
         self.plugin_dir=kwargs['plugin_dir']
         self.conn=""
@@ -159,21 +171,32 @@ class WorkerPipeLaying(QRunnable):
                     connectionModes.append('cooling')
                 #print(connectionModes)
                 self.srid=loadProjectConfig(self.config,signals=self.signals)['srid']
+                self.status('Preparing the temporary tables')
                 self.prepareDB_pipeLaying(self.config['versionName'])
-                for mode in connectionModes:
-                    self.prepareDB_pipeLaying_modeTables(self.config['versionName'])
-                    self.connectPlantsStreet(self.config['versionName'],mode)
-                    self.connectCustomersStreet(self.config['versionName'],mode)               
-                    self.generateTopology(self.config['versionName'])
-                    plants=self.getPlants(self.config['versionName'])
-                    self.networkHelp(self.config['versionName'],plants,mode)
-                    self.connectPlantsNetwork(self.config['versionName'],plants,mode)
-                    self.connectCustomersNetwork(self.config['versionName'],mode,connectionModes)
+                self.setProgress(3)
+                pipes_laid=False
+                for i,mode in enumerate(connectionModes):
+                    # each network gets an equal share of 5-85%, finishing the topology 85-100%
+                    self.mode=mode if len(connectionModes)>1 else None
+                    self.mode_progress=(5+80*i/len(connectionModes),5+80*(i+1)/len(connectionModes))
+                    self.prepareNetwork(mode)
                     if self.is_killed: #abort algorithm, but finish network topology with existing pipes
                         break
+                    self.connectCustomersNetwork(self.config['versionName'],mode,connectionModes)
+                    pipes_laid=True
+                    if self.is_killed:
+                        break
+                self.mode=None
+                if self.is_killed and not pipes_laid:
+                    # stopped while preparing the first network: no pipes to finish
+                    self.signals.progress.emit(0)
+                    self.status('Stopped before any pipe was laid')
+                    self.signals.finished.emit('stopped')
+                    return
                 self.finishNetworkTopology(self.config['versionName'])
             else:
                 self.signals.progress.emit(0)
+                self.status('No connection to the database')
                 self.signals.finished.emit('error')
         except Exception:
             QgsMessageLog.logMessage(
@@ -183,6 +206,7 @@ class WorkerPipeLaying(QRunnable):
             )
             self.signals.error.emit("Pipe laying failed (see message log 'Districts')!")
             self.signals.progress.emit(0)
+            self.status("Failed (see message log 'Districts')")
             self.signals.finished.emit('error')
         finally:
             if self.cur:
@@ -193,32 +217,84 @@ class WorkerPipeLaying(QRunnable):
     def pauseResume(self):
         self.is_paused = not self.is_paused
         #print(self.is_paused)
-        
+        if self.is_paused:
+            self.signals.status.emit('Paused (press Pause/Resume again to continue)')
+        else:
+            self.status(self.last_status)
+
+    def status(self,text):
+        """show text as the current step in the dialog (with the network if heating and cooling networks are laid)"""
+        self.last_status=text
+        if self.mode:
+            text='{} network: {}'.format(self.mode.capitalize(),text)
+        self.signals.status.emit(text)
+
+    def setProgress(self,value):
+        """emit the progress (0-100) if it has increased"""
+        value=int(value)
+        if value>self.progress_value:
+            self.progress_value=value
+            self.signals.progress.emit(value)
+
+    def progressMode(self,fraction):
+        """progress within the network of the current mode, fraction 0-1 of mode_progress (start, end)"""
+        start,end=self.mode_progress
+        self.setProgress(start+(end-start)*min(fraction,1))
+
     def kill(self):
-        self.is_killed = True        
+        self.is_killed = True
+        self.signals.status.emit('Stopping: the network topology is finished with the pipes laid so far')
+        with self.prepare_lock:
+            if self.preparing and self.conn:
+                self.conn.cancel()
+
+    def prepareNetwork(self,mode):
+        """Street connections, topology and shortest paths of mode; stops after the current step (or cancels its query) if killed."""
+        version=self.config['versionName']
+        # (status text, step, progress of the mode after the step); networkHelp reports its progress between 0.25 and 0.5
+        steps=[
+            ('Copying the streets', lambda: self.prepareDB_pipeLaying_modeTables(version), 0.02),
+            ('Connecting the energy plants to the streets', lambda: self.connectPlantsStreet(version,mode), 0.05),
+            ('Connecting the customers to the streets', lambda: self.connectCustomersStreet(version,mode), 0.12),
+            ('Splitting the streets at their intersections', lambda: self.generateTopology(version), 0.25),
+            ('Searching the energy plants in the street network', lambda: setattr(self,'plants',self.getPlants(version)), 0.25),
+            ('Calculating the shortest ways of the customers to the energy plants', lambda: self.networkHelp(version,self.plants,mode), 0.5),
+            ('Connecting the energy plants', lambda: self.connectPlantsNetwork(version,self.plants,mode), 0.52),
+        ]
+        with self.prepare_lock:
+            self.preparing = True
+        try:
+            for text,step,progress in steps:
+                if self.is_killed:
+                    return
+                self.status(text)
+                step()
+                self.progressMode(progress)
+        except psycopg2.extensions.QueryCanceledError:
+            if not self.is_killed:
+                raise
+        finally:
+            with self.prepare_lock:
+                self.preparing = False
 
     def updateTempCustomerTemplate(self):
         """ update templates of temp.customers"""
-        if not self.heating_customer_template=='keep type':
-            sql="""UPDATE temp.customers c SET template=a.template {} FROM (
-            SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND cc.lid=l.id AND l.geom=lh.geom
-    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.heating_customer_template=='keep type' else "",self.heating_customer_template.split(':')[0],","+self.heating_customer_template.split(':')[0]+" AS template" if not self.heating_customer_template=='keep type' else "") # nosec B608
-            #print(sql)
-            self.cur.execute(sql)
-        if not self.cooling_customer_template=='keep type':
-            sql="""UPDATE temp.customers c SET template=a.template {} FROM (
-            SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND cc.lid=l.id AND l.geom=lc.geom
-    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.cooling_customer_template=='keep type' else "",self.cooling_customer_template.split(':')[0],","+self.cooling_customer_template.split(':')[0]+" AS template" if not self.cooling_customer_template=='keep type' else "") # nosec B608
-            #print(sql)
-            self.cur.execute(sql)
-        if not self.hc_customer_template=='keep type':
-            sql="""UPDATE temp.customers c SET template=a.template {} FROM (
-            SELECT {} AS template {},cc.cid FROM temp.lines l, temp.customer_connections cc, temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE cc.lid=l.id AND l.geom=lh.geom
-    ) a WHERE a.cid=c.id; """.format(",template=a.template" if not self.hc_customer_template=='keep type' else "",self.hc_customer_template.split(':')[0],","+self.hc_customer_template.split(':')[0]+" AS template" if not self.hc_customer_template=='keep type' else "") # nosec B608
+        # customers connected to lines of the heating network only / cooling network only / both networks
+        for customer_template,lines_join in [
+                (self.heating_customer_template,"temp.lines_heating lh LEFT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lc.geom IS NULL AND l.geom=lh.geom"),
+                (self.cooling_customer_template,"temp.lines_heating lh RIGHT JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE lh.geom IS NULL AND l.geom=lc.geom"),
+                (self.hc_customer_template,"temp.lines_heating lh INNER JOIN temp.lines_cooling lc ON lh.geom=lc.geom WHERE l.geom=lh.geom")]:
+            if customer_template=='keep type':
+                continue
+            sql="""UPDATE temp.customers c SET template=a.template FROM (
+            SELECT {} AS template,cc.cid FROM temp.lines l, temp.customer_connections cc, {} AND cc.lid=l.id
+    ) a WHERE a.cid=c.id; """.format(int(customer_template.split(':')[0]),lines_join) # nosec B608
             #print(sql)
             self.cur.execute(sql)
     
     def finishNetworkTopology(self,version):
+        self.setProgress(85)
+        self.status('Building the network topology of the laid pipes')
         self.transformNetworksIntoHC()
                 
         #redo topology because lines_heating and lines_cooling could have different topology --> missing points in streets_help_vertices_pgr
@@ -232,8 +308,9 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
             #print(sql)                     
             #create network topology
             sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
-            self.cur.execute(sql)    
-            
+            self.cur.execute(sql)
+        self.setProgress(87)
+
         self.insertNodes(version)
         if not self.keep_unconnected_customers:
             self.deleteUnconnectedCustomers(version)
@@ -242,8 +319,12 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         self.insertPlantConnections(version)
         self.updateJunctionConnections()
         self.updateTempCustomerTemplate()
+        self.setProgress(89)
+        self.status('Merging lines at junctions with two connections')
         self.mergeLines()
+        self.status('Updating heights, submodels and line directions')
         self.updateHeight(version)
+        self.setProgress(95)
         if self.redraw_submodels_polygons:
             redrawSubnetworkIncludingLines('temp.lines',self.cur,self.config,self.srid)
         updateSubmodels(self.cur,self.config)
@@ -251,9 +332,12 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         uri.setConnection(self.config['host'], self.config['port'], self.config['projectName'], self.username, self.password)
         #print(uri)
         checkLineDirectionPipeLaying(self.cur,version,self.tolerance,self.network)
-        showTempTables(uri,self.config,self.plugin_dir, self.signals,self.cur)
+        self.setProgress(97)
+        self.status('Loading the result layers')
+        runInMainThread(showTempTables,uri,self.config,self.plugin_dir,self.signals,self.cur)
         #print('finished pipe laying')
         self.signals.progress.emit(100)
+        self.status('Stopped and finished with the pipes laid so far: please save or reject the results' if self.is_killed else 'Finished: please save or reject the results')
         self.signals.finished.emit('finished')
         
     #dublicated code
@@ -341,7 +425,11 @@ UPDATE temp.lines l SET geom=sub.geom
         #print("merge lines")
         i=10000000
         flag=True
+        sql="SELECT count(*) AS n FROM temp.junctions WHERE n_connections=2;"
+        self.cur.execute(sql)
+        n_merge=max(self.cur.fetchone()['n'],1)
         while flag:
+            self.setProgress(89+5*(i-10000000)/n_merge)
             sql="SELECT nc.jid, nc.lid FROM temp.junctions j, temp.junction_connections nc WHERE j.n_connections=2 AND j.id=nc.jid ORDER BY j.id LIMIT 2;"
             #print(sql)
             self.cur.execute(sql) 
@@ -474,13 +562,18 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         
         if self.customer_connection_mode=='shortest-way-connection': 
             #print('shortest-way-connection')
-            sql="""With sub AS(
-                    SELECT Min(ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))) AS min_dist FROM temp.streets_help st, temp.customers c WHERE {}=ANY(c.network)GROUP BY c.id 
+            # the nearest street of each customer is searched with the spatial index; all streets with the minimal distance get a connection
+            sql="""With nearest AS(
+                    SELECT c.id, (SELECT ST_Distance(st.geom,ST_Force2D(c.geom)) FROM temp.streets_help st ORDER BY st.geom <-> ST_Force2D(c.geom) LIMIT 1) AS dist
+                        FROM temp.customers c WHERE {}=ANY(c.network) {}
+                ), candidates AS(
+                    SELECT c.id, ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) AS geom
+                        FROM nearest n, temp.customers c, temp.streets_help st
+                        WHERE c.id=n.id AND ST_DWithin(st.geom,ST_Force2D(c.geom),n.dist+0.001)
                 )
-                INSERT INTO temp.streets_help(geom) 
-                    SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom))
-                    FROM sub, temp.streets_help st, temp.customers c
-                    WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.min_dist {};""".format(self.network,customerConnConstr) # nosec B608
+                INSERT INTO temp.streets_help(geom)
+                    SELECT geom FROM (SELECT geom, ST_Length(geom) AS length, min(ST_Length(geom)) OVER (PARTITION BY id) AS min_dist FROM candidates) a
+                    WHERE length=min_dist;""".format(self.network,customerConnConstr) # nosec B608
             #print("""insert customer connections: {}""".format(sql))
             self.cur.execute(sql)
         if self.customer_connection_mode=='loop-in-connection':  
@@ -504,37 +597,16 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 self.cur.execute(sql)
                 
     def generateTopology(self,version):
-        sql="DROP SCHEMA IF EXISTS streets_help_topo CASCADE;"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="CREATE EXTENSION IF NOT EXISTS postgis_topology;"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="TRUNCATE topology.topology CASCADE;"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="""SELECT topology.CreateTopology('streets_help_topo', {});""".format(self.srid) # nosec B608
-        self.cur.execute(sql)    
-        #print(sql) 
+        # split the streets and connections at their intersections (formerly a PostGIS topology, which took most of the time)
         sql="ALTER TABLE temp.streets_help DROP COLUMN IF EXISTS topo_geom;"
-        self.cur.execute(sql)    
-        #print(sql) 
-        sql="SELECT topology.AddTopoGeometryColumn('streets_help_topo','temp','streets_help','topo_geom','LINESTRING');"
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="UPDATE temp.streets_help SET topo_geom = topology.toTopoGeom(geom,'streets_help_topo',1,{});".format(self.tolerance) # nosec B608
-        self.cur.execute(sql)    
-        #print(sql)
-        sql="TRUNCATE temp.streets_help;"
-        #print(sql)
-        self.cur.execute(sql)    
-        sql="INSERT INTO temp.streets_help (geom) SELECT geom FROM streets_help_topo.edge_data;"
-        #print(sql)  
-        self.cur.execute(sql)    
+        self.cur.execute(sql)
+        nodeLines(self.cur,'temp.streets_help',self.tolerance)
+        self.progressMode(0.2)
+        # the bounding box condition uses the index of temp.streets_help (the streets of a version have no spatial index)
         sql="""WITH sub AS(
                 SELECT geom, costs_eur7m as costs FROM "{}".streets
             )
-            UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance) # nosec B608
+            UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE sh.geom && ST_Expand(sub.geom,{}) AND St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance,self.tolerance) # nosec B608
         #print(sql)  
         self.cur.execute(sql)   
         #drop table streets_help_vertices_pgr       
@@ -573,7 +645,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         self.cur.execute(sql)    
         #print(sql) 
               
-        for plant in plants:
+        for plant_counter,plant in enumerate(plants):
             v_ep=plant['v_ep']
             epid=plant['epid']
             sql="""SELECT c.id AS cid,st_v.id::integer as v_c FROM temp.customers c, temp.streets_help_vertices_pgr st_v WHERE st_dwithin(c.geom,st_v.the_geom,{}) AND {}=ANY(c.network);""".format(self.tolerance,self.network) # nosec B608
@@ -589,21 +661,26 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     costs="""length_m*(costs_eur7m + {}*{}*{})""".format(self.cold_loss,self.cold_costs,self.amortization_period_cold) 
                 else:
                     costs='length_m'
-            for customer in self.cur.fetchall():
-                v_c=customer['v_c']
-                cid=customer['cid']
-                sql="""WITH sub As(
-                        SELECT seq, node, edge, cost
-                                    FROM pgr_dijkstra(
-                                        'SELECT id, source, target, {} as cost FROM temp.streets_help',
-                                        {},
-                                        {},
-                                        false
-                                    )
-                    )
-                    INSERT INTO temp.network_help (lid,cid,epid,geom ,pipe_length) SELECT st.id,{},{}, st.geom,st_length(geom) FROM sub,temp.streets_help st  WHERE sub.edge>0 AND st.id=sub.edge;""".format(costs,v_ep,v_c,cid,epid) # nosec B608
-                #print(sql) 
-                self.cur.execute(sql)  
+            customers=self.cur.fetchall()
+            # one Dijkstra from the plant to a batch of customers (the graph is built once per call), inserted in the order of the customers
+            batch_size=100
+            for start in range(0,len(customers),batch_size):
+                batch=customers[start:start+batch_size]
+                sql="""INSERT INTO temp.network_help (lid,cid,epid,geom,pipe_length)
+                    SELECT st.id,c.cid,{},st.geom,st_length(st.geom)
+                        FROM unnest(%s::integer[],%s::integer[]) WITH ORDINALITY AS c(cid,v_c,ord)
+                        JOIN pgr_dijkstra(
+                                'SELECT id, source, target, {} as cost FROM temp.streets_help',
+                                {},
+                                %s::integer[],
+                                false
+                            ) d ON d.end_vid=c.v_c
+                        JOIN temp.streets_help st ON st.id=d.edge
+                        WHERE d.edge>0
+                        ORDER BY c.ord,d.path_seq;""".format(epid,costs,v_ep) # nosec B608
+                v_cs=[customer['v_c'] for customer in batch]
+                self.cur.execute(sql,([customer['cid'] for customer in batch],v_cs,sorted(set(v_cs))))
+                self.progressMode(0.25+0.25*(plant_counter+(start+len(batch))/len(customers))/len(plants))
             
     def connectPlantsNetwork(self,version,plants,mode):
         "connect energy plants"
@@ -671,15 +748,10 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         flag=True
         sql="""SELECT count(*) AS count_customers FROM temp.customers;"""
         self.cur.execute(sql)  
-        customer_sum=self.cur.fetchone()['count_customers']
-        if len(connectionModes)==2 and mode=='heating':
-            progress_mode=2
-            customer_count=0
-        else:
-            progress_mode=1
-            customer_count=customer_sum
-            customer_sum *=2
-            
+        customer_sum=max(self.cur.fetchone()['count_customers'],1)
+        customer_count=0
+        self.status('Laying the pipes to the customers with the highest linear energy density')
+
         while flag:
             flag=False
             #prove single connection
@@ -719,8 +791,8 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
                     #print("""single connection not successful ; count={}""".format(count))
                 else:
                     customer_count += 1
-                    self.progress_value= int(customer_count / customer_sum / progress_mode * 100)
-                    self.signals.progress.emit(self.progress_value)
+                    self.progressMode(0.52+0.48*customer_count/customer_sum)
+                    self.status('Laying the pipes: {} customer connections laid'.format(customer_count))
                     #print("""single connection successful ; count={}""".format(count))
                 count_old=count
             flag=False
@@ -817,8 +889,8 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid) # nosec B608
                         #print(sql) 
                         self.cur.execute(sql) 
                         customer_count += 1
-                        self.progress_value= int(customer_count / customer_sum / progress_mode * 100)
-                        self.signals.progress.emit(self.progress_value)
+                        self.progressMode(0.52+0.48*customer_count/customer_sum)
+                        self.status('Laying the pipes: {} customer connections laid'.format(customer_count))
                         
     def transformNetworksIntoHC(self):
         sql="""INSERT INTO temp.lines (geom, type,pipe_bundle_type_id,network)

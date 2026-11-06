@@ -12,7 +12,7 @@ from .utility_functions.layer_visualization import removeTempLayers, setLayersHi
 from .utility_functions.topology import saveTempTables
 from .utility_functions.translations import tr
 from .utility_functions.utility import checkListNumbers, isFloat, isNumber, refreshMap
-from .utility_functions.workers import APISignals
+from .utility_functions.workers import APISignals, runInMainThread
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
 import psycopg2
@@ -187,6 +187,7 @@ class WorkerPipeSizing(QRunnable):
                             pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
                         else:
                             self.signals.error.emit("No proper pipe available for line ID = {} with inner diameter: ".format(line['id'])+str(z[1]))
+                            self.signals.finished.emit('failed')
                             return False
                         i+=1
                     except Exception:
@@ -208,7 +209,7 @@ class WorkerPipeSizing(QRunnable):
             
             #show table temp.lines
             self.signals.progress.emit(95)
-            showLinesTempTable('temp',self.config,self.plugin_dir)
+            runInMainThread(showLinesTempTable,'temp',self.config,self.plugin_dir)
             
             self.dlg.new_pipe_bundles=new_pipe_bundles
             self.signals.progress.emit(100)
@@ -259,11 +260,10 @@ def checkPipeSizingInput(dlg):
 def startPipeSizing(config,dlg,plugin_dir):
     """Start pipe sizing"""
     #print('Start pipe sizing')
-    conn=dbConnect(config,True)
     if not checkPipeSizingInput(dlg):
         return
+    conn=dbConnect(config,True)
     if conn:
-        dlg.process_running=True
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         
         #get networks
@@ -318,9 +318,12 @@ INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['v
         dlg.sized_network=network
         dlg.sized_with_topology=dlg.rbtn_customers.isChecked()
 
+        dlg.process_running=True
         if dlg.rbtn_customers.isChecked():
-            #create topology: add peak power columns (and) number of customers if consider simulaneity 
-            dlg.execute([network])   
+            #create topology: add peak power columns (and) number of customers if consider simulaneity
+            if not dlg.execute([network]):
+                dlg.process_running=False
+                return False
             dlg.worker.signals.finished.connect(lambda: dlg.doSizing(cur,config,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles))
         else:
             dlg.doSizing(cur,config,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles)  

@@ -10,7 +10,7 @@ from .utility_functions.compat import MessageCritical
 from .utility_functions.db import dbConnect
 from .utility_functions.files import loadProjectConfig
 from .utility_functions.utility import sanitize_pg_identifier
-from .utility_functions.workers import APISignals
+from .utility_functions.workers import closesOwnConnection, APISignals
 import subprocess   
 import traceback
        
@@ -42,6 +42,7 @@ class WorkerImportElevationData(QRunnable):
             self.username=auth_cfg.config("username")
                 
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         #print('Import elevation data')
         self.signals.progress.emit(1)

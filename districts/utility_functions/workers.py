@@ -1,8 +1,8 @@
-from qgis.PyQt.QtCore import QSettings, QTimer, QEventLoop
+from qgis.PyQt.QtCore import QSettings, QTimer, QEventLoop, QEvent
 import psycopg2
 import shutil
 from ..upgrade import upgradeVersionDB
-from .compat import MessageCritical, MessageInfo
+from .compat import MessageCritical, MessageInfo, sip
 from .db import dbConnect, dbConnectProvidePwdUser, dropDBTriggers, insertDBTriggers
 from .files import (
     copyFile, createDir, districtsModelerTempDir, loadProjectConfig, readFileToList, readFileToString,
@@ -16,7 +16,9 @@ from .utility import (
 )
 import os
 import numpy as np
-from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable, QThreadPool
+from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable, QThreadPool, QThread, QCoreApplication, Qt
+import threading
+import functools
 from qgis.utils import iface
 import subprocess
 import time
@@ -68,6 +70,109 @@ def runPsqlFile(config,username,dbname,sql_file,env):
         return "{} error(s) in {} (see message log 'Districts')".format(len(errors) or 1, os.path.basename(sql_file))
     return None
 
+class _MainThreadInvoker(QObject):
+    """Executes calls emitted from worker threads in the main (GUI) thread; the emitting thread waits until the call is done."""
+    invoke=pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+        blocking=getattr(getattr(Qt,'ConnectionType',Qt),'BlockingQueuedConnection',None) or Qt.BlockingQueuedConnection  # Qt6 / Qt5
+        self.invoke.connect(self._call, blocking)
+
+    # must be a real Qt slot: for an undecorated Python method PyQt creates a proxy in the thread that called connect,
+    # which can be a blocked worker thread (deadlock)
+    @pyqtSlot(object)
+    def _call(self, call):
+        call()
+
+_main_thread_invoker=None
+_main_thread_invoker_lock=threading.Lock()
+# create the invoker in the main thread when the plugin is loaded (fallback in runInMainThread)
+def _inMainThread():
+    return sip.unwrapinstance(QThread.currentThread())==sip.unwrapinstance(QCoreApplication.instance().thread())
+
+if QCoreApplication.instance() is not None and _inMainThread():
+    _main_thread_invoker=_MainThreadInvoker()
+
+def runInMainThread(fn, *args, **kwargs):
+    """Run fn in the main thread and return its result (exceptions are raised in the calling thread).
+    Use it in workers for QGIS layers and the layer tree: a layer created in a pool thread opens its own DB connection
+    for that thread, which is never released (one more idle connection per run), and QgsProject must only be changed in the main thread.
+    The main thread must not block while waiting for the worker (QEventLoop waits are fine)."""
+    app_thread=QCoreApplication.instance().thread()
+    if _inMainThread():
+        return fn(*args, **kwargs)
+    global _main_thread_invoker
+    with _main_thread_invoker_lock:
+        if _main_thread_invoker is None:
+            invoker=_MainThreadInvoker()  # first call from a worker thread: move it to the main thread (the decorated slot then runs there)
+            invoker.moveToThread(app_thread)
+            _main_thread_invoker=invoker
+    result={}
+
+    def call():
+        try:
+            result['value']=fn(*args, **kwargs)
+        except BaseException as e:
+            result['error']=e
+
+    _main_thread_invoker.invoke.emit(call)
+    if 'error' in result:
+        raise result['error']
+    return result.get('value')
+
+def closeConnection(conn):
+    """Close a psycopg2 connection (ignores None/'' and already closed connections)"""
+    try:
+        if conn and not conn.closed:
+            conn.close()
+    except Exception:
+        QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
+
+class _CloseConnectionOnClose(QObject):
+    """Event filter of closeConnectionOnFinish: a close event is also seen if the dialog overrides closeEvent
+    without calling QDialog.closeEvent (then reject/finished are not emitted)."""
+    def __init__(self, dialog, owner=None):
+        super().__init__(dialog)
+        self.dialog=dialog
+        self.owner=owner if owner is not None else dialog
+
+    def eventFilter(self, obj, event):
+        if event.type()==getattr(QEvent,'Type',QEvent).Close:  # Qt6 / Qt5
+            self.closeLater()
+        return False
+
+    def closeLater(self):
+        # after the dialog's own closeEvent/reject handlers, which may still use the connection
+        QTimer.singleShot(0, self.closeIfClosed)
+
+    def closeIfClosed(self):
+        try:
+            if not self.dialog.isVisible():  # not if the close event was ignored
+                closeConnection(getattr(self.owner,'conn',None))
+        except RuntimeError:  # dialog already deleted
+            pass
+
+def closeConnectionOnFinish(dialog, owner=None):
+    """Close the own DB connection of the dialog (owner.conn if owner is given, e.g. a controller object, otherwise dialog.conn;
+    also if it was replaced later) when the dialog is closed/accepted/rejected.
+    Only for dialogs that are created anew each time they are opened."""
+    closer=_CloseConnectionOnClose(dialog, owner)
+    dialog.installEventFilter(closer)
+    dialog.finished.connect(lambda *_: closer.closeLater())
+
+def closesOwnConnection(run):
+    """Decorator for the run method of a worker that opened its own DB connection (self.conn) in __init__/run:
+    close it when run ends, otherwise it stays idle on the server as long as the worker object is referenced
+    (e.g. main.worker_x until the next run)."""
+    @functools.wraps(run)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return run(self, *args, **kwargs)
+        finally:
+            closeConnection(getattr(self,'conn',None))
+    return wrapper
+
 class WorkerDoneSignals(QObject):
     done=pyqtSignal()
 
@@ -85,9 +190,10 @@ class WorkerDoneTracker(QRunnable):
             self.signals.done.emit()
 
 def startWorkers(workers, btn):
-    """Starts the workers in the global thread pool; btn stays disabled until all of them are done."""
+    """Starts the workers in the global thread pool; btn stays disabled until all of them are done
+    (also workers started later with this function while others are still running, e.g. a follow-up step started from a finished signal)."""
     btn.setEnabled(False)
-    btn.workers_running=len(workers)
+    btn.workers_running=getattr(btn,'workers_running',0)+len(workers)
 
     def onDone():
         btn.workers_running-=1
@@ -168,9 +274,22 @@ class WorkerImportProject(QRunnable):
         self.versionNames=kwargs['versionNames']
         if self.dlg:
             self.dlg.process_running=True
-        
+
     @pyqtSlot()
     def run(self):
+        """Run the import; emit failed if it stops without emitting finished (early return or exception)"""
+        try:
+            result=self._run()
+        except Exception as e:
+            QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
+            self.signals.error.emit("Project import failed: "+str(e))
+            result=False
+        if result is False:
+            if self.dlg:
+                self.dlg.process_running=False
+            self.signals.failed.emit('failed')
+
+    def _run(self):
         #print('Import project')
         #print(self.project_name)
         self.signals.progress.emit(1)
@@ -181,6 +300,7 @@ class WorkerImportProject(QRunnable):
                 "Districts",
                 MessageCritical
             )
+            self.signals.error.emit(tr('@default',"path_not_exists")+self.filename)
             return False
 
         if zipfile.is_zipfile(self.filename):
@@ -712,6 +832,7 @@ class APISignals(QObject):
     error=pyqtSignal(str)
     status=pyqtSignal(str)
     finished =pyqtSignal(str)
+    failed =pyqtSignal(str)
     
 class APISignals2(QObject):
     progress=pyqtSignal(int)

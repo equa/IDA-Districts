@@ -86,11 +86,11 @@ from .static_pipe_sizing import StaticPipeSizingDialog
 from .update_sensors import UpdateSensors
 from .utility_functions.compat import ApplicationShortcut, MessageCritical, MessageInfo, QAction
 from .utility_functions.db import (
-    connectDBPostgres, dbConnect, getClimateData, getNetworks, getUsedNetworkSubmodels,
+    closeIdleDistrictsConnections, connectDBPostgres, dbConnect, getClimateData, getNetworks, getUsedNetworkSubmodels,
     updateProjectNamesList,
 )
 from .utility_functions.dialog import (
-    TableDialog, addParmTableRow, checkIDADistrictsInstallation, closeDialog, deleteSelectedTableRow,
+    TableDialog, addParmTableRow, checkIDADistrictsInstallation, closeDialog, closeOtherDistrictsDialogs, deleteSelectedTableRow,
     deleteTableRow, deleteTableRowTrace, load_image, runWithButtonDisabled,
 )
 from .utility_functions.files import (
@@ -429,7 +429,7 @@ class Districts:
             title=tr('@default','add_child_version')
             label_text=tr('@default','child_version_name')
             self.dlg_addVersion = IDA_Districts_NameDialog(title,label_text,'','')
-            self.dlg_addVersion.btn_ok.clicked.connect(lambda: treeItem_add(level,mdlIdx,self.dlg_addVersion,self))
+            self.dlg_addVersion.btn_ok.clicked.connect(lambda: runWithButtonDisabled(self.dlg_addVersion.btn_ok,treeItem_add,level,mdlIdx,self.dlg_addVersion,self))
             self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
             self.dlg_addVersion.show()               
         else:
@@ -752,7 +752,12 @@ class Districts:
            
     def showCreateNewProject(self):
         """Creates a new Project"""
-        
+        # the postgres connection may have failed at startup (e.g. DB server not running yet) -> try again
+        if not self.cur_postgres or self.dlg.projectNames is None:
+            self.conn_postgres,self.cur_postgres,self.dlg.projectNames=connectDBPostgres(self.config,self.dlg)
+        if not self.cur_postgres or self.dlg.projectNames is None:
+            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            return
         self.dlg_createNewProject=NewProjectDlg(self.dlg,self.config)
         self.dlg_createNewProject.btn_ok.clicked.connect(lambda: createNewProject(self.dlg_createNewProject,self))
         self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
@@ -920,7 +925,7 @@ class Districts:
             if self.config['versionName']:
                 self.dlg_pipeSizing=PipeSizingDlg(self.config,self.plugin_dir,self.cur)
                 self.dlg_pipeSizing.btn_save.pressed.connect(lambda: savePipeSizingResults(self.config,self.conn,self.dlg_pipeSizing))
-                self.dlg_pipeSizing.btn_start.pressed.connect(lambda: startPipeSizing(self.config,self.dlg_pipeSizing,self.plugin_dir))
+                self.dlg_pipeSizing.btn_start.pressed.connect(lambda: runWithButtonDisabled(self.dlg_pipeSizing.btn_start,startPipeSizing,self.config,self.dlg_pipeSizing,self.plugin_dir))
                 self.dlg_pipeSizing.btn_reject.pressed.connect(lambda: rejectPipeSizingResults(self.config,self.conn,self.dlg_pipeSizing))
                 
                 loadPipes(self.config, self.cur,self.dlg_pipeSizing)
@@ -1033,6 +1038,8 @@ class Districts:
         
     def loadProject(self):
         #print('--load project--')
+        # dialogs opened for the previous project/version are no longer valid
+        closeOtherDistrictsDialogs(self.dlg)
         if not self.config['projectName']:
             # no project selected (e.g. the last project was deleted): nothing to connect to
             self.setTreeViewModel([])
@@ -1040,7 +1047,10 @@ class Districts:
             self.dlg.label_activeVersion.setText('')
             self.dlg.btn_sridProject.setText('EPSG: ')
             return
+        previousDB=self.conn.info.dbname if self.conn and not self.conn.closed else None
         self.conn=dbConnect(self.config,True)
+        if previousDB and previousDB!=self.config['projectName']:
+            self.closeIdleConnections(previousDB)
         #print(self.config)
         #print(self.conn)
         if self.conn:
@@ -1084,10 +1094,17 @@ class Districts:
         self.loadProject()
         self.dlg.update_progress(100)
         
+    def closeIdleConnections(self,dbName=None):
+        """Safety net: end idle connections of this plugin instance (dialogs/workers that did not close theirs).
+        Skipped while workers are running: a worker waiting between two queries is idle on the server too."""
+        if self.conn_postgres and not self.conn_postgres.closed and QThreadPool.globalInstance().activeThreadCount()==0:
+            closeIdleDistrictsConnections(self.cur_postgres,dbName=dbName)
+
     def closeDlg(self):
         if self.timer:
             self.timer.stop()
-            
+
+        self.closeIdleConnections()
         if self.conn_postgres:
             self.conn_postgres.close()    
             #print('close postgres connection')
@@ -1124,7 +1141,7 @@ class Districts:
             if self.config['versionName']:
                 self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
                 self.dlg_outputs=RequestedOutputsDialog(self.requestedOutputs)
-                self.dlg_outputs.btn_ok.clicked.connect(lambda: setRequestedOutputs(self.config,self.plugin_dir,self.dlg_outputs,self.requestedOutputs))
+                self.dlg_outputs.btn_ok.clicked.connect(lambda: runWithButtonDisabled(self.dlg_outputs.btn_ok,setRequestedOutputs,self.config,self.plugin_dir,self.dlg_outputs,self.requestedOutputs))
                 self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
                 self.dlg_outputs.show()
             else:
@@ -1375,7 +1392,7 @@ class Districts:
         if self.conn:
             if self.config['versionName']:
                 self.dlg_showOnMap=ShowOnMapDialog(self.cur,self.config,self.plugin_dir,self.dlg,networkReportDlg=networkReportDlg,function_items=function_items,time_values=time_values)
-                self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: showOnMap(self.dlg_showOnMap,self,networkReportDlg=networkReportDlg))
+                self.dlg_showOnMap.btn_showOnMap.clicked.connect(lambda: runWithButtonDisabled(self.dlg_showOnMap.btn_showOnMap,showOnMap,self.dlg_showOnMap,self,networkReportDlg))
                 self.dlg_showOnMap.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_showOnMap))
                 self.dlg_showOnMap.featureGroupChanged(False)
                 self.dlg_showOnMap.show()

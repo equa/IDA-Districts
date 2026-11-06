@@ -3,7 +3,7 @@ from qgis.PyQt.QtCore import QThreadPool
 import os
 import psycopg2
 import re
-from qgis.PyQt.QtWidgets import QComboBox, QTableWidgetItem
+from qgis.PyQt.QtWidgets import QComboBox, QMessageBox, QTableWidgetItem
 from qgis.utils import iface
 from .cosim import writeCosimMacroIdc, writeCosimMacroIdm
 from .utility_functions.compat import ItemIsEditable, MessageCritical, MessageInfo, MessageWarning
@@ -23,7 +23,10 @@ from .utility_functions.ida_components import (
 from .utility_functions.invoke import invokeOneFeature
 from .utility_functions.sensor_signals import getSensorData, getSensorDecData
 from .utility_functions.templateFiles import CopyDecoupledTemplateMacro, readDecoupledFeatureSensorSignals
-from .utility_functions.topology import getConnsValuesByFeature, getConnsValuesIdentTypeDict, getPMT2muxName
+from .utility_functions.topology import (
+    checkNetworkTopology, getConnsValuesByFeature, getConnsValuesIdentTypeDict, getPMT2muxName, getUnconnectedFeatures,
+    networkTopologyMessage, unconnectedFeaturesToExclude,
+)
 from .utility_functions.translations import tr
 from .utility_functions.utility import copy_tree_filter_extensions_and_folders, is_number
 from .utility_functions.workers import (
@@ -346,7 +349,11 @@ def buildModel(dlg,main):
     submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)]
     #print(submodels)
     if networks and submodels:
-        main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
+        exclude_features=checkTopologyBeforeBuild(main,networks)
+        if exclude_features is None:
+            return
+        main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels,
+            exclude_features=exclude_features)
         main.worker_invokeNetwork.signals.error.connect(show_error_message)
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)
         main.worker_invokeNetwork.signals.status.connect(dlg.update_status)
@@ -355,6 +362,75 @@ def buildModel(dlg,main):
     else:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=MessageInfo)
 
+def checkTopologyBeforeBuild(main,networks):
+    """Check the network topology of the networks before building the model. If it is not valid
+    (lines, customers or energy plants edited after generating the topology), ask whether the topology
+    should be updated (opens the dialog 'generate network topology') or the build canceled.
+    Unconnected customers and energy plants (not part of the model, the simulation will probably fail) are
+    reported as a warning: update the topology, neglect them in the model, build anyway or cancel.
+    Returns None if the build is canceled, otherwise the features to exclude from the model
+    ({'customers': [ids], 'energy_plants': [ids]}, empty: nothing excluded)."""
+    if not main.cur:
+        return {}
+    try:
+        problems=checkNetworkTopology(main.cur,main.config['versionName'],networks)
+        unconnected=getUnconnectedFeatures(main.cur,main.config['versionName'],networks)
+    except Exception:
+        #the check must not prevent the build (e.g. older version schema)
+        QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageWarning)
+        return {}
+    if not problems and not unconnected:
+        return {}
+
+    networks_text=', '.join(networks)
+    text_unconnected="""Warning: customers or energy plants of network(s) {} are not connected to the network:
+
+{}
+
+They are not part of the network model, the simulation will probably fail. Connect or delete them with 'Generate network topology' (options '{}', '{}' or '{}') or in the layers, or neglect them in the model (they are also removed from the sensor signals).""".format(
+        networks_text,networkTopologyMessage(unconnected),tr('@default','connect_unconnected_customers_to_network'),
+        tr('@default','connect_unconnected_plants_to_network'),tr('@default','delete_unconnected_customers')) if unconnected else ''
+    dlg_question=QMessageBox()
+    dlg_question.setIcon(QMessageBox.Icon.Warning)
+    if problems:
+        dlg_question.setWindowTitle('Network topology not valid')
+        dlg_question.setText("""The network topology of network(s) {} does not match the lines, customers and energy plants (e.g. they were edited after generating the topology):
+
+{}
+{}
+Should the topology be updated with 'Generate network topology' or the build be canceled?""".format(networks_text,networkTopologyMessage(problems),'\n'+text_unconnected+'\n' if text_unconnected else ''))
+    else:
+        dlg_question.setWindowTitle('Unconnected customers or energy plants')
+        dlg_question.setText(text_unconnected+'\n\nShould the topology be updated, the unconnected customers/energy plants be neglected in the model, the model be built anyway or the build be canceled?')
+    btn_update=dlg_question.addButton('Update topology',QMessageBox.ButtonRole.AcceptRole)
+    #a valid topology with unconnected features can be built without them or anyway
+    btn_neglect=dlg_question.addButton('Neglect in model',QMessageBox.ButtonRole.AcceptRole) if not problems else None
+    btn_build=dlg_question.addButton('Build anyway',QMessageBox.ButtonRole.DestructiveRole) if not problems else None
+    dlg_question.addButton(QMessageBox.StandardButton.Cancel)
+    dlg_question.setDefaultButton(btn_update)
+    dlg_question.exec()
+
+    clicked=dlg_question.clickedButton()
+    if btn_neglect is not None and clicked==btn_neglect:
+        exclude_features=unconnectedFeaturesToExclude(unconnected)
+        QgsMessageLog.logMessage("Build network model: neglected unconnected features {}".format(exclude_features),"Districts",MessageInfo)
+        return exclude_features
+    if btn_build is not None and clicked==btn_build:
+        return {}
+    if clicked==btn_update:
+        main.generateNetworkTopology()
+        dlg_topology=getattr(main,'window_topology',None)
+        if dlg_topology:
+            #preselect the networks of the build
+            combo=dlg_topology.combo_network_models
+            for i in range(combo.count()):
+                if combo.itemText(i) in networks:
+                    combo.setItemChecked(i,True)
+            dlg_topology.raise_()
+            dlg_topology.activateWindow()
+        iface.messageBar().pushMessage("Info", "Build the network model again after saving the updated network topology.", level=MessageInfo)
+    return None
+
 def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     """set requested outputs"""
     #print("set requested outputs")
@@ -362,8 +438,8 @@ def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     worker_setRequestedOutputs = WorkerSetRequestedOutputs(config=config,plugin_dir=plugin_dir,dlg=dlg,requestedOutputs=requestedOutputs)
     worker_setRequestedOutputs.signals.error.connect(show_error_message)
     worker_setRequestedOutputs.signals.progress.connect(dlg.update_progress)   
-    worker_setRequestedOutputs.signals.finished.connect(dlg.update_finished)  
-    QThreadPool.globalInstance().start(worker_setRequestedOutputs) 
+    worker_setRequestedOutputs.signals.finished.connect(dlg.update_finished)
+    startWorkers([worker_setRequestedOutputs],dlg.btn_ok)
 
 def setModellingSettings(plugin_dir,config,dlg):
     """set modelling settings"""

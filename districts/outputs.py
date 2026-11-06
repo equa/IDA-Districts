@@ -19,7 +19,7 @@ from .utility_functions.topology import (
     getUsedConnectionsFilteredByDirection,
 )
 from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
-from .utility_functions.workers import APISignals
+from .utility_functions.workers import closesOwnConnection, APISignals
 
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis
@@ -699,6 +699,7 @@ class WorkerSetRequestedOutputs(QRunnable):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)

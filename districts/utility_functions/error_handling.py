@@ -22,11 +22,18 @@ def checkIntersectingFeatures(cur,config):
     return False
     
 def checkLoopInConnections(cur,version,table,type):
+    """features (customers or energy plants) with a line of table which connects them directly to an energy plant or a customer
+    (the line ends are searched with the spatial index of table; nothing is found if there are no energy plants or no customers)"""
     sql="""SELECT f1.id
-    FROM {} sh, "{}".{}s f1,"{}".energy_plants f2, "{}".customers f3
-    WHERE ST_dWithIn(ST_StartPoint(sh.geom),f1.geom,0.001) AND (ST_dWithIn(ST_EndPoint(sh.geom),f2.geom,0.001) OR ST_dWithIn(ST_EndPoint(sh.geom),f3.geom,0.001)) OR 
-        ST_dWithIn(ST_EndPoint(sh.geom),f1.geom,0.001) AND (ST_dWithIn(ST_StartPoint(sh.geom),f2.geom,0.001) OR ST_dWithIn(ST_StartPoint(sh.geom),f3.geom,0.001))
-    GROUP BY f1.id;""".format(table,version,type,version,version) # nosec B608
+    FROM "{v}".{t}s f1 JOIN {table} sh ON sh.geom && ST_Expand(f1.geom,0.001)
+    WHERE EXISTS (SELECT 1 FROM "{v}".energy_plants) AND EXISTS (SELECT 1 FROM "{v}".customers) AND (
+        ST_dWithIn(ST_StartPoint(sh.geom),f1.geom,0.001) AND (
+            EXISTS (SELECT 1 FROM "{v}".energy_plants f2 WHERE ST_dWithIn(ST_EndPoint(sh.geom),f2.geom,0.001)) OR
+            EXISTS (SELECT 1 FROM "{v}".customers f3 WHERE ST_dWithIn(ST_EndPoint(sh.geom),f3.geom,0.001))) OR
+        ST_dWithIn(ST_EndPoint(sh.geom),f1.geom,0.001) AND (
+            EXISTS (SELECT 1 FROM "{v}".energy_plants f2 WHERE ST_dWithIn(ST_StartPoint(sh.geom),f2.geom,0.001)) OR
+            EXISTS (SELECT 1 FROM "{v}".customers f3 WHERE ST_dWithIn(ST_StartPoint(sh.geom),f3.geom,0.001))))
+    GROUP BY f1.id;""".format(table=table,v=version,t=type) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     

@@ -125,7 +125,7 @@ def importResources(dlg,main,import_all=False):
     #templates
     for template_type in ['customer_templates','energy_plant_templates']:
         setSeqIdToMax(template_type+'_id_seq',template_type,'id',main.cur)
-        template_max_id=getMaxTableValue(main.cur,'public',template_type,'template')+1
+        template_max_id=(getMaxTableValue(main.cur,'public',template_type,'template') or 0)+1  # None: no templates yet
         for template_key, template_value in import_dict[template_type].items():
             for bundle_type_key, bundle_type_value in template_value.items():
                 #print(bundle_type_key)

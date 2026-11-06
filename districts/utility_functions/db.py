@@ -771,6 +771,33 @@ def checkDBVersionConnected(config,errorMsg):
             iface.messageBar().pushMessage("WARNING", tr('@default','no_db_connection'), level=MessageWarning)
         return False
         
+# application_name of the plugin's own connections (pg_stat_activity): with the process id of this QGIS,
+# so that closeIdleDistrictsConnections only ends connections of this QGIS instance
+DISTRICTS_APPLICATION_NAME='Districts plugin (QGIS pid {})'.format(os.getpid())
+
+def closeIdleDistrictsConnections(cur_postgres,dbName=None,idle_seconds=0):
+    """End the idle connections of this QGIS instance's Districts plugin on the server (pg_terminate_backend),
+    e.g. connections of closed dialogs/finished workers that were not closed. Only connections in state 'idle'
+    (not in a transaction, no running query) for at least idle_seconds; dbName: only connections to this database.
+    The calling connection (cur_postgres) is never ended. Returns the number of ended connections."""
+    sql="""SELECT count(pg_terminate_backend(pid)) AS n FROM pg_stat_activity
+WHERE application_name = %s AND state = 'idle' AND pid <> pg_backend_pid()
+  AND state_change < now() - make_interval(secs => %s)"""
+    params=[DISTRICTS_APPLICATION_NAME,idle_seconds]
+    if dbName:
+        sql+=" AND datname = %s"
+        params.append(dbName)
+    try:
+        cur_postgres.execute(sql+";",params)
+        n=cur_postgres.fetchone()
+        n=(n['n'] if isinstance(n,dict) else n[0]) if n else 0
+        if n:
+            QgsMessageLog.logMessage("{} idle Districts DB connection(s) closed{}".format(n," ("+dbName+")" if dbName else ""),"Districts",MessageInfo)
+        return n
+    except Exception:
+        QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageWarning)
+        return 0
+
 def dbConnect(config,errorMsg):
     conn=None     
     try:
@@ -782,7 +809,8 @@ def dbConnect(config,errorMsg):
             port=int(config['port']),
             user=auth_cfg.config("username"),
             password=auth_cfg.config("password"),
-            connect_timeout=5)       
+            connect_timeout=5,
+            application_name=DISTRICTS_APPLICATION_NAME)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except Exception as e:
         logDBConnectionError(config,config['projectName'],e)
@@ -808,7 +836,8 @@ def dbConnectProvidePwdUser(config,signals_error,pwd,user):
             port=int(config['port']),
             user=user,
             password=pwd,
-            connect_timeout=1)       
+            connect_timeout=1,
+            application_name=DISTRICTS_APPLICATION_NAME)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except Exception as e:
         #print("DB connection has failed:",e)
@@ -827,7 +856,8 @@ def dbConnectPerName(config,dbName,errorMsg):
             port=int(config['port']),
             user=auth_cfg.config("username"),
             password=auth_cfg.config("password"),
-            connect_timeout=1)       
+            connect_timeout=1,
+            application_name=DISTRICTS_APPLICATION_NAME)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except Exception as e:
         logDBConnectionError(config,dbName,e)

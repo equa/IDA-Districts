@@ -3,7 +3,7 @@ from qgis.core import (
     QgsAction, QgsApplication, QgsAttributeEditorAction, QgsAuthMethodConfig, QgsPalLayerSettings, QgsProperty,
     QgsSimpleMarkerSymbolLayer, QgsStyle, QgsSymbolLayer, QgsVectorLayerSimpleLabeling,
 )
-from .compat import MessageCritical
+from .compat import MessageCritical, MessageWarning
 from .db import getNetworks, getPlantIds, getTemplatesInfo
 from .files import loadProjectConfig
 from .reports import setupCustomerDataSheet
@@ -425,7 +425,12 @@ def setupVersionForm(cur,plugin_dir,config):
 def versionLayersAliasNames():
     """ alias names for version layers"""
     for vlayerName in ['lines','customers','energy_plants','junctions','buildings','streets']:
-        vlayer=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))[0] 
+        layers=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))
+        if not layers:
+            # e.g. an invalid PostgreSQL layer is not added to the project
+            QgsMessageLog.logMessage("Layer '{}' is not loaded".format(tr('@default',vlayerName)), "Districts", MessageWarning)
+            continue
+        vlayer=layers[0]
         fields=vlayer.fields()
         for field in fields:
             field_idx = fields.indexOf(field.name())

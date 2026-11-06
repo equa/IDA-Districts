@@ -90,6 +90,103 @@ def getFeatureConnbundletypeSequences(id,config,cur,feature_type="customer"):
     cur.execute(sql)
     return cur.fetchall()
     
+def checkNetworkTopology(cur,version,networks,tolerance=0.01):
+    """Check whether the network topology (junctions and connections of junctions, customers and energy plants
+    to the lines) still matches the lines, customers and energy plants of the networks, e.g. after editing them
+    without generating the topology again. Returns a list of problems: {'text','count','ids'} (empty: topology valid)"""
+    networks=','.join([str(int(i)) for i in networks])
+    sql="""WITH
+lines AS (
+    SELECT id, ST_StartPoint(geom) AS p_start, ST_EndPoint(geom) AS p_end FROM "{v}".lines WHERE network IN ({n})
+),
+conns AS (
+    SELECT jc.lid, j.geom, j.id AS fid FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id=jc.jid
+    UNION ALL
+    SELECT cc.lid, c.geom, c.id FROM "{v}".customer_connections cc JOIN "{v}".customers c ON c.id=cc.cid
+    UNION ALL
+    SELECT epc.lid, ep.geom, ep.id FROM "{v}".energy_plant_connections epc JOIN "{v}".energy_plants ep ON ep.id=epc.epid
+),
+line_ends AS (
+    SELECT id, p_start AS p FROM lines UNION ALL SELECT id, p_end FROM lines
+)
+--1) line ends without a junction, customer or energy plant
+SELECT 1 AS check_id, e.id
+    FROM line_ends e
+    WHERE NOT EXISTS (SELECT 1 FROM conns c WHERE c.lid=e.id AND ST_DWithin(c.geom,e.p,{t}))
+UNION ALL
+--2) connections of junctions, customers and energy plants which are not at an end of the connected line
+SELECT 2, c.lid
+    FROM conns c JOIN lines l ON l.id=c.lid
+    WHERE NOT ST_DWithin(c.geom,l.p_start,{t}) AND NOT ST_DWithin(c.geom,l.p_end,{t})
+UNION ALL
+--3) connections to deleted lines, junctions, customers or energy plants
+SELECT 3, jc.lid FROM "{v}".junction_connections jc
+    LEFT JOIN "{v}".lines l ON l.id=jc.lid LEFT JOIN "{v}".junctions j ON j.id=jc.jid
+    WHERE (l.id IS NULL AND j.network IN ({n})) OR (j.id IS NULL AND l.network IN ({n}))
+UNION ALL
+SELECT 3, cc.lid FROM "{v}".customer_connections cc
+    LEFT JOIN "{v}".lines l ON l.id=cc.lid LEFT JOIN "{v}".customers c ON c.id=cc.cid
+    WHERE (l.id IS NULL AND c.network && ARRAY[{n}]) OR (c.id IS NULL AND l.network IN ({n}))
+UNION ALL
+SELECT 3, epc.lid FROM "{v}".energy_plant_connections epc
+    LEFT JOIN "{v}".lines l ON l.id=epc.lid LEFT JOIN "{v}".energy_plants ep ON ep.id=epc.epid
+    WHERE (l.id IS NULL AND ep.network && ARRAY[{n}]) OR (ep.id IS NULL AND l.network IN ({n}))
+UNION ALL
+--4) junctions with a wrong number of connections
+SELECT 4, j.id
+    FROM "{v}".junctions j LEFT JOIN (SELECT jid, count(*) AS n FROM "{v}".junction_connections GROUP BY jid) jc ON jc.jid=j.id
+    WHERE j.network IN ({n}) AND j.n_connections IS DISTINCT FROM jc.n
+UNION ALL
+--5) customers and energy plants on a line which are not connected
+SELECT 5, c.id
+    FROM "{v}".customers c
+    WHERE c.network && ARRAY[{n}] AND NOT EXISTS (SELECT 1 FROM "{v}".customer_connections cc WHERE cc.cid=c.id)
+        AND EXISTS (SELECT 1 FROM "{v}".lines l WHERE l.network IN ({n}) AND ST_DWithin(l.geom,c.geom,{t}))
+UNION ALL
+SELECT 6, ep.id
+    FROM "{v}".energy_plants ep
+    WHERE ep.network && ARRAY[{n}] AND NOT EXISTS (SELECT 1 FROM "{v}".energy_plant_connections epc WHERE epc.epid=ep.id)
+        AND EXISTS (SELECT 1 FROM "{v}".lines l WHERE l.network IN ({n}) AND ST_DWithin(l.geom,ep.geom,{t}));""".format(v=version,n=networks,t=float(tolerance)) # nosec B608
+    cur.execute(sql)
+    texts={
+        1:'line ends without junction, customer or energy plant (line ids)',
+        2:'connections which are not at an end of the line (line ids)',
+        3:'connections to deleted lines, junctions, customers or energy plants (line ids)',
+        4:'junctions with a wrong number of connections (junction ids)',
+        5:'customers on a line which are not connected (customer ids)',
+        6:'energy plants on a line which are not connected (energy plant ids)'}
+    found={}
+    for row in cur.fetchall():
+        found.setdefault(row['check_id'],[]).append(row['id'])
+    return [{'text':texts[i],'count':len(found[i]),'ids':sorted(set(j for j in found[i] if j is not None))} for i in sorted(found)]
+
+def getUnconnectedFeatures(cur,version,networks,tolerance=0.01):
+    """Customers and energy plants of the networks which are not connected to a line and not on a line
+    (on a line: reported by checkNetworkTopology). They are not part of the network model, the simulation
+    will probably fail (e.g. sensor signals). Returns a list like checkNetworkTopology: {'text','count','ids','table'}
+    (table: 'customers' or 'energy_plants', see unconnectedFeaturesToExclude)"""
+    networks=','.join([str(int(i)) for i in networks])
+    unconnected=[]
+    for table,conn_table,id_name,text in [('customers','customer_connections','cid','customers not connected to the network (customer ids)'),
+                                          ('energy_plants','energy_plant_connections','epid','energy plants not connected to the network (energy plant ids)')]:
+        sql="""SELECT f.id FROM "{v}".{t} f
+    WHERE f.network && ARRAY[{n}] AND NOT EXISTS (SELECT 1 FROM "{v}".{ct} fc WHERE fc.{fid}=f.id)
+        AND NOT EXISTS (SELECT 1 FROM "{v}".lines l WHERE l.network IN ({n}) AND ST_DWithin(l.geom,f.geom,{tol}))
+    ORDER BY f.id;""".format(v=version,t=table,ct=conn_table,fid=id_name,n=networks,tol=float(tolerance)) # nosec B608
+        cur.execute(sql)
+        ids=[row['id'] for row in cur.fetchall()]
+        if ids:
+            unconnected.append({'text':text,'count':len(ids),'ids':ids,'table':table})
+    return unconnected
+
+def unconnectedFeaturesToExclude(unconnected):
+    """{'customers': [ids], 'energy_plants': [ids]} of getUnconnectedFeatures (exclude_features of the network model build)"""
+    return {i['table']:list(i['ids']) for i in unconnected}
+
+def networkTopologyMessage(problems,max_ids=10):
+    """text of the problems found by checkNetworkTopology"""
+    return '\n'.join(['- {}: {} ({}{})'.format(p['text'],p['count'],', '.join(str(i) for i in p['ids'][:max_ids]),', ...' if len(p['ids'])>max_ids else '') for p in problems])
+
 def checkNetwork(cur,version,networks):
     sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version) # nosec B608
     cur.execute(sql)
@@ -176,7 +273,35 @@ def setSubnetwork(cur,config,redraw_submodels_polygons,srid):
         #lines
         sql='UPDATE "{}".lines SET submodel = array[1];'.format(config['versionName']) # nosec B608
         #print(sql)
-        cur.execute(sql)  
+        cur.execute(sql)
+
+def nodeLines(cur,table,tolerance):
+    """Replace the lines of table (columns id, geom) by its edges like a PostGIS topology with this tolerance, but much faster:
+    line ends within tolerance are moved to one node, the lines are snapped to the nodes within tolerance (customer and plant connections
+    end on a street) and noded with ST_Node, which splits them at all intersections and dissolves duplicate lines. Only geom is kept."""
+    tolerance=float(tolerance)
+    sql="""DROP TABLE IF EXISTS pg_temp.node_lines_nodes, pg_temp.node_lines_edges;
+CREATE TEMP TABLE node_lines_nodes AS
+    SELECT DISTINCT ON (cluster) geom FROM (
+        SELECT id, geom, ST_ClusterDBSCAN(geom, {tol}, 1) OVER () AS cluster
+            FROM (SELECT id, ST_StartPoint(geom) AS geom FROM {table} UNION ALL SELECT id, ST_EndPoint(geom) FROM {table}) ends
+    ) clusters ORDER BY cluster, id;
+CREATE INDEX ON node_lines_nodes USING gist (geom);
+CREATE TEMP TABLE node_lines_edges AS
+    WITH moved AS (
+        SELECT ST_SetPoint(ST_SetPoint(l.geom, 0, s.geom), -1, e.geom) AS geom
+            FROM {table} l
+            CROSS JOIN LATERAL (SELECT n.geom FROM node_lines_nodes n ORDER BY n.geom <-> ST_StartPoint(l.geom) LIMIT 1) s
+            CROSS JOIN LATERAL (SELECT n.geom FROM node_lines_nodes n ORDER BY n.geom <-> ST_EndPoint(l.geom) LIMIT 1) e
+    ), snapped AS (
+        SELECT COALESCE(ST_Snap(m.geom, (SELECT ST_Collect(n.geom) FROM node_lines_nodes n WHERE ST_DWithin(m.geom, n.geom, {tol})), {tol}), m.geom) AS geom
+            FROM moved m
+    )
+    SELECT (ST_Dump(ST_Node(ST_Collect(geom)))).geom AS geom FROM snapped WHERE ST_Length(geom) > 0;
+TRUNCATE {table};
+INSERT INTO {table} (geom) SELECT geom FROM node_lines_edges WHERE ST_Length(geom) > 0;
+DROP TABLE node_lines_nodes, node_lines_edges;""".format(table=table,tol=tolerance) # nosec B608
+    cur.execute(sql)
 
 def getBundleValues(bundle,cur):
     if bundle:
@@ -441,75 +566,9 @@ def checkLineDirectionTopology(cur,version,tolerance,signals,network):
         ORDER BY ep.id LIMIT 1;""".format(tolerance,network) # nosec B608
     #print(sql)
     cur.execute(sql)
-    epid=cur.fetchone()['epid'] 
-    #print(epid)
-    sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point,ST_EndPoint(geom) AS l_end_point FROM temp.streets_help;"""
-    #print(sql) 
-    cur.execute(sql) 
-    lines=cur.fetchall()
-    for line in lines:
-        #print('--------------------------')
-        lid=line['lid']
-        #print(lid)
-        start_point=line['l_start_point']
-        end_point=line['l_end_point']
-        
-        #end_node
-        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance) # nosec B608
-        #print(sql)
-        cur.execute(sql)
-        jid_end_topo=cur.fetchone()['vid']     
-        if jid_end_topo!=epid:               
-            sql="""WITH sub As(
-SELECT seq, node, edge, cost
-            FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
-                {}, 
-                {},
-                false
-            )
-)
-SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo) # nosec B608
-            #print(sql)
-            cur.execute(sql) 
-            length_node_end=cur.fetchone()['costs']
-        else:
-            length_node_end=0
-        #print(length_node_end)
-        
-        #start_node
-        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance) # nosec B608
-        #print(sql)
-        cur.execute(sql)
-        jid_start_topo=cur.fetchone()['vid'] 
-        if jid_start_topo!=epid:       
-            sql="""WITH sub As(
-SELECT seq, node, edge, cost
-            FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
-                {}, 
-                {},
-                false
-            )
-)
-SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_start_topo) # nosec B608
-            #print(sql)
-            cur.execute(sql) 
-            length_node_start=cur.fetchone()['costs']
-        else:
-            length_node_start=0
-        #print(length_node_start)
-        
-        try:
-            if length_node_end<length_node_start:
-                #print('change line direction')
-                sql='UPDATE temp.streets_help SET geom = ST_Reverse(geom) WHERE id={};'.format(lid) # nosec B608
-                #print(sql)
-                cur.execute(sql)
-        except Exception:
-            signals.error.emit("Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.")
-            #print('Check line ({}) direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.'.format(lid))
-            pass
+    epid=cur.fetchone()['epid']
+    if reverseLinesTowardsPlant(cur,'temp.streets_help',epid,tolerance):
+        signals.error.emit("Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.")
 
 #todo pipe laying of network 
 def checkLineDirectionPipeLaying(cur,version,tolerance,network):
@@ -520,67 +579,33 @@ def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network) ORDER BY ep.id LIMIT 1;""".format(tolerance,network) # nosec B608
     #print(sql)
     cur.execute(sql)
-    epid=cur.fetchone()['v_ep'] 
-    sql = """SELECT id AS lid, ST_StartPoint(geom) AS l_start_point, ST_EndPoint(geom) AS l_end_point FROM temp.lines;"""
-    #print(sql) 
-    cur.execute(sql) 
-    lines=cur.fetchall()
-    for counter,line in enumerate(lines,1):
-        #print(counter)
-        #print(line)
-        lid=line['lid']
-        start_point=line['l_start_point']
-        end_point=line['l_end_point']
-        
-        #end_node
-        sql="SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(end_point,tolerance) # nosec B608
-        #print(sql)
-        cur.execute(sql)
-        jid_end_topo=cur.fetchone()['vid']       
-        if jid_end_topo!=epid:               
-            sql="""WITH sub As(
-SELECT seq, node, edge, cost
-            FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
-                {}, 
-                {},
-                false
-            )
-)
-SELECT sum(cost) AS costs FROM sub;""".format(epid,jid_end_topo) # nosec B608
-            #print(sql)
-            cur.execute(sql) 
-            length_node_end=cur.fetchone()['costs']
-        else:
-            length_node_end=0
-        #print(length_node_end)
-        
-        #start_node
-        sql="SELECT st_v.id::integer AS v_start FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin('{}',st_v.the_geom,{});".format(start_point,tolerance) # nosec B608
-        #print(sql)
-        cur.execute(sql)
-        jid_start_topo=cur.fetchone()['v_start'] 
-        #print(jid_start_topo)
-        if jid_start_topo!=epid:       
-            sql="""WITH sub As(
-SELECT seq, node, edge, cost
-            FROM pgr_dijkstra(
-                'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
-                {}, 
-                {},
-                false
-            )
-)
-SELECT sum(cost) AS sum_costs FROM sub;""".format(epid,jid_start_topo) # nosec B608
-            #print(sql)
-            cur.execute(sql) 
-            length_node_start=cur.fetchone()['sum_costs']
-        else:
-            length_node_start=0
-        #print(length_node_start)
-        
-        if length_node_end<length_node_start:
-            #print('change line direction')
-            sql='UPDATE temp.lines SET geom = ST_Reverse(geom) WHERE id={};'.format(lid) # nosec B608
-            #print(sql)
-            cur.execute(sql)
+    epid=cur.fetchone()['v_ep']
+    reverseLinesTowardsPlant(cur,'temp.lines',epid,tolerance)
+
+def reverseLinesTowardsPlant(cur,table,epid,tolerance):
+    """Reverse the lines of table whose end point is closer to the plant vertex epid (network distance in temp.streets_help) than the start point.
+    One Dijkstra from the plant to all line ends; lines with an end which has no vertex or is not reachable keep their direction.
+    Returns the number of these lines."""
+    sql="""DROP TABLE IF EXISTS pg_temp.line_direction_ends, pg_temp.line_direction_costs;
+CREATE TEMP TABLE line_direction_ends AS
+    SELECT l.id AS lid,
+        (SELECT st_v.id::integer FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ST_StartPoint(l.geom),st_v.the_geom,{tol}) LIMIT 1) AS v_start,
+        (SELECT st_v.id::integer FROM temp.streets_help_vertices_pgr st_v WHERE ST_dWithin(ST_EndPoint(l.geom),st_v.the_geom,{tol}) LIMIT 1) AS v_end
+    FROM {table} l;
+CREATE TEMP TABLE line_direction_costs AS
+    SELECT {epid} AS vid, 0 AS cost
+    UNION ALL
+    SELECT end_vid, agg_cost FROM pgr_dijkstraCost(
+        'SELECT sh.id, sh.source, sh.target, sh.length_m as cost FROM temp.streets_help sh',
+        {epid},
+        (SELECT array_agg(DISTINCT v) FROM (SELECT v_start AS v FROM line_direction_ends UNION SELECT v_end FROM line_direction_ends) a WHERE v IS NOT NULL AND v<>{epid}),
+        false);
+UPDATE {table} l SET geom = ST_Reverse(l.geom)
+    FROM line_direction_ends e, line_direction_costs c_start, line_direction_costs c_end
+    WHERE l.id=e.lid AND c_start.vid=e.v_start AND c_end.vid=e.v_end AND c_end.cost<c_start.cost;
+SELECT count(*) AS n FROM line_direction_ends e
+    WHERE NOT EXISTS (SELECT 1 FROM line_direction_costs c WHERE c.vid=e.v_start) OR NOT EXISTS (SELECT 1 FROM line_direction_costs c WHERE c.vid=e.v_end);""".format(table=table,tol=tolerance,epid=epid) # nosec B608
+    cur.execute(sql)
+    unreachable=cur.fetchone()['n']
+    cur.execute("DROP TABLE line_direction_ends, line_direction_costs;")
+    return unreachable

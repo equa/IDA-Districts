@@ -22,6 +22,7 @@ from .sensor_signals import delSensorConnection, delSensorConnectionPList
 from .translations import tr
 from .utility import getIDADistrictsVersion, getIDAVersion, getTypeIdByName, safe_eval
 from .workers import (
+    closeConnectionOnFinish, closesOwnConnection,
     APISignals, WorkerOpenModelCmd, WorkerPlotInvokedFeatureLoad, WorkerSimulateFilesAPI, show_error_message,
 )
 #from ..ida_mosim_dialog import InvokeFeaturesDlg
@@ -166,6 +167,7 @@ class WorkerInvokeFeatures(QRunnable):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             
     @pyqtSlot()
+    @closesOwnConnection
     def run(self):
         #print('Generate network topology')
         self.progress_value=1
@@ -374,7 +376,9 @@ class InvokeFeatures():
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             self.type='customer'
             self.dlg_invokeFeatures=InvokeFeaturesDlg()
-            #print(self.dlg_invokeFeatures.rbtn_customers)  
+            # self.cur is only used by this object's dialog handlers (the workers have their own connections)
+            closeConnectionOnFinish(self.dlg_invokeFeatures,self)
+            #print(self.dlg_invokeFeatures.rbtn_customers)
             
             self.dlg_invokeFeatures.rbtn_customers.toggled.connect(self.updateFeatureLists)
             self.dlg_invokeFeatures.rbtn_plants.toggled.connect(self.updateFeatureLists)   

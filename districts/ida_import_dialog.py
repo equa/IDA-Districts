@@ -1,3 +1,4 @@
+from .utility_functions.workers import closeConnectionOnFinish
 from qgis.PyQt.QtWidgets import  QTextEdit,QDialog, QTableWidgetItem,QButtonGroup,QComboBox,QPushButton,QHBoxLayout,QVBoxLayout,QLabel,QLineEdit, QProgressBar, QCheckBox, QRadioButton, QListWidget
 from qgis.PyQt import QtGui, QtCore, QtWidgets, uic
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
@@ -29,6 +30,7 @@ class PipeBundleEditor(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.mappedAttributes={}
         self.activeTable={'general':False,'construction':False }
@@ -219,6 +221,7 @@ class ImportNetworkTopologyFromLayer(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor()
         self.mappedAttributes={}
         
@@ -405,6 +408,7 @@ class ImportPointLayer(QDialog):
         self.plugin_dir=plugin_dir
         self.config=config
         self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.mappedAttributes={}
 
