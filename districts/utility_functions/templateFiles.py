@@ -762,7 +762,8 @@ class RenameTemplateFiles:
 
 class CopyTemplateMacro:
     """ Copy invoked template macros to IDA network project: customers and plants"""
-    def __init__(self,submodel,dir,type,config,cur,plugin_dir,reinvoke,invokedOutputs,requestedOutputs,parallize=False,signals=False):
+    def __init__(self,submodel,dir,type,config,cur,plugin_dir,reinvoke,invokedOutputs,requestedOutputs,parallize=False,signals=False,progress_fn=None):
+        """progress_fn(done,total): optional callback after each feature (progress bar)"""
         #print('copy {} macro'.format(type))
         #print(f"---------------reinvoke: {reinvoke}----------------")
         #print(parallize)
@@ -787,8 +788,11 @@ class CopyTemplateMacro:
                 self.invokedFeatureOutputs=invokedOutputs[type]
             except Exception:
                 self.invokedFeatureOutputs={}
-        self.decoupled_counter=0        
-        for feature in cur.fetchall():
+        self.decoupled_counter=0
+        features=cur.fetchall()
+        for counter,feature in enumerate(features):
+            if progress_fn:
+                progress_fn(counter,len(features))
             f_idc_target=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+".idc"
             f_idm_target=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+".idm"
             #print(f_idm_target)
@@ -848,6 +852,8 @@ class CopyTemplateMacro:
                             path=target_dir+'\\'+type_name.capitalize()+"_"+str(feature['id'])+subfolder
                             createSubDir(path)
                             copyFile(os.path.join(root, file),path,path+'\\'+file)
+        if progress_fn:
+            progress_fn(len(features),len(features))
         #print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
         
     def connectionImportData(self,file_data,conn_values,submodel,cosim):

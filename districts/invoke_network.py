@@ -131,19 +131,79 @@ class InvokeNetworkModel:
         1) insert nodes
         2) insert customers
         3) insert energy plants
-        4) insert pipes between customers and nodes 
+        4) insert pipes between customers and nodes
         5) insert pipes between nodes"""
+
+    # progress bar: share of the preparation (climate, sensor data) and of the final step (saving outputs)
+    PROGRESS_PREPARATION=7
+    PROGRESS_END=99
+    # relative duration of the build steps of one submodel in 0.1 s: (key, status text, weight, weight if the feature templates are reinvoked)
+    # (measured with 999 substations / 12 pipe bundles; the feature templates are copied per feature and report their own progress,
+    # copying took 1.4-16 s depending on the file system, invoking and copying 27 s)
+    PROGRESS_STEPS=[
+        ('network_templates','writing network templates',3,3),
+        ('supervisory','supervisory control',1,1),
+        ('sensors','sensor macros',38,35),
+        ('customers_templates','customer templates',40,265),
+        ('energy_plants_templates','energy plant templates',1,1),
+        ('result_macros','result macros',1,1),
+        ('lines','lines',6,6),
+        ('features','customers and energy plants',1,1),
+        ('connections','connections',2,2),
+        ('junctions','junctions',1,1),
+        ('write','writing model files',1,1),
+    ]
+
+    def setProgress(self,value,text=None):
+        """emit the progress (never backwards, max. 99 until finished) and the status text"""
+        value=int(max(self.progress_value,min(99,value)))
+        if value!=self.progress_value:
+            self.progress_value=value
+            self.signals.progress.emit(value)
+        if text is not None and text!=self.progress_text:
+            self.progress_text=text
+            self.signals.status.emit(text)
+
+    def setStepProgress(self,step,fraction=0.0,detail=''):
+        """progress of a build step (PROGRESS_STEPS) of the current submodel; fraction: part of the step which is done"""
+        weights=[i[3] if self.reinvoke else i[2] for i in self.PROGRESS_STEPS]
+        keys=[i[0] for i in self.PROGRESS_STEPS]
+        idx=keys.index(step)
+        step_start=sum(weights[:idx])/sum(weights)
+        step_end=sum(weights[:idx+1])/sum(weights)
+        submodel_fraction=step_start+(step_end-step_start)*fraction
+        span=(self.PROGRESS_END-self.PROGRESS_PREPARATION)/self.n_submodels
+        text=self.PROGRESS_STEPS[idx][1]+(' '+detail if detail else '')
+        if self.n_submodels>1:
+            text='submodel {} ({}/{}): {}'.format(self.submodel,self.submodel_counter+1,self.n_submodels,text)
+        self.setProgress(self.PROGRESS_PREPARATION+span*(self.submodel_counter+submodel_fraction),text)
+
+    def featureProgressFn(self,step):
+        """callback for CopyTemplateMacro: progress per feature, status text e.g. 'customer templates 120/999'"""
+        def progress_fn(done,total):
+            if total and (done==total or done%max(1,total//200)==0):
+                self.setStepProgress(step,done/total,'{}/{}'.format(done,total))
+        return progress_fn
+
     def __init__(self,main,config,plugin_dir,requestedOutputs,modellingSettings,networks,submodels,networkSimData,reinvoke,signals):
         #print('**********invoke network*********')
         #print(submodels)
         self.plugin_dir=plugin_dir
         self.config=config
-        self.conn=dbConnect(self.config,True)
         self.signals=signals
+        self.reinvoke=reinvoke
+        self.progress_value=0
+        self.progress_text=None
+        self.n_submodels=max(1,len(submodels))
+        self.submodel_counter=0
+        self.submodel=''
+        self.setProgress(1,'connecting to the database')
+        self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
             try:
+                self.setProgress(2,'climate data')
                 climate_file=getClimateData(self.cur,self.config,True)['filename']
                 if os.path.exists(climate_file):
                     updateClimateTemplate(main,climate_file)
@@ -172,6 +232,7 @@ class InvokeNetworkModel:
                 feature_dec_irefs=[]
                 resources=[]
                 
+                self.setProgress(4,'sensor data')
                 cleanupResultsSensors(self.cur)
                 added_sensor_info=addRequestedOutputsSensors(self.cur,self.config,requestedOutputs)
                 #print('---added-----')
@@ -193,21 +254,20 @@ class InvokeNetworkModel:
                             feature_dec_irefs.append(i)
                 #print(feature_dec_irefs)
                 
-                self.signals.progress.emit(2)
-                sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.config)      
+                self.setProgress(6,'sensor data')
+                sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.config)
                 #print(sensor_dec_data)
-                
-                self.signals.progress.emit(3)
+
                 #supervisory_submodel=str(getSupervisorySubmodel(self.cur,self.config)['submodel'])
                 supervisory_submodel=str(submodels[0])
-                self.signals.progress.emit(4)
 
-                for submodel in submodels: 
+                for self.submodel_counter,submodel in enumerate(submodels):
+                    self.submodel=submodel
+                    self.setStepProgress('network_templates')
                     self.pageSettings=PageSettings(self.cur,submodel,self.config['versionName'],networks).getPageSettings()
                     idm=self.writeNetworkTemplateIdm(submodel,dir,requestedOutputs,networkSimData,sensor_dec_data,networks)
                     dec_templates=CopyDecoupledTemplateMacro(submodel,dir,self.config,self.cur,sensor_data)
-                   
-                    self.signals.progress.emit(int(2+3*(submodels.index(submodel)+1)/len(submodels)*97))
+
                     resources.extend(dec_templates.resources)
                     #print('*****************************************************************')
                     #print(dec_templates.resources)
@@ -223,14 +283,12 @@ class InvokeNetworkModel:
                     target_dir_climateMacro=dir+'\\network_'+str(submodel)+'\\'
                     copyFile(source_dir_climateMacro+'climate-macro.idm',target_dir_climateMacro,target_dir_climateMacro+'climate-macro.idm')
                     copyFile(source_dir_climateMacro+'climate-macro.idc',target_dir_climateMacro,target_dir_climateMacro+'climate-macro.idc')
-            
-                    self.signals.progress.emit(int(2+4*(submodels.index(submodel)+1)/len(submodels)*97))
-                    
+
                     #decoupling
                     idm+=writeCosimMacroIdm(self.config,self.cur,submodel,dir,sensor_data,sensor_dec_data)
                     writeCosimMacroIdc(self.config,self.cur,submodel,dir)
-                    self.signals.progress.emit(int(2+8*(submodels.index(submodel)+1)/len(submodels)*97))
-                    
+                    self.setStepProgress('supervisory')
+
                     idm_conn="\n(CONNECTIONS"
                     idc_conn=""
                     
@@ -245,7 +303,7 @@ class InvokeNetworkModel:
                         if not os.path.exists(self.config['pathProjects']+self.config['projectName']+'\\versions\\{}\\supervisory_control\\supervisory_control.idm'.format(self.config['versionName'])):
                             Supervisory_control(self.plugin_dir,self.config)                     
                         resources.extend(CopySupervisoryControl(self.config['pathProjects']+self.config['projectName'],self.config,self.cur,submodel).resources)
-                    self.signals.progress.emit(int(2+10*(submodels.index(submodel)+1)/len(submodels)*97))
+                    self.setStepProgress('sensors')
 
                     #Sensors
                     #NetworkSensorSignals(self.cur,self.config,dir+'\\network_'+str(submodel))
@@ -253,7 +311,6 @@ class InvokeNetworkModel:
                     #print('%%%%%%%&&&&&&&&&&&&&&&&%%%%%%%%%%%%%%%')
                     sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.config,dir_network,import_counter)
                     sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.config,dir_network,self.plugin_dir)
-                    self.signals.progress.emit(int(2+12*(submodels.index(submodel)+1)/len(submodels)*97))
                     
                     #print('--')
                     idm_conn=sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn)
@@ -274,14 +331,16 @@ class InvokeNetworkModel:
                                 for i in sensor_dec_data if i['target_type']==3 for j in i['irefs_target']]))
 
                     for type in ["customers","energy_plants"]:
+                        self.setStepProgress(type+'_templates')
                         if reinvoke:
                             sql="""DELETE FROM "{}".invoked_sf WHERE type='{}';""".format(self.config['versionName'],type[:-1])# nosec B608
                             self.cur.execute(sql)
                         #print(self.signals)
-                        copyTemplateMacro=CopyTemplateMacro(submodel,dir,type,self.config,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals)
+                        copyTemplateMacro=CopyTemplateMacro(submodel,dir,type,self.config,self.cur,self.plugin_dir,reinvoke,self.invokedOutputs,requestedOutputs,parallize=True,signals=self.signals,
+                            progress_fn=self.featureProgressFn(type+'_templates'))
                         self.invokedOutputs[type]=copyTemplateMacro.invokedFeatureOutputs
                         resources.extend(copyTemplateMacro.resources)
-                    self.signals.progress.emit(int(2+15*(submodels.index(submodel)+1)/len(submodels)*97))
+                    self.setStepProgress('result_macros')
                     #print('&&&&&&&&&&&&&&&&&&&&&&')
                     #print(set(resources))
                     idm+=''.join(["\n"+i for i in set(resources)])
@@ -289,13 +348,12 @@ class InvokeNetworkModel:
                     #sf-macro
                     writeMacroSFIdm(self.config,self.cur,dir_network)
                     writeMacroSFIdc(self.config,self.cur,dir_network)
-                    self.signals.progress.emit(int(2+16*(submodels.index(submodel)+1)/len(submodels)*97))
 
                     #results-macro
                     for network in networks:
                         writeMacroResultsIdm(self.config,self.cur,dir_network,requestedOutputs,sensor_dec_data,added_sensor_info,network)
                         writeMacroResultsIdc(self.config,self.cur,dir_network,requestedOutputs,added_sensor_info,network)
-                    self.signals.progress.emit(int(2+17*(submodels.index(submodel)+1)/len(submodels)*97))
+                    self.setStepProgress('lines')
                     
                     # Define the path to the building idm file
                     self.buildingDirPath = """{}\\{}\\""".format(dir.replace('/','\\'),'network_'+str(submodel))
@@ -303,30 +361,29 @@ class InvokeNetworkModel:
                     self.buildingIdcFilePath = """{}\\{}.idc""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     
                     idm,idc=self.insertLines(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
-                    self.signals.progress.emit(int(2+25*(submodels.index(submodel)+1)/len(submodels)*97))
+                    self.setStepProgress('features')
                     idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
-                    self.signals.progress.emit(int(2+45*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
-                    self.signals.progress.emit(int(2+55*(submodels.index(submodel)+1)/len(submodels)*97))
-                    
+
+                    self.setStepProgress('connections')
                     idm_conn,idc_conn=self.insertConnections(submodel,'customers',idm_conn,idc_conn,networks)
-                    self.signals.progress.emit(int(2+75*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm_conn,idc_conn=self.insertConnections(submodel,'energy_plants',idm_conn,idc_conn,networks)
-                    self.signals.progress.emit(int(2+95*(submodels.index(submodel)+1)/len(submodels)*97))
                     idm_conn,idc_conn=self.insertJunctionConnections(submodel,idm_conn,idc_conn,networks)
                     idm_conn,idc_conn,plug_dict=self.insertJunctionPlugConnections(submodel,idm_conn,idc_conn,networks)
-                    self.signals.progress.emit(int(2+96*(submodels.index(submodel)+1)/len(submodels)*97))
+                    self.setStepProgress('junctions')
                     idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
                     idm,idc=self.insertPlugJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks,plug_dict)
-                    self.signals.progress.emit(int(2+97*(submodels.index(submodel)+1)/len(submodels)*97))
+                    self.setStepProgress('write')
                     idm_conn+=")"
                     idm+=idm_conn
                     idc+=idc_conn
                     writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
                     writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
+                self.setProgress(self.PROGRESS_END,'saving outputs')
                 writeInvokedOutputs(self.config,self.invokedOutputs)
                 removeResultSensors(self.cur,added_sensor_info.values())
-                self.signals.progress.emit(100)  
+                self.signals.progress.emit(100)
+                self.signals.status.emit('finished')
                 self.signals.finished.emit('Network model has been build successfully!')
 
             except Exception:

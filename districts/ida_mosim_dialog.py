@@ -383,11 +383,15 @@ class BuildNetworkModelDialog(QDialog):
         layout_win.addWidget(self.checkbox_reinvokeFeatures)
         layout_win.addLayout(layout_buttons)
         layout_win.addWidget(self.progress)
-        
+
         self.setLayout(layout_win)
-                  
+
     def update_progress(self,progress):
         self.progress.setValue(progress)
+
+    def update_status(self,text):
+        """show the current build step in the progress bar"""
+        self.progress.setFormat('%p%  ' + text.replace('%','%%') if text else '%p%')
 
     def update_finished(self,message):
         self.process_running=False

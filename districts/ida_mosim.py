@@ -349,6 +349,7 @@ def buildModel(dlg,main):
         main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels)
         main.worker_invokeNetwork.signals.error.connect(show_error_message)
         main.worker_invokeNetwork.signals.progress.connect(dlg.update_progress)
+        main.worker_invokeNetwork.signals.status.connect(dlg.update_status)
         main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)
         startWorkers([main.worker_invokeNetwork],dlg.btn_buildNetworkModel)
     else:
