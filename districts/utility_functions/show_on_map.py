@@ -14,13 +14,136 @@ from .db import (
 )
 from .files import loadProjectConfig
 from .utility import getDatetimeFromString
-from .workers import closesOwnConnection, APISignals2
+from .workers import closesOwnConnection, APISignals2, runInMainThread
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
 import traceback
+import uuid
 
+from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsDataSourceUri, QgsFeatureRequest, QgsGraduatedSymbolRenderer, QgsRendererRange, QgsClassificationMethod
+
+# 'show data on map' results are stored in indexed tables temp.result_vis_<id> of the project DB and loaded as PostGIS layers
+# (a memory layer evaluates the temporal filter and the renderer expressions for all time steps in every frame);
+# the tables are dropped when the project or a version is loaded the next time
+RESULT_VIS_SCHEMA='temp'
+RESULT_VIS_PREFIX='result_vis_'
+RESULT_VIS_PROPERTY='districts_result_vis'
+
+
+def removeResultVisLayers():
+    """Remove the 'show data on map' PostGIS result layers from the QGIS project (before their tables are dropped)"""
+    project=QgsProject.instance()
+    for layer in list(project.mapLayers().values()):
+        if layer.customProperty(RESULT_VIS_PROPERTY):
+            project.removeMapLayer(layer.id())
+
+
+def dropResultVisTables(cur):
+    """Remove the result layers and drop all temp.result_vis_* tables of the project DB (cur: autocommit cursor of the project DB)"""
+    removeResultVisLayers()
+    if not cur:
+        return
+    try:
+        cur.execute("""SELECT table_name FROM information_schema.tables WHERE table_schema=%s AND table_name LIKE %s""",
+            (RESULT_VIS_SCHEMA, RESULT_VIS_PREFIX.replace('_','\\_')+'%'))
+        tables=[(row['table_name'] if isinstance(row,dict) else row[0]) for row in cur.fetchall()]
+        if not tables:
+            return
+        # do not wait forever if another session (e.g. a second QGIS) still reads a table
+        cur.execute("SET lock_timeout = '5s'")
+        try:
+            for table in tables:
+                try:
+                    cur.execute('DROP TABLE IF EXISTS "{}"."{}"'.format(RESULT_VIS_SCHEMA, table))
+                except psycopg2.Error:
+                    QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
+        finally:
+            cur.execute("RESET lock_timeout")
+    except Exception:
+        QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
+
+
+def createResultVisTable(cur,config,vars,select_sql,feature):
+    """Store the result of select_sql (columns fid, geom (geometry), [time], color/size/rotation) in a new indexed
+    table temp.result_vis_<id> with the field names of the map layer (id, time, color_<var>, ...); returns the table name"""
+    srid=int(loadProjectConfig(config)['srid'])
+    geom_type='LineStringZ' if feature=='line' else 'PointZ'
+    table=RESULT_VIS_PREFIX+uuid.uuid4().hex[:12]
+    columns=['row_number() OVER ()::integer AS gid','s.fid::integer AS id']
+    if vars['time']['first_time_var']:
+        columns.append('s.time::timestamp AS time')
+    columns.append('ST_SetSRID(ST_Force3D(s.geom),{srid})::geometry({geom_type},{srid}) AS geom'.format(srid=srid,geom_type=geom_type))
+    for type in ['color','size','rotation']:
+        if vars[type]['mode']:
+            columns.append('s.{}::float8 AS "{}_{}"'.format(type,type,vars[type]['name'].split('$')[0]))
+    sql="""CREATE SCHEMA IF NOT EXISTS "{schema}";
+CREATE UNLOGGED TABLE "{schema}"."{table}" AS
+SELECT {columns}
+    FROM ({select}) s;
+ALTER TABLE "{schema}"."{table}" ADD PRIMARY KEY (gid);
+{time_index}CREATE INDEX ON "{schema}"."{table}" USING gist (geom);
+ANALYZE "{schema}"."{table}";""".format(schema=RESULT_VIS_SCHEMA,table=table,columns=',\n    '.join(columns), # nosec B608
+        select=select_sql.strip().rstrip(';'),
+        time_index='CREATE INDEX ON "{}"."{}" (time);\n'.format(RESULT_VIS_SCHEMA,table) if vars['time']['first_time_var'] else '')
+    cur.execute(sql)
+    return table
+
+
+def showOnMapPostgisLayer(config,table,feature,layer_name):
+    """PostGIS layer of a temp.result_vis_* table (create it in the main thread)"""
+    auth_cfg = QgsAuthMethodConfig()
+    QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
+    uri = QgsDataSourceUri()
+    uri.setConnection(config['host'], config['port'], config['projectName'], auth_cfg.config("username"), auth_cfg.config("password"))
+    uri.setDataSource(RESULT_VIS_SCHEMA, table, 'geom', '', 'gid')
+    uri.setSrid(str(loadProjectConfig(config)['srid']))
+    uri.setWkbType(Qgis.WkbType.LineStringZ if feature=='line' else Qgis.WkbType.PointZ)
+    layer = QgsVectorLayer(uri.uri(False), layer_name, "postgres")
+    if not layer.isValid():
+        raise RuntimeError('Result layer {}.{} could not be loaded'.format(RESULT_VIS_SCHEMA,table))
+    layer.setReadOnly(True)
+    layer.setCustomProperty(RESULT_VIS_PROPERTY, table)
+    return layer
+
+
+def mdotArrowSymbol(color,arrow_size,attr):
+    """Line with an arrow at the center pointing in the flow direction (sign of attr), no arrow without flow"""
+    symbol = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
+    marker_line = QgsMarkerLineSymbolLayer()
+    if hasattr(marker_line, "setPlacements"):
+        marker_line.setPlacements(Qgis.MarkerLinePlacement.CentralPoint)
+    else:
+        marker_line.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
+    marker_line.setRotateSymbols(True)  # rotate according to the line direction
+    marker_line.setDataDefinedProperty(QgsSymbolLayer.Property.LayerEnabled, QgsProperty.fromExpression(f'"{attr}" <> 0'))
+    arrow = QgsSimpleMarkerSymbolLayer(shape=QgsSimpleMarkerSymbolLayer.Triangle, color=color, size=arrow_size)
+    arrow.setAngle(90)
+    arrow.setDataDefinedProperty(QgsSymbolLayer.Property.Angle, QgsProperty.fromExpression(f'if("{attr}" < 0, 270, 90)'))
+    arrow_marker = QgsMarkerSymbol()
+    arrow_marker.changeSymbolLayer(0, arrow)
+    marker_line.setSubSymbol(arrow_marker)
+    symbol.appendSymbolLayer(marker_line)
+    return symbol
+
+
+# position of a class for its label (scoped enum in QGIS 4)
+CLASS_POSITION=getattr(QgsClassificationMethod,'ClassPosition',QgsClassificationMethod)
+
+def resultVisClassBounds(cur,layer,expr,num_classes):
+    """min, the linear percentiles i/num_classes and max of expr (= QgsClassificationQuantile, numpy.percentile) computed in the DB
+    for the layer of a temp.result_vis_* table: reading all features in the main thread took seconds for millions of rows
+    (e.g. 4 s for 1.4 million rows, 0.3 s in the DB). None if the layer has no result table, [] if there are no values"""
+    table=layer.customProperty(RESULT_VIS_PROPERTY)
+    if not table or cur is None or num_classes<1:
+        return None
+    fractions=[i/num_classes for i in range(num_classes+1)]
+    cur.execute('SELECT percentile_cont(%s::float8[]) WITHIN GROUP (ORDER BY {e}) AS bounds FROM "{s}"."{t}" WHERE {e} IS NOT NULL;'.format( # nosec B608
+        e=expr,s=RESULT_VIS_SCHEMA,t=table),(fractions,))
+    row=cur.fetchone()
+    bounds=row['bounds'] if isinstance(row,dict) else row[0]
+    return [float(i) for i in bounds] if bounds else []
 
 def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,color_classes=None,colormode=None,colorramp=None,feature=None,varRotation=None,size_symbolMin=None,size_symbolMax=None,rotation_symbolMin=None,rotation_symbolMax=None,networkReportDlg=None):
     #print(data)
@@ -74,6 +197,7 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
     # ===== BUILD RENDERER (in main thread!) =====
     #print("Building renderer in main thread...")
     renderer = None
+    mdot_arrows = False
 
     if data['color']['mode']:
         # target field name used for graduated renderer
@@ -92,103 +216,40 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
             if ramp is None:
                 raise ValueError(f"Color ramp '{color_ramp_name}' not found in QGIS Style Manager")
 
-            # compute vals (absolute) and bounds
-            vals = [abs(f[attr]) for f in layer.getFeatures() if f[attr] is not None]
-            if not vals:
+            # class bounds of abs(mdot): in the DB for result tables, else from the features (memory layer)
+            quantiles = resultVisClassBounds(cur, layer, 'abs("{}")'.format(attr), num_classes)
+            if quantiles is None:
+                request = QgsFeatureRequest().setFlags(Qgis.FeatureRequestFlag.NoGeometry).setSubsetOfAttributes([attr], layer.fields())
+                vals = [abs(f[attr]) for f in layer.getFeatures(request) if f[attr] is not None]
+                quantiles = np.percentile(vals, np.linspace(0, 100, num_classes + 1)).tolist() if vals else []
+            if not quantiles:
                 # fallback: set single-class renderer
                 #print("No values for attr", attr, " -> single symbol")
                 renderer = QgsSingleSymbolRenderer(QgsSymbol.defaultSymbol(layer.geometryType()))
             else:
-                vmin, vmax = min(vals), max(vals)
+                vmin, vmax = quantiles[0], quantiles[-1]
                 if vmin == vmax:
                     # degenerate case -> single class
                     bounds = [vmin, vmax]
                     num_classes = 1
                 else:
                     if classification_mode == 'Equal Count':
-                        percentiles = np.linspace(0, 100, num_classes + 1)
-                        bounds = np.percentile(vals, percentiles).tolist()
+                        bounds = quantiles
                     else:
                         step = (vmax - vmin) / num_classes
                         bounds = [vmin + i * step for i in range(num_classes + 1)]
 
-                root_rule = QgsRuleBasedRenderer.Rule(None)
-
+                # one graduated class per value range of abs(mdot), the arrow direction is data-defined
+                # (rule-based +/- rules: a memory layer evaluated 2 filter expressions per class for the features
+                # of all time steps in every frame of the temporal controller)
+                ranges = []
                 for i_cls in range(num_classes):
                     lower = bounds[i_cls]
                     upper = bounds[i_cls + 1]
                     frac = i_cls / (num_classes - 1) if num_classes > 1 else 0.0
-                    color = ramp.color(frac)
-
-                    # classes by absolute value; the last class includes the max value
-                    upper_op = '<=' if i_cls == num_classes - 1 else '<'
-                    expr_abs = f'abs("{attr}") >= {lower} AND abs("{attr}") {upper_op} {upper}'
-
-                    # Positive flows
-                    expr_pos = f'({expr_abs} AND "{attr}" > 0)'
-                    line_sym_pos = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
-
-                    marker_line_pos = QgsMarkerLineSymbolLayer()
-                    # try to use newer API if available
-                    if hasattr(marker_line_pos, "setPlacementType"):
-                        marker_line_pos.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
-                    else:
-                        marker_line_pos.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
-                    # rotate according to line direction
-                    marker_line_pos.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
-
-                    arrow_layer_pos = QgsSimpleMarkerSymbolLayer(
-                        shape=QgsSimpleMarkerSymbolLayer.Triangle,
-                        color=color,
-                        size=arrow_size
-                    )
-                    arrow_layer_pos.setAngle(90)  # rightward
-                    arrow_marker_pos = QgsMarkerSymbol()
-                    arrow_marker_pos.changeSymbolLayer(0, arrow_layer_pos)
-                    marker_line_pos.setSubSymbol(arrow_marker_pos)
-                    line_sym_pos.appendSymbolLayer(marker_line_pos)
-
-                    rule_pos = QgsRuleBasedRenderer.Rule(line_sym_pos)
-                    rule_pos.setFilterExpression(expr_pos)
-                    rule_pos.setLabel(f"{lower:.2f} – {upper:.2f}")
-                    root_rule.appendChild(rule_pos)
-
-                    # Negative flows
-                    expr_neg = f'({expr_abs} AND "{attr}" < 0)'
-                    line_sym_neg = QgsLineSymbol.createSimple({'color': color.name(), 'width': '0.7'})
-
-                    marker_line_neg = QgsMarkerLineSymbolLayer()
-                    if hasattr(marker_line_neg, "setPlacementType"):
-                        marker_line_neg.setPlacementType(QgsTemplatedLineSymbolLayerBase.CentralPoint)
-                    else:
-                        marker_line_neg.setPlacement(QgsMarkerLineSymbolLayer.CentralPoint)
-                    marker_line_neg.setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromValue(True))
-
-                    arrow_layer_neg = QgsSimpleMarkerSymbolLayer(
-                        shape=QgsSimpleMarkerSymbolLayer.Triangle,
-                        color=color,
-                        size=arrow_size
-                    )
-                    arrow_layer_neg.setAngle(270)  # leftward
-                    arrow_marker_neg = QgsMarkerSymbol()
-                    arrow_marker_neg.changeSymbolLayer(0, arrow_layer_neg)
-                    marker_line_neg.setSubSymbol(arrow_marker_neg)
-                    line_sym_neg.appendSymbolLayer(marker_line_neg)
-
-                    rule_neg = QgsRuleBasedRenderer.Rule(line_sym_neg)
-                    rule_neg.setFilterExpression(expr_neg)
-                    rule_neg.setLabel("")  # hidden
-                    root_rule.appendChild(rule_neg)
-
-                # no flow: line without arrow
-                if vmin == 0:
-                    line_sym_zero = QgsLineSymbol.createSimple({'color': ramp.color(0.0).name(), 'width': '0.7'})
-                    rule_zero = QgsRuleBasedRenderer.Rule(line_sym_zero)
-                    rule_zero.setFilterExpression(f'"{attr}" = 0')
-                    rule_zero.setLabel("0")
-                    root_rule.appendChild(rule_zero)
-
-                renderer = QgsRuleBasedRenderer(root_rule)
+                    ranges.append(QgsRendererRange(lower, upper, mdotArrowSymbol(ramp.color(frac), arrow_size, attr), f"{lower:.3g} – {upper:.3g}"))
+                renderer = QgsGraduatedSymbolRenderer(f'abs("{attr}")', ranges)
+                mdot_arrows = True
 
         else:
             # --- Graduated renderer branch ---
@@ -205,7 +266,15 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
             renderer = QgsGraduatedSymbolRenderer()
             renderer.setClassAttribute(target_field)
             renderer.setClassificationMethod(classification_method)
-            renderer.updateClasses(layer, int(color_classes))
+            # Equal Count of a result table: bounds computed in the DB (updateClasses reads all values in the main thread)
+            bounds = resultVisClassBounds(cur, layer, '"{}"'.format(target_field), int(color_classes)) if colormode == 'Equal Count' else None
+            if bounds:
+                for i_cls in range(len(bounds) - 1):
+                    position = CLASS_POSITION.LowerBound if i_cls == 0 else (CLASS_POSITION.UpperBound if i_cls == len(bounds) - 2 else CLASS_POSITION.Inner)
+                    renderer.addClassRange(QgsRendererRange(bounds[i_cls], bounds[i_cls + 1], QgsSymbol.defaultSymbol(layer.geometryType()),
+                        classification_method.labelForRange(bounds[i_cls], bounds[i_cls + 1], position)))
+            else:
+                renderer.updateClasses(layer, int(color_classes))
             renderer.updateColorRamp(color_ramp)
             symbol = QgsSymbol.defaultSymbol(layer.geometryType())
             if feature == 'line':
@@ -270,10 +339,18 @@ def renderMapPlot(layer,data,cur,config,first_time_var=None,colorlabel=None,colo
                 base_symbol.symbolLayer(0).setDataDefinedProperty(QgsSymbolLayer.PropertyAngle, QgsProperty.fromExpression(rotation_expr))
 
             # apply the base symbol to renderer
-            try:
-                renderer.updateSymbols(base_symbol)
-            except Exception:
-                renderer.setSymbol(base_symbol)
+            if mdot_arrows:
+                # keep the arrow symbols: only the line width of each class is data-defined
+                if data['size']['mode']:
+                    for i_range, range_ in enumerate(renderer.ranges()):
+                        symbol = range_.symbol().clone()
+                        symbol.symbolLayer(0).setDataDefinedProperty(prop, QgsProperty.fromExpression(scale_expr))
+                        renderer.updateRangeSymbol(i_range, symbol)
+            else:
+                try:
+                    renderer.updateSymbols(base_symbol)
+                except Exception:
+                    renderer.setSymbol(base_symbol)
 
     except Exception:
         QgsMessageLog.logMessage(
@@ -404,11 +481,61 @@ class WorkerShowOnMap(QRunnable):
         self.cur=""
         self.plugin_dir=kwargs['plugin_dir']
         self.simData=kwargs['simData']
+        self.vis_table=None
         self.time_values=['Values','Hourly average','Daily average','Monthly average']
         self.conn = dbConnect(self.config,True)
         self.vars=None
+        self.progress_value=0
+        self.progress_text=None
+        self.steps=[]
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+
+    # weights: shares of the duration measured with 198 lines/280 segments of 50 m/7200 time steps (segment table 7 s,
+    # data 5 s, styling 0.6 s, the rest < 0.1 s)
+    STEP_WEIGHTS={'drop':1,'segmentize':1,'color_seg':35,'size_seg':35,'data':30,'dt':1,'layer':2,'render':5}
+
+    def setProgress(self,value,text=None):
+        """emit the progress (never backwards, max. 99 until finished) and the status text"""
+        value=int(max(self.progress_value,min(99,value)))
+        if value!=self.progress_value:
+            self.progress_value=value
+            self.signals.progress.emit(value)
+        if text is not None and text!=self.progress_text:
+            self.progress_text=text
+            self.signals.status.emit(text)
+
+    def planSteps(self,vars):
+        """steps which are run for the selected variables (the progress values are distributed by STEP_WEIGHTS)"""
+        def segVar(type):
+            return vars[type]['mode']=='var' and vars[type]['name'].split('$')[0] in ('temp','p')
+        steps=['drop']
+        if self.simData and self.feature=='line' and (segVar('color') or segVar('size')):
+            steps.append('segmentize')
+            if vars['color']['mode']=='var' and vars['color']['var_function']!='specific_dp':
+                steps.append('color_seg')
+            if vars['size']['mode']=='var' and vars['color']['name']!=vars['size']['name']:
+                steps.append('size_seg')
+        steps.append('data')
+        if any(vars[type]['var_function'] in self.time_values for type in ['color','size','rotation']):
+            steps.append('dt')
+        if not self.networkReportDlg:
+            steps+=['layer','render']
+        self.steps=steps
+
+    def setStep(self,step,text):
+        """progress at the start of a planned step and its status text, e.g. 'step 2/5: splitting the lines into segments of 50 m'"""
+        if step not in self.steps:
+            self.setProgress(self.progress_value,text)
+            return
+        weights=[self.STEP_WEIGHTS[i] for i in self.steps]
+        idx=self.steps.index(step)
+        self.setProgress(2+95*sum(weights[:idx])/sum(weights),'step {}/{}: {}'.format(idx+1,len(self.steps),text))
+
+    def varDescription(self,vars,type):
+        """e.g. 'color: temp (Hourly average)'"""
+        var=vars[type]
+        return '{}: {}{}'.format(type,var['name'].split('$')[0],' ({})'.format(var['var_function']) if var['mode']=='var' and var['var_function'] else '')
 
     def getShowOnMapVarsDict(self):
         """{'color'/'size'/'rotation':{'mode':'var'/'par'/False, 'name': var_name/par_name, 'var_function': function_items, 'table_name': DB table},time:{starttime,endtime},data}"""
@@ -464,14 +591,15 @@ class WorkerShowOnMap(QRunnable):
         else:
             #print('kwargs vars')
             vars=self.vars
-            
-        self.signals.progress.emit(5)  
+
+        self.planSteps(vars)
         vars=self.getShowOnMapData(vars)
         return vars
     
     def getShowOnMapData(self,vars):
         #print(vars)
         #drop old line_seg_%_vis tables
+        self.setStep('drop','removing old visualization tables')
         sql="""WITH tables_to_drop AS (
     SELECT table_name
     FROM information_schema.tables
@@ -527,87 +655,37 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
 );
 SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific_dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
                 #print(sql)
+                self.setStep('segmentize','splitting the lines into segments{}'.format('' if vars['color']['var_function']=='specific_dp' else ' of {} m'.format(self.lineSegVisLength)))
                 self.cur.execute(sql)
-            
+
                 #load var data to the coresponding visualization table using averaged values for merged segments
                 if vars['color']['mode']=='var' and vars['color']['var_function']!='specific_dp' :
-                    sql="""DROP TABLE IF EXISTS "{}".line_s_{}_vis CASCADE;
-CREATE TABLE "{}".line_s_{}_vis
-(
-    id serial,
-    fid integer,
-    time timestamp,
-    geom geometry(LineStringZ,{}),
-    segment integer,
-    "${}" numeric,
-    CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],srid,vars['color']['name'].split('$')[0],vars['color']['name']) # nosec B608
-                    
-                    if vars['color']['name'].split('$')[0]=='p': #linear interpolation using pressure values at start and end of the line
-                        #print('++++interpoation++++')
-                        sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
-    SELECT s.fid,time,s.seg1_v+CASE WHEN seg_counter.count=1 THEN (s.seg2_v-s.seg1_v)/2 ELSE (s.seg2_v-s.seg1_v)/(seg_counter.count-1)*(seg.lid_seg-1) END AS value,seg.geom,seg.lid_seg
-        FROM 
-            (Select a.fid,a."$p" AS seg1_v,b."$p" AS seg2_v,a.time
-                FROM (SELECT fid,"$p",time FROM "{}".line_s_{} WHERE segment =1 ORDER BY fid,time) a,
-                    (SELECT fid,"$p",time FROM "{}".line_s_{} WHERE segment =2 ORDER BY fid,time) b
-                WHERE a.fid=b.fid AND a.time=b.time
-                ORDER BY a.fid,a.time) s, 
-            "{}".line_seg_vis seg,
-            (SELECT lid, count(*) AS count FROM "{}".line_seg_vis GROUP BY lid ORDER BY lid) seg_counter
-        WHERE  seg_counter.lid=s.fid AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
-        ORDER BY s.fid,seg.lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['color']['name'],self.config['versionName'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime'])  # nosec B608   
-                    else:
-                        sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
-    SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
-        FROM "{}".line_s_{} s, "{}".line_seg_vis seg
-        WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
-        GROUP BY time,s.fid,seg.geom,seg.lid_seg
-        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['color']['name'],vars['color']['name'].split('$')[0],vars['color']['name'].split('$')[0],self.config['versionName'],vars['color']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime']) # nosec B608
-                    sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['color']['name'],self.config['versionName'],vars['color']['name']) # nosec B608
-                    #print(sql)
-                    self.cur.execute(sql)
-                    
+                    interpolate=vars['color']['name'].split('$')[0]=='p' #linear interpolation using pressure values at start and end of the line
+                    self.setStep('color_seg','{} {} on the line segments (color)'.format(
+                        'interpolating' if interpolate else 'averaging',vars['color']['name'].split('$')[0]))
+                    self.cur.execute(self.segmentVisTableSql(vars['color']['name'],interpolate,vars['time']))
                     vars['color']['table_name']=vars['color']['table_name']+'_vis'
-                
+
                 if vars['size']['mode']=='var':
                     if vars['color']['name'] !=  vars['size']['name']: #if color and size car name is same --> do not twice
-                        sql="""DROP TABLE IF EXISTS "{}".line_s_{}_vis CASCADE;
-CREATE TABLE "{}".line_s_{}_vis
-(
-    id serial,
-    fid integer,
-    time timestamp,
-    geom geometry(LineStringZ,{}),
-    segment integer,
-    "${}" numeric, -- use $ in order not to have a conflict the var column with oder columns
-    CONSTRAINT line_s_{}_vis_pkey PRIMARY KEY (id)
-);""".format(self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['size']['name'],srid,vars['size']['name'].split('$')[0],vars['size']['name']) # nosec B608
-                        sql+="""\nINSERT INTO "{}".line_s_{}_vis (fid,time,"${}",geom,segment)
-    SELECT s.fid,time,avg(s."${}") AS value,seg.geom,seg.lid_seg
-        FROM "{}".line_s_{} s, "{}".line_seg_vis seg
-        WHERE ST_dwithin(ST_LineSubstring(seg.geom,0.01,0.99),s.geom,0.001) AND s.fid=seg.lid AND time BETWEEN '{}' AND '{}'
-        GROUP BY time,s.fid,seg.geom,seg.lid_seg
-        ORDER BY fid,lid_seg,time;""".format(self.config['versionName'],vars['size']['name'],vars['size']['name'].split('$')[0],vars['size']['name'].split('$')[0],self.config['versionName'],vars['size']['name'],self.config['versionName'],vars['time']['starttime'],vars['time']['endtime']) # nosec B608
-                        sql+="""CREATE INDEX "idx_line_s_{}_vis_fid_time_segment" ON {}."line_s_{}_vis" (fid, time, segment);""".format(vars['size']['name'],self.config['versionName'],vars['size']['name']) # nosec B608
-                        #print(sql)
-                        self.cur.execute(sql)
-                        
-                    
+                        self.setStep('size_seg','averaging {} on the line segments (size)'.format(vars['size']['name'].split('$')[0]))
+                        self.cur.execute(self.segmentVisTableSql(vars['size']['name'],False,vars['time']))
                     vars['size']['table_name']=vars['size']['table_name']+'_vis'
                     
-        self.signals.progress.emit(10)
         #print('get-data')
+        # aggregated only for hourly/daily/monthly averages: otherwise each row is one result row (the GROUP BY over all columns
+        # did not change the rows, it doubled the duration); the map table gets the geometry itself (WKT only for the network report)
+        averaged=bool(self.first_time_var) and dt in ['hour','day','month']
         if self.first_time_var or first_par_var:
-            sql="""SELECT {}.{} AS fid, ST_AsText({}.geom) AS geom {}, {}
-    FROM {}{}{}
-    GROUP BY {}
-    ORDER BY {} {}.{};""".format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id',first_group, # nosec B608
+            sql="""SELECT {}.{} AS fid, {} AS geom {}, {}
+    FROM {}{}{}{}
+    ORDER BY {} {}.{};""".format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id', # nosec B608
+                ('ST_AsText({}.geom)' if self.networkReportDlg else '{}.geom').format(first_group), # nosec B608
                 """,date_trunc('{}', {}.time) AS time""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else (',{}.time'.format(self.first_time_var) if self.first_time_var else ''), # nosec B608
                 ','.join([i for i in # nosec B608
-                [('avg(color."${}") AS color'.format(vars['color']['name'].split('$')[0]) if dt else 'color."${}" AS color'.format(vars['color']['name'].split('$')[0])) if time_color else ('color.color' if vars['color']['mode']=='var' else ('color."{}"'.format(vars['color']['name']) +' AS color' if vars['color']['mode'] else '')), # nosec B608
-                'avg(size."${}") AS size'.format(vars['size']['name'].split('$')[0]) if time_size else ('size.size' if vars['size']['mode']=='var' else ('size."{}"'.format(vars['size']['name']) +' AS size' if vars['size']['mode'] else '')), # nosec B608
-                'avg(rotation."${}") AS rotation'.format(vars['rotation']['name'].split('$')[0]) if time_rotation else ('rotation.rotation' if vars['rotation']['mode']=='var' else ('rotation."{}"'.format(vars['rotation']['name']) +' AS rotation' if vars['rotation']['mode'] else '') )]  # nosec B608
+                [('avg(color."${}") AS color'.format(vars['color']['name'].split('$')[0]) if averaged else 'color."${}" AS color'.format(vars['color']['name'].split('$')[0])) if time_color else ('color.color' if vars['color']['mode']=='var' else ('color."{}"'.format(vars['color']['name']) +' AS color' if vars['color']['mode'] else '')), # nosec B608
+                ('avg(size."${}") AS size' if averaged else 'size."${}" AS size').format(vars['size']['name'].split('$')[0]) if time_size else ('size.size' if vars['size']['mode']=='var' else ('size."{}"'.format(vars['size']['name']) +' AS size' if vars['size']['mode'] else '')), # nosec B608
+                ('avg(rotation."${}") AS rotation' if averaged else 'rotation."${}" AS rotation').format(vars['rotation']['name'].split('$')[0]) if time_rotation else ('rotation.rotation' if vars['rotation']['mode']=='var' else ('rotation."{}"'.format(vars['rotation']['name']) +' AS rotation' if vars['rotation']['mode'] else '') )]  # nosec B608
                 if i]), # nosec B608
                 ','.join([i for i in  #from  # nosec B608
                     [""""{}".{} color""".format(self.config['versionName'],vars['color']['table_name']) if time_color else ( # nosec B608
@@ -628,19 +706,30 @@ CREATE TABLE "{}".line_s_{}_vis
                         for var in vars if self.first_time_var and var not in ['time','data']+[self.first_time_var] and vars[var]['mode']=='var']),     # nosec B608                       
                     ' AND '.join([self.first_time_var+'.time='+var+'.time' for var in vars if var not in ['time','data']+[self.first_time_var] and vars[var]['var_function'] in self.time_values]), # nosec B608
                     """{}.time <= '{}' AND {}.time >= '{}'""".format(self.first_time_var,vars['time']['endtime'],self.first_time_var,vars['time']['starttime']) if self.first_time_var else ''] if i]), # nosec B608
-                ','.join([i for i in #group by  # nosec B608
-                    ["ST_asText({}.geom)".format(first_group), # nosec B608
+                ('\n    GROUP BY ' if averaged else '')+','.join([i for i in #group by  # nosec B608
+                    ["{}.geom".format(first_group), # nosec B608
                     """date_trunc('{}', {}.time)""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time'.format(self.first_time_var) if self.first_time_var else ''), # nosec B608
                     '{}.{}'.format(first_group,'fid' if vars[first_group]['mode']=='var' else 'id'), # nosec B608
-                    ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]), # nosec B608
+                    ','.join([var+'.'+(var if vars[var]['mode']=='var' and vars[var]['var_function']!='Values' else '"'+('$' if vars[var]['mode']=='var' else '')+vars[var]['name'].split('$')[0]+'"') for var in vars if var not in ['time','data'] and (vars[var]['mode'] and vars[var]['var_function'] not in self.time_values or vars[var]['var_function']=='Values')])] if i]) if averaged else '', # nosec B608
                 """date_trunc('{}', {}.time),""".format(dt,self.first_time_var) if self.first_time_var and dt in ['hour','day','month'] else ('{}.time,'.format(self.first_time_var) if self.first_time_var else ''), #order by  # nosec B608
                 first_group,'fid' if vars[first_group]['mode']=='var' else 'id') # nosec B608
             #print(sql)
-        self.cur.execute(sql)
-        data=self.cur.fetchall()
-        self.signals.progress.emit(60)  
+        vars['time']['first_time_var']=self.first_time_var
+        data_text=', '.join(self.varDescription(vars,type) for type in ['color','size','rotation'] if vars[type]['mode'])
+        if self.first_time_var:
+            data_text+=', {} - {}'.format(vars['time']['starttime'],vars['time']['endtime'])
+        self.setStep('data','{} {}s ({})'.format('querying' if self.networkReportDlg else 'querying and storing',self.feature.replace('_',' '),data_text))
+        if self.networkReportDlg:
+            # network report: the rows are stored with the plot and rendered later (memory layer)
+            self.cur.execute(sql)
+            data=self.cur.fetchall()
+        else:
+            # map: indexed PostGIS table (the temporal controller then only fetches the rows of the current frame)
+            self.vis_table=createResultVisTable(self.cur,self.config,vars,sql,self.feature)
+            data=None
         #get dt if not averaged
         if not dt and self.first_time_var:
+            self.setStep('dt','determining the time step')
             sql="""WITH sub AS(
     SELECT a.time-LAG(a.time, 1) OVER () as dt
         FROM (SELECT time FROM "{}".{} GROUP BY time) a
@@ -658,6 +747,48 @@ SELECT EXTRACT(epoch FROM dt)/3600 AS dt FROM sub WHERE dt IS NOT NULL LIMIT 1;"
         vars['time']['first_time_var']=self.first_time_var
         return vars
     
+    def segmentVisTableSql(self,name,interpolate,time):
+        """SQL for line_s_<name>_vis (fid, time, geom, segment, "$<var>"): the results of line_s_<name> on the visualization
+        segments of line_seg_vis, interpolated between the values of result segments 1 and 2 (pressure) or averaged over the result
+        segments which lie on a visualization segment. The result segment -> visualization segment mapping is determined once
+        with the geometries of the first time step of each line (the geometry of a result segment is the same for all time steps;
+        the spatial condition was evaluated for each time row, ~2.5x slower)"""
+        v=self.config['versionName']
+        col=name.split('$')[0]
+        sql='DROP TABLE IF EXISTS "{v}"."line_s_{n}_vis" CASCADE;\n'.format(v=v,n=name)
+        if interpolate:
+            sql+="""CREATE UNLOGGED TABLE "{v}"."line_s_{n}_vis" AS
+SELECT a.fid, a.time, seg.geom, seg.lid_seg AS segment,
+        a."${c}"+CASE WHEN n.count=1 THEN (b."${c}"-a."${c}")/2 ELSE (b."${c}"-a."${c}")/(n.count-1)*(seg.lid_seg-1) END AS "${c}"
+    FROM "{v}"."line_s_{n}" a
+    JOIN "{v}"."line_s_{n}" b ON b.fid=a.fid AND b.time=a.time AND b.segment=2
+    JOIN (SELECT lid, count(*) AS count FROM "{v}".line_seg_vis GROUP BY lid) n ON n.lid=a.fid
+    JOIN "{v}".line_seg_vis seg ON seg.lid=a.fid
+    WHERE a.segment=1 AND a.time BETWEEN '{t0}' AND '{t1}'
+    ORDER BY a.fid, seg.lid_seg, a.time;
+""".format(v=v,n=name,c=col,t0=time['starttime'],t1=time['endtime']) # nosec B608
+        else:
+            sql+="""DROP TABLE IF EXISTS pg_temp.line_seg_map;
+CREATE TEMP TABLE line_seg_map AS
+SELECT r.fid, r.segment, seg.lid_seg
+    FROM (SELECT DISTINCT lid FROM "{v}".line_seg_vis) l
+    CROSS JOIN LATERAL (SELECT min(time) AS t FROM "{v}"."line_s_{n}" WHERE fid=l.lid) t0
+    JOIN "{v}"."line_s_{n}" r ON r.fid=l.lid AND r.time=t0.t
+    JOIN "{v}".line_seg_vis seg ON seg.lid=r.fid AND ST_DWithin(ST_LineSubstring(seg.geom,0.01,0.99),r.geom,0.001);
+ANALYZE line_seg_map;
+CREATE UNLOGGED TABLE "{v}"."line_s_{n}_vis" AS
+SELECT a.fid, a.time, seg.geom, a.lid_seg AS segment, a.value AS "${c}"
+    FROM (SELECT s.fid, s.time, m.lid_seg, avg(s."${c}") AS value
+            FROM "{v}"."line_s_{n}" s JOIN line_seg_map m ON m.fid=s.fid AND m.segment=s.segment
+            WHERE s.time BETWEEN '{t0}' AND '{t1}'
+            GROUP BY s.fid, m.lid_seg, s.time) a
+    JOIN "{v}".line_seg_vis seg ON seg.lid=a.fid AND seg.lid_seg=a.lid_seg
+    ORDER BY a.fid, a.lid_seg, a.time;
+DROP TABLE line_seg_map;
+""".format(v=v,n=name,c=col,t0=time['starttime'],t1=time['endtime']) # nosec B608
+        sql+='CREATE INDEX "idx_line_s_{n}_vis_fid_time_segment" ON "{v}"."line_s_{n}_vis" (fid, time, segment);'.format(v=v,n=name) # nosec B608
+        return sql
+
     def getNonTimeVarFunctionValue(self,var,type,time):
         if var['var_function']=='Max':
             sql="""SELECT fid,geom AS geom,max("${}") AS {} FROM "{}".{} WHERE time BETWEEN '{}' AND '{}' GROUP BY fid,geom ORDER BY fid""".format(var['name'].split('$')[0],type,self.config['versionName'],var['table_name'],time['starttime'],time['endtime']) # nosec B608
@@ -703,22 +834,26 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
 
             
     def showOnMap(self):
-        self.vars=self.getShowOnMapVarsDict()      
-        self.signals.progress.emit(65)  
+        self.vars=self.getShowOnMapVarsDict()
         if not self.networkReportDlg:
-            self.temp_layer = showOnMapMemoryLayer(self.vars,self.config,self.plugin_dir,self.feature,self.layer_name)
-            self.signals.progress.emit(98)      
-            self.signals.finished.emit('',self)
+            # layers are created in the main thread (a layer created in a pool thread keeps its own DB connection)
+            self.setStep('layer','creating the map layer')
+            self.temp_layer = runInMainThread(showOnMapPostgisLayer,self.config,self.vis_table,self.feature,self.layer_name)
+            # the layer is styled in the main thread by update_finished of the dialog (sets 100%)
+            self.setStep('render','styling the map layer')
+            # finished is emitted once by run() (it was emitted twice, so the layer was rendered twice)
  
     @pyqtSlot()
     @closesOwnConnection
     def run(self):
         #print('Show data on map')
-        self.progress_value=1
-        self.signals.progress.emit(self.progress_value)
+        self.setProgress(1,'reading the settings')
         try:
             self.showOnMap()
-            self.signals.progress.emit(100)  
+            if self.networkReportDlg:
+                self.progress_value=100
+                self.signals.progress.emit(100)
+                self.signals.status.emit('done')
             self.signals.finished.emit('Data has been successfully visualized on map!',self)  
         except Exception:
             QgsMessageLog.logMessage(
@@ -726,5 +861,8 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
                 "Districts",
                 MessageCritical
             ) 
-            self.signals.progress.emit(0) 
+            failed_step=self.progress_text
+            self.progress_value=0
+            self.signals.progress.emit(0)
+            self.signals.status.emit('failed{} (see message log Districts)'.format(' at '+failed_step if failed_step else ''))
             self.signals.finished.emit('Data visualization has failed!',self)  

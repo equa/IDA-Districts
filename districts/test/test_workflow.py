@@ -17,19 +17,22 @@ from types import SimpleNamespace
 from xml.etree import ElementTree
 
 import pytest
-from qgis.core import Qgis, QgsFeature, QgsGeometry, QgsPointXY, QgsProject
+from qgis.core import Qgis, QgsFeature, QgsGeometry, QgsGraduatedSymbolRenderer, QgsPointXY, QgsProject
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QSettings, Qt
 from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QDialog, QMessageBox, QTableWidgetItem
 
 from districts.ida_mosim import buildModel, checkTopologyBeforeBuild, runModel, setRequestedOutputs
-from districts.ida_ph import ShowLoadAttributeDialog, addBaseVersion, createNewProject, deleteProject, setLoadAttribute
+from districts.ida_ph import ShowLoadAttributeDialog, addBaseVersion, createNewProject, deleteProject, loadVersion, setLoadAttribute
 from districts.ida_ph_dialog import ApproveDialog, IDA_Districts_NameDialog
 from districts.ida_rv import loadResults, runPathReports, showOnMap
 from districts.pipe_sizing import savePipeSizingResults
+from districts.utility_functions import reports
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
+from districts.utility_functions.files import districtsModelerTempDir
 from districts.utility_functions.invoke import setFeatureParm
 from districts.utility_functions.sensor_signals import getSensorData
+from districts.utility_functions.show_on_map import RESULT_VIS_PROPERTY
 from districts.utility_functions.topology import checkNetworkTopology, getUnconnectedFeatures
 from districts.utility_functions.translations import tr
 
@@ -783,11 +786,56 @@ class TestWorkflow:
         dlg.color_function.setCurrentText('Values')
         dlg.layer_name.setText('lines_results_supply_temperature_values')
         wait(1000)
+        statuses = []
+        update_status = dlg.update_status
+        dlg.update_status = lambda text: (statuses.append(text), update_status(text))
+        showOnMap(dlg, plugin)
+        wait_for_process(dlg, timeout=30)
+        wait(500)
+        # progress: steps with status text (segments of the lines), 100% and 'done' after styling the layer
+        assert dlg.progress.value() == 100
+        assert dlg.progress.format().endswith('done'), dlg.progress.format()
+        assert any('segments' in s for s in statuses), statuses
+        closeDialog(dlg)
+        errors.check()
+        assert QgsProject.instance().mapLayersByName('lines_results_supply_temperature_values')
+
+    @pytest.mark.ida
+    def test_show_line_mdot_on_map(self, wf, errors):
+        """mdot with flow arrows: indexed PostGIS result table in temp, dropped when the version is loaded again"""
+        self._require_simulation(wf)
+        plugin = wf.plugin
+        plugin.showDataOnMap()
+        dlg = plugin.dlg_showOnMap
+        dlg.rbtn_lines.setChecked(True)
+        dlg.checkbox_varColor.setChecked(True)
+        dlg.featureGroupChanged(dlg.rbtn_lines)
+        dlg.color_var.setCurrentText('mdot$1')
+        dlg.color_function.setCurrentText('Values')
+        dlg.layer_name.setText('lines_results_mdot_values')
+        wait(1000)
         showOnMap(dlg, plugin)
         wait_for_process(dlg, timeout=30)
         closeDialog(dlg)
         errors.check()
-        assert QgsProject.instance().mapLayersByName('lines_results_supply_temperature_values')
+        layers = QgsProject.instance().mapLayersByName('lines_results_mdot_values')
+        assert len(layers) == 1, "the result layer was added {} times".format(len(layers))
+        layer = layers[0]
+        assert layer.providerType() == 'postgres'
+        assert layer.temporalProperties().isActive()
+        assert layer.featureCount() > 0
+        assert isinstance(layer.renderer(), QgsGraduatedSymbolRenderer)
+        table = layer.customProperty(RESULT_VIS_PROPERTY)
+        plugin.cur.execute("SELECT indexdef FROM pg_indexes WHERE schemaname='temp' AND tablename=%s;", (table,))
+        indexes = [row['indexdef'] for row in plugin.cur.fetchall()]
+        assert any('(\"time\")' in i or '(time)' in i for i in indexes), indexes
+        assert any('gist' in i for i in indexes), indexes
+
+        loadVersion(main=plugin)
+        wait(3000)
+        assert not QgsProject.instance().mapLayersByName('lines_results_mdot_values')
+        plugin.cur.execute("SELECT count(*) AS n FROM information_schema.tables WHERE table_schema='temp' AND table_name LIKE 'result\\_vis\\_%';")
+        assert plugin.cur.fetchone()['n'] == 0
 
     @pytest.mark.ida
     def test_path_report(self, wf, errors):
@@ -808,3 +856,55 @@ class TestWorkflow:
         runPathReports(dlg, plugin)
         wait_for_process(dlg, timeout=30)
         errors.check()
+
+    def _add_report_plot(self, plugin, report, rbtn, variable, function, name):
+        """'+' in the network report dialog: the show-on-map dialog stores the plot data in the report"""
+        report.btn_addPlot.click()
+        dlg = plugin.dlg_showOnMap
+        assert dlg.networkReportDlg is report
+        getattr(dlg, rbtn).setChecked(True)
+        dlg.featureGroupChanged(getattr(dlg, rbtn))
+        dlg.checkbox_varColor.setChecked(True)
+        dlg.color_var.setCurrentText(variable)
+        assert dlg.color_var.currentText() == variable, "variable '{}' not available".format(variable)
+        dlg.color_function.setCurrentText(function)
+        assert dlg.color_function.currentText() == function
+        dlg.layer_name.setText(name)
+        wait(1000)
+        showOnMap(dlg, plugin, report)
+        wait_for_process(dlg, timeout=60)
+        closeDialog(dlg)
+
+    @pytest.mark.ida
+    def test_network_report(self, wf, errors, monkeypatch):
+        self._require_simulation(wf)
+        plugin = wf.plugin
+        # the report is opened in the PDF viewer
+        opened = []
+        monkeypatch.setattr(reports.os, 'startfile', opened.append, raising=False)
+
+        plugin.showNetworkReport()
+        report = plugin.dlg_networkReport
+        report.checkBox_kpi.setChecked(True)
+        report.checkBox_pipeTable.setChecked(True)
+        self._add_report_plot(plugin, report, 'rbtn_customers', 'power$1_1', 'Max', 'report_customer_power_max')
+        self._add_report_plot(plugin, report, 'rbtn_lines', 'temp$1', 'Min', 'report_line_temperature_min')
+        errors.check()
+        assert [report.tableWidget_diagrams.item(r, 0).text() for r in range(report.tableWidget_diagrams.rowCount())] == \
+            ['report_line_temperature_min', 'report_customer_power_max']
+        assert [plot['name'] for plot in report.data] == ['report_customer_power_max', 'report_line_temperature_min']
+
+        pdf = os.path.join(districtsModelerTempDir(), 'network_report.pdf')
+        if os.path.exists(pdf):
+            os.remove(pdf)
+        report.btn_ok.click()
+        wait(500)
+        errors.check()
+        assert os.path.exists(pdf) and os.path.getsize(pdf) > 0, "no report PDF: " + pdf
+        assert opened == [pdf]
+        layouts = [layout.name() for layout in QgsProject.instance().layoutManager().printLayouts()]
+        assert 'Network Report' in layouts
+        # the plot layers stay in the project: the layout 'Network Report' shows them
+        for name in ['report_customer_power_max', 'report_line_temperature_min']:
+            assert QgsProject.instance().mapLayersByName(name), name
+        closeDialog(report)

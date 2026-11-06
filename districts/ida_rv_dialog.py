@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import QTextEdit, QDialog, QGroupBox, QButtonGroup, QSpinBox, QShortcut, QListWidgetItem, QListWidget, QTabWidget, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar, QRadioButton
+from qgis.PyQt.QtWidgets import QFormLayout, QTextEdit, QDialog, QGroupBox, QButtonGroup, QSpinBox, QShortcut, QListWidgetItem, QListWidget, QTabWidget, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar, QRadioButton
 from qgis.utils import iface
 from qgis.core import Qgis, QgsMessageLog, QgsWkbTypes, QgsProperty, QgsSymbolLayer, QgsLineSymbol, QgsSymbol, QgsGraduatedSymbolRenderer, QgsStyle, QgsTemplatedLineSymbolLayerBase, QgsMarkerSymbol, QgsSimpleMarkerSymbolLayer, QgsMarkerLineSymbolLayer, QgsRuleBasedRenderer, QgsClassificationQuantile, QgsTextFormat, QgsInterval, QgsDateTimeRange, QgsTemporalNavigationObject, QgsVectorLayerSimpleLabeling, QgsPalLayerSettings
 
@@ -8,7 +8,7 @@ from qgis.PyQt import QtCore, QtWidgets, uic
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProject
 from .utility_functions.compat import MessageCritical, MessageInfo
-from .utility_functions.db import getNetworkInfo, getPlantIds, getResultVars, getTableAttr
+from .utility_functions.db import getNetworkInfo, getPlantIds, getResultVars, getTableAttr, getResultTimeRange
 from .utility_functions.dialog import CheckableComboBox, addTableRow, checkState
 from .utility_functions.files import loadModellingSettings
 from .utility_functions.show_on_map import renderMapPlot
@@ -198,6 +198,7 @@ class ShowOnMapDialog(QDialog):
         self.colormodes=['Equal Count','Equal Interval']
         self.process_running=False
         self.networkReportDlg=networkReportDlg
+        self.time_ranges={} # result table -> (min time, max time)
         
         self.setWindowTitle(self.tr("show_data_on_map"))   
 
@@ -537,6 +538,10 @@ class ShowOnMapDialog(QDialog):
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
+    def update_status(self,text):
+        """show the current step in the progress bar"""
+        self.progress.setFormat('%p%  ' + text.replace('%','%%') if text else '%p%')
+
     def update_finished(self, message, worker):
         """
         Called in main thread when worker finished.
@@ -551,6 +556,11 @@ class ShowOnMapDialog(QDialog):
             layer=None
 
         # 0) make sure layer exists
+        if layer is None and not self.networkReportDlg:
+            # map visualization failed (error in the message log)
+            self.dlg_main.statusMessage.setText(message)
+            self.process_running = False
+            return False
         if layer is None:
             #print("No layer returned from worker.")
             self.process_running = False
@@ -579,6 +589,8 @@ class ShowOnMapDialog(QDialog):
             renderMapPlot(layer,worker.vars,self.cur,self.config,first_time_var=worker.first_time_var,colorlabel=self.colorlabel.isChecked(),varRotation=self.checkbox_varRotation.isChecked(),
                 color_classes=self.color_classes.text(),colormode=self.colormode.currentText(),colorramp=self.colorramp.currentText(),feature=self.feature,
                 size_symbolMin=self.size_symbolMin.text(),size_symbolMax=self.size_symbolMax.text(),rotation_symbolMin=self.rotation_symbolMin.text(),rotation_symbolMax=self.rotation_symbolMax.text())
+            self.progress.setValue(100)
+            self.update_status('done')
 
         #print("=== update_finished END ===")
         self.dlg_main.statusMessage.setText(message)        
@@ -782,75 +794,47 @@ class ShowOnMapDialog(QDialog):
             self.displaySizeLayout()
             
         self.color_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.color_table_name) # nosec B608
-        try:
-            self.cur.execute(sql)
-            time=self.cur.fetchone()
-            try:
-                current_min_time=getDatetimeFromString(self.label_starttime.text().split('min value=')[1][:-1])
-                current_max_time=getDatetimeFromString(self.label_endtime.text().split('max value=')[1][:-1])
-                if current_min_time>time['min']:
-                    self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                    self.starttime.setText(str(time['min']))
-                if current_max_time<time['min']:
-                    self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
-                    self.endtime.setText(str(time['max']))
-            except Exception:
-                self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                self.starttime.setText(str(time['min']))
-                self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
-                self.endtime.setText(str(time['max']))
-        except Exception:
-            self.label_starttime.setText('Start time, h')
-            self.label_endtime.setText('End time, h')
-            
+        self.updateTimeRange(self.color_table_name if s else None)
+
     def size_varChanged(self,s):
         self.size_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.size_table_name) # nosec B608
-        try:
-            self.cur.execute(sql)
-            time=self.cur.fetchone()
-            try:
-                current_min_time=getDatetimeFromString(self.label_starttime.text().split('min value=')[1][:-1])
-                current_max_time=getDatetimeFromString(self.label_endtime.text().split('max value=')[1][:-1])
-                if current_min_time>time['min']:
-                    self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                    self.starttime.setText(str(time['min']))
-                if current_max_time<time['min']:
-                    self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
-                    self.endtime.setText(str(time['max']))
-            except Exception:
-                self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                self.starttime.setText(str(time['min']))
-                self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
-                self.endtime.setText(str(time['max']))
-        except Exception:
-            self.label_starttime.setText('Start time, h')
-            self.label_endtime.setText('End time, h')
-            
+        self.updateTimeRange(self.size_table_name if s else None)
+
     def rotation_varChanged(self,s):
         self.rotation_table_name=self.feature+'_'+self.type+'_'+s
-        sql="""SELECT min(time), max(time) FROM "{}".{};""".format(self.config['versionName'],self.rotation_table_name) # nosec B608
-        try:
-            self.cur.execute(sql)
-            time=self.cur.fetchone()
+        self.updateTimeRange(self.rotation_table_name if s else None)
+
+    def getTimeRange(self,table):
+        """(min time, max time) of a result table, cached per dialog (color, size and rotation select the same first table
+        when the variables are loaded: it was queried 3 times with a full table scan), None if unknown"""
+        if table not in self.time_ranges:
             try:
-                current_min_time=getDatetimeFromString(self.label_starttime.text().split('min value=')[1][:-1])
-                current_max_time=getDatetimeFromString(self.label_endtime.text().split('max value=')[1][:-1])
-                if current_min_time>time['min']:
-                    self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                    self.starttime.setText(str(time['min']))
-                if current_max_time<time['min']:
-                    self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
-                    self.endtime.setText(str(time['max']))
+                self.time_ranges[table]=getResultTimeRange(self.cur,self.config['versionName'],table)
             except Exception:
-                self.label_starttime.setText('Start time, h (min value='+str(time['min'])+')')
-                self.starttime.setText(str(time['min']))
-                self.label_endtime.setText('End time, h (max value='+str(time['max'])+')')
-                self.endtime.setText(str(time['max']))
-        except Exception:
+                QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
+                self.time_ranges[table]=None
+        return self.time_ranges[table]
+
+    def updateTimeRange(self,table):
+        """extend the start/end time to the time range of the selected result table"""
+        if not table:
+            return
+        time=self.getTimeRange(table)
+        if time is None:
             self.label_starttime.setText('Start time, h')
             self.label_endtime.setText('End time, h')
+            return
+        try:
+            current_min_time=getDatetimeFromString(self.label_starttime.text().split('min value=')[1][:-1])
+            current_max_time=getDatetimeFromString(self.label_endtime.text().split('max value=')[1][:-1])
+        except Exception:
+            current_min_time=current_max_time=None
+        if current_min_time is None or current_min_time>time[0]:
+            self.label_starttime.setText('Start time, h (min value='+str(time[0])+')')
+            self.starttime.setText(str(time[0]))
+        if current_max_time is None or current_max_time<time[1]:
+            self.label_endtime.setText('End time, h (max value='+str(time[1])+')')
+            self.endtime.setText(str(time[1]))
 
     def dataGroupChanged(self,radioButto):
         self.featureGroupChanged(False)
@@ -905,10 +889,10 @@ class ShowOnMapDialog(QDialog):
         self.rotation_par.addItems(pars)
         
 class IDADistrictsPathReportsDialog(QDialog):
-    def __init__(self,cur,config,dlg_main):     
+    def __init__(self,cur,config,dlg_main):
         """Initialize GUI for path reports"""
         super().__init__()
-        self.setWindowTitle(self.tr("path_reports"))   
+        self.setWindowTitle(self.tr("path_reports"))
         self.cur=cur
         self.config=config
         self.dlg_main=dlg_main
@@ -917,178 +901,157 @@ class IDADistrictsPathReportsDialog(QDialog):
         self.weak_point=None
         self.path=None
         self.line_data=None
+        self.process_running=False
 
-        #set quantity 
-        #title
-        label_titel =QLabel(self.tr('quantity'))
-        font=label_titel.font()
-        font.setPointSize(15)
-        label_titel.setFont(font)
-        #radio buttons Temp/pressure
-        layout_rbtn_quantity = QHBoxLayout()
+        #---------------info-------------------
+        self.info_text=QTextEdit()
+        self.info_text.setHtml(self.tr('info_pathreport'))   #rich text (bold, list)
+        self.info_text.setReadOnly(True)
+        self.info_text.document().setDocumentMargin(6)
+        self.info_text.setMaximumHeight(self.fontMetrics().lineSpacing()*9+16)
+
+        #---------------quantity-------------------
+        group_box_quantity=QGroupBox(self.tr('quantity'))
+        layout_rbtn_quantity = QHBoxLayout(group_box_quantity)
         group_quantity=QButtonGroup(self)
-        self.rbtn_pathTemp = QRadioButton(self.tr('Temperature'))
         self.rbtn_pathPressure = QRadioButton(self.tr('Pressure'))
+        self.rbtn_pathTemp = QRadioButton(self.tr('Temperature'))
         self.rbtn_pathPressure.setChecked(True)
-           
-        layout_rbtn_quantity.addWidget(self.rbtn_pathPressure)  
+        layout_rbtn_quantity.addWidget(self.rbtn_pathPressure)
         layout_rbtn_quantity.addWidget(self.rbtn_pathTemp)
-        group_quantity.addButton(self.rbtn_pathTemp)      
-        group_quantity.addButton(self.rbtn_pathPressure)      
-        
-        quantity_info=QLabel(self.tr('info_pathreport'))
-        
-        layout_quantity = QVBoxLayout()
-        layout_quantity.addWidget(quantity_info)
-        layout_quantity.addWidget(label_titel)
-        layout_quantity.addLayout(layout_rbtn_quantity)
-        
-        #Date 
-        #title
-        label_titel =QLabel(self.tr('date'))
-        font=label_titel.font()
-        font.setPointSize(15)
-        label_titel.setFont(font)
-        #radio buttons Date/Max value
-        layout_rbtn_date = QHBoxLayout()
+        layout_rbtn_quantity.addStretch()
+        group_quantity.addButton(self.rbtn_pathPressure)
+        group_quantity.addButton(self.rbtn_pathTemp)
+
+        #---------------date-------------------
+        group_box_date=QGroupBox(self.tr('date'))
+        layout_date = QHBoxLayout(group_box_date)
+        group_date=QButtonGroup(self)
         self.rbtn_maxValue = QRadioButton(self.tr('max_value'))
         self.rbtn_maxValue.setChecked(True)
         self.rbtn_Date = QRadioButton(self.tr('date_format_pathreport'))
-           
-        layout_rbtn_date.addWidget(self.rbtn_maxValue)
-        layout_rbtn_date.addWidget(self.rbtn_Date) 
-        group_date=QButtonGroup(self)
-        group_date.addButton(self.rbtn_maxValue)      
-        group_date.addButton(self.rbtn_Date)  
-
+        group_date.addButton(self.rbtn_maxValue)
+        group_date.addButton(self.rbtn_Date)
         self.date_input = QLineEdit()
+        self.date_input.setPlaceholderText('yyyy-MM-dd HH:mm:ss')
+        layout_date.addWidget(self.rbtn_maxValue)
+        layout_date.addWidget(self.rbtn_Date)
+        layout_date.addWidget(self.date_input,1)
 
-        layout_date = QVBoxLayout()
-        layout_date.addWidget(label_titel)
-        layout_date.addLayout(layout_rbtn_date)        
-        layout_date.addWidget(self.date_input)        
-        
-        #Path 
-        #title
-        label_titel =QLabel('Path')
-        font=label_titel.font()
-        font.setPointSize(15)
-        label_titel.setFont(font)
-        #radio buttons Line ID/Weak point
+        #---------------path-------------------
+        group_box_path=QGroupBox('Path')
+        layout_path = QVBoxLayout(group_box_path)
         layout_rbtn_path = QHBoxLayout()
         self.rbtn_weakPoint = QRadioButton(self.tr('weak_point_customers'))
         self.rbtn_weakPoint.setChecked(True)
         self.rbtn_lineIds = QRadioButton(self.tr('line_ids'))
         self.rbtn_customer = QRadioButton(self.tr('customer_ids'))
         self.rbtn_energy_plant = QRadioButton(self.tr('energy_plant_ids'))
-           
-        layout_rbtn_path.addWidget(self.rbtn_weakPoint) 
+        layout_rbtn_path.addWidget(self.rbtn_weakPoint)
         layout_rbtn_path.addWidget(self.rbtn_lineIds)
-        layout_rbtn_path.addWidget(self.rbtn_customer) 
-        layout_rbtn_path.addWidget(self.rbtn_energy_plant) 
+        layout_rbtn_path.addWidget(self.rbtn_customer)
+        layout_rbtn_path.addWidget(self.rbtn_energy_plant)
+        layout_rbtn_path.addStretch()
         self.group_path=QButtonGroup(self)
-        self.group_path.addButton(self.rbtn_weakPoint,1)  
-        self.group_path.addButton(self.rbtn_lineIds,2)      
-        self.group_path.addButton(self.rbtn_customer,3)  
-        self.group_path.addButton(self.rbtn_energy_plant,4)  
-        #self.group_path.buttonClicked[int].connect(self.on_group_path_clicked)
+        self.group_path.addButton(self.rbtn_weakPoint,1)
+        self.group_path.addButton(self.rbtn_lineIds,2)
+        self.group_path.addButton(self.rbtn_customer,3)
+        self.group_path.addButton(self.rbtn_energy_plant,4)
         self.group_path.buttonClicked.connect(self.on_group_path_clicked)
-        
-        
+
+        #id list with its buttons on the right
+        layout_ids=QHBoxLayout()
         self.listWidget_ids= QListWidget()
         self.listWidget_ids.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
-        
-        layout_network_settings=QHBoxLayout()
-        #labels
-        layout_network_settings_labels=QVBoxLayout()
-        label_network =QLabel(tr('@default','network'))
-        layout_network_settings_labels.addWidget(label_network)
-        label_main_plant =QLabel(tr('@default','energy_plant'))
-        layout_network_settings_labels.addWidget(label_main_plant)
-        label_conntype =QLabel(tr('@default','connection_types'))
-        layout_network_settings_labels.addWidget(label_conntype)
-        label_sup_sequences =QLabel(self.tr('supply_sequence'))
-        layout_network_settings_labels.addWidget(label_sup_sequences)
-        label_ret_sequences =QLabel(self.tr('return_sequence'))
-        layout_network_settings_labels.addWidget(label_ret_sequences)
-        label_conntype =QLabel(self.tr('feature_connection_bundle_type'))
-        layout_network_settings_labels.addWidget(label_conntype)
-        label_conntype =QLabel(self.tr('feature_connection_type'))
-        layout_network_settings_labels.addWidget(label_conntype)
-        self.dp_recalc =QCheckBox(self.tr('recalculate_supply_pressure_value_with_dp_min'))
-        layout_network_settings_labels.addWidget(self.dp_recalc)
-
-        
-        #input
-        layout_network_settings_values=QVBoxLayout()
-        self.network = QComboBox()
-        self.network.currentTextChanged.connect(self.network_changed)
-        layout_network_settings_values.addWidget(self.network)
-        self.main_plant = QComboBox()
-        self.main_plant.currentTextChanged.connect(self.main_plant_changed)
-        layout_network_settings_values.addWidget(self.main_plant)
-        self.conn_type = QComboBox()
-        self.conn_type.currentTextChanged.connect(self.conn_type_changed)
-        layout_network_settings_values.addWidget(self.conn_type)
-        self.sup_sequence =QComboBox()
-        layout_network_settings_values.addWidget(self.sup_sequence)
-        self.ret_sequence =QComboBox()
-        layout_network_settings_values.addWidget(self.ret_sequence)
-        self.f_conn_bundle_type = QComboBox()
-        layout_network_settings_values.addWidget(self.f_conn_bundle_type)
-        self.f_conn_bundle_type.currentTextChanged.connect(self.f_conn_bundle_type_changed)
-        self.f_conn_type = QComboBox()
-        layout_network_settings_values.addWidget(self.f_conn_type)
-        self.dp_min_recalc = QLineEdit()
-        layout_network_settings_values.addWidget(self.dp_min_recalc)
-        
-        layout_network_settings.addLayout(layout_network_settings_labels)
-        layout_network_settings.addLayout(layout_network_settings_values)
-        
-        self.geodetic_p =QCheckBox(self.tr('show_geodetic_pressure'))
-        self.geodetic_p.setChecked(True)
-        
-        #buttons
-        layout_btn_list = QHBoxLayout()
+        self.listWidget_ids.setMinimumHeight(100)
+        layout_btn_list = QVBoxLayout()
         self.btn_addID=QPushButton(self.tr("add_id"))
         self.btn_addSelectedIDs=QPushButton(self.tr("add _elected_ids_from_map"))
         self.btn_deleteIDs=QPushButton(self.tr("delete_ids"))
         layout_btn_list.addWidget(self.btn_addID)
         layout_btn_list.addWidget(self.btn_addSelectedIDs)
         layout_btn_list.addWidget(self.btn_deleteIDs)
-        
-        layout_path = QVBoxLayout()
-        layout_path.addWidget(label_titel)
-        layout_path.addLayout(layout_rbtn_path)  
-        layout_path.addWidget(self.listWidget_ids)
-        layout_path.addLayout(layout_network_settings)
-        layout_path.addWidget(self.geodetic_p)
-        layout_path.addLayout(layout_btn_list)
+        layout_btn_list.addStretch()
+        layout_ids.addWidget(self.listWidget_ids,1)
+        layout_ids.addLayout(layout_btn_list)
 
-        
-        #buttons     
+        layout_path.addLayout(layout_rbtn_path)
+        layout_path.addLayout(layout_ids)
+
+        #---------------network settings (label | input rows)-------------------
+        group_box_network=QGroupBox(tr('@default','network'))
+        layout_network_settings=QFormLayout(group_box_network)
+        self.network = QComboBox()
+        self.network.currentTextChanged.connect(self.network_changed)
+        self.main_plant = QComboBox()
+        self.main_plant.currentTextChanged.connect(self.main_plant_changed)
+        self.conn_type = QComboBox()
+        self.conn_type.currentTextChanged.connect(self.conn_type_changed)
+        self.sup_sequence =QComboBox()
+        self.ret_sequence =QComboBox()
+        self.f_conn_bundle_type = QComboBox()
+        self.f_conn_bundle_type.currentTextChanged.connect(self.f_conn_bundle_type_changed)
+        self.f_conn_type = QComboBox()
+        self.dp_recalc =QCheckBox(self.tr('recalculate_supply_pressure_value_with_dp_min'))
+        self.dp_min_recalc = QLineEdit()
+        self.geodetic_p =QCheckBox(self.tr('show_geodetic_pressure'))
+        self.geodetic_p.setChecked(True)
+
+        layout_network_settings.addRow(tr('@default','network'),self.network)
+        layout_network_settings.addRow(tr('@default','energy_plant'),self.main_plant)
+        layout_network_settings.addRow(tr('@default','connection_types'),self.conn_type)
+        layout_network_settings.addRow(self.tr('supply_sequence'),self.sup_sequence)
+        layout_network_settings.addRow(self.tr('return_sequence'),self.ret_sequence)
+        layout_network_settings.addRow(self.tr('feature_connection_bundle_type'),self.f_conn_bundle_type)
+        layout_network_settings.addRow(self.tr('feature_connection_type'),self.f_conn_type)
+        layout_network_settings.addRow(self.dp_recalc,self.dp_min_recalc)
+        layout_network_settings.addRow(self.geodetic_p)
+
+        #---------------progress and buttons-------------------
+        self.progress=QProgressBar()
         layout_btn=QHBoxLayout()
         self.btn_ok=QPushButton(tr('@default','ok'))
+        self.btn_ok.setDefault(True)
         self.btn_cancel=QPushButton(tr('@default','cancel'))
+        layout_btn.addStretch()
         layout_btn.addWidget(self.btn_ok)
         layout_btn.addWidget(self.btn_cancel)
-        
-        #progress bar
-        self.progress=QProgressBar()
-        
+
         #---------------set layouts together-------------------
         layout = QVBoxLayout()
-        layout.addLayout(layout_quantity)
-        layout.addLayout(layout_date)      
-        layout.addLayout(layout_path)      
-        layout.addLayout(layout_btn)
+        layout.addWidget(self.info_text)
+        layout.addWidget(group_box_quantity)
+        layout.addWidget(group_box_date)
+        layout.addWidget(group_box_path,1)
+        layout.addWidget(group_box_network)
         layout.addWidget(self.progress)
-        layout.addStretch()
-        
+        layout.addLayout(layout_btn)
         self.setLayout(layout)
-        
+        self.resize(650,self.sizeHint().height())
+
+        #enable inputs only where they apply
+        self.rbtn_Date.toggled.connect(self.update_enabled)
+        self.rbtn_pathPressure.toggled.connect(self.update_enabled)
+        self.dp_recalc.toggled.connect(self.update_enabled)
+        self.group_path.buttonClicked.connect(self.update_enabled)
+        self.update_enabled()
+
         f_conn_types = getConnBundlesByType(self.cur,self.config,'customer')
         self.f_conn_bundle_type.addItems(f_conn_types)
+
+    def update_enabled(self,*args):
+        """enable the inputs which are used with the current choice"""
+        self.date_input.setEnabled(self.rbtn_Date.isChecked())
+        pressure=self.rbtn_pathPressure.isChecked()
+        self.dp_recalc.setEnabled(pressure)
+        self.dp_min_recalc.setEnabled(pressure and self.dp_recalc.isChecked())
+        self.geodetic_p.setEnabled(pressure)
+        #the weak point is searched among all customers, the id list is not used
+        use_ids=not self.rbtn_weakPoint.isChecked()
+        self.listWidget_ids.setEnabled(use_ids)
+        self.btn_addID.setEnabled(use_ids)
+        self.btn_addSelectedIDs.setEnabled(use_ids)
+        self.btn_deleteIDs.setEnabled(use_ids)
 
     def add_combo_items(self, combo, new_items):
         #print('add combo:'+str(new_items))
@@ -1101,6 +1064,10 @@ class IDADistrictsPathReportsDialog(QDialog):
     #def on_group_path_clicked(self,id):
     def on_group_path_clicked(self,button):
         id = self.group_path.id(button)
+        if id!=getattr(self,'_path_id',1):
+            #ids of another feature type are not valid any more
+            self.listWidget_ids.clear()
+        self._path_id=id
         #print('on_group_path_clicked: '+str(id))
         
         self.f_conn_bundle_type.clear()

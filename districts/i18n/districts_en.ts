@@ -5632,7 +5632,7 @@ li.checked::marker { content: "\2612"; }
         <message>
             <location filename="../ida_rv_dialog.py" line="928" />
             <source>info_pathreport</source>
-            <translation type="unfinished">Pressure or temperature charts can be displayed. The pressure or temperature profile is shown along the path from the selected main energy plant to a) the weakest point, b) a defined path, c) a selected consumer, or d) another energy plant. Either a specific point in time or a maximum value can be evaluated.</translation>
+            <translation type="unfinished">Shows the &lt;b&gt;pressure&lt;/b&gt; or &lt;b&gt;temperature profile&lt;/b&gt; (supply and return) along the path from the selected &lt;b&gt;main energy plant&lt;/b&gt; to:&lt;ul&gt;&lt;li&gt;&lt;b&gt;Weak point&lt;/b&gt;: the customer with the largest pressure/temperature drop (supply + return)&lt;/li&gt;&lt;li&gt;&lt;b&gt;Route IDs&lt;/b&gt;: a path of connected routes, starting at the main energy plant&lt;/li&gt;&lt;li&gt;&lt;b&gt;Customer IDs&lt;/b&gt; / &lt;b&gt;energy plant IDs&lt;/b&gt;: the one of the listed features with the largest drop&lt;/li&gt;&lt;/ul&gt;Evaluated is either the time step with the &lt;b&gt;maximum value&lt;/b&gt; or a &lt;b&gt;specific date&lt;/b&gt;. &lt;span style="color:#c0392b;"&gt;&lt;b&gt;The simulation results must be loaded&lt;/b&gt;&lt;/span&gt; (Load results).</translation>
         </message>
         <message>
             <location filename="../ida_rv_dialog.py" line="937" />

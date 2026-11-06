@@ -7,6 +7,7 @@ from .compat import MessageCritical, MessageWarning
 from .db import getNetworks, getPlantIds, getTemplatesInfo
 from .files import loadProjectConfig
 from .reports import setupCustomerDataSheet
+from .show_on_map import removeResultVisLayers
 from .translations import tr
 from .utility import strToDict
 from qgis.core import  Qgis, QgsMessageLog, QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
@@ -543,6 +544,8 @@ def removeLayers():
             tr('@default','lines'),'line_types',tr('@default','boreholes'),'borehole_fields',
             'pipematerial','lines_results_supply_temperature','customer_results_load']:
             QgsProject.instance().removeMapLayer(layer)
+    # 'show data on map' result layers (their temp.result_vis_* tables are dropped when the project/version is loaded)
+    removeResultVisLayers()
     iface.mapCanvas().refresh()
 
         

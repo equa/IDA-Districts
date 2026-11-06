@@ -25,6 +25,7 @@ from .utility_functions.layer_visualization import (
     writeLayersConfig,
 )
 from .utility_functions.reports import setupCustomerDataSheet
+from .utility_functions.show_on_map import dropResultVisTables
 from .utility_functions.translations import tr
 from .utility_functions.utility import (
     checkString, copy_tree_filter_extensions_and_folders, get_districts_plugin_dir, load_plugin_settings,
@@ -932,6 +933,8 @@ def loadVersion(main=None,item=None):
   
         uri = QgsDataSourceUri()
         uri.setConnection(main.config['host'], main.config['port'], main.config['projectName'], auth_cfg.config("username"), auth_cfg.config("password"))
+        # results of 'show data on map' of the previous version (layers + temp.result_vis_* tables)
+        dropResultVisTables(main.cur)
         loadVersionLayers(main.config,main.cur,main.plugin_dir)
         
         highlight_item(item,main.model.invisibleRootItem())

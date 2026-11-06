@@ -564,7 +564,8 @@ class WorkerExportProject(QRunnable):
 
         cmd = [
             os.path.join(self.config['pathPostgresql'],"bin\\pg_dump"),  # Path to pg_dump
-            "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.username,self.password ,self.config['host'],self.config['port'],self.config['projectName'])
+            "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.username,self.password ,self.config['host'],self.config['port'],self.config['projectName']),
+            "--exclude-table=temp.result_vis_*",  # 'show data on map' results (dropped when the project/version is loaded)
         ]
         if self.no_db_results:
             cmd.append("--exclude-table=*.customer_s*")
@@ -748,6 +749,7 @@ class WorkerSimulateFilesAPI(QRunnable):
         connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
         #print(connectionTest)
         file_path=""
+        building=None
         try:
             for counter,file_path in enumerate(self.file_pathes,1):
                 if os.path.exists(file_path):
@@ -756,11 +758,10 @@ class WorkerSimulateFilesAPI(QRunnable):
                     #print('+++++++++opening+++++++++++')
                     building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
                     #print('+++++++++opened+++++++++++')
-                    #run sim
+                    #run sim (IDA is closed after the last file, not here: the next files use the same session)
                     script="""((RUN-SIMULATION [@ :SYSTEM])
 (save-document [@ :SYSTEM] "{}" nil)
-(close (:call find-view [@ :SYSTEM] 'schema t))
-(exit-ida))""".format(file_path.replace('\\','\\\\'))
+(close (:call find-view [@ :SYSTEM] 'schema t)))""".format(file_path.replace('\\','\\\\'))
                     #print(script)
                     self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, building, script.encode('utf-8'))
                     #print('save doc')
@@ -780,6 +781,9 @@ class WorkerSimulateFilesAPI(QRunnable):
         except Exception:
             self.signals.progress.emit(0)
             self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
+        finally:
+            #close IDA Districts whether the simulations finished or failed
+            self.util.exit_ida(building)
 
 class WorkerSimulateAPI(QRunnable):
     """ Class to open,simulate, IDA Doc with API """            
@@ -824,6 +828,9 @@ class WorkerSimulateAPI(QRunnable):
             #print('++++simulation-finished++++')
         except Exception:
             self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
+        finally:
+            #close IDA Districts whether the simulation finished or failed
+            self.util.exit_ida(self.building)
         self.signals.finished.emit("finished")
 
             
@@ -966,20 +973,17 @@ class WorkerOpenRunScriptAPI(QRunnable):
                     result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
                     #print(result)
             else:
-                result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))
+                result = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
                 #print(result)
-            
+
             if self.exit_ida:
                 try:
-                    #print('exit-ida')
-                    self.script="(exit-ida)"
-                    #print(self.script.encode('utf-8'))
                     self.signals.progress.emit(90)
                     #print(self.finished_fn)
                     if callable(self.finished_fn):
                         self.finished_fn(self.finished_fn_args)
                     self.signals.progress.emit(100)
-                    self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, self.script.encode('utf-8'))
+                    self.util.exit_ida(self.building)
                 except Exception as e:
                     #print(e)
                     self.signals.progress.emit(0)

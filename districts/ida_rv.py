@@ -274,7 +274,8 @@ def showOnMap(dlg,main,networkReportDlg=None):
         lineSegVis=int(dlg.lineSegVis.text()),simData=dlg.rbtn_simData.isChecked(),enable=True)
             
     main.worker_showOnMap.signals.error.connect(show_error_message)
-    main.worker_showOnMap.signals.progress.connect(dlg.update_progress)  
+    main.worker_showOnMap.signals.progress.connect(dlg.update_progress)
+    main.worker_showOnMap.signals.status.connect(dlg.update_status)  
     main.worker_showOnMap.signals.finished.connect(dlg.update_finished)
     startWorkers([main.worker_showOnMap],dlg.btn_showOnMap)
         
@@ -309,7 +310,8 @@ def addSelectedIDs(dlg):
     layer = iface.activeLayer()
     if layer:
         #print(layer.name())
-        if layer.name()==tr('@default','lines') and dlg.rbtn_lineIds.isChecked() or layer.name()==tr('@default','customers') and dlg.rbtn_customer.isChecked():
+        if (layer.name()==tr('@default','lines') and dlg.rbtn_lineIds.isChecked() or layer.name()==tr('@default','customers') and dlg.rbtn_customer.isChecked()
+                or layer.name()==tr('@default','energy_plants') and dlg.rbtn_energy_plant.isChecked()):
             features = layer.selectedFeatures()
             #print(features)
             for f in features:

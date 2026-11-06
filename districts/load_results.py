@@ -87,8 +87,11 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
             #print(sql)
             self.cur.execute(sql)
         
-        for submodel_idx in range(self.dlg.combo_submodels.count()):
-            if self.dlg.combo_submodels.itemText(submodel_idx) != tr('@default','check_all_items') and self.dlg.combo_submodels.itemChecked(submodel_idx):
+        #progress: each checked submodel gets an equal part of the progress bar (the steps below report 0-100 per submodel)
+        self.progress_submodels=[submodel_idx for submodel_idx in range(self.dlg.combo_submodels.count())
+            if self.dlg.combo_submodels.itemText(submodel_idx) != tr('@default','check_all_items') and self.dlg.combo_submodels.itemChecked(submodel_idx)]
+        for submodel_idx in self.progress_submodels:
+                self.progress_submodel_nr=self.progress_submodels.index(submodel_idx)
                 try:
                     submodel=self.dlg.combo_submodels.itemText(submodel_idx)
                     #print(submodel)
@@ -264,7 +267,7 @@ CREATE TABLE "{}".customer_s_ventilation
                         self.cur.execute(sql)
                         cids=self.cur.fetchall()
                         
-                        self.signals.progress.emit(5)
+                        self.emitProgress(5)
 
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
                         geoms=self.featureGeometries('customers')
@@ -334,14 +337,14 @@ CREATE TABLE "{}".customer_s_ventilation
                                     #print(file_data)
                                     heatbalance_tables=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
                                     self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,{col: {'table_name': table_name} for col,table_name in enumerate(heatbalance_tables,2)},start_datetime)
-                            self.signals.progress.emit(int(5+counter / len(cids) *28))
+                            self.emitProgress(int(5+counter / len(cids) *28))
                         copy_buffer.flush()
                         #index after loading the data
                         #print(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'customer')
                             
-                    self.signals.progress.emit(33)
+                    self.emitProgress(33)
                                     
                         
                     #energy plant tables: customer_s_conntype_[conn type seq]
@@ -437,14 +440,14 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                         #print(file_data)
                                         self.copy_feature_sData(copy_buffer,file_data,id['id'],geoms.get(id['id'],''),col_var_dict,start_datetime)
-                            self.signals.progress.emit(int(33+counter / len(epids) *33))
+                            self.emitProgress(int(33+counter / len(epids) *33))
                         copy_buffer.flush()
                         #index after loading the data
                         #print(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'energy_plant')
                             
-                    self.signals.progress.emit(66)
+                    self.emitProgress(66)
                     #lines
                     line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
                     if line_outputs:
@@ -545,7 +548,7 @@ CREATE TABLE "{}".line_s_qamb
                                     else:
                                         segment_geoms=[line_geoms.get(id['id'],'')]*int(value_per_conn_seq)
                                     self.copy_line_sData(copy_buffer,file_data,id['id'],line_table_names,value_per_conn_seq,start_datetime,segment_geoms)
-                                self.signals.progress.emit(int(66+counter_l / len(lids)*30/len(line_outputs)+counter_of/len(line_outputs)*30))
+                                self.emitProgress(66+((counter_of-1)+counter_l/len(lids))/len(line_outputs)*30)
                             copy_buffer.flush()
 
                             #index after loading the data
@@ -553,7 +556,7 @@ CREATE TABLE "{}".line_s_qamb
                             self.createResultLayerIndex(table_names,'line')
 
 
-                        self.signals.progress.emit(99)
+                        self.emitProgress(96)
                         
                     for network in getNetworkBySubmodel(self.cur,self.config,submodel):
                         #print(network)
@@ -650,7 +653,7 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                         #print(sql)
                         self.cur.execute(sql)
                         
-                        self.signals.progress.emit(97)
+                        self.emitProgress(97)
                         
                         #--------heat balance------
                         if self.simulatedOutputs['heatbalance_system']: 
@@ -701,7 +704,7 @@ CREATE TABLE "{}".heatbalance_{}_s
                             
                                 self.copy_string_iterator_system_balance_sData(file_data,start_datetime,col_dict.values(),'heatbalance_{}_s'.format(network))
                             
-                        self.signals.progress.emit(98)
+                        self.emitProgress(98)
                         
                         #--------mass balance------
                         if self.simulatedOutputs['massbalance_system']: 
@@ -754,7 +757,7 @@ CREATE TABLE "{}".massbalance_{}_s
                             
                                 self.copy_string_iterator_system_balance_sData(file_data,start_datetime,col_dict.values(),'massbalance_{}_s'.format(network))
                             
-                        self.signals.progress.emit(99)
+                        self.emitProgress(99)
                         
                         
                 except Exception:
@@ -764,6 +767,13 @@ CREATE TABLE "{}".massbalance_{}_s
                         MessageCritical
                     )
                         
+    def emitProgress(self,submodel_progress):
+        """emit the overall progress (1-99) for the progress (0-100) within the current submodel, never decreasing"""
+        value=1+int((self.progress_submodel_nr+min(max(submodel_progress,0),100)/100)*98/max(len(self.progress_submodels),1))
+        if value>self.progress_value:
+            self.progress_value=value
+            self.signals.progress.emit(value)
+
     def checkConnTypeSeqOutputFile(self,fname,feature_type,feature,seq,connValues,conn_outputs,power_output):
         """Log a QGIS error, if the connection type output file is missing or does not contain all requested variables"""
         expected_vars=['{}_{}'.format(output,connValue['conn_seq']) for connValue in connValues if connValue['conn_type_seq']==seq for output in conn_outputs]

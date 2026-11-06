@@ -1092,6 +1092,34 @@ def getResultVars(cur,config,feature,type):
     cur.execute(sql)
     return [var['var'] for var in cur.fetchall()]
     
+def getResultTimeRange(cur,schema,table):
+    """(min(time), max(time)) of a result table, None if the table does not exist or has no rows.
+    With an index on (fid, time, ...) (the result tables have one) the first and last time of each feature are read from the index
+    (loose index scan over the fids): a few ms instead of a full table scan of up to millions of rows (seconds without cache)"""
+    cur.execute("""SELECT c.oid IS NOT NULL AS table_exists, EXISTS (
+        SELECT 1 FROM pg_index i
+            JOIN pg_attribute a1 ON a1.attrelid=i.indrelid AND a1.attnum=i.indkey[0]
+            JOIN pg_attribute a2 ON a2.attrelid=i.indrelid AND a2.attnum=i.indkey[1]
+            WHERE i.indrelid=c.oid AND a1.attname='fid' AND a2.attname='time') AS fid_time_index
+    FROM (SELECT to_regclass(%s) AS oid) c;""",('"{}"."{}"'.format(schema,table),))
+    row=cur.fetchone()
+    if not row['table_exists']:
+        return None
+    if row['fid_time_index']:
+        sql="""WITH RECURSIVE f AS (
+    SELECT min(fid) AS fid FROM "{s}"."{t}"
+    UNION ALL
+    SELECT (SELECT min(fid) FROM "{s}"."{t}" WHERE fid>f.fid) FROM f WHERE f.fid IS NOT NULL
+)
+SELECT min((SELECT min(time) FROM "{s}"."{t}" WHERE fid=f.fid)) AS min,
+       max((SELECT max(time) FROM "{s}"."{t}" WHERE fid=f.fid)) AS max
+    FROM f WHERE f.fid IS NOT NULL;""".format(s=schema,t=table) # nosec B608
+    else:
+        sql='SELECT min(time) AS min, max(time) AS max FROM "{}"."{}";'.format(schema,table) # nosec B608
+    cur.execute(sql)
+    row=cur.fetchone()
+    return (row['min'],row['max']) if row and row['min'] is not None else None
+
 def getTableAttr(cur,config,feature,withoutID=False):
     sql="""SELECT column_name 
     FROM information_schema.columns 

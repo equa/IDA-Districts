@@ -100,6 +100,7 @@ from .utility_functions.files import (
 from .utility_functions.invoke import InvokeFeatures, setFeatureParm
 from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer, removeLayers
 from .utility_functions.reports import networkReport
+from .utility_functions.show_on_map import dropResultVisTables
 from .utility_functions.switch_debug_mode import switchDebugMode
 from .utility_functions.topology import getLayerAttributesName
 from .utility_functions.translations import tr
@@ -1055,7 +1056,9 @@ class Districts:
         #print(self.conn)
         if self.conn:
             #print(self.config)
-            self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)    
+            self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            # results of 'show data on map' of the previous session (layers + temp.result_vis_* tables)
+            dropResultVisTables(self.cur)
             data=getVersionData(self.cur)
             #print(data)
             self.setTreeViewModel(data)

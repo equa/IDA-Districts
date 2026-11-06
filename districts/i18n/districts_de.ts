@@ -5318,7 +5318,7 @@ li.checked::marker { content: "\2612"; }
         <message>
             <location filename="../ida_rv_dialog.py" line="928" />
             <source>info_pathreport</source>
-            <translation type="unfinished">Es können Druck- oder Temperaturschaubilder dargestellt werden. Der Druck- bzw. Temperaturverlauf wird entlang des Weges von der ausgewählten Energiezentrale zu a) dem Schlechtpunkt, b) einem definierten Pfad, c) einem ausgewählten Abnehmer oder d) einer Energiezentrale angezeigt. Dabei kann sowohl ein einzelner Zeitpunkt als auch dem Maximalwert gewählt werden.</translation>
+            <translation type="unfinished">Zeigt den &lt;b&gt;Druck-&lt;/b&gt; oder &lt;b&gt;Temperaturverlauf&lt;/b&gt; (Vor- und Rücklauf) entlang des Weges von der gewählten &lt;b&gt;Energiezentrale&lt;/b&gt; zu:&lt;ul&gt;&lt;li&gt;&lt;b&gt;Schlechtpunkt&lt;/b&gt;: der Abnehmer mit dem größten Druck-/Temperaturabfall (Vor- + Rücklauf)&lt;/li&gt;&lt;li&gt;&lt;b&gt;Trassen-IDs&lt;/b&gt;: ein Pfad zusammenhängender Trassen, beginnend bei der Energiezentrale&lt;/li&gt;&lt;li&gt;&lt;b&gt;Abnehmer-IDs&lt;/b&gt; / &lt;b&gt;Energiezentralen-IDs&lt;/b&gt;: das Objekt der Liste mit dem größten Abfall&lt;/li&gt;&lt;/ul&gt;Ausgewertet wird entweder der Zeitschritt mit dem &lt;b&gt;Maximalwert&lt;/b&gt; oder ein &lt;b&gt;bestimmter Zeitpunkt&lt;/b&gt;. &lt;span style="color:#c0392b;"&gt;&lt;b&gt;Die Simulationsergebnisse müssen geladen sein&lt;/b&gt;&lt;/span&gt; (Ergebnisse laden).</translation>
         </message>
         <message>
             <location filename="../ida_rv_dialog.py" line="937" />

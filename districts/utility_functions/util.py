@@ -1,10 +1,10 @@
 import ctypes
 import json
 import time
-from win32 import win32process
+from win32 import win32process, win32event
 import sys
 import os
-from .compat import MessageCritical
+from .compat import MessageCritical, MessageWarning
 import traceback
 
 from qgis.core import QgsMessageLog, Qgis
@@ -17,6 +17,7 @@ class Util_api:
         #print(command)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
+        self.process_handle = ret[0]
         self.pid = str(ret[2])
         #print(self.pid)
         time.sleep(float(config['districts_api_delay']))
@@ -114,6 +115,32 @@ class Util_api:
         self.ida_lib.printReport.argtypes = [ctypes.c_long, ctypes.c_char_p, ctypes.c_long, ctypes.c_char_p, ctypes.c_int]
 
     #Utility functions
+    def exit_ida(self,doc=None,timeout=30):
+        """Close the IDA Districts session started by this Util_api.
+        Sends the lisp function (exit-ida) via runIDAScript (needs an open document), otherwise the API
+        function exitSession. No result is polled (IDA terminates). Waits up to timeout seconds for the
+        process to end and terminates it if it is still running (e.g. a modal error dialog in IDA)."""
+        p = ctypes.create_string_buffer(32000)
+        try:
+            #openDocument returns the document handle (int) or an error text
+            if isinstance(doc,int) and doc:
+                self.ida_lib.runIDAScript(doc, b"(exit-ida)", p, len(p))
+            else:
+                self.ida_lib.exitSession(p, len(p))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
+        try:
+            self.ida_lib.ida_disconnect()
+        except Exception:
+            pass
+        try:
+            if win32event.WaitForSingleObject(self.process_handle, int(timeout*1000)) != win32event.WAIT_OBJECT_0:
+                win32process.TerminateProcess(self.process_handle, 1)
+                QgsMessageLog.logMessage("IDA Districts (pid {}) did not exit, terminated".format(self.pid), "Districts", MessageWarning)
+        except Exception:
+            #process already ended / handle closed
+            pass
+
     def ida_poll_results_queue (self,time_interval):
       size = 32000
       doc_str = ctypes.create_string_buffer(size) 
