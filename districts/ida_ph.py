@@ -10,8 +10,9 @@ import psycopg2
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog
 from .utility_functions.compat import (
-    MessageCritical, MessageInfo, PolygonPropertyExtrusionHeight, PolygonPropertyHeight,
+    MessageCritical, MessageInfo, MessageSuccess, MessageWarning, PolygonPropertyExtrusionHeight, PolygonPropertyHeight,
 )
+from .utility_functions.height_check import HEIGHT_CHECK_LAYERS, heightConsistency, heightGraduated
 from .utility_functions.db import (
     checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getProjectVersionNames, getTableAttr,
     setDistrictsModelerVersion2DB,
@@ -20,7 +21,8 @@ from .utility_functions.dialog import closeDialog, closeOtherDistrictsDialogs
 from .utility_functions.files import createDir, districtsModelerTempDir, loadProjectConfig, writeProjectConfig
 from .utility_functions.layer_visualization import (
     extract_group_fields, loadBoreholesLayer, loadLayersConfig, loadProjectLayers, loadTopologyLayers, on_form_changed,
-    removeLayers, setupCustomerGFAValue, setupCustomerLoadValue, setupFeatureLayerDialog, setupPipeDiameterStyleAction,
+    removeLayers, setupCustomerGFAValue, setupCustomerLoadValue, setupFeatureLayerDialog, setupHeightCheckActions,
+    setupPipeDiameterStyleAction,
     setupVersionForm, stylePipeDiameter, updateTableSrid, valueRelationPipeBundleType, versionLayersAliasNames,
     writeLayersConfig,
 )
@@ -77,6 +79,47 @@ def setPipeDiameterStyle(dlg):
                              show_labels=dlg.checkBox_showLabels.isChecked(), ramp_name=dlg.comboBox_colorRamp.currentText(),
                              invert_ramp=dlg.checkBox_invertRamp.isChecked()):
         iface.messageBar().pushMessage(tr('@default','style_pipe_diameter'), tr('@default','no_pipe_bundles_found'), level=MessageInfo, duration=5)
+        return
+    closeDialog(dlg)
+
+class ShowHeightCheckDialog:
+    """action of the lines, customers and energy_plants layers: visualize the heights or check their consistency"""
+    def __init__(self):
+        self.dlg=HeightCheckDialog()
+
+        self.dlg.btn_ok.clicked.connect(lambda: runHeightCheck(self.dlg))
+        self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
+        self.dlg.exec()
+
+def runHeightCheck(dlg):
+    layer_names=dlg.selectedLayers()
+    if not layer_names:
+        iface.messageBar().pushMessage(tr('@default','height_check'), tr('@default','no_layer_selected'), level=MessageWarning, duration=5)
+        return
+    title=tr('@default','height_check')
+    dlg.btn_ok.setEnabled(False)
+    try:
+        if dlg.radioButton_graduated.isChecked():
+            result=heightGraduated(dlg.cur, dlg.config['versionName'], layer_names, ramp_name=dlg.comboBox_colorRamp.currentText(),
+                                   invert_ramp=dlg.checkBox_invertRamp.isChecked(), n_classes=dlg.spinBox_classes.value(),
+                                   zero_is_missing=dlg.checkBox_zeroMissing.isChecked())
+            if result is None:
+                iface.messageBar().pushMessage(title, tr('@default','no_heights_found'), level=MessageWarning, duration=10)
+            else:
+                text=', '.join('{}: {} {}'.format(tr('@default',name), n_missing, tr('@default','z_missing'))
+                               for name,(n,n_missing) in result.items() if n_missing)
+                iface.messageBar().pushMessage(title, text or tr('@default','no_height_issues'),
+                                               level=MessageWarning if text else MessageSuccess, duration=10)
+        else:
+            counts=heightConsistency(dlg.cur, dlg.config['versionName'], layer_names, dz_tolerance=dlg.spinBox_dzTolerance.value(),
+                                     max_slope_pct=dlg.spinBox_maxSlope.value(), zero_is_missing=dlg.checkBox_zeroMissing.isChecked())
+            text=', '.join('{}: {}'.format(tr('@default',issue), n) for issue,n in counts.items())
+            iface.messageBar().pushMessage(title, text or tr('@default','no_height_issues'),
+                                           level=MessageWarning if text else MessageSuccess, duration=10)
+    except Exception:
+        QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
+        iface.messageBar().pushMessage(title, tr('@default','height_check_failed'), level=MessageCritical, duration=10)
+        dlg.btn_ok.setEnabled(True)
         return
     closeDialog(dlg)
 
@@ -209,6 +252,44 @@ class PipeDiameterStyleDialog(QDialog):
         row=self.cur.fetchone()
         if row and row['max'] is not None:
             self.spinBox_sequence.setRange(int(row['min']),int(row['max']))
+
+class HeightCheckDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.config=load_plugin_settings()
+        self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+
+        # Load UI
+        ui_path = os.path.join(os.path.dirname(__file__), "districts_heightCheck.ui")
+        uic.loadUi(ui_path, self)
+
+        ramp_names=QgsStyle.defaultStyle().colorRampNames()
+        if 'Turbo' not in ramp_names:
+            ramp_names=['Turbo']+ramp_names
+        self.comboBox_colorRamp.addItems(ramp_names)
+        self.comboBox_colorRamp.setCurrentText('Turbo')
+
+        # layers which are not loaded can not be selected
+        for layer_name in HEIGHT_CHECK_LAYERS:
+            if not QgsProject.instance().mapLayersByName(tr('@default',layer_name)):
+                checkbox=getattr(self,'checkBox_'+layer_name)
+                checkbox.setChecked(False)
+                checkbox.setEnabled(False)
+
+        self.radioButton_graduated.toggled.connect(self.modeChanged)
+        self.modeChanged()
+
+    def modeChanged(self,*args):
+        graduated=self.radioButton_graduated.isChecked()
+        self.groupBox_graduated.setEnabled(graduated)
+        self.groupBox_consistency.setEnabled(not graduated)
+
+    def selectedLayers(self):
+        return [layer_name for layer_name in HEIGHT_CHECK_LAYERS if getattr(self,'checkBox_'+layer_name).isChecked()]
 
 class GFAAttributeDialog(QDialog):
     def __init__(self):
@@ -850,8 +931,9 @@ def loadVersionLayers(config,cur,plugin_dir):
     setupCustomerLoadValue(config,plugin_dir,loadProjectConfig(config))
     setupCustomerGFAValue(config,plugin_dir,loadProjectConfig(config))
     setupPipeDiameterStyleAction()
-      
-    valueRelationPipeBundleType()    
+    setupHeightCheckActions()
+
+    valueRelationPipeBundleType()
     zoomToLayer('customers')
     
 def finishedImportProject(dlg=None,main=None,projectName=''):

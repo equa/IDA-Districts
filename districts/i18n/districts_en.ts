@@ -4125,6 +4125,61 @@
             <comment>no_pipe</comment>
             <translation type="unfinished">Mirror</translation>
         </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>height_check</source>
+            <translation type="unfinished">Height check</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>height</source>
+            <translation type="unfinished">height</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>points</source>
+            <translation type="unfinished">points</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>z_missing</source>
+            <translation type="unfinished">height missing</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>dz_node_line</source>
+            <translation type="unfinished">height differs from the connected line</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>dz_line_line</source>
+            <translation type="unfinished">line end differs from the connected line</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>vertical_jump</source>
+            <translation type="unfinished">height jump within the line</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>too_steep</source>
+            <translation type="unfinished">too steep segment</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>no_heights_found</source>
+            <translation type="unfinished">No heights found in the selected layers (all missing)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>no_height_issues</source>
+            <translation type="unfinished">No height issues found</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>height_check_failed</source>
+            <translation type="unfinished">Height check failed (see the message log Districts)</translation>
+        </message>
     </context>
     <context>
         <name>BuildNetworkModelDialog</name>
@@ -5605,6 +5660,105 @@ li.checked::marker { content: "\2612"; }
             <location filename="../ida_mosim_dialog.py" line="1448" />
             <source>load_results</source>
             <translation type="obsolete">Load results</translation>
+        </message>
+    </context>
+    <context>
+        <name>HeightCheckDialog</name>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="14" />
+            <source>height_check</source>
+            <translation type="unfinished">Height check</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="29" />
+            <source>info_heightCheck</source>
+            <translation type="unfinished">Visualizes the heights (z values of the geometries) of the selected layers or checks them for missing values and unrealistic jumps. The results are added as temporary layers to the group 'Height check' (a snapshot of the database: run the check again after editing).
+
+Graduated colors: all layers use the same height classes (equal intervals), so equal colors mean equal heights. Lines are colored by the mean height of their vertices. Missing heights are shown in magenta.
+
+Consistency check (marked in red): customers, energy plants and junctions whose height differs from the connected line, line ends whose height differs from the connected line, height jumps and too steep segments along the lines. Missing heights are shown in magenta.
+
+Note: junctions get no height from the elevation data when the network topology is generated (z = 0).</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="36" />
+            <source>height_check_mode</source>
+            <translation type="unfinished">Mode</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="42" />
+            <source>height_graduated</source>
+            <translation type="unfinished">Graduated colors by height</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="52" />
+            <source>height_consistency</source>
+            <translation type="unfinished">Consistency check (mark issues in red)</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="63" />
+            <source>layers</source>
+            <translation type="unfinished">Layers</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="68" />
+            <source>customers</source>
+            <translation type="unfinished">Customers</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="78" />
+            <source>energy_plants</source>
+            <translation type="unfinished">Energy plants</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="88" />
+            <source>lines</source>
+            <translation type="unfinished">Lines</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="98" />
+            <source>junctions</source>
+            <translation type="unfinished">Junctions</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="109" />
+            <source>height_zero_is_missing</source>
+            <translation type="unfinished">Height 0 counts as missing</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="126" />
+            <source>color_ramp</source>
+            <translation type="unfinished">Color ramp</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="136" />
+            <source>number_of_classes</source>
+            <translation type="unfinished">Number of classes</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="154" />
+            <source>invert_color_ramp</source>
+            <translation type="unfinished">Invert color ramp</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="172" />
+            <source>height_dz_tolerance</source>
+            <translation type="unfinished">Height tolerance</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="197" />
+            <source>height_max_slope</source>
+            <translation type="unfinished">Max. slope along the lines</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="243" />
+            <source>ok</source>
+            <translation type="unfinished">OK</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="253" />
+            <source>cancel</source>
+            <translation type="unfinished">Cancel</translation>
         </message>
     </context>
     <context>

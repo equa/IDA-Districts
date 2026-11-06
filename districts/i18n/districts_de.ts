@@ -4122,6 +4122,61 @@
             <comment>no_pipe</comment>
             <translation type="unfinished">Spiegelung</translation>
         </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>height_check</source>
+            <translation type="unfinished">Höhenprüfung</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>height</source>
+            <translation type="unfinished">Höhe</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>points</source>
+            <translation type="unfinished">Punkte</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>z_missing</source>
+            <translation type="unfinished">Höhe fehlt</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>dz_node_line</source>
+            <translation type="unfinished">Höhe weicht von der angeschlossenen Trasse ab</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>dz_line_line</source>
+            <translation type="unfinished">Trassenende weicht von der angeschlossenen Trasse ab</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>vertical_jump</source>
+            <translation type="unfinished">Höhensprung innerhalb der Trasse</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>too_steep</source>
+            <translation type="unfinished">zu steiler Abschnitt</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>no_heights_found</source>
+            <translation type="unfinished">Keine Höhen in den gewählten Layern gefunden (alle fehlen)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>no_height_issues</source>
+            <translation type="unfinished">Keine Probleme mit den Höhen gefunden</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>height_check_failed</source>
+            <translation type="unfinished">Höhenprüfung fehlgeschlagen (siehe Protokoll Districts)</translation>
+        </message>
     </context>
     <context>
         <name>BuildNetworkModelDialog</name>
@@ -5289,6 +5344,105 @@ li.checked::marker { content: "\2612"; }
         </message>
         <message>
             <location filename="../ExportResources_dialog.ui" line="328" />
+            <source>cancel</source>
+            <translation type="unfinished">Abbrechen</translation>
+        </message>
+    </context>
+    <context>
+        <name>HeightCheckDialog</name>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="14" />
+            <source>height_check</source>
+            <translation type="unfinished">Höhenprüfung</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="29" />
+            <source>info_heightCheck</source>
+            <translation type="unfinished">Stellt die Höhen (z-Werte der Geometrien) der gewählten Layer farbig dar oder prüft sie auf fehlende Werte und unrealistische Sprünge. Die Ergebnisse werden als temporäre Layer in der Gruppe 'Höhenprüfung' hinzugefügt (Momentaufnahme der Datenbank: nach dem Bearbeiten erneut ausführen).
+
+Abgestufte Farben: alle Layer verwenden dieselben Höhenklassen (gleiche Intervalle), gleiche Farben bedeuten also gleiche Höhen. Trassen werden nach der mittleren Höhe ihrer Stützpunkte eingefärbt. Fehlende Höhen werden magenta dargestellt.
+
+Konsistenzprüfung (rot markiert): Abnehmer, Energiezentralen und Verbindungsstücke, deren Höhe von der angeschlossenen Trasse abweicht, Trassenenden, deren Höhe von der angeschlossenen Trasse abweicht, Höhensprünge und zu steile Abschnitte entlang der Trassen. Fehlende Höhen werden magenta dargestellt.
+
+Hinweis: Verbindungsstücke erhalten beim Erzeugen der Netztopologie keine Höhe aus den Höhendaten (z = 0).</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="36" />
+            <source>height_check_mode</source>
+            <translation type="unfinished">Modus</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="42" />
+            <source>height_graduated</source>
+            <translation type="unfinished">Abgestufte Farben nach Höhe</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="52" />
+            <source>height_consistency</source>
+            <translation type="unfinished">Konsistenzprüfung (Probleme rot markieren)</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="63" />
+            <source>layers</source>
+            <translation type="unfinished">Layer</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="68" />
+            <source>customers</source>
+            <translation type="unfinished">Abnehmer</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="78" />
+            <source>energy_plants</source>
+            <translation type="unfinished">Energiezentralen</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="88" />
+            <source>lines</source>
+            <translation type="unfinished">Trassen</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="98" />
+            <source>junctions</source>
+            <translation type="unfinished">Verbindungsstücke</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="109" />
+            <source>height_zero_is_missing</source>
+            <translation type="unfinished">Höhe 0 gilt als fehlend</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="126" />
+            <source>color_ramp</source>
+            <translation type="unfinished">Farbverlauf</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="136" />
+            <source>number_of_classes</source>
+            <translation type="unfinished">Anzahl Klassen</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="154" />
+            <source>invert_color_ramp</source>
+            <translation type="unfinished">Farbrampe umkehren</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="172" />
+            <source>height_dz_tolerance</source>
+            <translation type="unfinished">Höhentoleranz</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="197" />
+            <source>height_max_slope</source>
+            <translation type="unfinished">Max. Gefälle entlang der Trassen</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="243" />
+            <source>ok</source>
+            <translation type="unfinished">OK</translation>
+        </message>
+        <message>
+            <location filename="../districts_heightCheck.ui" line="253" />
             <source>cancel</source>
             <translation type="unfinished">Abbrechen</translation>
         </message>

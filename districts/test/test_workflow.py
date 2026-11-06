@@ -17,19 +17,26 @@ from types import SimpleNamespace
 from xml.etree import ElementTree
 
 import pytest
-from qgis.core import Qgis, QgsFeature, QgsGeometry, QgsGraduatedSymbolRenderer, QgsPointXY, QgsProject
+from qgis.core import (
+    Qgis, QgsCategorizedSymbolRenderer, QgsFeature, QgsGeometry, QgsGraduatedSymbolRenderer, QgsPointXY, QgsProject,
+    QgsRuleBasedRenderer,
+)
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QSettings, Qt
 from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QDialog, QMessageBox, QTableWidgetItem
 
 from districts.ida_mosim import buildModel, checkTopologyBeforeBuild, runModel, setRequestedOutputs
-from districts.ida_ph import ShowLoadAttributeDialog, addBaseVersion, createNewProject, deleteProject, loadVersion, setLoadAttribute
+from districts.ida_ph import (
+    HeightCheckDialog, ShowLoadAttributeDialog, addBaseVersion, createNewProject, deleteProject, loadVersion, runHeightCheck,
+    setLoadAttribute,
+)
 from districts.ida_ph_dialog import ApproveDialog, IDA_Districts_NameDialog
 from districts.ida_rv import loadResults, runPathReports, showOnMap
 from districts.pipe_sizing import savePipeSizingResults
 from districts.utility_functions import reports
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.files import districtsModelerTempDir
+from districts.utility_functions.height_check import HEIGHT_CHECK_PROPERTY
 from districts.utility_functions.invoke import setFeatureParm
 from districts.utility_functions.sensor_signals import getSensorData
 from districts.utility_functions.show_on_map import RESULT_VIS_PROPERTY
@@ -553,6 +560,50 @@ class TestWorkflow:
         assert count(plugin, 'lines') > 0
         assert count(plugin, 'junctions') > 0
 
+    def test_height_check(self, wf, errors):
+        """height check action (lines, customers, energy plants): graduated colors and consistency check as memory layers
+        in the group 'height check', removed when the version is loaded again"""
+        only_for(wf, *NETWORK_TEMPLATES)
+        plugin = wf.plugin
+        for layer_name in ['lines', 'customers', 'energy_plants']:
+            layer = QgsProject.instance().mapLayersByName(tr('@default', layer_name))[0]
+            names = [a.name() for a in layer.actions().actions()]
+            assert names.count(tr('@default', 'height_check')) == 1, (layer_name, names)
+
+        def height_layers(mode):
+            return [l for l in QgsProject.instance().mapLayers().values() if l.customProperty(HEIGHT_CHECK_PROPERTY) == mode]
+
+        dlg = HeightCheckDialog()
+        dlg.checkBox_junctions.setChecked(True)
+        dlg.radioButton_graduated.setChecked(True)
+        dlg.comboBox_colorRamp.setCurrentText('Spectral')
+        runHeightCheck(dlg)
+        errors.check()
+        layers = height_layers('graduated')
+        assert len(layers) == 4, [l.name() for l in layers]
+        for layer in layers:
+            assert isinstance(layer.renderer(), QgsRuleBasedRenderer), layer.name()
+        n_lines = [l.featureCount() for l in layers if l.geometryType() == Qgis.GeometryType.Line]
+        assert n_lines == [count(plugin, 'lines')]
+        missing = {l.name(): sum(1 for f in l.getFeatures() if f['z_missing']) for l in layers}
+        print('height check (graduated), missing heights:', missing)
+
+        dlg = HeightCheckDialog()
+        dlg.radioButton_consistency.setChecked(True)
+        runHeightCheck(dlg)
+        errors.check()
+        issues = {}
+        for layer in height_layers('consistency'):
+            assert isinstance(layer.renderer(), QgsCategorizedSymbolRenderer), layer.name()
+            for f in layer.getFeatures():
+                issues[f['issue']] = issues.get(f['issue'], 0) + 1
+        print('height check (consistency):', issues)
+        assert len(height_layers('graduated')) == 4, "the consistency check must keep the graduated layers"
+
+        loadVersion(main=plugin)
+        wait(3000)
+        assert not [l for l in QgsProject.instance().mapLayers().values() if l.customProperty(HEIGHT_CHECK_PROPERTY)]
+
     def test_pipe_sizing(self, wf, errors):
         plugin = wf.plugin
         only_for(wf, *NETWORK_TEMPLATES)
@@ -865,6 +916,12 @@ class TestWorkflow:
         getattr(dlg, rbtn).setChecked(True)
         dlg.featureGroupChanged(getattr(dlg, rbtn))
         dlg.checkbox_varColor.setChecked(True)
+        if variable.endswith('$'):
+            # e.g. 'power$': the connection index depends on the templates (power$1_1, power$2_1, ...)
+            available = [dlg.color_var.itemText(i) for i in range(dlg.color_var.count())]
+            matches = sorted(v for v in available if v.startswith(variable))
+            assert matches, "no variable '{}*' available: {}".format(variable, available)
+            variable = matches[0]
         dlg.color_var.setCurrentText(variable)
         assert dlg.color_var.currentText() == variable, "variable '{}' not available".format(variable)
         dlg.color_function.setCurrentText(function)
@@ -887,7 +944,7 @@ class TestWorkflow:
         report = plugin.dlg_networkReport
         report.checkBox_kpi.setChecked(True)
         report.checkBox_pipeTable.setChecked(True)
-        self._add_report_plot(plugin, report, 'rbtn_customers', 'power$1_1', 'Max', 'report_customer_power_max')
+        self._add_report_plot(plugin, report, 'rbtn_customers', 'power$', 'Max', 'report_customer_power_max')
         self._add_report_plot(plugin, report, 'rbtn_lines', 'temp$1', 'Min', 'report_line_temperature_min')
         errors.check()
         assert [report.tableWidget_diagrams.item(r, 0).text() for r in range(report.tableWidget_diagrams.rowCount())] == \

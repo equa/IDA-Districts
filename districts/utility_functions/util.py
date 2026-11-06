@@ -118,8 +118,11 @@ class Util_api:
     def exit_ida(self,doc=None,timeout=30):
         """Close the IDA Districts session started by this Util_api.
         Sends the lisp function (exit-ida) via runIDAScript (needs an open document), otherwise the API
-        function exitSession. No result is polled (IDA terminates). Waits up to timeout seconds for the
-        process to end and terminates it if it is still running (e.g. a modal error dialog in IDA)."""
+        function exitSession (slower: ~15 s). No result is polled (IDA terminates). Waits up to timeout seconds for the
+        process to end and terminates it if it is still running (e.g. a modal error dialog in IDA).
+        ida_disconnect is NOT called: idaapi2.dll is loaded once per QGIS process and after ida_disconnect its connection
+        cannot be opened again (connect_to_ida of the next IDA session returns False, 'not a socket' from zmq), so every
+        later simulation in the same QGIS session failed. connect_to_ida of the next session switches the connection."""
         p = ctypes.create_string_buffer(32000)
         try:
             #openDocument returns the document handle (int) or an error text
@@ -129,10 +132,6 @@ class Util_api:
                 self.ida_lib.exitSession(p, len(p))
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
-        try:
-            self.ida_lib.ida_disconnect()
-        except Exception:
-            pass
         try:
             if win32event.WaitForSingleObject(self.process_handle, int(timeout*1000)) != win32event.WAIT_OBJECT_0:
                 win32process.TerminateProcess(self.process_handle, 1)

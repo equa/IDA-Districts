@@ -6,6 +6,7 @@ from qgis.core import (
 from .compat import MessageCritical, MessageWarning
 from .db import getNetworks, getPlantIds, getTemplatesInfo
 from .files import loadProjectConfig
+from .height_check import removeHeightCheckLayers
 from .reports import setupCustomerDataSheet
 from .show_on_map import removeResultVisLayers
 from .translations import tr
@@ -68,6 +69,8 @@ def setupFeatureLayerDialog(layer_name,cur,config,plugin_dir):
     if layer_name=='lines':
         valueRelationPipeBundleType()
         setupPipeDiameterStyleAction()
+    if layer_name in ['lines','customers','energy_plants']:
+        setupHeightCheckActions([layer_name])
         
 def loadLayersConfig(config,plugin_dir,project_name):
     layers_config=''
@@ -263,6 +266,27 @@ ShowPipeDiameterStyleDialog()"""
     rootContainer = form_config.invisibleRootContainer()
     rootContainer.addChildElement(QgsAttributeEditorAction(styleAction, rootContainer))
     layer.setEditFormConfig(form_config)
+
+def setupHeightCheckActions(layer_names=('lines', 'customers', 'energy_plants')):
+    """action in the layers (layer and form) to visualize the heights (z values) or check their consistency"""
+    action_text = """from districts.ida_ph import *
+ShowHeightCheckDialog()"""
+    for layer_name in layer_names:
+        layers = QgsProject.instance().mapLayersByName(tr('@default', layer_name))
+        if not layers:
+            continue
+        layer = layers[0]
+        # only once per layer (the layer setup may run again for a loaded layer)
+        if any(a.name() == tr('@default', 'height_check') for a in layer.actions().actions()):
+            continue
+        heightAction = QgsAction(Qgis.AttributeActionType.GenericPython, tr('@default', 'height_check'), action_text, None, capture=False,
+                                 shortTitle=tr('@default', 'height_check'), actionScopes={'Feature', 'Layer'})
+        layer.actions().addAction(heightAction)
+
+        form_config = layer.editFormConfig()
+        rootContainer = form_config.invisibleRootContainer()
+        rootContainer.addChildElement(QgsAttributeEditorAction(heightAction, rootContainer))
+        layer.setEditFormConfig(form_config)
 
 def turboColor(t):
     """Turbo colormap (polynomial approximation), t in [0, 1]"""
@@ -546,6 +570,8 @@ def removeLayers():
             QgsProject.instance().removeMapLayer(layer)
     # 'show data on map' result layers (their temp.result_vis_* tables are dropped when the project/version is loaded)
     removeResultVisLayers()
+    # height check layers (memory layers, snapshot of the old version)
+    removeHeightCheckLayers()
     iface.mapCanvas().refresh()
 
         
