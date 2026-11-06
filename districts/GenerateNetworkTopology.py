@@ -15,6 +15,7 @@ from .utility_functions.topology import (
     getLayerAttributesName,
     nodeLines,
     setSubnetwork,
+    updateJunctionHeights,
     updateSubmodels,
 )
 from .utility_functions.translations import tr
@@ -282,6 +283,7 @@ INSERT INTO temp.customers(geom,template,network)
         self.networkProgress(0.95)
         self.status('Updating heights and submodels')
         self.updateHeight(version,srid)
+        updateJunctionHeights(self.cur,self.tolerance,network)
         updateSubmodels(self.cur,self.config)
         self.networkProgress(1)
 

@@ -5362,9 +5362,7 @@ li.checked::marker { content: "\2612"; }
 
 Abgestufte Farben: alle Layer verwenden dieselben Höhenklassen (gleiche Intervalle), gleiche Farben bedeuten also gleiche Höhen. Trassen werden nach der mittleren Höhe ihrer Stützpunkte eingefärbt. Fehlende Höhen werden magenta dargestellt.
 
-Konsistenzprüfung (rot markiert): Abnehmer, Energiezentralen und Verbindungsstücke, deren Höhe von der angeschlossenen Trasse abweicht, Trassenenden, deren Höhe von der angeschlossenen Trasse abweicht, Höhensprünge und zu steile Abschnitte entlang der Trassen. Fehlende Höhen werden magenta dargestellt.
-
-Hinweis: Verbindungsstücke erhalten beim Erzeugen der Netztopologie keine Höhe aus den Höhendaten (z = 0).</translation>
+Konsistenzprüfung (rot markiert): Abnehmer, Energiezentralen und Verbindungsstücke, deren Höhe von der angeschlossenen Trasse abweicht, Trassenenden, deren Höhe von der angeschlossenen Trasse abweicht, Höhensprünge und zu steile Abschnitte entlang der Trassen. Fehlende Höhen werden magenta dargestellt.</translation>
         </message>
         <message>
             <location filename="../districts_heightCheck.ui" line="36" />

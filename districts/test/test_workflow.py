@@ -583,10 +583,17 @@ class TestWorkflow:
         assert len(layers) == 4, [l.name() for l in layers]
         for layer in layers:
             assert isinstance(layer.renderer(), QgsRuleBasedRenderer), layer.name()
-        n_lines = [l.featureCount() for l in layers if l.geometryType() == Qgis.GeometryType.Line]
-        assert n_lines == [count(plugin, 'lines')]
+        # lines split into their segments, with the attributes of the line
+        lines_layer = [l for l in layers if l.geometryType() == Qgis.GeometryType.Line][0]
+        assert len({f['id'] for f in lines_layer.getFeatures()}) == count(plugin, 'lines')
+        plugin.cur.execute('SELECT sum(ST_NPoints(geom) - 1) AS n FROM "{}".lines;'.format(plugin.config['versionName']))
+        assert lines_layer.featureCount() == plugin.cur.fetchone()['n']
+        assert {'z_mean', 'dz', 'seg', 'z_seg', 'seg_slope_pct'} <= set(lines_layer.fields().names())
         missing = {l.name(): sum(1 for f in l.getFeatures() if f['z_missing']) for l in layers}
         print('height check (graduated), missing heights:', missing)
+        # junctions get their height from the lines (pipe laying / network topology)
+        if missing['{} – {}'.format(tr('@default', 'lines'), tr('@default', 'height'))] == 0:
+            assert missing['{} – {}'.format(tr('@default', 'junctions'), tr('@default', 'height'))] == 0, missing
 
         dlg = HeightCheckDialog()
         dlg.radioButton_consistency.setChecked(True)

@@ -103,16 +103,31 @@ def baseSymbol(geometry_type, color, issue=None):
 # ---------------------------------------------------------------- graduated
 def graduatedRows(cur, schema, layer_name, zero_is_missing):
     if layer_name == 'lines':
-        sql = """SELECT l.id, ST_Z(ST_StartPoint(l.geom)) AS z_start, ST_Z(ST_EndPoint(l.geom)) AS z_end,
-       s.z_min, s.z_max, s.z_mean, ST_Z(ST_EndPoint(l.geom)) - ST_Z(ST_StartPoint(l.geom)) AS dz,
-       s.n_missing > 0 AS z_missing, ST_AsText(l.geom) AS wkt
-FROM "{s}".lines l
-CROSS JOIN LATERAL (
-    SELECT min(z) FILTER (WHERE NOT {m}) AS z_min, max(z) FILTER (WHERE NOT {m}) AS z_max,
-           avg(z) FILTER (WHERE NOT {m}) AS z_mean, count(*) FILTER (WHERE {m}) AS n_missing
-    FROM (SELECT ST_Z(d.geom) AS z FROM ST_DumpPoints(l.geom) d) p
-) s
-WHERE l.geom IS NOT NULL ORDER BY l.id;""".format(s=schema, m=missingSql('z', zero_is_missing))  # nosec B608
+        # one row per segment between two vertices with the attributes of its line and of the segment
+        sql = """WITH line AS (
+    SELECT l.id, ST_Z(ST_StartPoint(l.geom)) AS z_start, ST_Z(ST_EndPoint(l.geom)) AS z_end,
+           s.z_min, s.z_max, s.z_mean, ST_Z(ST_EndPoint(l.geom)) - ST_Z(ST_StartPoint(l.geom)) AS dz,
+           s.n_missing > 0 AS z_missing
+    FROM "{s}".lines l
+    CROSS JOIN LATERAL (
+        SELECT min(z) FILTER (WHERE NOT {m}) AS z_min, max(z) FILTER (WHERE NOT {m}) AS z_max,
+               avg(z) FILTER (WHERE NOT {m}) AS z_mean, count(*) FILTER (WHERE {m}) AS n_missing
+        FROM (SELECT ST_Z(d.geom) AS z FROM ST_DumpPoints(l.geom) d) p
+    ) s
+    WHERE l.geom IS NOT NULL
+), vertex AS (
+    SELECT l.id, d.path[1] AS n, lag(d.geom) OVER w AS g0, d.geom AS g1
+    FROM "{s}".lines l, ST_DumpPoints(l.geom) d
+    WHERE l.geom IS NOT NULL
+    WINDOW w AS (PARTITION BY l.id ORDER BY d.path[1])
+)
+SELECT line.*, v.n - 1 AS seg, (ST_Z(v.g0) + ST_Z(v.g1)) / 2 AS z_seg, ST_Z(v.g1) - ST_Z(v.g0) AS seg_dz,
+       abs(ST_Z(v.g1) - ST_Z(v.g0)) / nullif(ST_Distance(v.g0, v.g1), 0) * 100 AS seg_slope_pct,
+       ({m0} OR {m1}) AS seg_missing, ST_AsText(ST_MakeLine(v.g0, v.g1)) AS wkt
+FROM vertex v JOIN line ON line.id = v.id
+WHERE v.g0 IS NOT NULL
+ORDER BY v.id, v.n;""".format(s=schema, m=missingSql('z', zero_is_missing), m0=missingSql('ST_Z(v.g0)', zero_is_missing),  # nosec B608
+                              m1=missingSql('ST_Z(v.g1)', zero_is_missing))
     else:
         sql = """SELECT id, ST_Z(geom) AS z, {m} AS z_missing, ST_AsText(geom) AS wkt
 FROM "{s}".{t} WHERE geom IS NOT NULL ORDER BY id;""".format(s=schema, t=layer_name, m=missingSql('ST_Z(geom)', zero_is_missing))  # nosec B608
@@ -127,7 +142,7 @@ def classBounds(z_min, z_max, n_classes):
     return [(z_min + i * step, z_min + (i + 1) * step) for i in range(n_classes)]
 
 
-def heightRenderer(geometry_type, value_field, bounds, ramp_name, invert_ramp):
+def heightRenderer(geometry_type, value_field, bounds, ramp_name, invert_ramp, missing_field='z_missing'):
     """rule based renderer like a graduated one with equal intervals and an extra rule for the missing heights
     (the class bounds are the same for all layers, so equal colors mean equal heights)"""
     from .layer_visualization import turboColor
@@ -139,7 +154,7 @@ def heightRenderer(geometry_type, value_field, bounds, ramp_name, invert_ramp):
         if invert_ramp:
             t = 1.0 - t
         color = ramp.color(t) if ramp else turboColor(t)
-        conds = ['NOT "z_missing"', '"{}" IS NOT NULL'.format(value_field)]
+        conds = ['NOT "{}"'.format(missing_field), '"{}" IS NOT NULL'.format(value_field)]
         # first/last class open, so rounding never drops a feature
         if i > 0:
             conds.append('"{}" >= {!r}'.format(value_field, lo))
@@ -147,14 +162,15 @@ def heightRenderer(geometry_type, value_field, bounds, ramp_name, invert_ramp):
             conds.append('"{}" < {!r}'.format(value_field, hi))
         label = '{:.1f} – {:.1f} m'.format(lo, hi)
         root.appendChild(QgsRuleBasedRenderer.Rule(baseSymbol(geometry_type, color), filterExp=' AND '.join(conds), label=label))
-    root.appendChild(QgsRuleBasedRenderer.Rule(baseSymbol(geometry_type, MISSING_COLOR, 'z_missing'), filterExp='"z_missing"',
+    root.appendChild(QgsRuleBasedRenderer.Rule(baseSymbol(geometry_type, MISSING_COLOR, 'z_missing'), filterExp='"{}"'.format(missing_field),
                                                label=tr('@default', 'z_missing')))
     return QgsRuleBasedRenderer(root)
 
 
 def heightGraduated(cur, schema, layer_names, ramp_name='Turbo', invert_ramp=False, n_classes=10, zero_is_missing=True):
-    """Memory layers of the selected layers colored by height (lines by the mean height of their vertices).
-    Returns {layer_name: (n_features, n_missing)} or None if no layer has a height."""
+    """Memory layers of the selected layers colored by height. The lines are split into their segments between two vertices
+    (colored by the mean height of the segment, with the attributes of the line and of the segment).
+    Returns {layer_name: (n_features, n_missing)} (lines: number of lines, not segments) or None if no layer has a height."""
     removeHeightCheckLayers(MODE_GRADUATED)
     rows = {}
     for layer_name in layer_names:
@@ -163,9 +179,11 @@ def heightGraduated(cur, schema, layer_names, ramp_name='Turbo', invert_ramp=Fal
     values = []
     for layer_name, layer_rows in rows.items():
         for r in layer_rows:
-            if r['z_missing']:
-                continue
-            values += [r['z_min'], r['z_max']] if layer_name == 'lines' else [r['z']]
+            if layer_name == 'lines':
+                # min/max of the vertices with a height (also the valid segments of lines with missing heights are colored)
+                values += [r['z_min'], r['z_max']]
+            elif not r['z_missing']:
+                values.append(r['z'])
     values = [v for v in values if v is not None]
     bounds = classBounds(min(values), max(values), n_classes) if values else [(0.0, 0.0)]
 
@@ -175,16 +193,19 @@ def heightGraduated(cur, schema, layer_names, ramp_name='Turbo', invert_ramp=Fal
         layer_rows = rows[layer_name]
         if layer_name == 'lines':
             fields = [('id', 'integer'), ('z_mean', 'double'), ('z_min', 'double'), ('z_max', 'double'), ('z_start', 'double'),
-                      ('z_end', 'double'), ('dz', 'double'), ('z_missing', 'boolean')]
-            geom_type, value_field = 'LineStringZ', 'z_mean'
+                      ('z_end', 'double'), ('dz', 'double'), ('z_missing', 'boolean'),
+                      ('seg', 'integer'), ('z_seg', 'double'), ('seg_dz', 'double'), ('seg_slope_pct', 'double'), ('seg_missing', 'boolean')]
+            geom_type, value_field, missing_field = 'LineStringZ', 'z_seg', 'seg_missing'
+            lines = {r['id']: r['z_missing'] for r in layer_rows}
+            result[layer_name] = (len(lines), sum(1 for m in lines.values() if m))
         else:
             fields = [('id', 'integer'), ('z', 'double'), ('z_missing', 'boolean')]
-            geom_type, value_field = 'PointZ', 'z'
+            geom_type, value_field, missing_field = 'PointZ', 'z', 'z_missing'
+            result[layer_name] = (len(layer_rows), sum(1 for r in layer_rows if r['z_missing']))
         name = '{} – {}'.format(tr('@default', layer_name), tr('@default', 'height'))
         layer = createMemoryLayer(name, geom_type, getSrid(cur, schema, layer_name), fields, layer_rows, MODE_GRADUATED)
-        layer.setRenderer(heightRenderer(layer.geometryType(), value_field, bounds, ramp_name, invert_ramp))
+        layer.setRenderer(heightRenderer(layer.geometryType(), value_field, bounds, ramp_name, invert_ramp, missing_field))
         layer.triggerRepaint()
-        result[layer_name] = (len(layer_rows), sum(1 for r in layer_rows if r['z_missing']))
     return result if values else None
 
 

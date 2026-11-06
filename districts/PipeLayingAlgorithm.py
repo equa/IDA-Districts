@@ -17,6 +17,7 @@ from .utility_functions.topology import (
     checkLineDirectionPipeLaying,
     nodeLines,
     redrawSubnetworkIncludingLines,
+    updateJunctionHeights,
     updateSubmodels,
 )
 
@@ -324,6 +325,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         self.mergeLines()
         self.status('Updating heights, submodels and line directions')
         self.updateHeight(version)
+        updateJunctionHeights(self.cur,self.tolerance,self.network)
         self.setProgress(95)
         if self.redraw_submodels_polygons:
             redrawSubnetworkIncludingLines('temp.lines',self.cur,self.config,self.srid)

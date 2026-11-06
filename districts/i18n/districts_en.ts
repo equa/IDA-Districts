@@ -3539,7 +3539,7 @@
         <message>
             <location filename="../utility_functions/translations.py" line="350" />
             <source>info_boreholefield</source>
-            <translation type="unfinished">&lt;div align="justify"&gt;&lt;p&gt;Pro &lt;strong&gt;Energy Plant Template&lt;/strong&gt; kann maximal ein &lt;strong&gt;Borehole Field Model ("GHX_MANY")&lt;/strong&gt; verwendet werden.&lt;/p&gt; &lt;p&gt;Die Koordinaten der einzelnen &lt;strong&gt;Boreholes&lt;/strong&gt; können in der Ebene &lt;strong&gt;"boreholes"&lt;/strong&gt; definiert werden. Die Bohrungen lassen sich zu einem spezifischen &lt;strong&gt;Borehole Field&lt;/strong&gt; gruppieren, sodass die zugehörige Geometrie und die Feldparameter automatisch der ausgewählten &lt;strong&gt;Energy Plant&lt;/strong&gt; zugeordnet werden.&lt;/p&gt;    &lt;p&gt;The &lt;strong&gt;mirror points&lt;/strong&gt; (mir=True) are used to transform the geometry of symmetric borehole fields into a local coordinate system:&lt;/p&gt;
+            <translation type="unfinished">&lt;div align="justify"&gt;&lt;p&gt;Each &lt;strong&gt;energy plant template&lt;/strong&gt; can use at most one &lt;strong&gt;borehole field model ("GHX_MANY")&lt;/strong&gt;.&lt;/p&gt; &lt;p&gt;The coordinates of the individual &lt;strong&gt;boreholes&lt;/strong&gt; can be defined in the layer &lt;strong&gt;"Boreholes"&lt;/strong&gt;. The boreholes can be grouped into a specific &lt;strong&gt;borehole field&lt;/strong&gt;, so that the geometry and the corresponding field parameters are automatically assigned to the selected &lt;strong&gt;energy plant&lt;/strong&gt;.&lt;/p&gt;    &lt;p&gt;The &lt;strong&gt;mirror points&lt;/strong&gt; (mir=True) are used to transform the geometry of symmetric borehole fields into a local coordinate system:&lt;/p&gt;
     &lt;p&gt;&lt;strong&gt;No mirror points (Type 0):&lt;/strong&gt; The geometry is translated directly onto the calculated &lt;strong&gt;geometric centroid&lt;/strong&gt; without any rotation.&lt;/p&gt;
     &lt;p&gt;&lt;strong&gt;2 mirror points (Type 1):&lt;/strong&gt; The borehole field is aligned with the connecting line. The &lt;strong&gt;midpoint&lt;/strong&gt; forms the origin (0,0). X-coordinates remain relative (positive/negative), while Y-coordinates are mirrored to the positive side.&lt;/p&gt;
     &lt;p&gt;&lt;strong&gt;3 mirror points (Type 2 &amp; 3):&lt;/strong&gt; Alignment is performed at the shared vertex counter-clockwise. For angles of &lt;strong&gt;90° (Type 2)&lt;/strong&gt; or &lt;strong&gt;45° (Type 3)&lt;/strong&gt;, only boreholes within this sector slice are kept and projected into the first quadrant (X&gt;0, Y&gt;0).&lt;/p&gt;
@@ -5676,9 +5676,7 @@ li.checked::marker { content: "\2612"; }
 
 Graduated colors: all layers use the same height classes (equal intervals), so equal colors mean equal heights. Lines are colored by the mean height of their vertices. Missing heights are shown in magenta.
 
-Consistency check (marked in red): customers, energy plants and junctions whose height differs from the connected line, line ends whose height differs from the connected line, height jumps and too steep segments along the lines. Missing heights are shown in magenta.
-
-Note: junctions get no height from the elevation data when the network topology is generated (z = 0).</translation>
+Consistency check (marked in red): customers, energy plants and junctions whose height differs from the connected line, line ends whose height differs from the connected line, height jumps and too steep segments along the lines. Missing heights are shown in magenta.</translation>
         </message>
         <message>
             <location filename="../districts_heightCheck.ui" line="36" />

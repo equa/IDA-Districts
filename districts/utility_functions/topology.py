@@ -275,6 +275,26 @@ def setSubnetwork(cur,config,redraw_submodels_polygons,srid):
         #print(sql)
         cur.execute(sql)
 
+def updateJunctionHeights(cur,tolerance,network=None,junctions='temp.junctions',lines='temp.lines'):
+    """Height (z) of the junctions from the connected lines at the junction position (the junctions are created
+    without height). Uses the lines of the junction's network, any connected line if there is none.
+    Run after the line heights are final (terrain or kept heights), so junctions and lines stay consistent."""
+    sql="""WITH z AS (
+    SELECT j.id,
+           avg(lz.z) FILTER (WHERE l.network = j.network) AS z_network,
+           avg(lz.z) AS z_any
+    FROM {junctions} j
+    JOIN {lines} l ON ST_DWithin(j.geom, l.geom, %(tol)s)
+    CROSS JOIN LATERAL (SELECT ST_Z(ST_LineInterpolatePoint(l.geom, ST_LineLocatePoint(l.geom, j.geom))) AS z) lz
+    WHERE %(network)s IS NULL OR j.network = %(network)s
+    GROUP BY j.id
+)
+UPDATE {junctions} j
+    SET geom = ST_SetSRID(ST_MakePoint(ST_X(j.geom), ST_Y(j.geom), coalesce(z.z_network, z.z_any)), ST_SRID(j.geom))
+    FROM z
+    WHERE z.id = j.id AND coalesce(z.z_network, z.z_any) IS NOT NULL;""".format(junctions=junctions,lines=lines) # nosec B608
+    cur.execute(sql,{'tol':float(tolerance),'network':None if network is None else int(network)})
+
 def nodeLines(cur,table,tolerance):
     """Replace the lines of table (columns id, geom) by its edges like a PostGIS topology with this tolerance, but much faster:
     line ends within tolerance are moved to one node, the lines are snapped to the nodes within tolerance (customer and plant connections
