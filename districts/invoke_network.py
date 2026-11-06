@@ -429,6 +429,7 @@ ORDER BY m.id;
         self.cur.execute(sql)
         i=1
         alpha_i=4000
+        pipe_info_cache={} #pipe data per pipe bundle type (query once per type instead of once per line)
         for pipe_bundle in self.cur.fetchall():
             #print(pipe_bundle)
             lid=pipe_bundle['id']
@@ -442,14 +443,16 @@ ORDER BY m.id;
             zeta=pipe_bundle['zeta']
             #print(coordinates)
             
-            sql="""SELECT p.innerpipediameter,p.piperoughnessfactor, bp.sequence AS se_pipe, bp.ambient, bp.x, bp.y AS depth, ARRAY_AGG(pl.sequence::text||':'|| round(pl.thickness,4)::text||':'||m.thermal_conductivity_w7mkelvin::text||':'||m.specific_heat_j7kgkelvin::text||':'||m.density_kg7m3 ORDER BY pl.sequence) AS layers
+            if bunde_type not in pipe_info_cache:
+                sql="""SELECT p.innerpipediameter,p.piperoughnessfactor, bp.sequence AS se_pipe, bp.ambient, bp.x, bp.y AS depth, ARRAY_AGG(pl.sequence::text||':'|| round(pl.thickness,4)::text||':'||m.thermal_conductivity_w7mkelvin::text||':'||m.specific_heat_j7kgkelvin::text||':'||m.density_kg7m3 ORDER BY pl.sequence) AS layers
     FROM public.bundle_pipes bp, public.pipes p, public.pipe_layers pl, public.materials m
     WHERE bp.pipe_bundle_type_id={} AND bp.pipe_id=p.id AND pl.pipe_construction_id=p.pipe_construction_id AND m.id=pl.materialid
     GROUP BY p.innerpipediameter,p.piperoughnessfactor, se_pipe,bp.ambient, bp.x, bp.y
     ORDER BY bp.sequence;""".format(bunde_type) # nosec B608
-            #print(sql)
-            self.cur.execute(sql)
-            pipe_info=self.cur.fetchall()
+                #print(sql)
+                self.cur.execute(sql)
+                pipe_info_cache[bunde_type]=self.cur.fetchall()
+            pipe_info=pipe_info_cache[bunde_type]
             if not pipe_info:
                 self.signals.error.emit("Pipe construction data corrupted! PLease check construction data.")
                 return idm,idc
@@ -1015,12 +1018,16 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
             #self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
             
+        idm_parts=[idm]
+        idc_parts=[idc]
         for conn in conns:
             #print(conn)
             dim='('+str(conn['max_sequences'])+' '+str(conn['n_connections'])+')'
-            idm,idc=self.makeNodeComponent(conn,idm,idc,modellingSettings,'','',dim,conn['max_sequences'],conn['jid'])
-                    
-        return idm,idc
+            idm_node,idc_node=self.makeNodeComponent(conn,modellingSettings,'','',dim,conn['max_sequences'],conn['jid'])
+            idm_parts.append(idm_node)
+            idc_parts.append(idc_node)
+
+        return ''.join(idm_parts),''.join(idc_parts)
 
     def insertPlugJunctions(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks,plug_dict):
         """ Insert plug junctions"""
@@ -1087,7 +1094,9 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
             #print('No nodes in network or wrong junction constructions!')
             #self.signals.error.emit("No junctions in network or wrong constructions!")
             return idm,idc
-            
+
+        idm_parts=[idm]
+        idc_parts=[idc]
         for conn in conns:
             #print(conn)
             m_dot=''
@@ -1101,12 +1110,15 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
             #print('instreamT: '+inStreamT)
             
             dim='('+str(conn['max_sequences'])+' '+str(conn['n_connections'])+')'
-            idm,idc=self.makeNodeComponent(conn,idm,idc,modellingSettings,inStreamT,m_dot,dim,conn['max_sequences'],conn['jid'])
-                    
-        return idm,idc
+            idm_node,idc_node=self.makeNodeComponent(conn,modellingSettings,inStreamT,m_dot,dim,conn['max_sequences'],conn['jid'])
+            idm_parts.append(idm_node)
+            idc_parts.append(idc_node)
+
+        return ''.join(idm_parts),''.join(idc_parts)
      
-    def makeNodeComponent(self,junction,idm,idc,modellingSettings,inStreamT,m_dot,dim,max_seq,jid):
-        """Makes the node bundle componenent"""
+    def makeNodeComponent(self,junction,modellingSettings,inStreamT,m_dot,dim,max_seq,jid):
+        """Makes the node bundle componenent; returns the idm and idc text of the component
+        (the callers join all components once: appending to the whole model text per junction copies it each time)"""
         #print(junction)
         points = junction['j_point'].split("(")[1].replace('(','').replace(')','').split(' ')
         y=round(float(self.pageSettings['pageHeight'])/0.2575-50-((float(points[1])-float(self.pageSettings['ymin']))/float(self.pageSettings['lmin'])*150),0)
@@ -1114,13 +1126,13 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
         connector=""" ((CONNECTOR :N |term|)
   (:VAR :N |m_dot| :DIM {} :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 2 VALUE ({})))
   (:VAR :N |inStream(T)| :DIM {} :B #S(MS-SPARSE DEFAULT-VALUE nil DIMENSION 2 VALUE ({}))))""".format(dim,m_dot,dim,inStreamT)
-        idm+="""\n((MODEL :N "NodeBundle_{}" :T |nodebundle|)
+        idm="""\n((MODEL :N "NodeBundle_{}" :T |nodebundle|)
  (:par :N |n| :v {})
  (:par :N |nnodes| :v {})
 {}
  ((RECORD :N |nodebdl|)
   (:PAR :N |vol| :DIM ({}) :V #({})))) """.format(jid,junction['n_connections'],max_seq,connector,max_seq,' '.join(modellingSettings['node_vol'] for x in range(0,max_seq)))
-        idc+="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "sys:Components/DistrictsMo/symbols/nodebundle.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)\n""".format(x,y,jid,jid)
+        idc="""(EQUATION-FRAME :AT (({} {})) :R (10 10) :ICON "sys:Components/DistrictsMo/symbols/nodebundle.ids" :SLOT ("NodeBundle_{}") :NAME "NodeBundle_{}" :DATA MODEL)\n""".format(x,y,jid,jid)
         return idm,idc
                 
     def insertCustomers(self,submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs):

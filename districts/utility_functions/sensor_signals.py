@@ -499,22 +499,29 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
                         ORDER BY s.sensor_id,f.id)
             )
             SELECT sub.sensor_id, s.function, s.type, sub.feature_id,
-                replace(replace(ARRAY_AGG(sub.sensor_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source 
-                FROM sub, sensor_source s WHERE s.sensor_id=sub.sensor_id GROUP BY s.function,sub.sensor_id,sub.feature_id,conn_type_id, s.type
+                replace(replace(ARRAY_AGG(sub.sensor_id||'_'||sub.feature_id||'_'||conn_type_id||'_'||connection_id)::text,'{{',''),'}}','') AS irefs_source
+                FROM sub, sensor_source s
+                WHERE s.sensor_id=sub.sensor_id
+                    -- only sensors which are part of the result (filtered at the end): skip e.g. the result sensors (target type 4) early
+                    AND s.type IN ({source_types})
+                    AND EXISTS (SELECT 1 FROM sensor_target t WHERE t.sensor_id=s.sensor_id AND t.type IN ({target_types}))
+                GROUP BY s.function,sub.sensor_id,sub.feature_id,conn_type_id, s.type
 
-        )                
-        SELECT sub.sensor_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type,at_names.template_name,at_names.type AS at_names_type, at_names.feature_id AS at_names_feature_id
-            FROM sub,
-                (SELECT at.type, f.feature_id, at.template_name 
-                                        FROM
-                                            (SELECT 1 AS type,template,'1'||':'||template::text||'_'||template_name AS template_name FROM customer_templates
-                                            UNION
-                                            SELECT 2 AS type,template,'2'||':'||template::text||'_'||template_name AS template_name FROM energy_plant_templates) at,
-                                            (SELECT 1 AS type,id::text AS feature_id,template FROM "{}".customers
-                                            UNION
-                                            SELECT 2 AS type,id::text AS feature_id,template FROM "{}".energy_plants) f
-                                        WHERE at.type=f.type AND at.template=f.template) at_names
-            GROUP BY at_names.type,at_names.feature_id,at_names.template_name,sub.type,sub.sensor_id, sub.feature_id,function,unnest(string_to_array(irefs_source,',')) 
+        )
+        SELECT DISTINCT sub.sensor_id, function, unnest(string_to_array(irefs_source,',')) AS irefs_source, sub.feature_id,sub.type
+            FROM sub
+    ),
+    --template names of all features (type 1: customers, type 2: energy plants)
+    at_names AS (
+        SELECT at.type, f.feature_id, at.template_name
+            FROM
+                (SELECT 1 AS type,template,'1'||':'||template::text||'_'||template_name AS template_name FROM customer_templates
+                UNION
+                SELECT 2 AS type,template,'2'||':'||template::text||'_'||template_name AS template_name FROM energy_plant_templates) at,
+                (SELECT 1 AS type,id::text AS feature_id,template FROM "{version}".customers
+                UNION
+                SELECT 2 AS type,id::text AS feature_id,template FROM "{version}".energy_plants) f
+            WHERE at.type=f.type AND at.template=f.template
     )
     SELECT b.sensor_id, sub.type,b.function, CASE WHEN sub.function=6 AND a.target_type=3 THEN b.irefs_source ELSE a.irefs_target END AS irefs_target, b.irefs_source, c.source_template_name, d.target_template_name
         FROM sub,
@@ -537,17 +544,20 @@ def getSensorData(cur,config,execute_query=True,source_types=[1,2,3],target_type
             ) a,
             (WITH sub AS (SELECT sub.sensor_id, sub.function, sub.irefs_source FROM sub GROUP BY sub.sensor_id, sub.function, sub.irefs_source)
             SELECT  sub.sensor_id, sub.function, ARRAY_AGG(sub.irefs_source ORDER BY CASE WHEN split_part(irefs_source,'_',1) ~ '^[0-9\\.]+$' THEN split_part(irefs_source,'_',1)::integer ELSE 0 END) AS irefs_source FROM sub GROUP BY sub.sensor_id, sub.function) b,
-            (WITH sub2 AS(WITH sub1 AS (SELECT sub.sensor_id, sub.function, sub.feature_id,sub.type,sub.template_name FROM sub 
-                                        WHERE (sub.at_names_type=sub.type AND sub.at_names_feature_id=sub.feature_id) OR sub.type=3
-                                        GROUP BY sub.template_name,sub.type,sub.sensor_id, sub.function,sub.feature_id)
+            (WITH sub2 AS(WITH sub1 AS (SELECT sub.sensor_id, sub.function, sub.feature_id,sub.type,at_names.template_name FROM sub
+                                            JOIN at_names ON at_names.type=sub.type AND at_names.feature_id=sub.feature_id
+                                        UNION
+                                        --supervisory ctrl source: not related to a feature (template name 'X')
+                                        SELECT sub.sensor_id, sub.function, sub.feature_id,sub.type,at_names.template_name FROM sub
+                                            CROSS JOIN (SELECT DISTINCT template_name FROM at_names) at_names
+                                            WHERE sub.type=3)
                             SELECT sub1.sensor_id, sub1.function,CASE WHEN sub1.type=3 THEN 'X' ELSE sub1.template_name END AS source_template_name FROM sub1
                                 GROUP BY sub1.sensor_id, sub1.function,sub1.type,sub1.template_name)
             SELECT sub2.sensor_id, sub2.function,ARRAY_AGG(sub2.source_template_name) AS source_template_name FROM sub2 GROUP BY sub2.sensor_id, sub2.function) c,    
             (WITH sub AS(
-                SELECT t.sensor_id,sub.template_name AS target_template_name
-                    FROM sub, sensor_target t
-                    WHERE  t.sensor_id=sub.sensor_id AND sub.at_names_type=t.type --AND sub.at_names_feature_id=t_ids.feature_id::text
-                    GROUP BY t.sensor_id,sub.feature_id,sub.template_name
+                SELECT t.sensor_id,at_names.template_name AS target_template_name
+                    FROM (SELECT DISTINCT sensor_id FROM sub) sub, sensor_target t, at_names
+                    WHERE  t.sensor_id=sub.sensor_id AND at_names.type=t.type
                 UNION
                 SELECT t.sensor_id, 'supervisory_control' AS target_template_name
                     FROM sub, sensor_target t
@@ -572,9 +582,10 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
     ORDER BY sub.sensor_id;""".format( # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
-    config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'],config['versionName'], # nosec B608
+    config['versionName'], network_filter, config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
     config['versionName'], network_filter, config['versionName'], network_filter, # nosec B608
-    ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter) # nosec B608
+    ','.join([str(i) for i in source_types]),','.join([str(i) for i in target_types]),filter, # nosec B608
+    version=config['versionName'], source_types=','.join([str(i) for i in source_types]), target_types=','.join([str(i) for i in target_types])) # nosec B608
     #print(sql)   
     if execute_query:
         cur.execute(sql)

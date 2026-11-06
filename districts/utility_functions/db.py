@@ -784,11 +784,20 @@ def dbConnect(config,errorMsg):
             password=auth_cfg.config("password"),
             connect_timeout=5)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    except Exception:
-        #print("DB connection has failed")
+    except Exception as e:
+        logDBConnectionError(config,config['projectName'],e)
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password, user name or project does not exists!", level=MessageCritical)
+            iface.messageBar().pushMessage("ERROR", "DB connection to {}:{}/{} has failed! Propably wrong password, user name or project does not exists! See message log 'Districts' for details.".format(
+                config['host'],config['port'],config['projectName']), level=MessageCritical)
     return conn
+
+def logDBConnectionError(config,dbName,error):
+    """log the reason of a failed DB connection (server, database and the error of the server)"""
+    QgsMessageLog.logMessage(
+        "DB connection to {}:{}/{} has failed: {}".format(config.get('host'),config.get('port'),dbName,str(error).strip()),
+        "Districts",
+        MessageWarning
+    )
     
 def dbConnectProvidePwdUser(config,signals_error,pwd,user):
     conn=None      
@@ -820,10 +829,11 @@ def dbConnectPerName(config,dbName,errorMsg):
             password=auth_cfg.config("password"),
             connect_timeout=1)       
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    except Exception:
-        #print("DB connection has failed")
+    except Exception as e:
+        logDBConnectionError(config,dbName,e)
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection has failed! Propably wrong password or user name.", level=MessageCritical)
+            iface.messageBar().pushMessage("ERROR", "DB connection to {}:{}/{} has failed! Propably wrong password or user name. See message log 'Districts' for details.".format(
+                config['host'],config['port'],dbName), level=MessageCritical)
     return conn
     
 def getTemplateNames(cur,feature,seperator=':'):
