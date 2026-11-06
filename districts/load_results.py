@@ -1,6 +1,7 @@
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis
 
+import io
 import os
 import psycopg2
 import numpy as np
@@ -65,6 +66,7 @@ class WorkerLoadResults(QRunnable):
         #the time column of the IDA .prn files holds the hours since Jan 1 of the simulated year (not since calc_time_from)
         start_datetime=getDatetimeFromString(networkSimData['calc_time_from']).replace(month=1,day=1,hour=0,minute=0,second=0)
         self.reported_errors=set()
+        self.time_strings_cache={}
 
         srid=loadProjectConfig(self.config)['srid']
         modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
@@ -263,14 +265,17 @@ CREATE TABLE "{}".customer_s_ventilation
                         cids=self.cur.fetchall()
                         
                         self.signals.progress.emit(5)
-                        
+
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
+                        geoms=self.featureGeometries('customers')
+                        copy_buffer=ResultCopyBuffer(self.conn,self.cur,self.config['versionName'])
                         #print(b_t_connValues_dict)
                         for counter,id in enumerate(cids,1):
                             #print(id)
                             #print(c_conn_outputs)
+                            geom=geoms.get(id['id'],'')
                             if c_conn_outputs or conn_t_power_names:
-                                connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
+                                connValues=b_t_connValues_dict[id['conn_bundle_type_id']]
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
                                 #print(f"conn_type_seq:{conn_type_seq}")
                                 for seq in conn_type_seq:
@@ -301,8 +306,8 @@ CREATE TABLE "{}".customer_s_ventilation
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
                                         #print(file_data)
-                                        self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
-                            
+                                        self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,col_var_dict,start_datetime)
+
                             if 'troom' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\TRoom.prn'
                                 #print(fname)
@@ -315,10 +320,10 @@ CREATE TABLE "{}".customer_s_ventilation
 
                                     #print(file_data)
                                     col_var_dict={2: {'var': 'troom','name': '','table_name': 'customer_s_troom'}}
-                                    self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
+                                    self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,col_var_dict,start_datetime)
                                 
                             if 'heatbalance' in c_outputs:
-                                fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'.format(seq)
+                                fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'
                                 #print(fname)
                                 if os.path.exists(fname):                                              
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
@@ -327,13 +332,14 @@ CREATE TABLE "{}".customer_s_ventilation
                                         #print(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                     #print(file_data)
-                                    self.copy_string_iterator_c_heatbalance_sData(file_data,id['id'],start_datetime)
+                                    heatbalance_tables=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
+                                    self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,{col: {'table_name': table_name} for col,table_name in enumerate(heatbalance_tables,2)},start_datetime)
                             self.signals.progress.emit(int(5+counter / len(cids) *28))
-                        #update point geometry
+                        copy_buffer.flush()
+                        #index after loading the data
                         #print(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'customer')
-                            self.updateResultLayerGeometry(tables,'customer')
                             
                     self.signals.progress.emit(33)
                                     
@@ -392,11 +398,13 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         epids=self.cur.fetchall()
                         
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
+                        geoms=self.featureGeometries('energy_plants')
+                        copy_buffer=ResultCopyBuffer(self.conn,self.cur,self.config['versionName'])
                         #print(b_t_connValues_dict)
                         for counter,id in enumerate(epids,1):
                             #print(id)
                             if ep_conn_outputs or conn_t_power_names:
-                                connValues=getConnsValues(id['conn_bundle_type_id'],self.cur)
+                                connValues=b_t_connValues_dict[id['conn_bundle_type_id']]
                                 #print(connValues)
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
                                 #print(conn_type_seq)
@@ -428,13 +436,13 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                             #print(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                         #print(file_data)
-                                        self.copy_string_iterator_feature_c_t_seq_sData(file_data,id['id'],col_var_dict,start_datetime)
+                                        self.copy_feature_sData(copy_buffer,file_data,id['id'],geoms.get(id['id'],''),col_var_dict,start_datetime)
                             self.signals.progress.emit(int(33+counter / len(epids) *33))
-                        #update point geometry
+                        copy_buffer.flush()
+                        #index after loading the data
                         #print(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'energy_plant')
-                            self.updateResultLayerGeometry(tables,'energy_plant')
                             
                     self.signals.progress.emit(66)
                     #lines
@@ -476,9 +484,13 @@ CREATE TABLE "{}".line_s_qamb
     GROUP BY l.id ORDER BY l.id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
                         lids=self.cur.fetchall()
+                        line_geoms=self.featureGeometries('lines')
 
                         for counter_of,output in enumerate(line_outputs,1):
                             #print('+++++++++'+output+'++++++++++++')
+                            #geometry: simulated pipe segments for temp and p, the line for the other outputs
+                            seg_geoms=self.lineSegGeometries(output) if output in ['p','temp'] else None
+                            copy_buffer=ResultCopyBuffer(self.conn,self.cur,self.config['versionName'])
                             #get connection sequence
                             for counter_l,id in enumerate(lids,1):
                                 fname=dir_path+'Line_{}_{}.prn'.format(output,id['id'])
@@ -528,19 +540,17 @@ CREATE TABLE "{}".line_s_qamb
                                         #only the pipes of this bundle, the number of pipes per bundle may vary over the network (e.g. heating and cooling network with different extension)
                                         line_table_names=['line_s_'+output+'$'+str(i) for i in id['sequences']]
                                     #print(line_table_names)
-                                    self.copy_string_iterator_sData(file_data,id['id'],line_table_names,value_per_conn_seq,start_datetime,'linestring')
+                                    if seg_geoms is not None:
+                                        segment_geoms=[seg_geoms.get((id['id'],segment),'') for segment in range(1,int(value_per_conn_seq)+1)]
+                                    else:
+                                        segment_geoms=[line_geoms.get(id['id'],'')]*int(value_per_conn_seq)
+                                    self.copy_line_sData(copy_buffer,file_data,id['id'],line_table_names,value_per_conn_seq,start_datetime,segment_geoms)
                                 self.signals.progress.emit(int(66+counter_l / len(lids)*30/len(line_outputs)+counter_of/len(line_outputs)*30))
+                            copy_buffer.flush()
 
+                            #index after loading the data
                             table_names=['line_s_qamb'] if output=='qamb' else ['line_s_'+output+'$'+str(i) for i in pipe_sequences]
                             self.createResultLayerIndex(table_names,'line')
-
-                            #update line geometry
-                            if ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']]:
-                                self.updateResultLayerLineSegGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['p','temp']])
-                            elif ['line_s_'+output+'$'+str(i) for i in pipe_sequences if output in ['mdot','v']]:
-                                self.updateResultLayerGeometry(['line_s_'+output+'$'+str(i) for i in pipe_sequences if output not in ['p','temp']],'line')
-                            elif output=='qamb':
-                                self.updateResultLayerGeometry(['line_s_qamb'],'line')
 
 
                         self.signals.progress.emit(99)
@@ -799,51 +809,43 @@ CREATE TABLE "{}".massbalance_{}_s
             ))
             cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
 
-    def copy_string_iterator_feature_c_t_seq_sData(self,sdata,fid,col_dict,start_datetime) -> None:
+    def timeStrings(self,times,start_datetime):
+        """timestamps (as COPY text) of the time column of an output file (hours since start_datetime); cached, since
+        all files of a simulation usually have the same time column"""
+        key=times.tobytes()
+        time_strings=self.time_strings_cache.get(key)
+        if time_strings is None:
+            time_strings=[str(start_datetime+datetime.timedelta(hours=float(h))) for h in times]
+            if len(self.time_strings_cache)>16:
+                self.time_strings_cache.clear()
+            self.time_strings_cache[key]=time_strings
+        return time_strings
+
+    def featureGeometries(self,feature_table):
+        """{id: geometry as hex EWKB} of a feature table (customers, energy_plants, lines), written directly by COPY
+        (an UPDATE of the geometry after loading rewrote every row of the result tables)"""
+        self.cur.execute("""SELECT id, geom::text AS geom FROM "{}".{};""".format(self.config['versionName'],feature_table)) # nosec B608
+        return {row['id']: row['geom'] or '' for row in self.cur.fetchall()}
+
+    def lineSegGeometries(self,var):
+        """{(line id, segment): geometry as hex EWKB} of the simulated pipe segments (line_seg_temp, line_seg_p)"""
+        self.cur.execute("""SELECT lid, lid_seg, geom::text AS geom FROM "{}".line_seg_{};""".format(self.config['versionName'],var)) # nosec B608
+        return {(row['lid'],row['lid_seg']): row['geom'] or '' for row in self.cur.fetchall()}
+
+    def copy_feature_sData(self,copy_buffer,sdata,fid,geom,col_dict,start_datetime) -> None:
+        """add the columns of an output file of a feature (col_dict: {column: {'table_name': ...}}) to the result tables
+        (columns id, fid, time, geom, value)"""
+        time_strings=self.timeStrings(sdata[:,0],start_datetime)
+        n=len(time_strings)
+        middle='|{}|'.format(fid)
+        suffix='|{}|'.format(geom)
         for col in col_dict:
-            #print(col)
             table_name=col_dict[col]['table_name']
-            #print(table_name)
-            max_id=getMaxIdSchema(self.cur,table_name,self.config['versionName'])+1
-            #print(max_id)
-            with self.conn.cursor() as cursor:
-                mdata_string_iterator = StringIteratorIO((
-                    '|'.join(map(clean_csv_value, (
-                        int(row_counter+max_id),
-                        fid,
-                        start_datetime+datetime.timedelta(hours=float(data[0])),
-                        '',
-                        data[1]
-                    ))) + '\n'
-                    for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,col]))
-                ))
-                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|')""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
-                
-    def copy_string_iterator_c_heatbalance_sData(self, sdata,fid,start_datetime) -> None:
-        table_names=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
-        with self.conn.cursor() as cursor:
-            for col,table_name in enumerate(table_names,2):
-                max_id=getMaxIdSchema(self.cur,table_name,self.config['versionName'])+1
-                mdata_string_iterator = StringIteratorIO((
-                    '|'.join(map(clean_csv_value, (
-                        int(row_counter+max_id),
-                        fid,
-                        start_datetime+datetime.timedelta(hours=float(data[0])),
-                        '',
-                        data[col]
-                    ))) + '\n'
-                    for row_counter,data in enumerate(sdata)
-                ))
-                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
-               
-    def updateResultLayerGeometry(self,tables,type):
-        for table_name in tables:
-            sql="""UPDATE "{}".{} r set geom = f.geom 
-    FROM (SELECT id, geom FROM "{}".{}s) f
-    WHERE f.id=r.fid;""".format(self.config['versionName'],table_name,self.config['versionName'],type) # nosec B608
-            #print(sql)
-            self.cur.execute(sql)
-            
+            first_id=copy_buffer.nextId(table_name,n)
+            copy_buffer.add(table_name,''.join([
+                '{}{}{}{}{}\n'.format(row_id,middle,t,suffix,value)
+                for row_id,t,value in zip(range(first_id,first_id+n),time_strings,sdata[:,col].tolist())]))
+
     def createResultLayerIndex(self,tables,type):
         for counter,table_name in enumerate(tables,1):
             #print('-------------**---**-'+table_name.split('_')[1].split('$')[0])
@@ -854,32 +856,57 @@ CREATE TABLE "{}".massbalance_{}_s
             #print(sql)
             self.cur.execute(sql)
             
-    def updateResultLayerLineSegGeometry(self,tables):   
-        for table_name in tables:
-            var=table_name.split('_')[2].split('$')[0]
-            sql="""UPDATE "{}".{} r set geom = seg.geom 
-    FROM (SELECT lid,lid_seg, geom FROM "{}".line_seg_{}) seg
-    WHERE seg.lid=r.fid AND r.segment=seg.lid_seg;""".format(self.config['versionName'],table_name,self.config['versionName'],var) # nosec B608
-            #print(sql)
-            self.cur.execute(sql)
-            
-    def copy_string_iterator_sData(self, sdata,fid,table_names,value_per_conn_seq,start_datetime,mode) -> None:
+    def copy_line_sData(self,copy_buffer,sdata,fid,table_names,value_per_conn_seq,start_datetime,segment_geoms) -> None:
+        """add the output of a line to the result tables (one table per pipe of the bundle, value_per_conn_seq columns
+        (segments) per pipe; columns id, fid, time, geom, segment, value); segment_geoms: geometry per segment"""
+        value_per_conn_seq=int(value_per_conn_seq)
+        time_strings=self.timeStrings(sdata[:,0],start_datetime)
+        n=len(time_strings)*value_per_conn_seq
+        prefixes=['|{}|'.format(fid)]*value_per_conn_seq
+        suffixes=['|{}|{}|'.format(geom,segment) for segment,geom in enumerate(segment_geoms,1)]
         start_col_index=2
-        end_col_index=2+value_per_conn_seq
         for table_name in table_names:
-            max_id=getMaxIdSchema(self.cur,table_name,self.config['versionName'])+1
-            with self.conn.cursor() as cursor:
-                mdata_string_iterator = StringIteratorIO((
-                    '|'.join(map(clean_csv_value, (
-                        int(row_counter*value_per_conn_seq+col_counter+max_id),
-                        fid,
-                        start_datetime+datetime.timedelta(hours=float(data[0])),
-                        '',
-                        int(col_counter+1),
-                        cell
-                    ))) + '\n'
-                    for row_counter,data in enumerate(zip(sdata[:,0],sdata[:,int(start_col_index):int(end_col_index)])) for col_counter,cell in enumerate(data[1])
-                ))
-                cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.config['versionName'],table_name),mdata_string_iterator) # nosec B608
-            start_col_index=end_col_index
-            end_col_index=start_col_index+value_per_conn_seq  
+            first_id=copy_buffer.nextId(table_name,n)
+            ids=iter(range(first_id,first_id+n))
+            copy_buffer.add(table_name,''.join([
+                '{}{}{}{}{}\n'.format(next(ids),prefix,t,suffix,value)
+                for t,row in zip(time_strings,sdata[:,start_col_index:start_col_index+value_per_conn_seq].tolist())
+                for prefix,suffix,value in zip(prefixes,suffixes,row)]))
+            start_col_index+=value_per_conn_seq
+
+
+class ResultCopyBuffer:
+    """Collects the rows of the result tables and loads them with one COPY per table and chunk (max_chars)
+    instead of one COPY per feature and table. The ids are counted here (highest id of the table + 1 at the first use)."""
+    def __init__(self,conn,cur,schema,max_chars=16*1024*1024):
+        self.conn=conn
+        self.cur=cur
+        self.schema=schema
+        self.max_chars=max_chars
+        self.rows={}
+        self.chars={}
+        self.next_id={}
+
+    def nextId(self,table_name,count):
+        """first id of the next count rows of table_name"""
+        if table_name not in self.next_id:
+            self.next_id[table_name]=getMaxIdSchema(self.cur,table_name,self.schema)+1
+        first_id=self.next_id[table_name]
+        self.next_id[table_name]+=count
+        return first_id
+
+    def add(self,table_name,text):
+        self.rows.setdefault(table_name,[]).append(text)
+        self.chars[table_name]=self.chars.get(table_name,0)+len(text)
+        if self.chars[table_name]>=self.max_chars:
+            self.flush(table_name)
+
+    def flush(self,table_name=None):
+        """COPY the collected rows (of table_name or all tables)"""
+        for name in [table_name] if table_name else list(self.rows):
+            data=''.join(self.rows.pop(name,[]))
+            self.chars.pop(name,None)
+            if data:
+                with self.conn.cursor() as cursor:
+                    #the rows are ASCII only (numbers, timestamps, hex geometries): send bytes, the client encoding (e.g. WIN1252) is much slower
+                    cursor.copy_expert("""COPY "{}".{} FROM STDIN WITH (FORMAT csv, DELIMITER '|');""".format(self.schema,name),io.BytesIO(data.encode('ascii'))) # nosec B608
