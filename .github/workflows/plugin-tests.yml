@@ -1,0 +1,127 @@
+# Tests of the Districts Modeler QGIS plugin (districts/test, pytest).
+#
+# Runs on a self-hosted Windows runner with QGIS, the PostgreSQL test server and IDA Districts
+# (setup: .github/RUNNER_SETUP.md). Required as status check for merging dev into main.
+name: plugin-tests
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      with_simulation:
+        description: 'Run the workflow steps with IDA simulation (marker ida)'
+        type: boolean
+        default: true
+      simulation_tests:
+        description: 'Also run the simulation test suite (districts/simulation_tests, takes long)'
+        type: boolean
+        default: false
+
+# a newer push to the same pull request cancels the running tests
+concurrency:
+  group: plugin-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin-tests:
+    name: plugin-tests (QGIS ${{ matrix.qgis }})
+    # never run code of pull requests from forks on the self-hosted runner
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, windows, districts]
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1  # one IDA Districts / one test DB at a time
+      matrix:
+        include:
+          - qgis: '4.2'
+            python: 'C:\Program Files\QGIS 4.2.0\bin\python-qgis.bat'
+          - qgis: '3.44'
+            python: 'C:\Program Files\QGIS 3.44.8\bin\python-qgis-ltr.bat'
+    env:
+      DISTRICTS_TEST_DB_HOST: ${{ vars.DISTRICTS_TEST_DB_HOST || 'localhost' }}
+      DISTRICTS_TEST_DB_PORT: ${{ vars.DISTRICTS_TEST_DB_PORT || '5433' }}
+      DISTRICTS_TEST_DB_USER: ${{ secrets.DISTRICTS_TEST_DB_USER }}
+      DISTRICTS_TEST_DB_PASSWORD: ${{ secrets.DISTRICTS_TEST_DB_PASSWORD }}
+      DISTRICTS_TEST_SAMPLES: ${{ vars.DISTRICTS_TEST_SAMPLES || 'C:\EQUA\Projekte\districts\samples' }}
+      PYTHON_QGIS: ${{ matrix.python }}
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Remember the job start (cleanup of IDA processes)
+        run: Add-Content -Path $env:GITHUB_ENV -Value ("JOB_START=" + (Get-Date -Format o))
+
+      # the plugin locates its files in <profile>\python\plugins\districts (qgisSettingsDirPath):
+      # check out into the same folder structure
+      - uses: actions/checkout@v4
+        with:
+          path: profile/python/plugins
+
+      - name: Check the runner (QGIS, pytest, test DB)
+        run: |
+          if (-not (Test-Path $env:PYTHON_QGIS)) { throw "QGIS not installed: $env:PYTHON_QGIS" }
+          & $env:PYTHON_QGIS -c "import pytest, pytest_qgis; print('pytest', pytest.__version__)"
+          if ($LASTEXITCODE -ne 0) { throw "pytest/pytest-qgis missing for this QGIS (see .github/RUNNER_SETUP.md)" }
+          if (-not $env:DISTRICTS_TEST_DB_USER) { throw "repository secrets DISTRICTS_TEST_DB_USER/_PASSWORD not set" }
+          $db = Test-NetConnection -ComputerName $env:DISTRICTS_TEST_DB_HOST -Port $env:DISTRICTS_TEST_DB_PORT -WarningAction SilentlyContinue
+          if (-not $db.TcpTestSucceeded) { throw "test DB server not reachable: $($env:DISTRICTS_TEST_DB_HOST):$($env:DISTRICTS_TEST_DB_PORT)" }
+
+      - name: pytest
+        working-directory: profile/python/plugins/districts
+        run: |
+          $marker = if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.with_simulation }}' -eq 'false') { 'not ida' } else { '' }
+          $pytestArgs = @('-m', 'pytest', '-v', '-rfEw', "--junitxml=test-report-qgis-${{ matrix.qgis }}.xml")
+          if ($marker) { $pytestArgs += @('-m', $marker) }
+          & $env:PYTHON_QGIS @pytestArgs
+          exit $LASTEXITCODE
+
+      - name: Clean up IDA Districts processes of this job
+        if: always()
+        run: '& "$env:GITHUB_WORKSPACE\profile\python\plugins\.github\scripts\cleanup-ida.ps1" -Since $env:JOB_START'
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-qgis-${{ matrix.qgis }}
+          path: profile/python/plugins/districts/test-report-qgis-${{ matrix.qgis }}.xml
+          if-no-files-found: ignore
+
+  simulation-tests:
+    name: simulation-tests
+    needs: plugin-tests
+    if: github.event_name == 'workflow_dispatch' && inputs.simulation_tests
+    runs-on: [self-hosted, windows, districts]
+    timeout-minutes: 600
+    env:
+      DISTRICTS_SIM_CASES: ${{ vars.DISTRICTS_SIM_CASES || 'C:\EQUA\Projekte\districts\testing' }}
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Remember the job start (cleanup of IDA processes)
+        run: Add-Content -Path $env:GITHUB_ENV -Value ("JOB_START=" + (Get-Date -Format o))
+
+      - uses: actions/checkout@v4
+        with:
+          path: profile/python/plugins
+
+      - name: pytest simulation_tests
+        working-directory: profile/python/plugins/districts
+        run: |
+          & 'C:\Program Files\QGIS 4.2.0\bin\python-qgis.bat' -m pytest simulation_tests -v -rfEw --junitxml=simulation-report.xml
+          exit $LASTEXITCODE
+
+      - name: Clean up IDA Districts processes of this job
+        if: always()
+        run: '& "$env:GITHUB_WORKSPACE\profile\python\plugins\.github\scripts\cleanup-ida.ps1" -Since $env:JOB_START'
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-report
+          path: profile/python/plugins/districts/simulation-report.xml
+          if-no-files-found: ignore
