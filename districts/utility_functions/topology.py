@@ -5,6 +5,7 @@ from qgis.core import QgsProject
 from .db import dropDBTriggers, insertDBTriggers
 from .layer_visualization import removeTempLayers
 from .translations import tr
+from .zeta import ensureConnectionZetaColumn
 from .utility import getTemplateNameById, getTypeIdByName, getTypeNameById
 from qgis.PyQt.QtWidgets import QMessageBox
 
@@ -14,6 +15,9 @@ def saveTempTables(cur,config,networks=None):
         saveTempTablesNetworks(cur,config,networks)
         return
     dropDBTriggers(cur,config) #child versions are not updated
+    #same columns in temp and version (zeta of the junction connections is missing in old projects)
+    ensureConnectionZetaColumn(cur,'temp')
+    ensureConnectionZetaColumn(cur,config['versionName'])
     sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName']) # nosec B608
     sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(config['versionName']) # nosec B608
     sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(config['versionName']) # nosec B608
@@ -37,6 +41,8 @@ def saveTempTablesNetworks(cur,config,networks):
     v=config['versionName']
     nets=','.join([str(i) for i in networks])
     dropDBTriggers(cur,config) #child versions are not updated
+    ensureConnectionZetaColumn(cur,'temp')
+    ensureConnectionZetaColumn(cur,v)
     #delete features of the networks in the version schema
     sql="""DELETE FROM "{v}".junction_connections WHERE lid IN (SELECT id FROM "{v}".lines WHERE network IN ({n})) OR jid IN (SELECT id FROM "{v}".junctions WHERE network IN ({n}));
 DELETE FROM "{v}".customer_connections WHERE lid IN (SELECT id FROM "{v}".lines WHERE network IN ({n}));
@@ -61,7 +67,7 @@ UPDATE temp.{t} t SET id=m.new_id FROM id_map m WHERE t.id=m.old_id;\n""".format
     for table in ['lines','customers','energy_plants','junctions']:
         sql+="""INSERT INTO "{v}".{t} SELECT * FROM temp.{t} ORDER BY id;\n""".format(v=v,t=table) # nosec B608
     #connections get new ids (ids of other networks are kept)
-    for table,cols in [('junction_connections','jid,lid'),('customer_connections','cid,c_seq,lid'),('energy_plant_connections','epid,ep_seq,lid')]:
+    for table,cols in [('junction_connections','jid,lid,zeta'),('customer_connections','cid,c_seq,lid'),('energy_plant_connections','epid,ep_seq,lid')]:
         sql+="""SELECT setval(pg_get_serial_sequence('"{v}".{t}','id'), (SELECT COALESCE(MAX(id),0)+1 FROM "{v}".{t}), false);
 INSERT INTO "{v}".{t} ({c}) SELECT {c} FROM temp.{t} ORDER BY id;\n""".format(v=v,t=table,c=cols) # nosec B608
     for table in ['lines','customers','energy_plants','junctions']:

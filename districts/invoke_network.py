@@ -26,6 +26,7 @@ from .utility_functions.templateFiles import (
 from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
 from .utility_functions.workers import closesOwnConnection, APISignals
 from .utility_functions.workers import WorkerOpenAPI
+from .utility_functions.zeta import hasConnectionZetaColumn
 from .supervisory_control import Supervisory_control, CopySupervisoryControl
 
 
@@ -417,7 +418,10 @@ class InvokeNetworkModel:
         savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1)            
     
     def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
-        """ Inserts the lines in the submodel"""
+        """ Inserts the lines in the submodel.
+        zeta of a line: lines.zeta + per junction junctions.zeta/2 + junction_connections.zeta (textbook values, see utility_functions/zeta.py)"""
+        #old projects have no zeta in junction_connections (the build does not change the tables)
+        zeta_conn='COALESCE(jc.zeta,0)' if hasConnectionZetaColumn(self.cur,self.config['versionName']) else '0'
         sql="""WITH sub AS (
     SELECT l.id, ST_3DLength(l.geom) AS length,
            ST_Z(ST_EndPoint(l.geom))-ST_Z(St_StartPoint(l.geom)) AS height_diff,
@@ -436,7 +440,7 @@ class InvokeNetworkModel:
       ON l.network=n.id
     JOIN liquids liq
       ON n.liq_type=liq.id
-    JOIN (SELECT l.id, sum(j.zeta/2) AS zeta_j
+    JOIN (SELECT l.id, sum(COALESCE(j.zeta,0)/2 + {zeta_conn}) AS zeta_j
           FROM "{}".lines l
           JOIN "{}".junction_connections jc ON jc.lid = l.id
           JOIN "{}".junctions j ON j.id = jc.jid
@@ -485,7 +489,7 @@ FROM merged m
 LEFT JOIN sub s ON s.id = m.id
 LEFT JOIN all_lines a ON a.id = m.id
 ORDER BY m.id;
-""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks])) # nosec B608
+""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),self.config['versionName'],self.config['versionName'], submodel,','.join([str(i) for i in networks]),zeta_conn=zeta_conn) # nosec B608
         #print(sql)
 
         self.cur.execute(sql)

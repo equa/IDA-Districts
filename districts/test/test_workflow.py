@@ -27,8 +27,8 @@ from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QDialog, QMe
 
 from districts.ida_mosim import buildModel, checkTopologyBeforeBuild, runModel, setRequestedOutputs
 from districts.ida_ph import (
-    HeightCheckDialog, ShowLoadAttributeDialog, addBaseVersion, createNewProject, deleteProject, loadVersion, runHeightCheck,
-    setLoadAttribute,
+    HeightCheckDialog, ShowLoadAttributeDialog, ZetaDialog, addBaseVersion, createNewProject, deleteProject, loadVersion,
+    runHeightCheck, runZetaVisualization, setLoadAttribute,
 )
 from districts.ida_ph_dialog import ApproveDialog, IDA_Districts_NameDialog
 from districts.ida_rv import loadResults, runPathReports, showOnMap
@@ -37,6 +37,7 @@ from districts.utility_functions import reports
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.files import districtsModelerTempDir
 from districts.utility_functions.height_check import HEIGHT_CHECK_PROPERTY
+from districts.utility_functions.zeta import ZETA_BRANCH, ZETA_PROPERTY, ZETA_RUN
 from districts.utility_functions.invoke import setFeatureParm
 from districts.utility_functions.sensor_signals import getSensorData
 from districts.utility_functions.show_on_map import RESULT_VIS_PROPERTY
@@ -85,6 +86,24 @@ def only_for(wf, *templates):
 def count(plugin, table, where=""):
     plugin.cur.execute('SELECT count(*) AS n FROM "{}".{} {};'.format(plugin.config['versionName'], table, where))  # nosec B608
     return plugin.cur.fetchone()['n']
+
+
+def assert_junction_zeta(plugin):
+    """all junction connections have a calculated zeta: tees 2x run/2 + branch (+ reducer), network ends 0"""
+    plugin.cur.execute("""SELECT jc.jid, count(*) AS n, count(jc.zeta) AS n_zeta, coalesce(sum(jc.zeta), 0) AS zeta_sum,
+       coalesce(max(jc.zeta), 0) AS zeta_max
+FROM "{v}".junction_connections jc GROUP BY jc.jid;""".format(v=plugin.config['versionName']))  # nosec B608
+    rows = plugin.cur.fetchall()
+    assert rows, "no junction connections"
+    assert all(r['n_zeta'] == r['n'] for r in rows), [r['jid'] for r in rows if r['n_zeta'] != r['n']]
+    for r in rows:
+        if r['n'] == 1:
+            assert r['zeta_sum'] == 0, dict(r)
+        elif r['n'] == 3:
+            assert float(r['zeta_sum']) >= ZETA_RUN[3] + ZETA_BRANCH[3] - ZETA_RUN[3] / 2 - 1e-6, dict(r)
+            assert float(r['zeta_max']) >= ZETA_BRANCH[3] - ZETA_RUN[3] / 2 - 1e-6, dict(r)
+    print('junction zeta: {} junctions, connections per junction {}'.format(
+        len(rows), sorted({r['n'] for r in rows})))
 
 
 def table_names(plugin, like):
@@ -526,6 +545,7 @@ class TestWorkflow:
         plugin.pipeLayingAlgorithm()
         dlg = plugin.dlg_pipeLayingAlgorithm
         dlg.check_heating_network.setCheckState(checkState())
+        dlg.check_calc_junction_zeta.setChecked(True)
         customer_template = wf.imported_templates.get('customer')
         if customer_template:
             # the connected customers get the imported template
@@ -539,6 +559,7 @@ class TestWorkflow:
         assert count(plugin, 'lines') > 0
         if customer_template:
             assert count(plugin, 'customers', 'WHERE template<>{}'.format(customer_template)) == 0
+        assert_junction_zeta(plugin)
 
     def test_generate_network_topology(self, wf, errors):
         only_for(wf, HEATING)
@@ -548,7 +569,7 @@ class TestWorkflow:
         dlg = plugin.window_topology
         dlg.rbtn_override_templates.setChecked(True)
         for checkbox in [dlg.check_del_network_ends, dlg.check_connectCustomers, dlg.check_connectPlants,
-                         dlg.check_deleteUnconnectedCustomers, dlg.check_deleteUnconnectedLines]:
+                         dlg.check_deleteUnconnectedCustomers, dlg.check_deleteUnconnectedLines, dlg.check_calc_junction_zeta]:
             checkbox.setCheckState(checkState())
         dlg.combo_network_models.setItemChecked(1, True)
         dlg.execute()
@@ -559,6 +580,7 @@ class TestWorkflow:
         errors.check()
         assert count(plugin, 'lines') > 0
         assert count(plugin, 'junctions') > 0
+        assert_junction_zeta(plugin)
 
     def test_height_check(self, wf, errors):
         """height check action (lines, customers, energy plants): graduated colors and consistency check as memory layers
@@ -634,6 +656,11 @@ class TestWorkflow:
         dlg.table_circuits.cellWidget(0, 5).setCurrentText('load_w')
         for row in range(dlg.table_sequences.rowCount()):
             dlg.table_sequences.cellWidget(row, 1).setAllItemsChecked(checked=True)
+        dlg.check_calc_junction_zeta.setChecked(True)
+        # old project: junction_connections without zeta (added again when the results are saved)
+        version = plugin.config['versionName']
+        plugin.cur.execute('ALTER TABLE "{}".junction_connections DROP COLUMN IF EXISTS zeta;'.format(version))
+        plugin.cur.execute('ALTER TABLE temp.junction_connections DROP COLUMN IF EXISTS zeta;')
         dlg.btn_start.pressed.emit()  # like the user: startPipeSizing via runWithButtonDisabled
         assert not dlg.btn_start.isEnabled()  # no second sizing run while the first is running
         wait_for_process(dlg, timeout=60)
@@ -643,6 +670,82 @@ class TestWorkflow:
         closeDialog(dlg)
         errors.check()
         assert count(plugin, 'lines', 'WHERE pipe_bundle_type_id IS NULL') == 0
+        assert_junction_zeta(plugin)
+        # the sized pipes have different diameters: reducers and tees with a smaller branch
+        plugin.cur.execute('SELECT count(DISTINCT pipe_bundle_type_id) AS n FROM "{}".lines;'.format(version))  # nosec B608
+        print('pipe sizing: pipe bundle types', plugin.cur.fetchone()['n'])
+
+    def test_zeta_values(self, wf, errors):
+        """zeta action (lines, junctions): memory layers in the group 'zeta values' with the zeta used in the network model,
+        removed when the version is loaded again"""
+        only_for(wf, *NETWORK_TEMPLATES)
+        plugin = wf.plugin
+        version = plugin.config['versionName']
+        for layer_name in ['lines', 'junctions']:
+            layer = QgsProject.instance().mapLayersByName(tr('@default', layer_name))[0]
+            names = [a.name() for a in layer.actions().actions()]
+            assert names.count(tr('@default', 'zeta_values')) == 1, (layer_name, names)
+
+        # a user value in lines.zeta and junctions.zeta is added to the calculated values
+        plugin.cur.execute('SELECT min(id) AS id FROM "{}".lines;'.format(version))  # nosec B608
+        lid = plugin.cur.fetchone()['id']
+        plugin.cur.execute('UPDATE "{}".lines SET zeta=2 WHERE id={};'.format(version, lid))  # nosec B608
+        plugin.cur.execute('SELECT min(jid) AS jid FROM "{}".junction_connections WHERE lid={};'.format(version, lid))  # nosec B608
+        jid = plugin.cur.fetchone()['jid']
+        if jid:
+            plugin.cur.execute('UPDATE "{}".junctions SET zeta=1 WHERE id={};'.format(version, jid))  # nosec B608
+
+        dlg = ZetaDialog()
+        dlg.comboBox_colorRamp.setCurrentText('Spectral')
+        runZetaVisualization(dlg)
+        errors.check()
+        layers = {l.name(): l for l in QgsProject.instance().mapLayers().values() if l.customProperty(ZETA_PROPERTY)}
+        assert len(layers) == 3, list(layers)
+        for layer in layers.values():
+            assert isinstance(layer.renderer(), QgsRuleBasedRenderer), layer.name()
+        lines_layer = layers['{} – {}'.format(tr('@default', 'lines'), tr('@default', 'zeta'))]
+        conn_layer = layers['{} – {}'.format(tr('@default', 'junction_connections'), tr('@default', 'zeta'))]
+        assert lines_layer.featureCount() == count(plugin, 'lines')
+        assert conn_layer.featureCount() == count(plugin, 'junction_connections')
+        assert conn_layer.labelsEnabled()
+        plugin.cur.execute("""SELECT jc.lid, sum(coalesce(jc.zeta, 0) + coalesce(j.zeta, 0) / 2) AS z
+FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP BY jc.lid;""".format(v=version))  # nosec B608
+        zeta_j = {r['lid']: float(r['z']) for r in plugin.cur.fetchall()}
+        plugin.cur.execute('SELECT id, coalesce(zeta, 0) AS zeta FROM "{}".lines;'.format(version))  # nosec B608
+        expected = {r['id']: float(r['zeta']) + zeta_j.get(r['id'], 0.0) for r in plugin.cur.fetchall()}
+        for f in lines_layer.getFeatures():
+            assert abs(f['zeta_total'] - expected[f['id']]) < 1e-6, (f['id'], f['zeta_total'], expected[f['id']])
+        assert lines_layer.getFeature(next(f.id() for f in lines_layer.getFeatures() if f['id'] == lid))['zeta_line'] == 2
+
+        # compared with the pipe friction (lambda * L / d), lines colored by the share of the local losses
+        dlg = ZetaDialog()
+        dlg.checkBox_junctions.setChecked(False)
+        dlg.checkBox_connections.setChecked(False)
+        dlg.groupBox_friction.setChecked(True)
+        dlg.checkBox_colorByShare.setChecked(True)
+        runZetaVisualization(dlg)
+        errors.check()
+        layers = [l for l in QgsProject.instance().mapLayers().values() if l.customProperty(ZETA_PROPERTY)]
+        assert len(layers) == 1, [l.name() for l in layers]
+        lines_layer = layers[0]
+        assert {'length_m', 'd_m', 'lambda', 'zeta_friction', 'local_share_pct'} <= set(lines_layer.fields().names())
+        shares = []
+        for f in lines_layer.getFeatures():
+            assert 0.008 < f['lambda'] < 0.08, (f['id'], f['lambda'])
+            assert f['zeta_friction'] == pytest.approx(f['lambda'] * f['length_m'] / f['d_m'])
+            assert f['local_share_pct'] == pytest.approx(f['zeta_total'] / f['zeta_friction'] * 100)
+            shares.append(f['local_share_pct'])
+        assert any('local_share_pct' in r.filterExpression() for r in lines_layer.renderer().rootRule().children())
+        shares.sort()
+        print('zeta: share of the local losses in the pipe friction (%): median {:.1f}, max {:.1f}'.format(
+            shares[len(shares) // 2], shares[-1]))
+
+        plugin.cur.execute('UPDATE "{}".lines SET zeta=0 WHERE id={};'.format(version, lid))  # nosec B608
+        if jid:
+            plugin.cur.execute('UPDATE "{}".junctions SET zeta=0 WHERE id={};'.format(version, jid))  # nosec B608
+        loadVersion(main=plugin)
+        wait(3000)
+        assert not [l for l in QgsProject.instance().mapLayers().values() if l.customProperty(ZETA_PROPERTY)]
 
     # ---------------- modelling and simulation ----------------
     def test_requested_outputs(self, wf, errors):

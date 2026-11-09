@@ -7,6 +7,7 @@ from .compat import MessageCritical, MessageWarning
 from .db import getNetworks, getPlantIds, getTemplatesInfo
 from .files import loadProjectConfig
 from .height_check import removeHeightCheckLayers
+from .zeta import removeZetaLayers
 from .reports import setupCustomerDataSheet
 from .show_on_map import removeResultVisLayers
 from .translations import tr
@@ -71,6 +72,8 @@ def setupFeatureLayerDialog(layer_name,cur,config,plugin_dir):
         setupPipeDiameterStyleAction()
     if layer_name in ['lines','customers','energy_plants']:
         setupHeightCheckActions([layer_name])
+    if layer_name in ['lines','junctions']:
+        setupZetaActions([layer_name])
         
 def loadLayersConfig(config,plugin_dir,project_name):
     layers_config=''
@@ -269,23 +272,32 @@ ShowPipeDiameterStyleDialog()"""
 
 def setupHeightCheckActions(layer_names=('lines', 'customers', 'energy_plants')):
     """action in the layers (layer and form) to visualize the heights (z values) or check their consistency"""
-    action_text = """from districts.ida_ph import *
-ShowHeightCheckDialog()"""
+    addLayerAction(layer_names, 'height_check', """from districts.ida_ph import *
+ShowHeightCheckDialog()""")
+
+def setupZetaActions(layer_names=('lines', 'junctions')):
+    """action in the layers (layer and form) to visualize the zeta values used in the network model"""
+    addLayerAction(layer_names, 'zeta_values', """from districts.ida_ph import *
+ShowZetaDialog()""")
+
+def addLayerAction(layer_names, name_key, action_text):
+    """python action (layer and feature scope, also in the form) in the loaded layers, only once per layer"""
+    name = tr('@default', name_key)
     for layer_name in layer_names:
         layers = QgsProject.instance().mapLayersByName(tr('@default', layer_name))
         if not layers:
             continue
         layer = layers[0]
         # only once per layer (the layer setup may run again for a loaded layer)
-        if any(a.name() == tr('@default', 'height_check') for a in layer.actions().actions()):
+        if any(a.name() == name for a in layer.actions().actions()):
             continue
-        heightAction = QgsAction(Qgis.AttributeActionType.GenericPython, tr('@default', 'height_check'), action_text, None, capture=False,
-                                 shortTitle=tr('@default', 'height_check'), actionScopes={'Feature', 'Layer'})
-        layer.actions().addAction(heightAction)
+        action = QgsAction(Qgis.AttributeActionType.GenericPython, name, action_text, None, capture=False,
+                           shortTitle=name, actionScopes={'Feature', 'Layer'})
+        layer.actions().addAction(action)
 
         form_config = layer.editFormConfig()
         rootContainer = form_config.invisibleRootContainer()
-        rootContainer.addChildElement(QgsAttributeEditorAction(heightAction, rootContainer))
+        rootContainer.addChildElement(QgsAttributeEditorAction(action, rootContainer))
         layer.setEditFormConfig(form_config)
 
 def turboColor(t):
@@ -572,6 +584,8 @@ def removeLayers():
     removeResultVisLayers()
     # height check layers (memory layers, snapshot of the old version)
     removeHeightCheckLayers()
+    # zeta layers (memory layers, snapshot of the old version)
+    removeZetaLayers()
     iface.mapCanvas().refresh()
 
         

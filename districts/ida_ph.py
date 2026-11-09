@@ -13,6 +13,7 @@ from .utility_functions.compat import (
     MessageCritical, MessageInfo, MessageSuccess, MessageWarning, PolygonPropertyExtrusionHeight, PolygonPropertyHeight,
 )
 from .utility_functions.height_check import HEIGHT_CHECK_LAYERS, heightConsistency, heightGraduated
+from .utility_functions.zeta import ZETA_LAYER_NAMES, ZETA_LAYERS, showZetaValues
 from .utility_functions.db import (
     checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getProjectVersionNames, getTableAttr,
     setDistrictsModelerVersion2DB,
@@ -22,7 +23,7 @@ from .utility_functions.files import createDir, districtsModelerTempDir, loadPro
 from .utility_functions.layer_visualization import (
     extract_group_fields, loadBoreholesLayer, loadLayersConfig, loadProjectLayers, loadTopologyLayers, on_form_changed,
     removeLayers, setupCustomerGFAValue, setupCustomerLoadValue, setupFeatureLayerDialog, setupHeightCheckActions,
-    setupPipeDiameterStyleAction,
+    setupPipeDiameterStyleAction, setupZetaActions,
     setupVersionForm, stylePipeDiameter, updateTableSrid, valueRelationPipeBundleType, versionLayersAliasNames,
     writeLayersConfig,
 )
@@ -290,6 +291,139 @@ class HeightCheckDialog(QDialog):
 
     def selectedLayers(self):
         return [layer_name for layer_name in HEIGHT_CHECK_LAYERS if getattr(self,'checkBox_'+layer_name).isChecked()]
+
+class ShowZetaDialog:
+    """action of the lines and junctions layers: visualize the zeta values used in the network model"""
+    def __init__(self):
+        self.dlg=ZetaDialog()
+
+        self.dlg.btn_ok.clicked.connect(lambda: runZetaVisualization(self.dlg))
+        self.dlg.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg))
+        self.dlg.exec()
+
+def runZetaVisualization(dlg):
+    layer_names=dlg.selectedLayers()
+    title=tr('@default','zeta_values')
+    if not layer_names:
+        iface.messageBar().pushMessage(title, tr('@default','no_layer_selected'), level=MessageWarning, duration=5)
+        return
+    dlg.btn_ok.setEnabled(False)
+    try:
+        result=showZetaValues(dlg.cur, dlg.config['versionName'], layer_names, ramp_name=dlg.comboBox_colorRamp.currentText(),
+                              invert_ramp=dlg.checkBox_invertRamp.isChecked(), n_classes=dlg.spinBox_classes.value(),
+                              labels=dlg.checkBox_labels.isChecked(), friction=dlg.friction(),
+                              color_by_share=dlg.checkBox_colorByShare.isChecked())
+        text=', '.join('{}: {}/{} {} (max {:.2f})'.format(tr('@default',ZETA_LAYER_NAMES[name]), values[1], values[0],
+                                                          tr('@default','with_zeta'), values[2])
+                       for name,values in result.items() if name in ZETA_LAYER_NAMES)
+        if 'local_share_median' in result:
+            text+=', {}: {:.0f} %'.format(tr('@default','zeta_local_share_median'), result['local_share_median'])
+        iface.messageBar().pushMessage(title, text, level=MessageSuccess, duration=10)
+    except Exception:
+        QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
+        iface.messageBar().pushMessage(title, tr('@default','zeta_values_failed'), level=MessageCritical, duration=10)
+        dlg.btn_ok.setEnabled(True)
+        return
+    closeDialog(dlg)
+
+class ZetaDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        from qgis.PyQt.QtWidgets import (
+            QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout,
+        )
+
+        self.config=load_plugin_settings()
+        self.conn=dbConnect(self.config,True)
+        closeConnectionOnFinish(self)
+        if self.conn:
+            self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+
+        self.setWindowTitle(tr('@default','zeta_values'))
+        info=QLabel(tr('@default','zeta_values_info'))
+        info.setWordWrap(True)
+
+        group_layers=QGroupBox(tr('@default','layers'))
+        layout_layers=QVBoxLayout(group_layers)
+        for layer_name in ZETA_LAYERS:
+            checkbox=QCheckBox(tr('@default',ZETA_LAYER_NAMES[layer_name]))
+            checkbox.setChecked(True)
+            setattr(self,'checkBox_'+layer_name,checkbox)
+            layout_layers.addWidget(checkbox)
+        # layers which are not loaded can not be selected (connections need lines and junctions)
+        for layer_name in ['lines','junctions']:
+            if not QgsProject.instance().mapLayersByName(tr('@default',layer_name)):
+                for name in [layer_name,'connections']:
+                    getattr(self,'checkBox_'+name).setChecked(False)
+                    getattr(self,'checkBox_'+name).setEnabled(False)
+
+        group_style=QGroupBox(tr('@default','style'))
+        layout_style=QFormLayout(group_style)
+        self.comboBox_colorRamp=QComboBox()
+        ramp_names=QgsStyle.defaultStyle().colorRampNames()
+        if 'Turbo' not in ramp_names:
+            ramp_names=['Turbo']+ramp_names
+        self.comboBox_colorRamp.addItems(ramp_names)
+        self.comboBox_colorRamp.setCurrentText('Turbo')
+        layout_style.addRow(tr('@default','color_ramp'),self.comboBox_colorRamp)
+        self.checkBox_invertRamp=QCheckBox(tr('@default','invert_color_ramp'))
+        layout_style.addRow(self.checkBox_invertRamp)
+        self.spinBox_classes=QSpinBox()
+        self.spinBox_classes.setRange(2,20)
+        self.spinBox_classes.setValue(5)
+        layout_style.addRow(tr('@default','classes'),self.spinBox_classes)
+        self.checkBox_labels=QCheckBox(tr('@default','zeta_labels'))
+        self.checkBox_labels.setChecked(True)
+        layout_style.addRow(self.checkBox_labels)
+
+        # pipe friction of the lines as zeta (lambda * L / d) to compare the local losses with
+        self.groupBox_friction=QGroupBox(tr('@default','zeta_pipe_friction'))
+        self.groupBox_friction.setCheckable(True)
+        self.groupBox_friction.setChecked(False)
+        self.groupBox_friction.setToolTip(tr('@default','zeta_pipe_friction_tooltip'))
+        layout_friction=QFormLayout(self.groupBox_friction)
+        self.spinBox_velocity=QDoubleSpinBox()
+        self.spinBox_velocity.setRange(0.05,5.0)
+        self.spinBox_velocity.setSingleStep(0.1)
+        self.spinBox_velocity.setDecimals(2)
+        self.spinBox_velocity.setValue(1.0)
+        self.spinBox_velocity.setSuffix(' m/s')
+        layout_friction.addRow(tr('@default','flow_velocity'),self.spinBox_velocity)
+        self.spinBox_viscosity=QDoubleSpinBox()
+        self.spinBox_viscosity.setRange(0.1,10.0)
+        self.spinBox_viscosity.setSingleStep(0.05)
+        self.spinBox_viscosity.setDecimals(3)
+        self.spinBox_viscosity.setValue(0.41)  # water at 70 °C (40 °C: 0.66)
+        self.spinBox_viscosity.setSuffix(' mm²/s')
+        layout_friction.addRow(tr('@default','zeta_kinematic_viscosity'),self.spinBox_viscosity)
+        self.checkBox_colorByShare=QCheckBox(tr('@default','zeta_color_by_share'))
+        layout_friction.addRow(self.checkBox_colorByShare)
+        if not self.checkBox_lines.isEnabled():
+            self.groupBox_friction.setChecked(False)
+            self.groupBox_friction.setEnabled(False)
+
+        self.btn_ok=QPushButton(tr('@default','ok'))
+        self.btn_cancel=QPushButton(tr('@default','cancel'))
+        layout_buttons=QHBoxLayout()
+        layout_buttons.addStretch()
+        layout_buttons.addWidget(self.btn_ok)
+        layout_buttons.addWidget(self.btn_cancel)
+
+        layout=QVBoxLayout(self)
+        layout.addWidget(info)
+        layout.addWidget(group_layers)
+        layout.addWidget(group_style)
+        layout.addWidget(self.groupBox_friction)
+        layout.addLayout(layout_buttons)
+
+    def selectedLayers(self):
+        return [layer_name for layer_name in ZETA_LAYERS if getattr(self,'checkBox_'+layer_name).isChecked()]
+
+    def friction(self):
+        """pipe friction settings or None"""
+        if not self.groupBox_friction.isChecked():
+            return None
+        return {'velocity':self.spinBox_velocity.value(),'viscosity':self.spinBox_viscosity.value()*1e-6}
 
 class GFAAttributeDialog(QDialog):
     def __init__(self):
@@ -932,6 +1066,7 @@ def loadVersionLayers(config,cur,plugin_dir):
     setupCustomerGFAValue(config,plugin_dir,loadProjectConfig(config))
     setupPipeDiameterStyleAction()
     setupHeightCheckActions()
+    setupZetaActions()
 
     valueRelationPipeBundleType()
     zoomToLayer('customers')

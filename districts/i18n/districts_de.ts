@@ -4177,6 +4177,101 @@
             <source>height_check_failed</source>
             <translation type="unfinished">Höhenprüfung fehlgeschlagen (siehe Protokoll Districts)</translation>
         </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>calculate_junction_zeta</source>
+            <translation type="unfinished">Zeta-Werte der Knoten berechnen (Tabellenwerte)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>calculate_junction_zeta_tooltip</source>
+            <translation type="unfinished">Einzelwiderstandsbeiwerte (Zeta) der Knoten aus Tabellenwerten: T-Stück und Kreuzstück (Durchgang 0.4/0.5, Abzweig 1.4/1.5) und Reduktion (plötzliche Verengung/Erweiterung aus dem Durchmesserverhältnis). Sie werden pro Knotenanschluss gespeichert und im Netzmodell zu den Leitungen addiert. lines.zeta und junctions.zeta bleiben frei für eigene Werte. Rohrdimensionierung: mit den dimensionierten Rohren beim Speichern der Ergebnisse berechnet. Ohne diese Option hat eine neue Topologie keine berechneten Werte.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values</source>
+            <translation type="unfinished">Zeta-Werte</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values_info</source>
+            <translation type="unfinished">Zeigt die im Netzmodell verwendeten Zeta-Werte als Layer in der Gruppe Zeta-Werte: Leitungen (Summe aus lines.zeta, junctions.zeta/2 und den Knotenanschlüssen), Knoten (Summe ihrer Anschlüsse) und Knotenanschlüsse (Wert, der zur Leitung addiert wird, Punkt auf der Leitung beim Knoten). Die Layer sind eine Momentaufnahme, nach Änderungen erneut ausführen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values_failed</source>
+            <translation type="unfinished">Zeta-Werte konnten nicht angezeigt werden (siehe Protokoll Districts)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_labels</source>
+            <translation type="unfinished">Werte der Knotenanschlüsse beschriften</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>with_zeta</source>
+            <translation type="unfinished">mit Zeta</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>junction_connections</source>
+            <translation type="unfinished">Knotenanschlüsse</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_pipe_friction</source>
+            <translation type="unfinished">Mit der Rohrreibung der Leitungen vergleichen</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_pipe_friction_tooltip</source>
+            <translation type="unfinished">Der Leitungslayer erhält die Rohrreibung als Zeta (lambda * L / d) und den Anteil der Einzelwiderstände (zeta_total) in % davon. Lambda aus Rauheit und Innendurchmesser des grössten Rohrs des Rohrbündels bei der angegebenen Geschwindigkeit (Swamee-Jain, laminar 64/Re). Beide Verluste beziehen sich auf dieselbe Geschwindigkeit, der Anteil ist also auch der Anteil an den Druckverlusten. Üblich: etwa 5-30 %, kurze Leitungen mehr.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>flow_velocity</source>
+            <translation type="unfinished">Strömungsgeschwindigkeit</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_kinematic_viscosity</source>
+            <translation type="unfinished">Kinematische Viskosität (Wasser 70 °C: 0.41, 40 °C: 0.66)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_color_by_share</source>
+            <translation type="unfinished">Leitungen nach dem Anteil der Einzelwiderstände einfärben (%)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_local_share_median</source>
+            <translation type="unfinished">Median Anteil Einzelwiderstände</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>layers</source>
+            <translation type="unfinished">Layer</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>style</source>
+            <translation type="unfinished">Darstellung</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>color_ramp</source>
+            <translation type="unfinished">Farbverlauf</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>invert_color_ramp</source>
+            <translation type="unfinished">Farbverlauf umkehren</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>classes</source>
+            <translation type="unfinished">Anzahl Klassen</translation>
+        </message>
     </context>
     <context>
         <name>BuildNetworkModelDialog</name>

@@ -18,6 +18,19 @@ from .utility_functions.topology import checkNetwork, getNetworkSequences, saveT
 from .utility_functions.translations import tr
 from .utility_functions.utility import refreshMap
 from .utility_functions.workers import closeConnection, closeConnectionOnFinish, startWorkers
+from .utility_functions.zeta import ensureConnectionZetaColumn, hasCalculatedJunctionZeta
+
+
+def junctionZetaCheckBox(cur,config):
+    """checkbox: calculate the zeta values of the junctions (junction_connections.zeta) from textbook values.
+    Checked if the version already has calculated values (a new topology without the option has none)."""
+    checkbox=QCheckBox(tr('@default','calculate_junction_zeta'))
+    checkbox.setToolTip(tr('@default','calculate_junction_zeta_tooltip'))
+    try:
+        checkbox.setChecked(hasCalculatedJunctionZeta(cur,config['versionName']))
+    except Exception:
+        checkbox.setChecked(False)
+    return checkbox
 from .PipeLayingAlgorithm import WorkerPipeLaying 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
@@ -316,6 +329,9 @@ class PipeLayingDialog(QDialog):
         self.keep_unconnected_customers =QCheckBox(tr('@default',"keep_unconnected_customers"))
         self.keep_unconnected_customers.setChecked(True)
 
+        #zeta values of the junctions
+        self.check_calc_junction_zeta=junctionZetaCheckBox(self.cur,self.config)
+
         #redraw submodel polygon including all streets
         self.redraw_submodels_polygons =QCheckBox(tr('@default',"redraw_submodel_polygon"))
         self.redraw_submodels_polygons.setChecked(True)
@@ -496,6 +512,7 @@ class PipeLayingDialog(QDialog):
         layout_win.addWidget(self.group_box_hc_type_settings)
         layout_win.addWidget(self.check_extend_network)
         layout_win.addWidget(self.keep_unconnected_customers)
+        layout_win.addWidget(self.check_calc_junction_zeta)
         #layout_win.addWidget(self.redraw_submodels_polygons)
         layout_win.addWidget(self.customer_connection_mode)
         layout_win.addLayout(layout_tolerance)
@@ -571,7 +588,7 @@ class PipeLayingDialog(QDialog):
                 cooling_load_min=self.cooling_load_min.text(),cooling_template_customer=self.cooling_template_customer.currentText(),cooling_type_lines=self.cooling_type_lines.currentText(),
                 linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),
                 amortization_period_cold=self.amortization_period_cold.text(),hc_template_customer=self.hc_template_customer.currentText(),
-                customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),config=self.config,plugin_dir=self.plugin_dir)
+                customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),calcJunctionZeta=self.check_calc_junction_zeta.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),config=self.config,plugin_dir=self.plugin_dir)
             self.worker.signals.progress.connect(self.update_progress)
             self.worker.signals.error.connect(self.show_error_message)
             self.worker.signals.status.connect(self.label_status.setText)
@@ -660,6 +677,9 @@ class PipeLayingDialog(QDialog):
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             dropDBTriggers(self.cur,self.config) #child versions are not updated
+            #same columns in temp and version (zeta of the junction connections is missing in old projects)
+            ensureConnectionZetaColumn(self.cur,'temp')
+            ensureConnectionZetaColumn(self.cur,self.config['versionName'])
             sql="""TRUNCATE "{}".lines, "{}".customers, "{}".junctions, "{}".customer_connections, "{}".junction_connections, "{}".energy_plant_connections, "{}".energy_plants CASCADE;\n""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName'],self.config['versionName']) # nosec B608
             sql+=""" INSERT INTO "{}".lines SELECT * FROM temp.lines ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
             sql+=""" INSERT INTO "{}".customers SELECT * FROM temp.customers ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
@@ -894,6 +914,8 @@ class NetworkTopologyDialog(QDialog):
         layout_additional_options.addLayout(layout_connectCustomers_template)
         layout_additional_options.addWidget(self.check_deleteUnconnectedCustomers)
         layout_additional_options.addWidget(self.check_deleteUnconnectedLines)
+        self.check_calc_junction_zeta=junctionZetaCheckBox(self.cur,self.config)
+        layout_additional_options.addWidget(self.check_calc_junction_zeta)
         #layout_additional_options.addWidget(self.redraw_submodels_polygons)
         
         layout_win = QVBoxLayout()
@@ -928,7 +950,7 @@ class NetworkTopologyDialog(QDialog):
                     deleteUnconnectedNetworkEnds=self.check_del_network_ends.isChecked(),
                     keepTemplates=self.rbtn_keep_templates.isChecked(),
                     overrideTemplates=self.rbtn_override_templates.isChecked(),overrideTemplates_customers=self.overrideTemplate_customer.currentText(),overrideTemplates_pipeBundle=self.overrideTemplate_pipeBundle.currentText(),tolerance=self.tolerance.text(),
-                    showTempTables=True)
+                    calcJunctionZeta=self.check_calc_junction_zeta.isChecked(),showTempTables=True)
                 self.worker.signals.error.connect(self.show_error_message)
                 self.worker.signals.progress.connect(self.update_progress)
                 self.worker.signals.status.connect(self.label_status.setText)
@@ -1142,7 +1164,9 @@ class PipeSizingDlg(QDialog):
         self.combo_simultaneity.addItems(getTableAttr(self.cur,self.config,'line'))
         self.combo_simultaneity.setHidden(True)
 
-        
+        #zeta values of the junctions (calculated with the sized pipes when the results are saved)
+        self.check_calc_junction_zeta=junctionZetaCheckBox(self.cur,self.config)
+
         #------liquid circuits----
         #label water circuits
         self.label_circuits =QLabel(tr('@default',"liquid_circuits"))
@@ -1203,6 +1227,7 @@ class PipeSizingDlg(QDialog):
         layout_win.addLayout(layout_sizing_options)
         layout_win.addWidget(self.checkBoxSimultaneity)
         layout_win.addWidget(self.combo_simultaneity)
+        layout_win.addWidget(self.check_calc_junction_zeta)
         layout_win.addWidget(self.label_circuits)
         layout_win.addLayout(layout_buttons_circuits)
         layout_win.addWidget(self.table_circuits)

@@ -166,6 +166,7 @@ CREATE TABLE "$versionName$".junction_connections
   id serial,
   jid integer,
   lid integer,
+  zeta numeric, --local loss coefficient added to the line at this junction (calculated from textbook values)
   CONSTRAINT junction_connections_pkey PRIMARY KEY (id)
 );
 

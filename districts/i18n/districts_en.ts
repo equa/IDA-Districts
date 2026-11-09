@@ -4180,6 +4180,101 @@
             <source>height_check_failed</source>
             <translation type="unfinished">Height check failed (see the message log Districts)</translation>
         </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>calculate_junction_zeta</source>
+            <translation type="unfinished">Calculate the zeta values of the junctions (textbook values)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>calculate_junction_zeta_tooltip</source>
+            <translation type="unfinished">Local loss coefficients (zeta) of the junctions from textbook values: tee and cross (straight run 0.4/0.5, branch 1.4/1.5) and reducer (sudden contraction/expansion from the diameter ratio). They are stored per junction connection and added to the lines in the network model. lines.zeta and junctions.zeta stay free for your own values. Pipe sizing: calculated with the sized pipes when the results are saved. Without this option a new topology has no calculated values.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values</source>
+            <translation type="unfinished">Zeta values</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values_info</source>
+            <translation type="unfinished">Shows the zeta values used in the network model as layers in the group Zeta values: lines (total of lines.zeta, junctions.zeta/2 and the junction connections), junctions (sum of their connections) and junction connections (value added to the line, point on the line near the junction). The layers are a snapshot, run it again after changes.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values_failed</source>
+            <translation type="unfinished">Zeta values could not be shown (see the message log Districts)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_labels</source>
+            <translation type="unfinished">Label the values of the junction connections</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>with_zeta</source>
+            <translation type="unfinished">with zeta</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>junction_connections</source>
+            <translation type="unfinished">Junction connections</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_pipe_friction</source>
+            <translation type="unfinished">Compare with the pipe friction of the lines</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_pipe_friction_tooltip</source>
+            <translation type="unfinished">The lines layer gets the pipe friction as zeta (lambda * L / d) and the share of the local losses (zeta_total) in % of it. Lambda from the roughness and inner diameter of the largest pipe of the bundle at the given velocity (Swamee-Jain, laminar 64/Re). Both losses refer to the same velocity, so the share is also the share of the pressure losses. Usual: about 5-30 %, short lines more.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>flow_velocity</source>
+            <translation type="unfinished">Flow velocity</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_kinematic_viscosity</source>
+            <translation type="unfinished">Kinematic viscosity (water 70 °C: 0.41, 40 °C: 0.66)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_color_by_share</source>
+            <translation type="unfinished">Color the lines by the share of the local losses (%)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_local_share_median</source>
+            <translation type="unfinished">median share of the local losses</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>layers</source>
+            <translation type="unfinished">Layers</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>style</source>
+            <translation type="unfinished">Style</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>color_ramp</source>
+            <translation type="unfinished">Color ramp</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>invert_color_ramp</source>
+            <translation type="unfinished">Invert color ramp</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>classes</source>
+            <translation type="unfinished">Number of classes</translation>
+        </message>
     </context>
     <context>
         <name>BuildNetworkModelDialog</name>

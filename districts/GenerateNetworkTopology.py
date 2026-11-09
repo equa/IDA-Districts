@@ -19,6 +19,7 @@ from .utility_functions.topology import (
     updateSubmodels,
 )
 from .utility_functions.translations import tr
+from .utility_functions.zeta import updateJunctionZeta
 
 
 
@@ -75,6 +76,8 @@ class WorkerGenerateNetworkTopology(QRunnable):
         else:
             self.signals.error.emit('No pipe bundle available or set!')
         self.tolerance=kwargs['tolerance']
+        #calculate the zeta values of the junction connections from textbook values
+        self.calcJunctionZeta=kwargs.get('calcJunctionZeta',False)
         self.redraw_submodels_polygons=kwargs['redraw_submodels_polygons']
         self.networks=kwargs['networks']
         if not self.networks:
@@ -284,6 +287,9 @@ INSERT INTO temp.customers(geom,template,network)
         self.status('Updating heights and submodels')
         self.updateHeight(version,srid)
         updateJunctionHeights(self.cur,self.tolerance,network)
+        if self.calcJunctionZeta:
+            self.status('Calculating the zeta values of the junctions')
+            updateJunctionZeta(self.cur,'temp',network)
         updateSubmodels(self.cur,self.config)
         self.networkProgress(1)
 

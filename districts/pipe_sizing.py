@@ -13,6 +13,7 @@ from .utility_functions.topology import saveTempTables
 from .utility_functions.translations import tr
 from .utility_functions.utility import checkListNumbers, isFloat, isNumber, refreshMap
 from .utility_functions.workers import APISignals, runInMainThread
+from .utility_functions.zeta import updateJunctionZeta
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
 import psycopg2
@@ -317,6 +318,7 @@ INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['v
         #remember sized network and mode for saving the results
         dlg.sized_network=network
         dlg.sized_with_topology=dlg.rbtn_customers.isChecked()
+        dlg.sized_calc_junction_zeta=dlg.check_calc_junction_zeta.isChecked()
 
         dlg.process_running=True
         if dlg.rbtn_customers.isChecked():
@@ -451,6 +453,12 @@ END $$;""".format(i,i) for i in energy_columns]) # nosec B608
         cur.execute(sql)
         insertDBTriggers(cur,config)
         removeTempLayers()
+
+    #zeta values of the junctions with the sized pipe diameters
+    if getattr(dlg,'sized_calc_junction_zeta',dlg.check_calc_junction_zeta.isChecked()):
+        dropDBTriggers(cur,config) #child versions are not updated
+        updateJunctionZeta(cur,config['versionName'],network)
+        insertDBTriggers(cur,config)
 
     dlg.new_pipe_bundles=[]
     
