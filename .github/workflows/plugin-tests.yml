@@ -2,11 +2,16 @@
 #
 # Runs on a self-hosted Windows runner with QGIS, the PostgreSQL test server and IDA Districts
 # (setup: .github/RUNNER_SETUP.md). Required as status check for merging dev into main.
+#
+# The repository is public: no pull_request trigger, otherwise a pull request from a fork could
+# change this file and run its own code on the self-hosted runner. A push to dev and a manual run
+# need write access. The checks belong to the pushed commit, so a pull request dev -> main shows
+# the result of the latest dev commit.
 name: plugin-tests
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches: [dev]
   workflow_dispatch:
     inputs:
       with_simulation:
@@ -18,16 +23,14 @@ on:
         type: boolean
         default: false
 
-# a newer push to the same pull request cancels the running tests
+# a newer push to the same branch cancels the running tests
 concurrency:
-  group: plugin-tests-${{ github.event.pull_request.number || github.ref }}
+  group: plugin-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   plugin-tests:
     name: plugin-tests (QGIS ${{ matrix.qgis }})
-    # never run code of pull requests from forks on the self-hosted runner
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, windows, districts]
     timeout-minutes: 45
     strategy:
@@ -46,6 +49,8 @@ jobs:
       DISTRICTS_TEST_DB_PASSWORD: ${{ secrets.DISTRICTS_TEST_DB_PASSWORD }}
       DISTRICTS_TEST_SAMPLES: ${{ vars.DISTRICTS_TEST_SAMPLES || 'C:\EQUA\Projekte\districts\samples' }}
       PYTHON_QGIS: ${{ matrix.python }}
+    permissions:
+      contents: read
     defaults:
       run:
         shell: powershell
@@ -95,6 +100,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.simulation_tests
     runs-on: [self-hosted, windows, districts]
     timeout-minutes: 600
+    permissions:
+      contents: read
     env:
       DISTRICTS_SIM_CASES: ${{ vars.DISTRICTS_SIM_CASES || 'C:\EQUA\Projekte\districts\testing' }}
     defaults:

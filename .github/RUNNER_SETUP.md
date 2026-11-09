@@ -1,8 +1,9 @@
 # Automatic plugin tests (dev → main)
 
 The workflow `.github/workflows/plugin-tests.yml` runs the pytest suite of the Districts Modeler plugin
-(`districts/test`) for every pull request into `main`, once with QGIS 4.2 and once with QGIS 3.44.
-GitHub only allows the merge when both checks are green (branch protection, step 5).
+(`districts/test`) for every push to `dev`, once with QGIS 4.2 and once with QGIS 3.44.
+The checks belong to the pushed commit, so a pull request `dev` → `main` shows the result of the latest
+`dev` commit; GitHub only allows the merge when both checks are green (branch protection, step 5).
 
 The tests need QGIS, a PostgreSQL/PostGIS/pgRouting server and IDA Districts (with license), so they run on
 a **self-hosted runner**: a Windows PC of ours, not a GitHub cloud machine.
@@ -75,7 +76,8 @@ both checks are green. Pushing directly to main is blocked.
 
 ## Running it
 
-- **Pull request into main:** both QGIS versions, all templates incl. IDA simulation (~5 min each).
+- **Push to dev:** both QGIS versions, all templates incl. IDA simulation (~5 min each). A newer push to dev
+  cancels a running test. Push the final state to dev and wait for the green checks before merging into main.
 - **Manually** (Actions → plugin-tests → Run workflow, any branch):
   - `with_simulation` off: only the steps without IDA (`-m "not ida"`)
   - `simulation_tests` on: afterwards also the simulation test suite `districts/simulation_tests` (takes long)
@@ -85,5 +87,16 @@ both checks are green. Pushing directly to main is blocked.
 
 ## Security
 
-The runner executes the code of the pull request on this PC. The workflow therefore skips pull requests
-from forks; keep the repository private.
+The runner executes the code of the tested commit on this PC, as the Windows user running `run.cmd`.
+The repository is public, so the workflow has **no `pull_request` trigger**: for a pull request from a fork,
+GitHub would use the workflow file of that pull request, and an outsider could run their own code here.
+A push to `dev` and a manual run need write access to the repository.
+
+- Never add a `pull_request` or `pull_request_target` trigger to a workflow that uses this runner.
+- Settings → Actions → General:
+  - Actions permissions: "Allow equa, and select non-equa, actions and reusable workflows" with
+    "Allow actions created by GitHub" (the workflow uses only `actions/checkout` and `actions/upload-artifact`)
+  - Fork pull request approval: "Require approval for all external contributors"
+  - Workflow permissions: "Read repository contents and packages permissions";
+    "Allow GitHub Actions to create and approve pull requests" off
+- The DB secrets are only for the local test server (port 5433), never for a production database.
