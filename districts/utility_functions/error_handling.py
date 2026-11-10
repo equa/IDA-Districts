@@ -4,6 +4,7 @@ from .db import featureCount
 import psycopg2
 import psycopg2.extras
 from qgis.utils import iface 
+from .debug_log import dprint
 
 
 def checkIntersectingFeatures(cur,config):
@@ -39,7 +40,7 @@ def checkLoopInConnections(cur,version,table,type):
     
 def checkGenerateTopologyLayerData(config,cur,networks,connectPlants,connectCustomers):
     checked_networks=[]
-    #print('checkGenerateTopologyLayerData')
+    dprint('checkGenerateTopologyLayerData')
     for network in networks:
         network_check=True
         #check numer of features (customers and plants) > 0 

@@ -13,6 +13,7 @@ from qgis.core import Qgis, QgsMessageLog
 
 import tempfile
 import traceback
+from .debug_log import dprint, debug_enabled
 
 def districtsModelerTempDir():
     temp_folder = tempfile.gettempdir().replace('/',"\\")+'\\'
@@ -58,10 +59,10 @@ def replace_in_files(folder_path, filename, replace_string, new_string):
                     if content != new_content:
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(new_content)
-                        #print(f"Ersetzt in: {file_path}")
+                        dprint(f"Ersetzt in: {file_path}")
                     else:
                         pass
-                        #print(f"Kein Treffer in: {file_path}")
+                        dprint(f"Kein Treffer in: {file_path}")
 
                 except Exception:
                     QgsMessageLog.logMessage(
@@ -79,7 +80,7 @@ def replace_in_file(file_path, old_string, new_string):
             content = content.replace(old_string, new_string)
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(content)
-            #print(f"Updated: {file_path}")
+            dprint(f"Updated: {file_path}")
     except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
@@ -104,10 +105,10 @@ def writeMacroSFIdm(config,cur,dir):
         sql='SELECT id,sf,vars FROM "{}".invoked_sf;'.format(config['versionName']) # nosec B608
         cur.execute(sql)
         sf_ids=cur.fetchall()     
-        #print(sf_ids)
+        dprint(sf_ids)
         filedata+=["""\n((SOURCE-FILE :DOCUMENT-PATH {} :SF {} :N "SOURCE-FILE-{}" :T SOURCE-FILE :COL T){})""".format(i['sf'],i['sf'],i['id'],''.join([" (:VAR :N {} :T GENERIC)".format(j) for j in i['vars'] ])) for i in sf_ids if i['vars'] is not None]
     writeToFileFromList(filedata,dir,dir+'\\sf-macro.idm') 
-    #print(dir)
+    dprint(dir)
                 
 def writeMacroSFIdc(config,cur,dir):     
     filedata=[""";IDA {} Data UTF-8
@@ -187,7 +188,7 @@ def loadRequestedOutputs(plugin_dir,config):
         dir=config['pathProjects']+config['projectName']
         file="{}\\requestedOutputs.txt".format(dir)
         if os.path.exists(file):
-            #print(file)
+            dprint(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     requestedOutputs+=line
@@ -195,14 +196,14 @@ def loadRequestedOutputs(plugin_dir,config):
             #load from template in data center plugin if file does not exists
             file_template=plugin_dir+"\\config\\requestedOutputs_template.txt"
             if os.path.exists(file_template):
-                #print(file_template)
+                dprint(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         requestedOutputs+=line
-        #print(requestedOutputs)
+        dprint(requestedOutputs)
         requestedOutputs=strToDict(requestedOutputs)
     else:
-        #print('No project name')
+        dprint('No project name')
         pass
     return requestedOutputs
     
@@ -212,16 +213,16 @@ def loadSimulatedOutputs(config):
         dir=config['pathProjects']+config['projectName']+"\\versions\\"+config['versionName']
         file="{}\\simulatedOutputs.txt".format(dir)
         if os.path.exists(file):
-            #print(file)
+            dprint(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     simulatedOutputs+=line
         else:
             return False
-        #print(simulatedOutputs)
+        dprint(simulatedOutputs)
         simulatedOutputs=strToDict(simulatedOutputs)
     else:
-        #print('No project name')
+        dprint('No project name')
         pass
     return simulatedOutputs
     
@@ -231,16 +232,16 @@ def loadInvokedOutputs(config):
         dir=config['pathProjects']+config['projectName']+"\\versions\\"+config['versionName']
         file="{}\\invokedOutputs.txt".format(dir)
         if os.path.exists(file):
-            #print(file)
+            dprint(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     invokedOutputs+=line
         else:
             return {'customers': {}, 'lines': {}, 'energy_plants': {}}
         invokedOutputs=safe_eval(invokedOutputs)
-        #print(invokedOutputs)
+        dprint(invokedOutputs)
     else:
-        #print('No project name')
+        dprint('No project name')
         pass
     return invokedOutputs
     
@@ -260,7 +261,7 @@ def loadModellingSettings(plugin_dir,config):
         dir=config['pathProjects']+config['projectName']+"\\versions\\"+config['versionName']
         file="{}\\modellingSettings.txt".format(dir)
         if os.path.exists(file):
-            #print(file)
+            dprint(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     modellingSettings+=line
@@ -268,14 +269,14 @@ def loadModellingSettings(plugin_dir,config):
             #load from template in data center plugin if file does not exists
             file_template=plugin_dir+"\\config\\modellingSettings_template.txt"
             if os.path.exists(file_template):
-                #print(file_template)
+                dprint(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         modellingSettings+=line
-        #print(modellingSettings)
+        dprint(modellingSettings)
         modellingSettings=strToDict(modellingSettings)
     else:
-        #print('No project name')
+        dprint('No project name')
         pass
     return modellingSettings
     
@@ -285,7 +286,7 @@ def loadNetworkSimData(plugin_dir,config):
         dir=config['pathProjects']+config['projectName']+"\\versions\\"+config['versionName']
         file="{}\\networkSimData.txt".format(dir)
         if os.path.exists(file):
-            #print(file)
+            dprint(file)
             with open(file, "r") as myfile:   
                 for line in myfile:        
                     networkSimData+=line
@@ -293,14 +294,14 @@ def loadNetworkSimData(plugin_dir,config):
             #load from template in data center plugin if file does not exists
             file_template=plugin_dir+"\\config\\networkSimData_template.txt"
             if os.path.exists(file_template):
-                #print(file_template)
+                dprint(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         networkSimData+=line
-        #print(networkSimData)
+        dprint(networkSimData)
         networkSimData=strToDict(networkSimData)
     else:
-        #print('No project name')
+        dprint('No project name')
         pass
     return networkSimData    
         
@@ -337,19 +338,19 @@ def removeFilesInDir(dir):
                 os.rmdir(os.path.join(root, name))
                 
 def writePropertyListIDMToFile(plist,dir,file,config):
-    #print(dir)
+    dprint(dir)
     if os.path.exists(dir):
-        #print(file)
+        dprint(file)
         with open(file,'w') as myfile:
             myfile.write(';IDA {} Data UTF-8\n'.format(getIDAVersion(config)))
             for comp in plist:
-                #print(comp)
+                dprint(comp)
                 myfile.write(pListToCompString(comp,0)+'\n')
  
 def writePropertyListIDCToFile(plist,dir,file,config):
-    #print(dir)
+    dprint(dir)
     if os.path.exists(dir):
-        #print(file)
+        dprint(file)
         with open(file,'w') as myfile:
             myfile.write(';IDA {} Form UTF-8\n'.format(getIDAVersion(config)))
             for comp in plist:
@@ -364,31 +365,31 @@ def readFileToString(file,skipFirstLine=True):
                 if i!=0:
                     data+=line
                 i+=1
-    #print(data)
+    dprint(data)
     return data
     
 def writeToFile(data,dir,file):
     """ write data to file in dir"""
-    #print(dir)
+    dprint(dir)
     if os.path.exists(dir):
-        #print(file)
+        dprint(file)
         with open(file,'w') as myfile:
             myfile.write(data) 
             
 def writeToFileFromList(data,dir,file):
     """ write data to file in dir"""
-    #print(dir)
+    dprint(dir)
     if os.path.exists(dir):
-        #print(file)
+        dprint(file)
         with open(file,'w') as myfile:
             for line in data:
                 myfile.write(line) 
             
 def appendToFile(data,dir,file):
     """ write data to file in dir"""
-    #print(dir)
+    dprint(dir)
     if os.path.exists(dir):
-        #print(file)
+        dprint(file)
         with open(file,'a') as myfile:
             myfile.write(data) 
             
@@ -418,31 +419,31 @@ def copyFile(src_file,dst_dir,dst_file):
 
 def getSFList(pList,sf=[]):
     for comp in pList:
-        #print(comp)
+        dprint(comp)
         if getCompClass(comp)=='SOURCE-FILE':
-            #print('++++SF++++')
-            #print(comp)
+            dprint('++++SF++++')
+            dprint(comp)
             if comp not in sf:
                 sf.append(comp)
-    #print(sf)                
+    dprint(sf)                
     return sf
     
 def getUsedtemplatesFDict(plugin_dir,cur,config):
     usedFeaturetemplates=getUsedFeatureTemplates(cur,config)
-    #print(usedFeaturetemplates)
+    dprint(usedFeaturetemplates)
 
     sf={}
     for template in usedFeaturetemplates:
-        #print(template)
+        dprint(template)
         template_name="{}_{}".format(template['template'],template['template_name'])
-        #print(template_name)
+        dprint(template_name)
         dir=plugin_dir+"""\\{}\\{}_templates""".format(config['projectName'],template['feature'])
         filedata=readFileToList(dir+'\\'+template_name+'\\'+template_name+'.idm')
         
         for line in filedata:
-            #print(line)
+            dprint(line)
             if ':SF' in line and ':DOCUMENT-PATH' in line:
-                #print(line)
+                dprint(line)
                 key=line.split(':DOCUMENT-PATH "')[1].split('"')[0]
                 entry=line.split(':N "')[1].split('"')[0]
                 try:
@@ -451,30 +452,30 @@ def getUsedtemplatesFDict(plugin_dir,cur,config):
                     sf[key]=[entry]
                     
     sf={i: set(sf[i])for i in sf}
-    #print(sf)
+    dprint(sf)
     return sf
     
 def replaceKeywordsInFiledata(file_data,replaceDict):
     data=[]
     counter=0
-    #print('--------replace keywords-------------')
-    #print(replaceDict)
+    dprint('--------replace keywords-------------')
+    dprint(replaceDict)
     while counter < len(file_data):
         replace=[key for key in replaceDict if ':N "'+key+'"' in file_data[counter]]
         if replace:
-            #print('Replace model parm: '+replace[0])
+            if debug_enabled(): dprint('Replace model parm: '+replace[0])
             openCloseBracketsCounter=countOpenCloseBrackets(file_data[counter])
-            #print('openCloseBracketsCounter='+str(openCloseBracketsCounter))
+            dprint('openCloseBracketsCounter='+str(openCloseBracketsCounter))
             model_type=getModelType(file_data[counter])
-            #print(model_type)
+            dprint(model_type)
             model_language=modelLanguage(model_type)
             modelicaLabelling='|' if model_language=='MODELICA' else ''
-            #print(model_language)
+            dprint(model_language)
             if openCloseBracketsCounter>0:
-                #print(file_data[counter])
+                if debug_enabled(): dprint(file_data[counter])
                 parms=[]
                 if ':T SOURCE-FILE' in file_data[counter] and ':SOURCE-FILE' in [parDict for parDict in replaceDict[replace[0]]]:
-                    #print(':SF')
+                    dprint(':SF')
                     path=[replaceDict[replace[0]][i] for i in replaceDict[replace[0]] if i==':SOURCE-FILE'][0]
                     data.append("""((SOURCE-FILE :DOCUMENT-PATH "{}" :SF "{}" :N "{}" :T SOURCE-FILE :COL T){}\n""".format(path,path,replace[0],')' if openCloseBracketsCounter==0 else ''))
                     parms.append(':SOURCE-FILE')
@@ -485,10 +486,10 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                     openCloseBracketsCounter+=countOpenCloseBrackets(file_data[counter])
                     if "(:PAR :N " in file_data[counter]:
                         par_name=getParName(file_data[counter],model_language)
-                        #print(par_name)
+                        dprint(par_name)
 
                         if par_name in [parDict for parDict in replaceDict[replace[0]]]:
-                            #print('replace parm')
+                            dprint('replace parm')
                             data.append(' (:PAR :N {}{}{} :V {})\n'.format(modelicaLabelling,par_name,modelicaLabelling,replaceDict[replace[0]][par_name]))
                             parms.append(par_name)
                             exchangeParmValue=True
@@ -499,7 +500,7 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                         data.append(file_data[counter])
                         exchangeParmValue=False
                     if openCloseBracketsCounter==0:
-                        #print('counter = 0')
+                        dprint('counter = 0')
                         if not exchangeParmValue:
                             data[-1]=data[-1].rstrip()[:-1]+"\n"
                         data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,parDict,modelicaLabelling,replaceDict[replace[0]][parDict]) 
@@ -509,11 +510,11 @@ def replaceKeywordsInFiledata(file_data,replaceDict):
                     if openCloseBracketsCounter!=0:
                         counter+=1
                     if counter>=len(file_data):
-                        #print('break')
+                        dprint('break')
                         break       
             else:
                 #only default parm values in model --> 1) add additional bracket to start, 2) add parm to model and 3) add closing bracket
-                #print('only default parm values in model')
+                dprint('only default parm values in model')
                 data.append('('+file_data[counter].rstrip()+'\n')
                 data+=[" (:PAR :N {}{}{} :V {})\n".format(modelicaLabelling,parDict,modelicaLabelling,replaceDict[replace[0]][parDict]) 
                     for parDict in replaceDict[replace[0]]]
@@ -529,21 +530,21 @@ def getSFLinkRefs(sf):
     for i in sf:
         if getCompClass(i)==':INT':
             refs[i[':N']]=i[':V'][1:-1]
-            #print(sf)
+            dprint(sf)
     return refs
     
 def delSFAndConnsAddLinks(plist,sf,sf_ids):
     data=[]
     sf_names_dict={i[0][':N']: {'link_refs':getSFLinkRefs(i),'path':i[0][':SF']} for i in sf}
-    #print(sf_names_dict)
+    dprint(sf_names_dict)
     sf_names=[i[0][':N'] for i in sf]
-    #print(sf_names)
+    dprint(sf_names)
     
     link_dict={}
     if ':CONNS' in plist[-1]:
         for i in plist[-1][':CONNS']:
             if i[0][0] in sf_names or i[1][0] in sf_names:
-                #print(i)
+                dprint(i)
                 if i[0][0] in sf_names:
                     model_name=i[1][0]
                     model_link=listToBracketsString(i[1][1]) if isinstance(i[1][1],list) else i[1][1]
@@ -560,52 +561,52 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                     link_dict[model_name][model_link]={'sf_name': sf_name, 'sf_link': sf_link,'path':path}
                 except Exception:
                     link_dict[model_name]={model_link:{'sf_name': sf_name, 'sf_link': sf_link,'path':path}}
-        #print(link_dict)    
+        dprint(link_dict)    
            
     for comp in plist:
         if getCompClass(comp)=='SOURCE-FILE':
             pass
         else:
-            #print(getCompName(comp))
+            if debug_enabled(): dprint(getCompName(comp))
             if getCompName(comp) in link_dict:
-                #print('++++++++update++++++++++++')
+                dprint('++++++++update++++++++++++')
                 try:
                     var_names=[j.split()[0][1:] for j in link_dict[getCompName(comp)] if len(j.split())>1]
                 except Exception:
                     var_names=[]
-                #print(var_names)
+                dprint(var_names)
                 new_comp=[]
                 for i in comp:
-                    #print(i)
+                    dprint(i)
                     if getCompClass(i)==':VAR':
                         try:                        
                             if i[':B'].split()[1] in link_dict[getCompName(comp)]:
-                                #print('***binding value****')
+                                dprint('***binding value****')
                                 binding=i[':B'].split()[1]
-                                #print(binding)
-                                #print(link_dict[getCompName(comp)][binding]['sf_link'])
+                                dprint(binding)
+                                if debug_enabled(): dprint(link_dict[getCompName(comp)][binding]['sf_link'])
                                 i[':B']="""(:SYSTEM "sf-macro" "SOURCE-FILE-{}" {})""".format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding]['path']][0],link_dict[getCompName(comp)][binding]['sf_link'])
-                                #print(i)
+                                dprint(i)
                             elif 'MS-SPARSE' in i[':B'] and [True for j in var_names if j in i[':B'].split(' VALUE ')[1][:-1]]:
-                                #print('---binding matrix---')
-                                #print(i)
+                                dprint('---binding matrix---')
+                                dprint(i)
                                 bindings=getIDAListComponents(i[':B'].split(' VALUE ')[1][:-1])
-                                #print(bindings)
+                                dprint(bindings)
                                 new_bindings=[]
                                 for binding in bindings:
-                                    #print(binding)
+                                    dprint(binding)
                                     if binding[2][0] in var_names:
-                                        #print(binding[2][0])
+                                        if debug_enabled(): dprint(binding[2][0])
                                         binding_name='({} {})'.format(binding[2][0],binding[2][1])
-                                        #print(binding_name)
+                                        dprint(binding_name)
                                         try:
                                             new_bindings.append([binding[0],':SYSTEM','"sf-macro"', '"SOURCE-FILE-{}"'.format([j['id'] for j in sf_ids if j['sf']==link_dict[getCompName(comp)][binding_name]['path']][0]),link_dict[getCompName(comp)][binding_name]['sf_link']])
                                         except Exception:
                                             new_bindings.append(binding)
                                     else:
                                         new_bindings.append(binding)
-                                #print(new_bindings)
-                                #print(listToBracketsString(new_bindings))
+                                dprint(new_bindings)
+                                if debug_enabled(): dprint(listToBracketsString(new_bindings))
                                 i[':B']="#S(MS-SPARSE {} VALUE {})".format(i[':B'].split('MS-SPARSE ')[1].split(' VALUE ')[0],listToBracketsString(new_bindings))
                                 
                             new_comp.append(i)
@@ -616,12 +617,12 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                 data.append(new_comp)
             elif getCompClass(comp)=='CONNECTIONS':
                 new_conns=[]
-                #print('****')
+                dprint('****')
                 for i in comp[':CONNS']:
-                    #print(i)
-                    #print(i[1][0])
+                    dprint(i)
+                    if debug_enabled(): dprint(i[1][0])
                     if i[0][0] in sf_names or i[1][0] in sf_names:
-                        #print('++del conn++')
+                        dprint('++del conn++')
                         pass
                     else:
                         new_conns.append(i)
@@ -633,37 +634,37 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
 
 def replaceKeywordsInPList(plist,replaceDict):
     data=[]
-    #print('--------replace keywords-------------')
-    #print(replaceDict)
+    dprint('--------replace keywords-------------')
+    dprint(replaceDict)
     for comp in plist:
         comp_name=getCompName(comp)[1:-1]
-        #print(comp_name)
+        dprint(comp_name)
         if comp_name in replaceDict:
-            #print('---replace---')
+            dprint('---replace---')
             model_type=getCompTemplate(comp)
             model_language=modelLanguage(model_type)
             pre_suffix='|' if model_language=='MODELICA' else ''
             if getCompClass(comp)=='SOURCE-FILE':
-                #print('--SF--')
+                dprint('--SF--')
                 comp[0][':DOCUMENT-PATH']='"{}"'.format(replaceDict[comp_name][':SOURCE-FILE'])
                 comp[0][':SF']='"{}"'.format(replaceDict[comp_name][':SOURCE-FILE'])
                 data.append(comp)
             else:
                 new_comp=[]     
                 parms=[]
-                #print(comp_name)
-                #print(comp)
-                #print(replaceDict[comp_name])
+                dprint(comp_name)
+                dprint(comp)
+                if debug_enabled(): dprint(replaceDict[comp_name])
                 if not isinstance(comp, list):
                     comp=[comp]
                 for i in comp:
-                    #print('++')
-                    #print(i)
+                    dprint('++')
+                    dprint(i)
                     i_name=getCompName(i).replace('|','')
-                    #print(i_name)
+                    dprint(i_name)
                     if i_name in replaceDict[comp_name]:
                         if isinstance(replaceDict[comp_name][i_name], dict):
-                            #print("It's a dictionary!")
+                            dprint("It's a dictionary!")
                             for key,value in replaceDict[comp_name][i_name].items():
                                 i[key]=str(value)
                         else:
@@ -672,17 +673,17 @@ def replaceKeywordsInPList(plist,replaceDict):
                         new_comp.append(i)
                     else:
                         new_comp.append(i)
-                #print(parms)
+                dprint(parms)
                 for i in replaceDict[comp_name]:
-                    #print(i)
+                    dprint(i)
                     if i not in parms:
-                        #print('not in parms')
+                        dprint('not in parms')
                         new_comp.append({':C':':PAR', ':N': pre_suffix+i+pre_suffix,':V': str(replaceDict[comp_name][i])})
                 data.append(new_comp)
         else:
             data.append(comp)
-    #print(data)
-    #print('---finish replace kewords----')    
+    dprint(data)
+    dprint('---finish replace kewords----')    
     return data
     
 def copyFileReplaceStr(src_file,dst_dir,dst_file,list_oldString,list_newString,replaceDict=False,doubleQuotes=True):
@@ -711,7 +712,7 @@ def getResourcesFromFileDataList(file_data):
     ressources=[]
     while i < len(file_data):
         if "(SCHEDULE-DATA :N" in file_data[i] and file_data[i] not in ressources or "((DB-RESOURCE :N" in file_data[i] and file_data[i] not in ressources: #or ":T PLINSEGM" in file_data[i]: #todo check for more ressources 
-            #print('ressource exists: '+file_data[i])
+            if debug_enabled(): dprint('ressource exists: '+file_data[i])
             ressource=[file_data[i].replace('\n','')]
             openCloseBracktesCounter=file_data[i].count('(')-file_data[i].count(')')
             i+=1
@@ -731,7 +732,7 @@ def copyNestedSupervisoryMacros(source_dir,target_dir):
         for root, dirs, files in os.walk(source_dir):
             for file in files:
                 if file.endswith('.idm') or file.endswith('.idc'):
-                    #print('---------macro exists: '+file)
+                    dprint('---------macro exists: '+file)
                     subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split('Supervisory_control\\Supervisory_control')[1]
                     path=target_dir+'\\'+'Supervisory_control'+subfolder
                     createSubDir(path)

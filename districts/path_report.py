@@ -11,6 +11,7 @@ from .utility_functions.translations import tr
 from .utility_functions.workers import closesOwnConnection, APISignals
 
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
 
 class WorkerPathReport(QRunnable):
     """Worker thread
@@ -18,8 +19,8 @@ class WorkerPathReport(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print('WorkerPathReport')
-        #print(kwargs)
+        dprint('WorkerPathReport')
+        dprint(kwargs)
         self.signals=APISignals()
         self.config=kwargs['config']
         self.dlg=kwargs['dlg']
@@ -43,7 +44,7 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
     WHERE ep_conns.ep_seq={} AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND l.id={}
     GROUP BY ep.id,l.geom;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],conn_type_seq,lid,# nosec B608
     self.config['versionName'],self.config['versionName'],self.config['versionName'],conn_type_seq,lid) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         data=self.cur.fetchone()
         if data:
@@ -56,7 +57,7 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
     FROM "{}".energy_plants ep, "{}".lines l, "{}".energy_plant_connections ep_conns
     WHERE  ep.id = {} AND ep_conns.ep_seq = {} AND ep_conns.epid=ep.id AND l.id=ep_conns.lid 
     GROUP BY ep.id,l.id, height,l.geom;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],epid,conn_type_seq) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         data=self.cur.fetchone()
         epid=[str(data['epid']),data['height']]
@@ -69,7 +70,7 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
     WHERE {} = ANY (ep.network) AND l.network={} AND ep_t.template=ep.template AND
         ep_conns.ep_seq=b_t_conns.sequence AND b_t_conns.conn_bundle_type_id=ep_t.conn_bundle_type AND ep_conns.epid=ep.id AND l.id=ep_conns.lid AND ep.id={}
     GROUP BY ep.id,l.id, height,l.geom, b_t_conns.conn_type_id;""".format(self.config['versionName'],self.config['versionName'],self.config['versionName'],network,network,epid) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         data=self.cur.fetchone()
         epid=[str(data['epid']),data['height']]
@@ -78,24 +79,24 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
         
     def orderLids(self,lids,lid_start):
         """returns [[str(id),length]]"""
-        #print('order lids')
+        dprint('order lids')
         path=[0]
         lids_new=[lid_start]
-        #print(lid_start[1])
+        if debug_enabled(): dprint(lid_start[1])
         for i in range(len(lids)-1):
             sql="""SELECT l2.id,ST_3DLength(l2.geom) AS length
     FROM "{}".lines l1, "{}".lines l2
     WHERE l1.id!=l2.id AND l1.id={} AND l2.id IN ({}) AND ST_dWithIn(ST_EndPoint(l1.geom),l2.geom,0.0001) """.format(self.config['versionName'],self.config['versionName'],lids_new[-1][0],",".join([str(lid) for lid in lids])) # nosec B608
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql)
             data=self.cur.fetchone()
             lids_new.append([data['id'],data['length']])
-        #print(lids_new)
+        dprint(lids_new)
         return lids_new
         
     def generatePathReport(self):
         """Just fo supply and return line. Todo update to all connection types"""
-        #print('generate path diagram')
+        dprint('generate path diagram')
         if not self.conn or self.conn.closed:  # reuse the connection of __init__
             self.conn=dbConnect(self.config,False)
         if self.dlg.rbtn_pathTemp.isChecked():
@@ -114,24 +115,24 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
             
             ep_c_b_type=getConnBundleByFeature('energy_plant',self.dlg.main_plant.currentText(),self.cur,self.config)
             ep_connValues=getConnsValues(ep_c_b_type,self.cur)
-            #print(ep_connValues)
+            dprint(ep_connValues)
             ep_c_type_seq=getConnTypeSeqFromBundle(self.cur,self.config,ep_c_b_type,self.dlg.conn_type.currentText())
-            #print(ep_c_type_seq)
+            dprint(ep_c_type_seq)
             p_ep_sup_ident=getPMT2muxIdentFromConnValues(ep_connValues,int(self.dlg.sup_sequence.currentText()),conn_t_seq=ep_c_type_seq)
             p_ep_ret_ident=getPMT2muxIdentFromConnValues(ep_connValues,int(self.dlg.ret_sequence.currentText()),conn_t_seq=ep_c_type_seq)
-            #print(p_ep_sup_ident)
-            #print(p_ep_ret_ident)
+            dprint(p_ep_sup_ident)
+            dprint(p_ep_ret_ident)
             f_connValues=getConnsValues(self.dlg.f_conn_bundle_type.currentText(),self.cur)
             p_f_sup_ident=getPMT2muxIdentFromConnValues(f_connValues,int(self.dlg.sup_sequence.currentText()))
             p_f_ret_ident=getPMT2muxIdentFromConnValues(f_connValues,int(self.dlg.ret_sequence.currentText()))
-            #print(p_f_sup_ident)
-            #print(p_f_ret_ident)
+            dprint(p_f_sup_ident)
+            dprint(p_f_ret_ident)
             
             self.signals.progress.emit(10)  
             
             if self.dlg.rbtn_lineIds.isChecked():   
                 self.dlg.lids=[int(self.dlg.listWidget_ids.item(i).text()) for i in range(self.dlg.listWidget_ids.count())]
-                #print(self.dlg.lids)
+                dprint(self.dlg.lids)
                 
                 #ep id
                 epid,lid_start=self.getEnergyPlantLid(self.dlg.main_plant.currentText(),ep_c_type_seq)
@@ -146,7 +147,7 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
                 if not fids:
                     self.signals.error.emit("No line with the selected ID`s is connected to a feature!")
                     return None
-                #print(fids)
+                dprint(fids)
                 
             elif self.dlg.rbtn_weakPoint.isChecked() or self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked():              
                 #set up topology
@@ -156,10 +157,10 @@ SELECT pgr_createTopology('temp.streets_help',0.0001,'geom','id',clean:='true');
                 self.cur.execute(sql)
                 
                 sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".energy_plants ep WHERE ST_dWithin(ep.geom,st_v.the_geom,0.0001) AND ep.id={};""".format(self.config['versionName'],self.dlg.main_plant.currentText()) # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql)
                 v_epid=self.cur.fetchone()['vid']
-                #print(v_epid)
+                dprint(v_epid)
                 
                 f_type='customer' if self.dlg.rbtn_weakPoint.isChecked() or self.dlg.rbtn_customer.isChecked() else 'energy_plant'
                 fids=[self.dlg.listWidget_ids.item(i).text() for i in range(self.dlg.listWidget_ids.count())]
@@ -200,11 +201,11 @@ SELECT var_f1.fid, var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}") A
         self.config['versionName'],f_type, quantity_var, p_f_sup_ident,self.config['versionName'],f_type, quantity_var, p_f_ret_ident,self.config['versionName'], quantity_var, p_ep_sup_ident,self.config['versionName'], quantity_var, p_ep_ret_ident, # nosec B608
         self.dlg.date_input.text(),self.dlg.main_plant.currentText(), ' AND var_f1.fid IN({})'.format(','.join(fids)) if self.dlg.rbtn_customer.isChecked() or self.dlg.rbtn_energy_plant.isChecked() or self.dlg.rbtn_lineIds.isChecked() else '') # nosec B608
     
-            print(sql)
+            dprint(sql)
             self.cur.execute(sql)
             
             self.dlg.weak_point=self.cur.fetchone()
-            #print(self.dlg.weak_point)  
+            dprint(self.dlg.weak_point)  
             if not self.dlg.weak_point:
                 self.signals.error.emit("No data found! Please check if results are loaded or within the selected period.")
                 return None
@@ -214,10 +215,10 @@ SELECT var_f1.fid, var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}") A
             if not self.dlg.rbtn_lineIds.isChecked():
                 #get line with shortest path
                 sql="""SELECT st_v.id::integer AS vid FROM temp.streets_help_vertices_pgr st_v,"{}".{}s f WHERE ST_dWithin(f.geom,st_v.the_geom,0.0001) AND f.id={};""".format(self.config['versionName'],f_type,self.dlg.weak_point['fid']) # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql)
                 v_id=self.cur.fetchone()['vid']
-                #print(v_id)
+                dprint(v_id)
                 
                 sql="""WITH sub As(
     SELECT seq, node, edge, cost
@@ -229,7 +230,7 @@ SELECT var_f1.fid, var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}") A
             )
 )
 SELECT l.id,ST_3DLength(l.geom) AS length FROM sub,temp.streets_help st_h, "{}".lines l WHERE sub.edge=st_h.id AND st_h.geom=st_force2D(l.geom);""".format(v_epid,v_id,self.config['versionName']) # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql)
                 self.dlg.lids=[[lid['id'],lid['length']] for lid in self.cur.fetchall()]
                             
@@ -248,16 +249,16 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
     quantity_var,quantity_var,quantity_var,quantity_var, # nosec B608
     self.config['versionName'], quantity_var, self.dlg.sup_sequence.currentText(),self.config['versionName'],quantity_var, self.dlg.ret_sequence.currentText(),  # nosec B608
     self.dlg.weak_point['time'],','.join([str(i[0]) for i in self.dlg.lids[:-1]])) # nosec B608
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql)
             self.dlg.line_data=self.cur.fetchall()
             self.signals.progress.emit(70)  
-            #print(self.dlg.lids)
-            #print(self.dlg.line_data)
+            dprint(self.dlg.lids)
+            dprint(self.dlg.line_data)
             line_data_map= {row['fid']: row for row in self.dlg.line_data}
-            #print(line_data_map)
+            dprint(line_data_map)
             self.dlg.line_data = [line_data_map[fid] for fid, _ in self.dlg.lids if fid in line_data_map]
-            #print(self.dlg.line_data)
+            dprint(self.dlg.line_data)
             
             self.signals.progress.emit(80)  
             self.dlg.path=[0]
@@ -265,12 +266,12 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
             for lid in self.dlg.lids:
                 path_sum+=lid[1]
                 self.dlg.path.append(path_sum)
-            #print(self.dlg.path)
+            dprint(self.dlg.path)
 
             if self.dlg.rbtn_pathTemp.isChecked():
                 dt=self.dlg.weak_point['sup_f'] - self.dlg.weak_point['ret_f']
                 self.dlg.title=tr('@default','simulation_time')+'='+str(self.dlg.weak_point['time'])+' h; ID='+str(self.dlg.weak_point['fid'])+ '; '+ tr('@default','dt_substation')+': ' +str(round(dt,2))+' °C'
-                #print(self.dlg.title)
+                dprint(self.dlg.title)
             elif self.dlg.rbtn_pathPressure.isChecked(): 
                 dp=self.dlg.weak_point['dvar']
                 self.dlg.title=tr('@default','simulation_time')+'='+str(self.dlg.weak_point['time'])+' h; ID='+str(self.dlg.weak_point['fid'])+ ' ; '+tr('@default','pressure_loss')+': ' +str(dp)+' Pa'
@@ -280,12 +281,12 @@ SELECT var1.fid,var1."${}" AS var1, var2."${}" AS var2, ABS(var1."${}" - var2."$
     @pyqtSlot()
     @closesOwnConnection
     def run(self):
-        #print('generate pah report')
+        dprint('generate pah report')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         try:
             result=self.generatePathReport()
-            #print(result)
+            dprint(result)
             if result:
                 self.signals.finished.emit('finished')
                 self.signals.progress.emit(100)  

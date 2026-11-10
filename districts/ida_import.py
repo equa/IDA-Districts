@@ -13,6 +13,7 @@ import math
 import copy
 import ast
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
 
 
 def checkInputBundleEditorInput(mappedAttributesValues):
@@ -58,7 +59,7 @@ def checkInputBundleEditorInput(mappedAttributesValues):
     return True
         
 def generatePipebundleTyps(dlg_importNetworkTopologyFromLayer,dlg,layer,main):
-    #print(dlg.mappedAttributes)
+    dprint(dlg.mappedAttributes)
     sql=""
     main.cur=main.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
     pipes_dict={} #{str([innder diameter, roughness, {sequence: [material, thickness]}]): pipe_id}
@@ -80,11 +81,11 @@ SELECT  p.id::text, p.innerpipediameter::text, p.piperoughnessfactor::text, sub.
     FROM sub, pipes p
     WHERE sub.pipe_construction_id=p.pipe_construction_id
     ORDER BY p.id, sub.sequence DESC;"""
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         constr_layers=main.cur.fetchall()
         for constr_layer in constr_layers:
-            #print(constr_layer)
+            dprint(constr_layer)
             constr={constr_layer['sequence']:[constr_layer['constr'],constr_layer['thickness']]}|constr #add to begining of dict
             if constr_layer['sequence']==1:
                 pipes.append([constr_layer['innerpipediameter'],constr_layer['piperoughnessfactor'],constr])
@@ -96,31 +97,31 @@ SELECT  p.id::text, p.innerpipediameter::text, p.piperoughnessfactor::text, sub.
     FROM pipe_layers pl, materials m 
     WHERE m.id=pl.materialid
     ORDER BY pl.pipe_construction_id, pl.sequence DESC;"""
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         constr_layers=main.cur.fetchall()
 
         constr={}
         for constr_layer in constr_layers:
-            #print(constr_layer)
+            dprint(constr_layer)
             constr={constr_layer['sequence']:[constr_layer['name'],constr_layer['thickness']]}|constr #add to begining of dict
             if constr_layer['sequence']==1:
                 pipe_constrs.append(constr)
                 pipe_constrs_dict[str(constr)]= str(constr_layer['pipe_construction_id']) 
                 constr={}
-        #print(pipe_constrs)
-        #print(pipe_constrs_dict)
+        dprint(pipe_constrs)
+        dprint(pipe_constrs_dict)
         
         #get all pipe bundle types from DB
         sql="""SELECT sequence, pipe_id::text, x, y, ambient::text, pipe_bundle_type_id::text FROM bundle_pipes ORDER BY pipe_bundle_type_id, sequence DESC;"""
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         exclude=False
         pipe_counter=0
         coord_list=[]
         y_old=pipe_id_old=ambient_old=None
         for bundle_pipe in main.cur.fetchall():
-            #print(bundle_pipe)
+            dprint(bundle_pipe)
             coord_list.append([bundle_pipe['x'],bundle_pipe['y']])
             if pipe_counter!=0 and (y_old!=bundle_pipe['y'] or pipe_id_old!=bundle_pipe['pipe_id'] or ambient_old!=bundle_pipe['ambient']):
                 exclude=True
@@ -163,10 +164,10 @@ TRUNCATE pipe_layers CASCADE;\n"""
     
     #Add field to layer if checkbox is checked
     if dlg.addPipeBundleTypeField.isChecked():
-        #print('add field to layer')
+        dprint('add field to layer')
         field_name=dlg.newFieldName.text()
         if field_name:
-            #print(field_name)
+            dprint(field_name)
             layer.startEditing()
             if field_name not in getLayerAttributesName(layer=layer):
                 layer.dataProvider().addAttributes( [ QgsField(field_name, QVariant.Int)])
@@ -190,7 +191,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
     for index,feature in enumerate(layer.getFeatures()):
         main.dlg.update_progress(int(index/feature_count))
         mappedAttributesValues=copy.deepcopy(dlg.mappedAttributes) #make a copy in order to lose reference
-        #print(feature)
+        dprint(feature)
         attributes=getLayerAttributesDict(feature,layer=layer)
         for mappedAttribute in dlg.mappedAttributes:
             if dlg.mappedAttributes[mappedAttribute]:              
@@ -231,13 +232,13 @@ TRUNCATE pipe_layers CASCADE;\n"""
             
         constr={}
         for seq in range(0,dlg.tableWidget_pipe.rowCount()):
-            #print(seq)
+            dprint(seq)
             constr[int(dlg.tableWidget_pipe.item(seq,0).text())]=[mappedAttributesValues['layer_constr'][str(seq+1)][0],mappedAttributesValues['layer_constr'][str(seq+1)][1]]
         feature_pipe=[mappedAttributesValues[dlg.pipe_bundle_type_attributes[0]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[6]],constr]
             
         if constr not in pipe_constrs:
-            #print('**********Add pipe construction*********')
-            #print(constr)
+            dprint('**********Add pipe construction*********')
+            dprint(constr)
             constr_max_id+=1
             #add to pipe layers
             for seq in constr:
@@ -256,7 +257,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 constr_max_id,str(constr).replace("'",'')) # nosec B608
              
         if feature_pipe not in pipes:
-            #print('**********Add pipe*********')
+            dprint('**********Add pipe*********')
             pipes_max_id+=1
             pipes.append(feature_pipe)
             pipes_dict[str(feature_pipe)]=str(pipes_max_id)
@@ -265,14 +266,14 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 str(feature_pipe).replace("'",''),mappedAttributesValues[dlg.pipe_bundle_type_attributes[0]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[6]],pipe_constrs_dict[str(constr)]) # nosec B608
             
 
-        #print(pipes_dict)
+        dprint(pipes_dict)
         feature_bundle=[pipes_dict[str(feature_pipe)],mappedAttributesValues[dlg.pipe_bundle_type_attributes[4]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[2]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[3]],mappedAttributesValues[dlg.pipe_bundle_type_attributes[5]]]
         
-        #print(feature_bundle)
-        #print(pipe_bundles)
+        dprint(feature_bundle)
+        dprint(pipe_bundles)
            
         if feature_bundle not in pipe_bundles:
-            #print('*****--*****Add bundle*****---****')
+            dprint('*****--*****Add bundle*****---****')
             pipe_bundles.append(feature_bundle)
             pipe_bundles_max_id+=1
             pipe_bundles_dict[str(feature_bundle)]=str(pipe_bundles_max_id)
@@ -287,15 +288,15 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format( # nosec B608
                     bundle_pipes_max_id,pipe_bundles_max_id,seq,str(feature_bundle[0]),x,feature_bundle[3],feature_bundle[4]) # nosec B608
         if dlg.addPipeBundleTypeField.isChecked():
-            #print(pipe_bundles_dict)
-            #print(feature.id())
-            #print(pipe_bundles_dict[str(feature_bundle)])
-            #print(bundle_idx)
+            dprint(pipe_bundles_dict)
+            if debug_enabled(): dprint(feature.id())
+            if debug_enabled(): dprint(pipe_bundles_dict[str(feature_bundle)])
+            dprint(bundle_idx)
             layer.changeAttributeValue(feature.id(), bundle_idx, pipe_bundles_dict[str(feature_bundle)])
     if dlg_importNetworkTopologyFromLayer:
         dlg_importNetworkTopologyFromLayer.listWidget_layerAttributes.addItem(field_name)
     
-    #print(sql)
+    dprint(sql)
     main.cur.execute(sql)    
     layer.commitChanges()
     main.dlg.statusMessage.setText('Pipe bundle types are added to the DB!')
@@ -319,10 +320,10 @@ def setLayerListAttributes(signal,list,dlg):
     layer=QgsProject.instance().mapLayersByName(tr('@default',signal))
     if layer:
         layer=layer[0]
-        #print(layer)
+        dprint(layer)
         attributes=layer.fields()
         attributes=[str(i.name()) for i in attributes]
-        #print(attributes)
+        dprint(attributes)
         list.addItems(attributes)
     
 def getImportLayer(dlg):
@@ -344,12 +345,12 @@ def getLayerAttributesDict(feature,layer=False,layerName=False):
         
 def importLayerToDb(type,dlg,main):
     """Import the mapped layer into lines"""
-    #print(type)
+    dprint(type)
     main.dlg.update_progress(0)
     layer_name=getDHCLayerNameByType(type,dlg)
-    #print(dlg.mappedAttributes)
+    dprint(dlg.mappedAttributes)
     layer=QgsProject.instance().mapLayersByName(dlg.selectLayer.currentText())
-    #print(layer)
+    dprint(layer)
     
     if main.conn:
         if main.config['versionName']:
@@ -359,7 +360,7 @@ def importLayerToDb(type,dlg,main):
                 layer=layer[0]
                 try:
                     layer_srid=layer.crs().authid().split(':')[1]            
-                    #print(layer_srid)
+                    dprint(layer_srid)
                 except Exception:
                     iface.messageBar().pushMessage("Info", "Please set a valid layer srid!", level=MessageWarning)
                     return False
@@ -367,7 +368,7 @@ def importLayerToDb(type,dlg,main):
                 generateId=False
                 #attribute names
                 attributes= [i for i in dlg.mappedAttributes if dlg.mappedAttributes[i]]
-                #print(attributes)
+                dprint(attributes)
                 
                 if dlg.rbtn_truncate.isChecked():
                     ids=[]
@@ -388,13 +389,13 @@ def importLayerToDb(type,dlg,main):
                     button = dlg_question.exec()
 
                     if button == QMessageBox.StandardButton.Yes:
-                        #print("Use serial id")
+                        dprint("Use serial id")
                         if dlg.rbtn_truncate.isChecked():
                             generateId=1
                         else:
                             generateId=getMaxIdSchema(main.cur,layer_name,main.config['versionName'])+1
                     else:
-                        #print("Cancel!")
+                        dprint("Cancel!")
                         return False
                         
                 sql=""
@@ -409,12 +410,12 @@ def importLayerToDb(type,dlg,main):
                                 if attribute in dlg.mappedAttributes[mappedAttribute]:
                                     mappedAttributesValues[mappedAttribute]=mappedAttributesValues[mappedAttribute].replace('"'+attribute+'"',str(attributes[attribute]))
                     values=[]
-                    #print(attributes)
+                    dprint(attributes)
                     attributes=[attribute for attribute in mappedAttributesValues if mappedAttributesValues[attribute]]
-                    #print(attributes)
-                    #print(mappedAttributesValues)
+                    dprint(attributes)
+                    dprint(mappedAttributesValues)
                     for attribute in attributes:
-                        #print(attribute)
+                        dprint(attribute)
                         try:
                             values.append(str(safe_eval(mappedAttributesValues[attribute])))
                         except Exception:
@@ -439,7 +440,7 @@ def importLayerToDb(type,dlg,main):
                             ids.append(values[attributes.index('id')])
                         sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom']),','.join(values)) # nosec B608
                     i+=1
-                #print(sql)
+                dprint(sql)
                 main.cur.execute(sql)
                 main.dlg.update_progress(100)
                 main.dlg.statusMessage.setText(f'Import {type} layer compleded!')

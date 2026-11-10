@@ -39,6 +39,7 @@ from .utility_functions.invoke import CopyTemplateFiles
 import traceback
 import pandas as pd
 import numpy as np
+from .utility_functions.debug_log import dprint, debug_enabled
 
 def sqlInsertQuery(dlg,table,row,db_table):
     return """INSERT INTO {} ({}) VALUES ({});""".format(  # nosec B608
@@ -50,14 +51,14 @@ def sqlInsertQuery(dlg,table,row,db_table):
                             for col in range(2,table.columnCount())])) # nosec B608
 
 def importResources(dlg,main,import_all=False):
-    #print('importResources')
+    dprint('importResources')
     
     if dlg.rbtn_file.isChecked():
         file=dlg.lineEditFileName.text()
-        #print(file)
+        dprint(file)
         
         if zipfile.is_zipfile(file):
-            #print("Valid ZIP file")
+            dprint("Valid ZIP file")
             name = Path(file).stem
             #unzip
             temp_folder=districtsModelerTempDir()
@@ -76,9 +77,9 @@ def importResources(dlg,main,import_all=False):
         iface.messageBar().pushMessage("Critical", "File to import the data!", level=Qgis.Error) 
         return
         
-    #print(temp_folder)
+    dprint(temp_folder)
     import_dict=strToDict(readFileToString(temp_folder+'export_dict.txt',skipFirstLine=False))
-    #print(import_dict)
+    dprint(import_dict)
     
     db_import=""
     
@@ -128,7 +129,7 @@ def importResources(dlg,main,import_all=False):
         template_max_id=(getMaxTableValue(main.cur,'public',template_type,'template') or 0)+1  # None: no templates yet
         for template_key, template_value in import_dict[template_type].items():
             for bundle_type_key, bundle_type_value in template_value.items():
-                #print(bundle_type_key)
+                dprint(bundle_type_key)
                 db_import+=bundle_type_value[1].replace('$template$',str(template_max_id)).replace('$conn_bundle_type$',str(dict_keys['conn_bundle_types'][bundle_type_key]))
                 
                 template_name=bundle_type_value[0]
@@ -155,7 +156,7 @@ def importResources(dlg,main,import_all=False):
          
                 template_max_id+=1
 
-    #print(db_import)
+    dprint(db_import)
     if db_import:
         main.cur.execute(db_import)       
         main.dlg.statusMessage.setText('Resources are imported successfully!')
@@ -396,11 +397,11 @@ WHERE type = {}
                     cur.execute(sql)
                     remove_sensor_ids[sensor_type]=cur.fetchall()
 
-                #print(remove_sensor_ids)
+                dprint(remove_sensor_ids)
                 templatesensorSignals(cur,config,temp_dir+template_type,template_name,type_id,[],[],remove_sensor_ids['source'],remove_sensor_ids['target'])
                 
     
-    #print(export_dict)
+    dprint(export_dict)
     writeToFile(str(export_dict),temp_dir,temp_dir+'\\export_dict.txt')
         
     #write zip to target folder
@@ -548,16 +549,16 @@ def calculateKusudaSettings(file,modellingSettings):
     # --------------------------------------------------
     # Results
     # --------------------------------------------------
-    #print(f"Annual mean temperature     = {Tm:.2f} °C")
-    #print(f"Mean daily amplitude        = {mean_daily_amplitude:.2f} °C")
-    #print(f"Kusuda phase shift          = {phase_shift:.2f} d")
-    #print(f"Minimum date               = {phase_date}")
+    dprint(f"Annual mean temperature     = {Tm:.2f} °C")
+    dprint(f"Mean daily amplitude        = {mean_daily_amplitude:.2f} °C")
+    dprint(f"Kusuda phase shift          = {phase_shift:.2f} d")
+    dprint(f"Minimum date               = {phase_date}")
     
     return modellingSettings
     
 def writeClimateDataToDB(dlg,main):
     """ write climate data into DB"""
-    #print('Write climate data to DB')
+    dprint('Write climate data to DB')
     main.dlg.update_progress(100)
     try:
         name=dlg.lineEdit_location.text()
@@ -573,7 +574,7 @@ def writeClimateDataToDB(dlg,main):
         file_name = \'{}\',
         timezone = {},
         height = {};""".format(main.config['versionName'],name,latitude,longitude,fileName,timezone,height) # nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         
         #update climate template
@@ -605,10 +606,10 @@ def updateClimateMacro(data,dir,config,modellingSettings):
     fname=dir+'climate-macro.idm'
     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
     idm=[]
-    #print(data)
-    #print(modellingSettings)
+    dprint(data)
+    dprint(modellingSettings)
     for comp in components_idm:
-        #print(getCompTemplate(comp))
+        if debug_enabled(): dprint(getCompTemplate(comp))
         if getCompTemplate(comp)=='ENVIRONMENT':
             new_comp=[]
             for i in comp:
@@ -623,7 +624,7 @@ def updateClimateMacro(data,dir,config,modellingSettings):
                 new_comp.append(i)
             idm.append(new_comp)
         elif getCompTemplate(comp)=='SOURCE-FILE':
-            #print(comp)
+            dprint(comp)
             new_comp=[]
             for i in comp:
                 if getCompClass(i)=='SOURCE-FILE':
@@ -632,11 +633,11 @@ def updateClimateMacro(data,dir,config,modellingSettings):
                 new_comp.append(i)
             idm.append(new_comp)
         elif getCompTemplate(comp)=='|kusuda|':
-            print(comp)
+            dprint(comp)
             new_comp=[]
             for i in comp:
                 if getCompName(i)=='|TSurfMean|':
-                    print(modellingSettings['kusuda_tsurfmean'])
+                    if debug_enabled(): dprint(modellingSettings['kusuda_tsurfmean'])
                     i=setCompValue(i,modellingSettings['kusuda_tsurfmean'])
                 elif getCompName(i)=='|TSurfAmpl|':
                     i=setCompValue(i,modellingSettings['kusuda_tsurfampl'])
@@ -676,17 +677,17 @@ def openClimateMacro(main):
     QThreadPool.globalInstance().start(main.worker_openClimate) 
     main.worker_openClimate.signals.error.connect(show_error_message)
     main.worker_openClimate.signals.progress.connect(main.dlg.update_progress)  
-    #print('--open climate macro finished--')
+    dprint('--open climate macro finished--')
     
 
     
 def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir):
-    #print('--writeRenameExchangeConntype--')
-    #print(table_name)
+    dprint('--writeRenameExchangeConntype--')
+    dprint(table_name)
     wroteTemplate=False
     if dlg.traceTableValues[traceValue][1]:
         if dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1]:
-            #print(dlg.traceTableValues[traceValue])
+            if debug_enabled(): dprint(dlg.traceTableValues[traceValue])
             if not dlg.traceTableValues[traceValue][0]:
                 if dlg.traceTableValues[traceValue][3]:
                     WriteTemplateFiles(config,dlg.traceTableValues[traceValue][1],table_name,cur,dlg.traceTableValues[traceValue][3],plugin_dir)
@@ -698,8 +699,8 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
                 RenameTemplateFiles(config,dlg.traceTableValues[traceValue][0],table_name,dlg.traceTableValues[traceValue][1],cur)
     if dlg.traceTableValues[traceValue][3] and dlg.traceTableValues[traceValue][2] and not wroteTemplate:
         if dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]:
-            #print('Changed conn bundle type')
-            #print(dlg.traceTableValues[traceValue])
+            dprint('Changed conn bundle type')
+            if debug_enabled(): dprint(dlg.traceTableValues[traceValue])
             if dlg.traceTableValues[traceValue][1]:
                 name=dlg.traceTableValues[traceValue][1]
             else:
@@ -708,7 +709,7 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
   
 def saveAsTemplate(cur,config,dlg,table_name,dropdowns,trace):
     """Save as the template"""
-    #print('--saveAsTemplate--')
+    dprint('--saveAsTemplate--')
     row_idx=dlg.tableWidget.currentRow()
     
     if row_idx!=-1:
@@ -720,7 +721,7 @@ def saveAsTemplate(cur,config,dlg,table_name,dropdowns,trace):
         maxId=getMaxTableId(dlg.tableWidget)
         template_name=dlg.tableWidget.item(row_idx, 1).text()+' (copy)'
         conn_bundle_type_old=dlg.tableWidget.cellWidget(row_idx, 2).currentText()
-        #print(conn_bundle_type_old)
+        dprint(conn_bundle_type_old)
         file_name_old=str(template_id)+'_'+dlg.tableWidget.item(row_idx, 1).data(Qt.ItemDataRole.UserRole)
         file_name_new=str(maxId+1)+'_'+template_name
         if not os.path.exists(config['pathProjects']+"{}\\{}\\{}.idm".format(config['projectName'],table_name,file_name_new)): 
@@ -734,7 +735,7 @@ def saveAsTemplate(cur,config,dlg,table_name,dropdowns,trace):
         
         #replace values of dlg.traceTableValues [0] in order to trace the changed values         
         dlg.traceTableValues[0]=[file_name_new,'',conn_bundle_type_old.split(':')[0],'']
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
         
         #add sensor data to source and target templates and invoked signals
         sql="""INSERT INTO target_template(target_id,template,active) 
@@ -753,7 +754,7 @@ UPDATE invoked_sensor_target_signals
     str(maxId+1),template_id,dlg.type,# nosec B608
     str(maxId+1),template_id,dlg.type,# nosec B608
     str(maxId+1),template_id,dlg.type) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
 
     else:
@@ -762,7 +763,7 @@ UPDATE invoked_sensor_target_signals
 
 def openTemplate(main,type,dlg):
     """ Open an template macro in IDA; copy the template from the installation folder"""
-    #print('Open Template')
+    dprint('Open Template')
     if not checkIDADistrictsInstallation(main.config):
         return
         
@@ -774,7 +775,7 @@ def openTemplate(main,type,dlg):
             sql="UPDATE public.{}_templates SET template_name='{}',conn_bundle_type={} WHERE template={};".format(type,dlg.tableWidget.item(row_index, 1).text(),dlg.tableWidget.cellWidget(row_index, 2).currentText().split(":")[0],template) # nosec B608
             main.cur.execute(sql)            
         sql="SELECT template_name,conn_bundle_type FROM public.{}_templates WHERE template={};".format(type,template) # nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         template_=main.cur.fetchone()
         if template_:
@@ -791,11 +792,11 @@ def openTemplate(main,type,dlg):
         name=template+'_'+template_name
         dir=main.config['pathProjects']+"{}\\{}_templates\\".format(main.config['projectName'],type)
         file=dir+"{}.idm".format(name)
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
 
         if dlg.traceTableValues[row_index][1] and dlg.traceTableValues[row_index][0]:
             if dlg.traceTableValues[row_index][0]!=dlg.traceTableValues[row_index][1]:
-                #print('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
+                dprint('~~~~~~~~~~~~~~~rename~~~~~~~~~~')
                 RenameTemplateFiles(main.config,dlg.traceTableValues[row_index][0],type,dlg.traceTableValues[row_index][1],main.cur)
                 file=dir+"{}.idm".format(dlg.traceTableValues[row_index][1])
                 template_name=dlg.traceTableValues[row_index][1]
@@ -817,19 +818,19 @@ def openTemplate(main,type,dlg):
         
         if dlg.traceTableValues[row_index][3] and dlg.traceTableValues[row_index][2] and not wroteTemplate: # override connection bundle only if template exists before
             if dlg.traceTableValues[row_index][2]!=dlg.traceTableValues[row_index][3]:
-                #print('Changed conn bundle type')
-                #print(dlg.traceTableValues[row_index])
+                dprint('Changed conn bundle type')
+                if debug_enabled(): dprint(dlg.traceTableValues[row_index])
                 ExchangeConntypeFiles(main.config,name,type,dlg.traceTableValues[row_index][3],dlg.traceTableValues[row_index][2],main.cur,plugin_dir=main.plugin_dir)
-                #print(dlg.traceTableValues[row_index])
+                if debug_enabled(): dprint(dlg.traceTableValues[row_index])
         if dlg.traceTableValues[row_index][3]:
             dlg.traceTableValues[row_index][2]=dlg.traceTableValues[row_index][3]
             dlg.traceTableValues[row_index][3]=''
             
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
 
         #write to DB
         sql="DELETE FROM public.{}_templates WHERE template={};".format(type,template) # nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         if type=='customer':
             description_index=4
@@ -842,21 +843,21 @@ def openTemplate(main,type,dlg):
 
         sql="""INSERT INTO public.{}_templates (id, template,template_name,conn_bundle_type,description) VALUES({},{},'{}',{},'{}');\n""".format(# nosec B608
             type,getMaxId(main.cur,type+'_templates')+1,template,template_name,dlg.traceTableValues[row_index][3] if dlg.traceTableValues[row_index][3] else dlg.traceTableValues[row_index][2],description) # nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         
-        #print(file)
+        dprint(file)
         main.worker_openTemplate = WorkerOpenModelCmd(file,main.config)
         QThreadPool.globalInstance().start(main.worker_openTemplate) 
         main.worker_openTemplate.signals.error.connect(show_error_message)
         main.worker_openTemplate.signals.progress.connect(main.dlg.update_progress)  
         
-        #print('finished open template')
+        dprint('finished open template')
     else:
         iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
         
 def show_templateDialog(main=False,type=False):
-    #print('Open current row dialog started: ')
+    dprint('Open current row dialog started: ')
     columns=['template','template_name','conn_bundle_type','description']
     headers=[tr('@default','id'), tr('@default','template'),tr('@default','connection_bundles'), tr('@default','description')]
     filter=''
@@ -887,7 +888,7 @@ def show_templateDialog(main=False,type=False):
         
 def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trace):
     """" Save table to DB an close dialog"""
-    #print('Save table content to DB an close dialog')
+    dprint('Save table content to DB an close dialog')
     
     for traceValue in dlg.traceTableValues:
         if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
@@ -902,19 +903,19 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
             oldConnValues_dict[template['t_name']]=getConnsValues(template['conn_bundle_type_id'],cur)
     
     sql="""DELETE FROM public.{} {} {};\n""".format(table,filter,id) # nosec B608
-    #print(sql)
+    dprint(sql)
     maxId=getMaxId(cur,table)
     counter=1
     for row in range(dlg.tableWidget.rowCount()):
-        #print(dlg.tableWidget.item(1,0).text())
+        if debug_enabled(): dprint(dlg.tableWidget.item(1,0).text())
         values=getValuesFromTableRow(dlg,dropdowns,row,columns,[])
-        #print(values)
+        dprint(values)
         if not values:
             iface.messageBar().pushMessage("Error", "Invalid input!", level=MessageCritical)
             return False
         sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values) # nosec B608
         counter+=1
-    #print(sql)
+    dprint(sql)
     try:
         cur.execute(sql)
     except Exception:
@@ -926,22 +927,22 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         return False
     
     if trace in ['conn_type_trace','bt_conns_trace']:
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
         if [True for traceValue in dlg.traceTableValues if 
             dlg.traceTableValues[traceValue][1] and dlg.traceTableValues[traceValue][3] and (dlg.traceTableValues[traceValue][0]!=dlg.traceTableValues[traceValue][1] or dlg.traceTableValues[traceValue][2]!=dlg.traceTableValues[traceValue][3]) or
             dlg.traceTableValues[traceValue][1] and not dlg.traceTableValues[traceValue][0] or 
             dlg.traceTableValues[traceValue][3] and not dlg.traceTableValues[traceValue][2]]:
-            #print('ExchangeConntypeFiles')
+            dprint('ExchangeConntypeFiles')
             #get changed conn bundle types --> get changed templates
             templates=getTemplatesByConnType(cur,config,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(cur,config,id)
             for template in templates:
-                #print('*****************************************************************************')
-                #print(template['t_name'])
-                #print(oldConnValues_dict[template['t_name']])
+                dprint('*****************************************************************************')
+                if debug_enabled(): dprint(template['t_name'])
+                if debug_enabled(): dprint(oldConnValues_dict[template['t_name']])
                 ExchangeConntypeFiles(config,template['t_name'],template['type'],template['conn_bundle_type_id'],template['conn_bundle_type_id'],cur,oldConnValues=oldConnValues_dict[template['t_name']],plugin_dir=plugin_dir)
         
     elif trace:
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
         # e.g. the empty project template has no template folders
         os.makedirs(config['pathProjects']+config['projectName']+"\\{}_templates".format(table_name), exist_ok=True)
         for traceValue in dlg.traceTableValues:
@@ -960,11 +961,11 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
                 traceTableFiles.append(dlg.traceTableValues[traceValue][1])
             else:
                 traceTableFiles.append(dlg.traceTableValues[traceValue][0])
-        #print(traceTableFiles)
+        dprint(traceTableFiles)
         sql="""SELECT template::text || '_' || template_name AS template_name FROM {}_templates;""".format(table_name) # nosec B608
         cur.execute(sql)
         list_template_names=[i['template_name'] for i in cur.fetchall()]
-        #print(list_template_names)
+        dprint(list_template_names)
         for file in files:
             if file not in traceTableFiles and file not in list_template_names:
                 if os.path.exists(dir+'\\'+file+'.idm'):
@@ -984,7 +985,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
 
 def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,trace=False):
     """ Show current row in table; openFnArg: 0) table; 1) columns in String; 2) headers in list; 3) filter in String; 4) dropdowns """
-    #print('Open current row dialog started: ')
+    dprint('Open current row dialog started: ')
     columns=openFnArg[1]
     headers=openFnArg[2]
     filter=openFnArg[3]
@@ -1020,7 +1021,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
 
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
-    #print('show table content')
+    dprint('show table content')
     sql='SELECT {} FROM {} ORDER BY id;'.format('*' if columns is None else columns[1:-1],table)# nosec B608
     cur=conn.cursor()
     cur.execute(sql) 
@@ -1032,12 +1033,12 @@ def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=
     rowPosition = 0
     traceTableValues={}
     for row in data:
-        #print(row)
+        dprint(row)
         if dlg.trace_type:
             traceTableValues[rowPosition]={}
         for col in range(len(row)):
             if col in list([i[0] for i in dropdowns]):
-                #print('dropdown: '+str(col))
+                dprint('dropdown: '+str(col))
                 comboBox = QComboBox()
                 comboBox.addItems(dropdownItems[col].values())
                 currentText=str([i for i in dropdownItems[col].values() if str(row[col]) == i.split(':')[0]][0])
@@ -1062,15 +1063,15 @@ def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=
 
 def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,dropdowns,trace,deactivated):
     """show filtered table content"""
-    #print('show filtered table content')
-    #print(f'trace:{trace}')
+    dprint('show filtered table content')
+    dprint(f'trace:{trace}')
     cur=conn.cursor()
     dlg.tableWidget.setRowCount(rowCountDB(table,filter,cur_dict))
     sql='SELECT {} FROM public.{} {} {} ;'.format(','.join(i for i in columns),table,filter,orderby) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql) 
     data = cur.fetchall()
-    #print(data)
+    dprint(data)
     dropdownItems=getDropDownItems(cur_dict,dropdowns)
     rowCount=0
     table_trace={}
@@ -1101,8 +1102,8 @@ def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,drop
                 dlg.tableWidget.setCellWidget(rowCount, col, comboBox)   
             else:
                 item=QTableWidgetItem()
-                #print(str(row[col]))
-                #print(tr('@default',str(row[col])))
+                if debug_enabled(): dprint(str(row[col]))
+                if debug_enabled(): dprint(tr('@default',str(row[col])))
                 item.setText(tr('@default',str(row[col])))
                 item.setData(Qt.ItemDataRole.UserRole ,str(row[col]))
                 if col in deactivated:
@@ -1112,15 +1113,15 @@ def showFilteredTableContent(cur_dict,conn,dlg,table,columns,filter,orderby,drop
             table_trace[rowCount]= [str(row[0]),'',changedConnectionBundleType.split(':')[0],'']
         elif trace:
             table_trace[rowCount]= [str(row[0])+'_'+str(row[1]),'',changedConnectionBundleType.split(':')[0],'']
-            #print(table_trace)
+            dprint(table_trace)
         rowCount+=1
-    #print(table_trace)
+    dprint(table_trace)
     return table_trace
         
 def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdowns='',importFn=False,ok_fn=False,ok_fn_arg=[],openFn=False,openFnArg=['',[],[],'','',[],False,'',False,False,[0]],trace=False,deactivated=[0]):
     """Show types from table in DB"""
-    #print('Manage connection types')
-    #print(ok_fn)
+    dprint('Manage connection types')
+    dprint(ok_fn)
     openBtn=False
     if openFn:
         openBtn=True
@@ -1140,7 +1141,7 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
     dlg.btn_delete.clicked.connect(lambda: deleteTableRowTrace(dlg,trace))
     dlg.btn_add.clicked.connect(lambda: addTableRowTrace(dlg,dropdowns,trace,[0],main.cur))
     dlg.traceTableValues=showTableContent(main.cur,main.conn,dlg,table,dropdowns,columns=columns,deactivated=deactivated)
-    #print(dlg.traceTableValues)
+    dprint(dlg.traceTableValues)
     if trace:
         dlg.tableWidget.itemChanged.connect(dlg.changeItem)
     dlg.show()
@@ -1155,18 +1156,18 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
             if not value:
                 value=dlg.tableWidget.cellWidget(row, col).currentText()
                 
-            #print(value)
+            dprint(value)
         elif col in checkBoxes:
-            #print('check box')
+            dprint('check box')
             value=dlg.tableWidget.cellWidget(row, col).isChecked()
-            #print(value)
+            dprint(value)
         else:
             if dlg.tableWidget.item(row,col):
-                #print(dlg.tableWidget.item(row,col).text())
+                if debug_enabled(): dprint(dlg.tableWidget.item(row,col).text())
                 value=dlg.tableWidget.item(row,col).data(Qt.ItemDataRole.UserRole)
                 if not value or col==0:
                     value=dlg.tableWidget.item(row,col).text()
-                #print(value)
+                dprint(value)
                 if value and columns[col]=='p':
                     p=True
                 if value and columns[col]=='mdot':
@@ -1193,19 +1194,19 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
  
 def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_fn_arg,trace=False,main=None):
     """" Save table to DB an close dialog"""
-    #print('Save table to DB an close dialog')
+    dprint('Save table to DB an close dialog')
     sql="""TRUNCATE {} CASCADE;\n""".format(table)# nosec B608
     row_dict={}
     for row in range(dlg.tableWidget.rowCount()):
         values= getValuesFromTableRow(dlg,dropdowns,row,columns[1:-1].split(','),checkBoxes)
         if not values:
-            #print('return')
+            dprint('return')
             return False
         row_dict[int(dlg.tableWidget.item(row, 0).text())]= """INSERT INTO {} {} VALUES ({});""".format(table,columns,values)# nosec B608
 
     try:
         sql+='\n'.join(dict(sorted(row_dict.items())).values())
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
     except Exception:
         QgsMessageLog.logMessage(
@@ -1216,15 +1217,15 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
         return False
     delIfNotInDBIds(table,openFnArg,main.cur)
     if ok_fn:
-        #print('----ok-fn---')
+        dprint('----ok-fn---')
         ok_fn(*ok_fn_arg)
         
     if trace =='building_template':
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
         for row in dlg.traceTableValues:
             if not dlg.traceTableValues[row][1][0] and dlg.traceTableValues[row][1][1]:
                 #add default building (located project handling)
-                #print('***added building type***')
+                dprint('***added building type***')
                 src_dir=config['pathDistricts']+'lib\\ice\\building\\'
                 templates_dir=main.plugin_dir+'\\{}\\building_templates\\'.format(main.config['projectName'])
                 copyFile(src_dir+'default.idm',templates_dir,templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][1]))
@@ -1233,7 +1234,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
             elif dlg.traceTableValues[row][1][0] and dlg.traceTableValues[row][1][1]:
                 if dlg.traceTableValues[row][1][0]!= dlg.traceTableValues[row][1][1]:
                     #rename building template
-                    #print('***updated building type name***')
+                    dprint('***updated building type name***')
                     templates_dir=main.plugin_dir+'\\{}\\building_templates\\'.format(main.config['projectName'])
                     if os.path.exists(templates_dir):
                         file_src=templates_dir+'{}.idm'.format(dlg.traceTableValues[row][1][0])
@@ -1302,32 +1303,32 @@ def addConnectionsTableRow(dlg,dropdowns,row,cur):
     #add row to dlg.traceTableValues in order to trace the changed values
     for row in reversed(sorted(dlg.traceTableValues)):
         dlg.traceTableValues[row+1]=dlg.traceTableValues[row]
-    #print(dlg.traceTableValues)
+    dprint(dlg.traceTableValues)
     dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,4).text(),'',dlg.tableWidget.item(0,5).text(),'',dlg.tableWidget.item(0,3).text(),'',False,dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0],''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
-    #print(dlg.traceTableValues)
+    dprint(dlg.traceTableValues)
         
 def showConnectionsContent(dlg,dropdowns,conn,cur_dict): 
     """show connections table content"""
-    #print('show connections table content')
+    dprint('show connections table content')
     table='connections'
     dlg.tableWidget.setRowCount(rowCountDB(table,'',cur_dict))
     sql='SELECT id,type,p_ctrl,temp,p,mdot,description FROM public.connections ORDER BY id;'
-    #print(sql)
+    dprint(sql)
     cur=conn.cursor()
     cur.execute(sql) 
     data = cur.fetchall()
     dropdowns=[[1,'public','prefered_conn_dir','id','name']]
     dropdownItems=getDropDownItems(cur_dict,dropdowns)
-    #print(dropdownItems)
-    #print(list([i[0] for i in dropdowns]))
+    dprint(dropdownItems)
+    if debug_enabled(): dprint(list([i[0] for i in dropdowns]))
     rowCount=0
 
     for row in data:
-        #print('--row--')
-        #print(row)
+        dprint('--row--')
+        dprint(row)
         for col in range(len(row)):
-            #print('--col--')
-            #print(col)
+            dprint('--col--')
+            dprint(col)
             if col in list([i[0] for i in dropdowns]):
                 comboBox = QComboBox()
                 comboBox.addItems(dropdownItems[col].values())
@@ -1346,9 +1347,9 @@ def showConnectionsContent(dlg,dropdowns,conn,cur_dict):
                 checkBox.stateChanged.connect(dlg.changedCheckboxState)
                 dlg.tableWidget.setCellWidget(rowCount, col, checkBox)
             else:
-                #print('--else--')
-                #print(col)
-                #print(row[col])
+                dprint('--else--')
+                dprint(col)
+                if debug_enabled(): dprint(row[col])
                 item=QTableWidgetItem('' if row[col] is None else str(row[col]))
                 if col == 0:
                     item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
@@ -1362,12 +1363,12 @@ def showConnectionsContent(dlg,dropdowns,conn,cur_dict):
         
         dlg.traceTableValues[rowCount]= ['' if row[4] is None else str(row[4]),'','' if row[5] is None else str(row[5]),'',str(row[3]),'',row[2],'',str(row[1]),''] #p_old,p_new,m_old,m_new,t_old,t_new,ctrl_old,ctrl_new,type_old,type_new
         rowCount+=1
-    #print(dlg.traceTableValues)
+    dprint(dlg.traceTableValues)
         
 def showDefaults(dlg,defaults,template_name,cur,config):
     """show the default values of a table in the GUI"""
-    #print('--showDefaults--')
-    #print(defaults)
+    dprint('--showDefaults--')
+    dprint(defaults)
     for default in defaults:
         if default['column_name'] in ['template','pipe_bundle_type_id','network','type']:
             if default['column_name'] =='template':
@@ -1411,11 +1412,11 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
         if value:
             if value==tr("@default",'no_selection'):
                 sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input,value) # nosec B608
-                #print(sql)
+                dprint(sql)
                 cur.execute(sql)    
             else:
                 sql='ALTER TABLE "{}".{} ALTER COLUMN {} SET DEFAULT {};'.format(config['versionName'],table,input,value) # nosec B608
-                #print(sql)
+                dprint(sql)
                 cur.execute(sql)
     dlg.close()
 

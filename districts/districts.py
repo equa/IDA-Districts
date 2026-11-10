@@ -101,7 +101,6 @@ from .utility_functions.invoke import InvokeFeatures, setFeatureParm
 from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer, removeLayers
 from .utility_functions.reports import networkReport
 from .utility_functions.show_on_map import dropResultVisTables
-from .utility_functions.switch_debug_mode import switchDebugMode
 from .utility_functions.topology import getLayerAttributesName
 from .utility_functions.translations import tr
 from .utility_functions.utility import (
@@ -111,6 +110,7 @@ from .utility_functions.workers import WorkerImportProject, WorkerOpenModelCmd, 
 import os.path
 import webbrowser
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled, configure as configureDebugLog, shutdown as shutdownDebugLog
 
 
 class Districts:
@@ -163,11 +163,12 @@ class Districts:
         self.conn_postgres=None
         self.cur_postgres=None
         self.config=load_plugin_settings()
-        self.projectConfig = loadProjectConfig(self.config)  
+        configureDebugLog(self.config["debug"], self.config["debug_console"])
+        self.projectConfig = loadProjectConfig(self.config)
         self.timer=None
         self.process_running=False
         
-        #print('shortcuts')
+        dprint('shortcuts')
         # 1. Kontext & Speicher sicherstellen
         ctx = ApplicationShortcut
 
@@ -227,7 +228,7 @@ class Districts:
             tab_widgets = self.dlg.findChildren(QTabWidget)
 
             if not tab_widgets:
-                #print("No QTabWidget found")
+                dprint("No QTabWidget found")
                 return
 
             tab_widget = tab_widgets[0]  # adjust if you have multiple
@@ -237,10 +238,10 @@ class Districts:
                 widget = tab_widget.widget(i)
                 if widget.objectName() == tab_name:
                     tab_widget.setCurrentIndex(i)
-                    #print(f"Switched to tab: {tab_name}")
+                    dprint(f"Switched to tab: {tab_name}")
                     return
 
-            #print(f"Tab not found: {tab_name}")
+            dprint(f"Tab not found: {tab_name}")
         except Exception:
             QgsMessageLog.logMessage(
                                     traceback.format_exc(),
@@ -260,7 +261,7 @@ class Districts:
         self.run()
 
     def activeLayer(self,layer_name):
-        #print('active Layer: '+layer_name)
+        dprint('active Layer: '+layer_name)
         layer=QgsProject.instance().mapLayersByName(layer_name)
         if layer:
             iface.setActiveLayer(layer[0])
@@ -269,22 +270,22 @@ class Districts:
         layer = iface.activeLayer() 
         if layer and layer.isEditable() is False:
             layer.startEditing()
-            #print(f"Editing mode started for layer: {layer.name()}")
+            if debug_enabled(): dprint(f"Editing mode started for layer: {layer.name()}")
 
     def saveLayer(self):
         layer = iface.activeLayer() 
         if layer.isEditable():
             layer.commitChanges()
-            #print(f"Edits committed for layer: {layer.name()}")
+            if debug_enabled(): dprint(f"Edits committed for layer: {layer.name()}")
 
     def rollBackLayerEdits(self):
         layer = iface.activeLayer() 
         if layer.isEditable():
             layer.rollBack()
-            #print(f"Edits rolled back for layer: {layer.name()}")
+            if debug_enabled(): dprint(f"Edits rolled back for layer: {layer.name()}")
 
     def selectionMode(self):
-        #print('selection mode')
+        dprint('selection mode')
         iface.actionSelect().trigger()
         
     # noinspection PyMethodMayBeStatic
@@ -393,6 +394,7 @@ class Districts:
                 self.tr(u'&Districts Modeler'),
                 action)
             self.iface.removeToolBarIcon(action)
+        shutdownDebugLog()
 
     def openMenu(self, position):
         """Function to add right click menu to treeview item"""
@@ -425,7 +427,7 @@ class Districts:
 
     def treeItem_addDialog(self,level, mdlIdx):
         """Project version add dialog --> connects to the TreeItem_Add function, which does the adding"""
-        #print('Add dialog started')
+        dprint('Add dialog started')
         if self.conn:
             title=tr('@default','add_child_version')
             label_text=tr('@default','child_version_name')
@@ -438,7 +440,7 @@ class Districts:
 
     def treeItem_saveAsDialog(self,level, mdlIdx):
         """Project version Save As dialog --> connects to the TreeItem_SaveAs function, which does the Save As"""
-        #print('Save As dialog started')
+        dprint('Save As dialog started')
         if self.conn:
             title=tr('@default','save_project_version_as')
             label_text=tr('@default','project_version_name')
@@ -451,18 +453,18 @@ class Districts:
 
     def showDeleteVersionDialog(self):
         try:
-            #print(self.model)
-            #print(self.dlg.treeViewVersions.selectedIndexes())
+            dprint(self.model)
+            if debug_enabled(): dprint(self.dlg.treeViewVersions.selectedIndexes())
             item=self.model.itemFromIndex(self.dlg.treeViewVersions.selectedIndexes()[0])
-            #print(item)
+            dprint(item)
             self.deleteVersionDialog(item)
         except Exception:
             iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
-            #print('No item selected!')
+            dprint('No item selected!')
 
     def deleteVersionDialog(self,item):
         """Delete project version dialog"""
-        #print('Delete project version dialog started')
+        dprint('Delete project version dialog started')
         versionName=item.text()
         if self.conn_postgres != '':
             title=tr('@default','delete_version')
@@ -494,7 +496,7 @@ class Districts:
             treeItem_load(item, mdlIdx,self)
         except Exception:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
-            #print('No item selected!')
+            dprint('No item selected!')
 
     def renameVersion(self):
         try:
@@ -508,11 +510,11 @@ class Districts:
             self.treeItem_renameDialog(level, mdlIdx,item)
         except Exception:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
-            #print('No item selected!')
+            dprint('No item selected!')
 
     def treeItem_renameDialog(self, level, mdlIdx,item):
         """Project version rename dialog --> connects to the TreeItem_Rename function, which does the renameing"""
-        #print('Rename dialog started')
+        dprint('Rename dialog started')
         title=tr('@default','rename_version')
         label_text=tr('@default','new_version_name')
         if self.conn:
@@ -525,7 +527,7 @@ class Districts:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
 
     def fileDialog(self,dlg,dir,extensions):
-        #print(dir)
+        dprint(dir)
         filename, _filter = QFileDialog.getOpenFileName(
             dlg, tr('@default','select_file'),dir, extensions)
         if filename:
@@ -542,7 +544,7 @@ class Districts:
             lineEdit.setText(standardizePath(folder)) 
     
     def openImportDlg(self,default_path='',title='',ok_fn='',extensions=''):
-        #print(default_path)
+        dprint(default_path)
         if self.conn:
             if self.config['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -667,7 +669,7 @@ class Districts:
 
     def importProject(self):
         """ import a project from a sql file and write the data center and modelling files to the folders"""
-        #print("--importProject--")
+        dprint("--importProject--")
         if self.cur_postgres:
             zip_file, _ = QFileDialog.getOpenFileName(
                 self.dlg,
@@ -693,7 +695,7 @@ class Districts:
 
     def deleteProjectDialog(self):
         """Delete project dialog --> connects to the deleteProject function, which deletes the project"""
-        #print('--deleteProjectDialog--')
+        dprint('--deleteProjectDialog--')
         projectName=self.dlg.selectProject.currentText()
         if self.conn_postgres != '':
             if projectName:
@@ -709,7 +711,7 @@ class Districts:
             iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
 
     def importPointLayer(self):
-        #print('Import plant or customer from point layer')
+        dprint('Import plant or customer from point layer')
         if self.conn:
             if self.config['versionName']:
                 self.dlg_importPointLayer=ImportPointLayer(self.config,self.plugin_dir)
@@ -735,7 +737,7 @@ class Districts:
             iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=MessageInfo)
             
     def importNetworkTopologyFromLayer(self):
-        #print('Import Network topology from layer')
+        dprint('Import Network topology from layer')
         if self.conn:
             if self.config['versionName']:
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -768,7 +770,7 @@ class Districts:
         """Open Wiki page"""
         try:
             tab_name=self.dlg.tabWidget.currentWidget().objectName()
-            #print(tab_name)
+            dprint(tab_name)
                 
             if tab_name=='tab_project_handling':
                 url="https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_help/Districts_Modeler_help/Districts_Project_handling/"
@@ -798,7 +800,7 @@ class Districts:
         """ show the efaultsLinesDialog"""
         if self.conn:
             defaults=getDefaults("lines",self.cur,self.config)
-            #print(defaults)
+            dprint(defaults)
             self.dlg_defaultsLines=DefaultsDialog('line',tr('@default','defaults_layer_lines'),[{'label': tr('@default','type'),'value': ['type',0,'general']},{'label': tr('@default','pipe_bundle'),'value': ['pipe_bundle_type_id',0,'general']},{'label': tr('@default','network'),'value': ['network',0,'general']}],self.cur)
             self.dlg_defaultsLines.btn_ok.clicked.connect(lambda: writeDefaultsToDB(self.dlg_defaultsLines,'lines',self.cur,self.config,self.plugin_dir,self))
             self.dlg_defaultsLines.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_defaultsLines))
@@ -809,7 +811,7 @@ class Districts:
         """ show the efaultsLinesDialog"""
         if self.conn:
             defaults=getDefaults("customers",self.cur,self.config)
-            #print(defaults)
+            dprint(defaults)
             self.dlg_defaultsCustomers=DefaultsDialog('customer',tr('@default','defaults_layer_customers'),[{'label': tr('@default','template'),'value': ['template',0,'general']}],self.cur)
             self.dlg_defaultsCustomers.btn_ok.clicked.connect(lambda: writeDefaultsToDB(self.dlg_defaultsCustomers,'customers',self.cur,self.config,self.plugin_dir,self))
             self.dlg_defaultsCustomers.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_defaultsCustomers))
@@ -828,7 +830,7 @@ class Districts:
 
     def manageConnections(self):
         if self.conn:
-            #print('Manage connections')
+            dprint('Manage connections')
             dropdowns=[[1,'public','prefered_conn_dir','id','name']]
             checkBoxes=[2]
             columns='(id,type,p_ctrl,temp,p,mdot,description)'
@@ -897,7 +899,7 @@ class Districts:
             self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
             
     def pipeLayingAlgorithm(self):
-        #print('--pipeLayingAlgorithm--')
+        dprint('--pipeLayingAlgorithm--')
         if self.conn:
             if self.config['versionName']:
                 self.dlg_pipeLayingAlgorithm=PipeLayingDialog(self.config,self.plugin_dir)
@@ -909,7 +911,7 @@ class Districts:
             
     def generateNetworkTopology(self):
         """ Generate network topology"""
-        #print('--generateNetworkTopology--')
+        dprint('--generateNetworkTopology--')
         if self.conn:
             if self.config['versionName']:
                 self.window_topology=NetworkTopologyDialog(self.config,self.plugin_dir)
@@ -921,7 +923,7 @@ class Districts:
 
     def pipeSizing(self):
         """Pipe sizing"""
-        #print('--pipeSizing--')
+        dprint('--pipeSizing--')
         if self.conn: 
             if self.config['versionName']:
                 self.dlg_pipeSizing=PipeSizingDlg(self.config,self.plugin_dir,self.cur)
@@ -939,7 +941,7 @@ class Districts:
     
     def mapFeatures(self):
         """Map Features to lines"""
-        #print('--mapFeatures--')
+        dprint('--mapFeatures--')
         if self.conn:
             if self.config['versionName']:
                 self.window_mapPlants=MapFeaturesDialog(self.config,self.plugin_dir)
@@ -951,7 +953,7 @@ class Districts:
             
     def setProjectConfig(self):
         """ open Dialog to set Project configuration data"""
-        #print("Project config dialog")
+        dprint("Project config dialog")
         self.dlg_projectConfig = ProjectConfigDialog()
         self.dlg_projectConfig.btn_ok.clicked.connect(lambda: saveProjectConfigSettings(self.dlg_projectConfig,self))
         self.dlg_projectConfig.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_projectConfig))
@@ -986,7 +988,8 @@ class Districts:
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
         settings.setValue("districts_api_delay", dlg.lineEdit_districts_api_delay.text())
-        settings.setValue("debug", dlg.checkBox_debug.checkState())
+        settings.setValue("debug", dlg.checkBox_debug.isChecked())
+        settings.setValue("debug_console", dlg.checkBox_debug_console.isChecked())
         settings.setValue("autosave", dlg.groupBox_autosave.isChecked())
         settings.setValue("autosave_dt", dlg.lineEdit_autosave_dt.text())
         settings.setValue("exportInvokedFeatures", dlg.checkBox_exportInvokedFeatures.checkState())
@@ -995,7 +998,7 @@ class Districts:
         settings.setValue("host", dlg.lineEdit_host.text())
         settings.setValue("port", dlg.lineEdit_port.text())
         try:
-            #print(dlg.auth_dict)
+            dprint(dlg.auth_dict)
             authId=dlg.auth_dict[dlg.comboBox_AuthId.currentText()]
             settings.setValue("auth_id", authId)
         except Exception:
@@ -1003,8 +1006,7 @@ class Districts:
             settings.setValue("auth_id", authId)
         settings.endGroup()
         
-        if dlg.checkBox_debug.isChecked() != self.config["debug"]:
-            switchDebugMode(True if dlg.checkBox_debug.isChecked() else False,self.plugin_dir)
+        configureDebugLog(dlg.checkBox_debug.isChecked(), dlg.checkBox_debug_console.isChecked())
       
         #check if db settings settings changed
         if self.config["auth_id"]!=authId or self.config["host"]!=dlg.lineEdit_host.text() or self.config["port"]!=dlg.lineEdit_port.text():
@@ -1026,7 +1028,7 @@ class Districts:
         closeDialog(dlg)
         self.dlg.statusMessage.setText(tr('@default','settings_saved'))
 
-        #print("finished settings")
+        dprint("finished settings")
             
     def setTreeViewModel(self,data):
         self.model = QStandardItemModel()   
@@ -1038,7 +1040,7 @@ class Districts:
         self.dlg.treeViewVersions.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)           
         
     def loadProject(self):
-        #print('--load project--')
+        dprint('--load project--')
         # dialogs opened for the previous project/version are no longer valid
         closeOtherDistrictsDialogs(self.dlg)
         if not self.config['projectName']:
@@ -1052,15 +1054,15 @@ class Districts:
         self.conn=dbConnect(self.config,True)
         if previousDB and previousDB!=self.config['projectName']:
             self.closeIdleConnections(previousDB)
-        #print(self.config)
-        #print(self.conn)
+        dprint(self.config)
+        dprint(self.conn)
         if self.conn:
-            #print(self.config)
+            dprint(self.config)
             self.cur = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             # results of 'show data on map' of the previous session (layers + temp.result_vis_* tables)
             dropResultVisTables(self.cur)
             data=getVersionData(self.cur)
-            #print(data)
+            dprint(data)
             self.setTreeViewModel(data)
             
             #timer if autosave
@@ -1087,8 +1089,8 @@ class Districts:
             
     def selectedProjectUpdated(self,index):
         """load selected project and write it to QSettings and update config"""
-        #print('--selectedProjectUpdated--')
-        #print(index)        
+        dprint('--selectedProjectUpdated--')
+        dprint(index)        
         self.config['projectName']=self.dlg.selectProject.currentText()
         self.config['versionName']=''
         write_plugin_settings(self.config)
@@ -1110,10 +1112,10 @@ class Districts:
         self.closeIdleConnections()
         if self.conn_postgres:
             self.conn_postgres.close()    
-            #print('close postgres connection')
+            dprint('close postgres connection')
         if self.conn:
             self.conn.close()
-            #print('close project connection')   
+            dprint('close project connection')   
             
     def checkDBConnectionState(self):
         if self.conn_postgres:
@@ -1170,7 +1172,7 @@ class Districts:
 
     def sensorSignals(self):
         """Create sensor signals for comunication between plants, customers and supervisory control"""
-        #print('Create sensor signals for comunication between plants, customers and supervisory control')
+        dprint('Create sensor signals for comunication between plants, customers and supervisory control')
         if self.conn:
             if self.config['versionName']:
                 if not checkIDADistrictsInstallation(self.config):
@@ -1194,7 +1196,7 @@ class Districts:
 
     def showBuildModel(self):
         """ Build IDA subnetwork models; loop over subnetworks"""
-        #print('Build IDA model')
+        dprint('Build IDA model')
         if self.conn:
             if self.config['versionName']:
                 if not checkIDADistrictsInstallation(self.config):
@@ -1227,7 +1229,7 @@ class Districts:
 
     def showOpenModel(self,mode='network'):
         """ Show IDA submodels; loop over submodels"""
-        #print('Show IDA model')
+        dprint('Show IDA model')
         if self.conn:
             if self.config['versionName']:
                 if not checkIDADistrictsInstallation(self.config):
@@ -1241,7 +1243,7 @@ class Districts:
                     return False
                 fname=dir+'\\{}_{}.idm'.format(mode,submodel)
                 if os.path.exists(fname):
-                    #print(fname)
+                    dprint(fname)
                     worker_openNetwork = WorkerOpenModelCmd(fname,self.config,submodel=submodel)
                     QThreadPool.globalInstance().start(worker_openNetwork) 
                     worker_openNetwork.signals.error.connect(show_error_message)
@@ -1268,7 +1270,7 @@ class Districts:
 
     def showRunModel(self):
         """ Run IDA submodels; loop over submodels"""
-        #print('Run IDA model')
+        dprint('Run IDA model')
         if self.conn:
             if self.config['versionName']:
                 if not checkIDADistrictsInstallation(self.config):
@@ -1308,7 +1310,7 @@ class Districts:
 
     def showLoadResults(self):
         """ show load results; loop over submodels"""
-        #print('load results')
+        dprint('load results')
         if self.conn:
             if self.config['versionName']:
                 if not checkIDADistrictsInstallation(self.config):
@@ -1467,7 +1469,7 @@ class Districts:
     def on_tab_changed(self,index):
         widget = self.dlg.tabWidget.widget(index)           # get the QWidget for the tab
         if widget.objectName() == "tab_import":  # compare with object name
-            #print("Import tab selected")
+            dprint("Import tab selected")
 
             canvas = iface.mapCanvas()
 
@@ -1503,7 +1505,7 @@ class Districts:
             job.waitForFinished()
             img = job.renderedImage()
             img.save(districtsModelerTempDir()+"osm_snapshot.png")
-            #print("Snapshot saved!")
+            dprint("Snapshot saved!")
             
             load_image(districtsModelerTempDir()+"osm_snapshot.png",self.dlg.labelOsmPreview,scale=True)
             #self.svg_osm.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1621,4 +1623,4 @@ class Districts:
         else:
             self.dlg.show()
             self.dlg.activateWindow()
-            #print("activate")
+            dprint("activate")

@@ -25,6 +25,7 @@ from qgis.core import Qgis,QgsMessageLog
 from qgis.PyQt.QtGui import QKeySequence
 import matplotlib.pyplot as plt   
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
   
         
 class SensorSignalsDialog(QDialog):
@@ -492,7 +493,7 @@ class RunNetworkModelDialog(QDialog):
         super().__init__()
         self.setWindowTitle(self.tr("run_network_model")) 
         self.networkSimData=loadNetworkSimData(plugin_dir,config)
-        #print(self.networkSimData)
+        dprint(self.networkSimData)
         self.finished_sims=0
         self.process_running=False
         
@@ -598,7 +599,7 @@ class RunNetworkModelDialog(QDialog):
                 
         self.dateedit_calcFrom = QtWidgets.QDateTimeEdit(calendarPopup=True)
         if self.networkSimData['calc_time_from']:
-            #print(self.networkSimData['calc_time_from'])
+            if debug_enabled(): dprint(self.networkSimData['calc_time_from'])
             date_time=self.networkSimData['calc_time_from']
         else:
             date_time=str(QtCore.QDate.currentDate().year())+'-01-01 00:00:00'
@@ -611,7 +612,7 @@ class RunNetworkModelDialog(QDialog):
                 
         self.dateedit_calcTo = QtWidgets.QDateTimeEdit(calendarPopup=True)
         if self.networkSimData['calc_time_to']:
-            #print(self.networkSimData['calc_time_to'])
+            if debug_enabled(): dprint(self.networkSimData['calc_time_to'])
             date_time=self.networkSimData['calc_time_to']
         else:
             date_time=str(QtCore.QDate.currentDate().year())+'-12-31 23:59:59'
@@ -671,7 +672,7 @@ class RunNetworkModelDialog(QDialog):
             self.rbtn_startup_type_dynamic.setChecked(True)
                     
     def onClickedRadioCalcType(self,s):
-        #print(s)
+        dprint(s)
         
         if self.rbtn_calc_type_dynamic.isChecked():
             self.label_startup.setHidden(False)
@@ -697,7 +698,7 @@ class RunNetworkModelDialog(QDialog):
             self.numb_periods.setHidden(False)    
 
     def onClickedRadioStartupType(self,s):
-        #print(s)
+        dprint(s)
         if self.rbtn_calc_type_dynamic.isChecked():
             if self.rbtn_startup_type_dynamic.isChecked():
                 self.label_calcStartupFrom.setHidden(False)
@@ -712,10 +713,10 @@ class RunNetworkModelDialog(QDialog):
                 self.numb_periods.setHidden(False)
             
     def updateStatusBar(self,message):
-        #print(f"signal:{message}")
+        dprint(f"signal:{message}")
         if message=="Simulation finished" and self.status_bar.currentMessage()!="Simulation failed":
             self.finished_sims+=1
-            #print(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
+            dprint(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
             if self.finished_sims==self.n_sims:
                 self.status_bar.showMessage(message) 
         else:
@@ -1051,7 +1052,7 @@ class FeatureDecouplingDlg(QDialog):
         self.listWidget_featureModels.insertItem(0, item)    
         
     def onClickedRadio(self,s):
-        #print(s)
+        dprint(s)
         self.listWidget_featureModels.clear()
         self.feature_template.clear()
         
@@ -1059,12 +1060,12 @@ class FeatureDecouplingDlg(QDialog):
             sql="""SELECT template,template_name FROM customer_templates ORDER BY template;"""
         else:
             sql="""SELECT template,template_name FROM energy_plant_templates ORDER BY template;"""
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         self.feature_template.addItems([i['template_name'] for i in self.cur.fetchall()])
 
     def onClickedTemplate(self,s):
-        #print(s)
+        dprint(s)
         self.listWidget_featureModels.clear()
         if self.rbtn_customers.isChecked():
             sql="""SELECT f_dec.comp_name
@@ -1076,22 +1077,22 @@ class FeatureDecouplingDlg(QDialog):
     FROM energy_plant_templates ep_t, "{}".feature_decoupling f_dec
     WHERE ep_t.template_name='{}' AND f_dec.template=ep_t.template AND type='energy_plant';
 """.format(self.config['versionName'],self.feature_template.itemText(s)) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         self.listWidget_featureModels.addItems([i['comp_name'] for i in self.cur.fetchall()])
         
     def saveListContent(self):
-        #print('Save list conetent')
+        dprint('Save list conetent')
         if self.rbtn_customers.isChecked():
             type='customer'
         else:
             type='energy_plant'
 
         sql="""SELECT template FROM public.{}_templates WHERE template_name='{}';""".format(type,self.feature_template.currentText())# nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         template_id=self.cur.fetchone()['template']
-        #print(template_id)
+        dprint(template_id)
         
         sql="""DELETE FROM "{}".feature_decoupling WHERE template={};\n""".format(self.config['versionName'],template_id) # nosec B608
         sql+='\n'.join(["""INSERT INTO "{}".feature_decoupling (template,comp_name,type) VALUES ({},'{}','{}');""".format(self.config['versionName'],template_id,self.listWidget_featureModels.item(i).text(),type) for i in range(self.listWidget_featureModels.count())]) # nosec B608
@@ -1124,7 +1125,7 @@ class FeatureDecouplingDlg(QDialog):
             )
 
         
-        #print(sql)
+        dprint(sql)
         if sql:
             self.cur.execute(sql)
             
@@ -1388,12 +1389,12 @@ class ModellingSettings(QDialog):
         
     def getTimeseriesIds(self,table_name):
         sql="""SELECT id FROM {} ORDER BY id;""".format(table_name)# nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         return [str(i['id']) for i in self.cur.fetchall()]
               
     def showDuctModelParameter(self,s):
-        #print(s)
+        dprint(s)
         if s=='Timeseries':
             self.amb_duct_profile.setHidden(False)
             self.label_amb_duct_profile.setHidden(False)
@@ -1408,7 +1409,7 @@ class ModellingSettings(QDialog):
         self.adjustSize()
                 
     def showGroundModelParameter(self,s):
-        #print(s)
+        dprint(s)
         if s=='Kusuda':
             self.amb_kusuda_rho.setHidden(False)
             self.amb_kusuda_cp.setHidden(False)

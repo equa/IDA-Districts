@@ -18,12 +18,13 @@ from qgis.PyQt.QtGui import QColor
 from itertools import cycle
 
 import traceback
+from .debug_log import dprint, debug_enabled
 
 
 
 def setupCustomerLoadValue(config,plugin_dir,projectConfig):    
     feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
-    #print(feature_layer)
+    dprint(feature_layer)
     
     action_text="""from districts.ida_ph import *
 ShowLoadAttributeDialog([%id%])"""
@@ -34,7 +35,7 @@ ShowLoadAttributeDialog([%id%])"""
     form_config = feature_layer.editFormConfig()
 
     rootContainer = form_config.invisibleRootContainer()
-    #print(rootContainer)
+    dprint(rootContainer)
     editorAction = QgsAttributeEditorAction(helpAction, rootContainer)
     rootContainer.addChildElement(editorAction)
 
@@ -42,7 +43,7 @@ ShowLoadAttributeDialog([%id%])"""
     
 def setupCustomerGFAValue(config,plugin_dir,projectConfig):    
     feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
-    #print(feature_layer)
+    dprint(feature_layer)
     
     action_text="""from districts.ida_ph import *
 ShowGFAAttributeDialog([%id%])"""
@@ -53,7 +54,7 @@ ShowGFAAttributeDialog([%id%])"""
     form_config = feature_layer.editFormConfig()
 
     rootContainer = form_config.invisibleRootContainer()
-    #print(rootContainer)
+    dprint(rootContainer)
     editorAction = QgsAttributeEditorAction(helpAction, rootContainer)
     rootContainer.addChildElement(editorAction)
 
@@ -79,24 +80,24 @@ def loadLayersConfig(config,plugin_dir,project_name):
     layers_config=''
     if project_name:
         config_f="{}{}\\layersConfig.txt".format(config['pathProjects'],project_name)
-        #print(config_f)
+        dprint(config_f)
         if os.path.exists(config_f):
-            #print(config_f)
+            dprint(config_f)
             with open(config_f, "r") as myfile:   
                 for line in myfile:        
                     layers_config+=line
         else:
             file_template=plugin_dir+"\\config\\layersConfig_template.txt"
             if os.path.exists(file_template):
-                #print(file_template)
+                dprint(file_template)
                 with open(file_template, "r") as myfile:   
                     for line in myfile:        
                         layers_config+=line
         layers_config=strToDict(layers_config)
     else:
-        #print('No project name')
+        dprint('No project name')
         pass
-    #print(layers_config)    
+    dprint(layers_config)    
     return layers_config
     
 def writeLayersConfig(config,project_name,layersConfig):
@@ -128,11 +129,11 @@ def setEditorWidgetListType(list_type_dict):
     editor_setup = QgsEditorWidgetSetup("List", config)
 
     for layer_name in list_type_dict:
-        #print(layer_name)
+        dprint(layer_name)
         layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))[0]
         for col in list_type_dict[layer_name]:
             field_index = layer.fields().indexOf(col)
-            #print(field_index)
+            dprint(field_index)
 
             # Apply the widget setup to the field
             layer.setEditorWidgetSetup(field_index, editor_setup)
@@ -140,26 +141,26 @@ def setEditorWidgetListType(list_type_dict):
 def setFieldConstraints(constraints_dict):
     """{layer: {col_names : constraint}}"""
     for layer_name in constraints_dict:
-        #print(layer_name)
+        dprint(layer_name)
         layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))
         if layer:
             layer=layer[0]
             for col in constraints_dict[layer_name]:
                 field_index = layer.fields().indexOf(col)
-                #print(field_index)
+                dprint(field_index)
                 layer.setFieldConstraint(field_index, QgsFieldConstraints.ConstraintExpression)
                 layer.setConstraintExpression(field_index, constraints_dict[layer_name][col])
                 
 def setFieldDefaultValues(getDefaultValueDict):
     """{layer: {col_names : constraint}}"""
     for layer_name in getDefaultValueDict:
-        #print(layer_name)
+        dprint(layer_name)
         layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))
         if layer:
             layer=layer[0]
             for col in getDefaultValueDict[layer_name]:
                 field_index = layer.fields().indexOf(col)
-                #print(field_index)
+                dprint(field_index)
                 default_val = QgsDefaultValue(getDefaultValueDict[layer_name][col], False)
 
                 layer.setDefaultValueDefinition(field_index, default_val)
@@ -171,12 +172,12 @@ def getDHCLayerNames():
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
     sql="""SELECT UpdateGeometrySRID('%schema%', '%table%', 'geom', {});""".format(srid) # nosec B608
-    #print('+--+')
+    dprint('+--+')
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
         for table in ['lines','junctions','customers','energy_plants','buildings','streets','submodels','boreholes']:
-            #print(sql_version.replace("%table%",table))
+            if debug_enabled(): dprint(sql_version.replace("%table%",table))
             try:
                 cur.execute(sql_version.replace("%table%",table))
             except Exception:
@@ -186,13 +187,13 @@ def updateTableSrid(versions,cur,srid):
                     MessageCritical
                 )
             
-    #print('++')
+    dprint('++')
     sql_temp=sql.replace("%schema%","temp")        
     #temp tables 
-    #print('++')
-    #print(sql_temp)
+    dprint('++')
+    dprint(sql_temp)
     for table in ['lines','lines_cooling','lines_heating','junctions','customers','streets_help']:
-        #print(sql_temp.replace("%table%",table))
+        if debug_enabled(): dprint(sql_temp.replace("%table%",table))
         try:
             cur.execute(sql_temp.replace("%table%",table))
         except Exception:
@@ -421,16 +422,16 @@ def on_form_changed(config,plugin_dir,project_name,layer):
     """Store the form groups of the layer whose edit form config changed"""
     layersConfig=loadLayersConfig(config,plugin_dir,project_name)
     data = extract_group_fields(layer, layersConfig, layer.customProperty("original_layer_name"))
-    #print(data)
+    dprint(data)
     layersConfig[layer.customProperty("original_layer_name")]=data
-    #print(layersConfig)
+    dprint(layersConfig)
     writeLayersConfig(config,project_name,layersConfig)
 
 
 def setupVersionForm(cur,plugin_dir,config):  
     """ setup form for version layers"""
     layersConfig=loadLayersConfig(config,plugin_dir,config['projectName'])
-    #print(layersConfig)
+    dprint(layersConfig)
     for vlayerName in layersConfig:
         vlayer=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))
         if vlayer:
@@ -597,7 +598,7 @@ def removeTempLayers():
 
 def showTempTables(uri,config,plugin_dir,signals,cur):
     """Show temp tables (lines,customers,junctions,energy_plants)"""
-    #print('show temp tables')
+    dprint('show temp tables')
     removeTempLayers()
     layerTreeRoot = QgsProject.instance().layerTreeRoot()  
     for layer in ['lines','junctions','customers','energy_plants']:
@@ -606,7 +607,7 @@ def showTempTables(uri,config,plugin_dir,signals,cur):
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
         else:
             signals.error.emit("No project tables loaded")
-            #print("No project tables loaded")
+            dprint("No project tables loaded")
             return False
     try:
         auth_cfg = QgsAuthMethodConfig()
@@ -660,15 +661,15 @@ def getDefaultValueDict(network, energy_plant_template,customer_template,line_ty
             'lines': {'network': network,'type':line_type}} 
     
 def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
-    #print('load project layers')
+    dprint('load project layers')
     if version:
         for vlayerName in ['energy_plants','customers','lines','junctions']:  
-            #print('------')
-            #print(vlayerName)
+            dprint('------')
+            dprint(vlayerName)
             categories=featureLayerGroups(vlayerName,cur,config)
-            #print(categories)
+            dprint(categories)
             ids=featureLayerGroupIds(vlayerName,cur,config)
-            #print(ids)
+            dprint(ids)
 
             uri.setDataSource(version, vlayerName, "geom")
             if version =='temp':
@@ -677,7 +678,7 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
                 vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), "postgres")
             vlayer.setCustomProperty("original_layer_name", vlayerName)
             QgsProject.instance().addMapLayer(vlayer)  
-            #print(vlayerName[:-1])
+            if debug_enabled(): dprint(vlayerName[:-1])
 
             if vlayerName in ['customers','energy_plants']:     
                 mapValueFeatureTemplate(vlayer,vlayerName[:-1],cur,config)
@@ -735,13 +736,13 @@ def getDefaults(table,cur,config):
 FROM information_schema.columns
 WHERE (table_schema, table_name) = ('{}', '{}')
 ORDER BY ordinal_position;""".format(config['versionName'],table) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     defaults=cur.fetchall()
     return defaults
     
 def updateNetworkDependingFields(cur,config):
-    #print('--updateNetworkDependingFields--')
+    dprint('--updateNetworkDependingFields--')
     networks=getNetworks(cur,config)
     networks_array_constraint='array({})'.format(','.join([i for i in networks]))
     network_default=[i['column_default'] for i in getDefaults('lines',cur,config) if i['column_name']=='network'][0]
@@ -777,15 +778,15 @@ def featureLayerGroupIds(vlayerName,cur,config):
         colmn='template' if vlayerName in ['customers','energy_plants'] else 'id'
         table='{}_templates'.format(vlayerName[:-1]) if vlayerName in ['customers','energy_plants'] else ('"{}".network'.format(config['versionName']) if vlayerName=='lines' else 'junction_types')
         sql="""SELECT {} FROM {} ORDER BY id;""".format(colmn,table) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         return [i[colmn] for i in cur.fetchall()]    
     except Exception:
         return []
         
 def loadFeatureLayer(version,config,plugin_dir,vlayerName,cur):
-    #print('load feature layer')
-    #print(vlayerName)
+    dprint('load feature layer')
+    dprint(vlayerName)
     removeLayer(vlayerName)
     categories=featureLayerGroups(vlayerName,cur,config)
     ids=featureLayerGroupIds(vlayerName,cur,config)

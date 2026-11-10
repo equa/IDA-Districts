@@ -4486,9 +4486,24 @@ li.checked::marker { content: "\2612"; }
             <translation type="obsolete">PostgreSQL path</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="133" />
-            <source>python_console_debug_mode</source>
-            <translation type="unfinished">Python console debug mode</translation>
+            <location filename="../districts_settings_dialog.ui" line="124" />
+            <source>debug_mode</source>
+            <translation type="unfinished">Debug mode</translation>
+        </message>
+        <message>
+            <location filename="../districts_settings_dialog.ui" line="130" />
+            <source>debug_log_file</source>
+            <translation type="unfinished">Write debug output to a log file</translation>
+        </message>
+        <message>
+            <location filename="../districts_settings_dialog.ui" line="137" />
+            <source>debug_also_python_console</source>
+            <translation type="unfinished">Also print to the Python console</translation>
+        </message>
+        <message>
+            <location filename="../districts_settings_dialog.ui" line="153" />
+            <source>open_log_folder</source>
+            <translation type="unfinished">Open log folder</translation>
         </message>
         <message>
             <location filename="../districts_settings_dialog.ui" line="140" />

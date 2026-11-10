@@ -14,6 +14,7 @@ from .utility_functions.topology import getConnsValuesByTemplate, getMeterName, 
 from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
 
 import psycopg2.extras
+from .utility_functions.debug_log import dprint
 
 def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode='network'):
     """check if features are decoupled 
@@ -25,19 +26,19 @@ def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode=
 
     submodels=getUsedSubmodels(cur,config)
     submodels.remove(str(submodel))
-    #print(submodels)
+    dprint(submodels)
     
     #get feature template connections from .idc
     usedFeatureTemplates=getUsedFeatureTemplates(cur,config)
-    #print(usedFeatureTemplates)
+    dprint(usedFeatureTemplates)
     usedDecoupledFeatureTemplates=getUsedDecoupledFeatureTemplates(usedFeatureTemplates,cur,config,submodel,submodels)
-    #print(usedDecoupledFeatureTemplates)
+    dprint(usedDecoupledFeatureTemplates)
     
 
     template_data_ex=[]
     resources=[]
     for template in usedDecoupledFeatureTemplates:
-        #print(template)
+        dprint(template)
         #collect resources
         resource_f=config['pathProjects']+'{}\\{}_templates\\{}_{}.idm'.format(config['projectName'],template['feature'],template['template'],template['template_name'])
         file_data=readFileToList(resource_f)
@@ -48,16 +49,16 @@ def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode=
         template_dir=config['pathProjects']+'{}\\{}_templates\\{}_{}\\'.format(config['projectName'],template['feature'],template['template'],template['template_name'])
         template_idm=template_dir+'{}_{}.idm'.format(template['template'],template['template_name'])
         template_idc=template_dir+'{}_{}.idc'.format(template['template'],template['template_name'])
-        #print(template_idm)
+        dprint(template_idm)
         components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(template_idm)))
         components_idc=propertyListCompsIDC(getIDAListComponents(readFileToString(template_idc)))
 
            
         conns_idm=[comp[':CONNS'] for comp in components_idm if getCompClass(comp)=='CONNECTIONS'][0]
-        #print(conns_idm)
+        dprint(conns_idm)
         
         conns_idc=[comp for comp in components_idc if comp[':C']=='CONNECTION-LINE']
-        #print(conns_idc)
+        dprint(conns_idc)
         
         dec_models=getDecoupledFeatureCompPerTemplate(config,cur,template['template'])
         pmtmux_names=[getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id']) for i in getConnsValuesByTemplate(template['feature'],template['template'],cur,config)]
@@ -68,37 +69,37 @@ def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode=
                 dec_models.append(emeter)
         dec_models.append(':SELF')
         dec_models=['"'+i+'"' if i != ':SELF' else i for i in dec_models]
-        #print('++dec-models:++')
-        #print(dec_models)
+        dprint('++dec-models:++')
+        dprint(dec_models)
         data_ex=getDataExTemplate(conns_idc,dec_models,components_idm,template['network_side'],sensor_dec_data,submodel,cur,config)
-        #print(data_ex)
+        dprint(data_ex)
         
         #print(dec_conns)
         template_data_ex.append({'feature':template['feature'],'template':template['template'],'data_ex':data_ex})
         
-    #print('+++++++++++++++++--finished---+++++++++++++++++++++')
-    #print(template_data_ex)
+    dprint('+++++++++++++++++--finished---+++++++++++++++++++++')
+    dprint(template_data_ex)
 
 
     for cosim in submodels:
         f_ids=getFeatureDecIds(config,cur,submodel,[cosim])
-        #print(f_ids)
+        dprint(f_ids)
         if [True for f_id in f_ids if str(submodel)==str(f_id['submodel']) and str(cosim)==str(f_id['cosim']) or str(submodel)==str(f_id['cosim']) and str(f_id['submodel'])==str(cosim)]:
-            #print(template_data_ex)
-            #print('-*-*')
+            dprint(template_data_ex)
+            dprint('-*-*')
             importVars=getImportVars(f_ids,template_data_ex,sensor_dec_data)
-            #print('------importVars-----')
-            #print(importVars)
+            dprint('------importVars-----')
+            dprint(importVars)
             exportVars=getExportVars(f_ids,template_data_ex,sensor_dec_data,mode)
-            #print('------exportVars-----')
-            #print(exportVars)
+            dprint('------exportVars-----')
+            dprint(exportVars)
             
             cosimNetworkSideImportSignals=getCosimImportSourceSignals(sensor_dec_data,submodel,cur,config,cosim)
-            #print('------cosimNetworkSideImportSignals-----')
-            #print(cosimNetworkSideImportSignals)
+            dprint('------cosimNetworkSideImportSignals-----')
+            dprint(cosimNetworkSideImportSignals)
             cosimNetworkSideExportSignals=getCosimExportSignals(sensor_dec_data,submodel,len(exportVars),cosim,str(getSupervisorySubmodel(cur,config)['submodel']))
-            #print('------cosimNetworkSideExportSignals-----')
-            #print(cosimNetworkSideExportSignals)
+            dprint('------cosimNetworkSideExportSignals-----')
+            dprint(cosimNetworkSideExportSignals)
                         
             #cosimExportTargetSignals=getCosimExportTargetSignals(sensor_dec_data,submodel,len(exportVars),cosim)
 

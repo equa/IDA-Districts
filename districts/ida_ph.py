@@ -50,6 +50,7 @@ from qgis._3d import (
     QgsPolygon3DSymbol,
     QgsPhongMaterialSettings
 )
+from .utility_functions.debug_log import dprint, debug_enabled
 
 class ShowLoadAttributeDialog:
     def __init__(self,fid):
@@ -147,7 +148,7 @@ def setLoadAttribute(dlg,fid):
 UPDATE "{}".customers c SET {} = sub.load 
     FROM sub
     WHERE c.id=sub.substation_id{};""".format(dlg.lineEdit_specificLoad.text(),dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
-    #print(sql)
+    dprint(sql)
     dlg.cur.execute(sql)
     
     if dlg.radioButton_newAttribute.isChecked():
@@ -168,7 +169,7 @@ def setGFAAttribute(dlg,fid):
         if layer:
             data = extract_group_fields(layer[0], layersConfig, layer[0].customProperty("original_layer_name"))
             data['physical_data'].append(attribute_name)
-            #print(data)
+            dprint(data)
             layersConfig[layer[0].name()]=data
             writeLayersConfig(dlg.config,dlg.config['projectName'],layersConfig)
         
@@ -178,7 +179,7 @@ def setGFAAttribute(dlg,fid):
 UPDATE "{}".customers c SET {} = sub.gfa 
     FROM sub
     WHERE c.id=sub.substation_id{};""".format(dlg.config['versionName'],dlg.config['versionName'],attribute_name,"" if dlg.checkBox_allCustomers.isChecked() else " AND c.id = {}".format(fid)) # nosec B608
-    #print(sql)
+    dprint(sql)
     dlg.cur.execute(sql)
     
     if dlg.radioButton_newAttribute.isChecked():
@@ -565,7 +566,7 @@ def treeItem_add(level, mdlIdx,dlg,main):
     main.dlg.update_progress(0)
     versionName=dlg.input.text()
     description=dlg.input_description.text()
-    #print('****************add version*****************')
+    dprint('****************add version*****************')
     if versionName:
         newVersionName=checkIfVersionIsNew(main.cur,versionName)
         if newVersionName:
@@ -645,7 +646,7 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
             baseName=item.text()
 
             sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+versionName+'\',0,\''+description+'\');' # nosec B608
-            #print(sql)
+            dprint(sql)
             main.cur.execute(sql)
 
             temp_key = QStandardItem(versionName)
@@ -681,7 +682,7 @@ def getDescription(versionName,cur):
    
 def treeItem_rename(level,mdlIdx,main,dlg): 
     """ Renames a project version, if the version name does not exist and is not empty"""
-    #print('Rename')
+    dprint('Rename')
     versionName=main.dlg_renameVersion.input.text()
     description=main.dlg_renameVersion.input_description.text()
     if versionName:
@@ -690,21 +691,21 @@ def treeItem_rename(level,mdlIdx,main,dlg):
             item = main.model.itemFromIndex(mdlIdx)
             oldSchemaName=item.text()
             if newVersionName:
-                #print(oldSchemaName)
+                dprint(oldSchemaName)
                 newSchemaName=versionName
-                #print(newSchemaName)
+                dprint(newSchemaName)
                 main.model.setData(mdlIdx, versionName)
                 sql = 'ALTER SCHEMA "'+oldSchemaName+'" RENAME TO "'+newSchemaName+'";' # nosec B608
-                #print(sql)
+                dprint(sql)
                 main.cur.execute(sql)
                 sql = 'UPDATE public.versionhandling SET name= \''+newSchemaName+'\' WHERE name= \''+oldSchemaName+'\';'# nosec B608
-                #print(sql)
+                dprint(sql)
                 main.cur.execute(sql)
                 os.rename(main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+oldSchemaName, main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+newSchemaName)
             else:
                 iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=MessageCritical)
             sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'# nosec B608
-            #print(sql)
+            dprint(sql)
             main.cur.execute(sql)
             data=getVersionData(main.cur)
             importData(main.model,data)
@@ -725,7 +726,7 @@ def treeItem_rename(level,mdlIdx,main,dlg):
         
 def treeItem_delete(item,dlg,main):
     """Function to delete project version and removes it from the tree"""
-    #print('--treeItem_delete--')
+    dprint('--treeItem_delete--')
     # disable the delete button while the version is deleted (closed on success, re-enabled on error)
     dlg.btn_ok.setEnabled(False)
     dlg.btn_ok.repaint()
@@ -739,7 +740,7 @@ def _treeItem_delete(item,dlg,main):
     main.dlg.update_progress(1)
     try:
         sql = 'DROP SCHEMA "'+item.text()+'" CASCADE;'
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
     except Exception:
         QgsMessageLog.logMessage(
@@ -750,17 +751,17 @@ def _treeItem_delete(item,dlg,main):
     try:
         idBase=''
         sql="SELECT id, id_base FROM public.versionhandling WHERE name = '"+item.text()+"';" # nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         sql=''
         for base in main.cur.fetchall():
-            #print(base)
+            dprint(base)
             sql += 'UPDATE public.versionhandling SET id_base = {} WHERE id_base ='.format(base['id_base'])+str(base['id'])+';\n' # nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)         
         
         sql = 'DELETE FROM public.versionhandling WHERE name = \''+item.text()+'\';'# nosec B608
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         
         #delete modelling plugin folder if exists
@@ -798,7 +799,7 @@ def getVersionData(cur):
             "Districts",
             MessageCritical
         )
-    #print(data)
+    dprint(data)
     return data
         
 def checkIfVersionIsNew(cur,versionName):
@@ -814,23 +815,23 @@ def addBaseVersion(dlg,main):
     """add new base version to DB if a version name is entered and version does not exists in DB"""
     main.config['versionName']=dlg.input.text()
     description=dlg.input_description.text()
-    #print(main.config['versionName'])
+    if debug_enabled(): dprint(main.config['versionName'])
     if main.config['versionName']:
         #check if version name exists
         newVersionName=checkIfVersionIsNew(main.cur,main.config['versionName'])
-        #print(newVersionName)        
+        dprint(newVersionName)        
         if newVersionName:
             if checkString(main.config['versionName']):
                 main.dlg.update_progress(1)
 
                 #Creating version --> new schema in project      
                 sql = 'CREATE SCHEMA IF NOT EXISTS "'+main.config['versionName']+'";'
-                #print(sql)
+                dprint(sql)
                 main.cur.execute(sql) 
 
                 idBase=0
                 sql = 'INSERT INTO public.versionhandling (name,id_base,description) VALUES (\''+main.config['versionName']+'\','+str(idBase)+',\''+description+'\');' # nosec B608
-                #print(sql)
+                dprint(sql)
                 main.cur.execute(sql) 
                 
                 #create tables in new schema
@@ -847,7 +848,7 @@ def addBaseVersion(dlg,main):
                     
                     with open(temp_folder+"DB_versionTables.txt",'w') as myfile:
                         myfile.write(newdata)   
-                    #print(newdata)
+                    dprint(newdata)
                     main.cur.execute(newdata)
                     
                 #insert data in new schema
@@ -892,10 +893,10 @@ def treeItem_load(item, mdlIdx,main):
         
 def showProjectConfigData(dlg,main):
     """ Show the onfiguration data from file configIDADistricts.txt"""
-    #print('--showProjectConfigData--')
+    dprint('--showProjectConfigData--')
     if main.conn:
         main.projectConfig=loadProjectConfig(main.config)       
-        #print(main.projectConfig)
+        dprint(main.projectConfig)
         if main.projectConfig.get('srid'):
             dlg.srid.setText(main.projectConfig['srid'])
         else:
@@ -905,7 +906,7 @@ def showProjectConfigData(dlg,main):
 
 def saveProjectConfigSettings(dlg,main):
     """ save project config data to file projectConfig.txt"""
-    #print('saveProjectConfigSettings')    
+    dprint('saveProjectConfigSettings')    
     srid_old=main.projectConfig['srid']        
     main.projectConfig['srid']=dlg.srid.text()
 
@@ -923,7 +924,7 @@ def saveProjectConfigSettings(dlg,main):
     dlg.close()
         
 def importData(model, data, root=None):
-    #print(model)
+    dprint(model)
     if model:
         model.setRowCount(0)
         if root is None:
@@ -963,7 +964,7 @@ def deleteProject(projectName,main_dlg,cur_postgres,plugin_dir,config,model,dlg=
 def _deleteProject(projectName,main_dlg,cur_postgres,config,model,dlg):
     index=main_dlg.selectProject.findText(projectName)
     if index!=-1:
-        #print('Delete DB: {}'.format(projectName))
+        dprint('Delete DB: {}'.format(projectName))
         main_dlg.update_progress(1)
         
         #close open connections
@@ -971,7 +972,7 @@ def _deleteProject(projectName,main_dlg,cur_postgres,config,model,dlg):
 FROM pg_stat_activity
 WHERE pg_stat_activity.datname = '{}'
   AND pid <> pg_backend_pid();""".format(projectName) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur_postgres.execute(sql)
 
         sql='DROP DATABASE IF EXISTS {};'.format(projectName) # nosec B608
@@ -980,7 +981,7 @@ WHERE pg_stat_activity.datname = '{}'
         
         #delete folders
         dir = os.path.normpath(os.path.join(config['pathProjects'], projectName))
-        #print(dir)
+        dprint(dir)
         try:
             shutil.rmtree(dir)
         except Exception:
@@ -1008,14 +1009,14 @@ def loadVersionLayers(config,cur,plugin_dir):
     """Loads the layers in QGIS"""
     removeLayers()    
             
-    #print(config['projectName'])
+    if debug_enabled(): dprint(config['projectName'])
     
     auth_cfg = QgsAuthMethodConfig()
     QgsApplication.authManager().loadAuthenticationConfig(config["auth_id"], auth_cfg, True)
 
     uri = QgsDataSourceUri()
     uri.setConnection(config['host'], config['port'], config['projectName'], auth_cfg.config("username"), auth_cfg.config("password"))
-    #print(uri)
+    dprint(uri)
 
     view = iface.layerTreeView()
     loadTopologyLayers(config['versionName'],uri,config,auth_cfg.config("username"))   
@@ -1071,11 +1072,11 @@ def loadVersionLayers(config,cur,plugin_dir):
     zoomToLayer('customers')
     
 def finishedImportProject(dlg=None,main=None,projectName=''):
-    #print('+++finished import project+++')
+    dprint('+++finished import project+++')
     
     if main:
-        #print(main.config)
-        #print(projectName)
+        dprint(main.config)
+        dprint(projectName)
         main.dlg.projectNames.append(main.config['projectName'])
         main.dlg.selectProject.addItem(main.config['projectName'])
         main.dlg.selectProject.setCurrentText(main.config['projectName'])
@@ -1137,7 +1138,7 @@ def finishedLoadVersion(main):
 
 
 def loadVersion(main=None,item=None):
-    #print('loadVersion')
+    dprint('loadVersion')
     if main and main.conn:
         # dialogs opened for the previous version are no longer valid
         closeOtherDistrictsDialogs(main.dlg)
@@ -1167,7 +1168,7 @@ def loadVersion(main=None,item=None):
     
     
 def createNewProject(dlg,main):
-    #print('--create new project--')
+    dprint('--create new project--')
     if dlg.process_running:
         return
     # disable the create button while the project is created (re-enabled on invalid input or worker error)
@@ -1188,7 +1189,7 @@ def createNewProject(dlg,main):
     else:
         main.config['versionName']='base1'
         versionNames=['base1']
-    #print(main.plugin_dir)
+    dprint(main.plugin_dir)
     project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
     if dlg.selectTemplate.currentData() in ['db_default_values','empty_project','heating_network']:
         filename=main.plugin_dir+'\\templates\\'+dlg.selectTemplate.currentData()
@@ -1196,7 +1197,7 @@ def createNewProject(dlg,main):
     else:
         filename=main.config['pathDistricts']+'samples\\districts\\'+dlg.selectTemplate.currentData()
         filename=filename.replace('/','\\')
-    #print(filename)
+    dprint(filename)
 
     if dlg.checkbox_DBResults.isChecked():
         no_db_results=False
@@ -1223,8 +1224,8 @@ def createNewProject(dlg,main):
     
 def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=None,exportInvokedFeatures=None,exportDBResults=None,main_dlg=None,autosave=None):
     """Export the DB to a sql file and write the data center and modelling files to the folders + dDB description file --> zip"""
-    #print("Export project")
-    #print(filename)
+    dprint("Export project")
+    dprint(filename)
 
     if not filename:
         # Get current date and time

@@ -23,6 +23,7 @@ import psycopg2.extras
 import os
 import traceback
 import re
+from .utility_functions.debug_log import dprint, debug_enabled
 
 def getCustomerModelParameter(sim_model_id):
     if sim_model_id==1:
@@ -77,14 +78,14 @@ def updateParmruns(dlg,result):
     
 def openResult(dlg,plugin_dir,conn,cur):
     """ Open the selected result"""
-    #print('Open result')
+    dprint('Open result')
     idxs=dlg.tableWidget_customer.selectedIndexes()
             
     if idxs:
         for idx in idxs:
             id=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx.row(),0).text()
             parmRun_name=[dlg.tableWidget_customer.cellWidget(idx, 2).currentText() for idx in range(0,dlg.tableWidget_customer.rowCount()) if dlg.tableWidget_customer.item(idx, 0).text()==id][0]
-            #print(parmRun_name)
+            dprint(parmRun_name)
 
             name='Customer_'+id
             dir=dlg.config['pathProjects']+"{}\\versions\\{}\\invoked_customers\\".format(dlg.config['projectName'], dlg.config['versionName'])            
@@ -97,7 +98,7 @@ def openResult(dlg,plugin_dir,conn,cur):
                 worker_openParmrunResult.signals.error.connect(dlg.show_error_message)
                 worker_openParmrunResult.signals.progress.connect(dlg.update_progress)   
                 worker_openParmrunResult.signals.finished.connect(dlg.update_finished)              
-                #print('finished open assettype')
+                dprint('finished open assettype')
             else:
                 iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo)  
     else:
@@ -105,7 +106,7 @@ def openResult(dlg,plugin_dir,conn,cur):
         
 def openTemplateParmrun(dlg,plugin_dir,conn):
     """ Open the selected template"""
-    #print('Open template')
+    dprint('Open template')
     row_index=dlg.tableWidget_templates.currentRow()
     if row_index!=-1:
         if conn:
@@ -118,7 +119,7 @@ def openTemplateParmrun(dlg,plugin_dir,conn):
             file=dir+"{}.idm".format(name)
             
             # Open the building with the IDA ICE Python API
-            #print(file)
+            dprint(file)
             if os.path.exists(file):
                 if parmRun_name==tr('@default','new_parametric_run'):
                     script="""(:set name (:call get-unique-component-name "ParmRun_1" [@ :SYSTEM]))
@@ -130,13 +131,13 @@ def openTemplateParmrun(dlg,plugin_dir,conn):
                 else:
                     script="""(:set parm_name (:call find "{}" (:call :parmruns [@ :SYSTEM]) :key 'name :test 'equalp))
 (open-as parm_name 'form)""".format(parmRun_name)
-                #print(script)
+                dprint(script)
                 worker_openParmrun = WorkerOpenModelCmd(file,dlg.config,script=script)
                 QThreadPool.globalInstance().start(worker_openParmrun) 
                 worker_openParmrun.signals.error.connect(dlg.show_error_message)
                 worker_openParmrun.signals.progress.connect(dlg.update_progress)   
                 worker_openParmrun.signals.finished.connect(dlg.update_finished)   
-                #print('finished open parmruns template')
+                dprint('finished open parmruns template')
             else:
                 iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo)   
     else:
@@ -144,7 +145,7 @@ def openTemplateParmrun(dlg,plugin_dir,conn):
         
 def loadCustomerCalibrationData(dlg,config,conn):
     """Load the customers in the customer table with ID, model, Annual energy conumption (heating and cooling)"""
-    #print('load customer model calibration data')
+    dprint('load customer model calibration data')
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         
@@ -156,12 +157,12 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
     FROM customer_templates, sub 
     ORDER BY template;""".format(config['versionName']) # nosec B608
 
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         i=0
         parmRuns={}
         for template in cur.fetchall():
-            #print(template)
+            dprint(template)
             dlg.tableWidget_templates.insertRow(i)
             item=QTableWidgetItem(str(template['id']))
             item.setFlags(ItemIsSelectable | ItemIsEnabled)
@@ -188,16 +189,16 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
 
             i+=1    
 
-        #print(parmRuns)
+        dprint(parmRuns)
         sql="""SELECT c.id AS c_id, c_t.template_name, c_t.template
     FROM "{}".customers c, customer_templates c_t
     WHERE c.template=c_t.template
     ORDER BY c.id;""".format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         i=0
         for customer in cur.fetchall():
-            #print(customer)
+            dprint(customer)
             dlg.tableWidget_customer.insertRow(i)
             item=QTableWidgetItem(str(customer['c_id']))
             item.setFlags(ItemIsSelectable | ItemIsEnabled)
@@ -211,7 +212,7 @@ SELECT template AS id, template_name, template_name, CASE WHEN template = ANY (s
             dlg.tableWidget_customer.setItem(i,1,item)
             
             comboBox = QComboBox()
-            #print(str(customer['template']))
+            if debug_enabled(): dprint(str(customer['template']))
             parm_items=parmRuns[str(customer['template'])]
             comboBox.addItems(parm_items)
             dlg.tableWidget_customer.setCellWidget(i, 2, comboBox)
@@ -227,7 +228,7 @@ def getDefaultDBColumnValue(cur,config,table,column):
     return float(cur.fetchone()['column_default'])
     
 def addParamTable(s,dlg,cur,config):
-    #print(s.text())
+    if debug_enabled(): dprint(s.text())
     #input table
     i=dlg.tableWidget_inputs.rowCount()
     dlg.tableWidget_inputs.insertRow(i)
@@ -246,7 +247,7 @@ def addParamTable(s,dlg,cur,config):
 def startCalibration(dlg,conn,config,plugin_dir):
     """Start the customer calibration. Seperate between calibration with annual energy consumption or load profile. Invoke each customer with ParmRun Macro for Error calculation. 
     Start each selected customer in a loop per API script and write results back to form."""
-    #print('Start customer calibration')
+    dprint('Start customer calibration')
 
     if conn:
         cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -262,7 +263,7 @@ def startCalibration(dlg,conn,config,plugin_dir):
                 else:
                     parmRuns_cids[parmRun_name]=[idx]
         
-        #print(parmRuns_cids)
+        dprint(parmRuns_cids)
         dlg.tabwidget.clear()
         dlg.list_tableWidgetResults=[]
         list_counter=0
@@ -274,7 +275,7 @@ def startCalibration(dlg,conn,config,plugin_dir):
             for idx in parmRuns_cids[parmRun_cids]:
                 id=dlg.tableWidget_customer.item(idx, 0).text() 
                 parmRun_name=dlg.tableWidget_customer.cellWidget(idx, 2).currentText()
-                #print('++++id:'+id)
+                dprint('++++id:'+id)
                 #invoke customer
                 invokeOneFeature(dlg,idx,cur,config,'customer',False,parmRun=True)
                 
@@ -289,7 +290,7 @@ def startCalibration(dlg,conn,config,plugin_dir):
 (:save [@ :SYSTEM])
 (exit-ida)
 """.format(parmRun_name,parmRun_name)
-                #print(script)
+                dprint(script)
                 worker_Parmrun =  WorkerOpenModelCmd(config['pathProjects']+'{}\\versions\\{}\\invoked_customers\\Customer_{}.idm'.format(config['projectName'],config['versionName'],id),config,script=script,progress=False)
                 QThreadPool.globalInstance().start(worker_Parmrun) 
                 worker_Parmrun.signals.error.connect(dlg.show_error_message)
@@ -299,11 +300,11 @@ def startCalibration(dlg,conn,config,plugin_dir):
                 
                 #get best results
                 parmRun_file_data=readFileToList(config['pathProjects']+'{}\\versions\\{}\\invoked_customers\\Customer_{}\\{}.idm'.format(config['projectName'],config['versionName'],id,parmRun_name))
-                #print(parmRun_file_data)
+                dprint(parmRun_file_data)
                 bestParmRuns=getBestParmRunsInputs(parmRun_file_data)
-                #print(bestParmRuns)
+                dprint(bestParmRuns)
                 columns=[tr('@default','ID')]+getParmRunsInputNames(parmRun_file_data)+['']+getParmRunsOutputNames(parmRun_file_data)
-                #print(columns)
+                dprint(columns)
                 
                 if i==0:
                     #add parm run result tab
@@ -347,7 +348,7 @@ def saveCalibValues(dlg,config,conn,cur):
     if conn:
         layer =QgsProject.instance().mapLayersByName(tr('@default','customers'))
         if layer:
-            #print('save results')
+            dprint('save results')
             table = dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()]
 
             idxs = sorted(set(index.row() for index in table.selectedIndexes()))
@@ -362,29 +363,29 @@ def saveCalibValues(dlg,config,conn,cur):
                     field_name = parm['mapping_expression'].replace('"','')
                     if field_name in layer_fields and field_name not in unique_field_names:
                         unique_field_names[field_name]=[parm['model_name'], parm['parm_name']]
-                #print(unique_field_names)
+                dprint(unique_field_names)
                 if not unique_field_names:
                     iface.messageBar().pushMessage("Info", "No parameters mapped to layer customers!", level=MessageInfo)  
                     return
                     
                 for idx in idxs:
                     id=dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx,0).text()
-                    #print(id)
+                    dprint(id)
                     
                     parmRun_name=[dlg.tableWidget_customer.cellWidget(idx, 2).currentText() for idx in range(0,dlg.tableWidget_customer.rowCount()) if dlg.tableWidget_customer.item(idx, 0).text()==id][0]
-                    #print(parmRun_name)
+                    dprint(parmRun_name)
 
                     file_data=readFileToList(config['pathProjects']+'{}\\versions\\{}\\invoked_customers\\Customer_{}\\{}.idm'.format(config['projectName'],config['versionName'],id,parmRun_name))
                     names_target=getParmRunsInputNamesTargets(file_data)
                     names_target.update(getParmRunsOutputNamesTargets(file_data))
-                    #print(names_target)
+                    dprint(names_target)
 
                     labels=[]
                     for c in range(dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].columnCount()):
                         it = dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].horizontalHeaderItem(c)
                         labels.append(str(c+1) if it is None else it.text())
 
-                    #print(labels)
+                    dprint(labels)
                 
                     for unique_field_name in unique_field_names:
                         for name_target in names_target:
@@ -396,7 +397,7 @@ def saveCalibValues(dlg,config,conn,cur):
 
                                 #update layers
                                 sql="""UPDATE "{}".customers SET "{}"={} WHERE id={};\n""".format(config['versionName'],unique_field_name,value,id) # nosec B608
-                                #print(sql)
+                                dprint(sql)
                                 cur.execute(sql)    
 
                     #invoke customers with callib values

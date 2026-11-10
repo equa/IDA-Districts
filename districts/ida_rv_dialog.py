@@ -27,6 +27,7 @@ import matplotlib.patches as patches
 import traceback
 
 from matplotlib.path import Path
+from .utility_functions.debug_log import dprint, debug_enabled
 
 class ImportMeasuremntsDialog(QDialog):
     def __init__(self):     
@@ -111,9 +112,9 @@ class NetworkReportDialog(QDialog):
     
     def deleteTableRow(self):
         """ Delete selected template and refresh table"""
-        #print('delete row')
+        dprint('delete row')
         row_index=self.tableWidget_diagrams.currentRow()
-        #print(row_index)
+        dprint(row_index)
         if row_index!=-1:
             self.data = [i for i in self.data if i.get("name") != self.tableWidget_diagrams.item(row_index,0).text()]
             self.tableWidget_diagrams.removeRow(row_index)
@@ -548,7 +549,7 @@ class ShowOnMapDialog(QDialog):
         Signature: (message: str, worker: WorkerShowOnMap)
         """
         
-        #print("=== update_finished START ===", message)
+        dprint("=== update_finished START ===", message)
         try:
             # convenience
             layer = worker.temp_layer
@@ -562,7 +563,7 @@ class ShowOnMapDialog(QDialog):
             self.process_running = False
             return False
         if layer is None:
-            #print("No layer returned from worker.")
+            dprint("No layer returned from worker.")
             self.process_running = False
             addTableRow(self.networkReportDlg.tableWidget_diagrams)
             self.networkReportDlg.tableWidget_diagrams.setItem(0, 0, QTableWidgetItem(self.layer_name.text()))
@@ -576,7 +577,7 @@ class ShowOnMapDialog(QDialog):
         if layer and layer.isEditable():
             try:
                 layer.commitChanges()
-                #print("Committed pending edits.")
+                dprint("Committed pending edits.")
             except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
@@ -592,14 +593,14 @@ class ShowOnMapDialog(QDialog):
             self.progress.setValue(100)
             self.update_status('done')
 
-        #print("=== update_finished END ===")
+        dprint("=== update_finished END ===")
         self.dlg_main.statusMessage.setText(message)        
         self.process_running = False
 
         
     def colorStateChanged(self,s):
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.rbtn_colorVar.setHidden(False)
             self.color_var.setHidden(False)
             self.color_function.setHidden(False)
@@ -615,7 +616,7 @@ class ShowOnMapDialog(QDialog):
             self.colorlabel.setHidden(False)
                 
         else:
-            #print('unckecked')
+            dprint('unckecked')
             self.rbtn_colorVar.setHidden(True)
             self.color_var.setHidden(True)
             self.color_function.setHidden(True)
@@ -632,7 +633,7 @@ class ShowOnMapDialog(QDialog):
         self.varSelectionGroupChanged(False)
 
     def varSelectionGroupChanged(self,radioButton):
-        #print('radio var/par changed')
+        dprint('radio var/par changed')
         if self.rbtn_colorVar.isChecked() and self.checkbox_varColor.isChecked() or self.rbtn_sizeVar.isChecked() and self.checkbox_varSize.isChecked() or self.rbtn_rotationVar.isChecked() and self.checkbox_varRotation.isChecked():
             if self.label_endtime.isHidden():
                 self.label_endtime.setHidden(False)
@@ -648,7 +649,7 @@ class ShowOnMapDialog(QDialog):
 
     def sizeStateChanged(self,s):
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.rbtn_sizeVar.setHidden(False)
             self.size_var.setHidden(False)
             self.size_function.setHidden(False)
@@ -660,7 +661,7 @@ class ShowOnMapDialog(QDialog):
             self.size_symbolMin.setHidden(False)
 
         else:
-            #print('unckecked')
+            dprint('unckecked')
             self.rbtn_sizeVar.setHidden(True)
             self.size_var.setHidden(True)
             self.size_function.setHidden(True)
@@ -674,7 +675,7 @@ class ShowOnMapDialog(QDialog):
 
     def rotationStateChanged(self,s):
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.rbtn_rotationVar.setHidden(False)
             self.rotation_var.setHidden(False)
             self.rotation_function.setHidden(False)
@@ -686,7 +687,7 @@ class ShowOnMapDialog(QDialog):
             self.rotation_symbolMin.setHidden(False)
 
         else:
-            #print('unckecked')
+            dprint('unckecked')
             self.rbtn_rotationVar.setHidden(True)
             self.rotation_var.setHidden(True)
             self.rotation_function.setHidden(True)
@@ -847,22 +848,22 @@ class ShowOnMapDialog(QDialog):
         self.rotation_var.clear()
         self.rotation_par.clear()
         if self.rbtn_mDatap.isChecked():
-            #print('Measurement data')
+            dprint('Measurement data')
             self.type='m'
         elif self.rbtn_simData.isChecked():
             self.type='s'
         if self.rbtn_customers.isChecked():
-            #print('Customers')
+            dprint('Customers')
             self.feature='customer'
             vars=getResultVars(self.cur,self.config,self.feature,self.type)
             pars=getTableAttr(self.cur,self.config,self.feature)
-            #print(vars)
+            dprint(vars)
             self.displayRotationLayout()
             self.label_lineSegVis.setHidden(True)
             self.lineSegVis.setHidden(True)
             self.displaySizeLayout()
         elif self.rbtn_plants.isChecked():
-            #print('Energy plants')
+            dprint('Energy plants')
             self.feature='energy_plant'
             vars=getResultVars(self.cur,self.config,self.feature,self.type)
             pars=getTableAttr(self.cur,self.config,self.feature)
@@ -871,7 +872,7 @@ class ShowOnMapDialog(QDialog):
             self.lineSegVis.setHidden(True)
             self.displaySizeLayout()
         elif self.rbtn_lines.isChecked():
-            #print('Lines')
+            dprint('Lines')
             self.feature='line'
             vars=getResultVars(self.cur,self.config,self.feature,self.type)
             pars=getTableAttr(self.cur,self.config,self.feature)
@@ -1054,7 +1055,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         self.btn_deleteIDs.setEnabled(use_ids)
 
     def add_combo_items(self, combo, new_items):
-        #print('add combo:'+str(new_items))
+        dprint('add combo:'+str(new_items))
 
         # Add missing items
         for item in new_items:
@@ -1068,7 +1069,7 @@ class IDADistrictsPathReportsDialog(QDialog):
             #ids of another feature type are not valid any more
             self.listWidget_ids.clear()
         self._path_id=id
-        #print('on_group_path_clicked: '+str(id))
+        dprint('on_group_path_clicked: '+str(id))
         
         self.f_conn_bundle_type.clear()
         f_conn_types = getConnBundlesByType(self.cur,self.config,'customer' if id in (1,2,3) else 'energy_plant')
@@ -1078,29 +1079,29 @@ class IDADistrictsPathReportsDialog(QDialog):
             self.add_combo_items(self.f_conn_bundle_type,f_conn_types)
     
     def f_conn_bundle_type_changed(self,s):
-        #print('f_conn_bundle_type changed: '+str(s))
+        dprint('f_conn_bundle_type changed: '+str(s))
         if self.f_conn_bundle_type.currentText():
             self.f_conn_type.clear() 
             self.f_conn_type.addItems(getConnTypesByConnBundleType(self.cur,self.config,self.f_conn_bundle_type.currentText()))    
         
     def network_changed(self,s):
-        #print(s)
+        dprint(s)
         epids=getPlantIds(self.cur,self.config,network=s)
-        #print(epids)
+        dprint(epids)
         self.main_plant.clear()
         self.main_plant.addItems(epids)
 
     def main_plant_changed(self,s):
-        #print(s)
+        dprint(s)
         conn_types=getConnTypesByFeature(self.cur,self.config,'energy_plant',s)
-        #print(conn_types)
+        dprint(conn_types)
         self.conn_type.clear()
         self.conn_type.addItems(conn_types)
         
     def conn_type_changed(self,s):
-        #print(s)
+        dprint(s)
         sequences=getConnSequencesByConnType(self.cur,s)
-        #print(sequences)
+        dprint(sequences)
         self.sup_sequence.clear()
         self.sup_sequence.addItems(sequences)
         self.ret_sequence.clear()
@@ -1127,26 +1128,26 @@ class IDADistrictsPathReportsDialog(QDialog):
         self.process_running=False
         
     def showplot(self):
-        #print('show plot')
+        dprint('show plot')
         if self.dp_recalc.isChecked() and self.rbtn_pathPressure.isChecked():
-            #print(self.dp_min_recalc.text())
+            if debug_enabled(): dprint(self.dp_min_recalc.text())
             ddp=self.weak_point['sup_f'] - self.weak_point['ret_f']-Decimal(self.dp_min_recalc.text())*100000
         else:
             ddp=0
-        #print(ddp)
+        dprint(ddp)
 
-        #print(self.weak_point)
-        #print(self.line_data)
+        dprint(self.weak_point)
+        dprint(self.line_data)
         quantity_data_sup=[self.weak_point['sup_ep']-ddp]+[lid['var1']-ddp for lid in self.line_data]+[self.weak_point['sup_f']-ddp]
         quantity_data_ret=[self.weak_point['ret_ep']]+[lid['var2'] for lid in self.line_data]+[self.weak_point['ret_f']]
         height=[self.weak_point['height_ep']]+[lid['height_j'] for lid in self.line_data]+[self.weak_point['height_f']]
         
         if not self.geodetic_p.isChecked() and self.rbtn_pathPressure.isChecked():
             network_info=getNetworkInfo(self.cur,self.config,self.network.currentText())
-            #print(network_info)
+            dprint(network_info)
             estimator = MelinderFluidEstimator()
             res = estimator.solve_properties(network_info['liquid'], float(network_info['t_ref']), float(network_info['t_freeze']))
-            #print(res)
+            dprint(res)
             DENSITY=Decimal(res['density'])
             GRAVITY = Decimal('9.80665')         # g in m/s^2
 
@@ -1170,8 +1171,8 @@ class IDADistrictsPathReportsDialog(QDialog):
                 ret_corrected.append(p_ret + p_geodetic)
 
             # Output results
-            #print("Corrected Supply Pressure:", sup_corrected)
-            #print("Corrected Return Pressure:", ret_corrected)
+            dprint("Corrected Supply Pressure:", sup_corrected)
+            dprint("Corrected Return Pressure:", ret_corrected)
             quantity_data_sup=sup_corrected
             quantity_data_ret=ret_corrected
         
@@ -1180,10 +1181,10 @@ class IDADistrictsPathReportsDialog(QDialog):
             quantity_data_sup[:] = [x / 100000 for x in quantity_data_sup]
             quantity_data_ret[:] = [x / 100000 for x in quantity_data_ret]
         
-        #print(height)
-        #print(quantity_data_sup)
-        #print(quantity_data_ret)
-        #print(self.path)      
+        dprint(height)
+        dprint(quantity_data_sup)
+        dprint(quantity_data_ret)
+        dprint(self.path)      
         
         # 1. Convert only the Y Decimals to floats
         y_float = [float(quantity_data_ret[0]), float(quantity_data_sup[0])]

@@ -23,6 +23,7 @@ import math
 from scipy.optimize import fsolve,leastsq
 import psycopg2.extras
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
 
  
 def loadPipes(config,cur,dlg):
@@ -48,7 +49,7 @@ def solvePipeSize(z,dp,epsilon,rho,Re,mdot):
     
 def setEnergyColLines(cur,version,network,energy_columns,main_plant_id):
     """Update the number of customers and the peak power of each line, which are supplied by the main plant"""
-    #print(energy_columns)
+    dprint(energy_columns)
     sql='\n'.join(["""DO $$
 BEGIN
    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
@@ -58,7 +59,7 @@ BEGIN
       ALTER TABLE temp.lines ADD COLUMN "{}" numeric;
    END IF;
 END $$;""".format(i,i) for i in energy_columns+['no_customer']]) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     
     sql="""UPDATE temp.lines l 
@@ -74,7 +75,7 @@ END $$;""".format(i,i) for i in energy_columns+['no_customer']]) # nosec B608
             WHERE ST_dWithIn(sth_v.the_geom,c.geom,0.01) AND sth_v.id=di.end_vid AND edge>0 AND sth.id=di.edge AND sth.id=l.id
             GROUP BY lid) a
     WHERE a.lid=l.id;""".format(''.join([',\n        "{}"=a."{}"'.format(i,i) for i in energy_columns]),''.join(['sum(c."{}") AS "{}", '.format(i,i) for i in energy_columns]),network,main_plant_id,network) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)    
 
 def getPipeDiameter(cur,id):
@@ -88,7 +89,7 @@ class WorkerPipeSizing(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print(args)
+        dprint(args)
         self.signals=APISignals()
         self.cur=kwargs['cur']
         self.config=kwargs['config']
@@ -106,7 +107,7 @@ class WorkerPipeSizing(QRunnable):
     @pyqtSlot()
     def run(self):
         try:
-            #print('***Start Worker pipe sizing***')
+            dprint('***Start Worker pipe sizing***')
             self.signals.progress.emit(1)
             energy_columns=[self.dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(self.dlg.table_circuits.rowCount())]
             if self.dlg.rbtn_customers.isChecked():    
@@ -135,45 +136,45 @@ class WorkerPipeSizing(QRunnable):
                 except Exception:
                     pipe_boundary_dict[self.dlg.table_circuits.cellWidget(i,3).currentText()]=[[self.dlg.table_circuits.cellWidget(i,5).currentText(),abs(float(self.dlg.table_circuits.item(i,1).text())-float(self.dlg.table_circuits.item(i,4).text())),float(self.dlg.table_circuits.item(i,4).text())]]
             pipe_boundary_dict=dict(sorted(pipe_boundary_dict.items()))
-            #print(pipe_boundary_dict)
+            dprint(pipe_boundary_dict)
             
             for i in range(self.dlg.table_sequences.rowCount()):
                 #get checked pipes from list
                 dropDown=self.dlg.table_sequences.cellWidget(i,1)
                 pipes=[int(dropDown.itemText(i).split(':')[0].split('(')[0]) for i in range(dropDown.count()) if dropDown.itemText(i) != tr('@default','check_all_items') and dropDown.itemChecked(i)]
-                #print(pipes)
+                dprint(pipes)
                 seq_pipes_dict[int(self.dlg.table_sequences.item(i,0).text())]=[[id,getPipeDiameter(self.cur,id)] for id in pipes]
-            #print(seq_pipes_dict)
+            dprint(seq_pipes_dict)
             seq_pipes_dict = {
                 k: sorted(v, key=lambda x: x[1])
                 for k, v in seq_pipes_dict.items()
             }
-            #print(seq_pipes_dict)
+            dprint(seq_pipes_dict)
             
             self.signals.progress.emit(5)        
             for counter,line in enumerate(lines,1):
-                #print('line id: '+str(line['id']))
-                #print(line)
+                if debug_enabled(): dprint('line id: '+str(line['id']))
+                dprint(line)
                 pipe_bundle=[]
                 Re=100000
                 if self.dlg.checkBoxSimultaneity.isChecked() and line['no_customer']:
                         simulaneity=0.55*1.01**((float(line['no_customer'])-1)*-1)+0.45
                 else:
                     simulaneity=1
-                #print(simulaneity)
+                dprint(simulaneity)
                 zGuess = np.array([0.02,0.075,2])
 
                 i=1
                 for pipe_boundary in pipe_boundary_dict:
                     try:
-                        #print(pipe_boundary)
-                        #print([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
+                        dprint(pipe_boundary)
+                        if debug_enabled(): dprint([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
                         mdot_pipe=sum([simulaneity*float(line[i[0]])/(self.cp*i[1]) for i in pipe_boundary_dict[pipe_boundary]])
-                        #print(mdot_pipe)
+                        dprint(mdot_pipe)
 
                         if not self.kin_viscosity:
                             self.kin_viscosity=sum([1/((0.1*(273.15+i[2])**2-34.335*(273.15+i[2])+2472)*self.rho) for i in pipe_boundary_dict[pipe_boundary]])/len(pipe_boundary_dict[pipe_boundary])
-                            #print(self.kin_viscosity)
+                            dprint(self.kin_viscosity)
                         Re_old=0
                         while abs(Re-Re_old)>100:
                             z = fsolve(lambda zGuess: solvePipeSize(zGuess,self.dp,self.epsilon,self.rho,Re,mdot_pipe),zGuess) #z[0]--> f; z[1]--> di; z[2]--> vel 
@@ -181,7 +182,7 @@ class WorkerPipeSizing(QRunnable):
                             Re=z[2]*z[1]/self.kin_viscosity
                             zGuess = np.array([z[0],z[1],z[2]])
                             
-                        #print(z)
+                        dprint(z)
                         #take next bigger inner pipe diamater of DB (pipes)
                         pipe=[pipe for pipe in seq_pipes_dict[int(pipe_boundary)] if  pipe[1] > z[1]]
                         if pipe:
@@ -193,7 +194,7 @@ class WorkerPipeSizing(QRunnable):
                         i+=1
                     except Exception:
                         self.signals.error.emit("Load value is not set for line ID = {} and is therefore omitted in sizing process.".format(line['id']))
-                #print(pipe_bundle)  
+                dprint(pipe_bundle)  
                 
                 #check if pipe bundle type already exists in DB otherwise add to DB
                 bundle_type_id,new_pipe_bundles=addMissingPipeBundleType(self.cur,self.pipe_bundles,pipe_bundle,new_pipe_bundles)
@@ -204,7 +205,7 @@ class WorkerPipeSizing(QRunnable):
                 self.signals.progress.emit(int(5+counter/len(lines)*85))
                 
             self.signals.progress.emit(90)
-            #print(sql_lines)
+            dprint(sql_lines)
             if sql_lines:
                 self.cur.execute(sql_lines)
             
@@ -260,7 +261,7 @@ def checkPipeSizingInput(dlg):
     
 def startPipeSizing(config,dlg,plugin_dir):
     """Start pipe sizing"""
-    #print('Start pipe sizing')
+    dprint('Start pipe sizing')
     if not checkPipeSizingInput(dlg):
         return
     conn=dbConnect(config,True)
@@ -269,11 +270,11 @@ def startPipeSizing(config,dlg,plugin_dir):
         
         #get networks
         network=dlg.combo_network_models.currentText()                    
-        #print(network)
+        dprint(network)
         
         #get pipe bundle in DB
         pipe_bundles=getPipeBundleTypesDB(cur)
-        #print(pipe_bundles)
+        dprint(pipe_bundles)
         
         dp=dlg.dp.text()
         epsilon=dlg.epsilon.text()
@@ -312,7 +313,7 @@ CREATE TABLE temp.lines (
     including indexes
 );
 INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['versionName'],config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
 
         #remember sized network and mode for saving the results
@@ -356,7 +357,7 @@ def showLinesTempTable(version,config,plugin_dir):
     else:
         vlayer = QgsVectorLayer(uri.uri(False), tr('@default',vlayerName), "postgres")
     QgsProject.instance().addMapLayer(vlayer)  
-    #print(vlayerName[:-1] + '_types')
+    if debug_enabled(): dprint(vlayerName[:-1] + '_types')
     target_layer = QgsProject.instance().mapLayersByName(vlayerName[:-1] + '_types')
     if target_layer:
         target_layer=target_layer[0]
@@ -382,8 +383,8 @@ def showLinesTempTable(version,config,plugin_dir):
     categorized_renderer = QgsCategorizedSymbolRenderer()            
     categorized_renderer.setClassAttribute('type') 
     for category,id in zip(categories,ids):      
-        #print(vlayerName)
-        #print(vlayer)
+        dprint(vlayerName)
+        dprint(vlayer)
         symbol=QgsSymbol.defaultSymbol(vlayer.geometryType())
         symbol.setWidth(0.75) 
             
@@ -392,14 +393,14 @@ def showLinesTempTable(version,config,plugin_dir):
     vlayer.setRenderer(categorized_renderer)
     
 def addMissingPipeBundleType(cur,pipe_bundles,conn_type_pipes,new_pipe_bundles):
-    #print(pipe_bundles)
+    dprint(pipe_bundles)
     
-    #print([True for i in pipe_bundles if pipe_bundles[i]==conn_type_pipes])
+    if debug_enabled(): dprint([True for i in pipe_bundles if pipe_bundles[i]==conn_type_pipes])
     bundle_type_id=[i for i in pipe_bundles if pipe_bundles[i]==conn_type_pipes]
     if bundle_type_id:
         bundle_type_id=bundle_type_id[0]
     else:
-        #print('*****--*****Add bundle*****---****')
+        dprint('*****--*****Add bundle*****---****')
         bundle_type_id=getMaxId(cur,'pipe_bundle_types')+1
         bundle_pipes_max_id=getMaxId(cur,'bundle_pipes')+1
         pipe_bundles[bundle_type_id]=conn_type_pipes
@@ -414,13 +415,13 @@ def addMissingPipeBundleType(cur,pipe_bundles,conn_type_pipes,new_pipe_bundles):
             sql+="""INSERT INTO bundle_pipes (id,pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ({},{},{},{},{},{},{});\n""".format(# nosec B608
                 bundle_pipes_max_id,bundle_type_id,pipe[0],pipe[1],x,1,pipe[2]) # nosec B608
             bundle_pipes_max_id+=1
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
     return bundle_type_id, new_pipe_bundles
     
 def savePipeSizingResults(config,conn,dlg):
     """save pipe sizing results"""
-    #print('save pipe sizing results')
+    dprint('save pipe sizing results')
     cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
     
@@ -432,7 +433,7 @@ def savePipeSizingResults(config,conn,dlg):
         energy_columns=[dlg.table_circuits.cellWidget(i, 5).currentText() for i in range(dlg.table_circuits.rowCount())]+['no_customer']
         table_columns=getTableAttr(cur,config,'line')
         energy_columns = [col for col in energy_columns if col not in table_columns]
-        #print(energy_columns)
+        dprint(energy_columns)
         sql='\n'.join(["""DO $$
 BEGIN
    IF EXISTS (SELECT 1 FROM information_schema.columns 
@@ -442,7 +443,7 @@ BEGIN
       ALTER TABLE temp.lines DROP COLUMN "{}";
    END IF;
 END $$;""".format(i,i) for i in energy_columns]) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         #topology was regenerated for the sized network only -> replace only this network, keep all others
         saveTempTables(cur,config,[network])
@@ -476,7 +477,7 @@ END $$;""".format(i,i) for i in energy_columns]) # nosec B608
     
 def rejectPipeSizingResults(config,conn,dlg):
     """reject pipe sizing results"""
-    #print('reject pipe sizing results')
+    dprint('reject pipe sizing results')
     removeTempLayers()
     
     cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -486,7 +487,7 @@ def rejectPipeSizingResults(config,conn,dlg):
         layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
     
     #remove new pipe bundles from DB
-    #print(dlg.new_pipe_bundles)
+    dprint(dlg.new_pipe_bundles)
     sql=""
     for bundle_id in dlg.new_pipe_bundles:
         sql+="""DELETE FROM bundle_pipes WHERE pipe_bundle_type_id={};""".format(bundle_id) # nosec B608

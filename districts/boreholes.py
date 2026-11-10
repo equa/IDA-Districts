@@ -17,6 +17,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
 import numpy as np
+from .utility_functions.debug_log import dprint
 
 
 # ---------------------------
@@ -69,14 +70,14 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
 
     mir_points = [p for p in points if p['mir']]
     base_points = [p for p in points if not p['mir']]  # keep ALL original points
-    #print("BASE POINTS:", base_points)
-    #print("MIRROR POINTS:", mir_points)
+    dprint("BASE POINTS:", base_points)
+    dprint("MIRROR POINTS:", mir_points)
 
     # -------------------
     # CASE 0 MIR POINTS (Gravity Center Translation)
     # -------------------
     if len(mir_points) == 0:
-        #print('CASE 0 MIR POINTS')
+        dprint('CASE 0 MIR POINTS')
         if not base_points:
             return result
 
@@ -84,7 +85,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
         avg_x = sum(p['x'] for p in base_points) / len(base_points)
         avg_y = sum(p['y'] for p in base_points) / len(base_points)
         gravity_center = (avg_x, avg_y)
-        #print("Gravity Center:", gravity_center)
+        dprint("Gravity Center:", gravity_center)
 
         # Shift all points relative to the gravity center
         for p in base_points:
@@ -104,7 +105,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
     # CASE 2 MIR POINTS
     # -------------------
     if len(mir_points) == 2:
-        #print('CASE 2 MIR POINTS')
+        dprint('CASE 2 MIR POINTS')
 
         p1, p2 = mir_points
         a = (p1['x'], p1['y'])
@@ -147,7 +148,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
     # CASE 3 MIR POINTS
     # -------------------
     if len(mir_points) == 3:
-        #print('CASE 3 MIR POINTS')
+        dprint('CASE 3 MIR POINTS')
         p1, p2, p3 = mir_points
 
         # Vectors originating from the shared vertex p2 
@@ -161,7 +162,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
         # Exact angle from v1 to v2 COUNTER-CLOCKWISE
         ang_rad = (ang_v2 - ang_v1) % (2 * math.pi)
         ang = math.degrees(ang_rad)
-        #print("Counter-clockwise angle between edges:", ang)
+        dprint("Counter-clockwise angle between edges:", ang)
 
         center = (p2['x'], p2['y'])
 
@@ -179,7 +180,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
 
         # Using ang_v1 (angle of v1) as our virtual zero-line for counter-clockwise checks
         for p in base_points:
-            #print(p)
+            dprint(p)
             
             #check if point is on the center
             dx = p['x'] - center[0]
@@ -187,7 +188,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
             dist = math.hypot(dx, dy)
             
             if dist <= epsilon:
-                #print('keep (center vertex)')
+                dprint('keep (center vertex)')
                 result.append({
                     "id": p['id'],
                     "x": 0.0,
@@ -207,7 +208,7 @@ def getTransformedBoreholeInfo(cur,plant_id,config):
             # Check if the point falls inside the valid sector slice (0 to step)
             # Inclusive bounds with epsilon to keep points exactly on both border lines
             if (0 - epsilon) <= rel_ang <= (step + epsilon):
-                #print('keep')
+                dprint('keep')
                 # Project the point into the first quadrant via polar coordinates
                 dx = p['x'] - center[0]
                 dy = p['y'] - center[1]

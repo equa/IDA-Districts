@@ -13,11 +13,12 @@ from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
 
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from .utility_functions.debug_log import dprint, debug_enabled
 
 class CopySupervisoryControl:
     """ Copy supervisory control with resources and macros"""
     def __init__(self,dir,config,cur,submodel):
-        #print('copy supervisory control')
+        dprint('copy supervisory control')
         
         target_dir=dir+'\\versions\\'+config['versionName']+"\\network_"+str(submodel)
         source_dir=dir+'\\versions\\'+config['versionName']+'\\supervisory_control'
@@ -50,7 +51,7 @@ class Supervisory_control():
                 --if yes add to IDA files
            3) Open IDA file
            exclude_features: {'customers': [ids], 'energy_plants': [ids]} neglected features (see getSensorData)"""
-        #print('++++++++++++++Supervisory+++++++++++++++++++')
+        dprint('++++++++++++++Supervisory+++++++++++++++++++')
         self.config=config
         self.conn=dbConnect(self.config,True)
         if self.conn:
@@ -59,7 +60,7 @@ class Supervisory_control():
             dir=config['pathProjects']+config['projectName']+"\\versions\\"+config['versionName']+'\\'
             createDir(dir,'supervisory_control')
             dir+='supervisory_control'
-            #print(dir)
+            dprint(dir)
             
             #supervisory idm project file
             file=dir+"""\\supervisory_control.idm"""
@@ -72,18 +73,18 @@ class Supervisory_control():
             sensor_data_target=getSensorData(self.cur,self.config,target_types=[3],exclude_features=exclude_features)
 
             if update_sensors:
-                #print('--update_sensors--')
+                dprint('--update_sensors--')
                 #Get all removed sensor sources (table invoked_sensor_source_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
                 remove_sensor_source_ids=getRemovedSensorSourceData(self.cur,self.config,source_types=[3])
-                #print(remove_sensor_source_ids)
+                dprint(remove_sensor_source_ids)
                 if remove_sensor_source_ids:
                     sql="""DELETE FROM invoked_sensor_source_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_source_ids])) # nosec B608
-                    #print(sql)
+                    dprint(sql)
                     self.cur.execute(sql)
                     
                 #Get all new sensor sources (table invoked_sensor_source_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
                 add_sensor_source_idsValues=getAddedSensorSourceData(self.cur,self.config,source_types=[3])
-                #print(add_sensor_source_idsValues)
+                dprint(add_sensor_source_idsValues)
                 writeInvokedSensorSourceSignals(self.cur,self.config,add_sensor_source_idsValues)
                     
                 #Get all removed sensor targets (table $versionName$.invoked_sensor_target_signals in DB) with supervisory contrl and delete the IREF of the signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is removed in the sensor macro.
@@ -91,12 +92,12 @@ class Supervisory_control():
                 
                 if remove_sensor_target_ids:
                     sql="""DELETE FROM invoked_sensor_target_signals WHERE sensor_id IN ({});""".format(','.join([str(sensor['sensor_id']) for sensor in remove_sensor_target_ids])) # nosec B608
-                    #print(sql)
+                    dprint(sql)
                     self.cur.execute(sql)
                     
                 #Get all new sensor targets (table $versionName$.invoked_sensor_targets_signals in DB) with supervisory contrl and make a IREF of each signal in the supervisory control macro. Afterwards an Adder comp. (n_in=1) is inserted in the sensor macro with the signal.
                 add_sensor_target_idsValues=getAddedSensorTargetData(self.cur,self.config,target_types=[3])
-                #print(add_sensor_target_idsValues)
+                dprint(add_sensor_target_idsValues)
                 writeInvokedSensorTargetSignals(self.cur,self.config,add_sensor_target_idsValues)
             else:
                 remove_sensor_source_ids=[]
@@ -108,13 +109,13 @@ class Supervisory_control():
                     add_sensor_source_idsValues=getSensorData(self.cur,self.config,source_types=[3],exclude_features=exclude_features)
                     add_sensor_target_idsValues=getSensorData(self.cur,self.config,target_types=[3],exclude_features=exclude_features)
                 
-            #print('++++++Supervisory sensor data+++++++++')
-            #print(add_sensor_source_idsValues)
-            #print(add_sensor_target_idsValues)
-            #print(sensor_data_source)
-            #print(sensor_data_target)
-            #print([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
-            #print([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
+            dprint('++++++Supervisory sensor data+++++++++')
+            dprint(add_sensor_source_idsValues)
+            dprint(add_sensor_target_idsValues)
+            dprint(sensor_data_source)
+            dprint(sensor_data_target)
+            if debug_enabled(): dprint([k for i in add_sensor_source_idsValues for j in sensor_data_source if j['sensor_id']==i['sensor_id'] for k in j['irefs_source']])
+            if debug_enabled(): dprint([k for i in add_sensor_target_idsValues for j in sensor_data_target if j['sensor_id']==i['sensor_id'] for k in j['irefs_target']])
             
             #2)
             #supervisory idm project file
@@ -123,19 +124,19 @@ class Supervisory_control():
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)
                 lines_del=[]
-                #print(file_data)
+                dprint(file_data)
                 file_data=delSensorConnection(file_data,remove_sensor_source_ids,'Source')
                 file_data=delSensorConnection(file_data,remove_sensor_target_ids,'Target')
                 
                 #todo get number of old sensor source signals --> for component placement in .idc
                 sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=3;"""
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorSources=self.cur.fetchone()['count']
                 
                 #todo get number of old sensor target signals --> for component placement in .idc
                 sql="""SELECT count(templates) FROM invoked_sensor_source_signals WHERE type=3;"""
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql)
                 numberOf_oldSensorTargets=self.cur.fetchone()['count'] 
                 
@@ -262,7 +263,7 @@ class Supervisory_control():
 (LINE :AT ((21 108) (760 108))) """.format(getIDAVersion(config))
                 writeToFile(file_data,dir,file)
                 
-            #print(dir)
+            dprint(dir)
             createDir(dir,'Supervisory_control')
             dir+='\\Supervisory_control'
             
@@ -289,7 +290,7 @@ class Supervisory_control():
             #supervisory idc macro file
             file=dir+"""\\Supervisory_control.idc"""
             file_data=[]
-            #print('-----------------sensor-description-------------------')
+            dprint('-----------------sensor-description-------------------')
             #sensor_description=getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target)
             #print(sensor_description)
             if os.path.exists(file):

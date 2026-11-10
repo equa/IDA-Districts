@@ -4483,9 +4483,24 @@ li.checked::marker { content: "\2612"; }
             <translation type="unfinished">IDA-API-Verzögerung, s</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="133" />
-            <source>python_console_debug_mode</source>
-            <translation type="unfinished">Python-Konsole Debug-Modus</translation>
+            <location filename="../districts_settings_dialog.ui" line="124" />
+            <source>debug_mode</source>
+            <translation type="unfinished">Debug-Modus</translation>
+        </message>
+        <message>
+            <location filename="../districts_settings_dialog.ui" line="130" />
+            <source>debug_log_file</source>
+            <translation type="unfinished">Debug-Ausgaben in Logdatei schreiben</translation>
+        </message>
+        <message>
+            <location filename="../districts_settings_dialog.ui" line="137" />
+            <source>debug_also_python_console</source>
+            <translation type="unfinished">Zusätzlich in der Python-Konsole ausgeben</translation>
+        </message>
+        <message>
+            <location filename="../districts_settings_dialog.ui" line="153" />
+            <source>open_log_folder</source>
+            <translation type="unfinished">Log-Ordner öffnen</translation>
         </message>
         <message>
             <location filename="../districts_settings_dialog.ui" line="140" />

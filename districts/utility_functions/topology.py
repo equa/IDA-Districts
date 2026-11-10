@@ -8,6 +8,7 @@ from .translations import tr
 from .zeta import ensureConnectionZetaColumn
 from .utility import getTemplateNameById, getTypeIdByName, getTypeNameById
 from qgis.PyQt.QtWidgets import QMessageBox
+from .debug_log import dprint
 
 def saveTempTables(cur,config,networks=None):
     """Write temp tables to version schema. If networks is given, only the features of these networks are replaced and all other networks are kept."""
@@ -31,7 +32,7 @@ def saveTempTables(cur,config,networks=None):
     sql+="""SELECT setval('"{}".customers_id_seq', (SELECT MAX(id) FROM "{}".customers));""".format(config['versionName'],config['versionName']) # nosec B608
     sql+="""SELECT setval('"{}".energy_plants_id_seq', (SELECT MAX(id) FROM "{}".energy_plants));""".format(config['versionName'],config['versionName']) # nosec B608
 
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)  
     insertDBTriggers(cur,config)
     removeTempLayers()
@@ -72,7 +73,7 @@ UPDATE temp.{t} t SET id=m.new_id FROM id_map m WHERE t.id=m.old_id;\n""".format
 INSERT INTO "{v}".{t} ({c}) SELECT {c} FROM temp.{t} ORDER BY id;\n""".format(v=v,t=table,c=cols) # nosec B608
     for table in ['lines','customers','energy_plants','junctions']:
         sql+="""SELECT setval(pg_get_serial_sequence('"{v}".{t}','id'), (SELECT COALESCE(MAX(id),0)+1 FROM "{v}".{t}), false);\n""".format(v=v,t=table) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     insertDBTriggers(cur,config)
     removeTempLayers()
@@ -92,7 +93,7 @@ def getFeatureConnbundletypeSequences(id,config,cur,feature_type="customer"):
     FROM {}.{}s f, bundle_type_conns b_t_conns, {}_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND f.id={}
     ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature_type,feature_type,id) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -199,7 +200,7 @@ def checkNetwork(cur,version,networks):
     networkNullCount=cur.fetchone()['count']
     
     if networkNullCount>0:
-        #print('Network attribute not set!')
+        dprint('Network attribute not set!')
 
         dlg_question = QMessageBox()
         dlg_question.setWindowTitle('Network attribute value missing!')
@@ -210,11 +211,11 @@ def checkNetwork(cur,version,networks):
 
         if button == QMessageBox.StandardButton.Yes:
             sql="""UPDATE "{}".lines SET network=1 WHERE network IS NULL;""".format(version) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
             return True
         else:
-            #print("Cancel!")
+            dprint("Cancel!")
             return False
     return True
             
@@ -222,7 +223,7 @@ def getNetworkSequences(cur,config,network):
     sql="""SELECT COALESCE(max(bp.sequence),0) AS number_of
     FROM "{}".lines f, bundle_pipes bp
     WHERE f.network = {} AND f.pipe_bundle_type_id=bp.pipe_bundle_type_id;""".format(config['versionName'],network) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [str(i) for i in range(1,cur.fetchone()['number_of']+1)]
     
@@ -234,7 +235,7 @@ WITH sub AS(
 )
 INSERT INTO "{}".submodels (id,geom) 
     SELECT 1,ST_Multi(ST_Buffer(ST_SetSRID(ST_MakeBox2D(ST_Point(sub.x_min,sub.y_min),ST_Point(sub.x_max,sub.y_max)),{}),10)) FROM sub;""".format(config['versionName'],table,config['versionName'],srid) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     
 def updateSubmodels(cur,config):
@@ -249,36 +250,36 @@ UPDATE temp.lines l SET submodel = a.sm_id
     WHERE a.lid=l.id;
 UPDATE temp.lines l SET submodel = ARRAY[s_m.id] FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_dWithin(l.geom,s_m.geom,0.0001);
 UPDATE temp.lines SET submodel = ARRAY[1] WHERE submodel IS NULL;""".format(config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName'],config['versionName']) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
         
 def setSubnetwork(cur,config,redraw_submodels_polygons,srid):
     """set the submodel to 1 if not set otherwise"""
-    #print('Set submodel if no submodels')
+    dprint('Set submodel if no submodels')
     if redraw_submodels_polygons:
         
         #draw rectangle around all customers
         sql='TRUNCATE "{}".submodels CASCADE;'.format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
             
         redrawSubnetworkIncludingLines('"{}".lines'.format(config['versionName']),cur,config,srid)
         
         #junctions
         sql='UPDATE "{}".junctions SET submodel = 1;'.format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         #customers
         sql='UPDATE "{}".customers SET submodel = 1;'.format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         #energy_plants
         sql='UPDATE "{}".energy_plants SET submodel = 1;'.format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         #lines
         sql='UPDATE "{}".lines SET submodel = array[1];'.format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
 
 def updateJunctionHeights(cur,tolerance,network=None,junctions='temp.junctions',lines='temp.lines'):
@@ -346,7 +347,7 @@ def getConnTypesByFeature(cur,config,feature,id):
         FROM {}.{}s f, {}_templates f_t, bundle_type_conns b_t_conns
         WHERE f_t.template=f.template AND b_t_conns.conn_bundle_type_id=f_t.conn_bundle_type AND f.id={}
         ORDER BY b_t_conns.sequence;""".format(config['versionName'],feature,feature,id) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         return [str(i['conn_type_id']) for i in cur.fetchall()]
     else:
@@ -354,14 +355,14 @@ def getConnTypesByFeature(cur,config,feature,id):
     
 def getConnIdsByConnType(cur,conn_type):
     sql="""SELECT connection_id FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [str(i['connection_id']) for i in cur.fetchall()]
     
 def getConnSequencesByConnType(cur,conn_type):
     if conn_type:
         sql="""SELECT sequence FROM connection_type_connections WHERE connection_type_id={} ORDER BY sequence;""".format(conn_type) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         return [str(i['sequence']) for i in cur.fetchall()]
     else:
@@ -398,7 +399,7 @@ def getConnBundleByFeature(feature_type,feature_id,cur,config):
     sql="""SELECT c_t.conn_bundle_type 
     FROM "{}".{} f, {} c_t 
     WHERE f.id={} AND c_t.template=f.template;""".format(config['versionName'],feature_type+'s' if type(feature_type)==str else getTypeNameById(feature_type),getTemplateNameById(int(getTypeIdByName(feature_type))) if type(feature_type)==str else getTemplateNameById(feature_type),feature_id) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['conn_bundle_type']
 
@@ -407,7 +408,7 @@ def getConnBundlesByType(cur,config,type):
     FROM {}.{}s f, {}_templates f_t
     WHERE f.template=f_t.template
     GROUP BY f_t.conn_bundle_type;""".format(config['versionName'],type,type) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [str(i['conn_bundle_type']) for i in cur.fetchall()]
     
@@ -418,7 +419,7 @@ def getConnTypesByConnBundleType(cur,config,c_b_type):
     
 def getConnTypeSeqFromBundle(cur,config,c_b_type,conn_type):
     sql="""SELECT sequence FROM bundle_type_conns WHERE conn_bundle_type_id={} AND conn_type_id={};""".format(c_b_type,conn_type) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['sequence']
     
@@ -509,13 +510,13 @@ SELECT sequence
     FROM bundle_pipes bp,sub 
     WHERE bp.pipe_bundle_type_id=sub.pipe_bundle_type_id
     GROUP BY sequence ORDER BY sequence;""".format(config['versionName']) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [i['sequence'] for i in cur.fetchall()]
 
 def getConnBundleTypesByConnType(cur,config,conn_type_id):
     sql="""SELECT conn_bundle_type_id FROM bundle_type_conns WHERE conn_type_id={};""".format(conn_type_id) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
         
@@ -527,7 +528,7 @@ UNION
 SELECT 'energy_plant' AS type,t.template, t.template::text||'_'||t.template_name AS t_name, bt_conns.conn_bundle_type_id 
     FROM bundle_type_conns bt_conns, energy_plant_templates t 
     WHERE conn_type_id={} AND t.conn_bundle_type=bt_conns.conn_bundle_type_id""".format(conn_type_id,conn_type_id) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -538,7 +539,7 @@ SELECT 'customer' AS type,template, template::text||'_'||template_name AS t_name
 UNION
 SELECT 'energy_plant' AS type,template, template::text||'_'||template_name AS t_name, conn_bundle_type AS conn_bundle_type_id
     FROM energy_plant_templates WHERE conn_bundle_type={}""".format(conn_bundle_type_id,conn_bundle_type_id) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -585,12 +586,12 @@ def getPMT2muxIdentFromConnValues(connValues,conn_seq,conn_t_seq=1):
         
 def checkLineDirectionTopology(cur,version,tolerance,signals,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
-    #print('Check line direction')
+    dprint('Check line direction')
     sql="""SELECT st_v.id::integer AS epid 
         FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
         WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network)
         ORDER BY ep.id LIMIT 1;""".format(tolerance,network) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     epid=cur.fetchone()['epid']
     if reverseLinesTowardsPlant(cur,'temp.streets_help',epid,tolerance):
@@ -599,11 +600,11 @@ def checkLineDirectionTopology(cur,version,tolerance,signals,network):
 #todo pipe laying of network 
 def checkLineDirectionPipeLaying(cur,version,tolerance,network):
     """Change the line direction if the end point is closer to the main plant. Important for modelleing and temperature wave visualization. """ 
-    #print('Check line direction')
+    dprint('Check line direction')
     sql="""SELECT st_v.id::integer AS v_ep 
     FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v 
     WHERE ST_dWithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network) ORDER BY ep.id LIMIT 1;""".format(tolerance,network) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     epid=cur.fetchone()['v_ep']
     reverseLinesTowardsPlant(cur,'temp.lines',epid,tolerance)

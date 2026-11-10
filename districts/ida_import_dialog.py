@@ -15,6 +15,7 @@ from .utility_functions.translations import tr
 from .utility_functions.utility import refreshMap
 
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
 
 class ComboBox(QComboBox):
     popupAboutToBeShown = QtCore.pyqtSignal()
@@ -35,8 +36,8 @@ class PipeBundleEditor(QDialog):
         self.mappedAttributes={}
         self.activeTable={'general':False,'construction':False }
         
-        #print(layer)
-        #print(layer_attributes)
+        dprint(layer)
+        dprint(layer_attributes)
         
         self.setWindowTitle(tr('@default','pipe_bundle_editor'))
         myBoldFont=QtGui.QFont('Arial', 12)
@@ -127,15 +128,15 @@ class PipeBundleEditor(QDialog):
             table=self.tableWidget_pipe
         table_index=table.currentRow()
         try:
-            #print(table_index)
+            dprint(table_index)
             seq_constr=table.item(table_index,0).text()
-            #print(seq_constr)
+            dprint(seq_constr)
             material=table.cellWidget(table_index, 1).currentText()
-            #print(material)
+            dprint(material)
             thickness=table.item(table_index,2).text()
-            #print(thickness)
+            dprint(thickness)
             self.mappedAttributes['layer_constr'][seq_constr]=[material, thickness]
-            #print(self.mappedAttributes)
+            dprint(self.mappedAttributes)
         except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
@@ -144,7 +145,7 @@ class PipeBundleEditor(QDialog):
             )
         
     def setActiveTable(self,s):
-        #print(s)
+        dprint(s)
         if s=='general':
             self.activeTable['general']=True
             self.activeTable['pipe']=False
@@ -172,7 +173,7 @@ class PipeBundleEditor(QDialog):
 
     def updateSequences(self,sequences):
         """Updates the number of rows in Tabale self.tableWidget_pipe"""
-        #print(sequences)
+        dprint(sequences)
         if sequences.isdigit():
             self.tableWidget_pipe.setRowCount(0)
             for i in range(0,int(sequences)):
@@ -190,7 +191,7 @@ class PipeBundleEditor(QDialog):
 
 
     def mapAttributesDoubleClick(self,s):
-        #print(s.text())
+        if debug_enabled(): dprint(s.text())
         if self.activeTable['general']:
             table=self.tableWidget
         else:
@@ -327,7 +328,7 @@ def loadLayers(dlg,type):
     dlg.selectLayer.addItems(layers)
     
 def addExpressionToMappedAttributes(dlg,dropdown):
-    #print('---------------------')
+    dprint('---------------------')
     
     currentRow=dlg.tableWidget.currentRow()
     if currentRow!=-1:
@@ -337,7 +338,7 @@ def addExpressionToMappedAttributes(dlg,dropdown):
             expression=dlg.tableWidget.item(currentRow, 0).text()
         attribute=dlg.tableWidget.item(currentRow, 2).text()
         dlg.mappedAttributes[attribute]=expression
-        #print(dlg.mappedAttributes)
+        dprint(dlg.mappedAttributes)
 
 def setDHCLayerListAttributes(dlg,type):
     """Sets the layer attributes"""
@@ -349,7 +350,7 @@ def setDHCLayerListAttributes(dlg,type):
         else:
             layer_name='customers'
     layer=QgsProject.instance().mapLayersByName(tr('@default',layer_name))
-    #print(layer)
+    dprint(layer)
     if layer:
         layer=layer[0]
         attributes=layer.fields()
@@ -361,18 +362,18 @@ def setDHCLayerListAttributes(dlg,type):
     
 def disconnectAttributes(dlg):
     """Disconnect the attributes from layer to layer"""
-    #print("Disconnect the attributes from layer to layer")
+    dprint("Disconnect the attributes from layer to layer")
     row=dlg.tableWidget.currentRow()
     if row!=-1:
-        #print(row)
+        dprint(row)
         attribute=dlg.tableWidget.item(row,2).text()
-        #print(attribute)
+        dprint(attribute)
         dlg.mappedAttributes[attribute]=''
         dlg.tableWidget.removeRow(row)
 
 def mapAttributes(dlg):
     """Map the attributes from layer to layer"""
-    #print("Map the attributes from layer to layer")
+    dprint("Map the attributes from layer to layer")
     currentLayerAttribute=dlg.listWidget_layerAttributes.currentItem()
     currentLayer_attribute=dlg.listWidget_attributes.currentItem()
     if currentLayerAttribute:
@@ -399,7 +400,7 @@ def mapAttributes(dlg):
         dlg.tableWidget.setItem(rowPosition,2,item)
     else:            
         iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=MessageInfo)  
-    #print(dlg.mappedAttributes)
+    dprint(dlg.mappedAttributes)
                
 class ImportPointLayer(QDialog):
     def __init__(self,config,plugin_dir):     
@@ -530,7 +531,7 @@ class ImportOSMDlg(QtWidgets.QDialog):
         self.progress.setValue(progress)
 
     def update_finished(self,feature,main_dlg):
-        #print(feature)
+        dprint(feature)
         refreshMap()
         for layer_name in feature.split(' and '):
             zoomToLayer(tr('@default',layer_name))
@@ -585,7 +586,7 @@ class ImportGeoDataDlg(QDialog):
         self.progress.setValue(progress)
 
     def update_finished(self,feature,main_dlg):
-        #print(feature)
+        dprint(feature)
         refreshMap()
         if feature in ('customers','streets'):
             zoomToLayer(tr('@default',feature))

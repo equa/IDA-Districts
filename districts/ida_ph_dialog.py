@@ -9,6 +9,7 @@ from .utility_functions.compat import MessageCritical
 from .utility_functions.dialog import checkState, uncheckState
 from .utility_functions.translations import tr
 from .utility_functions.utility import get_districts_plugin_dir, standardizePath
+from .utility_functions.debug_log import dprint
 
 
 class IDA_Districts_NameDialog(QDialog):
@@ -18,7 +19,7 @@ class IDA_Districts_NameDialog(QDialog):
         self.setWindowTitle(title)     
         
         #label
-        #print(label_text)
+        dprint(label_text)
         layout_label = QVBoxLayout() 
         label =QLabel(label_text)
         layout_label.addWidget(label)

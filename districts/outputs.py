@@ -24,10 +24,11 @@ from .utility_functions.workers import closesOwnConnection, APISignals
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
 
 def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_sensor_info,network):
-    #print('--writeMacroResultsIdm--')
-    #print(added_sensor_info)
+    dprint('--writeMacroResultsIdm--')
+    dprint(added_sensor_info)
     filedata=[""";IDA {} Data UTF-8
 (DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n""".format(getIDAVersion(config),getIDADistrictsVersion(config))]
 
@@ -293,7 +294,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 
     #----------system-----------
     #heat balance
-    #print(added_sensor_info['heatbalance_system'])
+    if debug_enabled(): dprint(added_sensor_info['heatbalance_system'])
     used_templates=[i['template_name'] for i in getUsedFeatureTemplates(cur,config,network=network)]
     if requestedOutputs['heatbalance_system']:
         filedata.append("""(OUTPUT-FILE :N "heatbalance_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
@@ -309,7 +310,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         filedata.append("""(OUTPUT-FILE :N "massbalance_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
         for i in added_sensor_info['massbalance_system']:
             if i['template_name'] in used_templates:
-                #print(i)
+                dprint(i)
                 name= 'mdotb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
                 filedata.append("""((MODEL :N "{}" :T |Gain|)
  (:VAR :N |y_var| :L "massbalance_outputfile" :AS "{}"))\n""".format(name,i['template_name']))
@@ -524,9 +525,9 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
     writeToFileFromList(filedata,dir,dir+'\\Results-macro_{}.idc'.format(network))
 
 def addRequestedOutputsSensors(cur,config,requestedOutputs):
-    #print('--addRequestedOutputsSensors--')
+    dprint('--addRequestedOutputsSensors--')
     loadedSensorData=getStoredSensorTableValues(cur)
-    #print(loadedSensorData)
+    dprint(loadedSensorData)
     if loadedSensorData:
         sensor_data=loadedSensorData.copy()
     else:
@@ -632,8 +633,8 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
             sensor_data[max_sensor_id]={'source' : {'type' : 1,'templates' : {template : True},'conn_types' : {i : True for i in connTypes},'conns' : {},'measure' : 4,'function' : 4,'test_value' : 1,'description' : ''}, 
                     'target': {'type' : 4,'templates' : {},'description' : ''}}
             sensor_info.append({'id': max_sensor_id, 'type': 1, 'template': template,'template_name':getTemplateNameByTemplateId(cur,template,'customer')})
-        #print('--------')
-        #print(sensor_info)
+        dprint('--------')
+        dprint(sensor_info)
         added_sensor_info['heatbalance_system']=sensor_info
     #Mass balance
     if requestedOutputs['massbalance_system']:
@@ -654,8 +655,8 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
             sensor_data[max_sensor_id]={'source' : {'type' : 1,'templates' : {template : True},'conn_types' : {i : True for i in connTypes},'conns' : {i : True for i in conns_sup},'measure' : 3,'function' : 4,'test_value' : 1,'description' : ''}, 
                     'target': {'type' : 4,'templates' : {},'description' : ''}}
             sensor_info.append({'id': max_sensor_id, 'type': 1, 'template': template,'template_name':getTemplateNameByTemplateId(cur,template,'customer')})
-        #print('--------')
-        #print(sensor_info)
+        dprint('--------')
+        dprint(sensor_info)
         added_sensor_info['massbalance_system']=sensor_info
         
     #KPI`s
@@ -674,10 +675,10 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
         added_sensor_info['qsup_ep']=max_sensor_id
 
         
-    #print(added_sensor_info)
-    #print(sensor_data)
+    dprint(added_sensor_info)
+    dprint(sensor_data)
     writeSensorsToDB(cur,config,sensorData=sensor_data,loadedSensorData=loadedSensorData)
-    #print('--finished addRequestedOutputsSensors--')
+    dprint('--finished addRequestedOutputsSensors--')
     return added_sensor_info
 
 class WorkerSetRequestedOutputs(QRunnable):      
@@ -1038,8 +1039,8 @@ class WorkerSetRequestedOutputs(QRunnable):
         self.requestedOutputs['dt_outputs']=str(self.dlg.outputTimestep.value())
             
         writeRequestedOutputs(self.config,self.requestedOutputs)
-        #print(self.requestedOutputs)
-        #print(self.dlg.requestedOutputs_old)
+        dprint(self.requestedOutputs)
+        dprint(self.dlg.requestedOutputs_old)
 
         #check difference between new and old requested outputs
         outputs_c={}
@@ -1047,7 +1048,7 @@ class WorkerSetRequestedOutputs(QRunnable):
         new_outputTimestep=False
         for out in self.requestedOutputs:
             if self.requestedOutputs[out]!=self.dlg.requestedOutputs_old[out]:
-                #print('missmatch')
+                dprint('missmatch')
                 if '_c' == out[-2:]:
                     outputs_c[out]=self.requestedOutputs[out]
                 if '_ep' == out[-3:]:
@@ -1055,8 +1056,8 @@ class WorkerSetRequestedOutputs(QRunnable):
                 if 'dt_outputs'==out:
                     new_outputTimestep=self.requestedOutputs[out]
                     
-        #print(outputs_c)
-        #print(outputs_ep)
+        dprint(outputs_c)
+        dprint(outputs_ep)
         self.signals.progress.emit(5)
         both_featureType_update=(outputs_c or new_outputTimestep) and (outputs_ep or new_outputTimestep)
         if outputs_c or new_outputTimestep:
@@ -1070,26 +1071,26 @@ class WorkerSetRequestedOutputs(QRunnable):
         t_names=getTemplateNames(self.cur,feature,seperator='_')
         for counter,t_name in enumerate(t_names):
             try:
-                #print(t_name)
+                dprint(t_name)
                 templ=t_name.split('_')[0]
                 if new_outputTimestep:
-                    #print('----update timestep for outputs----')
+                    dprint('----update timestep for outputs----')
                     fname=dir+t_name+'.idm'
-                    #print(fname)
+                    dprint(fname)
                     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
                     data_idm=[]
                     output_step=False
                     for comp in components_idm:
                         new_comp=[]
                         if getCompClass(comp)=='SIMULATION_DATA':
-                            #print('++++++++simulation data+++++++')
+                            dprint('++++++++simulation data+++++++')
                             for i in comp:
                                 if getCompName(i)=='CALCULATION-PHASE':
                                     i_new=[]
-                                    #print('++++++++CALCULATION-PHASE+++++++')
+                                    dprint('++++++++CALCULATION-PHASE+++++++')
                                     for j in i:
                                         if getCompName(j)=='OUTPUT-STEP':
-                                            #print('++++++++OUTPUT-STEP+++++++')
+                                            dprint('++++++++OUTPUT-STEP+++++++')
                                             output_step=True
                                             j[':V']=new_outputTimestep
                                         i_new.append(j)
@@ -1101,33 +1102,33 @@ class WorkerSetRequestedOutputs(QRunnable):
                             data_idm.append(new_comp)              
                         else:
                             data_idm.append(comp) 
-                    #print(data_idm)        
+                    dprint(data_idm)        
                     writePropertyListIDMToFile(data_idm,dir+t_name,fname,self.config)
-                #print('----update outputs----')
+                dprint('----update outputs----')
 
                 if outputs:
                     fname=dir+t_name+'\\'+t_name+'.idm'
-                    #print(fname)
+                    dprint(fname)
                     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
                     data_idm=[]
                     conn_bundle_type_id=getConnBundleByTemplate(feature,templ,self.cur,self.config)
                     connValues=getConnsValues(conn_bundle_type_id,self.cur)
-                    #print(connValues)
+                    dprint(connValues)
                     conn_type_seq=set([x['conn_type_seq'] for x in connValues])
-                    #print(conn_type_seq)
+                    dprint(conn_type_seq)
                     flowmeters=['"'+str(conn_bundle_type_id)+'_'+str(seq)+'_Flowmeter2"' for seq in conn_type_seq]
-                    #print(flowmeters)   
+                    dprint(flowmeters)   
                     pmtmuxs={'"PMT2mux_{}_{}_{}_{}"'.format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq']) : {'seq':seq,'conn_bundle_type_id':value['conn_bundle_type_id'],'conn_seq':value['conn_seq']} for seq in conn_type_seq for value in connValues if seq==value['conn_type_seq']}
-                    #print(pmtmuxs)            
+                    dprint(pmtmuxs)            
                     for comp in components_idm:
-                        #print(getCompName(comp))
+                        if debug_enabled(): dprint(getCompName(comp))
                         if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|','FLOWMETER2','PMT2\\m\\u\\x'] or getCompClass(comp) in 'OUTPUT-FILE':
                             if not isinstance(comp, list):
                                 comp=[comp]
                             new_comp=[]
                             if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'troom_c' in [i for i in outputs if outputs[i]]:
-                                #print('---add tair output----')
-                                #print(comp)
+                                dprint('---add tair output----')
+                                dprint(comp)
                                 new_comp=[]
                                 outputs_to_set=['|TRoom|']
                                 for i in comp:
@@ -1142,8 +1143,8 @@ class WorkerSetRequestedOutputs(QRunnable):
                                 comp=new_comp
                                 data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TRoom"', ':T': 'OUTPUT-FILE'}])
                             if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if outputs[i]]:
-                                #print('---add heatbalance output----')
-                                #print(comp)
+                                dprint('---add heatbalance output----')
+                                dprint(comp)
                                 new_comp=[]
                                 outputs_to_set={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRoomUnit|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                                 for i in comp:
@@ -1159,7 +1160,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                 comp=new_comp
                                 data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Heatbalance"', ':T': 'OUTPUT-FILE'}])
                             if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if not outputs[i]]:
-                                #print('---remove heatbalance_c output----')
+                                dprint('---remove heatbalance_c output----')
                                 outputs_to_del={'|PhiSolar|':'Solar','|Occupancy|':'Occupancy','|Electricity|':'Electricty','|PhiInt|':'Gains','|PhiRoomUnit|':'Heating','|PhiOut|':'Transmission','|PhiLeakage|': 'Leakage','|PhiVent|':'Ventilation'}
                                 new_comp=[]
                                 for i in comp:
@@ -1178,7 +1179,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         new_comp.append(i)
                                 comp=new_comp
                             if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'troom_c' in [i for i in outputs if not outputs[i]]:
-                                #print('---remove tair output----')
+                                dprint('---remove tair output----')
                                 new_comp=[]
                                 for i in comp:
                                     if getCompName(i)=='|TRoom|':
@@ -1195,32 +1196,32 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         new_comp.append(i)
                                 comp=new_comp
                             if getCompName(comp) in pmtmuxs:
-                                #print('-------pmtmux-----')
-                                #print(comp)
+                                dprint('-------pmtmux-----')
+                                dprint(comp)
                                 new_comp=[]
                                 outputs_to_set=[]
                                 outputs_to_del=[]
                                 if 'p_c' in [i for i in outputs if outputs[i]] or 'p_ep' in [i for i in outputs if outputs[i]]:
                                     outputs_to_set.append('|P_var|')
-                                #print(outputs_to_set)
+                                dprint(outputs_to_set)
                                 if 'p_c' in [i for i in outputs if not outputs[i]] or 'p_ep' in [i for i in outputs if not outputs[i]]:
                                     outputs_to_del.append('|P_var|')
-                                #print(outputs_to_del)
+                                dprint(outputs_to_del)
                                 if outputs_to_set and not getCompPerName(data_idm,'"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq'])):
                                     data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq']), ':T': 'OUTPUT-FILE'}])
                                 if outputs_to_set or outputs_to_del:
                                     for i in comp:
                                         if getCompName(i)=='|P_var|' and '|P_var|' in outputs_to_set:
-                                            #print('++++add p+++++')
+                                            dprint('++++add p+++++')
                                             i[':L']='"Connection type sequence_{}"'.format(pmtmuxs[getCompName(comp)]['seq'])
                                             i[':AS']='"p_{}"'.format(pmtmuxs[getCompName(comp)]['conn_seq'])
                                             new_comp.append(i)
                                             outputs_to_set.remove('|P_var|')
                                         else:
-                                            #print('***rest***')
-                                            #print(getCompName(comp))
+                                            dprint('***rest***')
+                                            if debug_enabled(): dprint(getCompName(comp))
                                             if getCompName(i)=='|P_var|' and '|P_var|' in outputs_to_del:
-                                                #print('del :L and :AS')
+                                                dprint('del :L and :AS')
                                                 new_comp.append({j:i[j] for j in i if j not in [':L',':AS']})
                                             else:
                                                 new_comp.append(i)
@@ -1229,8 +1230,8 @@ class WorkerSetRequestedOutputs(QRunnable):
                                     comp=new_comp
                                 
                             if getCompName(comp) in flowmeters:
-                                #print('-------flow meter-----')
-                                #print(comp)
+                                dprint('-------flow meter-----')
+                                dprint(comp)
                                 new_comp=[]
                                 n_sup=1
                                 n_ret=1
@@ -1244,7 +1245,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                 if 'mdot_c' in [i for i in outputs if outputs[i]] or 'mdot_ep' in [i for i in outputs if outputs[i]]:
                                     outputs_to_set.append('FLOW_SUP')
                                     outputs_to_set.append('FLOW_RET')
-                                #print(outputs_to_set)
+                                dprint(outputs_to_set)
                                 if outputs_to_set and not getCompPerName(data_idm,'"Connection type sequence_{}"'.format(conn_type_seq)):
                                     data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"Connection type sequence_{}"'.format(conn_type_seq), ':T': 'OUTPUT-FILE'}])
                                 outputs_to_del=[]
@@ -1256,46 +1257,46 @@ class WorkerSetRequestedOutputs(QRunnable):
                                 if 'mdot_c' in [i for i in outputs if not outputs[i]] or 'mdot_ep' in [i for i in outputs if not outputs[i]]:
                                     outputs_to_del.append('FLOW_SUP')
                                     outputs_to_del.append('FLOW_RET')
-                                #print(outputs_to_del)
+                                dprint(outputs_to_del)
                                 if outputs_to_set or outputs_to_del:
                                     sup_conn=[connValue['conn_seq'] for connValue in connValues if connValue['type']==1]
                                     ret_conn=[connValue['conn_seq'] for connValue in connValues if connValue['type']==2]
                                     for i in comp: 
                                         if getCompName(i)=='P' and 'P' in outputs_to_set:
-                                            #print('++++add power+++++')
+                                            dprint('++++add power+++++')
                                             i[':L']='"Connection type sequence_{}"'.format(conn_type_seq)
                                             i[':AS']='"power"'
                                             new_comp.append(i)
                                             outputs_to_set.remove('P')
                                         elif getCompName(i)=='FLOW_SUP' and 'FLOW_SUP' in outputs_to_set:
-                                            #print('++++add flow sup+++++')
+                                            dprint('++++add flow sup+++++')
                                             i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(sup_conn,1)]))
                                             i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1])+')' for i in enumerate(sup_conn,1)]))
                                             new_comp.append(i)
                                             outputs_to_set.remove('FLOW_SUP')
                                         elif getCompName(i)=='FLOW_RET' and 'FLOW_RET' in outputs_to_set:
-                                            #print('++++add flow ret+++++')
+                                            dprint('++++add flow ret+++++')
                                             i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(ret_conn,1)]))
                                             i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"mdot_{}"'.format(i[1])+')' for i in enumerate(ret_conn,1)]))
                                             new_comp.append(i)
                                             outputs_to_set.remove('FLOW_RET')
                                         elif getCompName(i)=='TSUP' and 'TSUP' in outputs_to_set:
-                                            #print('++++add T sup+++++')
+                                            dprint('++++add T sup+++++')
                                             i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(sup_conn,1)]))
                                             i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1])+')' for i in enumerate(sup_conn,1)]))
                                             new_comp.append(i)
                                             outputs_to_set.remove('TSUP')
                                         elif getCompName(i)=='TRET' and 'TRET' in outputs_to_set:
-                                            #print('++++add T ret+++++')
+                                            dprint('++++add T ret+++++')
                                             i[':L']="""#S(MS-SPARSE DEFAULT-VALUE OFF DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"Connection type sequence_{}"'.format(conn_type_seq)+')' for i in enumerate(ret_conn,1)]))
                                             i[':AS']="""#S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}))""".format(' '.join(['('+str(i[0])+ ' . '+'"temp_{}"'.format(i[1])+')' for i in enumerate(ret_conn,1)]))
                                             new_comp.append(i)
                                             outputs_to_set.remove('TRET')
                                         else:
-                                            #print('***rest***')
-                                            #print(getCompName(i))
+                                            dprint('***rest***')
+                                            if debug_enabled(): dprint(getCompName(i))
                                             if getCompName(i) in outputs_to_del:
-                                                #print('del :L and :AS')
+                                                dprint('del :L and :AS')
                                                 new_comp.append({j:i[j] for j in i if j not in [':L',':AS']})
                                             else:
                                                 new_comp.append(i)
@@ -1306,7 +1307,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                 if (getCompName(comp)=='"TRoom"' and 'troom_c' in [i for i in outputs if not outputs[i]] or
                                     getCompName(comp)=='"Heatbalance"' and 'heatbalance_c' in [i for i in outputs if not outputs[i]] or
                                     "Connection type sequence_" in getCompName(comp) and not [True for i in self.requestedOutputs if i in ['power_c','temp_c','p_c','mdot_c'] and self.requestedOutputs[i]]):
-                                    #print('++++not outputfile++++')
+                                    dprint('++++not outputfile++++')
                                     pass
                                 else:
                                     data_idm.append(comp)

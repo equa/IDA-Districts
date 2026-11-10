@@ -14,10 +14,11 @@ from .utility import get_districts_plugin_dir
 
 import copy
 import traceback
+from .debug_log import dprint, debug_enabled
 
 def checkIDADistrictsInstallation(config):
     if not os.path.exists(f"{config['pathDistricts']}bin\\ida-districts.exe"):
-        #print('--IDA Districts does not exists--')
+        dprint('--IDA Districts does not exists--')
         dialog=IDADistrictsPleaseContactDialog()
         # Wait for user response
         result = dialog.exec()
@@ -235,9 +236,9 @@ def load_image(path,label,scale=False,size=False):
     pixmap = QPixmap(path)
 
     if pixmap.isNull():
-        #print("Image failed to load")
+        dprint("Image failed to load")
         return
-    #print(pixmap.size())
+    if debug_enabled(): dprint(pixmap.size())
     
         
     if scale:
@@ -271,20 +272,20 @@ def addParmTableRow(dlg,cur,config):
     dlg.tableWidget_parameters.setItem(0 , 6, QTableWidgetItem(''))        
   
 def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
-    #print('copyTableRow')
-    #print(row_idx)
+    dprint('copyTableRow')
+    dprint(row_idx)
     if row_idx!=-1: 
         maxId=getMaxTableId(dlg.tableWidget)
         addTableRowTrace(dlg,dropdowns,True,[],cur)
-        #print('row added')
+        dprint('row added')
         for col in range(dlg.tableWidget.columnCount())[1:]:
             if dlg.tableWidget.item(row_idx+1,col):
-                #print(dlg.tableWidget.item(row_idx+1,col).text())
+                if debug_enabled(): dprint(dlg.tableWidget.item(row_idx+1,col).text())
                 dlg.tableWidget.setItem(0,col,QTableWidgetItem(dlg.tableWidget.item(row_idx+1,col).text()))
             else:
                 dlg.tableWidget.cellWidget(0, col).setCurrentText(dlg.tableWidget.cellWidget(row_idx+1,col).currentText())
         if openFn:
-            #print(openFnArg)
+            dprint(openFnArg)
             id=dlg.tableWidget.item(row_idx+1,0).text()
             table=openFnArg[0]
             columns=openFnArg[1]
@@ -295,7 +296,7 @@ def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
         SELECT max(id) AS max_id FROM public.{}
     )
     SELECT ROW_NUMBER() OVER (ORDER BY {}) + max_id AS row_number,{},{} FROM public.{},sub {} {} ;""".format(table,filter.split('WHERE ')[1].split('=')[0].strip(),','.join(i for i in columns),table,columns[0],str(maxId+1),','.join(i for i in columns),table,filter,orderby) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
     else:
         iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
@@ -304,7 +305,7 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
     """Insert table row"""
     rowPosition = 0
     traceTableValues=copy.deepcopy(dlg.traceTableValues)
-    #print('-------insert row---------------')
+    dprint('-------insert row---------------')
     # no itemChanged/currentTextChanged while the row is built: its trace values are added at the end
     dlg.tableWidget.blockSignals(True)
     dlg.tableWidget.insertRow(rowPosition)
@@ -330,41 +331,41 @@ def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
 
     #add row to dlg.traceTableValues in order to trace the changed values
     if trace:
-        #print('----------trace-------'+str(trace))
+        dprint('----------trace-------'+str(trace))
         for row in reversed(sorted(traceTableValues)):
-            #print(row)
-            #print(traceTableValues[row])
+            dprint(row)
+            if debug_enabled(): dprint(traceTableValues[row])
             dlg.traceTableValues[row+1]=traceTableValues[row]
         try:
-            #print('--add trace values of row 0--')
+            dprint('--add trace values of row 0--')
             if trace=='building_template':
                 dlg.traceTableValues[0]={i: ['',str(getMaxTableId(dlg.tableWidget)) if i==0 else ''] for i in range(dlg.tableWidget.columnCount())}            
             elif trace in ['conn_type_trace','bt_conns_trace']:
-                #print('conn_type_trace or bt_conns_trace')
-                #print(dlg.tableWidget.item(0,0).text())
-                #print(dlg.tableWidget.cellWidget(0,1).currentText())
+                dprint('conn_type_trace or bt_conns_trace')
+                if debug_enabled(): dprint(dlg.tableWidget.item(0,0).text())
+                if debug_enabled(): dprint(dlg.tableWidget.cellWidget(0,1).currentText())
                 dlg.traceTableValues[0]= ['',dlg.tableWidget.item(0,0).text(),'',dlg.tableWidget.cellWidget(0,1).currentText().split(':')[0]]
             elif trace:                   
-                #print(dlg.tableWidget.item(0,1))
-                #print(dlg.tableWidget.item(0,1).text())
-                #print(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
+                if debug_enabled(): dprint(dlg.tableWidget.item(0,1))
+                if debug_enabled(): dprint(dlg.tableWidget.item(0,1).text())
+                if debug_enabled(): dprint(dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text())
                 if dlg.tableWidget.cellWidget(0,2):
                     dlg.traceTableValues[0]=['',dlg.tableWidget.item(0,0).text()+'_'+dlg.tableWidget.item(0,1).text(),'',dlg.tableWidget.cellWidget(0,2).currentText().split(':')[0]]
-            #print(dlg.traceTableValues)
-            #print('--finished trace values of row 0--')
+            dprint(dlg.traceTableValues)
+            dprint('--finished trace values of row 0--')
         except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
                 MessageCritical
             )
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
 
 def deleteTableRowTrace (dlg,trace):
     """ Delete selected template and refresh table"""
-    #print('delete row')
+    dprint('delete row')
     row_index=dlg.tableWidget.currentRow()
-    #print(row_index)
+    dprint(row_index)
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
@@ -376,13 +377,13 @@ def deleteTableRowTrace (dlg,trace):
             if row>row_index:
                 dlg.traceTableValues[row-1]=dlg.traceTableValues[row]
         dlg.traceTableValues.pop(len(dlg.traceTableValues)-1,None)
-        #print(dlg.traceTableValues)
+        dprint(dlg.traceTableValues)
             
 def deleteTableRow (dlg):
     """ Delete selected template and refresh table"""
-    #print('delete row')
+    dprint('delete row')
     row_index=dlg.tableWidget.currentRow()
-    #print(row_index)
+    dprint(row_index)
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
@@ -395,7 +396,7 @@ class TableDialog(QDialog):
         self.setWindowTitle(title)   
         
         self.trace_type=trace
-        #print('++++++trace: '+str(trace))
+        dprint('++++++trace: '+str(trace))
         self.type=type
         #table buttons     
         layout_buttons_table = QHBoxLayout()
@@ -458,31 +459,31 @@ class TableDialog(QDialog):
         self.traceTableValues=[] 
     
     def changedDropdownItem(self, s):
-        #print('+++++')
+        dprint('+++++')
         combo = self.sender()  # Get the combo box that sent the signal
         index = self.tableWidget.indexAt(combo.pos())
         row = index.row()
         col = index.column()
-        #print(row)
-        #print(col)
+        dprint(row)
+        dprint(col)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
             self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
         elif self.trace_type:
             if col==2:
-                #print(col)
+                dprint(col)
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.traceTableValues[row][1],self.traceTableValues[row][2],s.split(':')[0]]
-        #print(self.traceTableValues)
+        dprint(self.traceTableValues)
         
     def changeItem(self, item):
         row = item.row()
-        #print('changed')
-        #print(row)
-        #print(item)
+        dprint('changed')
+        dprint(row)
+        dprint(item)
         if self.trace_type in ['conn_type_trace','bt_conns_trace']:
             if self.tableWidget.cellWidget(row,1) and self.traceTableValues:
                 self.traceTableValues[row]=[self.traceTableValues[row][0],self.tableWidget.item(row,0).text(),self.traceTableValues[row][2],self.tableWidget.cellWidget(row,1).currentText().split(':')[0]]
         elif self.trace_type == 'building_template':
-            #print(item.text())
+            if debug_enabled(): dprint(item.text())
             self.traceTableValues[row][item.column()][1]=item.text()
         elif self.trace_type:
             changedValue=''
@@ -491,7 +492,7 @@ class TableDialog(QDialog):
             if self.tableWidget.item(row,1):
                 changedValue+=self.tableWidget.item(row,1).text()
             if self.tableWidget.cellWidget(row,2):
-                #print(changedValue)
+                dprint(changedValue)
                 self.tableWidget.cellWidget(row,2).currentText()
                 self.traceTableValues[row]=[self.traceTableValues[row][0],changedValue,self.traceTableValues[row][2],self.tableWidget.cellWidget(row,2).currentText().split(':')[0]]
 
@@ -499,7 +500,7 @@ class TableDialog(QDialog):
                 Qt.ItemDataRole.UserRole,
                 item.text()
             )
-        #print(self.traceTableValues)
+        dprint(self.traceTableValues)
         
     
     """@QtCore.pyqtSlot()
@@ -592,7 +593,7 @@ def getMaxTableId(table):
         if table.item(row_index,0):
             if int(table.item(row_index,0).text()) > maxId:
                 maxId=int(table.item(row_index,0).text())
-    #print(maxId)
+    dprint(maxId)
     return maxId
         
 class LabelTextOkCancelDialog(QDialog):
@@ -641,9 +642,9 @@ def addTableRow(table):
     
 def deleteSelectedTableRow (table):
     """Selected table row is deleted"""
-    #print('delete row')
+    dprint('delete row')
     row_index=table.currentRow()
-    #print(row_index)
+    dprint(row_index)
     if row_index!=-1:
         table.removeRow(row_index)
     else:

@@ -6,22 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>422</width>
-    <height>474</height>
+    <width>540</width>
+    <height>560</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QWidget" name="verticalLayoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>401</width>
-     <height>456</height>
-    </rect>
-   </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QLabel" name="label">
@@ -128,10 +119,44 @@
      </layout>
     </item>
     <item>
-     <widget class="QCheckBox" name="checkBox_debug">
-      <property name="text">
-       <string>python_console_debug_mode</string>
+     <widget class="QGroupBox" name="groupBox_debug">
+      <property name="title">
+       <string>debug_mode</string>
       </property>
+      <layout class="QVBoxLayout" name="verticalLayout_debug">
+       <item>
+        <widget class="QCheckBox" name="checkBox_debug">
+         <property name="text">
+          <string>debug_log_file</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox_debug_console">
+         <property name="text">
+          <string>debug_also_python_console</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_debug">
+         <item>
+          <widget class="QLineEdit" name="lineEdit_debugLogFile">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_openDebugLogFolder">
+           <property name="text">
+            <string>open_log_folder</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
      </widget>
     </item>
     <item>
@@ -261,7 +286,6 @@
      </layout>
     </item>
    </layout>
-  </widget>
  </widget>
  <resources/>
  <connections/>

@@ -23,6 +23,7 @@ import tempfile
 import os 
 import math 
 import traceback
+from .debug_log import dprint, debug_enabled
 
 
 def getKPIUnit(name):
@@ -45,7 +46,7 @@ def getKPIUnit(name):
         return ''
     
 def networkReport(dlg,plugin_dir,cur,config,main_dlg):
-    #print('---------Network report--------')
+    dprint('---------Network report--------')
     # Get current project
     project = QgsProject.instance()
     manager = project.layoutManager()    
@@ -140,7 +141,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     feats = []
     for substation_feature in feature_layer.getFeatures():
         feats.append(substation_feature)
-    #print(feats)
+    dprint(feats)
     #memory layer for customers
     layer_customer_mem = QgsVectorLayer("Point?crs=epsg:"+str(srid), tr("@default",'customer'), "memory")
     data_pr = layer_customer_mem.dataProvider()
@@ -162,7 +163,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     osm_layers = project.mapLayersByName('OpenStreetMap')
     if osm_layers:
         layer_osm = osm_layers[0]
-        #print("OSM layer already exists")
+        dprint("OSM layer already exists")
         osm_existed=True
     else:
         # Add OSM XYZ Tile layer
@@ -171,17 +172,17 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         layer_osm = QgsRasterLayer(url, "OpenStreetMap", "wms")  # "wms" works for XYZ in QGIS 3.40
         if not layer_osm.isValid():
             pass
-            #print("Failed to load OSM layer")
+            dprint("Failed to load OSM layer")
         else:
             project.addMapLayer(layer_osm)
-            #print("OSM layer added")
+            dprint("OSM layer added")
     
     
     feature_layer = project.mapLayersByName(tr('@default','energy_plants'))[0]
     feats = []
     for feature in feature_layer.getFeatures():
         feats.append(feature)
-    #print(feats)
+    dprint(feats)
     #memory layer for energy plants
     layer_ep_mem = QgsVectorLayer("Point?crs=epsg:"+str(srid), tr("@default",'energy_plant'), "memory")
     data_pr = layer_ep_mem.dataProvider()
@@ -195,7 +196,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     feats = []
     for feature in feature_layer.getFeatures():
         feats.append(feature)
-    #print(feats)
+    dprint(feats)
 
     #memory layer for lines
     layer_network_mem = QgsVectorLayer("LineString?crs=epsg:"+str(srid), tr("@default",'line'), "memory")
@@ -307,7 +308,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     frame_networks={}
 
     for network in networks:
-        #print(network)    
+        dprint(network)    
         # Create a new page
         new_page = QgsLayoutItemPage(layout)
 
@@ -332,7 +333,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     
         #------------kpi table--------------
         if dlg.checkBox_kpi.isChecked():
-            #print('------------kpi table--------------')
+            dprint('------------kpi table--------------')
 
             # --- 1. prepare data ---
             sql="""SELECT * FROM "{}".kpi_{};""".format(config['versionName'],network) # nosec B608
@@ -341,7 +342,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                 kpi_table=cur.fetchone()
             
                 kpis=[{i:float(kpi_table[i])} for i in kpi_table if kpi_table[i] is not None and i!='id']
-                #print(kpis)
+                dprint(kpis)
                 simulatedOutputs=loadSimulatedOutputs(config)
                 if simulatedOutputs['qsup_heat_spec_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
                     value = float(kpi_table['qsup_heat_c'])/getBuildingsEra(cur,config)
@@ -393,7 +394,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                     for i in range(rows_needed):
                         row = []
                         # left block
-                        #print(kpis[i])
+                        if debug_enabled(): dprint(kpis[i])
                         (name_l, val_l), = kpis[i].items()         
                         row.extend([tr("@default",name_l), "{:.3g}".format(val_l),getKPIUnit(name_l)])
                         
@@ -408,7 +409,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                 else:
                     # 2-column layout
                     table_data = [[tr("@default",key), "{:.3g}".format(value),getKPIUnit(key)] for d in kpis for key, value in d.items()]
-                #print(table_data)
+                dprint(table_data)
 
                 # --- 2. initalize table  ---
                 table = QgsLayoutItemTextTable(layout)
@@ -468,7 +469,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         if dlg.checkBox_pipeTable.isChecked():
         
             pipe_info=getPipeInfo(cur,config,networks=[network])
-            #print(pipe_info)
+            dprint(pipe_info)
             table_data=[[i['name'],"{:.3g}".format(i['innerpipediameter']),"{:.3g}".format(i['length']),"{:.3g}".format(i['costs']) if i['costs'] is not None else ''] for i in pipe_info]
             table_data.append(['∑','',"{:.3g}".format(sum([i['length'] for i in pipe_info])),"{:.3g}".format(sum([i['costs'] for i in pipe_info if i['costs'] is not None]))])    
 
@@ -563,7 +564,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                 pass
             else:
                 page_image_counter+=1
-            #print(plot)
+            dprint(plot)
             plot_layer=showOnMapMemoryLayer(plot['data'],config,plugin_dir,plot['feature'],plot['name'])
             renderMapPlot(plot_layer,plot['data'],cur,config,first_time_var=plot['first_time_var'],color_classes=plot['color_classes'],colormode=plot['colormode'],
                 colorramp=plot['colorramp'],feature=plot['feature'],varRotation=plot['varRotation'],size_symbolMin=plot['size_symbolMin'],size_symbolMax=plot['size_symbolMax'],
@@ -573,9 +574,9 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             if plot_layer.isEditable():
                 try:
                     plot_layer.commitChanges()
-                    #print("Committed pending edits.")
+                    dprint("Committed pending edits.")
                 except Exception as e:
-                    #print("Commit error:", e)
+                    dprint("Commit error:", e)
                     plot_layer.rollBack()
 
             map_layers=[plot_layer]
@@ -589,7 +590,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
                 map_layers.append(layer_customer_mem)
                 map_layers.append(layer_network_mem)
             map_layers.append(layer_osm)
-            #print(map_layers)
+            dprint(map_layers)
                 
 
             # ------------map-------------
@@ -680,15 +681,15 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             north[counter].attemptResize(QgsLayoutSize(*[150,150], QgsUnitTypes.LayoutPixels))
             layout.addLayoutItem(north[counter])
 
-            #print(map_layers)
+            dprint(map_layers)
             maps[counter].setLayers(map_layers)
     
     #pdf
     export_path=districtsModelerTempDir()
-    #print(export_path)
+    dprint(export_path)
     if os.path.exists(export_path):
         export_path+='network_report.pdf'
-        #print(export_path)
+        dprint(export_path)
         export = QgsLayoutExporter(layout)
         export.exportToPdf(export_path, QgsLayoutExporter.PdfExportSettings())
 
@@ -716,7 +717,7 @@ def setupCustomerDataSheet(config,plugin_dir,projectConfig):
     """Setup of the customer data sheet (RMB project) including button which generates a print layout and exports a pdf"""
     
     feature_layer=QgsProject.instance().mapLayersByName(tr('@default','customers'))[0] 
-    #print(feature_layer)
+    dprint(feature_layer)
     
     action_text="""from qgis.PyQt.QtGui import QFont, QColor, QPolygonF
 from qgis.PyQt.QtCore import QPointF, Qt
@@ -1172,7 +1173,7 @@ if not osm_existed:
 iface.mapCanvas().refresh()
 """.format(config['projectName'],config['versionName'],projectConfig['srid'],config) # nosec B608
 
-    #print(action_text)
+    dprint(action_text)
 
     helpAction = QgsAction(Qgis.AttributeActionType.GenericPython, tr('@default','customer_data_sheet'), action_text, None, capture=False, shortTitle=tr('@default','customer_data_sheet'), actionScopes={'Feature'})
     feature_layer.actions().addAction(helpAction)
@@ -1180,7 +1181,7 @@ iface.mapCanvas().refresh()
     form_config = feature_layer.editFormConfig()
 
     rootContainer = form_config.invisibleRootContainer()
-    #print(rootContainer)
+    dprint(rootContainer)
     editorAction = QgsAttributeEditorAction(helpAction, rootContainer)
     rootContainer.addChildElement(editorAction)
 

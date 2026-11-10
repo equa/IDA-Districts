@@ -17,6 +17,7 @@ import traceback
 from .compat import MessageCritical, MessageInfo, MessageWarning
 from .translations import tr
 from .utility import getDistrictsModelerVersion, sanitize_pg_identifier
+from .debug_log import dprint
 
 #from .dialog import *
 #from .layer_visualization import *
@@ -55,7 +56,7 @@ def getPipeInfo(cur,config,networks=None):
     WHERE l.pipe_bundle_type_id=bp.pipe_bundle_type_id AND bp.pipe_id=p.id {}
     GROUP BY bp.pipe_id,p.name,innerpipediameter
     ORDER BY innerpipediameter;""".format(config['versionName'],' AND network IN ({})'.format(','.join(networks)) if networks else '') # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -97,7 +98,7 @@ def get_pgrouting_major_version(cur):
 def getDBIds(column,table,cur):
     """ load the ids from DB table"""
     sql='SELECT {} AS id FROM public.{} GROUP BY {} ORDER BY {};'.format(column,table,column,column) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return list([id['id'] for id in cur.fetchall()])           
         
@@ -107,13 +108,13 @@ def delIfNotInDBIds(table,openFnArg,cur):
         filter=openFnArg[3]
         if filter:
             ids=getDBIds('id',table,cur)
-            #print(ids)
+            dprint(ids)
             if ids:
                 ids=','.join([str(i) for i in ids])
                 sql="DELETE FROM public.{} {} NOT IN ({})".format(openFnArg[0],filter[:-1],ids) # nosec B608
             else:
                 sql="TRUNCATE public.{} CASCADE;".format(str(openFnArg[0])) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
   
   
@@ -141,9 +142,9 @@ def updateProjectNamesList(dlg,config):
     return projectNames
       
 def connectDBPostgres(config,dlg):
-    #print('--connectDBPostgres--')
+    dprint('--connectDBPostgres--')
     conn_postgres=dbConnectPerName(config,"postgres",True)
-    #print(conn_postgres)
+    dprint(conn_postgres)
     projectNames=None
     if conn_postgres:
         cur_postgres=conn_postgres.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -162,7 +163,7 @@ def dropDBTriggers(cur,config,lastLoad=False):
                 sql+="""DROP TRIGGER IF EXISTS my_truncate_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table) # nosec B608
                 sql+="""DROP TRIGGER IF EXISTS column_update_trigger ON "{}".{};\n""".format(config['lastVersionName'] if lastLoad else config['versionName'],table) # nosec B608
         if sql:
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
 
 def insertDBTriggers(cur,config):
@@ -189,7 +190,7 @@ FOR EACH ROW
 EXECUTE FUNCTION my_trigger_update_function();\n""".format(config['versionName'],table) # nosec B608
 
         if sql:
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
     
 def getDBTableNames(cur,config):
@@ -240,11 +241,11 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
         subprocess.call(cmd, env=env, stdout=f) # nosec B603
     
     sql = 'ALTER SCHEMA "'+baseName+'" RENAME TO "'+new_versionName+'" ;' # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)           
     
     sql="DROP EVENT TRIGGER IF EXISTS prevent_column_alter;"
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     
     cmd = [
@@ -262,12 +263,12 @@ def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password
 ON ddl_command_start  -- Triggered before the DDL command is executed
 WHEN TAG IN ('ALTER TABLE')
 EXECUTE FUNCTION restrict_column_alterations();"""
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
         
 def setSeqIdToMax(seq,table,col,cur):
     sql="""SELECT setval('{}', (SELECT COALESCE(MAX({}), 1) FROM {}));""".format(seq,col,table) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['setval']
 
@@ -275,7 +276,7 @@ def getTimeDiff(cur,config,table,col,order_col):
     sql="""SELECT EXTRACT(EPOCH FROM (next_time.time-start_time.time)) AS diff 
     FROM (SELECT {} AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1) start_time,
         (SELECT {}  AS time FROM "{}".{} ORDER BY {},{}{} LIMIT 1 OFFSET 1) next_time;""".format(col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col,col,config['versionName'],table,order_col,'segment,' if 'line_' in table and col in ['p','temp'] else '',col) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['diff']
     
@@ -304,7 +305,7 @@ def getDecoupledFeatureCompPerFeature(feature,cur,config):
     sql="""SELECT f_dec.comp_name
     FROM "{}".{}s f, "{}".feature_decoupling f_dec
     WHERE f.id={} AND f.template=f_dec.template AND f_dec.type='{}';""".format(config['versionName'],feature['feature'],config['versionName'],feature['id'],feature['feature']) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
     
@@ -312,7 +313,7 @@ def getDecoupledFeatureCompPerTemplate(config,cur,template):
     sql="""SELECT f_dec.comp_name
     FROM "{}".feature_decoupling f_dec
     WHERE {}=f_dec.template AND f_dec.type='customer';""".format(config['versionName'],template) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [i['comp_name'] for i in cur.fetchall()]
 
@@ -330,12 +331,12 @@ UNION
     GROUP BY feature,f.template, network_side)
 ORDER BY feature,template;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,# nosec B608
             submodel,config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         decoupled_templates=[{'feature': i['feature'], 'template': i['template'], 'template_name':j['template_name'], 'network_side': i['network_side']} 
             for i in cur.fetchall() for j in usedFeatureTemplates if i['feature']==j['feature'] and i['template']==j['template']]
         templates.extend([at for at in decoupled_templates if at not in templates])
-    #print(templates)
+    dprint(templates)
     return templates
     
 def getFeatureDecIds(config,cur,submodel,cosims):
@@ -350,7 +351,7 @@ UNION
     WHERE ST_DWithin(l.geom,s_m.geom,0.001) AND f.id=f_conns.epid AND l.id=f_conns.lid AND ({} = f.submodel AND {} = ANY (l.submodel) OR {} = f.submodel AND {} = ANY (l.submodel)))
 ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim,# nosec B608
             submodel,config['versionName'],config['versionName'],config['versionName'],config['versionName'],cosim,submodel,submodel,cosim) # nosec B608
-        #print(sql)
+        dprint(sql)
         
         cur.execute(sql)
         fids.extend([i for i in cur.fetchall() if i not in fids])
@@ -358,7 +359,7 @@ ORDER BY feature,id;""".format(submodel,config['versionName'],config['versionNam
 
 def getFeatureIdFromName(config,cur,feature):
     sql="""SELECT id FROM type WHERE replace(lower(name),' ','_')='{}';""".format(feature) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['id']
     
@@ -413,7 +414,7 @@ def getUsedFilteredFeatureTemplates(feature_type,cur,config):
     FROM "{}".{}s f,{}_templates f_t 
     WHERE f.template=f_t.template
     GROUP BY f.template,f_t.template_name;""".format(config['versionName'],feature_type,feature_type,config['versionName']) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
     
@@ -505,14 +506,14 @@ def getSupervisorySubmodel(cur,config):
 def getNetworkSubmodels(cur,config,networks):
     """Get submodels of a list of networks based on lines"""
     sql="""SELECT unnest(submodel) AS submodel FROM "{}".lines WHERE network IN ({}) GROUP BY submodel ORDER BY submodel;""".format(config['versionName'], ','.join([i for i in networks])) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     submodels=[str(i['submodel']) for i in cur.fetchall()]
     return submodels
 
 def getNetworkBySubmodel(cur,config,submodel):
     sql="""SELECT network from "{}".lines WHERE {} = ANY (submodel) GROUP BY network;""".format(config['versionName'],submodel) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [str(i['network']) for i in cur.fetchall()] 
     
@@ -540,10 +541,10 @@ def getProjectVersionNames(cur):
     
 def getClimateData(cur,config,errorMsg):
     """ get climate data from DB"""
-    #print('get climate data')
+    dprint('get climate data')
     if checkDBVersionConnected(config,errorMsg):
         sql='SELECT name, longitude, latitude,file_name AS filename ,timezone,height FROM "{}".climate;'.format(config['versionName']) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         return cur.fetchone()
 
@@ -666,7 +667,7 @@ def getMinAvgTimeValue(mode,cur,config,table,colmn,starttime,endtime):
         ORDER BY date_trunc('{}', time), fid
 )
 SELECT min(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -735,7 +736,7 @@ def getMaxAvgTimeValue(mode,cur,config,table,colmn,starttime,endtime):
         ORDER BY date_trunc('{}', time), fid
 )
 SELECT max(value) AS value FROM sub;""".format(mode,colmn,config['versionName'],table,starttime,endtime,mode,', segment' if 'line_' in table and colmn in ['p','temp'] else '',mode) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchone()['value']
     
@@ -761,12 +762,12 @@ def getMaxIdSchema(cur,table_name,schema):
         
 def checkDBVersionConnected(config,errorMsg):
     """ Check if connected to DB version"""
-    #print('check version connection')
+    dprint('check version connection')
     if config['versionName']:
-        #print('connected to version!')
+        dprint('connected to version!')
         return True
     else:
-        #print('not connected to version!')
+        dprint('not connected to version!')
         if errorMsg:
             iface.messageBar().pushMessage("WARNING", tr('@default','no_db_connection'), level=MessageWarning)
         return False
@@ -840,7 +841,7 @@ def dbConnectProvidePwdUser(config,signals_error,pwd,user):
             application_name=DISTRICTS_APPLICATION_NAME)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     except Exception as e:
-        #print("DB connection has failed:",e)
+        dprint("DB connection has failed:",e)
         if signals_error:
             signals_error.emit(str(e))
     return conn
@@ -896,16 +897,16 @@ def getTemplateNameByTemplateId(cur,template_id,feature_type):
     
 def loadProjectNamesCheckDistricts(cur,config):
     """load the project names into comboBox selectProject """
-    #print('--loadProjectNames--')
+    dprint('--loadProjectNames--')
     project_names=[]
     if cur:
         cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false;')
         db_names =list(cur.fetchall())
-        #print(db_names)
+        dprint(db_names)
         for db in db_names:
             conn=dbConnectPerName(config,db['datname'],False)
             if conn:
-                #print(conn)
+                dprint(conn)
                 cur = conn.cursor()
                 cur.execute("""SELECT EXISTS (
                                SELECT * FROM information_schema.tables 
@@ -915,7 +916,7 @@ def loadProjectNamesCheckDistricts(cur,config):
                 if "True" in str(cur.fetchone()):
                     project_names.append(db['datname'])
                 conn.close()
-        #print(project_names)
+        dprint(project_names)
     return project_names
         
 def checkDBName(nameDb,projectNames):
@@ -929,20 +930,20 @@ def checkDBName(nameDb,projectNames):
 def getFilteredDropDownItems(cur,dropdown):
     """dropdowns: [table,id,name,filter_column,filter_value]"""
     sql='SELECT {} AS key,{} AS name FROM public.{} WHERE {}={};'.format(dropdown[1],dropdown[2],dropdown[0],dropdown[3],dropdown[4]) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql) 
     dropdown_data = cur.fetchall()
-    #print(dropdown_data)
+    dprint(dropdown_data)
     dropdownItems=[str(i['key'])+':'+i['name'] for i in dropdown_data]
     return dropdownItems
 
 def getFilteredNotInDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name,filter in dropdowns:
-        #print(getFilteredNotInDropDownItems)
+        dprint(getFilteredNotInDropDownItems)
         filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))    
         sql='SELECT {} AS key,{} AS name FROM "{}".{} {};'.format(column,name,version,table,filter) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
         dropdownItems[id]=[str(i['key'])+':'+i['name'] for i in dropdown_data]
@@ -952,7 +953,7 @@ def getDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name in dropdowns:         
         sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table,column) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
         dropdownItems[id]={i['key'] : str(i['key'])+':'+tr('@default',i['name']) for i in dropdown_data}
@@ -961,11 +962,11 @@ def getDropDownItems(cur,dropdowns):
 def getFilteredDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name,filter in dropdowns:
-        #print(filter)
+        dprint(filter)
         if filter:
             filter="WHERE id IN({}) ".format(','.join([str(i) for i in filter]))
             sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
             dropdownItems[id]={i['name'] : str(i['name']) for i in dropdown_data}
@@ -976,11 +977,11 @@ def getFilteredDropDownItemNames(cur,dropdowns):
 def getFilteredNotInDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name,filter in dropdowns:
-        #print(filter)
+        dprint(filter)
         if filter:
             filter="WHERE id NOT IN({}) ".format(','.join([str(i) for i in filter]))
             sql='SELECT {} AS name FROM "{}".{} {}ORDER BY id;'.format(name,version,table,filter) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql) 
             dropdown_data = cur.fetchall()
             dropdownItems[id]=[str(i['name']) for i in dropdown_data]
@@ -992,7 +993,7 @@ def getDropDownItemNames(cur,dropdowns):
     dropdownItems={}
     for id,version,table,name in dropdowns:         
         sql='SELECT {} AS name FROM "{}".{} ORDER BY id;'.format(name,version,table) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql) 
         dropdown_data = cur.fetchall()
         dropdownItems[id]=[str(i['name']) for i in dropdown_data]
@@ -1004,7 +1005,7 @@ def getConnValue(cur,bundle,sequence):
     FROM connections conns, bundle_type_conns b_t_conns, connection_type_connections conn_t_conns
     WHERE b_t_conns.conn_bundle_type_id = {} AND conn_t_conns.sequence={} AND conn_t_conns.connection_id=conns.id AND b_t_conns.conn_type_id=conn_t_conns.connection_type_id
     ORDER BY b_t_conns.sequence, conn_t_conns.sequence;""".format(bundle, sequence) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
 
@@ -1088,7 +1089,7 @@ def getResultVars(cur,config,feature,type):
     sql="""SELECT split_part(table_name,'_{}_',2) AS var
     FROM information_schema.tables 
     WHERE table_schema = '{}' AND split_part(table_name,'_',{})='{}' AND split_part(table_name,'_',1)='{}' AND NOT split_part(table_name,'_{}_',2) LIKE '%_vis';""".format(type,config['versionName'],col,type,feature,type) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [var['var'] for var in cur.fetchall()]
     
@@ -1124,7 +1125,7 @@ def getTableAttr(cur,config,feature,withoutID=False):
     sql="""SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name = '{}s' AND table_schema='{}';""".format(feature,config['versionName']) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]
 
@@ -1134,7 +1135,7 @@ def getTableNumericAttr(cur,config,feature,withoutID=False):
     FROM information_schema.columns 
     WHERE table_name = '{}s' AND table_schema='{}' 
         AND data_type IN ('integer','numeric','double precision','real','smallint','bigint');""".format(feature,config['versionName']) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return [attr['column_name'] for attr in cur.fetchall() if ((False if attr['column_name']=='id' else True) if withoutID else True)]
 
@@ -1148,7 +1149,7 @@ FROM information_schema.columns
 WHERE table_schema = '{}'
   AND table_name = '{}'
 ORDER BY ordinal_position;""".format(schema,table) # nosec B608
-    #print(sql)
+    dprint(sql)
     cur.execute(sql)
     return {i['column_name']: {'data_type': i['data_type'],'column_default': i['column_default']} for i in cur.fetchall()}
 

@@ -13,12 +13,13 @@ from .utility_functions.utility import sanitize_pg_identifier
 from .utility_functions.workers import closesOwnConnection, APISignals
 import subprocess   
 import traceback
+from .utility_functions.debug_log import dprint
        
 class WorkerImportElevationData(QRunnable):
     """Import elevation data"""
     def __init__(self,*args,**kwargs):
         super().__init__()
-        #print("Import buildings from OSM")
+        dprint("Import buildings from OSM")
         self.signals=APISignals()
         self.config=kwargs['config']
         self.clearOldTerrain=kwargs['clearOldTerrain']
@@ -33,7 +34,7 @@ class WorkerImportElevationData(QRunnable):
 
             self.configProject=loadProjectConfig(self.config,signals=self.signals)
             self.srid=self.configProject['srid']
-            #print(self.srid)
+            dprint(self.srid)
             
             auth_cfg = QgsAuthMethodConfig()
             QgsApplication.authManager().loadAuthenticationConfig(self.config["auth_id"], auth_cfg, True)  
@@ -44,7 +45,7 @@ class WorkerImportElevationData(QRunnable):
     @pyqtSlot()
     @closesOwnConnection
     def run(self):
-        #print('Import elevation data')
+        dprint('Import elevation data')
         self.signals.progress.emit(1)
         try:
             self.cur.execute("""SELECT EXISTS (

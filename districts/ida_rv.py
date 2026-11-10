@@ -20,15 +20,16 @@ from .utility_functions.utility import getDatetimeFromString, isNumber, is_numbe
 from .utility_functions.workers import show_error_message, startWorkers
 
 from datetime import datetime, timedelta
+from .utility_functions.debug_log import dprint, debug_enabled
 
 def getSourceVars(source):
     if os.path.isfile(source):
         vars=readFileToList(source)[0].split()
-        #print(vars)
+        dprint(vars)
     elif os.path.exists(source):
-        #print(os.listdir(source))
+        if debug_enabled(): dprint(os.listdir(source))
         vars=readFileToList(source+'/'+os.listdir(source)[0])[0].split()
-        #print(vars)
+        dprint(vars)
     return [var.lower() for var in vars if var not in ['#time','#','time','order']]
         
 def dataSourceDialog(dlg,title,open_type):
@@ -38,7 +39,7 @@ def dataSourceDialog(dlg,title,open_type):
     else:
         source = QFileDialog.getExistingDirectory(
             None, title)
-    #print(source)
+    dprint(source)
     
     if source:
         dlg.lineEditSourceName.setText(source)
@@ -108,7 +109,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
                 'min': float(dlg.tableVars.item(i,2).text()) if dlg.tableVars.item(i,2).text().isnumeric() else False,
                 'max': float(dlg.tableVars.item(i,3).text()) if dlg.tableVars.item(i,3).text().isnumeric() else False} 
                 for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == checkState()]
-    #print(var_dict)
+    dprint(var_dict)
     
     srid=loadProjectConfig(config)['srid']
     if os.path.isfile(source):
@@ -118,15 +119,15 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
     
     for counter,file in enumerate(files):
         filedata=readFileToList(file)
-        #print(filedata)
+        dprint(filedata)
             
         for var in var_dict:
-            #print(var)
+            dprint(var)
             id=file.split('/')[-1].split('.')[0]
-            #print(id)
+            dprint(id)
             table_name=feature_type[:-1]+'_m_'+var['alias']
-            #print(table_name)
-            #print(checkTableNameExists(cur,config,table_name))
+            dprint(table_name)
+            if debug_enabled(): dprint(checkTableNameExists(cur,config,table_name))
             if not checkTableNameExists(cur,config,table_name):
                 sql="""CREATE TABLE IF NOT EXISTS "{}".{}
 (
@@ -136,7 +137,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
     geom geometry({},{}),
     "${}" numeric,
     CONSTRAINT {}_pkey PRIMARY KEY (id));""".format(config['versionName'],table_name,'LineStringZ' if feature_type=='lines' else 'PointZ', srid,var['alias'],table_name) # nosec B608
-                #print(sql)
+                dprint(sql)
                 cur.execute(sql)
             elif dlg.delete_existing_data.checkState() == checkState() and counter==0:
                 sql="""TRUNCATE "{}".{};""".format(config['versionName'],table_name) # nosec B608
@@ -146,7 +147,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
                 cur.execute(sql)
                 
         vars_data={var['colmn']:[] for var in var_dict}
-        #print(vars_data)
+        dprint(vars_data)
         
         # Base datetime: Jan 1 of the simulated year
         base_time = datetime(getDatetimeFromString(loadNetworkSimData(plugin_dir,config)['calc_time_from']).year, 1, 1)
@@ -159,13 +160,13 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
                     
 
         vars_data_np={i:np.array(vars_data[i]) for i in vars_data} 
-        #print(vars_data_np)
+        dprint(vars_data_np)
         start_time_m=vars_data_np[[i for i in vars_data_np][0]][0][0]
         end_time_m=vars_data_np[[i for i in vars_data_np][0]][-1][0]
 
 
         if dlg.checkbox_timestep.checkState() == checkState():
-            #print(dlg.interpolation_dt.text())
+            if debug_enabled(): dprint(dlg.interpolation_dt.text())
 
             if is_number(dlg.interpolation_dt.text()):
                 dt = float(dlg.interpolation_dt.text())  # hours
@@ -225,8 +226,8 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
                 time_out = np.array([t[0] for t in vars_data_np[key]])
                 var_interp = np.array([t[1] for t in vars_data_np[key]], dtype=float)
 
-            #print(time_out)
-            #print(var_interp)
+            dprint(time_out)
+            dprint(var_interp)
 
             sql = 'SELECT geom FROM "{}".{} WHERE id={};'.format(config['versionName'], feature_type, id)# nosec B608
             cur.execute(sql)
@@ -301,28 +302,28 @@ def getFeatureIds(dlg,cur,config):
 def loadFeatureIds(dlg,cur,config):
     dlg.listWidget_ids.clear()
     ids=getFeatureIds(dlg,cur,config)
-    #print(ids)
+    dprint(ids)
     dlg.listWidget_ids.addItems(ids)
         
 def addSelectedIDs(dlg):
     """Adds all selected lines to list dlg.listWidget_ids"""
-    #print('add selected lines')
+    dprint('add selected lines')
     layer = iface.activeLayer()
     if layer:
-        #print(layer.name())
+        if debug_enabled(): dprint(layer.name())
         if (layer.name()==tr('@default','lines') and dlg.rbtn_lineIds.isChecked() or layer.name()==tr('@default','customers') and dlg.rbtn_customer.isChecked()
                 or layer.name()==tr('@default','energy_plants') and dlg.rbtn_energy_plant.isChecked()):
             features = layer.selectedFeatures()
-            #print(features)
+            dprint(features)
             for f in features:
-                #print(f['id'])
+                if debug_enabled(): dprint(f['id'])
                 item = QListWidgetItem(str(f['id']))
                 item.setFlags(item.flags() | qt_item_flag("ItemIsEditable"))
                 dlg.listWidget_ids.addItem(item)
 
 def addID(dlg):
     """Add id to list dlg.listWidget_ids"""
-    #print('add id')
+    dprint('add id')
     item = QListWidgetItem('')
     item.setFlags(item.flags() | qt_item_flag("ItemIsEditable"))
     dlg.listWidget_ids.addItem(item)
@@ -372,7 +373,7 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
             if selected_items:
                 for item in dlg.listWidget_ids.selectedItems():
                     id=item.text()
-                    #print(id)
+                    dprint(id)
                     matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
             else:
                 iface.messageBar().pushMessage("Info", "Please select an item in the list!!", level=MessageInfo)    

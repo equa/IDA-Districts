@@ -8,18 +8,19 @@ from .compat import MessageCritical, MessageWarning
 import traceback
 
 from qgis.core import QgsMessageLog, Qgis
+from .debug_log import dprint, debug_enabled
 
 class Util_api:
     def __init__(self,plugin_dir,config,submodel='1'):
         # Define your path to the IDA Districts bin folder here
         path_to_districts = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
         command = "\""+path_to_districts + "ida-districts.exe\" \"" + path_to_districts + "ida.img\" -G1 -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
-        #print(command)
+        dprint(command)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
         self.process_handle = ret[0]
         self.pid = str(ret[2])
-        #print(self.pid)
+        dprint(self.pid)
         time.sleep(float(config['districts_api_delay']))
         #Add path_to_districts to PATH variable, is removed when program finishes
         os.environ['PATH'] = path_to_districts + os.pathsep  + os.environ['PATH']
@@ -149,9 +150,9 @@ class Util_api:
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
         try:
             poll_result2 = json.loads(doc_str.value.decode("utf-8"))
-            #print(poll_result2)
+            dprint(poll_result2)
             if isinstance(poll_result2, list):
-              #print(poll_result2[0]['value'])
+              if debug_enabled(): dprint(poll_result2[0]['value'])
               poll_result = poll_result2[0]['value']
             else:
               return ""

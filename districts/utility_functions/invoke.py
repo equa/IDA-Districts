@@ -39,6 +39,7 @@ import datetime
 import matplotlib.dates as mdates
 from matplotlib.ticker import AutoMinorLocator
 import traceback
+from .debug_log import dprint, debug_enabled
 
 class InvokeFeaturesDlg(QDialog):
     def __init__(self):
@@ -153,7 +154,7 @@ class WorkerInvokeFeatures(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print(args)
+        dprint(args)
         self.signals=APISignals()
         self.config=kwargs['config']
         self.dlg=kwargs['dlg']
@@ -169,7 +170,7 @@ class WorkerInvokeFeatures(QRunnable):
     @pyqtSlot()
     @closesOwnConnection
     def run(self):
-        #print('Generate network topology')
+        dprint('Generate network topology')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         
@@ -180,7 +181,7 @@ class WorkerInvokeFeatures(QRunnable):
         
         rows_count=len(self.rows)
         for idx in self.rows:
-            #print(idx)
+            dprint(idx)
             invokeOneFeature(self.dlg,idx,self.cur,self.config,self.type,True,parallize=True,signals=self.signals)
             if self.type=='energy_plant':
                 invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
@@ -220,7 +221,7 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
                             sql+="""UPDATE model_parms SET {} = '{}' WHERE id = {} ;\n""".format(col,q(parm[col]),key_table) # nosec B608
 
         if sql:
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
         dlg.markSaved()
 
@@ -229,13 +230,13 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
 def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False,signals=False):
     """Invoke the selected feature. Copy the files from the templates to ida_mosim\\invoked_"feature"s
         If dlg is not given the id is the idx"""    
-    #print('idx='+str(idx))
+    dprint('idx='+str(idx))
     if idx !=-1:
         if dlg and not saveParmRunResults:
             id=dlg.tableWidget_customer.item(idx,0).text()  
         else:
             id=idx
-        #print('id='+id)     
+        dprint('id='+id)     
        
         #create directory and files in modelling plugin folder if not exists
         dir=config['pathProjects']+config['projectName']+"\\versions\\"
@@ -243,17 +244,17 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
         dir+=config['versionName']+"\\"
         createDir(dir,'invoked_{}s'.format(type)) 
         dir+='invoked_{}s'.format(type)
-        #print(dir)
+        dprint(dir)
             
         sql="""SELECT f.template, t.template_name, t.conn_bundle_type 
             FROM "{}".{}s f,{}_templates t 
             WHERE f.template=t.template AND f.id={};""".format(config['versionName'],type,type,id) # nosec B608
-        #print(sql)
+        dprint(sql)
         cur.execute(sql)
         type_old=""
         template_old=""
         for feature in cur.fetchall():
-            #print(feature)
+            dprint(feature)
             template_name=str(feature['template'])+'_'+str(feature['template_name'])
     
             dir_template=config['pathProjects']+"{}\\{}_templates".format(config['projectName'],type)            
@@ -266,7 +267,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                 pass  
             elif type=='energy_plant':
                 boreholes=getTransformedBoreholeInfo(cur,id,config)
-                #print(boreholes)
+                dprint(boreholes)
                 if boreholes:
                     x="#("+" ".join([str(i['x']) for i in boreholes])+")"
                     x_source="(:DEFAULT #S (MS-SPARSE DEFAULT-VALUE T DIMENSION 1 VALUE ("+" ".join(['('+str(counter)+')' for counter,i in enumerate(boreholes,1)])+")) 2)"
@@ -280,15 +281,15 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                             ng_dict[i['group']]=ng_dict[i['group']]+1
                         except Exception:
                             ng_dict[i['group']]=1
-                    #print(ng_dict)
+                    dprint(ng_dict)
 
                     ng='#('+' '.join([str(ng_dict[i]) for i in ng_dict])+')'
                     
                     sql='SELECT * FROM "{}".borehole_fields WHERE ep_id={};'.format(config['versionName'],id) # nosec B608
-                    #print(sql)
+                    dprint(sql)
                     cur.execute(sql)
                     field_data=cur.fetchone()
-                    #print(field_data)
+                    dprint(field_data)
                     if not field_data:
                         if parallize:
                             signals.error.emit("No borehole field data for plant id={} (layer boreholes) available!".format(id))
@@ -314,29 +315,29 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
             
             #get model parameter
             sql="""SELECT * FROM model_parms WHERE type = {} ORDER BY id;""".format(1 if type=='customer' else 2) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
             parms=cur.fetchall()
-            #print(parms)
+            dprint(parms)
             sql="""SELECT * FROM "{}".{}s WHERE id={};""".format(config['versionName'],type,id) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
             fields=cur.fetchone()
-            #print(fields)
+            dprint(fields)
             
             for parm in parms:
                 mapping_expression=parm['mapping_expression']
                 for field in fields:
                     mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
-                #print(mapping_expression)
+                dprint(mapping_expression)
                 try:
                     mapping_expression=safe_eval(mapping_expression)
                 except Exception:
-                    #print('Failed eval!')
+                    dprint('Failed eval!')
                     signals.error.emit("Failed to evaluate mapping expression for feature id={}: {}".format(id,mapping_expression))
-                #print('++++++++'+parm['model_name'])
+                if debug_enabled(): dprint('++++++++'+parm['model_name'])
                 if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
-                    #print(parm['model_name'])
+                    if debug_enabled(): dprint(parm['model_name'])
                     try:
                         replaceDict[parm['macro_name']][parm['model_name']][parm['parm_name']]= mapping_expression
                     except Exception:
@@ -345,7 +346,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                         except Exception:
                             replaceDict[parm['macro_name']]={parm['model_name']:{parm['parm_name']: mapping_expression}}
             
-            #print(replaceDict)
+            dprint(replaceDict)
             
             CopyTemplateFiles(source_dir=dir_template,source_name=template_name,target_dir=dir,target_name=type.capitalize()+'_'+id,update_sensors=True,type=type,template=str(feature['template']),id=id,cur=cur,config=config,replaceDict=replaceDict,parmRun=parmRun,update_sf=True)
             dir+="\\"+type.capitalize()+"_"+id+"\\"
@@ -378,7 +379,7 @@ class InvokeFeatures():
             self.dlg_invokeFeatures=InvokeFeaturesDlg()
             # self.cur is only used by this object's dialog handlers (the workers have their own connections)
             closeConnectionOnFinish(self.dlg_invokeFeatures,self)
-            #print(self.dlg_invokeFeatures.rbtn_customers)
+            dprint(self.dlg_invokeFeatures.rbtn_customers)
             
             self.dlg_invokeFeatures.rbtn_customers.toggled.connect(self.updateFeatureLists)
             self.dlg_invokeFeatures.rbtn_plants.toggled.connect(self.updateFeatureLists)   
@@ -397,27 +398,27 @@ class InvokeFeatures():
         #invokeOneFeature(self.dlg_invokeFeatures,self.dlg_invokeFeatures.tableWidget_customer.currentRow(),self.cur,self.config,self.type,self.iface,True,parallize=False)
         selected_indexes = self.dlg_invokeFeatures.tableWidget_customer.selectedIndexes()
         rows=[i.row() for i in selected_indexes]
-        #print(rows)
+        dprint(rows)
         self.startInvokeFeaturesWorker(rows)
         
     def updateFeatureLists(self,s):
         """Update the list of customers or plants based on the radio button """
-        #print('Update customers/plants list')
-        #print(s)
+        dprint('Update customers/plants list')
+        dprint(s)
         if self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_customers:
             self.type='customer'
         elif self.dlg_invokeFeatures.sender()==self.dlg_invokeFeatures.rbtn_plants:
             self.type='energy_plant'
         sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{}s;'.format(self.config['versionName'],self.type)# nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchall()[0]['ids']
-        #print(ids)
+        dprint(ids)
         self.dlg_invokeFeatures.tableWidget_customer.setRowCount(0)
         i=0
         if ids:
             for id in ids:
-                #print(id)
+                dprint(id)
                 self.dlg_invokeFeatures.tableWidget_customer.insertRow(i)
                 self.dlg_invokeFeatures.tableWidget_customer.setItem(i,0,QTableWidgetItem(id))
                 if os.path.exists(self.config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}.idm".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),id)): 
@@ -430,11 +431,11 @@ class InvokeFeatures():
     def loadInvokeFeatureData(self,dlg):
         """Collect all feature ids and check if they are already invoked"""
         sql="""SELECT id FROM "{}".{}s ORDER BY id;""".format(self.config['versionName'],self.type) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         i=0
         for id in self.cur.fetchall():
-            #print(str(id['id']))
+            if debug_enabled(): dprint(str(id['id']))
             dlg.tableWidget_customer.insertRow(i)
             dlg.tableWidget_customer.setItem(i,0,QTableWidgetItem(str(id['id'])))
             if os.path.exists(self.config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}.idm".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),str(id['id']))): 
@@ -447,18 +448,18 @@ class InvokeFeatures():
     def openInvokedFeature(self):
         """Open the invoked feature in IDA. Changes can be saved"""  
         idx=self.dlg_invokeFeatures.tableWidget_customer.currentRow()
-        #print(idx)
+        dprint(idx)
         if idx!=-1:
             id=self.dlg_invokeFeatures.tableWidget_customer.item(idx,0).text()
             file_path=self.config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}.idm".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),id)  
             if os.path.exists(file_path):
-                #print(file_path)
+                dprint(file_path)
                 self.worker_openInvoked = WorkerOpenModelCmd(file_path,self.config)
                 QThreadPool.globalInstance().start(self.worker_openInvoked) 
                 self.worker_openInvoked.signals.error.connect(show_error_message)
                 self.worker_openInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)  
 
-                #print('finished open feature')
+                dprint('finished open feature')
                 
             else:
                 iface.messageBar().pushMessage("Info", "Feature not yet invoked!", level=MessageInfo)
@@ -467,12 +468,12 @@ class InvokeFeatures():
 
     def simulateInvokedFeatures(self,dlg,config):
         """Simulate the invoked features in IDA."""  
-        #print('Simulate invoked features')
+        dprint('Simulate invoked features')
         ids=[dlg.tableWidget_customer.item(idx,0).text() for idx in range(0,dlg.tableWidget_customer.rowCount())]
-        #print(ids)
+        dprint(ids)
         if ids:
             file_pathes=[config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}.idm".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),i)  for i in ids]
-            #print(file_pathes)
+            dprint(file_pathes)
 
             self.worker_simInvoked = WorkerSimulateFilesAPI(file_pathes,self.plugin_dir,config)
             QThreadPool.globalInstance().start(self.worker_simInvoked) 
@@ -480,12 +481,12 @@ class InvokeFeatures():
             self.worker_simInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
         else:
             iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
-        #print('simulation finished')
+        dprint('simulation finished')
 
     def showFeatureLoad(self,dlg):
         """Show feature load"""  
         idxs=set([index.row() for index in dlg.tableWidget_customer.selectedIndexes()])
-        #print(idxs)
+        dprint(idxs)
         count=0
         if idxs:
             dlg.type=self.type
@@ -540,8 +541,8 @@ class InvokeFeatures():
 class CopyTemplateFiles:
     """ Copy the files and rename it"""
     def __init__(self,source_dir='',source_name='',target_dir='',target_name='',update_sensors=False,type='',template='',id='',cur='',config='',replaceDict='',parmRun='',update_sf=False):
-        #print('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
-        #print(parmRun)
+        dprint('++++++++++++++++++++++++++CopyTemplateFiles++++++++++++++')
+        dprint(parmRun)
         self.config=config
         type_name=type
         if update_sensors:
@@ -549,19 +550,19 @@ class CopyTemplateFiles:
             sql="""SELECT s.sensor_id
     FROM sensor_source s, source_template s_t
     WHERE s.sensor_id=s_t.source_id AND s_t.template={} AND s.measure=5 AND s.type={} AND s_t.active=false;""".format(template,type) # nosec B608
-            #print(sql)
+            dprint(sql)
             cur.execute(sql)
             remove_sensor_source_ids=cur.fetchall()
-            #print(remove_sensor_source_ids)
+            dprint(remove_sensor_source_ids)
         
-        #print(source_dir)
-        #print(source_name)
-        #print(target_name)
+        dprint(source_dir)
+        dprint(source_name)
+        dprint(target_name)
         #project idm
         filedata=readAndReplaceFileToList(source_dir+'\\'+source_name+'.idm',{'"'+source_name+'"': '"'+target_name+'"'})
         
         if replaceDict:
-            #print({j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
+            if debug_enabled(): dprint({j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
             filedata=replaceKeywordsInFiledata(filedata,{j : replaceDict[i][j] for i in replaceDict if i in [':BUILDING',':SYSTEM'] for j in replaceDict[i]})
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
@@ -582,17 +583,17 @@ class CopyTemplateFiles:
         #make subset of replaceDict based on macro name
         pList=propertyListCompsIDM(getIDAListComponents(readFileToString(source_dir+'\\'+source_name+'\\'+source_name+'.idm')))
         if replaceDict:
-            #print(replaceDict)
+            dprint(replaceDict)
             pList=replaceKeywordsInPList(pList,{j : replaceDict[i][j] for i in replaceDict if i in [source_name, ':FEATURE'] for j in replaceDict[i]})
         if update_sf:
-            #print('**************************sf********************')        
+            dprint('**************************sf********************')        
             sf=getSFList(pList,[])
             if sf:
                 sql='\n'.join(["""INSERT INTO "{}".invoked_sf (sf,vars,type)
     SELECT '{}', ARRAY[{}], '{}' WHERE NOT EXISTS (
         SELECT 1 FROM "{}".invoked_sf WHERE sf = '{}' AND type='{}'
     );""".format(self.config['versionName'],i[0][':SF'],','.join(["'"+getSFLinkRefs(i)[j]+"'" for j in getSFLinkRefs(i)]),type_name,self.config['versionName'],i[0][':SF'],type_name)  for i in sf]) # nosec B608
-                #print(sql)
+                dprint(sql)
                 try:
                     cur.execute(sql)
                 except Exception:
@@ -612,13 +613,13 @@ class CopyTemplateFiles:
             pList=delSensorConnectionPList(pList,remove_sensor_source_ids,'Source')
         writePropertyListIDMToFile(pList,dir_macro,dir_macro+'\\'+target_name+'.idm',self.config)
 
-        #print(dir_macro+'\\'+target_name+'.idm')
+        dprint(dir_macro+'\\'+target_name+'.idm')
         filedata=readFileToList(source_dir+'\\'+source_name+'\\'+source_name+'.idc')
         if update_sensors:
             filedata=delSensorConnection(filedata,remove_sensor_source_ids,'Source')
         if update_sf:
             sf_names=[i[0][':N'] for i in sf]
-            #print(sf_names)
+            dprint(sf_names)
             filedata=[i for i in filedata if not [True for j in sf_names if j in i]]
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\'+target_name+'.idc')   
         
@@ -650,23 +651,23 @@ class CopyTemplateFiles:
         writeToFileFromList(filedata,dir_macro,dir_macro+'\\Sensor-macro.idm')   
 
         #check if folder contains macros
-        #print('+++check if folder contains macros+++')
-        #print(dir_macro)
-        #print(source_dir)
+        dprint('+++check if folder contains macros+++')
+        dprint(dir_macro)
+        dprint(source_dir)
         if os.path.exists(source_dir+'\\'+source_name):
             for root, dirs, files in os.walk(source_dir+'\\'+source_name):
                 for file in files:
                     if (file.endswith('.idm') or file.endswith('.idc')) and file.lower() not in ['sensor-macro.idm',source_name.lower()+'.idm',source_name.lower()+'.idc','sf-macro.idm','sf-macro.idc']:
                         #subfolder=os.path.dirname(os.path.join(root, file)).replace('/','\\').split(source_name+'\\'+source_name)[1]
-                        #print(os.path.splitext(os.path.basename(file))[0])
+                        if debug_enabled(): dprint(os.path.splitext(os.path.basename(file))[0])
                         path_target=dir_macro+os.path.join(root, file).split(source_dir+'\\'+source_name)[1].split(file)[0]
                         copyFileReplaceStr(os.path.join(root, file),path_target,path_target+file,[source_name],[target_name],{j : replaceDict[i][j] for i in replaceDict if file.lower().split('.')[0]==i.lower() for j in replaceDict[i]})
                         
-                #print(dirs)
+                dprint(dirs)
                 for dir in dirs: 
-                    #print(os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
+                    if debug_enabled(): dprint(os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                     createSubDir(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
-                    #print(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
+                    if debug_enabled(): dprint(dir_macro+os.path.join(root, dir).split(source_dir+'\\'+source_name)[1])
                 
             if os.path.exists(dir_macro+'\\'+source_name):
                 os.rename(dir_macro+'\\'+source_name, dir_macro+'\\'+target_name)

@@ -178,6 +178,7 @@ def districts_settings():
         DISTRICTS_TEST_DB_HOST (localhost), DISTRICTS_TEST_DB_PORT (5432)
         DISTRICTS_TEST_PATH_PROJECTS (temporary folder), DISTRICTS_TEST_PATH_DISTRICTS,
         DISTRICTS_TEST_PATH_POSTGRESQL
+        DISTRICTS_TEST_DEBUG=1: plugin debug log (DISTRICTS_DEBUG_LOG_DIR, default <projects>/logs)
     """
     if IN_QGIS:
         return
@@ -207,6 +208,8 @@ def districts_settings():
         import tempfile
         path_projects = os.path.join(tempfile.gettempdir(), "districts_autotest")
     os.makedirs(path_projects, exist_ok=True)
+    # debug log of the test run next to the test projects, not in the QGIS profile
+    os.environ.setdefault("DISTRICTS_DEBUG_LOG_DIR", os.path.join(path_projects, "logs"))
 
     settings.beginGroup("districts")
     for key, value in {
@@ -216,7 +219,9 @@ def districts_settings():
         "pathProjects": os.path.join(path_projects, ""),
         "pathDistricts": os.environ.get("DISTRICTS_TEST_PATH_DISTRICTS", "C:\\Program Files (x86)\\IDA Districts\\"),
         "pathPostgresql": os.environ.get("DISTRICTS_TEST_PATH_POSTGRESQL", "C:\\Program Files\\PostgreSQL\\18\\"),
-        "debug": False,
+        # DISTRICTS_TEST_DEBUG=1: debug log file of the plugin (DISTRICTS_DEBUG_LOG_DIR)
+        "debug": os.environ.get("DISTRICTS_TEST_DEBUG", "0") == "1",
+        "debug_console": False,
         "autosave": False,
         "projectName": "",
         "versionName": "",

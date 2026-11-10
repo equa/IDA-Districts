@@ -7,10 +7,11 @@ from .utility import alt_count, getNTPTimeFromString, listToBracketsString, safe
 import re
 import ast
 import traceback
+from .debug_log import dprint, debug_enabled
 
 
 def getSimData(requestedOutputs,networkSimData):
-    #print(networkSimData)
+    dprint(networkSimData)
     calc_from_time=getNTPTimeFromString(networkSimData['calc_time_from'])
     calc_to_time=getNTPTimeFromString(networkSimData['calc_time_to'])
     startup_from_time=getNTPTimeFromString(networkSimData['startup_time_from'])
@@ -58,18 +59,18 @@ def getIDAListComponents(data):
     data=data.replace('""','$empty_str$')
     string_list = re.findall(r"\"([^\"]+)\"", data)    
     string_list=set(string_list)
-    #print(string_list)
+    dprint(string_list)
     # value_str=re.findall(r"\:VALUE\s+\(([A-Za-z0-9_\s+\-\$\\\<\>\=\:\"\/\'\;\,]+)\)", data)
     
     value_list=[]
     for value in re.findall(r"\:VALUE\s+\(([^\)]+)*\)", data):
-        #print(value)
+        dprint(value)
         if ':DICT ' not in value and re.search('[a-zA-Z]', value):
             value_list.append(value)
             data=data.replace(' ('+value+')','')
-            #print(data)
+            dprint(data)
 
-    #print(data)
+    dprint(data)
     
     def replace_func(x):
         if x.group(1):
@@ -80,45 +81,45 @@ def getIDAListComponents(data):
             return ':VALUE\',"""'+value_list.pop()+' """'
 
     for i,s in enumerate(sorted(list(string_list),key=len,reverse=True)):
-        #print(s)
+        dprint(s)
         data=data.replace('"'+s+'"','"${}$"'.format(i))
-    #print(data)
+    dprint(data)
 
     data=data.replace('\n',',')
     data=re.sub(r"\s+", " ", data)
 
-    #print(data)
+    dprint(data)
     #data=re.sub(r"\w\s+\(", parse_bracketsBetweenAlphanumericCharAndOpenBracket, data)
     data=re.sub(r'(\w\s+\()|(\"\s+\()|(\|\s+\()', parse_bracketsBetweenAlphanumericCharAndOpenBracket, data)
-    #print(data)
+    dprint(data)
 
     data=re.sub(r"\w,\s+\(", parse_AlphanumericCharSeparatedOpeningBrackets, data)
-    #print(data)
+    dprint(data)
     
     data=re.sub(r"(\)\s+\w)|(\)\s+\")|(\)\s+\|)", parse_ClosingBracketsConnectedToAlphanumericChar, data)
-    #print(data)
+    dprint(data)
 
     data=re.sub(r"\#\(", parse_hashtag, data)
-    #print(data)
+    dprint(data)
     
     data=re.sub(r"\#2A\(", parse_hashtag2dimArray, data)
-    #print(data)
+    dprint(data)
 
     data=re.sub(r"\#3A\(", parse_hashtag3dimArray, data)
-    #print(data)
+    dprint(data)
 
     data=re.sub(r"\#S\(", parse_hashtagS, data)
-    #print(data)
+    dprint(data)
 
     data=re.sub(r"\)\s+\:", "),':", data)
-    #print(data)
+    dprint(data)
 
     data=re.sub(r"\)\s+\d", parse_closingBracketsConnectedToDigit, data)
 
     data=re.sub(r"\)\s+", ")", data)
 
     data=re.sub(r"\s+\(", '(', data)
-    #print(data)
+    dprint(data)
 
     data=data.replace("(((","[[[\'").replace("((","[[\'").replace("(","[\'").replace("))))))","\']]]]]]").replace(")))))","\']]]]]").replace("))))","\']]]]").replace(")))","\']]]").replace("))","\']]").replace(")","\']").replace(" ","\',\'")
     data=data.replace("|inStream['","|inStream(").replace("']|",")|").replace('][','],[')
@@ -126,20 +127,20 @@ def getIDAListComponents(data):
     for i,s in enumerate(sorted(list(string_list),key=len,reverse=True)):
         data=data.replace('"${}$"'.format(i),'"'+s.replace('\n',' ')+'"')
 
-    #print(data)
+    dprint(data)
     data=data.replace('\\','\\\\')
-    #print(data)
+    dprint(data)
     i=0
     
     value_list.reverse()
     if value_list:
-        #print(value_list)
+        dprint(value_list)
         # Pattern to match `:VALUE` followed by a quoted string (Group 3)
         pattern = r"(:VALUE','\")|(:VALUE',\[':DICT)|(:VALUE')"
         data = re.sub(pattern, replace_func, data)
-    #print(data)
+    dprint(data)
     data=data.replace('$empty_str$','""')
-    #print(data)
+    dprint(data)
 
     return safe_eval(data)
     
@@ -153,25 +154,25 @@ def getImportVars(f_ids,template_data_ex,sensor_dec_data):
     importVars=[]
     importSignals=[]
     for f in f_ids:
-        #print(f)
+        dprint(f)
         for t_d_conn in template_data_ex:
             if t_d_conn['feature']==f['feature'] and t_d_conn['template']==f['template']:
                 for data_ex in t_d_conn['data_ex']:
                     for var in data_ex[':IMPORT']:
-                        #print(var)
-                        #print(var.replace('"','').split('_')[-1])
+                        dprint(var)
+                        if debug_enabled(): dprint(var.replace('"','').split('_')[-1])
                         if not data_ex[':N']==':SELF':
                             importVars.append(var)
                         elif [True for i in sensor_dec_data for j in i['irefs_target'] if str(i['sensor_id'])==var.replace('"','').split('_')[-1] and j['iref'].split('_')[1]==str(f['id'])]:
                             importSignals.append(var)
-    #print(importSignals)
-    #print([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
+    dprint(importSignals)
+    if debug_enabled(): dprint([j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]])
     return importVars+[j for i in sensor_dec_data for j in i['irefs_source'] if (j['iref'].split('_')[1] in [str(f['id']) for f in f_ids] or not(i['function']==6 and i['source_type']==3)) and str(i['sensor_id']) in [var.replace('"','').split('_')[-1] for var in importSignals]]
 
 def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
     exportVars=[]
     counter = alt_count(start=1)
-    #print(template_data_ex)
+    dprint(template_data_ex)
     exportSignalDict={}
 
     for f in f_ids:
@@ -183,7 +184,7 @@ def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
                         if not data_ex[':N']==':SELF':
                             exportVars.append("""({} {} "{}{}" {} {})""".format(next(counter),':SYSTEM' if mode=='network' else ":PLANT",'{}_'.format(f['feature'].capitalize()) if mode=='network' else 'substation b',f['id'],data_ex[':N'],var))
                         elif [True for i in sensor_dec_data for j in i['irefs_source'] if str(i['sensor_id'])==sensor_id and j['iref'].split('_')[1]==str(f['id'])]:
-                            #print(var)
+                            dprint(var)
                             sensor_id=int(sensor_id)
 
                             #check if target type ==supervisory ctrl (3) and measure==5 and function ==individual signals for each target (6)
@@ -201,19 +202,19 @@ def getExportVars(f_ids,template_data_ex,sensor_dec_data,mode):
         exportVars.extend(["""({} :SYSTEM "Sensor-macro" "Sensor_{}" INSIGNAL {})""".format(next(counter),iref,sig_nr) 
             for m in exportSignalDict[k]
             for sig_nr in range(1,m['counter']+1) for iref in m['iref']])
-    #print(exportVars)
+    dprint(exportVars)
     return exportVars
 
 def propertyListIDM(seq):
-    #print(seq)
+    dprint(seq)
     i=0
     comp_list=[]
     dict_={}
     while i<len(seq):
-        #print(i)
-        #print(seq[i])
+        dprint(i)
+        if debug_enabled(): dprint(seq[i])
         if type(seq[i])==list:
-            #print('recursive call')
+            dprint('recursive call')
             comp_list.append(propertyListIDM(seq[i]))
             i+=1
         else:
@@ -230,8 +231,8 @@ def propertyListIDM(seq):
             else:    
                 value=''
                 key=seq[i]
-                #print('key: '+str(key))
-                #print('length: '+str(len(seq))+'; i: '+str(i))
+                dprint('key: '+str(key))
+                dprint('length: '+str(len(seq))+'; i: '+str(i))
                 while i<len(seq)-1:
                     if i<len(seq)-2 and seq[i+2][0]==':':
                         try:
@@ -245,15 +246,15 @@ def propertyListIDM(seq):
                                 "Districts",
                                 MessageCritical
                             )
-                        #print('break loop: '+str(value))
+                        dprint('break loop: '+str(value))
                         break
                     else:
-                        #print('concatenate')
+                        dprint('concatenate')
                         if type(seq[i+1])==list:
                             value+=listToBracketsString(seq[i+1])
                         else:
                             value+=seq[i+1]
-                        #print(value)
+                        dprint(value)
                         i+=1
                 try:
                     if value:
@@ -262,18 +263,18 @@ def propertyListIDM(seq):
                         dict_[seq[i]]=seq[i+1]#.asList()
                 except Exception:
                     dict_[seq[i]]=seq[i+1]
-                #print(dict)
+                dprint(dict)
                 i+=2
         
     if comp_list:
-        #print('return list:' + str(comp_list))
+        dprint('return list:' + str(comp_list))
         return comp_list
     else:
-        #print('return dict:' + str(dict)) 
+        dprint('return dict:' + str(dict)) 
         return dict_    
 
 def propertyListIDC(seq):
-    #print(seq)
+    dprint(seq)
     i=0
     dict_={}
     while i<len(seq):
@@ -284,8 +285,8 @@ def propertyListIDC(seq):
             value=''
             value_list=[]
             key=seq[i]
-            #print('key: '+str(key))
-            #print('length: '+str(len(seq))+'; i: '+str(i))
+            dprint('key: '+str(key))
+            dprint('length: '+str(len(seq))+'; i: '+str(i))
             while i<len(seq)-1:
                 if i==len(seq)-2 or i<len(seq)-2 and seq[i+2][0]==':':
                     try:
@@ -302,10 +303,10 @@ def propertyListIDC(seq):
                             "Districts",
                             MessageCritical
                         )
-                    #print('break loop: '+str(value))
+                    dprint('break loop: '+str(value))
                     break
                 else:
-                    #print('concatenate')
+                    dprint('concatenate')
                     if type(seq[i+1])==list:
                         if value:
                             value_list.append(value)
@@ -314,8 +315,8 @@ def propertyListIDC(seq):
                     else:
                         value+=seq[i+1]
                     i+=1
-            #print(value_list)
-            #print(value)
+            dprint(value_list)
+            dprint(value)
             try:
                 if value_list:
                     if value:
@@ -333,7 +334,7 @@ def propertyListIDC(seq):
                     dict_[seq[i]]=seq[i+1]#.asList()
             except Exception:
                 dict_[seq[i]]=seq[i+1]
-            #print(dict_)
+            dprint(dict_)
             i+=2
         
     return dict_ 
@@ -395,7 +396,7 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
     PhiHxLimit_signal=False
     TbSet_signal=False
     for conn_idc in conns_idc:
-        #print(conn_idc)
+        dprint(conn_idc)
         if conn_idc[':FIRST-LINK'][0].replace('"','') in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') not in dec_models or conn_idc[':FIRST-LINK'][0].replace('"','') not in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') in dec_models:
             if conn_idc[':FIRST-LINK'][0].replace('"','') in dec_models and conn_idc[':LAST-LINK'][0].replace('"','') not in dec_models:
                 model_name=conn_idc[':FIRST-LINK'][0]
@@ -407,7 +408,7 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
                 link=conn_idc[':LAST-LINK'][2]
                 model_name_connected=conn_idc[':FIRST-LINK'][0]
                 link_connected=conn_idc[':FIRST-LINK'][2]
-            #print(model_name)
+            dprint(model_name)
             if not [True for model in data_ex if model[':N']==model_name]:
                 comp=getCompPerName(components_idm,model_name)
                 link_data = getModelInterfaces(getCompTemplate(comp))
@@ -439,11 +440,11 @@ def getDataExFeature(conns_idc,dec_models,components_idm,network_side,sensor_dat
             if PhiHxLimit_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|PhiHxLimit_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|PhiHxLimit_var|']
-                #print(ex[':EXPORT'])
+                if debug_enabled(): dprint(ex[':EXPORT'])
             if TbSet_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|TbSet_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|TbSet_var|']
-                #print(ex[':EXPORT'])
+                if debug_enabled(): dprint(ex[':EXPORT'])
     return data_ex
 
 def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_dec_data,submodel,cur,config):
@@ -451,9 +452,9 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
     PhiHxLimit_signal=False
     TbSet_signal=False
     for conn_idc in conns_idc:
-        #print(conn_idc)
+        dprint(conn_idc)
         if conn_idc[':FIRST-LINK'][0] in dec_models and conn_idc[':LAST-LINK'][0] not in dec_models or conn_idc[':FIRST-LINK'][0] not in dec_models and conn_idc[':LAST-LINK'][0] in dec_models:           
-            #print(conn_idc)
+            dprint(conn_idc)
             if conn_idc[':FIRST-LINK'][0] in dec_models and conn_idc[':LAST-LINK'][0] not in dec_models:
                 model_name=conn_idc[':FIRST-LINK'][0]
                 link=conn_idc[':FIRST-LINK'][2]
@@ -464,12 +465,12 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
                 link=conn_idc[':LAST-LINK'][2]
                 model_name_connected=conn_idc[':FIRST-LINK'][0]
                 link_connected=conn_idc[':FIRST-LINK'][2]
-            #print(model_name)
-            #print('***')
-            #print(link)
-            #print(model_name)
-            #print(model_name_connected)
-            #print(link_connected)
+            dprint(model_name)
+            dprint('***')
+            dprint(link)
+            dprint(model_name)
+            dprint(model_name_connected)
+            dprint(link_connected)
 
             if not [True for model in data_ex if model[':N']==model_name]:
                 comp=getCompPerName(components_idm,model_name)
@@ -486,13 +487,13 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
                     ':CONN-IDC':conn_idc}]
             if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data if i['source_type']==3 and i['function']==5 and submodel==str(getSupervisorySubmodel(cur,config)['submodel']) 
                 and [True for j in i['irefs_target'] if j['cosim']==submodel and not j['network_side']]]:
-                #print('supervisory target')
+                dprint('supervisory target')
                 data_ex+=[{':N':model_name,':T': 'OUT',
                     ':IMPORT': [],
                     ':EXPORT': [link],
                     ':CONN-IDC':conn_idc}]
             if model_name==':SELF' and link in ['"Int_Ref_Sensor_Target_{}"'.format(i['sensor_id']) for i in sensor_dec_data for j in i['irefs_target'] if (model_name_connected not in dec_models and str(submodel)==j['submodel'] and not network_side or model_name_connected in dec_models and str(submodel)!=j['submodel'] and network_side)]:
-                #print('target')
+                dprint('target')
                 data_ex+=[{':N':model_name,':T': 'IN',
                     ':IMPORT': [link],
                     ':EXPORT': [],
@@ -510,25 +511,25 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
             if PhiHxLimit_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|PhiHxLimit_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|PhiHxLimit_var|']
-                #print(ex[':EXPORT'])
-                #print(ex[':IMPORT'])
+                if debug_enabled(): dprint(ex[':EXPORT'])
+                if debug_enabled(): dprint(ex[':IMPORT'])
             if TbSet_signal:
                 ex[':EXPORT']=[i for i in ex[':EXPORT'] if not i=='|TbSet_var|']
                 ex[':IMPORT']=[i for i in ex[':IMPORT'] if not i=='|TbSet_var|']
-                #print(ex[':EXPORT'])
-                #print(ex[':IMPORT'])
+                if debug_enabled(): dprint(ex[':EXPORT'])
+                if debug_enabled(): dprint(ex[':IMPORT'])
                 
     return data_ex
     
 def getCompImportPos(comp_name,var_name,data_ex):
-    #print('--getCompImportPos--')
-    #print(comp_name)
-    #print(var_name)
+    dprint('--getCompImportPos--')
+    dprint(comp_name)
+    dprint(var_name)
     var_counter=1
     i=0
     for comp_ex in data_ex:
         if comp_name==data_ex[i][':N']:
-            #print(i)
+            dprint(i)
             break
         var_counter+=len(comp_ex[':IMPORT'])  
         i+=1
@@ -537,8 +538,8 @@ def getCompImportPos(comp_name,var_name,data_ex):
     #        #print(imp)
             break
         var_counter+=1
-    #print(var_counter)
-    #print('++')
+    dprint(var_counter)
+    dprint('++')
     return var_counter
     
 def getCompPerName(pList,name):
@@ -705,11 +706,11 @@ def getBestParmRunsInputs (file_data):
         if ":T PARMRUN-SUMMARY-ITEM" in file_data[i]:
             i+=1
             inputs=file_data[i].split('INPUT :V (')[1].strip().strip(')').split(' ')
-            #print(inputs)
+            dprint(inputs)
             i+=1
             try:
                 error=[float(i) for i in file_data[i].split('OUTPUT :V (')[1].strip().strip(')').split(' ')]
-                #print(error)
+                dprint(error)
                 if error[0]<min_error[0]:
                     min_error=error
                     min_inputs=inputs

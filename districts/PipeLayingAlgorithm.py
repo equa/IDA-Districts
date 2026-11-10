@@ -21,6 +21,7 @@ from .utility_functions.topology import (
     updateSubmodels,
 )
 from .utility_functions.zeta import updateJunctionZeta
+from .utility_functions.debug_log import dprint
 
 
 def selectedId(text):
@@ -40,7 +41,7 @@ class WorkerPipeLaying(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print(args)
+        dprint(args)
         self.signals=WorkerPipeLayingSignals()
 
                 
@@ -63,7 +64,7 @@ class WorkerPipeLaying(QRunnable):
         self.tsup_max=kwargs['tsup_max']
         self.heat_demand_min=kwargs['heat_demand_min']
         self.heating_load_min=kwargs['heating_load_min']
-        #print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        dprint('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         self.heating_lines_type=selectedId(kwargs['heating_type_lines'])
         self.heating_pipe_bundle=selectedId(kwargs['pipe_bundle_heating'])
         self.heating_customer_template=selectedId(kwargs['heating_template_customer'])
@@ -148,7 +149,7 @@ class WorkerPipeLaying(QRunnable):
 
     @pyqtSlot()
     def run(self):
-        #print('start pipe laying')
+        dprint('start pipe laying')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         missing=self.missingSelections()
@@ -173,7 +174,7 @@ class WorkerPipeLaying(QRunnable):
                     connectionModes.append('heating')
                 if self.check_cooling_network:
                     connectionModes.append('cooling')
-                #print(connectionModes)
+                dprint(connectionModes)
                 self.srid=loadProjectConfig(self.config,signals=self.signals)['srid']
                 self.status('Preparing the temporary tables')
                 self.prepareDB_pipeLaying(self.config['versionName'])
@@ -220,7 +221,7 @@ class WorkerPipeLaying(QRunnable):
                 
     def pauseResume(self):
         self.is_paused = not self.is_paused
-        #print(self.is_paused)
+        dprint(self.is_paused)
         if self.is_paused:
             self.signals.status.emit('Paused (press Pause/Resume again to continue)')
         else:
@@ -293,7 +294,7 @@ class WorkerPipeLaying(QRunnable):
             sql="""UPDATE temp.customers c SET template=a.template FROM (
             SELECT {} AS template,cc.cid FROM temp.lines l, temp.customer_connections cc, {} AND cc.lid=l.id
     ) a WHERE a.cid=c.id; """.format(int(customer_template.split(':')[0]),lines_join) # nosec B608
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql)
     
     def finishNetworkTopology(self,version):
@@ -309,7 +310,7 @@ class WorkerPipeLaying(QRunnable):
 TRUNCATE temp.streets_help;
 INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(geom) FROM temp.lines;"""
             self.cur.execute(sql)    
-            #print(sql)                     
+            dprint(sql)                     
             #create network topology
             sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
             self.cur.execute(sql)
@@ -338,12 +339,12 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         updateSubmodels(self.cur,self.config)
         uri = QgsDataSourceUri()
         uri.setConnection(self.config['host'], self.config['port'], self.config['projectName'], self.username, self.password)
-        #print(uri)
+        dprint(uri)
         checkLineDirectionPipeLaying(self.cur,version,self.tolerance,self.network)
         self.setProgress(97)
         self.status('Loading the result layers')
         runInMainThread(showTempTables,uri,self.config,self.plugin_dir,self.signals,self.cur)
-        #print('finished pipe laying')
+        dprint('finished pipe laying')
         self.signals.progress.emit(100)
         self.status('Stopped and finished with the pipes laid so far: please save or reject the results' if self.is_killed else 'Finished: please save or reject the results')
         self.signals.finished.emit('finished')
@@ -357,12 +358,12 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
     WHERE  table_schema = '{}'
     AND    table_name = 'terrain'
     ) AS exists;""".format(version) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         
         self.cur.execute(sql)
         if self.cur.fetchone()['exists']:
-            #print('Height layer exists')
-            #print('Update point layers')
+            dprint('Height layer exists')
+            dprint('Update point layers')
             for f in ['customers','energy_plants']:
                 #Update customer height
                 sql= """UPDATE temp.{} f set geom=ST_MakePoint(ST_X(geom),ST_Y(geom),a.height) FROM (
@@ -379,7 +380,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
                 ORDER BY sub.id
     ) a
     WHERE f.id=a.id;""".format(f,version,f,version) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql)
             
             #Update network height
@@ -398,39 +399,39 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
 )
 UPDATE temp.lines l SET geom=sub.geom
     FROM sub WHERE sub.id=l.id;""".format(self.srid,version,version) # nosec B608
-            #print(sql) 
+            dprint(sql) 
             self.cur.execute(sql) 
             
     def insertJunctionConnections(self):
         "insert node connections into table junction_connections   "
         sql="""INSERT INTO temp.junction_connections (jid,lid) SELECT j.id ,l.id FROM temp.junctions j,temp.lines l WHERE St_DWithIn(j.geom,l.geom,{});""".format(self.tolerance) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)
         
     def insertCustomerConnections(self):
         "insert customer connections into table customer_connections"
         sql="""INSERT INTO temp.customer_connections (cid,lid,c_seq) SELECT c.id, l.id, 1 FROM temp.customers c,temp.lines l WHERE St_DWithIn(c.geom,l.geom,{});""".format(self.tolerance) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)
         
     def insertPlantConnections(self,version):
         "insert energy_plant connections  into table energy_plant_connections"
         sql="""INSERT INTO temp.energy_plant_connections (epid,lid,ep_seq) SELECT ep.id,l.id, 1 FROM temp.energy_plants ep,temp.lines l WHERE St_DWithIn(ep.geom,l.geom,{});""".format(self.tolerance) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)
         
     def updateJunctionConnections(self):
         "UPDATE node connections: n_connections & conn_type"
-        #print("UPDATE node connections: n_connections & conn_type")
+        dprint("UPDATE node connections: n_connections & conn_type")
         sql="""UPDATE temp.junctions SET n_connections=jc.connections FROM (SELECT count(*) AS connections,jid FROM temp.junction_connections GROUP BY jid) jc WHERE jc.jid=id;"""
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)
         sql="""UPDATE temp.junctions SET type=4 WHERE n_connections=3;"""
         self.cur.execute(sql)
        
     def mergeLines(self):
         "merge lines and delete nodes with 2 connections"
-        #print("merge lines")
+        dprint("merge lines")
         i=10000000
         flag=True
         sql="SELECT count(*) AS n FROM temp.junctions WHERE n_connections=2;"
@@ -439,7 +440,7 @@ UPDATE temp.lines l SET geom=sub.geom
         while flag:
             self.setProgress(89+5*(i-10000000)/n_merge)
             sql="SELECT nc.jid, nc.lid FROM temp.junctions j, temp.junction_connections nc WHERE j.n_connections=2 AND j.id=nc.jid ORDER BY j.id LIMIT 2;"
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql) 
             junction_conn=self.cur.fetchall()
             if junction_conn:
@@ -447,7 +448,7 @@ UPDATE temp.lines l SET geom=sub.geom
                 jid=junction_conn[0]['jid']
                 lid1=junction_conn[0]['lid']
                 lid2=junction_conn[1]['lid']
-                #print(str(lid1)+";"+str(lid2))
+                dprint(str(lid1)+";"+str(lid2))
                 #snap line strings, because inaccurancies can occur in the topology
                 sql="""INSERT INTO temp.lines (id,type,geom,pipe_bundle_type_id,network)
     SELECT {},l1.type,
@@ -456,32 +457,32 @@ UPDATE temp.lines l SET geom=sub.geom
     FROM temp.lines l1, temp.lines l2
     WHERE l1.id={} and l2.id={}
     ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom)DESC LIMIT 1;""".format(i,lid1,lid2)   # nosec B608                                            
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
                 sql="UPDATE temp.junction_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
                 sql="UPDATE temp.customer_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
                 sql="UPDATE temp.energy_plant_connections SET lid="+str(i)+" WHERE lid IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
                 sql="DELETE FROM temp.lines WHERE id IN ("+str(lid1)+","+str(lid2)+");" # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
                 sql="DELETE FROM temp.junctions WHERE id="+str(jid)+";" # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
                 sql="DELETE FROM temp.junction_connections WHERE jid="+str(jid)+";" # nosec B608
-                #print(sql)
+                dprint(sql)
                 self.cur.execute(sql) 
             else:
                 flag=False
         
     def deleteUnconnectedCustomers(self,version):
         sql="""DELETE FROM temp.customers c WHERE id NOT IN (SELECT c.id FROM temp.customers c, temp.lines l WHERE St_DWithIn(c.geom,l.geom,{}));""".format(self.tolerance) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)
         
     def insertNodes(self,version):
@@ -495,12 +496,12 @@ UPDATE temp.lines l SET geom=sub.geom
                             SELECT v.id FROM temp.streets_help_vertices_pgr v JOIN temp.energy_plants ep ON St_DWithIn(v.the_geom,ep.geom,{}) 
                             )
                     GROUP BY v.id ORDER BY v.id;""".format(self.network,self.tolerance,self.tolerance,self.tolerance) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)        
         
     def getPlants(self,version):
         sql="""SELECT ep.id epid, st_v.id::integer AS v_ep FROM temp.energy_plants ep, temp.streets_help_vertices_pgr st_v WHERE ST_dwithin(ep.geom,st_v.the_geom,{}) AND {} = ANY(ep.network);""".format(self.tolerance,self.network) # nosec B608
-        #print(sql) 
+        dprint(sql) 
         self.cur.execute(sql)   
         return self.cur.fetchall()   
         
@@ -542,7 +543,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom))
                 FROM sub, temp.streets_help st, temp.energy_plants ep
                 WHERE ST_Length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geom)))=sub.min_dist {};""".format(self.network,plantConnConstr) # nosec B608
-        #print("""insert energy plant connections: {}""".format(sql));
+        dprint("""insert energy plant connections: {}""".format(sql));
         self.cur.execute(sql);
 
     def customerConnConstr(self,mode):
@@ -569,7 +570,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         customerConnConstr=self.customerConnConstr(mode)
         
         if self.customer_connection_mode=='shortest-way-connection': 
-            #print('shortest-way-connection')
+            dprint('shortest-way-connection')
             # the nearest street of each customer is searched with the spatial index; all streets with the minimal distance get a connection
             sql="""With nearest AS(
                     SELECT c.id, (SELECT ST_Distance(st.geom,ST_Force2D(c.geom)) FROM temp.streets_help st ORDER BY st.geom <-> ST_Force2D(c.geom) LIMIT 1) AS dist
@@ -582,14 +583,14 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 INSERT INTO temp.streets_help(geom)
                     SELECT geom FROM (SELECT geom, ST_Length(geom) AS length, min(ST_Length(geom)) OVER (PARTITION BY id) AS min_dist FROM candidates) a
                     WHERE length=min_dist;""".format(self.network,customerConnConstr) # nosec B608
-            #print("""insert customer connections: {}""".format(sql))
+            dprint("""insert customer connections: {}""".format(sql))
             self.cur.execute(sql)
         if self.customer_connection_mode=='loop-in-connection':  
             sql="""SELECT count(id) AS numberofid FROM temp.customers;""";
-            #print("""insert customer connections: {}""".format(sql))
+            dprint("""insert customer connections: {}""".format(sql))
             self.cur.execute(sql)
             numberofid =self.cur.fetchone()['numberofid']
-            #print(numberofid)
+            dprint(numberofid)
             for i in range(0,numberofid):
                 sql="""With sub AS(
                         With sub AS(
@@ -601,7 +602,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                                 SELECT ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)) AS line
                                     FROM sub, temp.customers c, temp.streets_help st
                                     WHERE ST_length(ST_MakeLine(ST_ClosestPoint(st.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)))=sub.length AND c.id=sub.id {};""".format(self.tolerance,customerConnConstr) # nosec B608
-                #print("""insert customer connections: {}""".format(sql))
+                dprint("""insert customer connections: {}""".format(sql))
                 self.cur.execute(sql)
                 
     def generateTopology(self,version):
@@ -615,20 +616,20 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 SELECT geom, costs_eur7m as costs FROM "{}".streets
             )
             UPDATE temp.streets_help sh SET costs_eur7m=sub.costs FROM sub WHERE sh.geom && ST_Expand(sub.geom,{}) AND St_dWithin(ST_LineSubString(sh.geom,0.001,0.999),sub.geom,{});""".format(version,self.tolerance,self.tolerance) # nosec B608
-        #print(sql)  
+        dprint(sql)  
         self.cur.execute(sql)   
         #drop table streets_help_vertices_pgr       
         sql="DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;"
         self.cur.execute(sql)    
-        #print(sql)                     
+        dprint(sql)                     
         #create network topology
         sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
         self.cur.execute(sql)    
-        #print(sql)   
+        dprint(sql)   
             
         sql="UPDATE temp.streets_help SET length_m=st_length(geom);"
         self.cur.execute(sql)    
-        #print(sql)   
+        dprint(sql)   
                
     def networkHelp(self,version,plants,mode):
         #reate table network_help-> contains all shortest path customer connections to the energy plant network (shortet way connections of the plants), which doesn`t depend on heating demand;
@@ -651,13 +652,13 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     OIDS=FALSE
                 );""".format(self.srid) # nosec B608
         self.cur.execute(sql)    
-        #print(sql) 
+        dprint(sql) 
               
         for plant_counter,plant in enumerate(plants):
             v_ep=plant['v_ep']
             epid=plant['epid']
             sql="""SELECT c.id AS cid,st_v.id::integer as v_c FROM temp.customers c, temp.streets_help_vertices_pgr st_v WHERE st_dwithin(c.geom,st_v.the_geom,{}) AND {}=ANY(c.network);""".format(self.tolerance,self.network) # nosec B608
-            #print(sql) 
+            dprint(sql) 
             self.cur.execute(sql)
             if mode=='heating':
                 if self.check_heating_network_costs:
@@ -717,7 +718,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                     INSERT INTO temp.lines_{} (id,type,geom)
                         SELECT st.id,{},ST_Force3D(st.geom)
                             FROM sub, temp.streets_help st WHERE st.id=sub.edge AND st.id NOT IN (SELECT id FROM temp.lines_{});""".format(sid_first,sid,mode,type,mode) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql)   
         
     def connectCustomersNetwork(self,version,mode,connectionModes):
@@ -727,7 +728,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         look first if the connection of a single customer is enough; 
         otherwise look for combined connections;
         look only in the tree with most propability (highest heat density)"""
-        #print('Connect customers')
+        dprint('Connect customers')
         
         linearEnergyConstr=""
         energyConstr=1
@@ -767,11 +768,11 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
                 while self.is_paused and not self.is_killed: #pause algorithm
                     time.sleep(0.1)
                 if self.is_killed: #abort algorithm; run() finishes the network topology with existing pipes
-                    #print('abort pipe laying')
+                    dprint('abort pipe laying')
                     return
 
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql)  
                 count_old=self.cur.fetchone()['count_pipes']
 
@@ -788,25 +789,25 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
         FROM sub, temp.network_help nh
         WHERE nh.cid=sub.cid AND nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND nh.epid=sub.epid {}
         GROUP BY nh.lid,nh.geom;""".format(energyConstr,mode,self.tolerance,customerConnConstr,mode,energyConstrGroupBy,mode,type,pipe_bundle_type_id,mode,linearEnergyConstr) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql) 
                 sql="""SELECT count(*) AS count_pipes FROM temp.lines_{};""".format(mode) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql)  
                 count=self.cur.fetchone()['count_pipes']
                 if count==count_old:
                     flag=True
-                    #print("""single connection not successful ; count={}""".format(count))
+                    dprint("""single connection not successful ; count={}""".format(count))
                 else:
                     customer_count += 1
                     self.progressMode(0.52+0.48*customer_count/customer_sum)
                     self.status('Laying the pipes: {} customer connections laid'.format(customer_count))
-                    #print("""single connection successful ; count={}""".format(count))
+                    dprint("""single connection successful ; count={}""".format(count))
                 count_old=count
             flag=False
             
             #look for combined connections with two or more customer
-            #print("look for combined connections with two or more customer")
+            dprint("look for combined connections with two or more customer")
             count=0
             #cid with the highest linear energy density per tree!!!
             #loop over connected trees
@@ -814,7 +815,7 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
     FROM temp.network_help nh, temp.lines_{} l
     WHERE nh.lid NOT IN (SELECT id FROM temp.lines_{}) AND St_dWithIn(nh.geom,l.geom,{})
     GROUP BY nh.lid;""".format(mode,mode,self.tolerance) # nosec B608
-            #print(sql) 
+            dprint(sql) 
             self.cur.execute(sql)  
             trees=self.cur.fetchall()
             counter_tree=0
@@ -822,7 +823,7 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
                 tree=trees[counter_tree]
                 counter_tree += 1
                 lid=tree['lid']
-                #print(lid) 
+                dprint(lid) 
                 #Select customer with highest energy density from customers in tree
                 sql="""WITH sub AS(
     SELECT nh.cid FROM temp.network_help nh 
@@ -835,14 +836,14 @@ SELECT c.id AS cid, {} AS energy
     GROUP BY c.id,{},nh.epid
     ORDER BY {}/sum(st_length(nh.geom)) DESC
     LIMIT 1;""".format(lid,energyConstr,mode,lid,energyConstr,energyConstr) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql)  
                 
                 energy=0
                 length=0
                 customer=self.cur.fetchone()
                 cid=customer['cid']
-                #print("----------cid = "+str(cid));
+                dprint("----------cid = "+str(cid));
                 cids=str(cid)
                 energy=customer['energy']
                 #get combined customers ordered by energy density
@@ -862,7 +863,7 @@ SELECT sub.cid, {} AS energy, nh.epid
         nh.lid NOT IN (SELECT id FROM temp.lines_{})
     GROUP BY sub.cid,{}, nh.epid\
     ORDER BY {}/Sum(St_Length(nh.geom)) DESC;""".format(cid,mode,cid,mode,mode,self.tolerance,energyConstr,cid,mode,energyConstr,energyConstr) # nosec B608
-                #print(sql) 
+                dprint(sql) 
                 self.cur.execute(sql)  
                 customers=self.cur.fetchall()
                 counter_customers=0
@@ -883,18 +884,18 @@ SELECT sub.cid, {} AS energy, nh.epid
         GROUP BY nh.geom,nh.lid
 )
 SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid) # nosec B608
-                    #print(sql) 
+                    dprint(sql) 
                     self.cur.execute(sql)  
                     length=self.cur.fetchone()['length']
-                    #print(energy)
-                    #print(length)
-                    #print(float(energy)/float(length))
-                    #print(f"cid:{cid} ;energy: {energy}; density: {str(float(energy)/float(length))}")
+                    dprint(energy)
+                    dprint(length)
+                    dprint(float(energy)/float(length))
+                    dprint(f"cid:{cid} ;energy: {energy}; density: {str(float(energy)/float(length))}")
                     if float(energy)/float(length) >= linearEnergyDensityMin:
                         flag=True
-                        #print("    flag combined="+str(flag)+" ; cid="+str(cid))
+                        dprint("    flag combined="+str(flag)+" ; cid="+str(cid))
                         sql="INSERT INTO temp.lines_"+mode+" (id,type,geom,pipe_bundle_type_id) SELECT nh.lid,"+type+", ST_Force3D(nh.geom),"+pipe_bundle_type_id+" FROM temp.network_help nh WHERE nh.epid="+str(epid)+" AND nh.cid IN ("+cids+") AND nh.lid NOT IN (SELECT id FROM temp.lines_"+mode+") GROUP BY nh.lid,nh.geom;"; # nosec B608
-                        #print(sql) 
+                        dprint(sql) 
                         self.cur.execute(sql) 
                         customer_count += 1
                         self.progressMode(0.52+0.48*customer_count/customer_sum)

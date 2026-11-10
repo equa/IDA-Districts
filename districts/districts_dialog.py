@@ -14,6 +14,9 @@ from qgis.PyQt.QtGui import QPainter
 from qgis.utils import iface
 from .utility_functions.compat import MessageCritical, get_event_pos
 from .utility_functions.utility import getAuthNames, load_plugin_settings
+from .utility_functions.debug_log import log_dir as debug_log_dir, log_file as debug_log_file
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 import sys
 
 current_dir = os.path.dirname(__file__)
@@ -79,6 +82,11 @@ class DistrictsSettingsDialog(QtWidgets.QDialog):
         self.lineEdit_pathPostgresql.setText(config["pathPostgresql"].replace('////','//'))
         self.lineEdit_districts_api_delay.setText(config["districts_api_delay"])
         self.checkBox_debug.setChecked(config["debug"])
+        self.checkBox_debug_console.setChecked(config["debug_console"])
+        self.checkBox_debug_console.setEnabled(config["debug"])
+        self.checkBox_debug.toggled.connect(self.checkBox_debug_console.setEnabled)
+        self.lineEdit_debugLogFile.setText(debug_log_file())
+        self.btn_openDebugLogFolder.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(debug_log_dir())))
         self.groupBox_autosave.setChecked(config["autosave"])
         self.lineEdit_autosave_dt.setText(config["autosave_dt"])
         self.checkBox_exportInvokedFeatures.setChecked(config["exportInvokedFeatures"])

@@ -39,10 +39,11 @@ from .outputs import WorkerSetRequestedOutputs
 from .invoke_network import WorkerBuildNetworkModel
     
 import traceback
+from .utility_functions.debug_log import dprint
 
 def addBoreholefieldTableRow(dlg,main):
     """Insert table row"""
-    #print('-------insert row---------------')
+    dprint('-------insert row---------------')
     dropdowns=[[20,'public','liquids','id','liquid']]
 
     maxId=max([getMaxIdAcrossSchemas(main.config,main.cur,'borehole_fields')+1]+[int(dlg.tableWidget.item(i,0).text())+1 for i in range(dlg.tableWidget.rowCount())])
@@ -106,7 +107,7 @@ def setBoreholeFieldSettings(dlg,main):
     
     sql=""
     for row in range(dlg.tableWidget.rowCount()):
-        #print(row)
+        dprint(row)
         boreholefieldsData[int(table.item(row, 0).text())]={'ep_id': dlg.tableWidget.cellWidget(row, 1).currentText(),'zhole': table.item(row,2).text(),'rhole': table.item(row,3).text(),'rb': table.item(row,4).text(),
             'rpipegrout': table.item(row,5).text(),'rpipeearth': table.item(row,6).text(),'rgroutgrout': table.item(row,7).text(),'rgroutearth': table.item(row,8).text(), 'rringearth': table.item(row,9).text(),
             'cpgrd': table.item(row,10).text(),'lambgrd': table.item(row,11).text(),'rhogrd': table.item(row,12).text(),'cpgrout': table.item(row,13).text(),
@@ -117,7 +118,7 @@ def setBoreholeFieldSettings(dlg,main):
             'nzhole': table.item(row,29).text(),'nlayt': table.item(row,30).text(),'n1': table.item(row,31).text(),'n2': table.item(row,32).text(),
             'n3': table.item(row,33).text(),'toutput': table.item(row,34).text(),'tmean': table.item(row,35).text(),'geotgrad': table.item(row,36).text()}
     
-    #print(boreholefieldsData)
+    dprint(boreholefieldsData)
     
     sql="""TRUNCATE "{}".borehole_fields;""".format(main.config['versionName'])
     
@@ -136,7 +137,7 @@ def setBoreholeFieldSettings(dlg,main):
             boreholefieldsData[key_table]['lambliq'],boreholefieldsData[key_table]['tmean'],boreholefieldsData[key_table]['geotgrad']) # nosec B608               
     
     try:
-        #print(sql)
+        dprint(sql)
         main.cur.execute(sql)
         closeDialog(dlg)
     except Exception as e:
@@ -221,7 +222,7 @@ def openSupervisoryCtrl(cur,plugin_dir,config):
     Supervisory_control(plugin_dir,config)
     #setSupervisoryCrtlSubmodel(dlg,cur)
     file = config['pathProjects']+'{}\\versions\\{}\\supervisory_control\\supervisory_control.idm'.format(config['projectName'],config['versionName'])
-    #print(file)
+    dprint(file)
     worker_openSupervisory = WorkerOpenModelCmd(file,config)
     QThreadPool.globalInstance().start(worker_openSupervisory)
     worker_openSupervisory.signals.error.connect(show_error_message)
@@ -247,7 +248,7 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
     return True
         
 def openModel(dlg,plugin_dir,config,mode='network'):
-    #print('-***-')
+    dprint('-***-')
     if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
         return False
@@ -255,10 +256,10 @@ def openModel(dlg,plugin_dir,config,mode='network'):
     for i in range(dlg.combo_submodels.count()):
         if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i):        
             submodel=dlg.combo_submodels.itemText(i)
-            #print(submodel)
+            dprint(submodel)
             dir=config['pathProjects']+'{}\\versions\\{}\\'.format(config['projectName'],config['versionName'])
             fname=dir+'{}_{}.idm'.format(mode,submodel)
-            #print(fname)
+            dprint(fname)
             worker_openNetwork = WorkerOpenModelCmd(fname,config,submodel=submodel)
             QThreadPool.globalInstance().start(worker_openNetwork) 
             worker_openNetwork.signals.error.connect(show_error_message)
@@ -267,7 +268,7 @@ def openModel(dlg,plugin_dir,config,mode='network'):
 
 def setNetworkSimData(dlg,plugin_dir,config):
     """run network simulation"""
-    #print("run network simulation")
+    dprint("run network simulation")
     networkSimData={}
     #-----------calc type------------
     if dlg.rbtn_calc_type_periodic.isChecked():
@@ -291,7 +292,7 @@ def setNetworkSimData(dlg,plugin_dir,config):
         return False
     else:
         networkSimData['max_timestep']=dlg.max_timestep.text()
-    #print(networkSimData)                
+    dprint(networkSimData)                
     writeNetworkSimData(config,networkSimData)
     return networkSimData
         
@@ -313,17 +314,17 @@ def runModel(dlg,plugin_dir,config):
                 if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i):        
                     submodel=dlg.combo_submodels.itemText(i)
             
-                    #print('----Update simulation data----')
+                    dprint('----Update simulation data----')
                     dir=config['pathProjects']+'{}\\versions\\{}\\'.format(config['projectName'],config['versionName'])
                     fname=dir+'network_{}.idm'.format(submodel)
-                    #print(fname)
+                    dprint(fname)
                     components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
                     
                     data_idm=[]
                     for comp in components_idm:
-                        #print(comp)
+                        dprint(comp)
                         if getCompClass(comp)=='SIMULATION_DATA':
-                            #print('++++++++simulation data+++++++')
+                            dprint('++++++++simulation data+++++++')
                             data_idm.append(propertyListCompsIDM(getIDAListComponents(getSimData(requestedOutputs,networkSimData))))             
                         else:
                             data_idm.append(comp) 
@@ -345,9 +346,9 @@ def buildModel(dlg,main):
         if dlg.combo_network_models.itemText(i) != tr('@default','check_all_items') and dlg.combo_network_models.itemChecked(i):        
             networks.append(dlg.combo_network_models.itemText(i))
                 
-    #print(networks)
+    dprint(networks)
     submodels=[dlg.combo_submodels.itemText(i) for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)]
-    #print(submodels)
+    dprint(submodels)
     if networks and submodels:
         exclude_features=checkTopologyBeforeBuild(main,networks)
         if exclude_features is None:
@@ -433,8 +434,8 @@ Should the topology be updated with 'Generate network topology' or the build be 
 
 def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
     """set requested outputs"""
-    #print("set requested outputs")
-    #print(config)
+    dprint("set requested outputs")
+    dprint(config)
     worker_setRequestedOutputs = WorkerSetRequestedOutputs(config=config,plugin_dir=plugin_dir,dlg=dlg,requestedOutputs=requestedOutputs)
     worker_setRequestedOutputs.signals.error.connect(show_error_message)
     worker_setRequestedOutputs.signals.progress.connect(dlg.update_progress)   
@@ -443,7 +444,7 @@ def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
 
 def setModellingSettings(plugin_dir,config,dlg):
     """set modelling settings"""
-    #print("set modelling settings")
+    dprint("set modelling settings")
     modellingSettings={}
     #pipe settings
     #-------------fd pipe------------
@@ -495,7 +496,7 @@ def buildBuildingModel(dlg):
     submodel_templates={dlg.tableWidget.cellWidget(i,0).currentText(): dlg.tableWidget.cellWidget(i,1).currentText() for i in range(dlg.tableWidget.rowCount())}
 
     if submodel_templates:
-        #print(submodel_templates)
+        dprint(submodel_templates)
         config=getDBConnectionData(plugin_dir)
         conn=dbConnect(config,False)
         if conn:
@@ -503,7 +504,7 @@ def buildBuildingModel(dlg):
                 cur=conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)  
                 for submodel in submodel_templates:
                     ida_scripts=[]
-                    #print(submodel)
+                    dprint(submodel)
                     sql="""SELECT 
   (ST_XMax(ST_Extent(geom))-ST_XMin(ST_Extent(geom)))/2 + ST_XMin(ST_Extent(geom)) AS x_center, 
   (ST_YMax(ST_Extent(geom))-ST_YMin(ST_Extent(geom)))/2 + ST_YMin(ST_Extent(geom)) AS y_center
@@ -511,13 +512,13 @@ FROM "{}".buildings
 WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     cur.execute(sql)
                     center=cur.fetchone()
-                    #print(center)
+                    dprint(center)
                     
                     sql="""SELECT b.id,b_id,z_id,ST_AsText(geom) AS geom,z_height_m,z_bh_m, win_facade_ratio, z_construction, zt.name AS z_template, u.name AS room_unit 
     FROM "{}".buildings b, room_units u, zone_templates zt
     WHERE b.submodel={} AND u.id=b.room_unit AND zt.id=b.z_template
     ORDER BY b_id,z_id;""".format(config['versionName'],submodel) # nosec B608
-                    #print(sql)
+                    dprint(sql)
                     cur.execute(sql)
                     zones=cur.fetchall()
                     b_ids=set(str(zone["b_id"]) for zone in zones)
@@ -527,13 +528,13 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
     GROUP BY t.conn_bundle_type, b.b_id;""".format(config['versionName'],config['versionName'],','.join(b_ids)) # nosec B608
                     cur.execute(sql)
                     conn_data={i['b_id']: getConnsValuesIdentTypeDict(cur,i['conn_bundle_type']) for i in cur.fetchall()}
-                    #print(conn_data)
+                    dprint(conn_data)
                     conn_data_alist="""'({})""".format(' '.join(["""({} . ({}))""".format(i,' '.join(['(:N "'+j +
                                                                                             '" :T ' + str(conn_data[i][j][':T'])+
                                                                                             ' :V-VAR '+str(conn_data[i][j][':V-VAR'])+
                                                                                             ' :VAR "'+str(conn_data[i][j][':VAR'])+
                                                                                             '" :V-T '+str(conn_data[i][j][':V-T'])+')' for j in conn_data[i]])) for i in conn_data]))
-                    #print(conn_data_alist)
+                    dprint(conn_data_alist)
                     ida_script="""(set-slot [@] 'name "building_{}")
 (apply 'delete-components (:call :sections [@]))
 (insert-district-distr [@] '({}))
@@ -557,7 +558,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     
                     zone_win_dict={}
                     for counter,zone in enumerate(zones):
-                        #print(zone)
+                        dprint(zone)
                         wkt_string=zone['geom']
                         
                         # Regular expression to match coordinates in the format (x y)
@@ -565,7 +566,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
 
                         # Find all the coordinates
                         coordinates = re.findall(pattern, wkt_string)
-                        #print(coordinates)
+                        dprint(coordinates)
 
                         corners = []
                         for coordinate in coordinates:
@@ -575,7 +576,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
 
                         # Format the corners with brackets but no commas between coordinates
                         corners_str = f"({') ('.join([f'{x} {y}' for x, y in corners[:-1]])})"
-                        #print(corners_str)
+                        dprint(corners_str)
                         
                         #constructions
                         sql="""SELECT bc.construction_type_id, bc.construction_name,bct.type AS construction_type
@@ -585,8 +586,8 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                         cur.execute(sql)
                         constructions=cur.fetchall()
                         constructions_dict={i['construction_type'] : i['construction_name'] for i in constructions}
-                        #print(constructions)
-                        #print(constructions_dict)
+                        dprint(constructions)
+                        dprint(constructions_dict)
                         zone_win_dict["Zone_{}_{}".format(zone['b_id'],zone['z_id'])]={'temp_name':constructions_dict['win_template'],'win_facade_ratio':zone['win_facade_ratio']}
                         
                         ida_script_="""(make-zone-from-qgis [@] "Zone_{}_{}" {} {} {} #2A({}))\n""".format(
@@ -599,7 +600,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                         ida_script_+="""(:SET z_ [@ "Zone_{}_{}"])\n""".format(zone['b_id'],zone['z_id'])
                         #constructions
                         construction_plist="'("+' '.join([":" + i + ' "' +constructions_dict[i]+'"' for i in constructions_dict])+")"
-                        #print(construction_plist)
+                        dprint(construction_plist)
                         ida_script_+="""(set-zone-constructions [@ z_] {})\n""".format(construction_plist)
                         
                         #room units
@@ -628,7 +629,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
 
                         if len(ida_script_)+len(ida_script)<32000:
                             ida_script+=ida_script_
-                            #print(len(ida_script))
+                            dprint(len(ida_script))
                         else:
                             ida_scripts.append('('+ida_script+')')
                             ida_script=ida_script_
@@ -636,7 +637,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                         ida_script_="""(insert-win-by-ratio [@] {} :zones (:call list [@ "{}"]) :sia_380_1 nil :win-template "{}")\n""".format(zone_win_dict[zone]['win_facade_ratio'],zone,zone_win_dict[zone]['temp_name'])
                         if len(ida_script_)+len(ida_script)<32000:
                             ida_script+=ida_script_
-                            #print(len(ida_script))
+                            dprint(len(ida_script))
                         else:
                             ida_scripts.append('('+ida_script+')')
                             ida_script=ida_script_
@@ -648,11 +649,11 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     ida_scripts.append('('+ida_script+')')
                     
                     src_dir=getDataCenterDir(plugin_dir)+"\\{}\\building_templates\\".format(config['projectName'])
-                    #print(src_dir)
+                    dprint(src_dir)
                     buildingModel_dir=plugin_dir+'\\versions\\{}\\{}\\'.format(config['projectName'],config['versionName'])
-                    #print(buildingModel_dir)
+                    dprint(buildingModel_dir)
                     file_path=buildingModel_dir+'building_{}.idm'.format(submodel)
-                    #print(file_path)
+                    dprint(file_path)
                     copyFile(src_dir+submodel_templates[submodel]+'.idm',buildingModel_dir,file_path)
                     copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
                 
@@ -681,41 +682,41 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
         iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
 
 def finishedBuildBuildingModel(args):
-    #print('------finished build building model----------')
+    dprint('------finished build building model----------')
     try:
         dlg=args['dlg']
         submodel=args['submodel']
         conn_data=args['conn_data']
         co_sim=dlg.checkbox_cosim.isChecked()
         reinvoke=dlg.checkbox_reinvokeFeatures.isChecked()
-        #print(co_sim)
-        #print(reinvoke)    
-        #print(submodel)    
-        #print(conn_data) 
+        dprint(co_sim)
+        dprint(reinvoke)    
+        dprint(submodel)    
+        dprint(conn_data) 
         source_dir=config['pathProjects']+config['projectName']+'\\versions\\{}\\{}\\invoked_customers\\'.format(config['projectName'],config['versionName'])
         target_dir=config['pathProjects']+config['projectName']+'\\versions\\{}\\{}\\building_{}\\plant\\'.format(config['projectName'],config['versionName'],submodel)
-        #print(source_dir) 
+        dprint(source_dir) 
         sensor_data=getSensorData(cur,config,filter='')
-        #print(sensor_data)
+        dprint(sensor_data)
 
                     
         for b_id in conn_data:
-            #print(b_id)
+            dprint(b_id)
             #idm
             source_f="{}\\Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
-            #print(source_f)
+            dprint(source_f)
             if not os.path.exists(source_f) or reinvoke:
-                #print('reinvoke')
+                dprint('reinvoke')
                 invokeOneFeature(False,str(b_id),cur,config,'customer',False)
         
         dir=config['pathProjects']+config['projectName']+'\\versions\\{}\\{}'.format(config['projectName'],config['versionName'])
-        #print(dir)
+        dprint(dir)
             
         if co_sim:
-            #print('+++++++cosim++++++')
+            dprint('+++++++cosim++++++')
             dec_templates=CopyDecoupledTemplateMacro(str(submodel),dir,config,cur,sensor_data,mode='building')
-            #print('---finished dec---')
-            #print(dec_templates.resources)
+            dprint('---finished dec---')
+            dprint(dec_templates.resources)
             if dec_templates.resources:
                 file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
                 file_data[2:2]=dec_templates.resources
@@ -725,21 +726,21 @@ def finishedBuildBuildingModel(args):
             feature_dec_irefs=[]
             for submodel_ in getUsedSubmodels(cur, config):
                 #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
-                #print('//////************------//////*------')
+                dprint('//////************------//////*------')
                 for i in readDecoupledFeatureSensorSignals(submodel_,dir,config,cur,sensor_data):
-                    #print('++++++++--++')
-                    #print(i)
+                    dprint('++++++++--++')
+                    dprint(i)
                     if i not in feature_dec_irefs:
                         feature_dec_irefs.append(i)
-            #print(feature_dec_irefs)
+            dprint(feature_dec_irefs)
 
             sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,cur,config)   
-            #print(sensor_dec_data)
+            dprint(sensor_dec_data)
 
-            #print(dir)
-            #print(type(submodel))
+            dprint(dir)
+            dprint(type(submodel))
             data_dec_idm=writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode='building')
-            #print(data_dec_idm)
+            dprint(data_dec_idm)
 
             writeCosimMacroIdc(config,cur,submodel,dir,mode='building')
     
@@ -748,15 +749,15 @@ def finishedBuildBuildingModel(args):
             template_names=getTemplateNamesFilteredByCustomerIds(cur,config,conn_data) 
             resources=[]        
             for template in template_names:
-                #print('+++++resource: '+template)
+                dprint('+++++resource: '+template)
                 source_f_idm="{}{}\\customer_templates\\{}.idm".format(config['pathProjects'],config['projectName'],template)
-                #print(source_f_idm)
+                dprint(source_f_idm)
                 file_data=readFileToList(source_f_idm)
                 resource=getResourcesFromFileDataList(file_data)
-                #print(resource)
+                dprint(resource)
                 if resource not in resources:
                     resources+=resource
-            #print(resources)
+            dprint(resources)
                     
             if resources:
                 file_data=readFileToList("{}\\building_{}.idm".format(dir,submodel))
@@ -764,29 +765,29 @@ def finishedBuildBuildingModel(args):
                 writeToFileFromList(file_data,dir,"{}\\building_{}.idm".format(dir,submodel))
                     
             for b_id in conn_data:
-                #print(b_id)
+                dprint(b_id)
                 #idm
                 source_f_idm="{}Customer_{}\\Customer_{}.idm".format(source_dir,b_id,b_id)
-                #print(source_f_idm)
+                dprint(source_f_idm)
                 
                 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f_idm)))
                 #print(getConnsValuesByFeature(1,str(b_id),cur,config))
                 building_pmt2s=['"'+getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(1,str(b_id),cur,config) if i['type'] not in [1,2]]
-                #print(building_pmt2s)
+                dprint(building_pmt2s)
                 data_idm=[]
                 for comp in components_idm:
                     if getCompName(comp) in building_pmt2s:
                         data=[]
                         for i in comp:
                             if getCompName(i)=='|M_var|':
-                                #print('|M_var|')
+                                dprint('|M_var|')
                                 i[':B']=['-1','|term_b|','1']
                                 data.append(i)
                             elif getCompName(i)=='|term_b|':
                                 instream_data=[]
                                 for j in i:
                                     if getCompName(j)=='|inStream(T)|':
-                                        #print('|inStream(T)|')
+                                        dprint('|inStream(T)|')
                                         j[':B']=['-1','|term_b|','2']
                                     instream_data.append(j)
                                 data.append(instream_data)
@@ -799,12 +800,12 @@ def finishedBuildBuildingModel(args):
 
 
                 source_f_idc="{}Customer_{}\\Customer_{}.idc".format(source_dir,b_id,b_id)
-                #print(source_f_idc)
+                dprint(source_f_idc)
                 copyFile(source_f_idc,target_dir,target_dir+'substation b{}.idc'.format(b_id))
                 if os.path.exists("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id)):
                     copy_tree_filter_extensions_and_folders("{}\\Customer_{}\\Customer_{}".format(source_dir,b_id,b_id),target_dir+'substation b{}'.format(b_id),exclude_extensions=['prn'])
     except Exception as e:
-        #print(e)
+        dprint(e)
         QgsMessageLog.logMessage(
                                     traceback.format_exc(),
                                     "Districts",

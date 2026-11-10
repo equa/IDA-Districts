@@ -19,6 +19,7 @@ from .utility_functions.translations import tr
 from .utility_functions.utility import refreshMap
 from .utility_functions.workers import closeConnection, closeConnectionOnFinish, startWorkers
 from .utility_functions.zeta import ensureConnectionZetaColumn, hasCalculatedJunctionZeta
+from .utility_functions.debug_log import dprint, debug_enabled
 
 
 def junctionZetaCheckBox(cur,config):
@@ -352,7 +353,7 @@ class PipeLayingDialog(QDialog):
         layout_networks=QHBoxLayout()
         label_network =QLabel(tr('@default',"network"))
         networks=getNetworks(self.cur,self.config)
-        #print(networks)
+        dprint(networks)
         self.combo_network = QComboBox()
         self.combo_network.addItems(networks)
         layout_networks.addWidget(label_network)
@@ -613,10 +614,10 @@ class PipeLayingDialog(QDialog):
         self.process_running=False
         
     def heating_network_generation_state(self,s):
-        #print('change heating network generation state')
-        #print(s)
+        dprint('change heating network generation state')
+        dprint(s)
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.group_box_heating_constr.show()
             self.group_box_heating_type_settings.show()
             self.check_heating_network_costs.setHidden(False)
@@ -625,7 +626,7 @@ class PipeLayingDialog(QDialog):
             if self.check_heating_network_costs.isChecked():
                 self.group_box_heating_costs.show()
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.group_box_heating_constr.hide()
             self.group_box_heating_type_settings.hide()
             self.group_box_heating_costs.hide()
@@ -634,10 +635,10 @@ class PipeLayingDialog(QDialog):
 
     
     def cooling_network_generation_state(self,s):
-        #print('change cooling network generation state')
-        #print(s)
+        dprint('change cooling network generation state')
+        dprint(s)
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.group_box_cooling_constr.show()
             self.group_box_cooling_type_settings.show()
             self.check_cooling_network_costs.setHidden(False)
@@ -646,7 +647,7 @@ class PipeLayingDialog(QDialog):
             if self.check_cooling_network_costs.isChecked():
                 self.group_box_cooling_costs.show()
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.group_box_cooling_constr.hide()
             self.group_box_cooling_type_settings.hide()
             self.group_box_cooling_costs.hide()
@@ -654,27 +655,27 @@ class PipeLayingDialog(QDialog):
             self.group_box_hc_type_settings.hide()
             
     def heating_network_costs_state(self,s):
-        #print('change heating network costs state')
+        dprint('change heating network costs state')
         if checkState()==s:
-            #print('costs checked')
+            dprint('costs checked')
             self.group_box_heating_costs.show()
         else:
-            #print('costs unchecked')
+            dprint('costs unchecked')
             self.group_box_heating_costs.hide()
 
             
     def cooling_network_costs_state(self,s):
-        #print('change cooling network costs state')
+        dprint('change cooling network costs state')
         if checkState()==s:
-            #print('costs checked')
+            dprint('costs checked')
             self.group_box_cooling_costs.show()
         else:
-            #print('costs unchecked')
+            dprint('costs unchecked')
             self.group_box_cooling_costs.hide()
     
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
-        #print('save Results')
+        dprint('save Results')
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -690,7 +691,7 @@ class PipeLayingDialog(QDialog):
             sql+=""" INSERT INTO "{}".junction_connections SELECT * FROM temp.junction_connections ORDER BY id;\n""".format(self.config['versionName'])  # nosec B608
             sql+=""" INSERT INTO "{}".customer_connections SELECT * FROM temp.customer_connections ORDER BY id;\n""".format(self.config['versionName'])   # nosec B608
             sql+=""" INSERT INTO "{}".energy_plant_connections SELECT * FROM temp.energy_plant_connections ORDER BY id;\n""".format(self.config['versionName']) # nosec B608
-            #print(sql) 
+            dprint(sql) 
             self.cur.execute(sql)  
             insertDBTriggers(self.cur,self.config)
 
@@ -707,7 +708,7 @@ class PipeLayingDialog(QDialog):
         
     def rejectResults(self):
         """keep old topology"""
-        #print('Reject Results')
+        dprint('Reject Results')
         removeTempLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         for layer in ['lines','junctions','customers','energy_plants']:
@@ -718,7 +719,7 @@ class PipeLayingDialog(QDialog):
                     layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
             
     def closeEvent(self, *args, **kwargs):
-        #print("you just closed the PipeLayingWindow!!!")
+        dprint("you just closed the PipeLayingWindow!!!")
         self.rejectResults()
         
 
@@ -970,66 +971,66 @@ class NetworkTopologyDialog(QDialog):
         self.process_running=False
         
     def addCustomers_network_ends_state(self,s):
-        #print('add customers to network ends state')
+        dprint('add customers to network ends state')
         
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.label_addCustomers_template_customers.setHidden(False)
             self.addCustomers_template_customers.setHidden(False)
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.label_addCustomers_template_customers.setHidden(True)
             self.addCustomers_template_customers.setHidden(True)
             
     def connectCustomers_state(self,s):
-        #print('connect customers to network state')
+        dprint('connect customers to network state')
         
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.label_connectCustomers_template_pipeBundle.setHidden(False)
             self.connectCustomers_template_pipeBundle.setHidden(False)
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.label_connectCustomers_template_pipeBundle.setHidden(True)
             self.connectCustomers_template_pipeBundle.setHidden(True)
             
     def connectPlants_state(self,s):
-        #print('connect plants to network state')
+        dprint('connect plants to network state')
         
         if checkState()==s:
-            #print('checked')
+            dprint('checked')
             self.label_connectPlants_template_pipeBundle.setHidden(False)
             self.connectPlants_template_pipeBundle.setHidden(False)
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.label_connectPlants_template_pipeBundle.setHidden(True)
             self.connectPlants_template_pipeBundle.setHidden(True)
             
     def override_template_state(self,s):
-        #print('override template state')
+        dprint('override template state')
         if s:
-            #print('checked')
+            dprint('checked')
             self.label_overrideTemplate_customer.setHidden(False)
             self.label_overrideTemplate_pipeBundle.setHidden(False)
             self.overrideTemplate_customer.setHidden(False)
             self.overrideTemplate_pipeBundle.setHidden(False)
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.label_overrideTemplate_customer.setHidden(True)
             self.label_overrideTemplate_pipeBundle.setHidden(True)
             self.overrideTemplate_customer.setHidden(True)
             self.overrideTemplate_pipeBundle.setHidden(True)
        
     def keep_template_state(self,s):
-        #print('keep template state')
+        dprint('keep template state')
         if s:
-            #print('checked')
+            dprint('checked')
             self.label_overrideTemplate_customer.setHidden(True)
             self.label_overrideTemplate_pipeBundle.setHidden(True)
             self.overrideTemplate_customer.setHidden(True)
             self.overrideTemplate_pipeBundle.setHidden(True)
         else:
-            #print('unchecked')
+            dprint('unchecked')
             self.label_overrideTemplate_customer.setHidden(False)
             self.label_overrideTemplate_pipeBundle.setHidden(False)
             self.overrideTemplate_customer.setHidden(False)
@@ -1040,7 +1041,7 @@ class NetworkTopologyDialog(QDialog):
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            #print('save Results')
+            dprint('save Results')
             saveTempTables(self.cur,self.config)
             layerTreeRoot = QgsProject.instance().layerTreeRoot()  
             iface.mapCanvas().snappingUtils().setIndexingStrategy(iface.mapCanvas().snappingUtils().IndexingStrategy.IndexExtent)
@@ -1054,7 +1055,7 @@ class NetworkTopologyDialog(QDialog):
         
     def rejectResults(self):
         """keep old topolgy"""
-        #print('Reject Results')
+        dprint('Reject Results')
         removeTempLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         for layer in ['lines','junctions','customers','energy_plants']:
@@ -1065,7 +1066,7 @@ class NetworkTopologyDialog(QDialog):
                     layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(True)
             
     def closeEvent(self, *args, **kwargs):
-        #print("you just closed the PipeLayingWindow!!!")
+        dprint("you just closed the PipeLayingWindow!!!")
         self.rejectResults()
         
 class PipeSizingDlg(QDialog):
@@ -1245,7 +1246,7 @@ class PipeSizingDlg(QDialog):
         self.setLayout(layout_win)
         
     def closeEvent(self, *args, **kwargs):
-        #print("you just closed the PipeSizingWindow!!!")
+        dprint("you just closed the PipeSizingWindow!!!")
         rejectPipeSizingResults(self.config,self.conn,self)
         
     def updateSizingOption(self): 
@@ -1302,7 +1303,7 @@ class PipeSizingDlg(QDialog):
         self.table_circuits.setCellWidget(0, 5, energy_demand_colmn)
 
     def on_combo_changed(self, index):
-        #print(f"ComboBox index changed to: {index}")
+        dprint(f"ComboBox index changed to: {index}")
         self.getUsedSequences()
         if index:
             sequence=self.table_circuits.cellWidget(self.table_circuits.currentRow(), self.table_circuits.currentColumn()).currentText()
@@ -1330,7 +1331,7 @@ class PipeSizingDlg(QDialog):
         return table_sequences
         
     def addSequenceRow(self,sequence):
-        #print('--new sequence--')
+        dprint('--new sequence--')
         new_row=self.table_sequences.rowCount()
         self.table_sequences.insertRow(new_row)
         self.table_sequences.setItem(new_row, 0, QTableWidgetItem(sequence))
@@ -1383,7 +1384,7 @@ class PipeSizingDlg(QDialog):
         return False
 
     def doSizing(self,cur,config,dlg,network,plugin_dir,dp,epsilon,rho,cp,kin_viscosity,ambient,pipe_bundles):
-        #print('++do-sizing++')
+        dprint('++do-sizing++')
         self.worker_pipeSizing=WorkerPipeSizing(cur=cur,config=config,dlg=dlg,network=network,plugin_dir=plugin_dir,dp=dp,epsilon=epsilon,rho=rho,cp=cp,kin_viscosity=kin_viscosity,ambient=ambient,pipe_bundles=pipe_bundles)
         self.worker_pipeSizing.signals.error.connect(dlg.show_error_message)
         self.worker_pipeSizing.signals.progress.connect(dlg.update_progress)
@@ -1499,16 +1500,16 @@ class MapFeaturesDialog(QDialog):
             lines_layer[0].selectByExpression("id = {}".format(item.text()))
 
     def clickedPlantsId(self, item):
-        #print(item.text())
+        if debug_enabled(): dprint(item.text())
         table_name=self.getTypeTableName()
-        #print(table_name)
+        dprint(table_name)
         #add connection type items to listWidget_plants_connTypes
         self.listWidget_plants_connTypes.clear()
         sql="""SELECT conn_b_t.conn_type_id, conn_b_t.description 
     FROM public.bundle_type_conns conn_b_t, "{}".{} b, public.{}_templates a
     WHERE conn_b_t.conn_bundle_type_id =a.conn_bundle_type AND b.id={} AND a.template=b.template 
     ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],table_name,table_name[:-1],item.text()) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         conn_ids=[]
         for conn_type in self.cur.fetchall():
@@ -1521,7 +1522,7 @@ class MapFeaturesDialog(QDialog):
         sql='SELECT array_agg(l.id::text) AS lid FROM "{}".lines l, "{}".{} a WHERE ST_dWithIn(l.geom,a.geom,0.001) AND a.id={};'.format(self.config['versionName'],self.config['versionName'],table_name,item.text()) # nosec B608
         self.cur.execute(sql)
         l_ids=self.cur.fetchone()['lid']
-        #print(l_ids)
+        dprint(l_ids)
         if l_ids:
             self.listWidget_lines.addItems(l_ids)
             
@@ -1546,7 +1547,7 @@ class MapFeaturesDialog(QDialog):
         FROM "{}".energy_plant_connections ep_conn, "{}".energy_plants ep, public.energy_plant_templates epa, public.bundle_type_conns conn_b_t
         WHERE ep.id={} AND ep.id=ep_conn.epid AND epa.template=ep.template AND epa.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.sequence=ep_conn.ep_seq
         ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],id) # nosec B608
-            #print(sql)
+            dprint(sql)
         elif table_name=='customers':
             sql="""SELECT conn_b_t.sequence AS sequence, CONCAT(conn_b_t.conn_type_id, ':', conn_b_t.description, '  -->  ', c_conn.lid) AS connection
     FROM "{}".customer_connections c_conn, "{}".customers c, public.customer_templates ca, public.bundle_type_conns conn_b_t
@@ -1554,12 +1555,12 @@ class MapFeaturesDialog(QDialog):
     ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],self.config['versionName'],id) # nosec B608
         self.cur.execute(sql)
         conns=self.cur.fetchall()
-        #print(conns)
+        dprint(conns)
         
         rowPosition = 0
         for conn in conns:
-            #print(conn)
-            #print(conn['connection'])
+            dprint(conn)
+            if debug_enabled(): dprint(conn['connection'])
             self.tableWidget.insertRow(rowPosition)
             item=QTableWidgetItem(str(conn['sequence']))
             item.setFlags(item.flags() & ~qt_item_flag("ItemIsEnabled"))
@@ -1578,8 +1579,8 @@ class MapFeaturesDialog(QDialog):
                  
     def updatePlantsCustomersLists(self,s):
         """Update the list of plants or customer based on the radio button """
-        #print('Update feature list')
-        #print(self.sender())
+        dprint('Update feature list')
+        if debug_enabled(): dprint(self.sender())
         if self.sender()==self.rbtn_plants:
             table='energy_plants'
             text='Energy plants'
@@ -1588,10 +1589,10 @@ class MapFeaturesDialog(QDialog):
             text='Customers'
         self.label_listWidget_Plants.setText(text)
         sql='SELECT array_agg(id::TEXT ORDER BY id) AS ids FROM "{}".{};'.format(self.config['versionName'],table) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         ids=self.cur.fetchone()['ids']
-        #print(ids)
+        dprint(ids)
         self.listWidget_plants_ids.clear()
         self.listWidget_plants_connTypes.clear()
         self.listWidget_lines.clear()
@@ -1616,14 +1617,14 @@ class MapFeaturesDialog(QDialog):
         else:
             iface.messageBar().pushMessage("Info", "No line selected!", level=MessageInfo)
             return False
-        #print(id)
-        #print(conn_type)
-        #print(lid)
+        dprint(id)
+        dprint(conn_type)
+        dprint(lid)
         return [id, conn_type, lid]
         
     def connect(self):
         """Connects the connection types with the lid`s """
-        #print('Connects the connection types with the lid`s')
+        dprint('Connects the connection types with the lid`s')
         table_name=self.getTypeTableName()
         id=self.listWidget_plants_ids.currentItem()
         conn_type=self.listWidget_plants_connTypes.currentItem()
@@ -1633,13 +1634,13 @@ class MapFeaturesDialog(QDialog):
         else:
             return
         seq=self.listWidget_plants_connTypes.currentRow()+1
-        #print(seq)
+        dprint(seq)
         if seq:
             if table_name=="energy_plants":
                 sql="""SELECT count(*) FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
             elif table_name=="customers":
                 sql="""SELECT count(*) FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql)
             if self.cur.fetchone()['count']!=0: 
                 iface.messageBar().pushMessage("Info", "Already connected!", level=MessageInfo)
@@ -1651,7 +1652,7 @@ class MapFeaturesDialog(QDialog):
                     elif table_name=="customers":
                         sql="""INSERT INTO "{}".customer_connections (cid,c_seq,lid) VALUES({},{},{});""".format(self.config['versionName'],id,seq,lid) # nosec B608
                     
-                    #print(sql)
+                    dprint(sql)
                     self.cur.execute(sql)
                     self.updateConnections(table_name,id)    
      
@@ -1661,7 +1662,7 @@ class MapFeaturesDialog(QDialog):
     FROM public.bundle_type_conns conn_b_t, "{}".{} a, public.{}_templates b 
     WHERE a.id={} AND b.template=a.template AND b.conn_bundle_type=conn_b_t.conn_bundle_type_id AND conn_b_t.conn_type_id={}
     ORDER BY conn_b_t.sequence;""".format(self.config['versionName'],table_name,table_name[:-1],id,conn_type) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         seq=self.cur.fetchone()
         if seq:
@@ -1671,7 +1672,7 @@ class MapFeaturesDialog(QDialog):
         
     def disconnect(self):
         """Disconnects the connection types with the lid`s """
-        #print('Disconnects the connection types with the lid`s')
+        dprint('Disconnects the connection types with the lid`s')
         table_name=self.getTypeTableName()
         conn=self.tableWidget.item(self.tableWidget.currentRow(),1)
         if conn:
@@ -1688,6 +1689,6 @@ class MapFeaturesDialog(QDialog):
             sql="""DELETE FROM "{}".energy_plant_connections WHERE lid={} AND epid={} AND ep_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
         elif table_name=="customers":
             sql="""DELETE FROM "{}".customer_connections WHERE lid={} AND cid={} AND c_seq={};""".format(self.config['versionName'],lid,id,seq) # nosec B608
-        #print(sql)
+        dprint(sql)
         self.cur.execute(sql)
         self.updateConnections(table_name,id) 

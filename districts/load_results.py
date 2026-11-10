@@ -27,6 +27,7 @@ from .utility_functions.workers import closesOwnConnection, APISignals
 import datetime
 import re
 import traceback
+from .utility_functions.debug_log import dprint, debug_enabled
 
 
 
@@ -36,7 +37,7 @@ class WorkerLoadResults(QRunnable):
     def __init__(self,*args,**kwargs):
         super().__init__()
         self.args=args
-        #print(args)
+        dprint(args)
         self.signals=APISignals()
         self.config=kwargs['config']
         self.dlg=kwargs['dlg']
@@ -53,7 +54,7 @@ class WorkerLoadResults(QRunnable):
     @pyqtSlot()
     @closesOwnConnection
     def run(self):
-        #print('run worker load results')
+        dprint('run worker load results')
         self.progress_value=1
         self.signals.progress.emit(self.progress_value)
         self.loadResults()
@@ -61,7 +62,7 @@ class WorkerLoadResults(QRunnable):
         self.signals.finished.emit('Loading results has been successfully completed!')  
         
     def loadResults(self):
-        #print('-***-')
+        dprint('-***-')
         networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
         #the time column of the IDA .prn files holds the hours since Jan 1 of the simulated year (not since calc_time_from)
         start_datetime=getDatetimeFromString(networkSimData['calc_time_from']).replace(month=1,day=1,hour=0,minute=0,second=0)
@@ -84,7 +85,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
             "SELECT segmentize({},'{}','line_seg_temp');".format(modellingSettings['fd_meterPerNode'],self.config['versionName']) if output=='temp_lines' else "SELECT halve_geom('{}','line_seg_p');".format(self.config['versionName'])) # nosec B608
             for output in self.simulatedOutputs if output in ['temp_lines','p_lines'] and self.simulatedOutputs[output]])
         if sql:
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql)
         
         #progress: each checked submodel gets an equal part of the progress bar (the steps below report 0-100 per submodel)
@@ -94,11 +95,11 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                 self.progress_submodel_nr=self.progress_submodels.index(submodel_idx)
                 try:
                     submodel=self.dlg.combo_submodels.itemText(submodel_idx)
-                    #print(submodel)
+                    dprint(submodel)
                     match = re.match(r'\d+', submodel)
                     if match:
                         submodel_id = match.group()
-                        #print(submodel_id)
+                        dprint(submodel_id)
                     else:
                         self.signals.error.emit('Please select a model, which starts with an Integer and belongs to one of your modeled networks.')
                         return False
@@ -117,8 +118,8 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                         conn_t_power_names= getUsedConnTypeIdents('customer',self.cur,self.config)
                         tables=[]
                         
-                        #print(conn_names)
-                        #print(conn_t_power_names)
+                        dprint(conn_names)
+                        dprint(conn_t_power_names)
                         #connection tables (p,m,T)
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".customer_s_{}${} CASCADE;
 CREATE TABLE "{}".customer_s_{}${}
@@ -253,7 +254,7 @@ CREATE TABLE "{}".customer_s_ventilation
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
                             tables.append('customer_s_ventilation')
                             
-                        #print(sql)
+                        dprint(sql)
                         if sql:
                             self.cur.execute(sql)
                         
@@ -272,25 +273,25 @@ CREATE TABLE "{}".customer_s_ventilation
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
                         geoms=self.featureGeometries('customers')
                         copy_buffer=ResultCopyBuffer(self.conn,self.cur,self.config['versionName'])
-                        #print(b_t_connValues_dict)
+                        dprint(b_t_connValues_dict)
                         for counter,id in enumerate(cids,1):
-                            #print(id)
-                            #print(c_conn_outputs)
+                            dprint(id)
+                            dprint(c_conn_outputs)
                             geom=geoms.get(id['id'],'')
                             if c_conn_outputs or conn_t_power_names:
                                 connValues=b_t_connValues_dict[id['conn_bundle_type_id']]
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
-                                #print(f"conn_type_seq:{conn_type_seq}")
+                                dprint(f"conn_type_seq:{conn_type_seq}")
                                 for seq in conn_type_seq:
                                     fname=dir_path+'customer_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
-                                    #print(fname)
+                                    dprint(fname)
                                     self.checkConnTypeSeqOutputFile(fname,'customer',id,seq,b_t_connValues_dict[id['conn_bundle_type_id']],c_conn_outputs,bool(c_power_outputs))
                                     if os.path.exists(fname):
                                         with open(fname, "r") as myfile:
                                             col_var_dict={}
                                             for line in myfile:
                                                 header=line.split()
-                                                #print(header)
+                                                dprint(header)
                                                 for col,var in enumerate(header,-1):
                                                     if len(var.split('_'))==2:
                                                         col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]),conn_t_seq=seq),
@@ -298,49 +299,49 @@ CREATE TABLE "{}".customer_s_ventilation
                                                     elif var=='power':
                                                         col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'customer_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
                                                         
-                                                #print(col_var_dict)
+                                                dprint(col_var_dict)
                                                 break
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
 
                                         if self.dlg.checkbox_timestep.checkState() == checkState():
                                             #linear interpolation
-                                            #print(self.dlg.interpolation_dt.text())
+                                            if debug_enabled(): dprint(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
-                                        #print(file_data)
+                                        dprint(file_data)
                                         self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,col_var_dict,start_datetime)
 
                             if 'troom' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\TRoom.prn'
-                                #print(fname)
+                                dprint(fname)
                                 if os.path.exists(fname):         
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                     if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
-                                        #print(self.dlg.interpolation_dt.text())
+                                        if debug_enabled(): dprint(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
-                                    #print(file_data)
+                                    dprint(file_data)
                                     col_var_dict={2: {'var': 'troom','name': '','table_name': 'customer_s_troom'}}
                                     self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,col_var_dict,start_datetime)
                                 
                             if 'heatbalance' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'
-                                #print(fname)
+                                dprint(fname)
                                 if os.path.exists(fname):                                              
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                     if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
-                                        #print(self.dlg.interpolation_dt.text())
+                                        if debug_enabled(): dprint(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
-                                    #print(file_data)
+                                    dprint(file_data)
                                     heatbalance_tables=['customer_s_electricity','customer_s_gains','customer_s_heating','customer_s_leakage','customer_s_occupancy','customer_s_solar','customer_s_transmission','customer_s_ventilation']
                                     self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,{col: {'table_name': table_name} for col,table_name in enumerate(heatbalance_tables,2)},start_datetime)
                             self.emitProgress(int(5+counter / len(cids) *28))
                         copy_buffer.flush()
                         #index after loading the data
-                        #print(tables)
+                        dprint(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'customer')
                             
@@ -355,8 +356,8 @@ CREATE TABLE "{}".customer_s_ventilation
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('energy_plant',self.cur,self.config)
                         tables=[]
-                        #print(conn_names)
-                        #print(conn_t_power_names)
+                        dprint(conn_names)
+                        dprint(conn_t_power_names)
                         #connection tables (p,m,T)
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".energy_plant_s_{}${} CASCADE;
 CREATE TABLE "{}".energy_plant_s_{}${}
@@ -386,7 +387,7 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                 for ident in conn_t_power_names])
                             tables+=["energy_plant_s_power${}".format(ident) for ident in conn_t_power_names]
                         
-                        #print(sql)
+                        dprint(sql)
                         if sql:
                             self.cur.execute(sql)
                             
@@ -396,31 +397,31 @@ CREATE TABLE "{}".energy_plant_s_power${}
     FROM "{}".energy_plants f, bundle_type_conns b_t_conns, energy_plant_templates t
     WHERE b_t_conns.conn_bundle_type_id = t.conn_bundle_type AND f.template=t.template AND submodel={}
     GROUP BY f.id , b_t_conns.conn_bundle_type_id, t.template, t.template_name;""".format(self.config['versionName'],submodel_id) # nosec B608
-                        #print(sql)
+                        dprint(sql)
                         self.cur.execute(sql)
                         epids=self.cur.fetchall()
                         
                         b_t_connValues_dict={b_t: getConnsValues(b_t,self.cur) for b_t in used_b_types}
                         geoms=self.featureGeometries('energy_plants')
                         copy_buffer=ResultCopyBuffer(self.conn,self.cur,self.config['versionName'])
-                        #print(b_t_connValues_dict)
+                        dprint(b_t_connValues_dict)
                         for counter,id in enumerate(epids,1):
-                            #print(id)
+                            dprint(id)
                             if ep_conn_outputs or conn_t_power_names:
                                 connValues=b_t_connValues_dict[id['conn_bundle_type_id']]
-                                #print(connValues)
+                                dprint(connValues)
                                 conn_type_seq=set([x['conn_type_seq'] for x in b_t_connValues_dict[id['conn_bundle_type_id']]])
-                                #print(conn_type_seq)
+                                dprint(conn_type_seq)
                                 for seq in conn_type_seq:
                                     fname=dir_path+'energy_plant_'+str(id['id'])+'\\Connection type sequence_{}.prn'.format(seq)
-                                    #print(fname)
+                                    dprint(fname)
                                     self.checkConnTypeSeqOutputFile(fname,'energy_plant',id,seq,b_t_connValues_dict[id['conn_bundle_type_id']],ep_conn_outputs,'power' in ep_outputs)
                                     if os.path.exists(fname):
                                         with open(fname, "r") as myfile:
                                             col_var_dict={}
                                             for line in myfile:
                                                 header=line.split()
-                                                #print(header)
+                                                dprint(header)
                                                 for col,var in enumerate(header,-1):
                                                     if len(var.split('_'))==2:
                                                         col_var_dict[col]={'var': var.split('_')[0],'name': var.split('_')[0]+'$'+getPMT2muxIdentFromConnValues(connValues,int(var.split('_')[1]),conn_t_seq=seq),
@@ -428,22 +429,22 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                                     elif var=='power':
                                                         col_var_dict[col]={'var': 'power','name': 'power$'+str(id['conn_bundle_type_id'])+'_'+str(seq),'table_name': 'energy_plant_s_power$'+str(id['conn_bundle_type_id'])+'_'+str(seq)}
                                                         
-                                                #print(col_var_dict)
+                                                dprint(col_var_dict)
                                                 break
                                                 
                                         file_data = np.loadtxt(fname, skiprows=1,dtype=float)
-                                        #print(file_data)
+                                        dprint(file_data)
 
                                         if self.dlg.checkbox_timestep.checkState() == checkState():
                                             #linear interpolation
-                                            #print(self.dlg.interpolation_dt.text())
+                                            if debug_enabled(): dprint(self.dlg.interpolation_dt.text())
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
-                                        #print(file_data)
+                                        dprint(file_data)
                                         self.copy_feature_sData(copy_buffer,file_data,id['id'],geoms.get(id['id'],''),col_var_dict,start_datetime)
                             self.emitProgress(int(33+counter / len(epids) *33))
                         copy_buffer.flush()
                         #index after loading the data
-                        #print(tables)
+                        dprint(tables)
                         if tables:
                             self.createResultLayerIndex(tables,'energy_plant')
                             
@@ -476,7 +477,7 @@ CREATE TABLE "{}".line_s_qamb
     CONSTRAINT line_s_qamb_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
 
-                        #print(sql)
+                        dprint(sql)
                         self.cur.execute(sql)
 
                         #load data
@@ -490,14 +491,14 @@ CREATE TABLE "{}".line_s_qamb
                         line_geoms=self.featureGeometries('lines')
 
                         for counter_of,output in enumerate(line_outputs,1):
-                            #print('+++++++++'+output+'++++++++++++')
+                            dprint('+++++++++'+output+'++++++++++++')
                             #geometry: simulated pipe segments for temp and p, the line for the other outputs
                             seg_geoms=self.lineSegGeometries(output) if output in ['p','temp'] else None
                             copy_buffer=ResultCopyBuffer(self.conn,self.cur,self.config['versionName'])
                             #get connection sequence
                             for counter_l,id in enumerate(lids,1):
                                 fname=dir_path+'Line_{}_{}.prn'.format(output,id['id'])
-                                #print(fname)
+                                dprint(fname)
                                 if os.path.exists(fname):
                                     data=[]
                                     if output=='temp': #get number of temp segments per line; just read first line
@@ -506,7 +507,7 @@ CREATE TABLE "{}".line_s_qamb
                                                 values_len=len(line.split())-3
                                                 conn_seq_len=len(set([int(i.split('_')[1]) for i in line.split()[3:]]))
                                                 value_per_conn_seq=values_len/conn_seq_len
-                                                #print(value_per_conn_seq)
+                                                dprint(value_per_conn_seq)
                                                 break
                                     elif output=='p':
                                         with open(fname, "r") as myfile:
@@ -515,26 +516,26 @@ CREATE TABLE "{}".line_s_qamb
                                                 break
                                         value_per_conn_seq=2
                                         conn_seq_len=values_len/value_per_conn_seq
-                                        #print(value_per_conn_seq)
-                                        #print(conn_seq_len)
+                                        dprint(value_per_conn_seq)
+                                        dprint(conn_seq_len)
                                     else:
                                         value_per_conn_seq=1
-                                        #print(value_per_conn_seq)
+                                        dprint(value_per_conn_seq)
 
                                     file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                     if output=='p':
                                         new_order=[0,1]+[int(i+2 + conn_seq_len*j) for i in range(int(conn_seq_len)) for j in range(value_per_conn_seq)]
-                                        #print(new_order)
+                                        dprint(new_order)
                                         file_data=file_data[:,new_order]
                                         
                                     if output=='v': #only positive values for v are needed
                                         file_data[:, 2:]=np.abs(file_data[:, 2:])
-                                        #print(file_data)
+                                        dprint(file_data)
                                     
                                             
                                     if self.dlg.checkbox_timestep.checkState() == checkState():
                                         #linear interpolation
-                                        #print(self.dlg.interpolation_dt.text())
+                                        if debug_enabled(): dprint(self.dlg.interpolation_dt.text())
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                             
                                     if output=='qamb':
@@ -542,7 +543,7 @@ CREATE TABLE "{}".line_s_qamb
                                     else:
                                         #only the pipes of this bundle, the number of pipes per bundle may vary over the network (e.g. heating and cooling network with different extension)
                                         line_table_names=['line_s_'+output+'$'+str(i) for i in id['sequences']]
-                                    #print(line_table_names)
+                                    dprint(line_table_names)
                                     if seg_geoms is not None:
                                         segment_geoms=[seg_geoms.get((id['id'],segment),'') for segment in range(1,int(value_per_conn_seq)+1)]
                                     else:
@@ -559,9 +560,9 @@ CREATE TABLE "{}".line_s_qamb
                         self.emitProgress(96)
                         
                     for network in getNetworkBySubmodel(self.cur,self.config,submodel):
-                        #print(network)
+                        dprint(network)
                         #--------KPI`s------
-                        #print('------kpi----------')
+                        dprint('------kpi----------')
                         kpis={}
                         if self.simulatedOutputs['tsup_mean_ep_kpi']: 
                             kpis['tsup_mean_ep']=''
@@ -604,10 +605,10 @@ CREATE TABLE "{}".line_s_qamb
                         if self.simulatedOutputs['qamb_kpi']: 
                             kpis['qamb']=''
                         for counter_of,kpi in enumerate(kpis,1):
-                            #print('+++++++++'+kpi+'++++++++++++')
+                            dprint('+++++++++'+kpi+'++++++++++++')
 
                             fname=dir_path+'results-macro_{}\\{}_kpi_outputfile.prn'.format(network,kpi.capitalize())
-                            #print(fname)
+                            dprint(fname)
                             if os.path.exists(fname):
                                 with open(fname, "r") as f:
                                     for line in f:
@@ -621,7 +622,7 @@ CREATE TABLE "{}".line_s_qamb
                                         "Districts",
                                         MessageCritical
                                     )
-                        #print(kpis)
+                        dprint(kpis)
                         sql="""DROP TABLE IF EXISTS "{}".kpi_{} CASCADE;
 CREATE TABLE IF NOT EXISTS "{}".kpi_{}
 (
@@ -650,17 +651,17 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                         sql+="""INSERT INTO "{}".kpi_{} ({}) SELECT {};""".format(self.config['versionName'],network,  # nosec B608
                             "id"+''.join([",{}".format(kpi) for kpi in kpis]),  # nosec B608
                             "1"+''.join([",{}".format(kpis[kpi]) for kpi in kpis]))  # nosec B608
-                        #print(sql)
+                        dprint(sql)
                         self.cur.execute(sql)
                         
                         self.emitProgress(97)
                         
                         #--------heat balance------
                         if self.simulatedOutputs['heatbalance_system']: 
-                            #print('------heat balance----------')
+                            dprint('------heat balance----------')
 
                             fname=dir_path+'results-macro_{}\\heatbalance_outputfile.prn'.format(network)
-                            #print(fname)
+                            dprint(fname)
 
                             if os.path.exists(fname):
                                 #get output headers
@@ -674,7 +675,7 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                                                 as_dict={name.lower() : '' for name in names}  
                                             elif getCompClass(subcomp)==':VAR':   
                                                 as_dict[subcomp[':N'].lower()]=tr('@default',subcomp[':D'].replace('"',''))       
-                                #print(as_dict)
+                                dprint(as_dict)
                                 col_dict={}
                                 with open(fname, "r") as myfile:
                                     for line in myfile:
@@ -682,7 +683,7 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                                             line=line[1:]
                                         col_dict={counter: as_dict[col.lower()] for counter,col in enumerate(line.split(),0) if counter>1}
                                         break
-                                #print(col_dict)
+                                dprint(col_dict)
                                 file_data = np.loadtxt(fname, skiprows=1,dtype=float)
                                 
                                         
@@ -690,7 +691,7 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
                                     #linear interpolation
                                     file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                         
-                                #print(file_data)
+                                dprint(file_data)
                                 
                                 sql="""\nDROP TABLE IF EXISTS "{}".heatbalance_{}_s CASCADE;
 CREATE TABLE "{}".heatbalance_{}_s
@@ -699,7 +700,7 @@ CREATE TABLE "{}".heatbalance_{}_s
     time timestamp,{}
     CONSTRAINT heatbalance_{}_s_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],network,self.config['versionName'],network,''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()]),network) # nosec B608
-                                #print(sql)
+                                dprint(sql)
                                 self.cur.execute(sql)
                             
                                 self.copy_string_iterator_system_balance_sData(file_data,start_datetime,col_dict.values(),'heatbalance_{}_s'.format(network))
@@ -708,10 +709,10 @@ CREATE TABLE "{}".heatbalance_{}_s
                         
                         #--------mass balance------
                         if self.simulatedOutputs['massbalance_system']: 
-                            #print('------mass balance----------')
+                            dprint('------mass balance----------')
 
                             fname=dir_path+'results-macro_{}\\massbalance_outputfile.prn'.format(network)
-                            #print(fname)
+                            dprint(fname)
 
                             if os.path.exists(fname):
                                 #get output headers
@@ -726,7 +727,7 @@ CREATE TABLE "{}".heatbalance_{}_s
                                                 
                                             elif getCompClass(subcomp)==':VAR':   
                                                 as_dict[subcomp[':N'].lower()]=tr('@default',subcomp[':D'].replace('"',''))       
-                                #print(as_dict)
+                                dprint(as_dict)
                                 
                                 col_dict={}
                                 with open(fname, "r") as myfile:
@@ -743,7 +744,7 @@ CREATE TABLE "{}".heatbalance_{}_s
                                     #linear interpolation
                                     file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                         
-                                #print(file_data)
+                                dprint(file_data)
                                 
                                 sql="""\nDROP TABLE IF EXISTS "{}".massbalance_{}_s CASCADE;
 CREATE TABLE "{}".massbalance_{}_s
@@ -752,7 +753,7 @@ CREATE TABLE "{}".massbalance_{}_s
     time timestamp,{}
     CONSTRAINT massbalance_s_{}_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],network,self.config['versionName'],network,''.join(['\n   "{}" numeric,'.format(col_name) for col_name in col_dict.values()]),network) # nosec B608
-                                #print(sql)
+                                dprint(sql)
                                 self.cur.execute(sql)
                             
                                 self.copy_string_iterator_system_balance_sData(file_data,start_datetime,col_dict.values(),'massbalance_{}_s'.format(network))
@@ -858,12 +859,12 @@ CREATE TABLE "{}".massbalance_{}_s
 
     def createResultLayerIndex(self,tables,type):
         for counter,table_name in enumerate(tables,1):
-            #print('-------------**---**-'+table_name.split('_')[1].split('$')[0])
+            if debug_enabled(): dprint('-------------**---**-'+table_name.split('_')[1].split('$')[0])
             if type=='line' and table_name.split('$')[0].split('_')[-1] in ['temp','p']:
                 sql="""CREATE INDEX "idx_{}_fid_time_segment" ON {}."{}" (fid, time, segment);""".format(table_name,self.config['versionName'],table_name) # nosec B608
             else:
                 sql="""CREATE INDEX "idx_{}_fid_time" ON {}."{}" (fid, time);""".format(table_name,self.config['versionName'],table_name) # nosec B608
-            #print(sql)
+            dprint(sql)
             self.cur.execute(sql)
             
     def copy_line_sData(self,copy_buffer,sdata,fid,table_names,value_per_conn_seq,start_datetime,segment_geoms) -> None:

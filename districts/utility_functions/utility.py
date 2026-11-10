@@ -20,13 +20,14 @@ import traceback
 
 
 import operator as op
+from .debug_log import dprint
 
 def checkSpecialCharacters(s):
     if re.search(r'[^a-zA-Z0-9\s()_]', s):
-        #print("Contains special characters")
+        dprint("Contains special characters")
         return True
     else:
-        #print("No special characters")
+        dprint("No special characters")
         return False
     
 operators = {
@@ -206,6 +207,7 @@ def load_plugin_settings():
         "pathPostgresql": settings.value("pathPostgresql","C:\\Program Files\\PostgreSQL\\18\\"),
         "districts_api_delay": settings.value("districts_api_delay","10"),
         "debug": settings.value("debug",False, type=bool),
+        "debug_console": settings.value("debug_console",False, type=bool),
         "autosave": settings.value("autosave", True, type=bool),
         "autosave_dt": settings.value("autosave_dt", "120"),
         "exportInvokedFeatures": settings.value("exportInvokedFeatures", False, type=bool),
@@ -226,7 +228,7 @@ def load_plugin_settings():
     }
 
     settings.endGroup()
-    #print(config)
+    dprint(config)
     return config
     
 def rmtree_long_path(dir):
