@@ -4183,12 +4183,12 @@
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
             <source>calculate_junction_zeta</source>
-            <translation type="unfinished">Calculate the zeta values of the junctions (textbook values)</translation>
+            <translation type="unfinished">Calculate the zeta values of the junctions (tee, cross, reducer)</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
             <source>calculate_junction_zeta_tooltip</source>
-            <translation type="unfinished">Local loss coefficients (zeta) of the junctions from textbook values: tee and cross (straight run 0.4/0.5, branch 1.4/1.5) and reducer (sudden contraction/expansion from the diameter ratio). They are stored per junction connection and added to the lines in the network model. lines.zeta and junctions.zeta stay free for your own values. Pipe sizing: calculated with the sized pipes when the results are saved. Without this option a new topology has no calculated values.</translation>
+            <translation type="unfinished">Local loss coefficients (zeta) of the junctions: tee and cross with the values of the straight run and the branch below (default values are typical orders of magnitude, not table values) and reducer (sudden contraction/expansion from the diameter ratio). They are stored per junction connection and added to the lines in the network model. lines.zeta and junctions.zeta stay free for your own values. Pipe sizing: calculated with the sized pipes when the results are saved. Without this option a new topology has no calculated values.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -4248,19 +4248,49 @@ The result is shown as a temporary layer. &lt;b&gt;Save&lt;/b&gt; writes the pip
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_tee</source>
+            <translation type="unfinished">Tee</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_cross</source>
+            <translation type="unfinished">Cross</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_run</source>
+            <translation type="unfinished">ζ straight run</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_branch</source>
+            <translation type="unfinished">ζ branch</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_default_values</source>
+            <translation type="unfinished">Default values</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values_tooltip</source>
+            <translation type="unfinished">Zeta of the flow path through the fitting (sum of the two connections), referenced to the velocity of the line. Default values: typical orders of magnitude (tee 0.4 / 1.4, cross 0.5 / 1.5), not table values. The values are kept for the next time.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
             <source>zeta_reference_info</source>
-            <translation type="unfinished">&lt;b&gt;Zeta values of the junctions (textbook values)&lt;/b&gt;&lt;br&gt;
+            <translation type="unfinished">&lt;b&gt;Zeta values of the junctions&lt;/b&gt;&lt;br&gt;
 Pressure loss Δp = ζ · ρv²/2 with the velocity v of the line the value is added to.&lt;br&gt;
 Network model: ζ&lt;sub&gt;line&lt;/sub&gt; = lines.zeta + Σ junctions.zeta/2 + Σ junction_connections.zeta (both line ends).
 &lt;ul&gt;
-&lt;li&gt;&lt;b&gt;Tee&lt;/b&gt; (3 connections): ζ&lt;sub&gt;run&lt;/sub&gt; = 0.4, ζ&lt;sub&gt;branch&lt;/sub&gt; = 1.4 (mean of diverging 0.3/1.3 and combining flow 0.5/1.5, supply and return flow in opposite directions). &lt;b&gt;Cross&lt;/b&gt; (≥ 4): 0.5 / 1.5.&lt;/li&gt;
-&lt;li&gt;Split per junction connection: run lines ζ&lt;sub&gt;run&lt;/sub&gt;/2 each, branch lines ζ&lt;sub&gt;branch&lt;/sub&gt; − ζ&lt;sub&gt;run&lt;/sub&gt;/2. A flow path through the junction is the sum of its two connections.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Tee&lt;/b&gt; (3 connections) and &lt;b&gt;cross&lt;/b&gt; (≥ 4): constant ζ&lt;sub&gt;run&lt;/sub&gt; (straight run) and ζ&lt;sub&gt;branch&lt;/sub&gt; of the flow path, set in the dialogs pipe laying, network topology and pipe sizing. The default values (tee 0.4 / 1.4, cross 0.5 / 1.5) are typical orders of magnitude for fittings with equal diameters, &lt;i&gt;not values of a table&lt;/i&gt;. Real values depend on the flow ratio Q&lt;sub&gt;branch&lt;/sub&gt;/Q&lt;sub&gt;total&lt;/sub&gt;, the area ratio, the shape of the fitting and on diverging or combining flow; use the values of your own reference if needed. The same values are used for diverging and combining flow (supply and return flow in opposite directions).&lt;/li&gt;
+&lt;li&gt;Split per junction connection: run lines ζ&lt;sub&gt;run&lt;/sub&gt;/2 each, branch lines ζ&lt;sub&gt;branch&lt;/sub&gt; − ζ&lt;sub&gt;run&lt;/sub&gt;/2 (at least 0). A flow path through the junction is the sum of its two connections, e.g. tee: run 0.2 + 0.2 = 0.4, branch 0.2 + 1.2 = 1.4.&lt;/li&gt;
 &lt;li&gt;Run: the two connections with the largest inner diameter (±1 %), with equal diameters the pair most in line.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Reducer&lt;/b&gt; (referenced to the smaller pipe, β = (d&lt;sub&gt;small&lt;/sub&gt;/d&lt;sub&gt;large&lt;/sub&gt;)²): contraction ζ = 0.5·(1 − β), expansion (Borda-Carnot) ζ = (1 − β)², the mean is used (sharp-edged, e.g. DN100 → DN50: 0.47). Also applied to a run with different diameters.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Pipe friction&lt;/b&gt; (comparison in the zeta values dialog): ζ&lt;sub&gt;R&lt;/sub&gt; = λ·L/d, Re = v·d/ν, λ = 64/Re (Re &amp;lt; 2300), otherwise Swamee-Jain λ = 0.25 / [log&lt;sub&gt;10&lt;/sub&gt;(k/(3.7·d) + 5.74/Re&lt;sup&gt;0.9&lt;/sup&gt;)]² (explicit approximation of Colebrook-White).&lt;/li&gt;
 &lt;li&gt;Not included: bends, valves and fittings within a line, enter them in lines.zeta or junctions.zeta.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;b&gt;References&lt;/b&gt;: Recknagel, Sprenger, Albers: Taschenbuch für Heizung + Klimatechnik (local resistances); VDI 2073 Part 1: Hydraulics in building services systems; I. E. Idelchik: Handbook of Hydraulic Resistance, 3rd ed., Begell House 1994 (diagrams of sections 4 and 7: changes of cross section, tees and crosses); P. K. Swamee, A. K. Jain: Explicit equations for pipe-flow problems, J. Hydraul. Div. ASCE 102 (1976) 657–664; C. F. Colebrook: Turbulent flow in pipes, J. Inst. Civ. Eng. 11 (1939) 133–156.</translation>
+&lt;b&gt;Further reading&lt;/b&gt; (local losses of fittings depending on the flow and area ratios, reducer, pipe friction): Recknagel, Sprenger, Albers: Taschenbuch für Heizung + Klimatechnik (local resistances); VDI 2073 Part 1: Hydraulics in building services systems; I. E. Idelchik: Handbook of Hydraulic Resistance, 3rd ed., Begell House 1994 (changes of cross section, merging and dividing flows); P. K. Swamee, A. K. Jain: Explicit equations for pipe-flow problems, J. Hydraul. Div. ASCE 102 (1976) 657–664; C. F. Colebrook: Turbulent flow in pipes, J. Inst. Civ. Eng. 11 (1939) 133–156.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />

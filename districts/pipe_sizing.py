@@ -320,6 +320,7 @@ INSERT INTO temp.lines SELECT * FROM "{}".lines ORDER BY id;""".format(config['v
         dlg.sized_network=network
         dlg.sized_with_topology=dlg.rbtn_customers.isChecked()
         dlg.sized_calc_junction_zeta=dlg.check_calc_junction_zeta.isChecked()
+        dlg.sized_junction_zeta_values=dlg.junction_zeta.values()
 
         dlg.process_running=True
         if dlg.rbtn_customers.isChecked():
@@ -458,7 +459,8 @@ END $$;""".format(i,i) for i in energy_columns]) # nosec B608
     #zeta values of the junctions with the sized pipe diameters
     if getattr(dlg,'sized_calc_junction_zeta',dlg.check_calc_junction_zeta.isChecked()):
         dropDBTriggers(cur,config) #child versions are not updated
-        updateJunctionZeta(cur,config['versionName'],network)
+        updateJunctionZeta(cur,config['versionName'],network,
+                           getattr(dlg,'sized_junction_zeta_values',None) or dlg.junction_zeta.values())
         insertDBTriggers(cur,config)
 
     dlg.new_pipe_bundles=[]

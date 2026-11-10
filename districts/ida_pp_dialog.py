@@ -1,5 +1,5 @@
 from qgis.PyQt.QtCore import Qt, QThreadPool
-from qgis.PyQt.QtWidgets import QDialog, QSpacerItem, QSizePolicy, QGroupBox, QMessageBox, QButtonGroup, QInputDialog, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QComboBox, QProgressBar, QCheckBox, QRadioButton, QListWidget
+from qgis.PyQt.QtWidgets import QDialog, QSpacerItem, QSizePolicy, QGroupBox, QMessageBox, QButtonGroup, QInputDialog, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QComboBox, QProgressBar, QCheckBox, QRadioButton, QListWidget, QWidget, QGridLayout, QDoubleSpinBox
 from qgis.core import QgsProject, QgsMessageLog, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface 
 from qgis.PyQt import QtGui, QtCore
@@ -18,7 +18,7 @@ from .utility_functions.topology import checkNetwork, getNetworkSequences, saveT
 from .utility_functions.translations import tr
 from .utility_functions.utility import refreshMap
 from .utility_functions.workers import closeConnection, closeConnectionOnFinish, startWorkers
-from .utility_functions.zeta import ensureConnectionZetaColumn, hasCalculatedJunctionZeta
+from .utility_functions.zeta import ZETA_DEFAULTS, ensureConnectionZetaColumn, hasCalculatedJunctionZeta, loadZetaValues, saveZetaValues
 from .utility_functions.debug_log import dprint, debug_enabled
 
 
@@ -32,6 +32,53 @@ def junctionZetaCheckBox(cur,config):
     except Exception:
         checkbox.setChecked(False)
     return checkbox
+
+class JunctionZetaWidget(QWidget):
+    """checkbox 'calculate the zeta values of the junctions' and the zeta values of the flow paths of the tee and cross
+    (spin boxes, default values or the values used last)"""
+    def __init__(self,cur,config):
+        super().__init__()
+        self.checkbox=junctionZetaCheckBox(cur,config)
+        self.spinboxes={}
+        values=loadZetaValues()
+        grid=QGridLayout()
+        grid.setContentsMargins(20,0,0,0)
+        grid.addWidget(QLabel(tr('@default','zeta_run')),0,1)
+        grid.addWidget(QLabel(tr('@default','zeta_branch')),0,2)
+        for row,fitting in enumerate(['tee','cross'],start=1):
+            grid.addWidget(QLabel(tr('@default','zeta_'+fitting)),row,0)
+            for col,path in enumerate(['run','branch'],start=1):
+                key='{}_{}'.format(fitting,path)
+                spinbox=QDoubleSpinBox()
+                spinbox.setRange(0.0,10.0)
+                spinbox.setDecimals(2)
+                spinbox.setSingleStep(0.05)
+                spinbox.setValue(values[key])
+                spinbox.setToolTip(tr('@default','zeta_values_tooltip'))
+                self.spinboxes[key]=spinbox
+                grid.addWidget(spinbox,row,col)
+        self.btn_defaults=QPushButton(tr('@default','zeta_default_values'))
+        self.btn_defaults.clicked.connect(self.setDefaults)
+        grid.addWidget(self.btn_defaults,3,1,1,2)
+        self.values_widget=QWidget()
+        self.values_widget.setLayout(grid)
+        # values only shown with the option
+        self.values_widget.setVisible(self.checkbox.isChecked())
+        self.checkbox.toggled.connect(self.values_widget.setVisible)
+        layout=QVBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
+        layout.addWidget(self.checkbox)
+        layout.addWidget(self.values_widget)
+
+    def setDefaults(self):
+        for key,spinbox in self.spinboxes.items():
+            spinbox.setValue(ZETA_DEFAULTS[key])
+
+    def values(self):
+        """values of the spin boxes (also stored as the values used next time)"""
+        values={key:spinbox.value() for key,spinbox in self.spinboxes.items()}
+        saveZetaValues(values)
+        return values
 from .PipeLayingAlgorithm import WorkerPipeLaying 
 from .GenerateNetworkTopology import WorkerGenerateNetworkTopology 
 
@@ -331,7 +378,8 @@ class PipeLayingDialog(QDialog):
         self.keep_unconnected_customers.setChecked(True)
 
         #zeta values of the junctions
-        self.check_calc_junction_zeta=junctionZetaCheckBox(self.cur,self.config)
+        self.junction_zeta=JunctionZetaWidget(self.cur,self.config)
+        self.check_calc_junction_zeta=self.junction_zeta.checkbox
 
         #redraw submodel polygon including all streets
         self.redraw_submodels_polygons =QCheckBox(tr('@default',"redraw_submodel_polygon"))
@@ -506,16 +554,16 @@ class PipeLayingDialog(QDialog):
         
         #main layout
         layout_win = QVBoxLayout()
-        layout_win.addWidget(self.check_heating_network)
         self.text_info=infoTextEdit(['pipe_laying_info','zeta_reference_info'])
         layout_win.addWidget(self.text_info)
+        layout_win.addWidget(self.check_heating_network)
         layout_win.addLayout(layout_heating)
         layout_win.addWidget(self.check_cooling_network)
         layout_win.addLayout(layout_cooling)
         layout_win.addWidget(self.group_box_hc_type_settings)
         layout_win.addWidget(self.check_extend_network)
         layout_win.addWidget(self.keep_unconnected_customers)
-        layout_win.addWidget(self.check_calc_junction_zeta)
+        layout_win.addWidget(self.junction_zeta)
         #layout_win.addWidget(self.redraw_submodels_polygons)
         layout_win.addWidget(self.customer_connection_mode)
         layout_win.addLayout(layout_tolerance)
@@ -591,7 +639,7 @@ class PipeLayingDialog(QDialog):
                 cooling_load_min=self.cooling_load_min.text(),cooling_template_customer=self.cooling_template_customer.currentText(),cooling_type_lines=self.cooling_type_lines.currentText(),
                 linearColdDensity_min=self.linearColdDensity_min.text(),check_cooling_network_costs=self.check_cooling_network_costs.isChecked(),cold_loss=self.cold_loss.text(),cold_costs=self.cold_costs.text(),
                 amortization_period_cold=self.amortization_period_cold.text(),hc_template_customer=self.hc_template_customer.currentText(),
-                customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),calcJunctionZeta=self.check_calc_junction_zeta.isChecked(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),config=self.config,plugin_dir=self.plugin_dir)
+                customer_connection_mode=self.customer_connection_mode.currentText(),keep_unconnected_customers=self.keep_unconnected_customers.isChecked(),calcJunctionZeta=self.check_calc_junction_zeta.isChecked(),junctionZetaValues=self.junction_zeta.values(),redraw_submodels_polygons=self.redraw_submodels_polygons.isChecked(),config=self.config,plugin_dir=self.plugin_dir)
             self.worker.signals.progress.connect(self.update_progress)
             self.worker.signals.error.connect(self.show_error_message)
             self.worker.signals.status.connect(self.label_status.setText)
@@ -917,14 +965,15 @@ class NetworkTopologyDialog(QDialog):
         layout_additional_options.addLayout(layout_connectCustomers_template)
         layout_additional_options.addWidget(self.check_deleteUnconnectedCustomers)
         layout_additional_options.addWidget(self.check_deleteUnconnectedLines)
-        self.check_calc_junction_zeta=junctionZetaCheckBox(self.cur,self.config)
-        layout_additional_options.addWidget(self.check_calc_junction_zeta)
+        self.junction_zeta=JunctionZetaWidget(self.cur,self.config)
+        self.check_calc_junction_zeta=self.junction_zeta.checkbox
+        layout_additional_options.addWidget(self.junction_zeta)
         #layout_additional_options.addWidget(self.redraw_submodels_polygons)
-        
+
         layout_win = QVBoxLayout()
-        layout_win.addWidget(self.rbtn_keep_templates)
         self.text_info=infoTextEdit(['network_topology_info','zeta_reference_info'])
         layout_win.addWidget(self.text_info)
+        layout_win.addWidget(self.rbtn_keep_templates)
         layout_win.addWidget(self.rbtn_override_templates)
         layout_win.addLayout(layout_overrideTemplate)
         layout_win.addLayout(layout_additional_options)
@@ -955,7 +1004,7 @@ class NetworkTopologyDialog(QDialog):
                     deleteUnconnectedNetworkEnds=self.check_del_network_ends.isChecked(),
                     keepTemplates=self.rbtn_keep_templates.isChecked(),
                     overrideTemplates=self.rbtn_override_templates.isChecked(),overrideTemplates_customers=self.overrideTemplate_customer.currentText(),overrideTemplates_pipeBundle=self.overrideTemplate_pipeBundle.currentText(),tolerance=self.tolerance.text(),
-                    calcJunctionZeta=self.check_calc_junction_zeta.isChecked(),showTempTables=True)
+                    calcJunctionZeta=self.check_calc_junction_zeta.isChecked(),junctionZetaValues=self.junction_zeta.values(),showTempTables=True)
                 self.worker.signals.error.connect(self.show_error_message)
                 self.worker.signals.progress.connect(self.update_progress)
                 self.worker.signals.status.connect(self.label_status.setText)
@@ -1170,7 +1219,8 @@ class PipeSizingDlg(QDialog):
         self.combo_simultaneity.setHidden(True)
 
         #zeta values of the junctions (calculated with the sized pipes when the results are saved)
-        self.check_calc_junction_zeta=junctionZetaCheckBox(self.cur,self.config)
+        self.junction_zeta=JunctionZetaWidget(self.cur,self.config)
+        self.check_calc_junction_zeta=self.junction_zeta.checkbox
 
         #------liquid circuits----
         #label water circuits
@@ -1228,13 +1278,13 @@ class PipeSizingDlg(QDialog):
         
         #set layouts together
         layout_win = QVBoxLayout()
+        self.text_info=infoTextEdit(['pipe_sizing_info','zeta_reference_info'])
+        layout_win.addWidget(self.text_info)
         layout_win.addLayout(layout_inputs)
         layout_win.addLayout(layout_sizing_options)
         layout_win.addWidget(self.checkBoxSimultaneity)
         layout_win.addWidget(self.combo_simultaneity)
-        self.text_info=infoTextEdit(['pipe_sizing_info','zeta_reference_info'])
-        layout_win.addWidget(self.text_info)
-        layout_win.addWidget(self.check_calc_junction_zeta)
+        layout_win.addWidget(self.junction_zeta)
         layout_win.addWidget(self.label_circuits)
         layout_win.addLayout(layout_buttons_circuits)
         layout_win.addWidget(self.table_circuits)

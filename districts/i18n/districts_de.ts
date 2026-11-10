@@ -4180,12 +4180,12 @@
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
             <source>calculate_junction_zeta</source>
-            <translation type="unfinished">Zeta-Werte der Knoten berechnen (Tabellenwerte)</translation>
+            <translation type="unfinished">Zeta-Werte der Knoten berechnen (T-Stück, Kreuzstück, Reduktion)</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
             <source>calculate_junction_zeta_tooltip</source>
-            <translation type="unfinished">Einzelwiderstandsbeiwerte (Zeta) der Knoten aus Tabellenwerten: T-Stück und Kreuzstück (Durchgang 0.4/0.5, Abzweig 1.4/1.5) und Reduktion (plötzliche Verengung/Erweiterung aus dem Durchmesserverhältnis). Sie werden pro Knotenanschluss gespeichert und im Netzmodell zu den Leitungen addiert. lines.zeta und junctions.zeta bleiben frei für eigene Werte. Rohrdimensionierung: mit den dimensionierten Rohren beim Speichern der Ergebnisse berechnet. Ohne diese Option hat eine neue Topologie keine berechneten Werte.</translation>
+            <translation type="unfinished">Einzelwiderstandsbeiwerte (Zeta) der Knoten: T-Stück und Kreuzstück mit den Werten für Durchgang und Abzweig unten (die Standardwerte sind typische Grössenordnungen, keine Tabellenwerte) und Reduktion (plötzliche Verengung/Erweiterung aus dem Durchmesserverhältnis). Sie werden pro Knotenanschluss gespeichert und im Netzmodell zu den Leitungen addiert. lines.zeta und junctions.zeta bleiben frei für eigene Werte. Rohrdimensionierung: mit den dimensionierten Rohren beim Speichern der Ergebnisse berechnet. Ohne diese Option hat eine neue Topologie keine berechneten Werte.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -4245,19 +4245,49 @@ Das Ergebnis wird als temporärer Layer angezeigt. &lt;b&gt;Speichern&lt;/b&gt; 
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_tee</source>
+            <translation type="unfinished">T-Stück</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_cross</source>
+            <translation type="unfinished">Kreuzstück</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_run</source>
+            <translation type="unfinished">ζ Durchgang</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_branch</source>
+            <translation type="unfinished">ζ Abzweig</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_default_values</source>
+            <translation type="unfinished">Standardwerte</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_values_tooltip</source>
+            <translation type="unfinished">Zeta des Strömungswegs durch das Formstück (Summe der beiden Anschlüsse), bezogen auf die Geschwindigkeit der Leitung. Standardwerte: typische Grössenordnungen (T-Stück 0.4 / 1.4, Kreuzstück 0.5 / 1.5), keine Tabellenwerte. Die Werte werden für das nächste Mal gespeichert.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
             <source>zeta_reference_info</source>
-            <translation type="unfinished">&lt;b&gt;Zeta-Werte der Knoten (Tabellenwerte)&lt;/b&gt;&lt;br&gt;
+            <translation type="unfinished">&lt;b&gt;Zeta-Werte der Knoten&lt;/b&gt;&lt;br&gt;
 Druckverlust Δp = ζ · ρv²/2 mit der Geschwindigkeit v der Leitung, zu der der Wert addiert wird.&lt;br&gt;
 Netzmodell: ζ&lt;sub&gt;Leitung&lt;/sub&gt; = lines.zeta + Σ junctions.zeta/2 + Σ junction_connections.zeta (beide Leitungsenden).
 &lt;ul&gt;
-&lt;li&gt;&lt;b&gt;T-Stück&lt;/b&gt; (3 Anschlüsse): ζ&lt;sub&gt;Durchgang&lt;/sub&gt; = 0.4, ζ&lt;sub&gt;Abzweig&lt;/sub&gt; = 1.4 (Mittel aus Trennung 0.3/1.3 und Vereinigung 0.5/1.5, Vor- und Rücklauf strömen gegenläufig). &lt;b&gt;Kreuzstück&lt;/b&gt; (≥ 4): 0.5 / 1.5.&lt;/li&gt;
-&lt;li&gt;Aufteilung pro Knotenanschluss: Durchgangsleitungen je ζ&lt;sub&gt;Durchgang&lt;/sub&gt;/2, Abzweigleitungen ζ&lt;sub&gt;Abzweig&lt;/sub&gt; − ζ&lt;sub&gt;Durchgang&lt;/sub&gt;/2. Ein Strömungsweg durch den Knoten ist die Summe seiner zwei Anschlüsse.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;T-Stück&lt;/b&gt; (3 Anschlüsse) und &lt;b&gt;Kreuzstück&lt;/b&gt; (≥ 4): konstante ζ&lt;sub&gt;Durchgang&lt;/sub&gt; und ζ&lt;sub&gt;Abzweig&lt;/sub&gt; des Strömungswegs, einstellbar in den Dialogen Rohrverlegung, Netz-Topologie und Rohrdimensionierung. Die Standardwerte (T-Stück 0.4 / 1.4, Kreuzstück 0.5 / 1.5) sind typische Grössenordnungen für Formstücke mit gleichen Durchmessern, &lt;i&gt;keine Werte aus einer Tabelle&lt;/i&gt;. Die tatsächlichen Werte hängen vom Mengenverhältnis Q&lt;sub&gt;Abzweig&lt;/sub&gt;/Q&lt;sub&gt;gesamt&lt;/sub&gt;, vom Flächenverhältnis, von der Form des Formstücks und von Trennung oder Vereinigung ab; bei Bedarf die Werte der eigenen Unterlagen verwenden. Für Trennung und Vereinigung werden dieselben Werte verwendet (Vor- und Rücklauf strömen gegenläufig).&lt;/li&gt;
+&lt;li&gt;Aufteilung pro Knotenanschluss: Durchgangsleitungen je ζ&lt;sub&gt;Durchgang&lt;/sub&gt;/2, Abzweigleitungen ζ&lt;sub&gt;Abzweig&lt;/sub&gt; − ζ&lt;sub&gt;Durchgang&lt;/sub&gt;/2 (mindestens 0). Ein Strömungsweg durch den Knoten ist die Summe seiner zwei Anschlüsse, z. B. T-Stück: Durchgang 0.2 + 0.2 = 0.4, Abzweig 0.2 + 1.2 = 1.4.&lt;/li&gt;
 &lt;li&gt;Durchgang: die zwei Anschlüsse mit dem grössten Innendurchmesser (±1 %), bei gleichen Durchmessern das am besten fluchtende Paar.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Reduktion&lt;/b&gt; (auf das kleinere Rohr bezogen, β = (d&lt;sub&gt;klein&lt;/sub&gt;/d&lt;sub&gt;gross&lt;/sub&gt;)²): Verengung ζ = 0.5·(1 − β), Erweiterung (Borda-Carnot) ζ = (1 − β)², verwendet wird der Mittelwert (scharfkantig, z. B. DN100 → DN50: 0.47). Gilt auch für einen Durchgang mit verschiedenen Durchmessern.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Rohrreibung&lt;/b&gt; (Vergleich im Dialog Zeta-Werte): ζ&lt;sub&gt;R&lt;/sub&gt; = λ·L/d, Re = v·d/ν, λ = 64/Re (Re &amp;lt; 2300), sonst Swamee-Jain λ = 0.25 / [log&lt;sub&gt;10&lt;/sub&gt;(k/(3.7·d) + 5.74/Re&lt;sup&gt;0.9&lt;/sup&gt;)]² (explizite Näherung von Colebrook-White).&lt;/li&gt;
 &lt;li&gt;Nicht enthalten: Bögen, Armaturen und Formstücke innerhalb einer Leitung, diese in lines.zeta oder junctions.zeta eintragen.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;b&gt;Literatur&lt;/b&gt;: Recknagel, Sprenger, Albers: Taschenbuch für Heizung + Klimatechnik (Einzelwiderstände); VDI 2073 Blatt 1: Hydraulik in Anlagen der Technischen Gebäudeausrüstung; I. E. Idelchik: Handbook of Hydraulic Resistance, 3rd ed., Begell House 1994 (Diagramme der Abschnitte 4 und 7: Querschnittsänderungen, T- und Kreuzstücke); P. K. Swamee, A. K. Jain: Explicit equations for pipe-flow problems, J. Hydraul. Div. ASCE 102 (1976) 657–664; C. F. Colebrook: Turbulent flow in pipes, J. Inst. Civ. Eng. 11 (1939) 133–156.</translation>
+&lt;b&gt;Weiterführende Literatur&lt;/b&gt; (Einzelwiderstände von Formstücken abhängig von Mengen- und Flächenverhältnis, Reduktion, Rohrreibung): Recknagel, Sprenger, Albers: Taschenbuch für Heizung + Klimatechnik (Einzelwiderstände); VDI 2073 Blatt 1: Hydraulik in Anlagen der Technischen Gebäudeausrüstung; I. E. Idelchik: Handbook of Hydraulic Resistance, 3rd ed., Begell House 1994 (Querschnittsänderungen, Vereinigung und Trennung von Strömen); P. K. Swamee, A. K. Jain: Explicit equations for pipe-flow problems, J. Hydraul. Div. ASCE 102 (1976) 657–664; C. F. Colebrook: Turbulent flow in pipes, J. Inst. Civ. Eng. 11 (1939) 133–156.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />

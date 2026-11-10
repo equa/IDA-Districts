@@ -37,7 +37,7 @@ from districts.utility_functions import reports
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.files import districtsModelerTempDir
 from districts.utility_functions.height_check import HEIGHT_CHECK_PROPERTY
-from districts.utility_functions.zeta import ZETA_BRANCH, ZETA_PROPERTY, ZETA_RUN
+from districts.utility_functions.zeta import ZETA_DEFAULTS, ZETA_PROPERTY, loadZetaValues, saveZetaValues, zetaTables
 from districts.utility_functions.invoke import setFeatureParm
 from districts.utility_functions.sensor_signals import getSensorData
 from districts.utility_functions.show_on_map import RESULT_VIS_PROPERTY
@@ -88,8 +88,10 @@ def count(plugin, table, where=""):
     return plugin.cur.fetchone()['n']
 
 
-def assert_junction_zeta(plugin):
-    """all junction connections have a calculated zeta: tees 2x run/2 + branch (+ reducer), network ends 0"""
+def assert_junction_zeta(plugin, values=None):
+    """all junction connections have a calculated zeta: tees 2x run/2 + branch (+ reducer), network ends 0
+    (values: tee/cross values of the dialog, default values if None)"""
+    zeta_run, zeta_branch = zetaTables(values)
     plugin.cur.execute("""SELECT jc.jid, count(*) AS n, count(jc.zeta) AS n_zeta, coalesce(sum(jc.zeta), 0) AS zeta_sum,
        coalesce(max(jc.zeta), 0) AS zeta_max
 FROM "{v}".junction_connections jc GROUP BY jc.jid;""".format(v=plugin.config['versionName']))  # nosec B608
@@ -100,8 +102,10 @@ FROM "{v}".junction_connections jc GROUP BY jc.jid;""".format(v=plugin.config['v
         if r['n'] == 1:
             assert r['zeta_sum'] == 0, dict(r)
         elif r['n'] == 3:
-            assert float(r['zeta_sum']) >= ZETA_RUN[3] + ZETA_BRANCH[3] - ZETA_RUN[3] / 2 - 1e-6, dict(r)
-            assert float(r['zeta_max']) >= ZETA_BRANCH[3] - ZETA_RUN[3] / 2 - 1e-6, dict(r)
+            assert float(r['zeta_sum']) >= zeta_run[3] + zeta_branch[3] - zeta_run[3] / 2 - 1e-4, dict(r)
+            assert float(r['zeta_max']) >= zeta_branch[3] - zeta_run[3] / 2 - 1e-4, dict(r)
+            if values:  # without a reducer exactly the values of the dialog
+                assert float(r['zeta_sum']) <= zeta_run[3] + zeta_branch[3] - zeta_run[3] / 2 + 1.0, dict(r)
     print('junction zeta: {} junctions, connections per junction {}'.format(
         len(rows), sorted({r['n'] for r in rows})))
 
@@ -573,16 +577,32 @@ class TestWorkflow:
         for checkbox in [dlg.check_del_network_ends, dlg.check_connectCustomers, dlg.check_connectPlants,
                          dlg.check_deleteUnconnectedCustomers, dlg.check_deleteUnconnectedLines, dlg.check_calc_junction_zeta]:
             checkbox.setCheckState(checkState())
+        # own values of the tee and cross (spin boxes), the values used last are restored afterwards
+        assert not dlg.junction_zeta.values_widget.isHidden()
+        dlg.check_calc_junction_zeta.setChecked(False)
+        assert dlg.junction_zeta.values_widget.isHidden()
+        dlg.check_calc_junction_zeta.setChecked(True)
+        assert not dlg.junction_zeta.values_widget.isHidden()
+        saved_values = loadZetaValues()
+        custom = {'tee_run': 0.6, 'tee_branch': 2.0, 'cross_run': 0.8, 'cross_branch': 2.2}
+        for key, value in custom.items():
+            dlg.junction_zeta.spinboxes[key].setValue(value)
         dlg.combo_network_models.setItemChecked(1, True)
-        dlg.execute()
-        wait_for_process(dlg, timeout=60)
-        dlg.saveResults()
-        wait(500)
-        closeDialog(dlg)
-        errors.check()
+        try:
+            dlg.execute()
+            wait_for_process(dlg, timeout=60)
+            dlg.saveResults()
+            wait(500)
+            closeDialog(dlg)
+            errors.check()
+            assert loadZetaValues() == custom  # kept for the next time
+        finally:
+            saveZetaValues(saved_values)
         assert count(plugin, 'lines') > 0
         assert count(plugin, 'junctions') > 0
-        assert_junction_zeta(plugin)
+        assert_junction_zeta(plugin, custom)
+        dlg.junction_zeta.setDefaults()
+        assert {k: s.value() for k, s in dlg.junction_zeta.spinboxes.items()} == ZETA_DEFAULTS
 
     def test_height_check(self, wf, errors):
         """height check action (lines, customers, energy plants): graduated colors and consistency check as memory layers

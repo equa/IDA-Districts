@@ -1,4 +1,5 @@
-"""Local loss coefficients (zeta) at the junctions from textbook values (Recknagel, VDI 2073, Idelchik).
+"""Local loss coefficients (zeta) at the junctions: tee and cross with constant values of the flow paths (typical orders
+of magnitude as default values, set by the user in the dialogs), reducer from the sudden contraction/expansion.
 
 Every connection of a junction (junction_connections) gets the zeta value that is added to its line in the network model,
 referenced to the velocity of that line. The model adds to a line: lines.zeta (user values, free) + sum over its junctions
@@ -10,8 +11,9 @@ A flow through a junction passes two of its connections, so it sees the sum of t
   - reducer (2 connections with different diameters, only these are left after merging the lines):
     the smaller line gets the loss of the sudden contraction/expansion, the larger one 0.
   - a run of a tee/cross with different diameters: the smaller run line gets the reducer loss in addition.
-The values are means of the diverging and combining flow (supply and return of a pipe bundle flow in opposite directions)
-and of the contraction and expansion (sharp-edged fittings, conical reducers have lower losses).
+The tee/cross values are constant (real values depend on the flow ratio and the area ratio, see e.g. Idelchik) and the
+same for diverging and combining flow (supply and return of a pipe bundle flow in opposite directions); the reducer value
+is the mean of the contraction and the expansion (sharp-edged fittings, conical reducers have lower losses).
 The run is the pair of lines with the largest diameters, with equal diameters the pair that is the most in line."""
 import math
 from decimal import Decimal
@@ -25,10 +27,44 @@ from qgis.PyQt.QtGui import QColor
 
 from .translations import tr
 
-# textbook values (number of connections -> zeta); 4 is used for all junctions with more than 4 connections
-ZETA_RUN = {3: 0.4, 4: 0.5}        # straight run: diverging 0.3, combining 0.5 (tee); cross 0.5
-ZETA_BRANCH = {3: 1.4, 4: 1.5}     # branch: diverging 1.3, combining 1.5 (tee); cross 1.5
+# default values (typical orders of magnitude, no table values; the user can change them in the dialogs):
+# number of connections -> zeta of the flow path; 4 is used for all junctions with more than 4 connections
+ZETA_RUN = {3: 0.4, 4: 0.5}        # straight run (Durchgang) of a tee / cross
+ZETA_BRANCH = {3: 1.4, 4: 1.5}     # branch (Abzweig) of a tee / cross
+# keys of the values in the dialogs and the settings
+ZETA_VALUE_KEYS = {'tee_run': (ZETA_RUN, 3), 'tee_branch': (ZETA_BRANCH, 3), 'cross_run': (ZETA_RUN, 4),
+                   'cross_branch': (ZETA_BRANCH, 4)}
+ZETA_DEFAULTS = {key: table[n] for key, (table, n) in ZETA_VALUE_KEYS.items()}
+ZETA_SETTINGS_PREFIX = 'districts/junction_zeta/'
 DIAMETER_EQUAL_RTOL = 0.01         # diameters within 1 % are equal (no reducer, run chosen by the geometry)
+
+
+def zetaTables(values=None):
+    """(run, branch) tables {number of connections: zeta} from the values {'tee_run', 'tee_branch', 'cross_run',
+    'cross_branch'} (missing keys: default values)"""
+    values = dict(ZETA_DEFAULTS, **(values or {}))
+    return ({3: values['tee_run'], 4: values['cross_run']}, {3: values['tee_branch'], 4: values['cross_branch']})
+
+
+def loadZetaValues():
+    """values last used in the dialogs (QgsSettings), default values otherwise"""
+    from qgis.core import QgsSettings
+    settings = QgsSettings()
+    values = {}
+    for key, default in ZETA_DEFAULTS.items():
+        try:
+            values[key] = float(settings.value(ZETA_SETTINGS_PREFIX + key, default))
+        except (TypeError, ValueError):
+            values[key] = default
+    return values
+
+
+def saveZetaValues(values):
+    from qgis.core import QgsSettings
+    settings = QgsSettings()
+    for key in ZETA_DEFAULTS:
+        if key in values:
+            settings.setValue(ZETA_SETTINGS_PREFIX + key, float(values[key]))
 
 ZETA_PROPERTY = 'districts_zeta'
 ZETA_LAYERS = ['lines', 'connections']
@@ -59,9 +95,11 @@ def _straightness(az1, az2):
     return -math.cos(az1 - az2)
 
 
-def connectionZetas(connections):
+def connectionZetas(connections, values=None):
     """connections of one junction: [{'id', 'd' (inner diameter or None), 'az' (azimuth of the line leaving the junction)}].
+    values: zeta of the flow paths {'tee_run', 'tee_branch', 'cross_run', 'cross_branch'} (default values if missing).
     Returns {connection id: (zeta, role)}, role: 'end', 'none', 'reducer_small', 'reducer_large', 'run', 'branch'."""
+    zeta_run, zeta_branch = zetaTables(values)
     n = len(connections)
     if n <= 1:
         return {c['id']: (0.0, 'end') for c in connections}
@@ -80,9 +118,10 @@ def connectionZetas(connections):
     result = {}
     for c in connections:
         if c in run:
-            result[c['id']] = (ZETA_RUN[k] / 2, 'run')
+            result[c['id']] = (zeta_run[k] / 2, 'run')
         else:
-            result[c['id']] = (ZETA_BRANCH[k] - ZETA_RUN[k] / 2, 'branch')
+            # never negative (a branch value smaller than half of the run value)
+            result[c['id']] = (max(0.0, zeta_branch[k] - zeta_run[k] / 2), 'branch')
     small, large = sorted(run, key=lambda c: c['d'] or 0)
     if not _equal(small['d'], large['d']):
         zeta, role = result[small['id']]
@@ -135,18 +174,19 @@ ORDER BY jc.jid, jc.id;""".format(s=schema),  # nosec B608
     return junctions
 
 
-def updateJunctionZeta(cur, schema='temp', network=None):
-    """calculate junction_connections.zeta of the junctions (of the network) from the textbook values.
+def updateJunctionZeta(cur, schema='temp', network=None, values=None):
+    """calculate junction_connections.zeta of the junctions (of the network) from the zeta values of the tee and cross
+    (values {'tee_run', 'tee_branch', 'cross_run', 'cross_branch'}, default values if None) and the reducer equation.
     Run after the lines are merged and the pipe bundles are final. Returns the number of junctions."""
     ensureConnectionZetaColumn(cur, schema)
     junctions = connectionRows(cur, schema, network)
-    values = []
+    rows = []
     for connections in junctions.values():
-        for cid, (zeta, _role) in connectionZetas(connections).items():
-            values.append((cid, round(zeta, 4)))
-    if values:
+        for cid, (zeta, _role) in connectionZetas(connections, values).items():
+            rows.append((cid, round(zeta, 4)))
+    if rows:
         psycopg2.extras.execute_values(cur, """UPDATE "{}".junction_connections jc SET zeta = v.zeta::numeric
-FROM (VALUES %s) AS v(id, zeta) WHERE jc.id = v.id;""".format(schema), values, page_size=5000)  # nosec B608
+FROM (VALUES %s) AS v(id, zeta) WHERE jc.id = v.id;""".format(schema), rows, page_size=5000)  # nosec B608
     return len(junctions)
 
 

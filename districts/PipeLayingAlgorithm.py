@@ -60,6 +60,7 @@ class WorkerPipeLaying(QRunnable):
         self.tolerance=kwargs['tolerance']
         #calculate the zeta values of the junction connections from textbook values
         self.calcJunctionZeta=kwargs.get('calcJunctionZeta',False)
+        self.junctionZetaValues=kwargs.get('junctionZetaValues')  # tee/cross values, None: default values
         self.check_heating_network=kwargs['check_heating_network']
         self.tsup_max=kwargs['tsup_max']
         self.heat_demand_min=kwargs['heat_demand_min']
@@ -332,7 +333,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         updateJunctionHeights(self.cur,self.tolerance,self.network)
         if self.calcJunctionZeta:
             self.status('Calculating the zeta values of the junctions')
-            updateJunctionZeta(self.cur,'temp')
+            updateJunctionZeta(self.cur,'temp',None,self.junctionZetaValues)
         self.setProgress(95)
         if self.redraw_submodels_polygons:
             redrawSubnetworkIncludingLines('temp.lines',self.cur,self.config,self.srid)

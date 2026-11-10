@@ -3,7 +3,9 @@ import math
 
 import pytest
 
-from districts.utility_functions.zeta import ZETA_BRANCH, ZETA_RUN, classBounds, connectionZetas, frictionFactor, reducerZeta
+from districts.utility_functions.zeta import (
+    ZETA_BRANCH, ZETA_DEFAULTS, ZETA_RUN, classBounds, connectionZetas, frictionFactor, reducerZeta, zetaTables,
+)
 
 
 def test_friction_factor():
@@ -80,6 +82,22 @@ def test_cross_and_more():
     assert [z for z, r in result.values() if r == 'branch'] == pytest.approx([ZETA_BRANCH[4] - ZETA_RUN[4] / 2] * 2)
     five = connectionZetas([conn(i, 0.1, 72 * i) for i in range(5)])
     assert sorted(r for _, r in five.values()) == ['branch'] * 3 + ['run'] * 2
+
+
+def test_user_values():
+    values = {'tee_run': 0.6, 'tee_branch': 2.0, 'cross_run': 0.8, 'cross_branch': 2.2}
+    tee = connectionZetas([conn(1, 0.1, 0), conn(2, 0.1, 90), conn(3, 0.1, 180)], values)
+    assert tee[1][0] + tee[3][0] == pytest.approx(0.6)  # straight run
+    assert tee[1][0] + tee[2][0] == pytest.approx(2.0)  # into the branch
+    cross = connectionZetas([conn(i, 0.1, 90 * i) for i in range(4)], values)
+    assert sorted(z for z, _ in cross.values()) == pytest.approx([0.4, 0.4, 1.8, 1.8])
+    # missing keys: default values; a branch smaller than half of the run: 0, never negative
+    assert zetaTables({'tee_run': 1.0}) == ({3: 1.0, 4: ZETA_RUN[4]}, {3: ZETA_BRANCH[3], 4: ZETA_BRANCH[4]})
+    low = connectionZetas([conn(1, 0.1, 0), conn(2, 0.1, 90), conn(3, 0.1, 180)], {'tee_run': 1.0, 'tee_branch': 0.2})
+    assert low[2] == (0.0, 'branch')
+    # default values unchanged
+    assert connectionZetas([conn(1, 0.1, 0), conn(2, 0.1, 90), conn(3, 0.1, 180)]) == \
+        connectionZetas([conn(1, 0.1, 0), conn(2, 0.1, 90), conn(3, 0.1, 180)], ZETA_DEFAULTS)
 
 
 def test_unknown_diameters():
