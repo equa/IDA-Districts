@@ -1,3 +1,4 @@
+from .utility_functions.translations import tr_msg
 from qgis.core import Qgis, QgsMessageLog
 
 import sys
@@ -139,7 +140,7 @@ class WorkerImportElevationData(QRunnable):
                 self.signals.progress.emit(95)
 
             self.signals.progress.emit(100)
-            self.signals.finished.emit('Import elevation data completed!')
+            self.signals.finished.emit(tr_msg('Import elevation data completed!'))
         except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
@@ -147,7 +148,7 @@ class WorkerImportElevationData(QRunnable):
                 MessageCritical
             )
             self.signals.progress.emit(0)
-            self.signals.finished.emit('Import elevation data failed!')
+            self.signals.finished.emit(tr_msg('Import elevation data failed!'))
             
         
             

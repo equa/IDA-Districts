@@ -29,7 +29,7 @@ from .utility_functions.layer_visualization import (
 )
 from .utility_functions.reports import setupCustomerDataSheet
 from .utility_functions.show_on_map import dropResultVisTables
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import (
     checkString, copy_tree_filter_extensions_and_folders, get_districts_plugin_dir, load_plugin_settings,
     write_plugin_settings, zoomToLayer,
@@ -585,10 +585,10 @@ def treeItem_add(level, mdlIdx,dlg,main):
                 startWorkers([main.worker_addVersion],dlg.btn_ok)
         else:
             main.dlg.update_progress(0)
-            iface.messageBar().pushMessage("Info", "Base version {} does already exist!".format(versionName), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Base version {} does already exist!").format(versionName), level=MessageInfo)
     else:
         main.dlg.update_progress(0)
-        iface.messageBar().pushMessage("Info", "Please enter a version name!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please enter a version name!"), level=MessageInfo)
 
 class WorkerAddChildVersion(QRunnable):
     """Copies the schema and the version directory of baseName to the new child version versionName."""
@@ -624,13 +624,13 @@ def finishedAddChildVersion(versionName,dlg,main):
     item=get_item_by_text(versionName,main)
     highlight_item(item,main.model.invisibleRootItem())
     main.dlg.treeViewVersions.viewport().update()
-    main.dlg.statusMessage.setText('New child version created: '+versionName)
+    main.dlg.statusMessage.setText(tr_msg('New child version created: ')+versionName)
     main.dlg.update_progress(100)
     closeDialog(dlg)
 
 def finishedAddChildVersionError(message,main):
     main.dlg.update_progress(0)
-    iface.messageBar().pushMessage("Error", "Creating the child version has failed: {} See message log 'Districts' for details.".format(message), level=MessageCritical)
+    iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Creating the child version has failed: {} See message log 'Districts' for details.").format(message), level=MessageCritical)
 
 def treeItem_saveAs(level, mdlIdx,main,dlg):
     """Function to save project version As and add base item to treeview"""
@@ -664,15 +664,15 @@ def treeItem_saveAs(level, mdlIdx,main,dlg):
             copyVersionFiles(main.config,main.plugin_dir,baseName,versionName)
             
             main.dlg.treeViewVersions.expandAll()   
-            main.dlg.statusMessage.setText('New base version created: '+versionName)
+            main.dlg.statusMessage.setText(tr_msg('New base version created: ')+versionName)
             main.dlg.update_progress(100)
             closeDialog(dlg)
         else:
             main.dlg.update_progress(0)
-            iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(versionName), level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Base version {} does already exist!").format(versionName), level=MessageCritical)
     else:
         main.dlg.update_progress(0)
-        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a version name!"), level=MessageCritical)
 
 def getDescription(versionName,cur):
     sql='SELECT description FROM public.versionhandling WHERE name=\''+versionName+'\';' # nosec B608
@@ -702,7 +702,7 @@ def treeItem_rename(level,mdlIdx,main,dlg):
                 main.cur.execute(sql)
                 os.rename(main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+oldSchemaName, main.config['pathProjects']+'{}\\versions\\'.format(main.config['projectName'])+newSchemaName)
             else:
-                iface.messageBar().pushMessage("Error", "Version {} does already exist!".format(versionName), level=MessageCritical)
+                iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Version {} does already exist!").format(versionName), level=MessageCritical)
             sql = 'UPDATE public.versionhandling SET description = \''+description+'\' WHERE name= \''+versionName+'\';'# nosec B608
             dprint(sql)
             main.cur.execute(sql)
@@ -717,11 +717,11 @@ def treeItem_rename(level,mdlIdx,main,dlg):
             
             closeDialog(dlg)
             
-            main.dlg.statusMessage.setText(f'Rename verion "{oldSchemaName}" to "{versionName}" completed!')
+            main.dlg.statusMessage.setText(tr_msg('Rename version "{}" to "{}" completed!').format(oldSchemaName,versionName))
         except Exception as e:
-            main.dlg.statusMessage.setText(f'Rename verion "{oldSchemaName}" to "{versionName}" falied!')
+            main.dlg.statusMessage.setText(tr_msg('Rename version "{}" to "{}" failed!').format(oldSchemaName,versionName))
     else:
-        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=MessageCritical)           
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a version name!"), level=MessageCritical)           
         
 def treeItem_delete(item,dlg,main):
     """Function to delete project version and removes it from the tree"""
@@ -872,9 +872,9 @@ def addBaseVersion(dlg,main):
                 loadVersion(main=main)
                 closeDialog(dlg)
         else:
-            iface.messageBar().pushMessage("Error", "Base version {} does already exist!".format(main.config['versionName']), level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Base version {} does already exist!").format(main.config['versionName']), level=MessageCritical)
     else:
-        iface.messageBar().pushMessage("Error", "Please enter a version name!", level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a version name!"), level=MessageCritical)
 
 def copyVersionFiles(config,plugin_dir,base_name,new_name):
     versions_dir=config['pathProjects']+'{}\\versions\\'.format(config['projectName'])
@@ -899,9 +899,9 @@ def showProjectConfigData(dlg,main):
         if main.projectConfig.get('srid'):
             dlg.srid.setText(main.projectConfig['srid'])
         else:
-            iface.messageBar().pushMessage("Warning", "Project config not found!", level=MessageInfo)        
+            iface.messageBar().pushMessage(tr_msg("Warning"), tr_msg("Project config not found!"), level=MessageInfo)        
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)        
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)        
 
 def saveProjectConfigSettings(dlg,main):
     """ save project config data to file projectConfig.txt"""
@@ -1086,7 +1086,7 @@ def finishedImportProject(dlg=None,main=None,projectName=''):
         else:
             main.config['versionName']=''
             removeLayers()
-        main.dlg.statusMessage.setText('New project created!')
+        main.dlg.statusMessage.setText(tr_msg('New project created!'))
         main.process_running=False
     if dlg is None:
         main.config['versionName']=''
@@ -1163,7 +1163,7 @@ def loadVersion(main=None,item=None):
                     
         QThreadPool.globalInstance().start(worker_loadVersion)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)        
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)        
     
     
 def createNewProject(dlg,main):
@@ -1174,7 +1174,7 @@ def createNewProject(dlg,main):
     dlg.btn_ok.setEnabled(False)
     dlg.update_progress(0)
     if not main.cur_postgres or main.dlg.projectNames is None:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
         dlg.btn_ok.setEnabled(True)
         return
     if not (checkString(dlg.project_name.text()) and checkDBName(dlg.project_name.text(),main.dlg.projectNames)):
@@ -1259,8 +1259,8 @@ def exportProject(config=None,plugin_dir=None,filename=None,dlg=None,exportPrn=N
             QThreadPool.globalInstance().start(worker_export)   
             
 def finishedExportProject(config,filename,main_dlg):
-    msg="Districts project ({}) saved: ".format(config['projectName'])+filename
-    iface.messageBar().pushMessage("Info", msg, level=MessageInfo)
+    msg=tr_msg("Districts project ({}) saved: ").format(config['projectName'])+filename
+    iface.messageBar().pushMessage(tr_msg("Info"), msg, level=MessageInfo)
     if main_dlg:    
         main_dlg.statusMessage.setText(msg)
 

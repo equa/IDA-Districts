@@ -27,7 +27,7 @@ from .ida_ph import loadVersionLayers
 from .utility_functions.layer_visualization import setupFeatureLayerDialog
 from .utility_functions.sensor_signals import templatesensorSignals
 from .utility_functions.topology import getConnsValues, getTemplatesByConnBundleType, getTemplatesByConnType
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import (
     checkSpecialCharacters, copy_tree_filter_extensions_and_folders, getTypeIdByName, isFloat, isNumber,
     rmtree_long_path, strToDict,
@@ -74,7 +74,7 @@ def importResources(dlg,main,import_all=False):
         temp_folder=exportResources(dlg,dlg.cur,dlg.config,dlg.comboBox_db.currentText(),export_all=import_all,import_fromDB=True)
         
     if not os.path.exists(temp_folder):
-        iface.messageBar().pushMessage("Critical", "File to import the data!", level=Qgis.Error) 
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("File to import the data!"), level=Qgis.Error) 
         return
         
     dprint(temp_folder)
@@ -159,21 +159,21 @@ def importResources(dlg,main,import_all=False):
     dprint(db_import)
     if db_import:
         main.cur.execute(db_import)       
-        main.dlg.statusMessage.setText('Resources are imported successfully!')
+        main.dlg.statusMessage.setText(tr_msg('Resources are imported successfully!'))
         main.dlg.progress.setValue(100)
     else:
-        main.dlg.statusMessage.setText('No import data available!')
+        main.dlg.statusMessage.setText(tr_msg('No import data available!'))
         main.dlg.progress.setValue(0)
     closeDialog(dlg)
     
                             
 def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=False,import_fromDB=False):   
     if not import_fromDB and not os.path.exists(dlg.lineEdit_pathExport.text()):
-        iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo) 
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("File not exists!"), level=MessageInfo) 
         return
     
     if not import_fromDB and not dlg.lineEdit_filename.text():
-        iface.messageBar().pushMessage("Info", "Please enter a file name!", level=MessageInfo) 
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please enter a file name!"), level=MessageInfo) 
         return
         
     #connections, materials, customer_templates, energy_plant_templates
@@ -580,7 +580,7 @@ def writeClimateDataToDB(dlg,main):
         #update climate template
         updateClimateTemplate(main,fileName)
         
-        main.dlg.statusMessage.setText('Climate data is successfully updated!')
+        main.dlg.statusMessage.setText(tr_msg('Climate data is successfully updated!'))
         main.dlg.update_progress(100)
         closeDialog(dlg)
     except Exception:
@@ -692,7 +692,7 @@ def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir)
                 if dlg.traceTableValues[traceValue][3]:
                     WriteTemplateFiles(config,dlg.traceTableValues[traceValue][1],table_name,cur,dlg.traceTableValues[traceValue][3],plugin_dir)
                 else:
-                    iface.messageBar().pushMessage("Error", "No template is set in: "+str(dlg.traceTableValues[traceValue]), level=MessageCritical)
+                    iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("No template is set in: ")+str(dlg.traceTableValues[traceValue]), level=MessageCritical)
                     return False
                 wroteTemplate=True
             else:
@@ -758,7 +758,7 @@ UPDATE invoked_sensor_target_signals
         cur.execute(sql)
 
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo) 
 
 
 def openTemplate(main,type,dlg):
@@ -785,7 +785,7 @@ def openTemplate(main,type,dlg):
             if dlg.tableWidget.item(row_index, 1) and dlg.tableWidget.item(row_index, 1).text():
                 template_name=dlg.tableWidget.item(row_index, 1).text()
             else:
-                iface.messageBar().pushMessage("Info", "Please enter an template name!", level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please enter an template name!"), level=MessageInfo)
                 return False
             conn_bundle_type=dlg.tableWidget.cellWidget(row_index, 2).currentText()
             conn_bundle_type=conn_bundle_type.split(":")[0]
@@ -854,7 +854,7 @@ def openTemplate(main,type,dlg):
         
         dprint('finished open template')
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
         
 def show_templateDialog(main=False,type=False):
     dprint('Open current row dialog started: ')
@@ -892,7 +892,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
     
     for traceValue in dlg.traceTableValues:
         if checkSpecialCharacters(dlg.traceTableValues[traceValue][1]):
-            iface.messageBar().pushMessage("Info", tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','check_special_characters').format(dlg.traceTableValues[traceValue][1].split('_')[1]), level=MessageInfo)
             return False
                 
     table_name="_".join(table.split('_')[0:-1])
@@ -911,7 +911,7 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
         values=getValuesFromTableRow(dlg,dropdowns,row,columns,[])
         dprint(values)
         if not values:
-            iface.messageBar().pushMessage("Error", "Invalid input!", level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Invalid input!"), level=MessageCritical)
             return False
         sql+="""INSERT INTO public.{} (id{},{}) VALUES({}{}{},{});\n""".format(table,','+filter.split(' ')[1] if id else '',','.join(i for i in columns),maxId+counter,',' if id else '',id,values) # nosec B608
         counter+=1
@@ -1016,7 +1016,7 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
             dlg.tableWidget.itemChanged.connect(dlg.changeItem)
         dlg.show() 
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo) 
 
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
@@ -1186,7 +1186,7 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
             value="'"+value + "'" 
         values.append(value)
     if mdot and p:
-        iface.messageBar().pushMessage("Error", "It is not possible to set the pressure and mass flow as boundary!", level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("It is not possible to set the pressure and mass flow as boundary!"), level=MessageCritical)
         return False
     return ','.join(str(i) for i in values)
  
@@ -1242,7 +1242,7 @@ def saveTable(config,dlg,table,columns,dropdowns,openFnArg,checkBoxes,ok_fn,ok_f
                             os.rename(file_src, file_tar)
                             os.rename(templates_dir+'{}'.format(dlg.traceTableValues[row][1][0]), templates_dir+'{}'.format(dlg.traceTableValues[row][1][1]))
                         except Exception:
-                            iface.messageBar().pushMessage("Error", tr('@default','file_not_found!').format(file_src), level=MessageCritical)     
+                            iface.messageBar().pushMessage(tr_msg("Error"), tr('@default','file_not_found').format(file_src), level=MessageCritical)     
     main.dlg.statusMessage.setText(tr('@default','data_saved_successfully'))
     dlg.close()
         
@@ -1261,7 +1261,7 @@ def checkConnsInputValues(dlg):
         if (dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,5).text()) or #m
             not dlg.tableWidget.cellWidget(row,2).isChecked() and not isNumber(dlg.tableWidget.item(row,4).text()) or #p
             not isNumber(dlg.tableWidget.item(row,3).text())): #T
-                iface.messageBar().pushMessage("Error", tr('@default','please_enter_number_table_row').format(row), level=MessageCritical)
+                iface.messageBar().pushMessage(tr_msg("Error"), tr('@default','please_enter_number_table_row').format(row), level=MessageCritical)
                 return False
     return True
          

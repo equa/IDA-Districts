@@ -16,7 +16,7 @@ from .utility_functions.sensor_signals import (
     getRemovedSensorTargetData, templatesensorSignals, writeInvokedSensorSourceSignals,
     writeInvokedSensorTargetSignals,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import getTemplateNameById, getTypeIdByName
 from .supervisory_control import Supervisory_control
 from .utility_functions.workers import APISignals,show_error_message,startWorkers
@@ -255,7 +255,7 @@ AND EXISTS (
             self.dlg.tableWidget_source.removeRow(row_index)
             self.dlg.tableWidget_target.removeRow(row_index)
         else:
-            iface.messageBar().pushMessage("Info", "No item selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No item selected!"), level=MessageInfo)
         
     def loadSensorTableValues(self):
         """Load the sensor table values """
@@ -928,7 +928,7 @@ class WorkerSensors(QRunnable):
             self.signals.progress.emit(50)  
             self.processingSensorSignals()
             self.signals.progress.emit(100)  
-            self.signals.finished.emit('Sensor signals successfully updated!')
+            self.signals.finished.emit(tr_msg('Sensor signals successfully updated!'))
         except Exception as e:
             self.signals.progress.emit(0)
             QgsMessageLog.logMessage(
@@ -936,7 +936,7 @@ class WorkerSensors(QRunnable):
                 "Districts",
                 MessageCritical
             )
-            self.signals.error.emit("Updating the sensor signals failed: "+str(e))
+            self.signals.error.emit(tr_msg("Updating the sensor signals failed: ")+str(e))
             self.dlg.process_running=False
         finally:
             if self.conn:

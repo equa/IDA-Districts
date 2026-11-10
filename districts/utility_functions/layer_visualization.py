@@ -10,7 +10,7 @@ from .height_check import removeHeightCheckLayers
 from .zeta import removeZetaLayers
 from .reports import setupCustomerDataSheet
 from .show_on_map import removeResultVisLayers
-from .translations import tr
+from .translations import tr, tr_msg
 from .utility import strToDict
 from qgis.core import  Qgis, QgsMessageLog, QgsDefaultValue, QgsCredentials, QgsDataSourceUri, QgsFieldConstraints, QgsExpression, QgsOptionalExpression,QgsAttributeEditorField,QgsAttributeEditorContainer, QgsEditFormConfig, QgsProject, QgsSvgMarkerSymbolLayer, QgsEditorWidgetSetup, QgsVectorLayer, QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
 from qgis.utils import iface
@@ -603,7 +603,7 @@ def showTempTables(uri,config,plugin_dir,signals,cur):
             vlayer= QgsProject.instance().mapLayersByName(tr('@default',layer))[0]
             layerTreeRoot.findLayer(vlayer).setItemVisibilityChecked(False)
         else:
-            signals.error.emit("No project tables loaded")
+            signals.error.emit(tr_msg("No project tables loaded"))
             dprint("No project tables loaded")
             return False
     try:

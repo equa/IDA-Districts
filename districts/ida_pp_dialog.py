@@ -15,7 +15,7 @@ from .utility_functions.dialog import CheckableComboBox, checkState, infoTextEdi
 from .utility_functions.error_handling import checkIntersectingFeatures
 from .utility_functions.layer_visualization import removeTempLayers
 from .utility_functions.topology import checkNetwork, getNetworkSequences, saveTempTables
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import refreshMap
 from .utility_functions.workers import closeConnection, closeConnectionOnFinish, startWorkers
 from .utility_functions.zeta import ZETA_DEFAULTS, ensureConnectionZetaColumn, hasCalculatedJunctionZeta, loadZetaValues, saveZetaValues
@@ -618,11 +618,11 @@ class PipeLayingDialog(QDialog):
     def execute(self):  
         layerCheck=checkPipeLayingLayerData(self.config,self.cur,self.combo_network.currentText())
         if layerCheck=='no_streets':
-            iface.messageBar().pushMessage("Error", "Please insert streets into the streets layer.", level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please insert streets into the streets layer."), level=MessageCritical)
         elif layerCheck=='no_plants':
-            iface.messageBar().pushMessage("Error", f"Please insert a main energy plant of network: {self.combo_network.currentText()} into the energy_plants layer.", level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please insert a main energy plant of network: {} into the energy_plants layer.").format(self.combo_network.currentText()), level=MessageCritical)
         elif layerCheck=='no_customers':
-            iface.messageBar().pushMessage("Error", f"Please insert customers of network: {self.combo_network.currentText()} into the customers layer.", level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please insert customers of network: {} into the customers layer.").format(self.combo_network.currentText()), level=MessageCritical)
         elif not layerCheck:
             self.process_running=True
             self.worker = WorkerPipeLaying(tsup_max_col=self.tsup_max_col.currentText(),linearHeatDensity_min_col=self.linearHeatDensity_min_col.currentText(),heat_demand_min_col=self.heat_demand_min_col.currentText(),heating_load_min_col=self.heating_load_min_col.currentText(),
@@ -645,7 +645,7 @@ class PipeLayingDialog(QDialog):
             self.worker.signals.status.connect(self.label_status.setText)
             self.worker.signals.finished.connect(self.update_finished)
             self.progress.setValue(0)
-            self.label_status.setText('Starting')
+            self.label_status.setText(tr_msg('Starting'))
             #execute
             startWorkers([self.worker],self.btn_start)
             self.btn_stop.pressed.connect(self.worker.kill)
@@ -653,7 +653,7 @@ class PipeLayingDialog(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -988,13 +988,16 @@ class NetworkTopologyDialog(QDialog):
 
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
-    def execute(self):  
+    def execute(self):
+        networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != tr('@default','check_all_items') and self.combo_network_models.itemChecked(i)]
+        if not networks:
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_network_selected'), level=MessageInfo)
+            return
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            networks=[self.combo_network_models.itemText(i) for i in range(self.combo_network_models.count()) if self.combo_network_models.itemText(i) != tr('@default','check_all_items') and self.combo_network_models.itemChecked(i)]
             if checkNetwork(self.cur,self.config['versionName'],networks):
                 self.process_running=True
                 self.worker = WorkerGenerateNetworkTopology(config=self.config,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
@@ -1010,7 +1013,7 @@ class NetworkTopologyDialog(QDialog):
                 self.worker.signals.status.connect(self.label_status.setText)
                 self.worker.signals.finished.connect(self.update_finished)
                 self.progress.setValue(0)
-                self.label_status.setText('Starting')
+                self.label_status.setText(tr_msg('Starting'))
                 startWorkers([self.worker],self.btn_start)
                 
     def update_progress(self,progress):
@@ -1403,7 +1406,7 @@ class PipeSizingDlg(QDialog):
             self.table_circuits.removeRow(selected_row)
             self.on_combo_changed(None)
         else:
-            iface.messageBar().pushMessage("Info", "No row selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No row selected!"), level=MessageInfo)
             
     def update_progress(self,progress):
         self.progress.setValue(progress)
@@ -1413,7 +1416,7 @@ class PipeSizingDlg(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
     def execute(self,networks):
         """Start the topology worker (self.worker); returns True if it was started"""
@@ -1655,17 +1658,17 @@ class MapFeaturesDialog(QDialog):
         if id:
             id=id.text()
         else:
-            iface.messageBar().pushMessage("Info", "No energy plant selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No energy plant selected!"), level=MessageInfo)
             return False
         if conn_type:
             conn_type=conn_type.text().split(':')[0]
         else:
-            iface.messageBar().pushMessage("Info", "No connection type selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No connection type selected!"), level=MessageInfo)
             return False
         if lid:
             lid=lid.text()
         else:
-            iface.messageBar().pushMessage("Info", "No line selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No line selected!"), level=MessageInfo)
             return False
         dprint(id)
         dprint(conn_type)
@@ -1693,7 +1696,7 @@ class MapFeaturesDialog(QDialog):
             dprint(sql)
             self.cur.execute(sql)
             if self.cur.fetchone()['count']!=0: 
-                iface.messageBar().pushMessage("Info", "Already connected!", level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Already connected!"), level=MessageInfo)
                 return
             else:
                 if seq and id and lid:
@@ -1728,7 +1731,7 @@ class MapFeaturesDialog(QDialog):
         if conn:
             conn=conn.text()
         else:
-            iface.messageBar().pushMessage("Info", "No connection selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No connection selected!"), level=MessageInfo)
             return False
         id=self.listWidget_plants_ids.currentItem().text()
         conn_type=conn.split(':')[0]

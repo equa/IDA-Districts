@@ -15,7 +15,7 @@ from .utility_functions.files import (
 )
 from .utility_functions.plots import matplotlibBalancePlots, matplotlibPowerPlots
 from .utility_functions.show_on_map import WorkerShowOnMap
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import getDatetimeFromString, isNumber, is_number
 from .utility_functions.workers import show_error_message, startWorkers
 
@@ -67,7 +67,7 @@ def checkImportData(dlg,source,cur,config,feature_type):
     elif os.path.exists(source):
         files=[source+'/'+i for i in os.listdir(source)]
     else:
-        iface.messageBar().pushMessage("Info", "Please select a file or directory!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select a file or directory!"), level=MessageInfo)
         return False
     
     ids=[]
@@ -75,10 +75,10 @@ def checkImportData(dlg,source,cur,config,feature_type):
         id = os.path.splitext(os.path.basename(file))[0]
         extension = os.path.splitext(os.path.basename(file))[1]
         if not isNumber(id):
-            iface.messageBar().pushMessage("Info", "The file name ({}) must be an ID, which refers to the {} layer!".format(id,tr('@default',feature_type)), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The file name ({}) must be an ID, which refers to the {} layer!").format(id,tr('@default',feature_type)), level=MessageInfo)
             return False
         elif extension not in ['.prn','.PRN']:
-            iface.messageBar().pushMessage("Info", "The source file ({}) must be an .prn file!".format(file), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The source file ({}) must be an .prn file!").format(file), level=MessageInfo)
             return False  
         
         #check if id exists in feature layer
@@ -86,13 +86,13 @@ def checkImportData(dlg,source,cur,config,feature_type):
         cur.execute(sql)
         result=cur.fetchone()
         if not result:
-            iface.messageBar().pushMessage("Info", "The ID ({}) is not present in the feature layer ({})!".format(id,tr('@default',feature_type)), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The ID ({}) is not present in the feature layer ({})!").format(id,tr('@default',feature_type)), level=MessageInfo)
             return False  
     
     
     #check if at leat var is selected
     if len([i for i in range(dlg.tableVars.rowCount()) if dlg.tableVars.item(i,0).checkState() == checkState()])==0:
-        iface.messageBar().pushMessage("Info", "Please select at least one variable!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select at least one variable!"), level=MessageInfo)
         return False         
         
     return True
@@ -194,12 +194,12 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
 
                 else:
                     iface.messageBar().pushMessage(
-                        "Info", "Please select a variable!", level=MessageInfo
+                        tr_msg("Info"), tr_msg("Please select a variable!"), level=MessageInfo
                     )
                     return
             else:
                 iface.messageBar().pushMessage(
-                    "Info", "Please enter a numerical interpolation time!", level=MessageInfo
+                    tr_msg("Info"), tr_msg("Please enter a numerical interpolation time!"), level=MessageInfo
                 )
                 return
 
@@ -269,7 +269,7 @@ def copy_string_iterator_mData(connection, mdata, id_max,fid,time,geom,table_nam
 def showOnMap(dlg,main,networkReportDlg=None):
     fd_meterPerNode=float(loadModellingSettings(main.plugin_dir,main.config)['fd_meterPerNode'])
     if int(dlg.lineSegVis.text())==0:
-        iface.messageBar().pushMessage("Info", f"The line segment length for visualization should be greater than 0.", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The line segment length for visualization should be greater than 0."), level=MessageInfo)
         return False
     main.worker_showOnMap = WorkerShowOnMap(networkReportDlg=networkReportDlg,dlg_main=main.dlg,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,vars=None,feature=dlg.feature,layer_name=dlg.layer_name.text(),
         lineSegVis=int(dlg.lineSegVis.text()),simData=dlg.rbtn_simData.isChecked(),enable=True)
@@ -339,12 +339,12 @@ def loadResults(dlg,main):
     
     simulatedOutputs=loadSimulatedOutputs(main.config)
     if not simulatedOutputs:
-        iface.messageBar().pushMessage("Info", "The project version is not yet simulated!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The project version is not yet simulated!"), level=MessageInfo)
         return False
         
     if dlg.checkbox_timestep.checkState() == checkState():
         if not is_number(dlg.interpolation_dt.text()):
-            iface.messageBar().pushMessage("Info", "Please enter a numerical interpolation time!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please enter a numerical interpolation time!"), level=MessageInfo)
             return False
         
     if submodels:
@@ -354,7 +354,7 @@ def loadResults(dlg,main):
         main.worker_loadResults.signals.finished.connect(dlg.update_finished)
         startWorkers([main.worker_loadResults],dlg.btn_loadResults)
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select one or more submodels!"), level=MessageInfo)
   
 def runPathReports(dlg,main):
     main.worker_pathReport = WorkerPathReport(config=main.config,plugin_dir=main.plugin_dir,dlg=dlg)
@@ -376,9 +376,9 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
                     dprint(id)
                     matplotlibPowerPlots(plugin_dir,config,cur,id,feature_type='customer' if dlg.rbtn_customer.isChecked() else 'energy_plant',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
             else:
-                iface.messageBar().pushMessage("Info", "Please select an item in the list!!", level=MessageInfo)    
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select an item in the list!!"), level=MessageInfo)    
         else:
-            iface.messageBar().pushMessage("Info", "The customer`s load is not yet simulated in the current project version!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The customer`s load is not yet simulated in the current project version!"), level=MessageInfo)
         
     networks=[dlg.combo_networks.itemText(i) for i in range(dlg.combo_networks.count()) if dlg.combo_networks.itemChecked(i)]               
     if simulatedOutputs['heatbalance_system']:
@@ -386,16 +386,16 @@ def plotLoadProfiles(dlg,plugin_dir,config,cur):
             if networks:
                 matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='heatbalance',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
             else:
-                iface.messageBar().pushMessage("Info", "No network is selected!", level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No network is selected!"), level=MessageInfo)
     else:
-        iface.messageBar().pushMessage("Info", "The heat balance is not yet simulated in the current project version!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The heat balance is not yet simulated in the current project version!"), level=MessageInfo)
     if simulatedOutputs['massbalance_system']:
         if dlg.rbtn_massbalance.isChecked():
             if networks:
                 matplotlibBalancePlots(plugin_dir,config,cur,networks,balance_type='massbalance',show_plot=True,save_plot=False,sync_temporalControler=dlg.sync_temporalControler.isChecked())
             else:
-                iface.messageBar().pushMessage("Info", "No network is selected!", level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No network is selected!"), level=MessageInfo)
     else:
-        iface.messageBar().pushMessage("Info", "The mass balance is not yet simulated in the current project version!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The mass balance is not yet simulated in the current project version!"), level=MessageInfo)
         
         

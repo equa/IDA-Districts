@@ -15,7 +15,7 @@ from .utility_functions.db import (
 )
 from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
 from .utility_functions.files import loadNetworkSimData
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 
 import os
 import psycopg2
@@ -640,7 +640,7 @@ class RunNetworkModelDialog(QDialog):
                 border: 1px solid grey;
             }
 """)
-        self.status_bar.showMessage("Ready")
+        self.status_bar.showMessage(tr_msg("Ready"))
         
         #buttons     
         layout_buttons = QHBoxLayout()
@@ -714,7 +714,7 @@ class RunNetworkModelDialog(QDialog):
             
     def updateStatusBar(self,message):
         dprint(f"signal:{message}")
-        if message=="Simulation finished" and self.status_bar.currentMessage()!="Simulation failed":
+        if message==tr_msg("Simulation finished") and self.status_bar.currentMessage()!=tr_msg("Simulation failed"):
             self.finished_sims+=1
             dprint(f'finished_sims: {self.finished_sims}; n_sims: {self.n_sims}')
             if self.finished_sims==self.n_sims:
@@ -723,7 +723,7 @@ class RunNetworkModelDialog(QDialog):
             self.status_bar.showMessage(message)
     
     def show_error_message(self,message):
-        self.status_bar.showMessage("Simulation failed")
+        self.status_bar.showMessage(tr_msg("Simulation failed"))
         
     def update_finished(self,message):
         self.process_running=False
@@ -824,7 +824,7 @@ class CalibrateCustomers(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
 class FeatureModelParmDlg(QDialog):
     def __init__(self,cur,config):
@@ -901,7 +901,7 @@ class FeatureModelParmDlg(QDialog):
         if table_index!=-1:
             self.tableWidget_parameters.setItem(table_index,1,QTableWidgetItem('"'+s.text()+'"'))
         else:
-            iface.messageBar().pushMessage("Info", "No model parameter selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No model parameter selected!"), level=MessageInfo)
             
     def currentParmType(self):
         """model_parms.type of the selected radio button: 1 customers, 2 energy plants"""
@@ -1116,7 +1116,7 @@ class FeatureDecouplingDlg(QDialog):
             elif no_submodels==0:
                 sql+='UPDATE "{}".{}s f SET submodel = s_m.submodel::int FROM (SELECT * FROM "{}".submodels) s_m WHERE ST_DWithin(s_m.geom,f.geom,0.001);'.format(self.config['versionName'],type,self.config['versionName']) # nosec B608
             else:
-                iface.messageBar().pushMessage("Error", "Please enter a positive integer number in number of feature submodels!", level=MessageCritical)
+                iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a positive integer number in number of feature submodels!"), level=MessageCritical)
         except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),

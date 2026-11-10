@@ -2,7 +2,13 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 def tr(context,key):
     return QCoreApplication.translate(context, key)
-    
+
+def tr_msg(text):
+    """Translation of a message for the user (state message, info, warning, error): the english text is the source
+    (context 'Messages' of i18n/districts_*.ts), so a text without translation is shown in english.
+    Placeholders are filled after the translation: tr_msg("Version {} does already exist!").format(name)"""
+    return QCoreApplication.translate('Messages', text)
+
 def _register_translation_keys():
     #general
     tr("description")
@@ -580,6 +586,7 @@ def _register_translation_keys():
     tr('no_project_selected')
     tr('no_version_selected')
     tr('no_version_loaded')
+    tr('no_network_selected')
     tr('no_layer_selected')
     tr('no_item_selected')
     tr('please_enter_number_table_row')

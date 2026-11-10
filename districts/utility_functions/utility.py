@@ -4,7 +4,7 @@ from qgis.PyQt import QtCore
 from qgis.utils import iface
 
 from .compat import MessageCritical, MessageInfo
-from .translations import tr
+from .translations import tr, tr_msg
 
 from datetime import datetime 
 from scipy.interpolate import interp1d
@@ -134,11 +134,11 @@ def checkToolPaths(config):
     if os.path.exists(os.path.join(config['pathDistricts'],'bin','districts.exe')):
         pathCheck['pathDistricts']=True
     else:
-        iface.messageBar().pushMessage("Info", "Please update your IDA Districts path!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please update your IDA Districts path!"), level=MessageInfo)
     if os.path.exists(config['pathProjects']):
         pathCheck['pathProjects']=True
     else:
-        iface.messageBar().pushMessage("Info", "Please update your project path!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please update your project path!"), level=MessageInfo)
 
     return pathCheck
     
@@ -464,12 +464,12 @@ def checkString(my_string):
 
     #checking empty string
     if len(my_string)==0:
-        iface.messageBar().pushMessage("Error", "Please enter a name!", level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a name!"), level=MessageCritical)
         return False
 
     #start with a character
     if not my_string[0].isalpha():
-        iface.messageBar().pushMessage("Error", "Please start with an alphabetic character!", level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please start with an alphabetic character!"), level=MessageCritical)
         return False
         
     ok=True
@@ -489,7 +489,7 @@ def checkString(my_string):
         ok = False
         
     if not ok:
-        iface.messageBar().pushMessage("Info", "Please don`t use upper cases, white spaces or special characters in your name!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please don`t use upper cases, white spaces or special characters in your name!"), level=MessageInfo)
     
     return ok
     

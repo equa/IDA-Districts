@@ -1,3 +1,4 @@
+from .translations import tr_msg
 from .compat import MessageCritical, MessageInfo
 from .db import featureCount
 
@@ -18,7 +19,7 @@ def checkIntersectingFeatures(cur,config):
             overlaying_features=cur.fetchall()
             if overlaying_features:
                 for error in overlaying_features:
-                    iface.messageBar().pushMessage("Error", "{}: {} and {}: {} intersect.".format(f1.capitalize(),error['id1'],f2,error['id2']), level=MessageCritical)
+                    iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("{}: {} and {}: {} intersect.").format(tr_msg(f1.capitalize()),error['id1'],tr_msg(f2),error['id2']), level=MessageCritical)
                 return True
     return False
     
@@ -50,7 +51,7 @@ def checkGenerateTopologyLayerData(config,cur,networks,connectPlants,connectCust
             cur.execute(sql)
             ep_conn_count=cur.fetchone()['count']
             if ep_conn_count==0 and not connectPlants:
-                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one energy plant connected to network {}!".format(network), level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please check your layer data, if there is at least one energy plant connected to network {}!").format(network), level=MessageInfo)
                 network_check=False
             
             #check if features customers are connected to network if not connectCustomers 
@@ -58,10 +59,10 @@ def checkGenerateTopologyLayerData(config,cur,networks,connectPlants,connectCust
             cur.execute(sql)
             customer_conn_count=cur.fetchone()['count']
             if customer_conn_count==0 and not connectCustomers:
-                iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one customer connected to network {}!".format(network), level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please check your layer data, if there is at least one customer connected to network {}!").format(network), level=MessageInfo)
                 network_check=False        
         else:
-            iface.messageBar().pushMessage("Info", "Please check your layer data, if there is at least one entry of network {} in the layers: energy_plants and customers!".format(network), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please check your layer data, if there is at least one entry of network {} in the layers: energy_plants and customers!").format(network), level=MessageInfo)
         
         #check overlapping features
         if checkIntersectingFeatures(cur,config):

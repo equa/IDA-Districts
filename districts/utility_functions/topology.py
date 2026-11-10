@@ -4,7 +4,7 @@ import psycopg2.extras
 from qgis.core import QgsProject
 from .db import dropDBTriggers, insertDBTriggers
 from .layer_visualization import removeTempLayers
-from .translations import tr
+from .translations import tr, tr_msg
 from .zeta import ensureConnectionZetaColumn
 from .utility import getTemplateNameById, getTypeIdByName, getTypeNameById
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -192,7 +192,7 @@ def unconnectedFeaturesToExclude(unconnected):
 
 def networkTopologyMessage(problems,max_ids=10):
     """text of the problems found by checkNetworkTopology"""
-    return '\n'.join(['- {}: {} ({}{})'.format(p['text'],p['count'],', '.join(str(i) for i in p['ids'][:max_ids]),', ...' if len(p['ids'])>max_ids else '') for p in problems])
+    return '\n'.join(['- {}: {} ({}{})'.format(tr_msg(p['text']),p['count'],', '.join(str(i) for i in p['ids'][:max_ids]),', ...' if len(p['ids'])>max_ids else '') for p in problems])
 
 def checkNetwork(cur,version,networks):
     sql="""SELECT count(*) FROM "{}".lines WHERE network IS NULL;""".format(version) # nosec B608
@@ -203,8 +203,8 @@ def checkNetwork(cur,version,networks):
         dprint('Network attribute not set!')
 
         dlg_question = QMessageBox()
-        dlg_question.setWindowTitle('Network attribute value missing!')
-        dlg_question.setText("""{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?""".format(networkNullCount))
+        dlg_question.setWindowTitle(tr_msg('Network attribute value missing!'))
+        dlg_question.setText(tr_msg("{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?").format(networkNullCount))
         dlg_question.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
         dlg_question.setIcon(QMessageBox.Icon.Question)
         button = dlg_question.exec()
@@ -595,7 +595,7 @@ def checkLineDirectionTopology(cur,version,tolerance,signals,network):
     cur.execute(sql)
     epid=cur.fetchone()['epid']
     if reverseLinesTowardsPlant(cur,'temp.streets_help',epid,tolerance):
-        signals.error.emit("Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.")
+        signals.error.emit(tr_msg("Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy."))
 
 #todo pipe laying of network 
 def checkLineDirectionPipeLaying(cur,version,tolerance,network):

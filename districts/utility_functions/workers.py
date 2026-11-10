@@ -8,7 +8,7 @@ from .files import (
     copyFile, createDir, districtsModelerTempDir, loadProjectConfig, readFileToList, readFileToString,
     replace_in_folder, writeToFile,
 )
-from .translations import tr
+from .translations import tr, tr_msg
 from .util import Util_api
 from .utility import (
     copy_tree_filter_extensions_and_folders, getTemplateNameById, getTypeIdByName, getTypeNameById,
@@ -43,7 +43,7 @@ def process_wait(dlg,max_sec=60):
     
 def show_error_message(message):
     # Show the error message in a messageBar
-    iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+    iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
 
 def runPsqlFile(config,username,dbname,sql_file,env):
     """Execute sql_file with psql. Errors are logged in the message log 'Districts'.
@@ -246,7 +246,7 @@ class WorkerLoadVersion(QRunnable):
             self.signals.progress.emit(100)            
         except Exception as e:
             dprint(f'error: {e}')
-            self.signals.error.emit("Loading version failed!") 
+            self.signals.error.emit(tr_msg("Loading version failed!")) 
         finally:
             write_plugin_settings(self.config)
             self.signals.finished.emit('Finished worker load version')     
@@ -283,7 +283,7 @@ class WorkerImportProject(QRunnable):
             result=self._run()
         except Exception as e:
             QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
-            self.signals.error.emit("Project import failed: "+str(e))
+            self.signals.error.emit(tr_msg("Project import failed: ")+str(e))
             result=False
         if result is False:
             if self.dlg:
@@ -297,11 +297,11 @@ class WorkerImportProject(QRunnable):
 
         if not os.path.exists(self.filename):
             QgsMessageLog.logMessage(
-                tr('@default',"path_not_exists")+self.filename,
+                tr_msg("Path does not exist: ")+self.filename,
                 "Districts",
                 MessageCritical
             )
-            self.signals.error.emit(tr('@default',"path_not_exists")+self.filename)
+            self.signals.error.emit(tr_msg("Path does not exist: ")+self.filename)
             return False
 
         if zipfile.is_zipfile(self.filename):
@@ -373,7 +373,7 @@ class WorkerImportProject(QRunnable):
                 self.signals.progress.emit(30)
             except Exception as e:
                 dprint(f'error: {e}')
-                self.signals.error.emit("Data center copying failed: "+ str(e))
+                self.signals.error.emit(tr_msg("Data center copying failed: ")+ str(e))
                 return False
             try:
                 dprint('--versions directory--')
@@ -382,7 +382,7 @@ class WorkerImportProject(QRunnable):
                 self.signals.progress.emit(50)
             except Exception as e:
                 dprint(f'error: {e}')
-                self.signals.error.emit("Modelling data copying failed!")
+                self.signals.error.emit(tr_msg("Modelling data copying failed!"))
                 return False
                 
             if not os.path.exists(target_dir+'\\versions'):
@@ -394,7 +394,7 @@ class WorkerImportProject(QRunnable):
                 self.signals.progress.emit(70)
             except Exception as e:
                 dprint(f'error: {e}')
-                self.signals.error.emit("Copying data failed!")
+                self.signals.error.emit(tr_msg("Copying data failed!"))
                 return False
             try:
                 copyFile(src_dir+'layersConfig.txt',target_dir,target_dir+'\\layersConfig.txt')
@@ -482,7 +482,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 if error:
                     self.signals.error.emit(error)
             else:
-                self.signals.error.emit("No database tables found in "+src_dir)
+                self.signals.error.emit(tr_msg("No database tables found in ")+src_dir)
 
             self.signals.progress.emit(79)
             filedata=readFileToString(self.plugin_dir+"\\SQL_scripts.txt") # nosec B608
@@ -503,7 +503,7 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
             self.conn.close()
 
         else:
-            self.signals.error.emit("Project already exists in DB!")
+            self.signals.error.emit(tr_msg("Project already exists in DB!"))
             self.signals.progress.emit(0)           
             return False
             
@@ -588,7 +588,7 @@ class WorkerExportProject(QRunnable):
             copy_tree_filter_extensions_and_folders(self.config['pathProjects']+self.config['projectName'], temp_folder,self.signals,self.filter_extensions,self.filter_folders)
         except Exception as e:
             dprint(f'error: {e}')
-            self.signals.error.emit("Project handling files export failed!") 
+            self.signals.error.emit(tr_msg("Project handling files export failed!")) 
         self.signals.progress.emit(50)  
 
         db_info={'projectName': name}
@@ -689,7 +689,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                                 i+=1    
                         except Exception as e:
                             dprint(f'error: {e}')
-                            self.signals.error.emit("Load in {}:{} is not found!".format(self.type.capitalize(),id))
+                            self.signals.error.emit(tr_msg("Load in {}:{} is not found!").format(tr_msg(self.type.capitalize()),id))
                         
                         power=np.array(power)  
                         energy=np.array(energy)  
@@ -708,7 +708,7 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
                                 power_sum=np.add(power_sum,valuesPowerInt)
                                 energy_sum=np.add(energy_sum,valuesEnergyInt)
                             except Exception:
-                                self.signals.error.emit("Different simulation periods are used!")
+                                self.signals.error.emit(tr_msg("Different simulation periods are used!"))
 
                         #plotting
                         self.signals.dataProcessed.emit([{'time':time,'data':valuesPowerInt,'label':'Customer ID='+str(id)},{'time':time,'data':valuesEnergyInt,'label':'Customer ID='+str(id)}])
@@ -771,16 +771,16 @@ class WorkerSimulateFilesAPI(QRunnable):
                     dprint(self.progress_value)
                     self.signals.progress.emit(self.progress_value)
                     if self.result:
-                        self.signals.status.emit('Simulation finished')
+                        self.signals.status.emit(tr_msg('Simulation finished'))
                     else:
-                        self.signals.status.emit('Simulation failed')
+                        self.signals.status.emit(tr_msg('Simulation failed'))
                 else:
-                    self.signals.error.emit("Sim model does not exist!")
+                    self.signals.error.emit(tr_msg("Sim model does not exist!"))
             self.signals.progress.emit(100)
             dprint('simulation-finished')
         except Exception:
             self.signals.progress.emit(0)
-            self.signals.error.emit("Failed to open the feature: {}!".format(file_path))
+            self.signals.error.emit(tr_msg("Failed to open the feature: {}!").format(file_path))
         finally:
             #close IDA Districts whether the simulations finished or failed
             self.util.exit_ida(building)
@@ -820,14 +820,14 @@ class WorkerSimulateAPI(QRunnable):
                 self.result=self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))
                 dprint(self.result)
                 if self.result:
-                    self.signals.status.emit('Simulation finished')
+                    self.signals.status.emit(tr_msg('Simulation finished'))
                 else:
-                    self.signals.status.emit('Simulation failed')
+                    self.signals.status.emit(tr_msg('Simulation failed'))
             else:
-                self.signals.error.emit("Sim model does not exist!")
+                self.signals.error.emit(tr_msg("Sim model does not exist!"))
             dprint('++++simulation-finished++++')
         except Exception:
-            self.signals.error.emit("Failed to open the feature: {}!".format(self.file_path))
+            self.signals.error.emit(tr_msg("Failed to open the feature: {}!").format(self.file_path))
         finally:
             #close IDA Districts whether the simulation finished or failed
             self.util.exit_ida(self.building)
@@ -881,7 +881,7 @@ class WorkerOpenAPI(QRunnable):
             self.signals.progress.emit(100)
         except Exception:
             self.signals.progress.emit(0)
-            self.signals.error.emit("Failed to open the feature!")  
+            self.signals.error.emit(tr_msg("Failed to open the feature!"))  
             
 class WorkerOpenModelCmd(QRunnable):
     """Worker thread
@@ -932,11 +932,11 @@ class WorkerOpenModelCmd(QRunnable):
             else:
                 if self.progress:
                     self.signals.progress.emit(0)
-                self.signals.finished.emit('IDA Districts model updated failed!')
+                self.signals.finished.emit(tr_msg('IDA Districts model updated failed!'))
         except Exception as e:
             if self.progress:
                 self.signals.progress.emit(0)
-            self.signals.error.emit("Failed to open the feature!: "+ str(e))  
+            self.signals.error.emit(tr_msg("Failed to open the feature!: ")+ str(e))  
             
 class WorkerOpenRunScriptAPI(QRunnable):
     """Worker thread
@@ -985,7 +985,7 @@ class WorkerOpenRunScriptAPI(QRunnable):
                 except Exception as e:
                     dprint(e)
                     self.signals.progress.emit(0)
-                    self.signals.error.emit("Failed to exit ida!")  
+                    self.signals.error.emit(tr_msg("Failed to exit ida!"))  
             else:    
                 self.signals.progress.emit(90)
                 if callable(self.finished_fn):
@@ -994,4 +994,4 @@ class WorkerOpenRunScriptAPI(QRunnable):
 
         except Exception:
             self.signals.progress.emit(0)
-            self.signals.error.emit("Failed to open the feature or run the script!")     
+            self.signals.error.emit(tr_msg("Failed to open the feature or run the script!"))     

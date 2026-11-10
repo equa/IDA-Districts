@@ -7,7 +7,7 @@ from .utility_functions.db import dbConnect, getNetworkSubmodels
 from .utility_functions.topology import (
     getConnBundleByFeature, getConnTypeSeqFromBundle, getConnsValues, getPMT2muxIdentFromConnValues,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.workers import closesOwnConnection, APISignals
 
 import traceback
@@ -137,7 +137,7 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
                 #ep id
                 epid,lid_start=self.getEnergyPlantLid(self.dlg.main_plant.currentText(),ep_c_type_seq)
                 if lid_start[0] not in self.dlg.lids:
-                    self.signals.error.emit("Energy plant not connected to selected line ID`s!")
+                    self.signals.error.emit(tr_msg("Energy plant not connected to selected line ID`s!"))
                     return None
 
                 self.dlg.lids=self.orderLids(self.dlg.lids,lid_start)
@@ -145,7 +145,7 @@ SELECT ep.id, ST_Z(ST_EndPoint(l.geom)) AS height, 'energy_plant' AS type
                 #feature id
                 fids,f_type=self.getLineendFeatureId(self.dlg.lids[-1][0],[i['conn_type_seq'] for i in f_connValues if str(i['conn_type_id'])==self.dlg.f_conn_type.currentText()][0])  
                 if not fids:
-                    self.signals.error.emit("No line with the selected ID`s is connected to a feature!")
+                    self.signals.error.emit(tr_msg("No line with the selected ID`s is connected to a feature!"))
                     return None
                 dprint(fids)
                 
@@ -207,7 +207,7 @@ SELECT var_f1.fid, var_ep1."${}"-var_f1."${}" + (var_f2."${}" - var_ep2."${}") A
             self.dlg.weak_point=self.cur.fetchone()
             dprint(self.dlg.weak_point)  
             if not self.dlg.weak_point:
-                self.signals.error.emit("No data found! Please check if results are loaded or within the selected period.")
+                self.signals.error.emit(tr_msg("No data found! Please check if results are loaded or within the selected period."))
                 return None
                 
             self.signals.progress.emit(30)  

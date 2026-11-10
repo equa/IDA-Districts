@@ -1,3 +1,4 @@
+from .utility_functions.translations import tr_msg
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import Qgis, QgsMessageLog
 
@@ -178,9 +179,9 @@ class InvokeNetworkModel:
         step_end=sum(weights[:idx+1])/sum(weights)
         submodel_fraction=step_start+(step_end-step_start)*fraction
         span=(self.PROGRESS_END-self.PROGRESS_PREPARATION)/self.n_submodels
-        text=self.PROGRESS_STEPS[idx][1]+(' '+detail if detail else '')
+        text=tr_msg(self.PROGRESS_STEPS[idx][1])+(' '+detail if detail else '')
         if self.n_submodels>1:
-            text='submodel {} ({}/{}): {}'.format(self.submodel,self.submodel_counter+1,self.n_submodels,text)
+            text=tr_msg('submodel {} ({}/{}): {}').format(self.submodel,self.submodel_counter+1,self.n_submodels,text)
         self.setProgress(self.PROGRESS_PREPARATION+span*(self.submodel_counter+submodel_fraction),text)
 
     def featureProgressFn(self,step):
@@ -204,18 +205,18 @@ class InvokeNetworkModel:
         self.n_submodels=max(1,len(submodels))
         self.submodel_counter=0
         self.submodel=''
-        self.setProgress(1,'connecting to the database')
+        self.setProgress(1,tr_msg('connecting to the database'))
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
             try:
-                self.setProgress(2,'climate data')
+                self.setProgress(2,tr_msg('climate data'))
                 climate_file=getClimateData(self.cur,self.config,True)['filename']
                 if os.path.exists(climate_file):
                     updateClimateTemplate(main,climate_file)
                 else:
-                    self.signals.error.emit("Climate file could not be found: " + climate_file)
+                    self.signals.error.emit(tr_msg("Climate file could not be found: ") + climate_file)
                     return
                 
                 self.projectConfig=loadProjectConfig(self.config,signals=self.signals)
@@ -239,7 +240,7 @@ class InvokeNetworkModel:
                 feature_dec_irefs=[]
                 resources=[]
                 
-                self.setProgress(4,'sensor data')
+                self.setProgress(4,tr_msg('sensor data'))
                 cleanupResultsSensors(self.cur)
                 added_sensor_info=addRequestedOutputsSensors(self.cur,self.config,requestedOutputs)
                 dprint('---added-----')
@@ -260,7 +261,7 @@ class InvokeNetworkModel:
                             feature_dec_irefs.append(i)
                 dprint(feature_dec_irefs)
                 
-                self.setProgress(6,'sensor data')
+                self.setProgress(6,tr_msg('sensor data'))
                 sensor_dec_data=getSensorDecData(sensor_data,feature_dec_irefs,self.cur,self.config)
                 dprint(sensor_dec_data)
 
@@ -382,12 +383,12 @@ class InvokeNetworkModel:
                     idc+=idc_conn
                     writeToFile(idm,self.buildingDirPath,self.buildingIdmFilePath)
                     writeToFile(idc,self.buildingDirPath,self.buildingIdcFilePath)
-                self.setProgress(self.PROGRESS_END,'saving outputs')
+                self.setProgress(self.PROGRESS_END,tr_msg('saving outputs'))
                 writeInvokedOutputs(self.config,self.invokedOutputs)
                 removeResultSensors(self.cur,added_sensor_info.values())
                 self.signals.progress.emit(100)
-                self.signals.status.emit('finished')
-                self.signals.finished.emit('Network model has been build successfully!')
+                self.signals.status.emit(tr_msg('finished'))
+                self.signals.finished.emit(tr_msg('Network model has been build successfully!'))
 
             except Exception:
                 QgsMessageLog.logMessage(
@@ -517,7 +518,7 @@ ORDER BY m.id;
                 pipe_info_cache[bunde_type]=self.cur.fetchall()
             pipe_info=pipe_info_cache[bunde_type]
             if not pipe_info:
-                self.signals.error.emit("Pipe construction data corrupted! PLease check construction data.")
+                self.signals.error.emit(tr_msg("Pipe construction data corrupted! PLease check construction data."))
                 return idm,idc
             dPipes=[i['innerpipediameter'] for i in pipe_info]
             roughness=' '.join(str(i['piperoughnessfactor']) for i in pipe_info)
@@ -694,7 +695,7 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
         plug_dict={}
         if not conns:
             dprint('No nodes in network or wrong junction constructions!')
-            #self.signals.error.emit("No junctions in network or wrong constructions!")
+            #self.signals.error.emit(tr_msg("No junctions in network or wrong constructions!"))
             return idm_conn,idc_conn, plug_dict
             
         jid_old=0
@@ -754,7 +755,7 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
                 dprint("seq: {}; conn: {}".format(seq_counter,conn_counter))
                 conn_counter+=1
             except Exception as e:
-                self.signals.error.emit("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles.")
+                self.signals.error.emit(tr_msg("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles."))
 
         #plugs
         plugs=[i for i, x in enumerate(lids) if x not in seq_lids]
@@ -837,7 +838,7 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
         conns=self.cur.fetchall()
         if not conns:
             dprint('No nodes in network or wrong junction constructions!')
-            #self.signals.error.emit("No junctions in network or wrong constructions!")
+            #self.signals.error.emit(tr_msg("No junctions in network or wrong constructions!"))
             return idm_conn,idc_conn
             
         jid_old=0
@@ -878,7 +879,7 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
                 dprint("seq: {}; conn: {}".format(seq_counter,conn_counter))
                 conn_counter+=1
             except Exception as e:
-                self.signals.error.emit("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles.")
+                self.signals.error.emit(tr_msg("Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --> pipe bundles."))
 
         return idm_conn,idc_conn
     
@@ -1078,7 +1079,7 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
         conns=self.cur.fetchall()
         if not conns:
             dprint('No nodes in network or wrong junction constructions!')
-            #self.signals.error.emit("No junctions in network or wrong constructions!")
+            #self.signals.error.emit(tr_msg("No junctions in network or wrong constructions!"))
             return idm,idc
             
         idm_parts=[idm]
@@ -1155,7 +1156,7 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
         conns=self.cur.fetchall()
         if not conns:
             dprint('No nodes in network or wrong junction constructions!')
-            #self.signals.error.emit("No junctions in network or wrong constructions!")
+            #self.signals.error.emit(tr_msg("No junctions in network or wrong constructions!"))
             return idm,idc
 
         idm_parts=[idm]

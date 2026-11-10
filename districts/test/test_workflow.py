@@ -42,7 +42,7 @@ from districts.utility_functions.invoke import setFeatureParm
 from districts.utility_functions.sensor_signals import getSensorData
 from districts.utility_functions.show_on_map import RESULT_VIS_PROPERTY
 from districts.utility_functions.topology import checkNetworkTopology, getUnconnectedFeatures
-from districts.utility_functions.translations import tr
+from districts.utility_functions.translations import tr, tr_msg
 
 from .conftest import wait, wait_for_process, wait_until
 
@@ -901,7 +901,7 @@ FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP
         wait_for_process(dlg, timeout=300)
         errors.check()
         # a failed IDA simulation is only shown in the status bar of the dialog
-        assert dlg.status_bar.currentMessage() == 'Simulation finished', \
+        assert dlg.status_bar.currentMessage() == tr_msg('Simulation finished'), \
             "simulation status: '{}'".format(dlg.status_bar.currentMessage())
         wf.simulated = True
 
@@ -966,8 +966,8 @@ FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP
         wait(500)
         # progress: steps with status text (segments of the lines), 100% and 'done' after styling the layer
         assert dlg.progress.value() == 100
-        assert dlg.progress.format().endswith('done'), dlg.progress.format()
-        assert any('segments' in s for s in statuses), statuses
+        assert dlg.progress.format().endswith(tr_msg('done')), dlg.progress.format()
+        assert any('segments' in s or 'Segmente' in s for s in statuses), statuses
         closeDialog(dlg)
         errors.check()
         assert QgsProject.instance().mapLayersByName('lines_results_supply_temperature_values')

@@ -1,3 +1,4 @@
+from .translations import tr_msg
 import os
 import shutil
 from .compat import MessageCritical
@@ -155,7 +156,7 @@ def loadProjectConfig(config,project_name=None,signals=False):
     config_f="{}{}\\configProject.txt".format(config['pathProjects'],name)
     if not os.path.exists(config_f):
         if signals:
-            signals.error.emit('Failed to load project config!')
+            signals.error.emit(tr_msg('Failed to load project config!'))
         return {'srid':''}
     with open(config_f, "r") as myfile:
         return strToDict(myfile.read())

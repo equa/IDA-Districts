@@ -7,7 +7,7 @@ from qgis.PyQt.QtCore import Qt
 
 from .utility_functions.compat import MessageCritical
 from .utility_functions.dialog import checkState, uncheckState
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import get_districts_plugin_dir, standardizePath
 from .utility_functions.debug_log import dprint
 
@@ -122,7 +122,7 @@ class ExportProjectDialog(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
     def dirDlg(self):
         folder = QFileDialog.getExistingDirectory(
@@ -290,7 +290,7 @@ class NewProjectDlg(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
 
 

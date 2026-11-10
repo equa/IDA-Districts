@@ -1,3 +1,4 @@
+from .translations import tr, tr_msg
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication,Qt,QThreadPool
 from qgis.core import QgsMessageLog, QgsInterval, QgsDateTimeRange, QgsTemporalNavigationObject, QgsVectorLayerSimpleLabeling, QgsWkbTypes, QgsPalLayerSettings, QgsTemplatedLineSymbolLayerBase, QgsMarkerSymbol, QgsSimpleMarkerSymbolLayer, QgsMarkerLineSymbolLayer, QgsRuleBasedRenderer, QgsLineSymbol, QgsClassificationQuantile, QgsGeometry, QgsVectorLayer, QgsFeature, QgsClassificationEqualInterval, QgsRendererRangeLabelFormat, QgsStyle, QgsGraduatedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsFilledMarkerSymbolLayer, QgsSymbolLayer, QgsProperty, Qgis
@@ -531,7 +532,7 @@ class WorkerShowOnMap(QRunnable):
             return
         weights=[self.STEP_WEIGHTS[i] for i in self.steps]
         idx=self.steps.index(step)
-        self.setProgress(2+95*sum(weights[:idx])/sum(weights),'step {}/{}: {}'.format(idx+1,len(self.steps),text))
+        self.setProgress(2+95*sum(weights[:idx])/sum(weights),tr_msg('step {}/{}: {}').format(idx+1,len(self.steps),text))
 
     def varDescription(self,vars,type):
         """e.g. 'color: temp (Hourly average)'"""
@@ -600,7 +601,7 @@ class WorkerShowOnMap(QRunnable):
     def getShowOnMapData(self,vars):
         dprint(vars)
         #drop old line_seg_%_vis tables
-        self.setStep('drop','removing old visualization tables')
+        self.setStep('drop',tr_msg('removing old visualization tables'))
         sql="""WITH tables_to_drop AS (
     SELECT table_name
     FROM information_schema.tables
@@ -656,20 +657,20 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_vis
 );
 SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],self.config['versionName'],srid,1000000 if vars['color']['var_function']=='specific_dp' else self.lineSegVisLength,self.config['versionName']) # nosec B608
                 dprint(sql)
-                self.setStep('segmentize','splitting the lines into segments{}'.format('' if vars['color']['var_function']=='specific_dp' else ' of {} m'.format(self.lineSegVisLength)))
+                self.setStep('segmentize',tr_msg('splitting the lines into segments') if vars['color']['var_function']=='specific_dp' else tr_msg('splitting the lines into segments of {} m').format(self.lineSegVisLength))
                 self.cur.execute(sql)
 
                 #load var data to the coresponding visualization table using averaged values for merged segments
                 if vars['color']['mode']=='var' and vars['color']['var_function']!='specific_dp' :
                     interpolate=vars['color']['name'].split('$')[0]=='p' #linear interpolation using pressure values at start and end of the line
-                    self.setStep('color_seg','{} {} on the line segments (color)'.format(
-                        'interpolating' if interpolate else 'averaging',vars['color']['name'].split('$')[0]))
+                    self.setStep('color_seg',tr_msg('{} {} on the line segments (color)').format(
+                        tr_msg('interpolating') if interpolate else tr_msg('averaging'),vars['color']['name'].split('$')[0]))
                     self.cur.execute(self.segmentVisTableSql(vars['color']['name'],interpolate,vars['time']))
                     vars['color']['table_name']=vars['color']['table_name']+'_vis'
 
                 if vars['size']['mode']=='var':
                     if vars['color']['name'] !=  vars['size']['name']: #if color and size car name is same --> do not twice
-                        self.setStep('size_seg','averaging {} on the line segments (size)'.format(vars['size']['name'].split('$')[0]))
+                        self.setStep('size_seg',tr_msg('averaging {} on the line segments (size)').format(vars['size']['name'].split('$')[0]))
                         self.cur.execute(self.segmentVisTableSql(vars['size']['name'],False,vars['time']))
                     vars['size']['table_name']=vars['size']['table_name']+'_vis'
                     
@@ -719,7 +720,7 @@ SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],
         data_text=', '.join(self.varDescription(vars,type) for type in ['color','size','rotation'] if vars[type]['mode'])
         if self.first_time_var:
             data_text+=', {} - {}'.format(vars['time']['starttime'],vars['time']['endtime'])
-        self.setStep('data','{} {}s ({})'.format('querying' if self.networkReportDlg else 'querying and storing',self.feature.replace('_',' '),data_text))
+        self.setStep('data',(tr_msg('querying {} ({})') if self.networkReportDlg else tr_msg('querying and storing {} ({})')).format(tr('@default',self.feature+'s'),data_text))
         if self.networkReportDlg:
             # network report: the rows are stored with the plot and rendered later (memory layer)
             self.cur.execute(sql)
@@ -730,7 +731,7 @@ SELECT segmentize({},'{}','line_seg_vis');""".format(self.config['versionName'],
             data=None
         #get dt if not averaged
         if not dt and self.first_time_var:
-            self.setStep('dt','determining the time step')
+            self.setStep('dt',tr_msg('determining the time step'))
             sql="""WITH sub AS(
     SELECT a.time-LAG(a.time, 1) OVER () as dt
         FROM (SELECT time FROM "{}".{} GROUP BY time) a
@@ -838,24 +839,24 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
         self.vars=self.getShowOnMapVarsDict()
         if not self.networkReportDlg:
             # layers are created in the main thread (a layer created in a pool thread keeps its own DB connection)
-            self.setStep('layer','creating the map layer')
+            self.setStep('layer',tr_msg('creating the map layer'))
             self.temp_layer = runInMainThread(showOnMapPostgisLayer,self.config,self.vis_table,self.feature,self.layer_name)
             # the layer is styled in the main thread by update_finished of the dialog (sets 100%)
-            self.setStep('render','styling the map layer')
+            self.setStep('render',tr_msg('styling the map layer'))
             # finished is emitted once by run() (it was emitted twice, so the layer was rendered twice)
  
     @pyqtSlot()
     @closesOwnConnection
     def run(self):
         dprint('Show data on map')
-        self.setProgress(1,'reading the settings')
+        self.setProgress(1,tr_msg('reading the settings'))
         try:
             self.showOnMap()
             if self.networkReportDlg:
                 self.progress_value=100
                 self.signals.progress.emit(100)
-                self.signals.status.emit('done')
-            self.signals.finished.emit('Data has been successfully visualized on map!',self)  
+                self.signals.status.emit(tr_msg('done'))
+            self.signals.finished.emit(tr_msg('Data has been successfully visualized on map!'),self)  
         except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
@@ -865,5 +866,5 @@ GROUP BY a.fid, lp.geom""".format( # nosec B608
             failed_step=self.progress_text
             self.progress_value=0
             self.signals.progress.emit(0)
-            self.signals.status.emit('failed{} (see message log Districts)'.format(' at '+failed_step if failed_step else ''))
-            self.signals.finished.emit('Data visualization has failed!',self)  
+            self.signals.status.emit(tr_msg('failed at {} (see message log Districts)').format(failed_step) if failed_step else tr_msg('failed (see message log Districts)'))
+            self.signals.finished.emit(tr_msg('Data visualization has failed!'),self)  

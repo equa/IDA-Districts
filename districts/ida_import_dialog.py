@@ -11,7 +11,7 @@ from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect, getDropDownItems
 from .utility_functions.dialog import get_item_flag
 from .utility_functions.layer_visualization import getDHCLayerNames, zoomToLayer
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import refreshMap
 
 import traceback
@@ -187,7 +187,7 @@ class PipeBundleEditor(QDialog):
                 self.tableWidget_pipe.setCellWidget(i,1,comboBox)
                 self.tableWidget_pipe.setItem(i,2,QTableWidgetItem(''))
         else:
-            self.iface.messageBar().pushMessage("Error", "Please enter an integer number!", level=MessageCritical)
+            self.iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter an integer number!"), level=MessageCritical)
 
 
     def mapAttributesDoubleClick(self,s):
@@ -203,7 +203,7 @@ class PipeBundleEditor(QDialog):
                     self.mappedAttributes[table.item(table_index,2).text()]=self.mappedAttributes[table.item(table_index,2).text()]+'"'+s.text()+'"'
                     table.setItem(table_index,0,QTableWidgetItem(self.mappedAttributes[table.item(table_index,2).text()]))
                 else:
-                    iface.messageBar().pushMessage("Info", "This attribut cannot be mapped. Please enter an integer number.", level=MessageInfo)
+                    iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("This attribut cannot be mapped. Please enter an integer number."), level=MessageInfo)
             else:
                 seq_constr=table.item(table_index,0).text()
                 material=table.cellWidget(table_index, 1).currentText()
@@ -213,7 +213,7 @@ class PipeBundleEditor(QDialog):
                     self.mappedAttributes['layer_constr'][seq_constr]=[material, '"'+s.text()+'"']
                 table.setItem(table_index,2,QTableWidgetItem(self.mappedAttributes['layer_constr'][seq_constr][1]))
         else:
-            iface.messageBar().pushMessage("Info", "No pipe bundle type attribute selected!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No pipe bundle type attribute selected!"), level=MessageInfo)
 
 class ImportNetworkTopologyFromLayer(QDialog):
     def __init__(self,config,plugin_dir):     
@@ -383,7 +383,7 @@ def mapAttributes(dlg):
     if currentLayer_attribute:
         currentLayer_attribute=currentLayer_attribute.text()
     else:
-        iface.messageBar().pushMessage("Info", "No layer field selected!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No layer field selected!"), level=MessageInfo)
         return False
     rowPosition = dlg.tableWidget.rowCount()
     
@@ -398,7 +398,7 @@ def mapAttributes(dlg):
         item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
         dlg.tableWidget.setItem(rowPosition,2,item)
     else:            
-        iface.messageBar().pushMessage("Info", "Layer field already mapped!", level=MessageInfo)  
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Layer field already mapped!"), level=MessageInfo)  
     dprint(dlg.mappedAttributes)
                
 class ImportPointLayer(QDialog):
@@ -541,7 +541,7 @@ class ImportOSMDlg(QtWidgets.QDialog):
                     node = QgsProject.instance().layerTreeRoot().findLayer(layer[0].id())
                     if node:
                         node.setItemVisibilityChecked(True)
-        main_dlg.statusMessage.setText('Import {} completed!'.format(feature))
+        main_dlg.statusMessage.setText(tr_msg('Import {} completed!').format(tr_msg(feature)))
         self.process_running=False    
         
 class ImportGeoDataDlg(QDialog):
@@ -584,7 +584,7 @@ class ImportGeoDataDlg(QDialog):
     def update_progress(self,progress):
         self.progress.setValue(progress)
 
-    def update_finished(self,feature,main_dlg):
+    def update_finished(self,feature,main_dlg,message=None):
         dprint(feature)
         refreshMap()
         if feature in ('customers','streets'):
@@ -596,6 +596,6 @@ class ImportGeoDataDlg(QDialog):
                 node = QgsProject.instance().layerTreeRoot().findLayer(layer[0].id())
                 if node:
                     node.setItemVisibilityChecked(True)
-        main_dlg.statusMessage.setText('Import {} completed!'.format(feature))
+        main_dlg.statusMessage.setText(message or tr_msg('Import {} completed!').format(tr_msg(feature)))
         self.process_running=False
  

@@ -20,7 +20,7 @@ from .utility_functions.topology import (
     getConnsValues, getPMT2muxIdentFromConnValues, getPMT2muxIdents, getUsedConnBundleTypes,
     getUsedConnTypeIdents, getUsedPipeBundleSequences,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import getDatetimeFromString, interpolateTimeData
 from .utility_functions.workers import closesOwnConnection, APISignals
 
@@ -59,7 +59,7 @@ class WorkerLoadResults(QRunnable):
         self.signals.progress.emit(self.progress_value)
         self.loadResults()
         self.signals.progress.emit(100)  
-        self.signals.finished.emit('Loading results has been successfully completed!')  
+        self.signals.finished.emit(tr_msg('Loading results has been successfully completed!'))  
         
     def loadResults(self):
         networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                         submodel_id = match.group()
                         dprint(submodel_id)
                     else:
-                        self.signals.error.emit('Please select a model, which starts with an Integer and belongs to one of your modeled networks.')
+                        self.signals.error.emit(tr_msg('Please select a model, which starts with an Integer and belongs to one of your modeled networks.'))
                         return False
                     
                     dir_path=self.config['pathProjects']+'{}\\versions\\{}\\network_{}\\'.format(self.config['projectName'],self.config['versionName'],submodel)

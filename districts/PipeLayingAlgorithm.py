@@ -1,3 +1,4 @@
+from .utility_functions.translations import tr_msg
 import os
 import threading
 import time
@@ -176,7 +177,7 @@ class WorkerPipeLaying(QRunnable):
                     connectionModes.append('cooling')
                 dprint(connectionModes)
                 self.srid=loadProjectConfig(self.config,signals=self.signals)['srid']
-                self.status('Preparing the temporary tables')
+                self.status(tr_msg('Preparing the temporary tables'))
                 self.prepareDB_pipeLaying(self.config['versionName'])
                 self.setProgress(3)
                 pipes_laid=False
@@ -195,13 +196,13 @@ class WorkerPipeLaying(QRunnable):
                 if self.is_killed and not pipes_laid:
                     # stopped while preparing the first network: no pipes to finish
                     self.signals.progress.emit(0)
-                    self.status('Stopped before any pipe was laid')
+                    self.status(tr_msg('Stopped before any pipe was laid'))
                     self.signals.finished.emit('stopped')
                     return
                 self.finishNetworkTopology(self.config['versionName'])
             else:
                 self.signals.progress.emit(0)
-                self.status('No connection to the database')
+                self.status(tr_msg('No connection to the database'))
                 self.signals.finished.emit('error')
         except Exception:
             QgsMessageLog.logMessage(
@@ -209,9 +210,9 @@ class WorkerPipeLaying(QRunnable):
                 "Districts",
                 MessageCritical
             )
-            self.signals.error.emit("Pipe laying failed (see message log 'Districts')!")
+            self.signals.error.emit(tr_msg("Pipe laying failed (see message log 'Districts')!"))
             self.signals.progress.emit(0)
-            self.status("Failed (see message log 'Districts')")
+            self.status(tr_msg("Failed (see message log 'Districts')"))
             self.signals.finished.emit('error')
         finally:
             if self.cur:
@@ -223,7 +224,7 @@ class WorkerPipeLaying(QRunnable):
         self.is_paused = not self.is_paused
         dprint(self.is_paused)
         if self.is_paused:
-            self.signals.status.emit('Paused (press Pause/Resume again to continue)')
+            self.signals.status.emit(tr_msg('Paused (press Pause/Resume again to continue)'))
         else:
             self.status(self.last_status)
 
@@ -231,7 +232,7 @@ class WorkerPipeLaying(QRunnable):
         """show text as the current step in the dialog (with the network if heating and cooling networks are laid)"""
         self.last_status=text
         if self.mode:
-            text='{} network: {}'.format(self.mode.capitalize(),text)
+            text=tr_msg('{} network: {}').format(tr_msg(self.mode.capitalize()),text)
         self.signals.status.emit(text)
 
     def setProgress(self,value):
@@ -248,7 +249,7 @@ class WorkerPipeLaying(QRunnable):
 
     def kill(self):
         self.is_killed = True
-        self.signals.status.emit('Stopping: the network topology is finished with the pipes laid so far')
+        self.signals.status.emit(tr_msg('Stopping: the network topology is finished with the pipes laid so far'))
         with self.prepare_lock:
             if self.preparing and self.conn:
                 self.conn.cancel()
@@ -258,13 +259,13 @@ class WorkerPipeLaying(QRunnable):
         version=self.config['versionName']
         # (status text, step, progress of the mode after the step); networkHelp reports its progress between 0.25 and 0.5
         steps=[
-            ('Copying the streets', lambda: self.prepareDB_pipeLaying_modeTables(version), 0.02),
-            ('Connecting the energy plants to the streets', lambda: self.connectPlantsStreet(version,mode), 0.05),
-            ('Connecting the customers to the streets', lambda: self.connectCustomersStreet(version,mode), 0.12),
-            ('Splitting the streets at their intersections', lambda: self.generateTopology(version), 0.25),
-            ('Searching the energy plants in the street network', lambda: setattr(self,'plants',self.getPlants(version)), 0.25),
-            ('Calculating the shortest ways of the customers to the energy plants', lambda: self.networkHelp(version,self.plants,mode), 0.5),
-            ('Connecting the energy plants', lambda: self.connectPlantsNetwork(version,self.plants,mode), 0.52),
+            (tr_msg('Copying the streets'), lambda: self.prepareDB_pipeLaying_modeTables(version), 0.02),
+            (tr_msg('Connecting the energy plants to the streets'), lambda: self.connectPlantsStreet(version,mode), 0.05),
+            (tr_msg('Connecting the customers to the streets'), lambda: self.connectCustomersStreet(version,mode), 0.12),
+            (tr_msg('Splitting the streets at their intersections'), lambda: self.generateTopology(version), 0.25),
+            (tr_msg('Searching the energy plants in the street network'), lambda: setattr(self,'plants',self.getPlants(version)), 0.25),
+            (tr_msg('Calculating the shortest ways of the customers to the energy plants'), lambda: self.networkHelp(version,self.plants,mode), 0.5),
+            (tr_msg('Connecting the energy plants'), lambda: self.connectPlantsNetwork(version,self.plants,mode), 0.52),
         ]
         with self.prepare_lock:
             self.preparing = True
@@ -299,7 +300,7 @@ class WorkerPipeLaying(QRunnable):
     
     def finishNetworkTopology(self,version):
         self.setProgress(85)
-        self.status('Building the network topology of the laid pipes')
+        self.status(tr_msg('Building the network topology of the laid pipes'))
         self.transformNetworksIntoHC()
                 
         #redo topology because lines_heating and lines_cooling could have different topology --> missing points in streets_help_vertices_pgr
@@ -325,13 +326,13 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         self.updateJunctionConnections()
         self.updateTempCustomerTemplate()
         self.setProgress(89)
-        self.status('Merging lines at junctions with two connections')
+        self.status(tr_msg('Merging lines at junctions with two connections'))
         self.mergeLines()
-        self.status('Updating heights, submodels and line directions')
+        self.status(tr_msg('Updating heights, submodels and line directions'))
         self.updateHeight(version)
         updateJunctionHeights(self.cur,self.tolerance,self.network)
         if self.calcJunctionZeta:
-            self.status('Calculating the zeta values of the junctions')
+            self.status(tr_msg('Calculating the zeta values of the junctions'))
             updateJunctionZeta(self.cur,'temp',None,self.junctionZetaValues)
         self.setProgress(95)
         if self.redraw_submodels_polygons:
@@ -342,11 +343,11 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
         dprint(uri)
         checkLineDirectionPipeLaying(self.cur,version,self.tolerance,self.network)
         self.setProgress(97)
-        self.status('Loading the result layers')
+        self.status(tr_msg('Loading the result layers'))
         runInMainThread(showTempTables,uri,self.config,self.plugin_dir,self.signals,self.cur)
         dprint('finished pipe laying')
         self.signals.progress.emit(100)
-        self.status('Stopped and finished with the pipes laid so far: please save or reject the results' if self.is_killed else 'Finished: please save or reject the results')
+        self.status(tr_msg('Stopped and finished with the pipes laid so far: please save or reject the results') if self.is_killed else tr_msg('Finished: please save or reject the results'))
         self.signals.finished.emit('finished')
         
     #dublicated code
@@ -759,7 +760,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         self.cur.execute(sql)  
         customer_sum=max(self.cur.fetchone()['count_customers'],1)
         customer_count=0
-        self.status('Laying the pipes to the customers with the highest linear energy density')
+        self.status(tr_msg('Laying the pipes to the customers with the highest linear energy density'))
 
         while flag:
             flag=False
@@ -801,7 +802,7 @@ INSERT INTO temp.lines_{} (id,type,geom,pipe_bundle_type_id)
                 else:
                     customer_count += 1
                     self.progressMode(0.52+0.48*customer_count/customer_sum)
-                    self.status('Laying the pipes: {} customer connections laid'.format(customer_count))
+                    self.status(tr_msg('Laying the pipes: {} customer connections laid').format(customer_count))
                     dprint("""single connection successful ; count={}""".format(count))
                 count_old=count
             flag=False
@@ -899,7 +900,7 @@ SELECT sum(length) AS length FROM sub;""".format(cids,mode,epid) # nosec B608
                         self.cur.execute(sql) 
                         customer_count += 1
                         self.progressMode(0.52+0.48*customer_count/customer_sum)
-                        self.status('Laying the pipes: {} customer connections laid'.format(customer_count))
+                        self.status(tr_msg('Laying the pipes: {} customer connections laid').format(customer_count))
                         
     def transformNetworksIntoHC(self):
         sql="""INSERT INTO temp.lines (geom, type,pipe_bundle_type_id,network)

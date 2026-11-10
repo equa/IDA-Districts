@@ -102,7 +102,7 @@ from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer
 from .utility_functions.reports import networkReport
 from .utility_functions.show_on_map import dropResultVisTables
 from .utility_functions.topology import getLayerAttributesName
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import (
     checkToolPaths, load_plugin_settings, standardizePath, write_plugin_settings,
 )
@@ -436,7 +436,7 @@ class Districts:
             self.dlg_addVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addVersion))
             self.dlg_addVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def treeItem_saveAsDialog(self,level, mdlIdx):
         """Project version Save As dialog --> connects to the TreeItem_SaveAs function, which does the Save As"""
@@ -449,7 +449,7 @@ class Districts:
             self.dlg_saveAsVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_saveAsVersion))
             self.dlg_saveAsVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def showDeleteVersionDialog(self):
         try:
@@ -459,7 +459,7 @@ class Districts:
             dprint(item)
             self.deleteVersionDialog(item)
         except Exception:
-            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
             dprint('No item selected!')
 
     def deleteVersionDialog(self,item):
@@ -474,7 +474,7 @@ class Districts:
             self.dlg_deleteVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteVersion))
             self.dlg_deleteVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
             
     def addBaseVersionDialog(self):
@@ -487,7 +487,7 @@ class Districts:
             self.dlg_addBase.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_addBase))
             self.dlg_addBase.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def loadSelectedVersion(self):
         try:
@@ -495,7 +495,7 @@ class Districts:
             item=self.model.itemFromIndex(mdlIdx)
             treeItem_load(item, mdlIdx,self)
         except Exception:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
             dprint('No item selected!')
 
     def renameVersion(self):
@@ -509,7 +509,7 @@ class Districts:
                 level += 1
             self.treeItem_renameDialog(level, mdlIdx,item)
         except Exception:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
             dprint('No item selected!')
 
     def treeItem_renameDialog(self, level, mdlIdx,item):
@@ -524,7 +524,7 @@ class Districts:
             self.dlg_renameVersion.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_renameVersion))
             self.dlg_renameVersion.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def fileDialog(self,dlg,dir,extensions):
         dprint(dir)
@@ -555,9 +555,9 @@ class Districts:
                 self.dlg_import.btn_fileDialog.clicked.connect(lambda: self.fileDialog(self.dlg_import,default_path,extensions))            
                 self.dlg_import.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)        
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)        
 
     def openImportOSMDlg(self):
         if self.conn:
@@ -569,15 +569,15 @@ class Districts:
                 
                 self.dlg_osm_import.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)           
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)           
 
     def importFromOSM(self,dlg):
         if self.conn:
             if self.config['versionName']:
                 if not dlg.checkBox_buildings.isChecked() and not dlg.checkBox_streets.isChecked():
-                    self.iface.messageBar().pushMessage("Info", 'Please select an import option!', level=MessageInfo)
+                    self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Please select an import option!'), level=MessageInfo)
                     return
                 importType='both' if dlg.checkBox_buildings.isChecked() and dlg.checkBox_streets.isChecked() else ('buildings' if dlg.checkBox_buildings.isChecked() else 'streets')
                 clearOldBuildings=dlg.checkBoxClearOldFeatures.isChecked()
@@ -590,9 +590,9 @@ class Districts:
                 self.worker_importOSM.signals.progress.connect(dlg.update_progress)    
                 self.worker_importOSM.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))    
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
   
 
         
@@ -606,11 +606,11 @@ class Districts:
                 QThreadPool.globalInstance().start(self.worker_importElevevationData) 
                 self.worker_importElevevationData.signals.error.connect(show_error_message)
                 self.worker_importElevevationData.signals.progress.connect(dlg.update_progress)
-                self.worker_importElevevationData.signals.finished.connect(lambda s: dlg.update_finished(s,self.dlg))
+                self.worker_importElevevationData.signals.finished.connect(lambda s: dlg.update_finished('elevation data',self.dlg,message=s))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)     
         
     def show_manageClimateTemplate(self):
         if not checkIDADistrictsInstallation(self.config):
@@ -629,9 +629,9 @@ class Districts:
                 self.dlg_climate.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_climate))
                 self.dlg_climate.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)        
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)        
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)     
 
     def show_exportResources(self):
         """ show export resources dialog"""
@@ -643,7 +643,7 @@ class Districts:
             self.dlg_exportResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_exportResources))
             self.dlg_exportResources.show()     
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def show_importResources(self):
         """ show import resources dialog"""
@@ -655,7 +655,7 @@ class Districts:
             self.dlg_importResources.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_importResources))
             self.dlg_importResources.show()     
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)     
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)     
 
     def showExportProject(self):
         if self.conn:
@@ -664,7 +664,7 @@ class Districts:
             self.dlg_export.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_export))
             self.dlg_export.show()               
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
   
 
     def importProject(self):
@@ -690,7 +690,7 @@ class Districts:
                 self.worker_import.signals.finished.connect(lambda: finishedImportProject(dlg=None,main=self,projectName=zip_file.split('\\')[-1].split('.')[0]))                  
                 QThreadPool.globalInstance().start(self.worker_import)    
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
 
     def deleteProjectDialog(self):
@@ -706,9 +706,9 @@ class Districts:
                 self.dlg_deleteProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_deleteProject))
                 self.dlg_deleteProject.show()               
             else:
-                iface.messageBar().pushMessage("Info", tr('@default','no_project_selected'), level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_project_selected'), level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def importPointLayer(self):
         dprint('Import plant or customer from point layer')
@@ -721,9 +721,9 @@ class Districts:
                 self.dlg_importPointLayer.btn_cancel.pressed.connect(lambda: closeDialog(self.dlg_importPointLayer))
                 self.dlg_importPointLayer.show()     
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)   
 
     def showGeneratePipebundleTyps(self,dlg):
         """Generate pipe bundle types based on layer attributes"""
@@ -734,7 +734,7 @@ class Districts:
             self.dlg_pipeBundleEditor.btn_generate.pressed.connect(lambda: generatePipebundleTyps(dlg,self.dlg_pipeBundleEditor, layer,self))
             self.dlg_pipeBundleEditor.show() 
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_layer_selected'), level=MessageInfo)
             
     def importNetworkTopologyFromLayer(self):
         dprint('Import Network topology from layer')
@@ -749,9 +749,9 @@ class Districts:
                 self.dlg_importNetworkTopologyFromLayer.btn_generate_pipe_bundles.pressed.connect(lambda: self.showGeneratePipebundleTyps(self.dlg_importNetworkTopologyFromLayer))
                 self.dlg_importNetworkTopologyFromLayer.show() 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)   
            
     def showCreateNewProject(self):
         """Creates a new Project"""
@@ -759,7 +759,7 @@ class Districts:
         if not self.cur_postgres or self.dlg.projectNames is None:
             self.conn_postgres,self.cur_postgres,self.dlg.projectNames=connectDBPostgres(self.config,self.dlg)
         if not self.cur_postgres or self.dlg.projectNames is None:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
             return
         self.dlg_createNewProject=NewProjectDlg(self.dlg,self.config)
         self.dlg_createNewProject.btn_ok.clicked.connect(lambda: createNewProject(self.dlg_createNewProject,self))
@@ -855,9 +855,9 @@ class Districts:
                 self.dlg_importMeasurements.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_importMeasurements))
                 self.dlg_importMeasurements.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)   
         
     def manageConnectionTypes(self):
         if self.conn:
@@ -894,9 +894,9 @@ class Districts:
                 columns='(id,liq_type,t_freeze,t_ref,description)'
                 show_TableDialog(main=self,title=tr('@default','networks'),table='"{}".network'.format(self.config['versionName']),headers=headers,columns=columns,ok_fn=loadFeatureLayer,ok_fn_arg=[self.config['versionName'],self.config,self.plugin_dir,'lines',self.cur],deactivated=[],dropdowns=[[1,'public','liquids','id','liquid']]) 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)   
             
     def pipeLayingAlgorithm(self):
         dprint('--pipeLayingAlgorithm--')
@@ -905,9 +905,9 @@ class Districts:
                 self.dlg_pipeLayingAlgorithm=PipeLayingDialog(self.config,self.plugin_dir)
                 self.dlg_pipeLayingAlgorithm.show()   
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)   
             
     def generateNetworkTopology(self):
         """ Generate network topology"""
@@ -917,9 +917,9 @@ class Districts:
                 self.window_topology=NetworkTopologyDialog(self.config,self.plugin_dir)
                 self.window_topology.show() 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def pipeSizing(self):
         """Pipe sizing"""
@@ -934,9 +934,9 @@ class Districts:
                 loadPipes(self.config, self.cur,self.dlg_pipeSizing)
                 self.dlg_pipeSizing.show()  
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
         
     
     def mapFeatures(self):
@@ -947,9 +947,9 @@ class Districts:
                 self.window_mapPlants=MapFeaturesDialog(self.config,self.plugin_dir)
                 self.window_mapPlants.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
             
     def setProjectConfig(self):
         """ open Dialog to set Project configuration data"""
@@ -968,8 +968,8 @@ class Districts:
         settings.setValue("pathProjects",pathProjects)
         if not os.path.exists(pathProjects):
             dlg_question = QMessageBox(dlg)
-            dlg_question.setWindowTitle('IDA Project Path does not exist!')
-            dlg_question.setText("""Do you want to create the project folder?""")
+            dlg_question.setWindowTitle(tr_msg('IDA Project Path does not exist!'))
+            dlg_question.setText(tr_msg("Do you want to create the project folder?"))
             dlg_question.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
             dlg_question.setIcon(QMessageBox.Icon.Question)
             button = dlg_question.exec()
@@ -983,7 +983,7 @@ class Districts:
         pathPostgresql=standardizePath(dlg.lineEdit_pathPostgresql.text())
         if not os.path.exists(pathDistricts):
             self.config['pathDistricts']=pathDistricts
-            self.iface.messageBar().pushMessage("Info", "IDA Districts Path does not exist!", level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("IDA Districts Path does not exist!"), level=MessageInfo)
             checkIDADistrictsInstallation(self.config)
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
@@ -1137,9 +1137,9 @@ class Districts:
                 self.dlg_modellingSettings.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_modellingSettings))
                 self.dlg_modellingSettings.show() 
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showRequestedOutputs(self):
         if self.conn:
@@ -1150,9 +1150,9 @@ class Districts:
                 self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
                 self.dlg_outputs.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showParmMapping(self):
         if self.conn:
@@ -1166,9 +1166,9 @@ class Districts:
                 self.dlg_featureParm.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_featureParm))
                 self.dlg_featureParm.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def sensorSignals(self):
         """Create sensor signals for comunication between plants, customers and supervisory control"""
@@ -1179,9 +1179,9 @@ class Districts:
                     return
                 self.updateSensor=UpdateSensors(config=self.config,cur=self.cur,plugin_dir=self.plugin_dir,dlg_main=self.dlg)
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showFeatureModels(self):
         if self.conn:
@@ -1190,9 +1190,9 @@ class Districts:
                     return
                 self.invoke_features=InvokeFeatures(self.plugin_dir,self.config)
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showBuildModel(self):
         """ Build IDA subnetwork models; loop over subnetworks"""
@@ -1223,9 +1223,9 @@ class Districts:
                 self.dlg_buildModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_buildModel))
                 self.dlg_buildModel.btn_buildNetworkModel.clicked.connect(lambda: runWithButtonDisabled(self.dlg_buildModel.btn_buildNetworkModel,buildModel,self.dlg_buildModel,self))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showOpenModel(self,mode='network'):
         """ Show IDA submodels; loop over submodels"""
@@ -1239,7 +1239,7 @@ class Districts:
                 if submodels:
                     submodel=submodels[0]
                 else:
-                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=MessageInfo)
+                    self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Simulation model has not yet been built!"), level=MessageInfo)
                     return False
                 fname=dir+'\\{}_{}.idm'.format(mode,submodel)
                 if os.path.exists(fname):
@@ -1261,11 +1261,11 @@ class Districts:
                     """
                     
                 else:
-                    self.iface.messageBar().pushMessage("Info", "Simulation model has not yet been built!", level=MessageInfo)
+                    self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Simulation model has not yet been built!"), level=MessageInfo)
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showRunModel(self):
         """ Run IDA submodels; loop over submodels"""
@@ -1288,9 +1288,9 @@ class Districts:
                 self.dlg_runModel.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_runModel))
                 self.dlg_runModel.btn_runModel.clicked.connect(lambda: runWithButtonDisabled(self.dlg_runModel.btn_runModel,runModel,self.dlg_runModel,self.plugin_dir,self.config))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showStaticPipeSizing(self):
         """Static pipe sizing: loop of building the network model, simulation, loading results and pipe sizing"""
@@ -1303,9 +1303,9 @@ class Districts:
                 self.dlg_staticPipeSizing.fillCombos(self.cur,self.config)
                 self.dlg_staticPipeSizing.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def showLoadResults(self):
         """ show load results; loop over submodels"""
@@ -1326,9 +1326,9 @@ class Districts:
                 self.dlg_loadResults.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_loadResults))
                 self.dlg_loadResults.btn_loadResults.clicked.connect(lambda: runWithButtonDisabled(self.dlg_loadResults.btn_loadResults,loadResults,self.dlg_loadResults,self))
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showPathReports(self):                  
         if self.conn:
@@ -1346,9 +1346,9 @@ class Districts:
                 self.dlg_pathReports.network.addItems([str(i['network']) for i in self.cur.fetchall()])
                 self.dlg_pathReports.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def loadProfiles(self):                   
         if self.conn:
@@ -1370,9 +1370,9 @@ class Districts:
                 loadFeatureIds(self.dlg_plotLoads,self.cur,self.config)
                 self.dlg_plotLoads.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showSupervisoryCtrl(self):
         if self.conn:
@@ -1388,9 +1388,9 @@ class Districts:
                 self.dlg_supervisoryCrtl.show()  
                 """
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)   
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)   
             
     def showDataOnMap(self,networkReportDlg=None,function_items=None,time_values=None):                      
         if self.conn:
@@ -1401,9 +1401,9 @@ class Districts:
                 self.dlg_showOnMap.featureGroupChanged(False)
                 self.dlg_showOnMap.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo) 
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo) 
             
     def showNetworkReport(self):                      
         if self.conn:
@@ -1415,9 +1415,9 @@ class Districts:
                 self.dlg_networkReport.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_networkReport))
                 self.dlg_networkReport.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showCalibration(self):                      
         if self.conn:
@@ -1432,9 +1432,9 @@ class Districts:
                 loadCustomerCalibrationData(self.dlg_calibrateCustomers,self.config,self.conn)
                 self.dlg_calibrateCustomers.show()
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
     def showBoreholeFieldSettings(self):
         if self.conn:
@@ -1461,9 +1461,9 @@ class Districts:
                 self.loadedBoreholefieldsData=showBoreholeFieldSettingsData(self.dlg_boreholeFieldSettings,self)
                 self.dlg_boreholeFieldSettings.show()  
             else:
-                self.iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo) 
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo) 
         
     def on_tab_changed(self,index):
         widget = self.dlg.tabWidget.widget(index)           # get the QWidget for the tab
@@ -1615,7 +1615,7 @@ class Districts:
             self.dlg.selectProject.currentIndexChanged.connect(self.selectedProjectUpdated)
             self.dlg.update_progress(100)
             if self.checkDBConnectionState():
-                self.dlg.statusMessage.setText('Districts Modeler is ready!')
+                self.dlg.statusMessage.setText(tr_msg('Districts Modeler is ready!'))
 
             self.dlg.setWindowIcon(QIcon(self.icon_path))
             checkToolPaths(self.config)

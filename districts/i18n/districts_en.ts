@@ -1378,6 +1378,11 @@
             <translation type="unfinished">Please load a project version!</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="573" />
+            <source>no_network_selected</source>
+            <translation type="unfinished">Please select at least one network!</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="535" />
             <source>no_layer_selected</source>
             <translation type="unfinished">Please select a layer!</translation>
@@ -4516,22 +4521,22 @@ li.checked::marker { content: "\2612"; }
             <translation type="obsolete">PostgreSQL path</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="124" />
+            <location filename="../districts_settings_dialog.ui" line="133" />
             <source>debug_mode</source>
             <translation type="unfinished">Debug mode</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="130" />
+            <location filename="../districts_settings_dialog.ui" line="139" />
             <source>debug_log_file</source>
             <translation type="unfinished">Write debug output to a log file</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="137" />
+            <location filename="../districts_settings_dialog.ui" line="146" />
             <source>debug_also_python_console</source>
             <translation type="unfinished">Also print to the Python console</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="153" />
+            <location filename="../districts_settings_dialog.ui" line="162" />
             <source>open_log_folder</source>
             <translation type="unfinished">Open log folder</translation>
         </message>

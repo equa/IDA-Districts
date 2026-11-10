@@ -10,7 +10,7 @@ from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbColumnIsNumeric, dbConnect, dropDBTriggers, getMaxId, getPipeBundleTypesDB, getTableAttr, insertDBTriggers
 from .utility_functions.layer_visualization import removeTempLayers, setLayersHidden
 from .utility_functions.topology import saveTempTables
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import checkListNumbers, isFloat, isNumber, refreshMap
 from .utility_functions.workers import APISignals, runInMainThread
 from .utility_functions.zeta import updateJunctionZeta
@@ -188,12 +188,12 @@ class WorkerPipeSizing(QRunnable):
                         if pipe:
                             pipe_bundle.append([i,pipe[0][0],int(self.ambient)])
                         else:
-                            self.signals.error.emit("No proper pipe available for line ID = {} with inner diameter: ".format(line['id'])+str(z[1]))
+                            self.signals.error.emit(tr_msg("No proper pipe available for line ID = {} with inner diameter: ").format(line['id'])+str(z[1]))
                             self.signals.finished.emit('failed')
                             return False
                         i+=1
                     except Exception:
-                        self.signals.error.emit("Load value is not set for line ID = {} and is therefore omitted in sizing process.".format(line['id']))
+                        self.signals.error.emit(tr_msg("Load value is not set for line ID = {} and is therefore omitted in sizing process.").format(line['id']))
                 dprint(pipe_bundle)  
                 
                 #check if pipe bundle type already exists in DB otherwise add to DB
@@ -234,20 +234,20 @@ def checkPipeSizingInput(dlg):
     table_circuits=dlg.table_circuits
     rowcount_circuits=table_circuits.rowCount()
     if rowcount_circuits==0:
-        iface.messageBar().pushMessage("Info", "Please add at least one liquid circuit!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please add at least one liquid circuit!"), level=MessageInfo)
         return False
     for row in range(rowcount_circuits):
         if table_circuits.cellWidget(row,0).currentText()==table_circuits.cellWidget(row,3).currentText():
-            iface.messageBar().pushMessage("Info", "Return must be differ from supply!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Return must be differ from supply!"), level=MessageInfo)
             return False
         if not isNumber(table_circuits.item(row,1).text()):
-            iface.messageBar().pushMessage("Info", "Please enter a number as supply temperature!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please enter a number as supply temperature!"), level=MessageInfo)
             return False
         if not isNumber(table_circuits.item(row,4).text()):
-            iface.messageBar().pushMessage("Info", "Please enter a number as return temperature!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please enter a number as return temperature!"), level=MessageInfo)
             return False
         if table_circuits.item(row,1).text() == table_circuits.item(row,4).text():
-            iface.messageBar().pushMessage("Info", "Supply temperature must be differ from return temperature!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Supply temperature must be differ from return temperature!"), level=MessageInfo)
             return False
             
     table_sequences=dlg.table_sequences
@@ -255,7 +255,7 @@ def checkPipeSizingInput(dlg):
     for row in range(rowcount_sequences):
         checkedItems=table_sequences.cellWidget(row,1).getCheckItems()
         if len(checkedItems)==0:
-            iface.messageBar().pushMessage("Info", "Please select at least one pipe!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select at least one pipe!"), level=MessageInfo)
             return False
     return True
     
@@ -288,12 +288,12 @@ def startPipeSizing(config,dlg,plugin_dir):
             rho=float(rho)
             cp=float(cp)
         else:
-            iface.messageBar().pushMessage("Error", "Please check your inputs! Only values are valid.", level=MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please check your inputs! Only values are valid."), level=MessageCritical)
             return False
             
         for i in range(dlg.table_circuits.rowCount()): 
             if dlg.table_circuits.cellWidget(i,0).currentText()==dlg.table_circuits.cellWidget(i,3).currentText():
-                iface.messageBar().pushMessage("Error", "Supply and return pipe could not be the same: sequence={}!".format(i+1), level=MessageCritical)
+                iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Supply and return pipe could not be the same: sequence={}!").format(i+1), level=MessageCritical)
                 return False
             
         kin_viscosity=0
@@ -302,7 +302,7 @@ def startPipeSizing(config,dlg,plugin_dir):
             if isFloat(kin_viscosity):
                 kin_viscosity=float(kin_viscosity)
             else:
-                iface.messageBar().pushMessage("Error", "The kinematic viscosity is not a number.", level=MessageCritical)
+                iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("The kinematic viscosity is not a number."), level=MessageCritical)
             
         #write pipes into temp.lines table
         sql="""DROP TABLE IF EXISTS temp.lines;

@@ -16,7 +16,7 @@ from .utility_functions.db import dbConnect, getUsedNetworkSubmodels
 from .utility_functions.pipe_downsizing import (
     createChildVersion, getCustomerLinePressure, getOrCreatePipeBundles, optimizePipeDiameters, saveCLidPressure,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import sanitize_pg_identifier, write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
 
@@ -98,22 +98,22 @@ class StaticPipeSizingDialog(QDialog):
 
     def start(self):
         if not self.combo_network.currentText() or not self.combo_submodel.currentText():
-            iface.messageBar().pushMessage('Info', 'Please select a network and a submodel!', level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Please select a network and a submodel!'), level=MessageInfo)
             return
         version = self.main.config['versionName']
         new_version = self.parameters()['new_version']
         if self.rbtn_newVersion.isChecked():
             if not new_version or sanitize_pg_identifier(new_version) != new_version:
-                QMessageBox.warning(self, self.windowTitle(), 'Please enter a version name with a-z, 0-9 and _ only.')
+                QMessageBox.warning(self, self.windowTitle(), tr_msg('Please enter a version name with a-z, 0-9 and _ only.'))
                 return
             cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute("""SELECT 1 FROM pg_namespace WHERE nspname = %s UNION SELECT 1 FROM public.versionhandling WHERE name = %s;""", (new_version, new_version))
             if cur.fetchone():
-                QMessageBox.warning(self, self.windowTitle(), 'Version "{}" does already exist.'.format(new_version))
+                QMessageBox.warning(self, self.windowTitle(), tr_msg('Version "{}" does already exist.').format(new_version))
                 return
-            question = 'A child version "{}" of version "{}" will be created and loaded, its pipes will be sized. Continue?'.format(new_version, version)
+            question = tr_msg('A child version "{}" of version "{}" will be created and loaded, its pipes will be sized. Continue?').format(new_version, version)
         else:
-            question = 'The pipe bundles of the lines of the loaded version "{}" will be overridden. Continue?'.format(version)
+            question = tr_msg('The pipe bundles of the lines of the loaded version "{}" will be overridden. Continue?').format(version)
         answer = QMessageBox.question(self, self.windowTitle(), question)
         if answer != QMessageBox.StandardButton.Yes:
             return
@@ -126,19 +126,19 @@ class StaticPipeSizingDialog(QDialog):
         if not self.run:
             return
         if self.run.stop_requested:
-            self.run.finish('Aborted by the user; a running simulation or worker is not interrupted.', error=True)
+            self.run.finish(tr_msg('Aborted by the user; a running simulation or worker is not interrupted.'), error=True)
             return
         self.run.stop_requested = True
-        self.btn_stop.setText('Abort now')
-        self.log('Stop requested, the iteration stops after the current step (press again to abort now).')
+        self.btn_stop.setText(tr_msg('Abort now'))
+        self.log(tr_msg('Stop requested, the iteration stops after the current step (press again to abort now).'))
 
     def finished(self):
         self.setRunning(False)
-        self.btn_stop.setText('Stop after this step')
+        self.btn_stop.setText(tr_msg('Stop after this step'))
 
     def closeEvent(self, event):
         if self.process_running:
-            QMessageBox.information(self, self.windowTitle(), 'The iteration is still running. Please stop or abort it first.')
+            QMessageBox.information(self, self.windowTitle(), tr_msg('The iteration is still running. Please stop or abort it first.'))
             event.ignore()
         else:
             event.accept()
@@ -172,7 +172,7 @@ class StaticPipeSizingRun(QObject):
     # ------------------------------------------------------------------ control
     def start(self):
         p = self.parms
-        self.dlg.log('Parameters: ' + ', '.join('{}={}'.format(k, v) for k, v in p.items() if k not in ('network', 'submodel', 'new_version', 'description')))
+        self.dlg.log(tr_msg('Parameters: ') + ', '.join('{}={}'.format(k, v) for k, v in p.items() if k not in ('network', 'submodel', 'new_version', 'description')))
         if p['new_version']:
             self.createVersion()
         else:
@@ -180,7 +180,7 @@ class StaticPipeSizingRun(QObject):
 
     def startIteration(self):
         p = self.parms
-        self.dlg.log('Version {}, network {}, submodel {}'.format(self.config['versionName'], p['network'], p['submodel']))
+        self.dlg.log(tr_msg('Version {}, network {}, submodel {}').format(self.config['versionName'], p['network'], p['submodel']))
         self.iteration = 1
         if p['build_first']:
             self.build()
@@ -193,7 +193,7 @@ class StaticPipeSizingRun(QObject):
         p = self.parms
         self.stage = 'version'
         base = self.config['versionName']
-        self.dlg.log('Creating the child version {} of {} ...'.format(p['new_version'], base))
+        self.dlg.log(tr_msg('Creating the child version {} of {} ...').format(p['new_version'], base))
         try:
             createChildVersion(self.main.cur, self.config, self.plugin_dir, p['new_version'], p['description'])
             importData(self.main.model, getVersionData(self.main.cur))
@@ -207,7 +207,7 @@ class StaticPipeSizingRun(QObject):
     def loadVersion(self):
         """Loads the new version like ida_ph.loadVersion and continues when the version worker has finished."""
         from .ida_ph import get_item_by_text, highlight_item, loadVersionLayers
-        self.dlg.log('Loading version {} ...'.format(self.config['versionName']))
+        self.dlg.log(tr_msg('Loading version {} ...').format(self.config['versionName']))
         loadVersionLayers(self.config, self.main.cur, self.plugin_dir)
         item = get_item_by_text(self.config['versionName'], self.main)
         if item:
@@ -225,7 +225,7 @@ class StaticPipeSizingRun(QObject):
             return
         finishedLoadVersion(self.main)
         if self.config['versionName'] != self.parms['new_version']:
-            self.finish('The new version {} could not be loaded.'.format(self.parms['new_version']), error=True)
+            self.finish(tr_msg('The new version {} could not be loaded.').format(self.parms['new_version']), error=True)
             return
         self.startIteration()
 
@@ -235,14 +235,14 @@ class StaticPipeSizingRun(QObject):
         self.done = True
         self.dlg.log(message)
         self.dlg.update_progress(100 if not error else 0)
-        iface.messageBar().pushMessage('Error' if error else 'Info', 'Static pipe sizing: ' + message, level=MessageCritical if error else MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Error") if error else tr_msg("Info"), tr_msg('Static pipe sizing: ') + message, level=MessageCritical if error else MessageInfo)
         self.dlg.finished()
 
     def checkStop(self):
         if self.done:
             return True
         if self.stop_requested:
-            self.finish('Stopped by the user after iteration {}.'.format(self.iteration))
+            self.finish(tr_msg('Stopped by the user after iteration {}.').format(self.iteration))
             return True
         return False
 
@@ -256,7 +256,7 @@ class StaticPipeSizingRun(QObject):
             return
         self.progress(0)
         self.stage = 'build'
-        self.dlg.log('Iteration {}: building the network model ...'.format(self.iteration))
+        self.dlg.log(tr_msg('Iteration {}: building the network model ...').format(self.iteration))
         try:
             self.worker_build = WorkerBuildNetworkModel(main=self.main, config=self.config, plugin_dir=self.plugin_dir, dlg=self.dlg,
                 networks=[str(self.parms['network'])], submodels=[self.parms['submodel']])
@@ -279,7 +279,7 @@ class StaticPipeSizingRun(QObject):
             return
         self.progress(1)
         self.stage = 'simulate'
-        self.dlg.log('Iteration {}: running the simulation ...'.format(self.iteration))
+        self.dlg.log(tr_msg('Iteration {}: running the simulation ...').format(self.iteration))
         try:
             self.sim_failed = False
             self.finished_sims = 0
@@ -293,21 +293,21 @@ class StaticPipeSizingRun(QObject):
             self.dlg_run.update_finished = self.onSimFinished
             runModel(self.dlg_run, self.plugin_dir, self.config)
             if not self.dlg_run.process_running:
-                self.finish('The simulation could not be started (see message bar).', error=True)
+                self.finish(tr_msg('The simulation could not be started (see message bar).'), error=True)
         except Exception:
             self.onException()
 
     @pyqtSlot(str)
     def onSimStatus(self, message):
-        if message == 'Simulation failed':
+        if message == tr_msg('Simulation failed'):
             self.sim_failed = True
-        if message != 'Running':
+        if message != tr_msg('Running'):
             self.dlg.log('  ' + message)
 
     @pyqtSlot(str)
     def onSimError(self, message):
         self.sim_failed = True
-        self.dlg.log('  Error: ' + message)
+        self.dlg.log(tr_msg('  Error: ') + message)
 
     @pyqtSlot(str)
     def onSimFinished(self, message):
@@ -317,7 +317,7 @@ class StaticPipeSizingRun(QObject):
         if self.finished_sims < getattr(self.dlg_run, 'n_sims', 1):
             return
         if self.sim_failed:
-            self.finish('The simulation failed in iteration {}.'.format(self.iteration), error=True)
+            self.finish(tr_msg('The simulation failed in iteration {}.').format(self.iteration), error=True)
         else:
             self.load()
 
@@ -327,7 +327,7 @@ class StaticPipeSizingRun(QObject):
             return
         self.progress(2)
         self.stage = 'load'
-        self.dlg.log('Iteration {}: loading the results ...'.format(self.iteration))
+        self.dlg.log(tr_msg('Iteration {}: loading the results ...').format(self.iteration))
         try:
             self.dlg_load = LoadResultsDialog(self.main.dlg)
             self.dlg_load.combo_submodels.addItem(tr('@default', 'check_all_items'))
@@ -336,7 +336,7 @@ class StaticPipeSizingRun(QObject):
             self.dlg_load.update_finished = self.onLoadFinished
             loadResults(self.dlg_load, self.main)
             if not self.dlg_load.process_running:
-                self.finish('The results could not be loaded (see message bar).', error=True)
+                self.finish(tr_msg('The results could not be loaded (see message bar).'), error=True)
         except Exception:
             self.onException()
 
@@ -354,7 +354,7 @@ class StaticPipeSizingRun(QObject):
         self.progress(3)
         self.stage = 'evaluate'
         p = self.parms
-        self.dlg.log('Iteration {}: flow tracing and pipe sizing ...'.format(self.iteration))
+        self.dlg.log(tr_msg('Iteration {}: flow tracing and pipe sizing ...').format(self.iteration))
         try:
             conn = dbConnect(self.config, True)
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -365,37 +365,35 @@ class StaticPipeSizingRun(QObject):
                 weighted=p['weighted'], v_max=p['v_max'], dp_spez_max=p['dp_spez_max'],
                 dp_spez_setpoint=p['dp_spez_setpoint'], presize_only=p['presize_only'])
             dps = [val[0] for val in res['c_lid'].values() if val[0] is not None]
-            self.dlg.log('  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa'.format(
+            self.dlg.log(tr_msg('  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa').format(
                 res['time'], res['cid_dp'], res['epid_dp'], min(dps), max(dps)))
-            self.dlg.log('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, balancing steps {}'.format(
+            self.dlg.log(tr_msg('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, balancing steps {}').format(
                 opt['cid_weak'], opt['quota'], opt['spread'], len(opt['presize']), len(opt['history'])))
             self.saveResult(res, opt)
 
             current = {lid: {seq: pipe['pipe_id'] for seq, pipe in line['pipes'].items()} for lid, line in lines.items()}
             changed = {lid: new for lid, new in opt['pipes'].items() if new != current[lid]}
             if not changed:
-                self.finish('Converged in iteration {}: the pipe dimensions do not change anymore.'.format(self.iteration))
+                self.finish(tr_msg('Converged in iteration {}: the pipe dimensions do not change anymore.').format(self.iteration))
                 return
             for lid, new in sorted(changed.items()):
-                self.dlg.log('    line {}: {} -> {}'.format(lid, catalog[current[lid][min(current[lid])]]['name'], catalog[new[min(new)]]['name']))
+                self.dlg.log(tr_msg('    line {}: {} -> {}').format(lid, catalog[current[lid][min(current[lid])]]['name'], catalog[new[min(new)]]['name']))
 
             state = sorted((lid, sorted(pipes.items())) for lid, pipes in opt['pipes'].items())
             if state in self.states:
-                self.finish('Stopped in iteration {}: the pipe dimensions repeat a previous iteration (oscillation), '
-                    'the lines are not changed.'.format(self.iteration), error=True)
+                self.finish(tr_msg('Stopped in iteration {}: the pipe dimensions repeat a previous iteration (oscillation), the lines are not changed.').format(self.iteration), error=True)
                 return
             self.states.append(state)
 
             line_bundles, new_bundles = getOrCreatePipeBundles(cur, lines, opt['pipes'])
             for lid, bid in line_bundles.items():
                 cur.execute("""UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;""".format(self.config['versionName']), (bid, lid))  # nosec B608
-            self.dlg.log('  {} lines changed{}'.format(len(line_bundles), ', new pipe bundle types: {}'.format(new_bundles) if new_bundles else ''))
+            self.dlg.log(tr_msg('  {} lines changed{}').format(len(line_bundles), tr_msg(', new pipe bundle types: {}').format(new_bundles) if new_bundles else ''))
             conn.close()
             iface.mapCanvas().refreshAllLayers()
 
             if self.iteration >= p['max_iter']:
-                self.finish('Maximal number of iterations reached; the lines contain the pipes of iteration {}, '
-                    'the network model is not yet built and simulated with them.'.format(self.iteration))
+                self.finish(tr_msg('Maximal number of iterations reached; the lines contain the pipes of iteration {}, the network model is not yet built and simulated with them.').format(self.iteration))
                 return
             self.iteration += 1
             self.build()
@@ -409,16 +407,16 @@ class StaticPipeSizingRun(QObject):
             saveCLidPressure(res['c_lid'], os.path.join(path, 'static_sizing_iter{}_c_lid.json'.format(self.iteration)))
             saveCLidPressure(opt['c_lid'], os.path.join(path, 'static_sizing_iter{}_c_lid_sized.json'.format(self.iteration)))
         except Exception:
-            self.dlg.log('  c_lid could not be saved: ' + traceback.format_exc().splitlines()[-1])
+            self.dlg.log(tr_msg('  c_lid could not be saved: ') + traceback.format_exc().splitlines()[-1])
 
     # ------------------------------------------------------------------ errors
     @pyqtSlot(str)
     def onError(self, message):
         """Errors of the network model build: the worker does not emit finished, so the iteration is stopped."""
-        self.dlg.log('  Error: ' + message)
+        self.dlg.log(tr_msg('  Error: ') + message)
         if self.stage == 'build':
-            self.finish('Building the network model failed in iteration {}.'.format(self.iteration), error=True)
+            self.finish(tr_msg('Building the network model failed in iteration {}.').format(self.iteration), error=True)
 
     def onException(self):
         QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
-        self.finish('Error in iteration {}: {}'.format(self.iteration, traceback.format_exc().splitlines()[-1]), error=True)
+        self.finish(tr_msg('Error in iteration {}: {}').format(self.iteration, traceback.format_exc().splitlines()[-1]), error=True)

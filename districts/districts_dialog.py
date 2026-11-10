@@ -1,3 +1,4 @@
+from .utility_functions.translations import tr_msg
 from qgis.PyQt import QtWidgets, QtCore, uic
 from qgis.PyQt.QtCore import QSettings,QObject,pyqtSignal
 import os
@@ -269,7 +270,7 @@ class DistrictsDialog(QtWidgets.QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
     # ---------------- DRAG TAB TO FLOAT ----------------
     def eventFilter(self, source, event):

@@ -15,7 +15,7 @@ import tempfile
 
 import traceback
 from .compat import MessageCritical, MessageInfo, MessageWarning
-from .translations import tr
+from .translations import tr, tr_msg
 from .utility import getDistrictsModelerVersion, sanitize_pg_identifier
 from .debug_log import dprint
 
@@ -493,7 +493,7 @@ def getDrawnSubmodels(cur,config):
     cur.execute(sql)
     submodels=[i['id'] for i in cur.fetchall()]
     if len(submodels)==0:
-        iface.messageBar().pushMessage("Info", "No simulation model has been build yet!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No simulation model has been build yet!"), level=MessageInfo)
         return False
     else:
         return submodels
@@ -769,7 +769,7 @@ def checkDBVersionConnected(config,errorMsg):
     else:
         dprint('not connected to version!')
         if errorMsg:
-            iface.messageBar().pushMessage("WARNING", tr('@default','no_db_connection'), level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Warning"), tr('@default','no_db_connection'), level=MessageWarning)
         return False
         
 # application_name of the plugin's own connections (pg_stat_activity): with the process id of this QGIS,
@@ -816,7 +816,7 @@ def dbConnect(config,errorMsg):
     except Exception as e:
         logDBConnectionError(config,config['projectName'],e)
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection to {}:{}/{} has failed! Propably wrong password, user name or project does not exists! See message log 'Districts' for details.".format(
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("DB connection to {}:{}/{} has failed! Propably wrong password, user name or project does not exists! See message log 'Districts' for details.").format(
                 config['host'],config['port'],config['projectName']), level=MessageCritical)
     return conn
 
@@ -863,7 +863,7 @@ def dbConnectPerName(config,dbName,errorMsg):
     except Exception as e:
         logDBConnectionError(config,dbName,e)
         if errorMsg:
-            iface.messageBar().pushMessage("ERROR", "DB connection to {}:{}/{} has failed! Propably wrong password or user name. See message log 'Districts' for details.".format(
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("DB connection to {}:{}/{} has failed! Propably wrong password or user name. See message log 'Districts' for details.").format(
                 config['host'],config['port'],dbName), level=MessageCritical)
     return conn
     
@@ -924,7 +924,7 @@ def checkDBName(nameDb,projectNames):
     if nameDb not in projectNames:
         return True
     else:
-        iface.messageBar().pushMessage("ERROR", "DB already exists!", level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("DB already exists!"), level=MessageCritical)
         return False
         
 def getFilteredDropDownItems(cur,dropdown):

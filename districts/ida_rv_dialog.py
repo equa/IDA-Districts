@@ -16,7 +16,7 @@ from .utility_functions.thermal_properties import MelinderFluidEstimator
 from .utility_functions.topology import (
     getConnBundlesByType, getConnSequencesByConnType, getConnTypesByConnBundleType, getConnTypesByFeature,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import getDatetimeFromString
 
 from decimal import Decimal
@@ -119,7 +119,7 @@ class NetworkReportDialog(QDialog):
             self.data = [i for i in self.data if i.get("name") != self.tableWidget_diagrams.item(row_index,0).text()]
             self.tableWidget_diagrams.removeRow(row_index)
         else:
-            self.iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
         
 
 class PlotLoadProfilesDialog(QDialog):
@@ -591,7 +591,7 @@ class ShowOnMapDialog(QDialog):
                 color_classes=self.color_classes.text(),colormode=self.colormode.currentText(),colorramp=self.colorramp.currentText(),feature=self.feature,
                 size_symbolMin=self.size_symbolMin.text(),size_symbolMax=self.size_symbolMax.text(),rotation_symbolMin=self.rotation_symbolMin.text(),rotation_symbolMax=self.rotation_symbolMax.text())
             self.progress.setValue(100)
-            self.update_status('done')
+            self.update_status(tr_msg('done'))
 
         dprint("=== update_finished END ===")
         self.dlg_main.statusMessage.setText(message)        
@@ -1114,7 +1114,7 @@ class IDADistrictsPathReportsDialog(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         
     def update_finished(self,message):
         if str(message)=='finished':
@@ -1124,7 +1124,7 @@ class IDADistrictsPathReportsDialog(QDialog):
             if lines_layer:             
                 lines_layer[0].selectByExpression("id in {}".format(tuple([lid[0] for lid in self.lids])))
         
-        self.dlg_main.statusMessage.setText(message)        
+        self.dlg_main.statusMessage.setText(tr_msg(message))        
         self.process_running=False
         
     def showplot(self):

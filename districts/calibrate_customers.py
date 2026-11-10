@@ -15,7 +15,7 @@ from .utility_functions.ida_components import (
     getParmRunsOutputNamesTargets,
 )
 from .utility_functions.invoke import invokeOneFeature
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.workers import WorkerOpenModelCmd, process_wait
 
 import psycopg2
@@ -100,9 +100,9 @@ def openResult(dlg,plugin_dir,conn,cur):
                 worker_openParmrunResult.signals.finished.connect(dlg.update_finished)              
                 dprint('finished open assettype')
             else:
-                iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo)  
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("File not exists!"), level=MessageInfo)  
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No item selected!"), level=MessageInfo)
         
 def openTemplateParmrun(dlg,plugin_dir,conn):
     """ Open the selected template"""
@@ -139,9 +139,9 @@ def openTemplateParmrun(dlg,plugin_dir,conn):
                 worker_openParmrun.signals.finished.connect(dlg.update_finished)   
                 dprint('finished open parmruns template')
             else:
-                iface.messageBar().pushMessage("Info", "File not exists!", level=MessageInfo)   
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("File not exists!"), level=MessageInfo)   
     else:
-        iface.messageBar().pushMessage("Info", "No item selected!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No item selected!"), level=MessageInfo)
         
 def loadCustomerCalibrationData(dlg,config,conn):
     """Load the customers in the customer table with ID, model, Annual energy conumption (heating and cooling)"""
@@ -365,7 +365,7 @@ def saveCalibValues(dlg,config,conn,cur):
                         unique_field_names[field_name]=[parm['model_name'], parm['parm_name']]
                 dprint(unique_field_names)
                 if not unique_field_names:
-                    iface.messageBar().pushMessage("Info", "No parameters mapped to layer customers!", level=MessageInfo)  
+                    iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No parameters mapped to layer customers!"), level=MessageInfo)  
                     return
                     
                 for idx in idxs:
@@ -403,4 +403,4 @@ def saveCalibValues(dlg,config,conn,cur):
                     #invoke customers with callib values
                     invokeOneFeature(dlg,dlg.list_tableWidgetResults[dlg.tabwidget.currentIndex()].item(idx,0).text(),cur,config,'customer',False,parmRun=True,saveParmRunResults=True)  
             else:
-                iface.messageBar().pushMessage("Info", "No items selected!", level=MessageInfo)                      
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No items selected!"), level=MessageInfo)                      

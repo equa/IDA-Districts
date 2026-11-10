@@ -19,7 +19,7 @@ from .files import (
 )
 from .ida_components import getIDAListComponents, pListToCompString, propertyListCompsIDM
 from .sensor_signals import delSensorConnection, delSensorConnectionPList
-from .translations import tr
+from .translations import tr, tr_msg
 from .utility import getIDADistrictsVersion, getIDAVersion, getTypeIdByName, safe_eval
 from .workers import (
     closeConnectionOnFinish, closesOwnConnection,
@@ -98,7 +98,7 @@ class InvokeFeaturesDlg(QDialog):
         
     def show_error_message(self, message):
         # Show the error message in a messageBar
-        #iface.messageBar().pushMessage("Error", message, level=MessageCritical)
+        #iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
         pass
         
     def update_progress(self,progress):
@@ -292,9 +292,9 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     dprint(field_data)
                     if not field_data:
                         if parallize:
-                            signals.error.emit("No borehole field data for plant id={} (layer boreholes) available!".format(id))
+                            signals.error.emit(tr_msg("No borehole field data for plant id={} (layer boreholes) available!").format(id))
                         else:
-                            iface.messageBar().pushMessage("Critical", "No borehole field data for plant id={} (layer boreholes) available!".format(id), level=MessageCritical)
+                            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("No borehole field data for plant id={} (layer boreholes) available!").format(id), level=MessageCritical)
                         return False
                     sql="SELECT liquid FROM liquids WHERE id={};".format(field_data['liqtype']) # nosec B608
                     cur.execute(sql)
@@ -334,7 +334,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
                     mapping_expression=safe_eval(mapping_expression)
                 except Exception:
                     dprint('Failed eval!')
-                    signals.error.emit("Failed to evaluate mapping expression for feature id={}: {}".format(id,mapping_expression))
+                    signals.error.emit(tr_msg("Failed to evaluate mapping expression for feature id={}: {}").format(id,mapping_expression))
                 if debug_enabled(): dprint('++++++++'+parm['model_name'])
                 if parm['macro_name'] and parm['parm_name'] and parm['model_name'] and parm['mapping_direction'] in ['<-->','-->']:
                     if debug_enabled(): dprint(parm['model_name'])
@@ -366,7 +366,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
             type_old=type
             template_old=feature['template']
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo) 
 
 class InvokeFeatures():
     def __init__(self,plugin_dir,config):
@@ -462,9 +462,9 @@ class InvokeFeatures():
                 dprint('finished open feature')
                 
             else:
-                iface.messageBar().pushMessage("Info", "Feature not yet invoked!", level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Feature not yet invoked!"), level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
 
     def simulateInvokedFeatures(self,dlg,config):
         """Simulate the invoked features in IDA."""  
@@ -480,7 +480,7 @@ class InvokeFeatures():
             self.worker_simInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
             self.worker_simInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
         dprint('simulation finished')
 
     def showFeatureLoad(self,dlg):
@@ -501,7 +501,7 @@ class InvokeFeatures():
             self.worker_plotLoad.signals.plot.connect(dlg.show_plots)
             
         else:
-            iface.messageBar().pushMessage("Info", "No feature selected or not invoked!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No feature selected or not invoked!"), level=MessageInfo)
                        
     def getSensorComp(self,sensor_comp_idm,sensor_comp_idc,function,sensor_id,n_in,conns,i):
         if function in ['Max','Min']:

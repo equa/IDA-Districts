@@ -1350,6 +1350,11 @@
             <translation type="unfinished">Bitte lade zuerst eine Projekt Version!</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="573" />
+            <source>no_network_selected</source>
+            <translation type="unfinished">Bitte wähle mindestens ein Netz aus!</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="535" />
             <source>no_layer_selected</source>
             <translation type="unfinished">Bitte wähle zuerst einen Layer aus!</translation>
@@ -4513,22 +4518,22 @@ li.checked::marker { content: "\2612"; }
             <translation type="unfinished">IDA-API-Verzögerung, s</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="124" />
+            <location filename="../districts_settings_dialog.ui" line="133" />
             <source>debug_mode</source>
             <translation type="unfinished">Debug-Modus</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="130" />
+            <location filename="../districts_settings_dialog.ui" line="139" />
             <source>debug_log_file</source>
             <translation type="unfinished">Debug-Ausgaben in Logdatei schreiben</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="137" />
+            <location filename="../districts_settings_dialog.ui" line="146" />
             <source>debug_also_python_console</source>
             <translation type="unfinished">Zusätzlich in der Python-Konsole ausgeben</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="153" />
+            <location filename="../districts_settings_dialog.ui" line="162" />
             <source>open_log_folder</source>
             <translation type="unfinished">Log-Ordner öffnen</translation>
         </message>
@@ -7297,6 +7302,1253 @@ li.checked::marker { content: "\2612"; }
             <location filename="../districts_stylePipeDiameter.ui" line="119" />
             <source>cancel</source>
             <translation type="unfinished">Abbrechen</translation>
+        </message>
+    </context>
+    <context>
+        <name>Messages</name>
+        <message>
+            <source>    line {}: {} -&gt; {}</source>
+            <translation>    Trasse {}: {} -&gt; {}</translation>
+        </message>
+        <message>
+            <source>  Error: </source>
+            <translation>  Fehler: </translation>
+        </message>
+        <message>
+            <source>  c_lid could not be saved: </source>
+            <translation>  c_lid konnte nicht gespeichert werden: </translation>
+        </message>
+        <message>
+            <source>  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, balancing steps {}</source>
+            <translation>  Schätzung nach der Dimensionierung: Schlechtpunkt Abnehmer {}, Quote {:.0%}, Spreizung {:.0f} Pa, vordimensioniert {}, Abgleichschritte {}</translation>
+        </message>
+        <message>
+            <source>  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa</source>
+            <translation>  simuliert: kritischer Zeitpunkt {}, Schlechtpunkt Abnehmer {} (Energiezentrale {}), dp Übergabestationen {:.0f} ... {:.0f} Pa</translation>
+        </message>
+        <message>
+            <source>  {} lines changed{}</source>
+            <translation>  {} Trassen geändert{}</translation>
+        </message>
+        <message>
+            <source>, new pipe bundle types: {}</source>
+            <translation>, neue Rohrbündeltypen: {}</translation>
+        </message>
+        <message>
+            <source>A child version "{}" of version "{}" will be created and loaded, its pipes will be sized. Continue?</source>
+            <translation>Eine Unterversion "{}" der Version "{}" wird erstellt und geladen, ihre Rohre werden dimensioniert. Fortfahren?</translation>
+        </message>
+        <message>
+            <source>Abort now</source>
+            <translation>Jetzt abbrechen</translation>
+        </message>
+        <message>
+            <source>Aborted by the user; a running simulation or worker is not interrupted.</source>
+            <translation>Vom Benutzer abgebrochen; eine laufende Simulation oder ein laufender Prozess wird nicht unterbrochen.</translation>
+        </message>
+        <message>
+            <source>Adding customers at the network ends</source>
+            <translation>Abnehmer an den Netzenden werden hinzugefügt</translation>
+        </message>
+        <message>
+            <source>Already connected!</source>
+            <translation>Bereits verbunden!</translation>
+        </message>
+        <message>
+            <source>Base version {} does already exist!</source>
+            <translation>Die Basisversion {} existiert bereits!</translation>
+        </message>
+        <message>
+            <source>Build anyway</source>
+            <translation>Trotzdem erstellen</translation>
+        </message>
+        <message>
+            <source>Build the network model again after saving the updated network topology.</source>
+            <translation>Erstelle das Netzmodell erneut, nachdem die aktualisierte Netz-Topologie gespeichert wurde.</translation>
+        </message>
+        <message>
+            <source>Building the network graph</source>
+            <translation>Netzgraph wird aufgebaut</translation>
+        </message>
+        <message>
+            <source>Building the network model failed in iteration {}.</source>
+            <translation>Das Erstellen des Netzmodells ist in Iteration {} fehlgeschlagen.</translation>
+        </message>
+        <message>
+            <source>Building the network topology of the laid pipes</source>
+            <translation>Netz-Topologie der verlegten Rohre wird erstellt</translation>
+        </message>
+        <message>
+            <source>Calculating the shortest ways of the customers to the energy plants</source>
+            <translation>Kürzeste Wege der Abnehmer zu den Energiezentralen werden berechnet</translation>
+        </message>
+        <message>
+            <source>Calculating the zeta values of the junctions</source>
+            <translation>Zeta-Werte der Verbindungsstücke werden berechnet</translation>
+        </message>
+        <message>
+            <source>Check line direction has failed! Probably because of gaps in the topology. You could try to increase the tolerancy.</source>
+            <translation>Die Prüfung der Trassenrichtung ist fehlgeschlagen! Vermutlich wegen Lücken in der Topologie. Versuche, die Toleranz zu erhöhen.</translation>
+        </message>
+        <message>
+            <source>Checking the line directions</source>
+            <translation>Trassenrichtungen werden geprüft</translation>
+        </message>
+        <message>
+            <source>Climate data is successfully updated!</source>
+            <translation>Die Klimadaten wurden erfolgreich aktualisiert!</translation>
+        </message>
+        <message>
+            <source>Climate file could not be found: </source>
+            <translation>Die Klimadatei wurde nicht gefunden: </translation>
+        </message>
+        <message>
+            <source>Connecting lines, junctions, customers and energy plants</source>
+            <translation>Trassen, Verbindungsstücke, Abnehmer und Energiezentralen werden verbunden</translation>
+        </message>
+        <message>
+            <source>Connecting the customers to the network</source>
+            <translation>Abnehmer werden mit dem Netz verbunden</translation>
+        </message>
+        <message>
+            <source>Connecting the customers to the streets</source>
+            <translation>Abnehmer werden mit den Strassen verbunden</translation>
+        </message>
+        <message>
+            <source>Connecting the energy plants</source>
+            <translation>Energiezentralen werden verbunden</translation>
+        </message>
+        <message>
+            <source>Connecting the energy plants to the network</source>
+            <translation>Energiezentralen werden mit dem Netz verbunden</translation>
+        </message>
+        <message>
+            <source>Connecting the energy plants to the streets</source>
+            <translation>Energiezentralen werden mit den Strassen verbunden</translation>
+        </message>
+        <message>
+            <source>Converged in iteration {}: the pipe dimensions do not change anymore.</source>
+            <translation>Konvergiert in Iteration {}: die Rohrdimensionen ändern sich nicht mehr.</translation>
+        </message>
+        <message>
+            <source>Cooling</source>
+            <translation>Kälte</translation>
+        </message>
+        <message>
+            <source>Copying data failed!</source>
+            <translation>Das Kopieren der Daten ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Copying the streets</source>
+            <translation>Strassen werden kopiert</translation>
+        </message>
+        <message>
+            <source>Creating the child version has failed: {} See message log 'Districts' for details.</source>
+            <translation>Das Erstellen der Unterversion ist fehlgeschlagen: {} Details siehe Protokoll 'Districts'.</translation>
+        </message>
+        <message>
+            <source>Creating the child version {} of {} ...</source>
+            <translation>Unterversion {} von {} wird erstellt ...</translation>
+        </message>
+        <message>
+            <source>Customer</source>
+            <translation>Abnehmer</translation>
+        </message>
+        <message>
+            <source>Customer :{} has a loop in connection! </source>
+            <translation>Abnehmer {} hat eine Schleife im Anschluss! </translation>
+        </message>
+        <message>
+            <source>DB already exists!</source>
+            <translation>Die DB existiert bereits!</translation>
+        </message>
+        <message>
+            <source>DB connection to {}:{}/{} has failed! Propably wrong password or user name. See message log 'Districts' for details.</source>
+            <translation>Die DB-Verbindung zu {}:{}/{} ist fehlgeschlagen! Vermutlich falsches Passwort oder falscher Benutzername. Details siehe Protokoll 'Districts'.</translation>
+        </message>
+        <message>
+            <source>DB connection to {}:{}/{} has failed! Propably wrong password, user name or project does not exists! See message log 'Districts' for details.</source>
+            <translation>Die DB-Verbindung zu {}:{}/{} ist fehlgeschlagen! Vermutlich falsches Passwort, falscher Benutzername oder das Projekt existiert nicht! Details siehe Protokoll 'Districts'.</translation>
+        </message>
+        <message>
+            <source>Data center copying failed: </source>
+            <translation>Das Kopieren des Datencenters ist fehlgeschlagen: </translation>
+        </message>
+        <message>
+            <source>Data has been successfully visualized on map!</source>
+            <translation>Die Daten wurden erfolgreich auf der Karte dargestellt!</translation>
+        </message>
+        <message>
+            <source>Data visualization has failed!</source>
+            <translation>Die Darstellung der Daten ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Deleting unconnected customers</source>
+            <translation>Unverbundene Abnehmer werden gelöscht</translation>
+        </message>
+        <message>
+            <source>Deleting unconnected lines</source>
+            <translation>Unverbundene Trassen werden gelöscht</translation>
+        </message>
+        <message>
+            <source>Deleting unconnected network ends</source>
+            <translation>Unverbundene Netzenden werden gelöscht</translation>
+        </message>
+        <message>
+            <source>Depth below ground is not a number!</source>
+            <translation>Die Verlegetiefe ist keine Zahl!</translation>
+        </message>
+        <message>
+            <source>Different simulation periods are used!</source>
+            <translation>Es werden unterschiedliche Simulationszeiträume verwendet!</translation>
+        </message>
+        <message>
+            <source>Distance between pipes is not a number!</source>
+            <translation>Der Rohrabstand ist keine Zahl!</translation>
+        </message>
+        <message>
+            <source>Districts Modeler is ready!</source>
+            <translation>Districts Modeler ist bereit!</translation>
+        </message>
+        <message>
+            <source>Districts project ({}) saved: </source>
+            <translation>Districts-Projekt ({}) gespeichert: </translation>
+        </message>
+        <message>
+            <source>Do you want to create the project folder?</source>
+            <translation>Möchtest du den Projektordner erstellen?</translation>
+        </message>
+        <message>
+            <source>Energy plant :{} has a loop in connection! </source>
+            <translation>Energiezentrale {} hat eine Schleife im Anschluss! </translation>
+        </message>
+        <message>
+            <source>Energy plant not connected to selected line ID`s!</source>
+            <translation>Die Energiezentrale ist nicht mit den ausgewählten Trassen-IDs verbunden!</translation>
+        </message>
+        <message>
+            <source>Energy_plant</source>
+            <translation>Energiezentrale</translation>
+        </message>
+        <message>
+            <source>Error</source>
+            <translation>Fehler</translation>
+        </message>
+        <message>
+            <source>Error in iteration {}: {}</source>
+            <translation>Fehler in Iteration {}: {}</translation>
+        </message>
+        <message>
+            <source>Failed (see message log 'Districts')</source>
+            <translation>Fehlgeschlagen (siehe Protokoll 'Districts')</translation>
+        </message>
+        <message>
+            <source>Failed to evaluate mapping expression for feature id={}: {}</source>
+            <translation>Der Zuordnungsausdruck für Feature ID={} konnte nicht ausgewertet werden: {}</translation>
+        </message>
+        <message>
+            <source>Failed to exit ida!</source>
+            <translation>IDA konnte nicht beendet werden!</translation>
+        </message>
+        <message>
+            <source>Failed to load project config!</source>
+            <translation>Die Projektkonfiguration konnte nicht geladen werden!</translation>
+        </message>
+        <message>
+            <source>Failed to open the feature or run the script!</source>
+            <translation>Das Feature konnte nicht geöffnet oder das Skript nicht ausgeführt werden!</translation>
+        </message>
+        <message>
+            <source>Failed to open the feature!</source>
+            <translation>Das Feature konnte nicht geöffnet werden!</translation>
+        </message>
+        <message>
+            <source>Failed to open the feature!: </source>
+            <translation>Das Feature konnte nicht geöffnet werden: </translation>
+        </message>
+        <message>
+            <source>Failed to open the feature: {}!</source>
+            <translation>Das Feature konnte nicht geöffnet werden: {}!</translation>
+        </message>
+        <message>
+            <source>Feature not yet invoked!</source>
+            <translation>Das Feature ist noch nicht erzeugt!</translation>
+        </message>
+        <message>
+            <source>File not exists!</source>
+            <translation>Die Datei existiert nicht!</translation>
+        </message>
+        <message>
+            <source>File to import the data!</source>
+            <translation>Der Import der Daten ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Finished: please save or reject the results</source>
+            <translation>Fertig: bitte speichere oder verwirf die Ergebnisse</translation>
+        </message>
+        <message>
+            <source>Generating the network topology has failed (see message log 'Districts')!</source>
+            <translation>Das Erzeugen der Netz-Topologie ist fehlgeschlagen (siehe Protokoll 'Districts')!</translation>
+        </message>
+        <message>
+            <source>Heating</source>
+            <translation>Wärme</translation>
+        </message>
+        <message>
+            <source>IDA Districts Path does not exist!</source>
+            <translation>Der IDA-Districts-Pfad existiert nicht!</translation>
+        </message>
+        <message>
+            <source>IDA Districts model updated failed!</source>
+            <translation>Die Aktualisierung des IDA-Districts-Modells ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>IDA Project Path does not exist!</source>
+            <translation>Der IDA-Projektpfad existiert nicht!</translation>
+        </message>
+        <message>
+            <source>Id: {} occurs twice in layer: {}!</source>
+            <translation>Die ID {} kommt im Layer {} doppelt vor!</translation>
+        </message>
+        <message>
+            <source>Identifier is missing!</source>
+            <translation>ID fehlt!</translation>
+        </message>
+        <message>
+            <source>Import elevation data completed!</source>
+            <translation>Import der Höhendaten abgeschlossen!</translation>
+        </message>
+        <message>
+            <source>Import elevation data failed!</source>
+            <translation>Import der Höhendaten fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Import {} completed!</source>
+            <translation>Import {} abgeschlossen!</translation>
+        </message>
+        <message>
+            <source>Import {} layer completed!</source>
+            <translation>Import des Layers {} abgeschlossen!</translation>
+        </message>
+        <message>
+            <source>Info</source>
+            <translation>Info</translation>
+        </message>
+        <message>
+            <source>Inserting lines and junctions</source>
+            <translation>Trassen und Verbindungsstücke werden eingefügt</translation>
+        </message>
+        <message>
+            <source>Invalid input!</source>
+            <translation>Ungültige Eingabe!</translation>
+        </message>
+        <message>
+            <source>It is not possible to set the pressure and mass flow as boundary!</source>
+            <translation>Druck und Massenstrom können nicht gleichzeitig als Randbedingung gesetzt werden!</translation>
+        </message>
+        <message>
+            <source>Iteration {}: building the network model ...</source>
+            <translation>Iteration {}: Netzmodell wird erstellt ...</translation>
+        </message>
+        <message>
+            <source>Iteration {}: flow tracing and pipe sizing ...</source>
+            <translation>Iteration {}: Strömungsverfolgung und Rohrdimensionierung ...</translation>
+        </message>
+        <message>
+            <source>Iteration {}: loading the results ...</source>
+            <translation>Iteration {}: Ergebnisse werden geladen ...</translation>
+        </message>
+        <message>
+            <source>Iteration {}: running the simulation ...</source>
+            <translation>Iteration {}: Simulation läuft ...</translation>
+        </message>
+        <message>
+            <source>Junction</source>
+            <translation>Verbindungsstück</translation>
+        </message>
+        <message>
+            <source>Junction connections do not match with pipe bundle sequences. Please check your pipe bundle sequences in data center --&gt; pipe bundles.</source>
+            <translation>Die Anschlüsse der Verbindungsstücke passen nicht zu den Rohrbündel-Sequenzen. Bitte prüfe die Rohrbündel-Sequenzen im Datencenter --&gt; Rohrbündel.</translation>
+        </message>
+        <message>
+            <source>Layer field already mapped!</source>
+            <translation>Das Layerfeld ist bereits zugeordnet!</translation>
+        </message>
+        <message>
+            <source>Laying the pipes to the customers with the highest linear energy density</source>
+            <translation>Rohre werden zu den Abnehmern mit der höchsten Liniendichte verlegt</translation>
+        </message>
+        <message>
+            <source>Laying the pipes: {} customer connections laid</source>
+            <translation>Rohre werden verlegt: {} Abnehmeranschlüsse verlegt</translation>
+        </message>
+        <message>
+            <source>Load in {}:{} is not found!</source>
+            <translation>Die Last in {}:{} wurde nicht gefunden!</translation>
+        </message>
+        <message>
+            <source>Load value is not set for line ID = {} and is therefore omitted in sizing process.</source>
+            <translation>Für die Trasse ID = {} ist keine Last gesetzt, sie wird daher bei der Dimensionierung ausgelassen.</translation>
+        </message>
+        <message>
+            <source>Loading results has been successfully completed!</source>
+            <translation>Die Ergebnisse wurden erfolgreich geladen!</translation>
+        </message>
+        <message>
+            <source>Loading the result layers</source>
+            <translation>Ergebnislayer werden geladen</translation>
+        </message>
+        <message>
+            <source>Loading version failed!</source>
+            <translation>Das Laden der Version ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Loading version {} ...</source>
+            <translation>Version {} wird geladen ...</translation>
+        </message>
+        <message>
+            <source>Maximal number of iterations reached; the lines contain the pipes of iteration {}, the network model is not yet built and simulated with them.</source>
+            <translation>Maximale Anzahl Iterationen erreicht; die Trassen enthalten die Rohre der Iteration {}, das Netzmodell ist damit noch nicht erstellt und simuliert.</translation>
+        </message>
+        <message>
+            <source>Merging lines at junctions with two connections</source>
+            <translation>Trassen an Verbindungsstücken mit zwei Anschlüssen werden zusammengeführt</translation>
+        </message>
+        <message>
+            <source>Modelling data copying failed!</source>
+            <translation>Das Kopieren der Modellierungsdaten ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Neglect in model</source>
+            <translation>Im Modell vernachlässigen</translation>
+        </message>
+        <message>
+            <source>Network attribute value missing!</source>
+            <translation>Netz-Attribut fehlt!</translation>
+        </message>
+        <message>
+            <source>Network model has been build successfully!</source>
+            <translation>Das Netzmodell wurde erfolgreich erstellt!</translation>
+        </message>
+        <message>
+            <source>Network topology not valid</source>
+            <translation>Netz-Topologie nicht gültig</translation>
+        </message>
+        <message>
+            <source>Network {}: {}</source>
+            <translation>Netz {}: {}</translation>
+        </message>
+        <message>
+            <source>New base version created: </source>
+            <translation>Neue Basisversion erstellt: </translation>
+        </message>
+        <message>
+            <source>New child version created: </source>
+            <translation>Neue Unterversion erstellt: </translation>
+        </message>
+        <message>
+            <source>New project created!</source>
+            <translation>Neues Projekt erstellt!</translation>
+        </message>
+        <message>
+            <source>No borehole field data for plant id={} (layer boreholes) available!</source>
+            <translation>Keine Erdsondenfelddaten für die Energiezentrale ID={} (Layer Erdsonden) vorhanden!</translation>
+        </message>
+        <message>
+            <source>No connection selected!</source>
+            <translation>Kein Anschluss ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No connection to the database</source>
+            <translation>Keine Verbindung zur Datenbank</translation>
+        </message>
+        <message>
+            <source>No connection type selected!</source>
+            <translation>Kein Anschlusstyp ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No customer template available or set!</source>
+            <translation>Keine Abnehmervorlage vorhanden oder gesetzt!</translation>
+        </message>
+        <message>
+            <source>No data found! Please check if results are loaded or within the selected period.</source>
+            <translation>Keine Daten gefunden! Bitte prüfe, ob die Ergebnisse geladen sind bzw. im gewählten Zeitraum liegen.</translation>
+        </message>
+        <message>
+            <source>No database tables found in </source>
+            <translation>Keine Datenbanktabellen gefunden in </translation>
+        </message>
+        <message>
+            <source>No energy plant selected!</source>
+            <translation>Keine Energiezentrale ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No energy plant template available or set!</source>
+            <translation>Keine Energiezentralenvorlage vorhanden oder gesetzt!</translation>
+        </message>
+        <message>
+            <source>No feature selected or not invoked!</source>
+            <translation>Kein Feature ausgewählt oder noch nicht erzeugt!</translation>
+        </message>
+        <message>
+            <source>No import data available!</source>
+            <translation>Keine Importdaten vorhanden!</translation>
+        </message>
+        <message>
+            <source>No item selected!</source>
+            <translation>Kein Element ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No items selected!</source>
+            <translation>Keine Elemente ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No junctions in network or wrong constructions!</source>
+            <translation>Keine Verbindungsstücke im Netz oder falsche Konstruktionen!</translation>
+        </message>
+        <message>
+            <source>No layer field selected!</source>
+            <translation>Kein Layerfeld ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No line selected!</source>
+            <translation>Keine Trasse ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No line with the selected ID`s is connected to a feature!</source>
+            <translation>Keine Trasse mit den ausgewählten IDs ist mit einem Feature verbunden!</translation>
+        </message>
+        <message>
+            <source>No model parameter selected!</source>
+            <translation>Kein Modellparameter ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No network is selected!</source>
+            <translation>Es ist kein Netz ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No network to generate</source>
+            <translation>Kein Netz zu erzeugen</translation>
+        </message>
+        <message>
+            <source>No parameters mapped to layer customers!</source>
+            <translation>Dem Layer Abnehmer sind keine Parameter zugeordnet!</translation>
+        </message>
+        <message>
+            <source>No pipe bundle available or set!</source>
+            <translation>Kein Rohrbündel vorhanden oder gesetzt!</translation>
+        </message>
+        <message>
+            <source>No pipe bundle type attribute selected!</source>
+            <translation>Kein Rohrbündeltyp-Attribut ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No project tables loaded</source>
+            <translation>Keine Projekttabellen geladen</translation>
+        </message>
+        <message>
+            <source>No project version is loaded!</source>
+            <translation>Es ist keine Projektversion geladen!</translation>
+        </message>
+        <message>
+            <source>No proper pipe available for line ID = {} with inner diameter: </source>
+            <translation>Kein passendes Rohr für die Trasse ID = {} verfügbar mit Innendurchmesser: </translation>
+        </message>
+        <message>
+            <source>No row selected!</source>
+            <translation>Keine Zeile ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No simulation model has been build yet!</source>
+            <translation>Es wurde noch kein Simulationsmodell erstellt!</translation>
+        </message>
+        <message>
+            <source>No template is set in: </source>
+            <translation>Keine Vorlage gesetzt in: </translation>
+        </message>
+        <message>
+            <source>Number of parallel pipes is not an integer number!</source>
+            <translation>Die Anzahl paralleler Rohre ist keine ganze Zahl!</translation>
+        </message>
+        <message>
+            <source>Parameters: </source>
+            <translation>Parameter: </translation>
+        </message>
+        <message>
+            <source>Path does not exist: </source>
+            <translation>Der Pfad existiert nicht: </translation>
+        </message>
+        <message>
+            <source>Paused (press Pause/Resume again to continue)</source>
+            <translation>Pausiert (erneut Pause/Fortsetzen drücken, um fortzufahren)</translation>
+        </message>
+        <message>
+            <source>Pipe bundle types are added to the DB!</source>
+            <translation>Die Rohrbündeltypen wurden zur DB hinzugefügt!</translation>
+        </message>
+        <message>
+            <source>Pipe construction data corrupted! PLease check construction data.</source>
+            <translation>Die Daten der Rohrkonstruktion sind fehlerhaft! Bitte prüfe die Konstruktionsdaten.</translation>
+        </message>
+        <message>
+            <source>Pipe diameter is not a number!</source>
+            <translation>Der Rohrdurchmesser ist keine Zahl!</translation>
+        </message>
+        <message>
+            <source>Pipe laying failed (see message log 'Districts')!</source>
+            <translation>Die Rohrverlegung ist fehlgeschlagen (siehe Protokoll 'Districts')!</translation>
+        </message>
+        <message>
+            <source>Pipe roughness is not a number!</source>
+            <translation>Die Rohrrauigkeit ist keine Zahl!</translation>
+        </message>
+        <message>
+            <source>Please add at least one liquid circuit!</source>
+            <translation>Bitte füge mindestens einen Flüssigkeitskreislauf hinzu!</translation>
+        </message>
+        <message>
+            <source>Please check your inputs! Only values are valid.</source>
+            <translation>Bitte prüfe deine Eingaben! Es sind nur Zahlenwerte gültig.</translation>
+        </message>
+        <message>
+            <source>Please check your layer data, if there is at least one customer connected to network {}!</source>
+            <translation>Bitte prüfe deine Layerdaten, ob mindestens ein Abnehmer mit dem Netz {} verbunden ist!</translation>
+        </message>
+        <message>
+            <source>Please check your layer data, if there is at least one energy plant connected to network {}!</source>
+            <translation>Bitte prüfe deine Layerdaten, ob mindestens eine Energiezentrale mit dem Netz {} verbunden ist!</translation>
+        </message>
+        <message>
+            <source>Please check your layer data, if there is at least one entry of network {} in the layers: energy_plants and customers!</source>
+            <translation>Bitte prüfe deine Layerdaten, ob es in den Layern Energiezentralen und Abnehmer mindestens einen Eintrag des Netzes {} gibt!</translation>
+        </message>
+        <message>
+            <source>Please don`t use upper cases, white spaces or special characters in your name!</source>
+            <translation>Bitte verwende im Namen keine Grossbuchstaben, Leerzeichen oder Sonderzeichen!</translation>
+        </message>
+        <message>
+            <source>Please enter a construction layer thickness!</source>
+            <translation>Bitte gib eine Schichtdicke der Konstruktion ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a depth below ground!</source>
+            <translation>Bitte gib eine Verlegetiefe ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a distance between pipes!</source>
+            <translation>Bitte gib einen Rohrabstand ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a field name!</source>
+            <translation>Bitte gib einen Feldnamen ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a file name!</source>
+            <translation>Bitte gib einen Dateinamen ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a name!</source>
+            <translation>Bitte gib einen Namen ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a number as maximal timestep!</source>
+            <translation>Bitte gib eine Zahl als maximalen Zeitschritt ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a number as return temperature!</source>
+            <translation>Bitte gib eine Zahl als Rücklauftemperatur ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a number as supply temperature!</source>
+            <translation>Bitte gib eine Zahl als Vorlauftemperatur ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a number of parallel pipes!</source>
+            <translation>Bitte gib eine Anzahl paralleler Rohre ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a numerical interpolation time!</source>
+            <translation>Bitte gib eine Zahl als Interpolationszeit ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a pipe diameter!</source>
+            <translation>Bitte gib einen Rohrdurchmesser ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a pipe roughness factor!</source>
+            <translation>Bitte gib einen Rauigkeitsfaktor des Rohrs ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a positive integer number in number of feature submodels!</source>
+            <translation>Bitte gib bei der Anzahl der Feature-Teilmodelle eine positive ganze Zahl ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a version name with a-z, 0-9 and _ only.</source>
+            <translation>Bitte gib einen Versionsnamen nur mit a-z, 0-9 und _ ein.</translation>
+        </message>
+        <message>
+            <source>Please enter a version name!</source>
+            <translation>Bitte gib einen Versionsnamen ein!</translation>
+        </message>
+        <message>
+            <source>Please enter an integer number!</source>
+            <translation>Bitte gib eine ganze Zahl ein!</translation>
+        </message>
+        <message>
+            <source>Please enter an template name!</source>
+            <translation>Bitte gib einen Vorlagennamen ein!</translation>
+        </message>
+        <message>
+            <source>Please insert a main energy plant of network: {} into the energy_plants layer.</source>
+            <translation>Bitte füge eine Hauptenergiezentrale des Netzes {} in den Layer Energiezentralen ein.</translation>
+        </message>
+        <message>
+            <source>Please insert customers of network: {} into the customers layer.</source>
+            <translation>Bitte füge Abnehmer des Netzes {} in den Layer Abnehmer ein.</translation>
+        </message>
+        <message>
+            <source>Please insert streets into the streets layer.</source>
+            <translation>Bitte füge Strassen in den Layer Strassen ein.</translation>
+        </message>
+        <message>
+            <source>Please select a file or directory!</source>
+            <translation>Bitte wähle eine Datei oder ein Verzeichnis aus!</translation>
+        </message>
+        <message>
+            <source>Please select a model, which starts with an Integer and belongs to one of your modeled networks.</source>
+            <translation>Bitte wähle ein Modell aus, das mit einer ganzen Zahl beginnt und zu einem deiner modellierten Netze gehört.</translation>
+        </message>
+        <message>
+            <source>Please select a network and a submodel!</source>
+            <translation>Bitte wähle ein Netz und ein Teilmodell aus!</translation>
+        </message>
+        <message>
+            <source>Please select a variable!</source>
+            <translation>Bitte wähle eine Variable aus!</translation>
+        </message>
+        <message>
+            <source>Please select an import option!</source>
+            <translation>Bitte wähle eine Importoption aus!</translation>
+        </message>
+        <message>
+            <source>Please select an item in the list!!</source>
+            <translation>Bitte wähle ein Element in der Liste aus!</translation>
+        </message>
+        <message>
+            <source>Please select at least one pipe!</source>
+            <translation>Bitte wähle mindestens ein Rohr aus!</translation>
+        </message>
+        <message>
+            <source>Please select at least one variable!</source>
+            <translation>Bitte wähle mindestens eine Variable aus!</translation>
+        </message>
+        <message>
+            <source>Please select one or more network id`s!</source>
+            <translation>Bitte wähle ein oder mehrere Netze aus!</translation>
+        </message>
+        <message>
+            <source>Please select one or more submodels and one or more networks!</source>
+            <translation>Bitte wähle ein oder mehrere Teilmodelle und ein oder mehrere Netze aus!</translation>
+        </message>
+        <message>
+            <source>Please select one or more submodels!</source>
+            <translation>Bitte wähle ein oder mehrere Teilmodelle aus!</translation>
+        </message>
+        <message>
+            <source>Please set a valid layer srid!</source>
+            <translation>Bitte setze eine gültige SRID des Layers!</translation>
+        </message>
+        <message>
+            <source>Please start with an alphabetic character!</source>
+            <translation>Bitte beginne mit einem Buchstaben!</translation>
+        </message>
+        <message>
+            <source>Please update your IDA Districts path!</source>
+            <translation>Bitte aktualisiere deinen IDA-Districts-Pfad!</translation>
+        </message>
+        <message>
+            <source>Please update your project path!</source>
+            <translation>Bitte aktualisiere deinen Projektpfad!</translation>
+        </message>
+        <message>
+            <source>Preparing the temporary tables</source>
+            <translation>Temporäre Tabellen werden vorbereitet</translation>
+        </message>
+        <message>
+            <source>Project already exists in DB!</source>
+            <translation>Das Projekt existiert bereits in der DB!</translation>
+        </message>
+        <message>
+            <source>Project config not found!</source>
+            <translation>Projektkonfiguration nicht gefunden!</translation>
+        </message>
+        <message>
+            <source>Project handling files export failed!</source>
+            <translation>Der Export der Projektdateien ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Project import failed: </source>
+            <translation>Der Projektimport ist fehlgeschlagen: </translation>
+        </message>
+        <message>
+            <source>Ready</source>
+            <translation>Bereit</translation>
+        </message>
+        <message>
+            <source>Rename version "{}" to "{}" completed!</source>
+            <translation>Version "{}" wurde in "{}" umbenannt!</translation>
+        </message>
+        <message>
+            <source>Rename version "{}" to "{}" failed!</source>
+            <translation>Das Umbenennen der Version "{}" in "{}" ist fehlgeschlagen!</translation>
+        </message>
+        <message>
+            <source>Resources are imported successfully!</source>
+            <translation>Die Ressourcen wurden erfolgreich importiert!</translation>
+        </message>
+        <message>
+            <source>Return must be differ from supply!</source>
+            <translation>Der Rücklauf muss sich vom Vorlauf unterscheiden!</translation>
+        </message>
+        <message>
+            <source>Running</source>
+            <translation>Läuft</translation>
+        </message>
+        <message>
+            <source>Searching the energy plants in the street network</source>
+            <translation>Energiezentralen werden im Strassennetz gesucht</translation>
+        </message>
+        <message>
+            <source>Sensor signals successfully updated!</source>
+            <translation>Die Sensorsignale wurden erfolgreich aktualisiert!</translation>
+        </message>
+        <message>
+            <source>Should the topology be updated, the unconnected customers/energy plants be neglected in the model, the model be built anyway or the build be canceled?</source>
+            <translation>Soll die Topologie aktualisiert, die unverbundenen Abnehmer/Energiezentralen im Modell vernachlässigt, das Modell trotzdem erstellt oder das Erstellen abgebrochen werden?</translation>
+        </message>
+        <message>
+            <source>Sim model does not exist!</source>
+            <translation>Das Simulationsmodell existiert nicht!</translation>
+        </message>
+        <message>
+            <source>Simulation failed</source>
+            <translation>Simulation fehlgeschlagen</translation>
+        </message>
+        <message>
+            <source>Simulation finished</source>
+            <translation>Simulation abgeschlossen</translation>
+        </message>
+        <message>
+            <source>Simulation model has not yet been built!</source>
+            <translation>Das Simulationsmodell wurde noch nicht erstellt!</translation>
+        </message>
+        <message>
+            <source>Splitting the lines at energy plants and customers</source>
+            <translation>Trassen werden bei Energiezentralen und Abnehmern geteilt</translation>
+        </message>
+        <message>
+            <source>Splitting the lines at their intersections</source>
+            <translation>Trassen werden an ihren Kreuzungen geteilt</translation>
+        </message>
+        <message>
+            <source>Splitting the streets at their intersections</source>
+            <translation>Strassen werden an ihren Kreuzungen geteilt</translation>
+        </message>
+        <message>
+            <source>Starting</source>
+            <translation>Wird gestartet</translation>
+        </message>
+        <message>
+            <source>Static pipe sizing: </source>
+            <translation>Statische Rohrdimensionierung: </translation>
+        </message>
+        <message>
+            <source>Stop after this step</source>
+            <translation>Nach diesem Schritt stoppen</translation>
+        </message>
+        <message>
+            <source>Stop requested, the iteration stops after the current step (press again to abort now).</source>
+            <translation>Stopp angefordert, die Iteration stoppt nach dem aktuellen Schritt (erneut drücken, um sofort abzubrechen).</translation>
+        </message>
+        <message>
+            <source>Stopped and finished with the pipes laid so far: please save or reject the results</source>
+            <translation>Gestoppt und mit den bisher verlegten Rohren fertiggestellt: bitte speichere oder verwirf die Ergebnisse</translation>
+        </message>
+        <message>
+            <source>Stopped before any pipe was laid</source>
+            <translation>Gestoppt, bevor ein Rohr verlegt wurde</translation>
+        </message>
+        <message>
+            <source>Stopped by the user after iteration {}.</source>
+            <translation>Vom Benutzer nach Iteration {} gestoppt.</translation>
+        </message>
+        <message>
+            <source>Stopped in iteration {}: the pipe dimensions repeat a previous iteration (oscillation), the lines are not changed.</source>
+            <translation>In Iteration {} gestoppt: die Rohrdimensionen wiederholen eine frühere Iteration (Oszillation), die Trassen werden nicht geändert.</translation>
+        </message>
+        <message>
+            <source>Stopping: the network topology is finished with the pipes laid so far</source>
+            <translation>Wird gestoppt: die Netz-Topologie wird mit den bisher verlegten Rohren fertiggestellt</translation>
+        </message>
+        <message>
+            <source>Supply and return pipe could not be the same: sequence={}!</source>
+            <translation>Vor- und Rücklaufrohr dürfen nicht identisch sein: Sequenz={}!</translation>
+        </message>
+        <message>
+            <source>Supply temperature must be differ from return temperature!</source>
+            <translation>Die Vorlauftemperatur muss sich von der Rücklauftemperatur unterscheiden!</translation>
+        </message>
+        <message>
+            <source>The ID ({}) is not present in the feature layer ({})!</source>
+            <translation>Die ID ({}) ist im Feature-Layer ({}) nicht vorhanden!</translation>
+        </message>
+        <message>
+            <source>The customer`s load is not yet simulated in the current project version!</source>
+            <translation>Die Last der Abnehmer ist in der aktuellen Projektversion noch nicht simuliert!</translation>
+        </message>
+        <message>
+            <source>The file name ({}) must be an ID, which refers to the {} layer!</source>
+            <translation>Der Dateiname ({}) muss eine ID sein, die sich auf den Layer {} bezieht!</translation>
+        </message>
+        <message>
+            <source>The heat balance is not yet simulated in the current project version!</source>
+            <translation>Die Wärmebilanz ist in der aktuellen Projektversion noch nicht simuliert!</translation>
+        </message>
+        <message>
+            <source>The id is not mapped in "{}". Do you want to use a serial id instead?</source>
+            <translation>Die ID ist in "{}" nicht zugeordnet. Möchtest du stattdessen eine fortlaufende ID verwenden?</translation>
+        </message>
+        <message>
+            <source>The iteration is still running. Please stop or abort it first.</source>
+            <translation>Die Iteration läuft noch. Bitte stoppe sie zuerst oder brich sie ab.</translation>
+        </message>
+        <message>
+            <source>The kinematic viscosity is not a number.</source>
+            <translation>Die kinematische Viskosität ist keine Zahl.</translation>
+        </message>
+        <message>
+            <source>The line segment length for visualization should be greater than 0.</source>
+            <translation>Die Länge der Trassensegmente für die Darstellung muss grösser als 0 sein.</translation>
+        </message>
+        <message>
+            <source>The mass balance is not yet simulated in the current project version!</source>
+            <translation>Die Massenbilanz ist in der aktuellen Projektversion noch nicht simuliert!</translation>
+        </message>
+        <message>
+            <source>The network topology of network(s) {} does not match the lines, customers and energy plants (e.g. they were edited after generating the topology):
+
+{}
+{}
+Should the topology be updated with 'Generate network topology' or the build be canceled?</source>
+            <translation>Die Netz-Topologie von Netz(en) {} passt nicht zu den Trassen, Abnehmern und Energiezentralen (z. B. wurden sie nach dem Erzeugen der Topologie bearbeitet):
+
+{}
+{}
+Soll die Topologie mit 'Netz-Topologie erzeugen' aktualisiert oder das Erstellen abgebrochen werden?</translation>
+        </message>
+        <message>
+            <source>The new version {} could not be loaded.</source>
+            <translation>Die neue Version {} konnte nicht geladen werden.</translation>
+        </message>
+        <message>
+            <source>The pipe bundles of the lines of the loaded version "{}" will be overridden. Continue?</source>
+            <translation>Die Rohrbündel der Trassen der geladenen Version "{}" werden überschrieben. Fortfahren?</translation>
+        </message>
+        <message>
+            <source>The project version is not yet simulated!</source>
+            <translation>Die Projektversion ist noch nicht simuliert!</translation>
+        </message>
+        <message>
+            <source>The requested outputs differ from the invoked outputs. Please reinvoke the templates.</source>
+            <translation>Die angeforderten Ausgaben weichen von den erzeugten Ausgaben ab. Bitte erzeuge die Vorlagen neu.</translation>
+        </message>
+        <message>
+            <source>The results could not be loaded (see message bar).</source>
+            <translation>Die Ergebnisse konnten nicht geladen werden (siehe Meldungsleiste).</translation>
+        </message>
+        <message>
+            <source>The simulation could not be started (see message bar).</source>
+            <translation>Die Simulation konnte nicht gestartet werden (siehe Meldungsleiste).</translation>
+        </message>
+        <message>
+            <source>The simulation failed in iteration {}.</source>
+            <translation>Die Simulation ist in Iteration {} fehlgeschlagen.</translation>
+        </message>
+        <message>
+            <source>The source file ({}) must be an .prn file!</source>
+            <translation>Die Quelldatei ({}) muss eine .prn-Datei sein!</translation>
+        </message>
+        <message>
+            <source>This attribut cannot be mapped. Please enter an integer number.</source>
+            <translation>Dieses Attribut kann nicht zugeordnet werden. Bitte gib eine ganze Zahl ein.</translation>
+        </message>
+        <message>
+            <source>Unconnected customers or energy plants</source>
+            <translation>Unverbundene Abnehmer oder Energiezentralen</translation>
+        </message>
+        <message>
+            <source>Update topology</source>
+            <translation>Topologie aktualisieren</translation>
+        </message>
+        <message>
+            <source>Updating heights and submodels</source>
+            <translation>Höhen und Teilmodelle werden aktualisiert</translation>
+        </message>
+        <message>
+            <source>Updating heights, submodels and line directions</source>
+            <translation>Höhen, Teilmodelle und Trassenrichtungen werden aktualisiert</translation>
+        </message>
+        <message>
+            <source>Updating the sensor signals failed: </source>
+            <translation>Die Aktualisierung der Sensorsignale ist fehlgeschlagen: </translation>
+        </message>
+        <message>
+            <source>Version "{}" does already exist.</source>
+            <translation>Die Version "{}" existiert bereits.</translation>
+        </message>
+        <message>
+            <source>Version {} does already exist!</source>
+            <translation>Die Version {} existiert bereits!</translation>
+        </message>
+        <message>
+            <source>Version {}, network {}, submodel {}</source>
+            <translation>Version {}, Netz {}, Teilmodell {}</translation>
+        </message>
+        <message>
+            <source>Warning</source>
+            <translation>Warnung</translation>
+        </message>
+        <message>
+            <source>Warning: customers or energy plants of network(s) {} are not connected to the network:
+
+{}
+
+They are not part of the network model, the simulation will probably fail. Connect or delete them with 'Generate network topology' (options '{}', '{}' or '{}') or in the layers, or neglect them in the model (they are also removed from the sensor signals).</source>
+            <translation>Warnung: Abnehmer oder Energiezentralen von Netz(en) {} sind nicht mit dem Netz verbunden:
+
+{}
+
+Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen. Verbinde oder lösche sie mit 'Netz-Topologie erzeugen' (Optionen '{}', '{}' oder '{}') oder in den Layern, oder vernachlässige sie im Modell (sie werden auch aus den Sensorsignalen entfernt).</translation>
+        </message>
+        <message>
+            <source>averaging</source>
+            <translation>Mittelung von</translation>
+        </message>
+        <message>
+            <source>averaging {} on the line segments (size)</source>
+            <translation>Mittelung von {} auf den Trassensegmenten (Grösse)</translation>
+        </message>
+        <message>
+            <source>buildings</source>
+            <translation>Gebäude</translation>
+        </message>
+        <message>
+            <source>buildings and streets</source>
+            <translation>Gebäude und Strassen</translation>
+        </message>
+        <message>
+            <source>climate data</source>
+            <translation>Klimadaten</translation>
+        </message>
+        <message>
+            <source>connecting to the database</source>
+            <translation>Verbindung zur Datenbank wird hergestellt</translation>
+        </message>
+        <message>
+            <source>connections</source>
+            <translation>Anschlüsse</translation>
+        </message>
+        <message>
+            <source>connections to deleted lines, junctions, customers or energy plants (line ids)</source>
+            <translation>Anschlüsse an gelöschte Trassen, Verbindungsstücke, Abnehmer oder Energiezentralen (Trassen-IDs)</translation>
+        </message>
+        <message>
+            <source>connections which are not at an end of the line (line ids)</source>
+            <translation>Anschlüsse, die nicht an einem Trassenende liegen (Trassen-IDs)</translation>
+        </message>
+        <message>
+            <source>creating the map layer</source>
+            <translation>Kartenlayer wird erstellt</translation>
+        </message>
+        <message>
+            <source>customer</source>
+            <translation>Abnehmer</translation>
+        </message>
+        <message>
+            <source>customer templates</source>
+            <translation>Abnehmervorlagen</translation>
+        </message>
+        <message>
+            <source>customers</source>
+            <translation>Abnehmer</translation>
+        </message>
+        <message>
+            <source>customers and energy plants</source>
+            <translation>Abnehmer und Energiezentralen</translation>
+        </message>
+        <message>
+            <source>customers not connected to the network (customer ids)</source>
+            <translation>Abnehmer, die nicht mit dem Netz verbunden sind (Abnehmer-IDs)</translation>
+        </message>
+        <message>
+            <source>customers on a line which are not connected (customer ids)</source>
+            <translation>Abnehmer auf einer Trasse, die nicht angeschlossen sind (Abnehmer-IDs)</translation>
+        </message>
+        <message>
+            <source>determining the time step</source>
+            <translation>Zeitschritt wird bestimmt</translation>
+        </message>
+        <message>
+            <source>done</source>
+            <translation>fertig</translation>
+        </message>
+        <message>
+            <source>elevation data</source>
+            <translation>Höhendaten</translation>
+        </message>
+        <message>
+            <source>energy plant templates</source>
+            <translation>Energiezentralenvorlagen</translation>
+        </message>
+        <message>
+            <source>energy plants not connected to the network (energy plant ids)</source>
+            <translation>Energiezentralen, die nicht mit dem Netz verbunden sind (Energiezentralen-IDs)</translation>
+        </message>
+        <message>
+            <source>energy plants on a line which are not connected (energy plant ids)</source>
+            <translation>Energiezentralen auf einer Trasse, die nicht angeschlossen sind (Energiezentralen-IDs)</translation>
+        </message>
+        <message>
+            <source>energy_plant</source>
+            <translation>Energiezentrale</translation>
+        </message>
+        <message>
+            <source>energy_plants</source>
+            <translation>Energiezentralen</translation>
+        </message>
+        <message>
+            <source>failed</source>
+            <translation>fehlgeschlagen</translation>
+        </message>
+        <message>
+            <source>failed (see message log Districts)</source>
+            <translation>fehlgeschlagen (siehe Protokoll Districts)</translation>
+        </message>
+        <message>
+            <source>failed at {} (see message log Districts)</source>
+            <translation>fehlgeschlagen bei {} (siehe Protokoll Districts)</translation>
+        </message>
+        <message>
+            <source>finished</source>
+            <translation>abgeschlossen</translation>
+        </message>
+        <message>
+            <source>interpolating</source>
+            <translation>Interpolation von</translation>
+        </message>
+        <message>
+            <source>junction</source>
+            <translation>Verbindungsstück</translation>
+        </message>
+        <message>
+            <source>junctions</source>
+            <translation>Verbindungsstücke</translation>
+        </message>
+        <message>
+            <source>junctions with a wrong number of connections (junction ids)</source>
+            <translation>Verbindungsstücke mit falscher Anzahl Anschlüsse (Verbindungsstück-IDs)</translation>
+        </message>
+        <message>
+            <source>line ends without junction, customer or energy plant (line ids)</source>
+            <translation>Trassenenden ohne Verbindungsstück, Abnehmer oder Energiezentrale (Trassen-IDs)</translation>
+        </message>
+        <message>
+            <source>lines</source>
+            <translation>Trassen</translation>
+        </message>
+        <message>
+            <source>querying and storing {} ({})</source>
+            <translation>{} werden abgefragt und gespeichert ({})</translation>
+        </message>
+        <message>
+            <source>querying {} ({})</source>
+            <translation>{} werden abgefragt ({})</translation>
+        </message>
+        <message>
+            <source>reading the settings</source>
+            <translation>Einstellungen werden gelesen</translation>
+        </message>
+        <message>
+            <source>removing old visualization tables</source>
+            <translation>Alte Visualisierungstabellen werden entfernt</translation>
+        </message>
+        <message>
+            <source>result macros</source>
+            <translation>Ergebnis-Makros</translation>
+        </message>
+        <message>
+            <source>saving outputs</source>
+            <translation>Ausgaben werden gespeichert</translation>
+        </message>
+        <message>
+            <source>sensor data</source>
+            <translation>Sensordaten</translation>
+        </message>
+        <message>
+            <source>sensor macros</source>
+            <translation>Sensor-Makros</translation>
+        </message>
+        <message>
+            <source>splitting the lines into segments</source>
+            <translation>Trassen werden in Segmente geteilt</translation>
+        </message>
+        <message>
+            <source>splitting the lines into segments of {} m</source>
+            <translation>Trassen werden in Segmente von {} m geteilt</translation>
+        </message>
+        <message>
+            <source>step {}/{}: {}</source>
+            <translation>Schritt {}/{}: {}</translation>
+        </message>
+        <message>
+            <source>streets</source>
+            <translation>Strassen</translation>
+        </message>
+        <message>
+            <source>styling the map layer</source>
+            <translation>Kartenlayer wird gestaltet</translation>
+        </message>
+        <message>
+            <source>submodel {} ({}/{}): {}</source>
+            <translation>Teilmodell {} ({}/{}): {}</translation>
+        </message>
+        <message>
+            <source>supervisory control</source>
+            <translation>Übergeordnete Regelung</translation>
+        </message>
+        <message>
+            <source>writing model files</source>
+            <translation>Modelldateien werden geschrieben</translation>
+        </message>
+        <message>
+            <source>writing network templates</source>
+            <translation>Netzvorlagen werden geschrieben</translation>
+        </message>
+        <message>
+            <source>{} network attribute(s) in lines are not set. Should the attribute(s) be set to 1?</source>
+            <translation>{} Netz-Attribut(e) der Trassen sind nicht gesetzt. Sollen sie auf 1 gesetzt werden?</translation>
+        </message>
+        <message>
+            <source>{} network: {}</source>
+            <translation>{}netz: {}</translation>
+        </message>
+        <message>
+            <source>{} {} on the line segments (color)</source>
+            <translation>{} {} auf den Trassensegmenten (Farbe)</translation>
+        </message>
+        <message>
+            <source>{}: {} and {}: {} intersect.</source>
+            <translation>{}: {} und {}: {} überschneiden sich.</translation>
         </message>
     </context>
 </TS>

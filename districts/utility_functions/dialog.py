@@ -9,7 +9,7 @@ from qgis.PyQt.QtSvg import QSvgRenderer
 import os
 from .compat import ItemIsEnabled, ItemIsSelectable, MessageCritical, MessageInfo
 from .db import getDropDownItems, getMaxId
-from .translations import tr
+from .translations import tr, tr_msg
 from .utility import get_districts_plugin_dir
 
 import copy
@@ -299,7 +299,7 @@ def copyTableRow(cur,dlg,row_idx,dropdowns,openFn,openFnArg):
             dprint(sql)
             cur.execute(sql)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo) 
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo) 
     
 def addTableRowTrace(dlg,dropdowns,trace,deactivated,cur):
     """Insert table row"""
@@ -369,7 +369,7 @@ def deleteTableRowTrace (dlg,trace):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
             
     #delete row to dlg.traceTableValues in order to trace the changed values         
     if trace:
@@ -387,7 +387,7 @@ def deleteTableRow (dlg):
     if row_index!=-1:
         dlg.tableWidget.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)
             
 class TableDialog(QDialog):
     def __init__(self,title,headers,openBtn,importBtn,saveAsBtn,trace,addBtn=True,deleteBtn=True,type='',info=False):
@@ -647,4 +647,4 @@ def deleteSelectedTableRow (table):
     if row_index!=-1:
         table.removeRow(row_index)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_item_selected'), level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo)

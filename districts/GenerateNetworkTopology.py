@@ -18,7 +18,7 @@ from .utility_functions.topology import (
     updateJunctionHeights,
     updateSubmodels,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.zeta import updateJunctionZeta
 from .utility_functions.debug_log import dprint
 
@@ -50,19 +50,19 @@ class WorkerGenerateNetworkTopology(QRunnable):
         if self.connectCustomers_template_pipeBundle:
             self.connectCustomers_template_pipeBundle=self.connectCustomers_template_pipeBundle[0]
         else:
-            self.signals.error.emit('No customer template available or set!')
+            self.signals.error.emit(tr_msg('No customer template available or set!'))
         self.connectPlants=kwargs['connectPlants']
         self.connectPlants_template_pipeBundle=kwargs['connectPlants_template_pipeBundle'].split(':')
         if self.connectPlants_template_pipeBundle:
             self.connectPlants_template_pipeBundle=self.connectPlants_template_pipeBundle[0]
         else:
-            self.signals.error.emit('No energy plant template available or set!')
+            self.signals.error.emit(tr_msg('No energy plant template available or set!'))
         self.addCustomers=kwargs['addCustomers']
         self.addCustomers_template_customers=kwargs['addCustomers_template_customers'].split(':')
         if self.addCustomers_template_customers:
             self.addCustomers_template_customers=self.addCustomers_template_customers[0]
         else:
-            self.signals.error.emit('No customer template available or set!')
+            self.signals.error.emit(tr_msg('No customer template available or set!'))
         self.deleteUnconnectedNetworkEnds=kwargs['deleteUnconnectedNetworkEnds']
         self.keepTemplates=kwargs['keepTemplates']
         self.overrideTemplates=kwargs['overrideTemplates']
@@ -70,12 +70,12 @@ class WorkerGenerateNetworkTopology(QRunnable):
         if self.overrideTemplates_customers:
             self.overrideTemplates_customers=self.overrideTemplates_customers[0]
         else:
-            self.signals.error.emit('No customer template available or set!')
+            self.signals.error.emit(tr_msg('No customer template available or set!'))
         self.overrideTemplates_pipeBundle=kwargs['overrideTemplates_pipeBundle'].split(':')
         if self.overrideTemplates_pipeBundle:
             self.overrideTemplates_pipeBundle=self.overrideTemplates_pipeBundle[0]
         else:
-            self.signals.error.emit('No pipe bundle available or set!')
+            self.signals.error.emit(tr_msg('No pipe bundle available or set!'))
         self.tolerance=kwargs['tolerance']
         #calculate the zeta values of the junction connections from textbook values
         self.calcJunctionZeta=kwargs.get('calcJunctionZeta',False)
@@ -83,7 +83,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
         self.redraw_submodels_polygons=kwargs['redraw_submodels_polygons']
         self.networks=kwargs['networks']
         if not self.networks:
-            self.signals.error.emit("Please select one or more network id`s!")
+            self.signals.error.emit(tr_msg("Please select one or more network id`s!"))
         
         auth_cfg = QgsAuthMethodConfig()
         QgsApplication.authManager().loadAuthenticationConfig(self.config["auth_id"], auth_cfg, True)
@@ -99,7 +99,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
     def status(self,text):
         """show text as the current step in the dialog (with the network if several are generated)"""
         if len(self.networks or [])>1 and self.network:
-            text='Network {}: {}'.format(self.network,text)
+            text=tr_msg('Network {}: {}').format(self.network,text)
         self.signals.status.emit(text)
 
     def setProgress(self,value):
@@ -122,19 +122,19 @@ class WorkerGenerateNetworkTopology(QRunnable):
         self.setProgress(1)
 
         if not (self.networks and self.conn):
-            self.status('No network to generate')
+            self.status(tr_msg('No network to generate'))
             self.signals.finished.emit('error')
             return
         try:
             srid=loadProjectConfig(self.config,signals=self.signals)['srid']
 
-            self.status('Preparing the temporary tables')
+            self.status(tr_msg('Preparing the temporary tables'))
             setSubnetwork(self.cur,self.config,self.redraw_submodels_polygons,srid)
             self.prepareDB_pipeLaying_modeTables(self.config['versionName'],srid)
             self.setProgress(3)
 
             #split lines per plant, junction and customer
-            self.status('Splitting the lines at energy plants and customers')
+            self.status(tr_msg('Splitting the lines at energy plants and customers'))
             self.splitLinesPerPlantsJunctionsCustomers(self.config['versionName'],'energy_plants')
             self.splitLinesPerPlantsJunctionsCustomers(self.config['versionName'],'customers')
             self.setProgress(5)
@@ -148,25 +148,25 @@ class WorkerGenerateNetworkTopology(QRunnable):
                     return
                 self.networkProgress(0.45)
                 if self.deleteUnconnectedNetworkEnds:
-                    self.status('Deleting unconnected network ends')
+                    self.status(tr_msg('Deleting unconnected network ends'))
                     self.deleteNetworkEnds(network)
                 self.networkProgress(0.5)
                 if self.addCustomers:
-                    self.status('Adding customers at the network ends')
+                    self.status(tr_msg('Adding customers at the network ends'))
                     self.insertCustomerToEnds(self.config['versionName'],network)
                 self.networkProgress(0.55)
                 if self.deleteUnconnectedCustomers:
-                    self.status('Deleting unconnected customers')
+                    self.status(tr_msg('Deleting unconnected customers'))
                     self.delUnconnCust()
                 self.networkProgress(0.57)
                 if self.deleteUnconnectedLines:
-                    self.status('Deleting unconnected lines')
+                    self.status(tr_msg('Deleting unconnected lines'))
                     self.delUnconnLines()
                 self.networkProgress(0.6)
-                self.status('Checking the line directions')
+                self.status(tr_msg('Checking the line directions'))
                 checkLineDirectionTopology(self.cur,self.config['versionName'],self.tolerance,self.signals,network)
                 self.networkProgress(0.7)
-                self.status('Inserting lines and junctions')
+                self.status(tr_msg('Inserting lines and junctions'))
                 self.insertLinesFromTopology(self.config['versionName'],network)
                 self.insertJunctions(self.config['versionName'],network)
                 self.networkProgress(0.75)
@@ -180,7 +180,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
             dprint('finished pipe laying')
             try:
                 if self.showTempTables:
-                    self.status('Loading the result layers')
+                    self.status(tr_msg('Loading the result layers'))
                     runInMainThread(showTempTables,uri,self.config,self.plugin_dir,self.signals,self.cur)
             except Exception:
                 dprint('Show temp layers failed')
@@ -190,7 +190,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
                     MessageCritical
                 )
             self.setProgress(100)
-            self.status('Finished: please save or reject the results')
+            self.status(tr_msg('Finished: please save or reject the results'))
             self.signals.finished.emit('finished')
         except Exception:
             QgsMessageLog.logMessage(
@@ -198,8 +198,8 @@ class WorkerGenerateNetworkTopology(QRunnable):
                 "Districts",
                 MessageCritical
             )
-            self.signals.error.emit("Generating the network topology has failed (see message log 'Districts')!")
-            self.status('Failed (see message log \'Districts\')')
+            self.signals.error.emit(tr_msg("Generating the network topology has failed (see message log 'Districts')!"))
+            self.status(tr_msg('Failed (see message log \'Districts\')'))
             self.signals.finished.emit('error')
         finally:
             self.cur.close()
@@ -275,7 +275,7 @@ INSERT INTO temp.customers(geom,template,network)
         self.cur.execute(sql)
         
     def finishNetworkTopology(self,version,network,srid):
-        self.status('Connecting lines, junctions, customers and energy plants')
+        self.status(tr_msg('Connecting lines, junctions, customers and energy plants'))
         self.insertJunctionConnections(network)
         self.networkProgress(0.78)
         self.insertCustomerConnections(network)
@@ -283,14 +283,14 @@ INSERT INTO temp.customers(geom,template,network)
         self.insertPlantConnections(version,network)
         self.updateJunctionConnections(network)
         self.networkProgress(0.82)
-        self.status('Merging lines at junctions with two connections')
+        self.status(tr_msg('Merging lines at junctions with two connections'))
         self.mergeLines(version,network)
         self.networkProgress(0.95)
-        self.status('Updating heights and submodels')
+        self.status(tr_msg('Updating heights and submodels'))
         self.updateHeight(version,srid)
         updateJunctionHeights(self.cur,self.tolerance,network)
         if self.calcJunctionZeta:
-            self.status('Calculating the zeta values of the junctions')
+            self.status(tr_msg('Calculating the zeta values of the junctions'))
             updateJunctionZeta(self.cur,'temp',network,self.junctionZetaValues)
         updateSubmodels(self.cur,self.config)
         self.networkProgress(1)
@@ -545,7 +545,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(ep.geom)),ST_Force2D(ep.geo
         
         if checkLoopInConnections(self.cur,self.config['versionName'],'temp.streets_help','energy_plant'):
             # the ids of the message come from the temp tables (as before)
-            self.signals.error.emit(''.join(['Energy plant :{} has a loop in connection! '.format(i['id']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant')]))
+            self.signals.error.emit(''.join([tr_msg('Energy plant :{} has a loop in connection! ').format(i['id']) for i in checkLoopInConnections(self.cur,'temp','temp.streets_help','energy_plant')]))
             return False
         return ep_lines
         
@@ -570,7 +570,7 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
 
         loops=checkLoopInConnections(self.cur,'temp','temp.streets_help','customer')
         if loops:
-            self.signals.error.emit(''.join(['Customer :{} has a loop in connection! '.format(i['id']) for i in loops]))
+            self.signals.error.emit(''.join([tr_msg('Customer :{} has a loop in connection! ').format(i['id']) for i in loops]))
             return False
         return customer_lines
 
@@ -614,23 +614,23 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
         self.cur.execute(sql) 
 
         if self.connectPlants:
-            self.status('Connecting the energy plants to the network')
+            self.status(tr_msg('Connecting the energy plants to the network'))
             ep_lines=self.connectPlantsNetwork(self.config['versionName'],network)
         self.networkProgress(0.05)
         if self.connectCustomers:
-            self.status('Connecting the customers to the network')
+            self.status(tr_msg('Connecting the customers to the network'))
             customer_lines=self.connectCustomersNetwork(self.config['versionName'],network)
         self.networkProgress(0.15)
 
         # split the lines and connections at their intersections (formerly a PostGIS topology)
-        self.status('Splitting the lines at their intersections')
+        self.status(tr_msg('Splitting the lines at their intersections'))
         sql="ALTER TABLE temp.streets_help DROP COLUMN IF EXISTS topo_geom;"
         self.cur.execute(sql)
         nodeLines(self.cur,'temp.streets_help',self.tolerance)
         sql="UPDATE temp.streets_help SET type=0;"
         self.cur.execute(sql)
         self.networkProgress(0.25)
-        self.status('Building the network graph')
+        self.status(tr_msg('Building the network graph'))
 
         if self.connectCustomers and customer_lines: 
             sql="""UPDATE temp.streets_help a 

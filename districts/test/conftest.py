@@ -18,7 +18,7 @@ import traceback
 import pytest
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsTemporalNavigationObject
 from qgis.PyQt.QtCore import QEventLoop, QSettings, QThreadPool, QTimer
-from qgis.PyQt.QtWidgets import QDialog, QMessageBox
+from qgis.PyQt.QtWidgets import QAbstractButton, QDialog, QMessageBox
 
 from districts.utility_functions.compat import MessageCritical
 
@@ -39,9 +39,39 @@ TEST_AUTH_ID = "dstest1"
 TEST_MASTER_PASSWORD = "districts_test"
 
 
+def _slow_default():
+    try:
+        return float(os.environ.get("DISTRICTS_TEST_SLOW") or 0)
+    except ValueError:
+        return 0.0
+
+
 def pytest_addoption(parser):
     parser.addoption("--keep-projects", action="store_true",
                      help="do not delete the autotest_* projects after the workflow tests")
+    parser.addoption("--slow", type=float, default=_slow_default(), metavar="SECONDS",
+                     help="slow mode to watch the tests: pause SECONDS before each button click, "
+                          "after a dialog opens and after each test step (default: DISTRICTS_TEST_SLOW or 0). "
+                          "Needs the GUI: -o qgis_gui_enabled=true")
+
+
+# ---------------- slow mode ----------------
+SLOW = 0.0  # seconds, set in pytest_configure
+
+
+def pytest_configure(config):
+    global SLOW
+    SLOW = max(0.0, config.getoption("--slow") or 0.0)
+    if SLOW and os.environ.get("QT_QPA_PLATFORM") == "offscreen":
+        print("\n--slow {}: the GUI is off (qgis_gui_enabled = false), nothing to watch; "
+              "add -o qgis_gui_enabled=true".format(SLOW))
+        SLOW = 0.0
+
+
+def slow_pause(factor=1.0):
+    """Slow mode: process events for SLOW*factor seconds (no-op without --slow)."""
+    if SLOW > 0:
+        wait(int(SLOW * factor * 1000))
 
 
 # ---------------- incremental steps ----------------
@@ -166,7 +196,32 @@ def iface(request):
     canvas = qgis_iface.mapCanvas()
     if canvas.temporalController() is None:
         canvas.setTemporalController(QgsTemporalNavigationObject(canvas))
+    if SLOW > 0:
+        _show_map_window(request.getfixturevalue("qgis_parent"), canvas)
     return qgis_iface
+
+
+_map_bridge = None
+
+
+def _show_map_window(parent, canvas):
+    """Slow mode: show the map canvas of pytest-qgis (hidden without the qgis_show_map marker)
+    with the layers of the layer tree like in QGIS, zoomed to the layers of a newly loaded version."""
+    global _map_bridge
+    from qgis.core import QgsProject
+    from qgis.gui import QgsLayerTreeMapCanvasBridge
+
+    _map_bridge = QgsLayerTreeMapCanvasBridge(QgsProject.instance().layerTreeRoot(), canvas)
+
+    def zoom_to_new_layers(layers):
+        if layers and len(canvas.layers()) <= len(layers) + 1:
+            canvas.zoomToFullExtent()
+            canvas.refresh()
+
+    QgsProject.instance().legendLayersAdded.connect(zoom_to_new_layers)
+    parent.setWindowTitle("Districts tests: map (slow mode)")
+    parent.resize(900, 700)
+    parent.show()
 
 
 @pytest.fixture(scope="session")
@@ -267,6 +322,35 @@ def no_modal_dialogs(monkeypatch, errors):
     monkeypatch.setattr(QMessageBox, "exec", fake_exec)
     for name in ["critical", "warning", "question", "information"]:
         monkeypatch.setattr(QMessageBox, name, fake_static)
+
+
+@pytest.fixture(autouse=True)
+def slow_mode(monkeypatch):
+    """--slow SECONDS: pause before each button click (the filled dialog stays visible),
+    after a dialog opens and after each test step (result visible)."""
+    if SLOW <= 0:
+        yield
+        return
+    original_click = QAbstractButton.click
+    original_show = QDialog.show
+
+    def click(button):
+        if button.isVisible():
+            button.window().raise_()
+            button.setFocus()
+            slow_pause()
+        original_click(button)
+
+    def show(dlg):
+        original_show(dlg)
+        dlg.raise_()
+        dlg.activateWindow()
+        slow_pause(0.5)
+
+    monkeypatch.setattr(QAbstractButton, "click", click)
+    monkeypatch.setattr(QDialog, "show", show)
+    yield
+    slow_pause()
 
 
 @pytest.fixture(scope="session")

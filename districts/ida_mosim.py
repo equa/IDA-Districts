@@ -27,7 +27,7 @@ from .utility_functions.topology import (
     checkNetworkTopology, getConnsValuesByFeature, getConnsValuesIdentTypeDict, getPMT2muxName, getUnconnectedFeatures,
     networkTopologyMessage, unconnectedFeaturesToExclude,
 )
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import copy_tree_filter_extensions_and_folders, is_number
 from .utility_functions.workers import (
     WorkerOpenModelCmd, WorkerOpenRunScriptAPI, WorkerSimulateAPI, show_error_message, startWorkers,
@@ -141,7 +141,7 @@ def setBoreholeFieldSettings(dlg,main):
         main.cur.execute(sql)
         closeDialog(dlg)
     except Exception as e:
-        iface.messageBar().pushMessage("Error", str(e), level=MessageCritical)
+        iface.messageBar().pushMessage(tr_msg("Error"), str(e), level=MessageCritical)
 
 def showBoreholeFieldSettingsData(dlg,main):
     sql="""SELECT * FROM "{}".borehole_fields;""".format(main.config['versionName']) # nosec B608
@@ -249,7 +249,7 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
         
 def openModel(dlg,plugin_dir,config,mode='network'):
     if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select one or more submodels!"), level=MessageInfo)
         return False
     requestedOutputs=loadRequestedOutputs(plugin_dir,config)
     for i in range(dlg.combo_submodels.count()):
@@ -287,7 +287,7 @@ def setNetworkSimData(dlg,plugin_dir,config):
     networkSimData['calc_time_from']=dlg.dateedit_calcFrom.text()
     networkSimData['calc_time_to']=dlg.dateedit_calcTo.text()
     if not is_number(dlg.max_timestep.text()):
-        iface.messageBar().pushMessage("Warning", "Please enter a number as maximal timestep!", level=MessageWarning)
+        iface.messageBar().pushMessage(tr_msg("Warning"), tr_msg("Please enter a number as maximal timestep!"), level=MessageWarning)
         return False
     else:
         networkSimData['max_timestep']=dlg.max_timestep.text()
@@ -300,12 +300,12 @@ def runModel(dlg,plugin_dir,config):
     if networkSimData:
         dlg.n_sims=len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])
         if dlg.n_sims==0:
-            iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select one or more submodels!"), level=MessageInfo)
             return False
         requestedOutputs=loadRequestedOutputs(plugin_dir,config)
         invokedOutputs=loadInvokedOutputs(config)
         if checkSimOutputs(invokedOutputs,requestedOutputs):
-            dlg.updateStatusBar('Running')
+            dlg.updateStatusBar(tr_msg('Running'))
             worker_runNetwork={}
             dlg.finished_sims=0
             dlg.process_running=True
@@ -337,7 +337,7 @@ def runModel(dlg,plugin_dir,config):
                     worker_runNetwork[i].signals.finished.connect(dlg.update_finished)
             startWorkers(list(worker_runNetwork.values()),dlg.btn_runModel)
         else:
-            iface.messageBar().pushMessage("Info", "The requested outputs differ from the invoked outputs. Please reinvoke the templates.", level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The requested outputs differ from the invoked outputs. Please reinvoke the templates."), level=MessageInfo)
 
 def buildModel(dlg,main):
     networks=[]
@@ -360,7 +360,7 @@ def buildModel(dlg,main):
         main.worker_invokeNetwork.signals.finished.connect(dlg.update_finished)
         startWorkers([main.worker_invokeNetwork],dlg.btn_buildNetworkModel)
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels and one or more networks!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select one or more submodels and one or more networks!"), level=MessageInfo)
 
 def checkTopologyBeforeBuild(main,networks):
     """Check the network topology of the networks before building the model. If it is not valid
@@ -383,29 +383,29 @@ def checkTopologyBeforeBuild(main,networks):
         return {}
 
     networks_text=', '.join(networks)
-    text_unconnected="""Warning: customers or energy plants of network(s) {} are not connected to the network:
+    text_unconnected=tr_msg("""Warning: customers or energy plants of network(s) {} are not connected to the network:
 
 {}
 
-They are not part of the network model, the simulation will probably fail. Connect or delete them with 'Generate network topology' (options '{}', '{}' or '{}') or in the layers, or neglect them in the model (they are also removed from the sensor signals).""".format(
+They are not part of the network model, the simulation will probably fail. Connect or delete them with 'Generate network topology' (options '{}', '{}' or '{}') or in the layers, or neglect them in the model (they are also removed from the sensor signals).""").format(
         networks_text,networkTopologyMessage(unconnected),tr('@default','connect_unconnected_customers_to_network'),
         tr('@default','connect_unconnected_plants_to_network'),tr('@default','delete_unconnected_customers')) if unconnected else ''
     dlg_question=QMessageBox()
     dlg_question.setIcon(QMessageBox.Icon.Warning)
     if problems:
-        dlg_question.setWindowTitle('Network topology not valid')
-        dlg_question.setText("""The network topology of network(s) {} does not match the lines, customers and energy plants (e.g. they were edited after generating the topology):
+        dlg_question.setWindowTitle(tr_msg('Network topology not valid'))
+        dlg_question.setText(tr_msg("""The network topology of network(s) {} does not match the lines, customers and energy plants (e.g. they were edited after generating the topology):
 
 {}
 {}
-Should the topology be updated with 'Generate network topology' or the build be canceled?""".format(networks_text,networkTopologyMessage(problems),'\n'+text_unconnected+'\n' if text_unconnected else ''))
+Should the topology be updated with 'Generate network topology' or the build be canceled?""").format(networks_text,networkTopologyMessage(problems),'\n'+text_unconnected+'\n' if text_unconnected else ''))
     else:
-        dlg_question.setWindowTitle('Unconnected customers or energy plants')
-        dlg_question.setText(text_unconnected+'\n\nShould the topology be updated, the unconnected customers/energy plants be neglected in the model, the model be built anyway or the build be canceled?')
-    btn_update=dlg_question.addButton('Update topology',QMessageBox.ButtonRole.AcceptRole)
+        dlg_question.setWindowTitle(tr_msg('Unconnected customers or energy plants'))
+        dlg_question.setText(text_unconnected+'\n\n'+tr_msg('Should the topology be updated, the unconnected customers/energy plants be neglected in the model, the model be built anyway or the build be canceled?'))
+    btn_update=dlg_question.addButton(tr_msg('Update topology'),QMessageBox.ButtonRole.AcceptRole)
     #a valid topology with unconnected features can be built without them or anyway
-    btn_neglect=dlg_question.addButton('Neglect in model',QMessageBox.ButtonRole.AcceptRole) if not problems else None
-    btn_build=dlg_question.addButton('Build anyway',QMessageBox.ButtonRole.DestructiveRole) if not problems else None
+    btn_neglect=dlg_question.addButton(tr_msg('Neglect in model'),QMessageBox.ButtonRole.AcceptRole) if not problems else None
+    btn_build=dlg_question.addButton(tr_msg('Build anyway'),QMessageBox.ButtonRole.DestructiveRole) if not problems else None
     dlg_question.addButton(QMessageBox.StandardButton.Cancel)
     dlg_question.setDefaultButton(btn_update)
     dlg_question.exec()
@@ -428,7 +428,7 @@ Should the topology be updated with 'Generate network topology' or the build be 
                     combo.setItemChecked(i,True)
             dlg_topology.raise_()
             dlg_topology.activateWindow()
-        iface.messageBar().pushMessage("Info", "Build the network model again after saving the updated network topology.", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Build the network model again after saving the updated network topology."), level=MessageInfo)
     return None
 
 def setRequestedOutputs(config,plugin_dir,dlg,requestedOutputs):
@@ -671,11 +671,11 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
             else:
-                iface.messageBar().pushMessage("Info", "No project version is loaded!", level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("No project version is loaded!"), level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)  
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
     else:
-        iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select one or more submodels!"), level=MessageInfo)
 
 def finishedBuildBuildingModel(args):
     dprint('------finished build building model----------')

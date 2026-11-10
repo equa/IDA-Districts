@@ -7,7 +7,7 @@ from .utility_functions.compat import MessageCritical, MessageInfo, MessageWarni
 from .utility_functions.db import getMaxIdSchema
 from .utility_functions.dialog import closeDialog
 from .utility_functions.topology import getLayerAttributesName
-from .utility_functions.translations import tr
+from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import isFloat, isInt, safe_eval, strToDict
 import math
 import copy
@@ -19,41 +19,41 @@ from .utility_functions.debug_log import dprint, debug_enabled
 def checkInputBundleEditorInput(mappedAttributesValues):
     #check input data pipe
     if not mappedAttributesValues['Pipe inner diameter, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a pipe diameter!", level=MessageWarning)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a pipe diameter!"), level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Pipe inner diameter, m']):
-            iface.messageBar().pushMessage("Error", "Pipe diameter is not a number!", level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Pipe diameter is not a number!"), level=MessageWarning)
             return False
     if not mappedAttributesValues['Roughness, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a pipe roughness factor!", level=MessageWarning)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a pipe roughness factor!"), level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Roughness, m']):
-            iface.messageBar().pushMessage("Error", "Pipe roughness is not a number!", level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Pipe roughness is not a number!"), level=MessageWarning)
             return False
     
     #check input pipe bundle
     if not mappedAttributesValues['Number of parallel pipes']:
-        iface.messageBar().pushMessage("Error", "Please enter a number of parallel pipes!", level=MessageWarning)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a number of parallel pipes!"), level=MessageWarning)
         return False
     else:
         if not isInt(mappedAttributesValues['Number of parallel pipes']):
-            iface.messageBar().pushMessage("Error", "Number of parallel pipes is not an integer number!", level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Number of parallel pipes is not an integer number!"), level=MessageWarning)
             return False
     if not mappedAttributesValues['Horizontal distance, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a distance between pipes!", level=MessageWarning)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a distance between pipes!"), level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Horizontal distance, m']):
-            iface.messageBar().pushMessage("Error", "Distance between pipes is not a number!", level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Distance between pipes is not a number!"), level=MessageWarning)
             return False
     if not mappedAttributesValues['Depth, m']:
-        iface.messageBar().pushMessage("Error", "Please enter a depth below ground!", level=MessageWarning)
+        iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a depth below ground!"), level=MessageWarning)
         return False
     else:
         if not isFloat(mappedAttributesValues['Depth, m']):
-            iface.messageBar().pushMessage("Error", "Depth below ground is not a number!", level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Depth below ground is not a number!"), level=MessageWarning)
             return False   
     
     return True
@@ -175,7 +175,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
                 layer.updateFields()                   
             bundle_idx=layer.fields().indexFromName(field_name)
         else:
-            iface.messageBar().pushMessage("Error", "Please enter a field name!", level=MessageWarning)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please enter a field name!"), level=MessageWarning)
             return False
     
     #loop over all features in layer
@@ -243,7 +243,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
             #add to pipe layers
             for seq in constr:
                 if not constr[seq][1]:
-                    iface.messageBar().pushMessage("Warning", "Please enter a construction layer thickness!", level=MessageWarning)
+                    iface.messageBar().pushMessage(tr_msg("Warning"), tr_msg("Please enter a construction layer thickness!"), level=MessageWarning)
                     return False
                 layer_max_id+=1
                 sql+="""INSERT INTO pipe_layers (id,pipe_construction_id,materialid,thickness,sequence) VALUES ({},{},{},{},{});\n""".format(# nosec B608
@@ -299,7 +299,7 @@ TRUNCATE pipe_layers CASCADE;\n"""
     dprint(sql)
     main.cur.execute(sql)    
     layer.commitChanges()
-    main.dlg.statusMessage.setText('Pipe bundle types are added to the DB!')
+    main.dlg.statusMessage.setText(tr_msg('Pipe bundle types are added to the DB!'))
          
          
 def getDHCLayerNameByType(type,dlg):
@@ -362,7 +362,7 @@ def importLayerToDb(type,dlg,main):
                     layer_srid=layer.crs().authid().split(':')[1]            
                     dprint(layer_srid)
                 except Exception:
-                    iface.messageBar().pushMessage("Info", "Please set a valid layer srid!", level=MessageWarning)
+                    iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please set a valid layer srid!"), level=MessageWarning)
                     return False
 
                 generateId=False
@@ -382,8 +382,8 @@ def importLayerToDb(type,dlg,main):
                 #check if id is mapped
                 if 'id' not in attributes:
                     dlg_question = QMessageBox(dlg)
-                    dlg_question.setWindowTitle('Identifier is missing!')
-                    dlg_question.setText("""The id is not mapped in "{}". Do you want to use a serial id instead?""".format(layer_name))
+                    dlg_question.setWindowTitle(tr_msg('Identifier is missing!'))
+                    dlg_question.setText(tr_msg('The id is not mapped in "{}". Do you want to use a serial id instead?').format(layer_name))
                     dlg_question.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
                     dlg_question.setIcon(QMessageBox.Icon.Question)
                     button = dlg_question.exec()
@@ -434,7 +434,7 @@ def importLayerToDb(type,dlg,main):
                         sql+="""INSERT INTO "{}".{} ({}) VALUES ({});\n""".format(main.config['versionName'],layer_name,','.join(attributes+['geom','id']),','.join(values)) # nosec B608
                     else:
                         if values[attributes.index('id')] in ids:
-                            iface.messageBar().pushMessage("Error", "Id: {} occurs twice in layer: {}!".format(str(values[attributes.index('id')]),layer), level=MessageWarning)
+                            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Id: {} occurs twice in layer: {}!").format(str(values[attributes.index('id')]),layer), level=MessageWarning)
                             return False
                         else:
                             ids.append(values[attributes.index('id')])
@@ -443,11 +443,11 @@ def importLayerToDb(type,dlg,main):
                 dprint(sql)
                 main.cur.execute(sql)
                 main.dlg.update_progress(100)
-                main.dlg.statusMessage.setText(f'Import {type} layer compleded!')
+                main.dlg.statusMessage.setText(tr_msg('Import {} layer completed!').format(type))
                 closeDialog(dlg)
             else:
-                iface.messageBar().pushMessage("Info", tr('@default','no_layer_selected'), level=MessageInfo)
+                iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_layer_selected'), level=MessageInfo)
         else:
-            iface.messageBar().pushMessage("Info", tr('@default','no_version_loaded'), level=MessageInfo)
+            iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
     else:
-        iface.messageBar().pushMessage("Info", tr('@default','no_db_connection'), level=MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
