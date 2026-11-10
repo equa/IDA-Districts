@@ -1,4 +1,4 @@
-﻿"""Debug log of the Districts Modeler plugin.
+"""Debug log of the Districts Modeler plugin.
 
 ``dprint(...)`` is a drop-in replacement for the former debug prints (``#print(...)``
 that the old debug mode uncommented in the source files). It takes the same

@@ -178,7 +178,7 @@ def districts_settings():
         DISTRICTS_TEST_DB_HOST (localhost), DISTRICTS_TEST_DB_PORT (5432)
         DISTRICTS_TEST_PATH_PROJECTS (temporary folder), DISTRICTS_TEST_PATH_DISTRICTS,
         DISTRICTS_TEST_PATH_POSTGRESQL
-        DISTRICTS_TEST_DEBUG=1: plugin debug log (DISTRICTS_DEBUG_LOG_DIR, default <projects>/logs)
+        DISTRICTS_TEST_DEBUG=1: plugin debug log (DISTRICTS_DEBUG_LOG_DIR, default <projects>_logs)
     """
     if IN_QGIS:
         return
@@ -208,8 +208,9 @@ def districts_settings():
         import tempfile
         path_projects = os.path.join(tempfile.gettempdir(), "districts_autotest")
     os.makedirs(path_projects, exist_ok=True)
-    # debug log of the test run next to the test projects, not in the QGIS profile
-    os.environ.setdefault("DISTRICTS_DEBUG_LOG_DIR", os.path.join(path_projects, "logs"))
+    # debug log of the test run beside the test projects folder (not in it: every folder there is
+    # taken as a project) and not in the QGIS profile
+    os.environ.setdefault("DISTRICTS_DEBUG_LOG_DIR", os.path.normpath(path_projects) + "_logs")
 
     settings.beginGroup("districts")
     for key, value in {

@@ -328,7 +328,6 @@ def loadLayers(dlg,type):
     dlg.selectLayer.addItems(layers)
     
 def addExpressionToMappedAttributes(dlg,dropdown):
-    dprint('---------------------')
     
     currentRow=dlg.tableWidget.currentRow()
     if currentRow!=-1:

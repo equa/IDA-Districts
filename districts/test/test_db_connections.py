@@ -95,13 +95,7 @@ def run_customer_data_sheet(plugin, monkeypatch):
     try:
         # QGIS runs actions in its python namespace, which already contains qgis and iface
         namespace = {'__name__': '__main__', 'qgis': qgis, 'iface': qgis.utils.iface}
-        try:
-            exec(compile(code, 'customer_data_sheet_action', 'exec'), namespace)  # nosec B102
-        except Exception:
-            # diagnostics: once (1 of 4 full runs) the customers layer was missing in the action (IndexError)
-            print('customer data sheet action failed; layers:', [l.name() for l in QgsProject.instance().mapLayers().values()],
-                  'tr customers', repr(namespace.get('tr', lambda *a: None)('@default', 'customers')), flush=True)
-            raise
+        exec(compile(code, 'customer_data_sheet_action', 'exec'), namespace)  # nosec B102
     finally:
         QgsProject.instance().removeMapLayer(osm.id())
         layout = QgsProject.instance().layoutManager().layoutByName('CustomerDataSheet')

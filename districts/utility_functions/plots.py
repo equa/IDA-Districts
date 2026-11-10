@@ -162,7 +162,6 @@ ORDER BY time;
         
         # ax2-Legende (Energy + ggf. QGIS Zeit-Linie) oben rechts
         ax2.legend(loc='upper right')
-        dprint('finished')
 
         if save_plot and not show_plot:
             # Render larger than the 170 mm report width; scaling it down there gives ~7pt fonts

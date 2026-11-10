@@ -29,4 +29,3 @@ os.environ.pop("DISTRICTS_TEST_IN_QGIS", None)
 # pytest keeps the imported test modules; remove them so that changed tests are reloaded next time
 for name in [m for m in sys.modules if m.startswith("districts.test")]:
     del sys.modules[name]
-print("--finished testing: {}--".format("OK" if exit_code == 0 else "FAILED ({})".format(int(exit_code))))

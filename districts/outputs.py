@@ -633,7 +633,6 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
             sensor_data[max_sensor_id]={'source' : {'type' : 1,'templates' : {template : True},'conn_types' : {i : True for i in connTypes},'conns' : {},'measure' : 4,'function' : 4,'test_value' : 1,'description' : ''}, 
                     'target': {'type' : 4,'templates' : {},'description' : ''}}
             sensor_info.append({'id': max_sensor_id, 'type': 1, 'template': template,'template_name':getTemplateNameByTemplateId(cur,template,'customer')})
-        dprint('--------')
         dprint(sensor_info)
         added_sensor_info['heatbalance_system']=sensor_info
     #Mass balance
@@ -655,7 +654,6 @@ def addRequestedOutputsSensors(cur,config,requestedOutputs):
             sensor_data[max_sensor_id]={'source' : {'type' : 1,'templates' : {template : True},'conn_types' : {i : True for i in connTypes},'conns' : {i : True for i in conns_sup},'measure' : 3,'function' : 4,'test_value' : 1,'description' : ''}, 
                     'target': {'type' : 4,'templates' : {},'description' : ''}}
             sensor_info.append({'id': max_sensor_id, 'type': 1, 'template': template,'template_name':getTemplateNameByTemplateId(cur,template,'customer')})
-        dprint('--------')
         dprint(sensor_info)
         added_sensor_info['massbalance_system']=sensor_info
         

@@ -248,7 +248,6 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
     return True
         
 def openModel(dlg,plugin_dir,config,mode='network'):
-    dprint('-***-')
     if len([i for i in range(dlg.combo_submodels.count()) if dlg.combo_submodels.itemText(i) != tr('@default','check_all_items') and dlg.combo_submodels.itemChecked(i)])==0:
         iface.messageBar().pushMessage("Info", "Please select one or more submodels!", level=MessageInfo)
         return False
@@ -666,12 +665,9 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
 
                     
                     """self.util=Util_api(self.plugin_dir)
-                    #print(self.util.pid)
                     # IDA Districts connection test
                     connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-                    #print(connectionTest)
                     self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
-                    #print(self.building)
                     changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, ida_script.encode('utf-8'))"""          
 
             else:
@@ -728,7 +724,6 @@ def finishedBuildBuildingModel(args):
                 #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
                 dprint('//////************------//////*------')
                 for i in readDecoupledFeatureSensorSignals(submodel_,dir,config,cur,sensor_data):
-                    dprint('++++++++--++')
                     dprint(i)
                     if i not in feature_dec_irefs:
                         feature_dec_irefs.append(i)
@@ -771,7 +766,6 @@ def finishedBuildBuildingModel(args):
                 dprint(source_f_idm)
                 
                 components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(source_f_idm)))
-                #print(getConnsValuesByFeature(1,str(b_id),cur,config))
                 building_pmt2s=['"'+getPMT2muxName(cur,i['conn_bundle_type_id'],i['conn_id'])+'"' for i in getConnsValuesByFeature(1,str(b_id),cur,config) if i['type'] not in [1,2]]
                 dprint(building_pmt2s)
                 data_idm=[]

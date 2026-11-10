@@ -172,7 +172,6 @@ def getDHCLayerNames():
 def updateTableSrid(versions,cur,srid):
     """Updates the srid of geometry tables in each version"""
     sql="""SELECT UpdateGeometrySRID('%schema%', '%table%', 'geom', {});""".format(srid) # nosec B608
-    dprint('+--+')
     for version in versions:
         sql_version=sql.replace("%schema%",version)
         #version tables
@@ -187,10 +186,8 @@ def updateTableSrid(versions,cur,srid):
                     MessageCritical
                 )
             
-    dprint('++')
     sql_temp=sql.replace("%schema%","temp")        
     #temp tables 
-    dprint('++')
     dprint(sql_temp)
     for table in ['lines','lines_cooling','lines_heating','junctions','customers','streets_help']:
         if debug_enabled(): dprint(sql_temp.replace("%table%",table))
@@ -664,7 +661,6 @@ def loadProjectLayers(version,uri,config,plugin_dir,cur,username):
     dprint('load project layers')
     if version:
         for vlayerName in ['energy_plants','customers','lines','junctions']:  
-            dprint('------')
             dprint(vlayerName)
             categories=featureLayerGroups(vlayerName,cur,config)
             dprint(categories)

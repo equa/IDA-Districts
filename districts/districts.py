@@ -1252,7 +1252,6 @@ class Districts:
                     """
                     self.dlg_openModel=OpenModelDialog(self.dlg,mode)
                     self.dlg_openModel.combo_submodels.addItem(tr('@default','check_all_items'))
-                        #print(submodels)
                         self.dlg_openModel.combo_submodels.addItems(submodels)
                         for i in range(len(submodels)):
                             self.dlg_openModel.combo_submodels.setItemChecked(i+1,False)

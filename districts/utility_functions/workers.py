@@ -434,7 +434,6 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
                 dprint(filedata)
                 self.cur.execute(filedata)
                 
-                dprint('----------------')
                 dprint(self.versionNames)
                 if self.versionNames:
                     #version tables
@@ -879,7 +878,6 @@ class WorkerOpenAPI(QRunnable):
         dprint(connectionTest)
         try:
             result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            dprint('++finished++')
             self.signals.progress.emit(100)
         except Exception:
             self.signals.progress.emit(0)
@@ -966,7 +964,6 @@ class WorkerOpenRunScriptAPI(QRunnable):
         dprint(connectionTest)
         try:
             self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
-            dprint('+++++++++')
             dprint(self.building)
             self.signals.progress.emit(50)
             if isinstance(self.script, list): 

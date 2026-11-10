@@ -255,7 +255,6 @@ class InvokeNetworkModel:
                     #decoupling: make macro with import/export connections for features which are connected to the submodel lines but not in the submodel  
                     dprint('//////************------//////*------')
                     for i in readDecoupledFeatureSensorSignals(submodel,dir,self.config,self.cur,sensor_data):
-                        dprint('++++++++--++')
                         dprint(i)
                         if i not in feature_dec_irefs:
                             feature_dec_irefs.append(i)
@@ -276,7 +275,6 @@ class InvokeNetworkModel:
                     dec_templates=CopyDecoupledTemplateMacro(submodel,dir,self.config,self.cur,sensor_data)
 
                     resources.extend(dec_templates.resources)
-                    dprint('*****************************************************************')
                     dprint(dec_templates.resources)
                     
                     import_counter=dec_templates.import_counter
@@ -319,10 +317,8 @@ class InvokeNetworkModel:
                     sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.config,dir_network,import_counter)
                     sensorMacroIdcData(submodel,supervisory_submodel,sensor_dec_data,sensor_data,self.cur,self.config,dir_network,self.plugin_dir)
                     
-                    dprint('--')
                     idm_conn=sensorProjectIdmConns(submodel,supervisory_submodel,sensor_dec_data,idm_conn)
                     idm=sensorProjectIdmMacro(submodel,supervisory_submodel,sensor_dec_data,idm)
-                    dprint('-++-')
 
                     #----------------supervisory ctrl------------------------
                     if submodel==supervisory_submodel:
@@ -1240,7 +1236,6 @@ ORDER BY j.id;""".format(self.config['versionName'],self.config['versionName'],s
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
             iref+="""\n (:IREF :N "{}" :F 192)""".format(name_conn)
             if cid!=cid_old and i!=0:
-                dprint('#####++++++-------------------------')
                 dprint(cid_old)
                 dprint(feature_dec_irefs)
                 dprint(customer)

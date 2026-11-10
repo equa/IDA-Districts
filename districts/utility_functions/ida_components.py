@@ -466,7 +466,6 @@ def getDataExTemplate(conns_idc,dec_models,components_idm,network_side,sensor_de
                 model_name_connected=conn_idc[':FIRST-LINK'][0]
                 link_connected=conn_idc[':FIRST-LINK'][2]
             dprint(model_name)
-            dprint('***')
             dprint(link)
             dprint(model_name)
             dprint(model_name_connected)
@@ -539,7 +538,6 @@ def getCompImportPos(comp_name,var_name,data_ex):
             break
         var_counter+=1
     dprint(var_counter)
-    dprint('++')
     return var_counter
     
 def getCompPerName(pList,name):

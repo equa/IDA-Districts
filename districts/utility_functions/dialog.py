@@ -459,7 +459,6 @@ class TableDialog(QDialog):
         self.traceTableValues=[] 
     
     def changedDropdownItem(self, s):
-        dprint('+++++')
         combo = self.sender()  # Get the combo box that sent the signal
         index = self.tableWidget.indexAt(combo.pos())
         row = index.row()

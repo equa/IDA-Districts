@@ -32,7 +32,6 @@ def main(parameters, arguments):
         server=parameters.server,
         port=parameters.port,
         endpoint=ENDPOINT)
-    #print("Connecting to: %s" % hide_password(address))
 
     server = xmlrpc.client.ServerProxy(address, verbose=VERBOSE)
 
@@ -40,19 +39,9 @@ def main(parameters, arguments):
         with open(arguments[0], 'rb') as handle:
             plugin_id, version_id = server.plugin.upload(
                 xmlrpc.client.Binary(handle.read()))
-        #print("Plugin ID: %s" % plugin_id)
-        #print("Version ID: %s" % version_id)
     except xmlrpc.client.ProtocolError as err:
-        #print("A protocol error occurred")
-        #print("URL: %s" % hide_password(err.url, 0))
-        #print("HTTP/HTTPS headers: %s" % err.headers)
-        #print("Error code: %d" % err.errcode)
-        #print("Error message: %s" % err.errmsg)
         pass
     except xmlrpc.client.Fault as err:
-        #print("A fault occurred")
-        #print("Fault code: %d" % err.faultCode)
-        #print("Fault string: %s" % err.faultString)
         pass
 
 
@@ -89,7 +78,6 @@ if __name__ == "__main__":
         help="Specify server name", metavar="plugins.qgis.org")
     options, args = parser.parse_args()
     if len(args) != 1:
-        #print("Please specify zip file.\n")
         parser.print_help()
         sys.exit(1)
     if not options.server:
@@ -99,7 +87,6 @@ if __name__ == "__main__":
     if not options.username:
         # interactive mode
         username = getpass.getuser()
-        #print("Please enter user name [%s] :" % username, end=' ')
 
         res = input()
         if res != "":

@@ -36,7 +36,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         for j in i['irefs_source'] if submodel==j['submodel'] and not j['network_side'] and not supervisory_submodel==submodel]))     
                         
                         
-    dprint('***************************')
 
     #add Adder comp for function Average (3), Add (4), Same signal for all targets (5) if measure in (1,2,3,4) and source type in (1,2)        
     data.append("".join(["""((:EO :N "Sensor_{}{}" :T ADDER_CONT)
@@ -52,7 +51,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         ' '.join([str(round(1/max(1,len([j for j in i['irefs_source']])),5)) for z in range(max(1,len([j for j in i['irefs_source']]))) if i['function']==3]),
                         str(max(1,len([j for j in i['irefs_source']])))) 
                         for i in sensor_dec_data if i['function'] in (3,4,5) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)]))
-    dprint('**********----*****************')
 
     #Add Adder if source type in 1,2,3 and function Average, Add (3,4) and measure==Custom (5)        
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER_CONT)
@@ -74,7 +72,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
         for i in sensor_dec_data if i['source_type'] in (1,2) and i['measure']==5 and i['function'] in (3,4,5) and 
             ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim'] and not j['network_side']] or [True for j in i['irefs_target'] if submodel==j['submodel'] or submodel==j['cosim']])]))
 
-    dprint('-------------')
     #add Min/Max comp for function Min(1) or Max(2) if measure in (1,2,3,4) and source type in (1,2)                    
     data.append("".join(["""((:EO :N "Sensor_{}{}" :T MINMAXD_CONT)
  (:VAR :N INSIGNAL :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({}{})))
@@ -88,7 +85,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         str(max(1,len([j for j in i['irefs_source']])))) 
                         for i in sensor_dec_data if i['function'] in (1,2) and i['measure'] in (1,2,3,4) and i['source_type'] in (1,2)]))  
                         
-    dprint('------++-------')
     
     #Add Min/Max if source type in 1,2,3 and function is Min or Max (1,2) and measure==Custom (5)
     data.append("".join(["""((:EO :N "Sensor_{}" :T MINMAXD_CONT)
@@ -107,7 +103,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
             [True for j in i['irefs_source'] 
                 if [True for j in i['irefs_target'] if j['submodel']==submodel and not j['network_side'] or submodel==j['cosim'] and j['network_side']]
                 or j['submodel']==submodel and not j['network_side'] or j['cosim']==submodel and j['network_side']]]))                    
-    dprint('------+++-------')       
                 
     #add Adder comp for function  Individual signals for each target (6) if measure in (1,2,3,4)
     data.append("".join(["""((:EO :N "Sensor_{}" :T ADDER)
@@ -155,7 +150,6 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
                         for j in i['irefs_source']]))
                         for i in sensor_dec_data if i['function']==5 and i['source_type']==3 and 
                         ([True for j in i['irefs_source'] if submodel==j['submodel'] and submodel!=j['cosim']] or [True for j in i['irefs_target'] if submodel==j['submodel'] or submodel==j['cosim']])]))
-    dprint('+-----------*****------------')
     dprint(data)
     data.append('(CONNECTIONS\n')
     #Source connections to sensor if measure==Custom and not Individual signals for each target and source type in (1,2) and target type!=3

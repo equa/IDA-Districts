@@ -558,7 +558,6 @@ def loadBuildingsLayer(uri,config,view,username,plugin_dir):
             action.trigger()
             break
     else:
-        #print(f"Could not find '{target_action_name}' action")
     """
     
 def treeItem_add(level, mdlIdx,dlg,main):

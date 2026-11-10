@@ -65,7 +65,6 @@ class WorkerPipeLaying(QRunnable):
         self.tsup_max=kwargs['tsup_max']
         self.heat_demand_min=kwargs['heat_demand_min']
         self.heating_load_min=kwargs['heating_load_min']
-        dprint('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         self.heating_lines_type=selectedId(kwargs['heating_type_lines'])
         self.heating_pipe_bundle=selectedId(kwargs['pipe_bundle_heating'])
         self.heating_customer_template=selectedId(kwargs['heating_template_customer'])

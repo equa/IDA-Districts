@@ -936,7 +936,6 @@ def saveContent(plugin_dir,cur,config,dlg,id,table,columns,filter,dropdowns,trac
             #get changed conn bundle types --> get changed templates
             templates=getTemplatesByConnType(cur,config,id) if trace=='conn_type_trace' else getTemplatesByConnBundleType(cur,config,id)
             for template in templates:
-                dprint('*****************************************************************************')
                 if debug_enabled(): dprint(template['t_name'])
                 if debug_enabled(): dprint(oldConnValues_dict[template['t_name']])
                 ExchangeConntypeFiles(config,template['t_name'],template['type'],template['conn_bundle_type_id'],template['conn_bundle_type_id'],cur,oldConnValues=oldConnValues_dict[template['t_name']],plugin_dir=plugin_dir)

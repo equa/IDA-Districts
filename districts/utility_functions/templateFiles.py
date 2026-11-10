@@ -115,7 +115,6 @@ def readDecoupledFeatureSensorSignals(submodel,dir,config,cur,sensor_data):
                         elif 'Source' in comp[':LAST-LINK'][2]:
                             irefs_source.append(comp[':LAST-LINK'][2])                            
         if irefs_source or irefs_target:
-            dprint('****--***')
             dprint(irefs_source)
             dprint(irefs_target)
             feature_dec_irefs+=[{'feature':feature['feature'],'id':feature['id'],'submodel':feature['submodel'],'cosim':feature['cosim'],'network_side':feature['network_side'],'irefs_source':irefs_source,'irefs_target': irefs_target}]
@@ -260,7 +259,6 @@ class CopyDecoupledTemplateMacro:
             for comp in components_idm:
                 comp_name=getCompName(comp)
                 if (comp_name in dec_models if feature['network_side'] else comp_name not in dec_models or comp_name in hx) and getCompClass(comp) not in keep_class or comp_name in keep_irefs:
-                    dprint('++++**++++')
                     dprint('keep: '+comp_name)
                     if getCompName(comp) in building_pmt2s:
                         data=[]
@@ -331,13 +329,11 @@ class CopyDecoupledTemplateMacro:
                 if getCompClass(comp) in keep_class:
                     if debug_enabled(): dprint(getCompClass(comp))
                     if getCompClass(comp)=='CONNECTIONS':
-                        dprint('++++---++++')
                         if debug_enabled(): dprint('keep: '+getCompClass(comp))
                         dec_models.extend(keep_irefs)
 
                         conns=[]
                         for conn in comp[':CONNS']:
-                            dprint('++++++++')
                             dprint(conn)
                             if debug_enabled(): dprint(feature['network_side'])
                             if debug_enabled(): dprint([conn[0][0],conn[1][0]])
@@ -809,7 +805,6 @@ class CopyTemplateMacro:
                     self.invokedFeatureOutputs[feature['id']]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
                 elif type=='customers':
                     self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
-            dprint('**')
             #collect resources
             source_f="{}\\{}_{}.idm".format(source_dir,type_name.capitalize(),str(feature['id']))     
             file_data=readFileToList(source_f)
@@ -913,7 +908,6 @@ class WriteTemplateFiles:
     def __init__(self,config,name,type,cur,bundle,plugin_dir):
         dprint('write template {}'.format(type))
         dprint(name)
-        dprint('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------')
         self.cur=cur
         self.config=config
         self.plugin_dir=plugin_dir
@@ -954,7 +948,6 @@ class WriteTemplateFiles:
         p_old_old=True
         meter_name_old_old=''
 
-        dprint('***********************************************')
         requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
         dprint(requestedOutputs)
         for value in connValues:

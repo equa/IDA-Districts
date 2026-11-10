@@ -292,7 +292,6 @@ class Supervisory_control():
             file_data=[]
             dprint('-----------------sensor-description-------------------')
             #sensor_description=getSensorDescriptionsSupervisory(sensor_data_source,sensor_data_target)
-            #print(sensor_description)
             if os.path.exists(file):
                 #read file --> remove deleted connections --> add new connections
                 file_data=readFileToList(file)

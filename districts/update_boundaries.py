@@ -119,11 +119,9 @@ def updateTemplateBoundaryValues(dlg,config,cur):
     dprint(changedValues)
  
     for feature in ['customer','energy_plant']:
-        dprint('-----------------------------------')
         dprint(feature)
         at_dir=config['pathProjects']+config['projectName']+"\\{}_templates".format(feature)
         for template_name in getTemplateNames(cur,feature):
-            dprint('******************************************')
             dprint(template_name)
             connsValues=getConnsValuesByTemplate(feature,template_name.split(':')[0],cur,config)
             dprint('connsValues')
@@ -131,7 +129,6 @@ def updateTemplateBoundaryValues(dlg,config,cur):
             if [True for connValues in connsValues if connValues['conn_id'] in changedValues]:
                 dprint('update template_name: {}'.format(template_name))
                 pmt2_update_dict,add_constants,del_constants,update_constants=getBoundaryUpdateData(connsValues,changedValues)
-                dprint('--')
                 dprint(pmt2_update_dict)
                 dprint(add_constants)
                 dprint(del_constants)
@@ -202,7 +199,6 @@ def updateTemplateBoundaryValues(dlg,config,cur):
                 dprint(deletedConnectionLine_dict)
                 
                 for const in add_constants:
-                    dprint('-*-*--*-*-*-*-*-*')
                     if debug_enabled(): dprint([i for i in connsValues if i['p']])
                     if debug_enabled(): dprint([i for i in connsValues if i['mdot']])
                     if debug_enabled(): dprint(add_constants[const][':FIRST-LINK'])

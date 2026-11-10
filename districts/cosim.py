@@ -74,10 +74,8 @@ def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode=
         data_ex=getDataExTemplate(conns_idc,dec_models,components_idm,template['network_side'],sensor_dec_data,submodel,cur,config)
         dprint(data_ex)
         
-        #print(dec_conns)
         template_data_ex.append({'feature':template['feature'],'template':template['template'],'data_ex':data_ex})
         
-    dprint('+++++++++++++++++--finished---+++++++++++++++++++++')
     dprint(template_data_ex)
 
 
@@ -86,7 +84,6 @@ def writeCosimMacroIdm(config,cur,submodel,dir,sensor_data,sensor_dec_data,mode=
         dprint(f_ids)
         if [True for f_id in f_ids if str(submodel)==str(f_id['submodel']) and str(cosim)==str(f_id['cosim']) or str(submodel)==str(f_id['cosim']) and str(f_id['submodel'])==str(cosim)]:
             dprint(template_data_ex)
-            dprint('-*-*')
             importVars=getImportVars(f_ids,template_data_ex,sensor_dec_data)
             dprint('------importVars-----')
             dprint(importVars)

@@ -617,7 +617,6 @@ def delSFAndConnsAddLinks(plist,sf,sf_ids):
                 data.append(new_comp)
             elif getCompClass(comp)=='CONNECTIONS':
                 new_conns=[]
-                dprint('****')
                 for i in comp[':CONNS']:
                     dprint(i)
                     if debug_enabled(): dprint(i[1][0])
@@ -658,7 +657,6 @@ def replaceKeywordsInPList(plist,replaceDict):
                 if not isinstance(comp, list):
                     comp=[comp]
                 for i in comp:
-                    dprint('++')
                     dprint(i)
                     i_name=getCompName(i).replace('|','')
                     dprint(i_name)

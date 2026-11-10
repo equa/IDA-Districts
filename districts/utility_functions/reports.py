@@ -842,14 +842,10 @@ layout.addLayoutItem(layoutItemPolygon)
 # --------------map layers-------------------
 #load buildings layer
 buildings_layer=QgsProject.instance().mapLayersByName(tr('@default','buildings'))[0]
-#print('---buildings----')
-#print([% $x %])
-#print(QgsGeometry.fromWkt( 'POINT( [% $x %] [% $y %])' ))
 feats = []
 for building_feature in buildings_layer.getFeatures():
     if QgsGeometry.fromWkt( 'POINT( [% $x %] [% $y %])' ).within(building_feature.geometry()):
         feats.append(building_feature)
-#print(feats)
 
 layer_buildings_mem = QgsVectorLayer("Polygon?crs=epsg:"+str(srid), tr('@default',"buildings"), "memory")
 layer_buildings_data = layer_buildings_mem.dataProvider()
@@ -879,7 +875,6 @@ feats = []
 for substation_feature in feature_layer.getFeatures():
     if QgsGeometry.fromWkt( 'POINT( [% $x %] [% $y %])' ).within(substation_feature.geometry()):
         feats.append(substation_feature)
-#print(feats)
 #Memory Layer erstellen und befüllen
 layer_customer_mem = QgsVectorLayer("Point?crs=epsg:"+str(srid), "substation", "memory")
 data_pr = layer_customer_mem.dataProvider()
@@ -901,7 +896,6 @@ osm_layers = project.mapLayersByName('OpenStreetMap')
 if osm_layers:
     layer_osm = osm_layers[0]
     osm_existed=True
-    #print("OSM layer already exists")
 else:
     # Add OSM XYZ Tile layer
     osm_existed=False
@@ -909,10 +903,8 @@ else:
     layer_osm = QgsRasterLayer(url, "OpenStreetMap", "wms")  # "wms" works for XYZ in QGIS 3.40
     if not layer_osm.isValid():
         pass
-        #print("Failed to load OSM layer")
     else:
         project.addMapLayer(layer_osm)
-        #print("OSM layer added")
 
 layer_network = project.mapLayersByName(tr('@default','lines'))[0]
 layer_ep = project.mapLayersByName(tr('@default','energy_plants'))[0]
@@ -983,7 +975,6 @@ map.setLayers([layer_customer_mem,layer_ep,layer_network,layer_buildings_mem,lay
 #title.setText(str(round([% $x %],1)) + " , " + str(round([% $y %],1)) + " SRID: 4326")  # Replace SRID if needed
 
 #------------attribute table--------------
-#print('------------attribute table--------------')
 # --- 1. DATEN VORBEREITEN ---
 layer = layer_customer_mem
 fields = layer.fields()
@@ -1085,7 +1076,6 @@ layout.setSelectedItem(frame)
 layout.refresh()
 
 #----simulation_results diagram-----------
-#print([%id%])
 # DB connection only for the plots: closed again, otherwise it stays open in the action namespace of QGIS
 conn=dbConnect(config,True)
 try:
@@ -1096,7 +1086,6 @@ except:
 finally:
     if conn:
         conn.close()
-#print(filenames)
 if filenames:
     # Polygon example
     polygon = QPolygonF()
@@ -1155,10 +1144,8 @@ for filename in filenames:
         layout.addLayoutItem(picture)
 
 export_path=districtsModelerTempDir()
-#print(export_path)
 if os.path.exists(export_path):
     export_path+='customer_'+str([%id%])+'_report.pdf'
-    #print(export_path)
     export = QgsLayoutExporter(layout)
     export.exportToPdf(export_path, QgsLayoutExporter.PdfExportSettings())
 

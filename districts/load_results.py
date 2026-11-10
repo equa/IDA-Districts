@@ -62,7 +62,6 @@ class WorkerLoadResults(QRunnable):
         self.signals.finished.emit('Loading results has been successfully completed!')  
         
     def loadResults(self):
-        dprint('-***-')
         networkSimData=loadNetworkSimData(self.plugin_dir,self.config)
         #the time column of the IDA .prn files holds the hours since Jan 1 of the simulated year (not since calc_time_from)
         start_datetime=getDatetimeFromString(networkSimData['calc_time_from']).replace(month=1,day=1,hour=0,minute=0,second=0)

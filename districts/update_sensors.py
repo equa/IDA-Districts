@@ -458,7 +458,6 @@ AND EXISTS (
         dropDown=table.cellWidget(row, 2)
         dprint(str(row) +';'+str(col))
         if dropDown is not None:
-            dprint('+++++++++++++++++++++++')
             templates=[]
             for i in range(dropDown.count()):
                 if dropDown.itemChecked(i):
@@ -487,7 +486,6 @@ AND EXISTS (
         dropDown=table.cellWidget(row, col-1)
         dprint(str(row) +';'+str(col))
         if dropDown is not None:
-            dprint('+++++++++++++++++++++++')
             if debug_enabled(): dprint(dropDown.itemText(0))
             conn_types=[]
             for i in range(dropDown.count()):
@@ -583,7 +581,6 @@ AND EXISTS (
                 dprint(col)
                 comboBoxCheckable.setItemChecked(i+1,False)
         if signal_args:
-            dprint('----')
             dprint(signal_args)
             comboBoxCheckable.activated.connect(lambda signal, column=signal_args[1],row=row: signal_args[0](table,column,row,signal_args[2]))
         table.setCellWidget(row, col, comboBoxCheckable) 
@@ -806,7 +803,6 @@ def writeSensorsToDB(cur,config,dlg=None,sensorData={},loadedSensorData={}):
             #target
             sensorData=collectSensorTargetTableData(sensorData,dlg.tableWidget_target,row,sensor_id)
             sensorData[int(sensor_id)]['target']['templates']=collectCheckableDropdownTableData(dlg.tableWidget_target,row,sensor_id,2)
-    dprint('--')
     sql=""
     #deleted
     dprint(loadedSensorData)

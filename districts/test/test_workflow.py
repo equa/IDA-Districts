@@ -106,8 +106,6 @@ FROM "{v}".junction_connections jc GROUP BY jc.jid;""".format(v=plugin.config['v
             assert float(r['zeta_max']) >= zeta_branch[3] - zeta_run[3] / 2 - 1e-4, dict(r)
             if values:  # without a reducer exactly the values of the dialog
                 assert float(r['zeta_sum']) <= zeta_run[3] + zeta_branch[3] - zeta_run[3] / 2 + 1.0, dict(r)
-    print('junction zeta: {} junctions, connections per junction {}'.format(
-        len(rows), sorted({r['n'] for r in rows})))
 
 
 def table_names(plugin, like):
@@ -634,7 +632,6 @@ class TestWorkflow:
         assert lines_layer.featureCount() == plugin.cur.fetchone()['n']
         assert {'z_mean', 'dz', 'seg', 'z_seg', 'seg_slope_pct'} <= set(lines_layer.fields().names())
         missing = {l.name(): sum(1 for f in l.getFeatures() if f['z_missing']) for l in layers}
-        print('height check (graduated), missing heights:', missing)
         # junctions get their height from the lines (pipe laying / network topology)
         if missing['{} – {}'.format(tr('@default', 'lines'), tr('@default', 'height'))] == 0:
             assert missing['{} – {}'.format(tr('@default', 'junctions'), tr('@default', 'height'))] == 0, missing
@@ -643,12 +640,8 @@ class TestWorkflow:
         dlg.radioButton_consistency.setChecked(True)
         runHeightCheck(dlg)
         errors.check()
-        issues = {}
         for layer in height_layers('consistency'):
             assert isinstance(layer.renderer(), QgsCategorizedSymbolRenderer), layer.name()
-            for f in layer.getFeatures():
-                issues[f['issue']] = issues.get(f['issue'], 0) + 1
-        print('height check (consistency):', issues)
         assert len(height_layers('graduated')) == 4, "the consistency check must keep the graduated layers"
 
         loadVersion(main=plugin)
@@ -694,9 +687,6 @@ class TestWorkflow:
         errors.check()
         assert count(plugin, 'lines', 'WHERE pipe_bundle_type_id IS NULL') == 0
         assert_junction_zeta(plugin)
-        # the sized pipes have different diameters: reducers and tees with a smaller branch
-        plugin.cur.execute('SELECT count(DISTINCT pipe_bundle_type_id) AS n FROM "{}".lines;'.format(version))  # nosec B608
-        print('pipe sizing: pipe bundle types', plugin.cur.fetchone()['n'])
 
     def test_zeta_values(self, wf, errors):
         """zeta action (lines, junctions): memory layers in the group 'zeta values' with the zeta used in the network model,
@@ -755,16 +745,11 @@ FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP
         assert len(layers) == 1, [l.name() for l in layers]
         lines_layer = layers[0]
         assert {'length_m', 'd_m', 'lambda', 'zeta_friction', 'local_share_pct'} <= set(lines_layer.fields().names())
-        shares = []
         for f in lines_layer.getFeatures():
             assert 0.008 < f['lambda'] < 0.08, (f['id'], f['lambda'])
             assert f['zeta_friction'] == pytest.approx(f['lambda'] * f['length_m'] / f['d_m'])
             assert f['local_share_pct'] == pytest.approx(f['zeta_total'] / f['zeta_friction'] * 100)
-            shares.append(f['local_share_pct'])
         assert any('local_share_pct' in r.filterExpression() for r in lines_layer.renderer().rootRule().children())
-        shares.sort()
-        print('zeta: share of the local losses in the pipe friction (%): median {:.1f}, max {:.1f}'.format(
-            shares[len(shares) // 2], shares[-1]))
 
         plugin.cur.execute('UPDATE "{}".lines SET zeta=0 WHERE id={};'.format(version, lid))  # nosec B608
         if jid:
