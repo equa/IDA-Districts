@@ -224,6 +224,14 @@ class ScaledLabel(QLabel):
             super().setPixmap(scaled)
             
 def load_image(path,label,scale=False,size=False):
+def infoTextEdit(keys, max_height=180):
+    """read-only info text at the top of a dialog: the translated html texts of the keys, separated by a line"""
+    text_edit=QTextEdit()
+    text_edit.setReadOnly(True)
+    text_edit.setHtml('<hr>'.join(tr('@default',key) for key in keys))
+    text_edit.setMaximumHeight(max_height)
+    return text_edit
+
     pixmap = QPixmap(path)
 
     if pixmap.isNull():

@@ -18,7 +18,7 @@ from .utility_functions.db import (
     checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getProjectVersionNames, getTableAttr,
     setDistrictsModelerVersion2DB,
 )
-from .utility_functions.dialog import closeDialog, closeOtherDistrictsDialogs
+from .utility_functions.dialog import closeDialog, closeOtherDistrictsDialogs, infoTextEdit
 from .utility_functions.files import createDir, districtsModelerTempDir, loadProjectConfig, writeProjectConfig
 from .utility_functions.layer_visualization import (
     extract_group_fields, loadBoreholesLayer, loadLayersConfig, loadProjectLayers, loadTopologyLayers, on_form_changed,
@@ -330,7 +330,7 @@ class ZetaDialog(QDialog):
     def __init__(self):
         super().__init__()
         from qgis.PyQt.QtWidgets import (
-            QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout,
+            QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout, QPushButton, QSpinBox, QVBoxLayout,
         )
 
         self.config=load_plugin_settings()
@@ -340,8 +340,7 @@ class ZetaDialog(QDialog):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
         self.setWindowTitle(tr('@default','zeta_values'))
-        info=QLabel(tr('@default','zeta_values_info'))
-        info.setWordWrap(True)
+        self.text_info=infoTextEdit(['zeta_values_info','zeta_reference_info'],220)
 
         group_layers=QGroupBox(tr('@default','layers'))
         layout_layers=QVBoxLayout(group_layers)
@@ -351,9 +350,9 @@ class ZetaDialog(QDialog):
             setattr(self,'checkBox_'+layer_name,checkbox)
             layout_layers.addWidget(checkbox)
         # layers which are not loaded can not be selected (connections need lines and junctions)
-        for layer_name in ['lines','junctions']:
+        for layer_name,names in [('lines',['lines','connections']),('junctions',['connections'])]:
             if not QgsProject.instance().mapLayersByName(tr('@default',layer_name)):
-                for name in [layer_name,'connections']:
+                for name in names:
                     getattr(self,'checkBox_'+name).setChecked(False)
                     getattr(self,'checkBox_'+name).setEnabled(False)
 
@@ -410,7 +409,7 @@ class ZetaDialog(QDialog):
         layout_buttons.addWidget(self.btn_cancel)
 
         layout=QVBoxLayout(self)
-        layout.addWidget(info)
+        layout.addWidget(self.text_info)
         layout.addWidget(group_layers)
         layout.addWidget(group_style)
         layout.addWidget(self.groupBox_friction)

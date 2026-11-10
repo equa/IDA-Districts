@@ -4195,7 +4195,69 @@
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
             <source>zeta_values_info</source>
-            <translation type="unfinished">Zeigt die im Netzmodell verwendeten Zeta-Werte als Layer in der Gruppe Zeta-Werte: Leitungen (Summe aus lines.zeta, junctions.zeta/2 und den Knotenanschlüssen), Knoten (Summe ihrer Anschlüsse) und Knotenanschlüsse (Wert, der zur Leitung addiert wird, Punkt auf der Leitung beim Knoten). Die Layer sind eine Momentaufnahme, nach Änderungen erneut ausführen.</translation>
+            <translation type="unfinished">Zeigt die im Netzmodell verwendeten Zeta-Werte als Layer in der Gruppe Zeta-Werte: Leitungen (Summe aus lines.zeta, junctions.zeta/2 und den Knotenanschlüssen, dieser Wert geht in die Simulation) und Knotenanschlüsse (Wert, der zur Leitung addiert wird, Punkt auf der Leitung beim Knoten). Die Layer sind eine Momentaufnahme, nach Änderungen erneut ausführen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>pipe_laying_info</source>
+            <translation type="unfinished">&lt;b&gt;Rohrverlegealgorithmus&lt;/b&gt;&lt;br&gt;
+Verlegt die Trassen eines neuen Wärme- und/oder Kältenetzes entlang der Strassen für die Energiezentralen und Abnehmer des gewählten Netzes.
+&lt;ol&gt;
+&lt;li&gt;Die Energiezentralen und die Abnehmer, welche die Randbedingungen erfüllen, werden mit einer geraden Linie an die nächste Strasse angeschlossen.&lt;/li&gt;
+&lt;li&gt;Die Strassen werden an den Kreuzungen geteilt, Linienenden innerhalb der Einrasttoleranz werden verbunden.&lt;/li&gt;
+&lt;li&gt;Für jeden Abnehmer wird der kürzeste Weg entlang der Strassen zur Energiezentrale bestimmt (Dijkstra). Kosten einer Kante: Länge, mit &lt;i&gt;Trassen- und Rohrkosten berücksichtigen&lt;/i&gt; Länge · (Strassenkosten costs_eur7m + Wärmeverlust · Erlös · Amortisationszeit).&lt;/li&gt;
+&lt;li&gt;Die Abnehmer werden in Durchgängen angeschlossen: lineare Wärmedichte = Energiebedarf / Länge des noch nicht verlegten Teils ihres Wegs. In jedem Durchgang werden alle Abnehmer verlegt, welche die minimale lineare Wärmedichte erreichen; bereits verlegte Wege verkürzen den Rest der übrigen Abnehmer. Danach werden Abnehmer eines gemeinsamen Asts zusammengefasst (höchste Dichte zuerst), wenn sie gemeinsam die minimale Dichte erreichen. Ohne diese Randbedingung werden alle Abnehmer angeschlossen, welche die übrigen Randbedingungen erfüllen.&lt;/li&gt;
+&lt;li&gt;Knoten und Anschlüsse werden erzeugt, Trassentyp, Rohrbündel und Abnehmervorlage gesetzt, Trassen an Knoten mit zwei Anschlüssen zusammengefügt und die Höhen aus dem Layer terrain übernommen.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Randbedingungen&lt;/b&gt; (Spalten der Abnehmer): maximale Vorlauftemperatur (Abnehmer ≤ Wert, Energiezentralen ≥ Wert), minimaler Wärmebedarf und minimale Heizlast (Abnehmer ≥ Wert). Kältenetz entsprechend (minimale Vorlauftemperatur).&lt;br&gt;
+&lt;b&gt;Unverbundene Kunden beibehalten&lt;/b&gt;: ausgeschaltet werden Abnehmer gelöscht, die nicht an einer verlegten Trasse liegen.&lt;br&gt;
+Das Ergebnis wird als temporäre Layer angezeigt. &lt;b&gt;Speichern&lt;/b&gt; ersetzt die Trassen, Knoten, Abnehmer und Energiezentralen der Version durch das Ergebnis, &lt;b&gt;Verwerfen&lt;/b&gt; verwirft es. &lt;b&gt;Stop&lt;/b&gt; beendet das Verlegen und erzeugt das Netz aus den bis dahin verlegten Trassen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>network_topology_info</source>
+            <translation type="unfinished">&lt;b&gt;Netz-Topologie erzeugen&lt;/b&gt;&lt;br&gt;
+Erzeugt die Topologie der gezeichneten Trassen der gewählten Netze neu (es werden keine neuen Wege gesucht):
+&lt;ul&gt;
+&lt;li&gt;Trassen werden an Kreuzungen und an Abnehmern und Energiezentralen auf der Trasse geteilt, Linienenden innerhalb der Einrasttoleranz verbunden und kurze lose Stücke ohne Abnehmer oder Energiezentrale gelöscht.&lt;/li&gt;
+&lt;li&gt;Knoten und die Anschlüsse von Trassen, Abnehmern und Energiezentralen werden erzeugt. An Knoten mit zwei Anschlüssen werden Trassen mit gleichem Rohrbündel zusammengefügt (ihre Zeta-Werte werden addiert).&lt;/li&gt;
+&lt;li&gt;Die Höhen werden aus dem Layer terrain übernommen oder von den Trassen beibehalten.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;b&gt;Vorlagen beibehalten&lt;/b&gt;: Abnehmer und Trassen behalten Vorlage und Rohrbündel. &lt;b&gt;Vorlagen überschreiben&lt;/b&gt;: alle Trassen und Abnehmer der gewählten Netze erhalten das gewählte Rohrbündel bzw. die gewählte Abnehmervorlage.&lt;br&gt;
+&lt;b&gt;Optionen&lt;/b&gt;: unverbundene Netzenden löschen (ein Segment je offenes Ende ohne Abnehmer oder Energiezentrale), Abnehmer an unverbundenen Netzenden hinzufügen (neuer Abnehmer mit der gewählten Vorlage), unverbundene Abnehmer bzw. Energiezentralen anschliessen (gerade Linie zur nächsten Trasse mit dem gewählten Rohrbündel), unverbundene Abnehmer löschen (nicht an einer Trasse), unverbundene Trassen löschen (einzelne Segmente ohne Kontakt zu anderen Trassen).&lt;br&gt;
+&lt;b&gt;Voraussetzungen&lt;/b&gt;: jedes gewählte Netz braucht mindestens einen Abnehmer und eine Energiezentrale an seinen Trassen (oder die Option anschliessen). Trassen ohne Netz erhalten nach Rückfrage Netz 1.&lt;br&gt;
+Das Ergebnis wird als temporäre Layer angezeigt. &lt;b&gt;Speichern&lt;/b&gt; ersetzt die Trassen, Knoten, Abnehmer und Energiezentralen der Version durch das Ergebnis, &lt;b&gt;Verwerfen&lt;/b&gt; verwirft es.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>pipe_sizing_info</source>
+            <translation type="unfinished">&lt;b&gt;Rohrdimensionierung&lt;/b&gt;&lt;br&gt;
+Wählt für jede Sequenz (Vorlauf, Rücklauf, …) der Trassen des gewählten Netzes das Rohr:
+&lt;ol&gt;
+&lt;li&gt;Last je Trasse: &lt;i&gt;Energiebedarf der Kunden&lt;/i&gt; – Summe der Lasten aller Abnehmer, deren kürzester Weg zur Energiezentrale über die Trasse führt (vorher wird die Netz-Topologie des Netzes erzeugt); &lt;i&gt;Energiebedarf der Trasse&lt;/i&gt; – Lastspalte der Trasse.&lt;/li&gt;
+&lt;li&gt;Massenstrom ṁ = φ · Q / (c&lt;sub&gt;p&lt;/sub&gt; · |T&lt;sub&gt;Vorlauf&lt;/sub&gt; − T&lt;sub&gt;Rücklauf&lt;/sub&gt;|), summiert über die Flüssigkeitskreisläufe der Sequenz (Q in W). Gleichzeitigkeit φ = 0.55 · 1.01&lt;sup&gt;−(n−1)&lt;/sup&gt; + 0.45 mit n Abnehmern hinter der Trasse (bzw. einer Spalte der Trasse), sonst φ = 1.&lt;/li&gt;
+&lt;li&gt;Durchmesser für den spezifischen Druckverlust Δp′ (Pa je m Rohr): d = (8 · f · ṁ² / (π² · ρ · Δp′))&lt;sup&gt;1/5&lt;/sup&gt;, Reibungszahl f aus Colebrook mit der Rauhigkeit ε, Re = v · d / ν (ν aus dem Feld oder aus der Temperatur des Kreislaufs).&lt;/li&gt;
+&lt;li&gt;Gewählt wird das kleinste der ausgewählten Rohre der Sequenz mit einem grösseren Innendurchmesser als d. Ist keines gross genug, bricht die Dimensionierung mit einer Meldung ab.&lt;/li&gt;
+&lt;li&gt;Die Rohre der Sequenzen und die Rohrumgebung bilden das Rohrbündel der Trasse (vorhandene Rohrbündeltypen werden wiederverwendet, sonst neue erzeugt).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Flüssigkeitskreisläufe&lt;/b&gt;: Vorlauf- und Rücklaufsequenz, Temperaturen und Lastspalte. &lt;b&gt;Sequenzen&lt;/b&gt;: die zu berücksichtigenden Rohre je Sequenz.&lt;br&gt;
+Das Ergebnis wird als temporärer Layer angezeigt. &lt;b&gt;Speichern&lt;/b&gt; schreibt die Rohrbündel in die Trassen des Netzes, &lt;b&gt;Verwerfen&lt;/b&gt; verwirft das Ergebnis und löscht neu erzeugte Rohrbündeltypen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_reference_info</source>
+            <translation type="unfinished">&lt;b&gt;Zeta-Werte der Knoten (Tabellenwerte)&lt;/b&gt;&lt;br&gt;
+Druckverlust Δp = ζ · ρv²/2 mit der Geschwindigkeit v der Leitung, zu der der Wert addiert wird.&lt;br&gt;
+Netzmodell: ζ&lt;sub&gt;Leitung&lt;/sub&gt; = lines.zeta + Σ junctions.zeta/2 + Σ junction_connections.zeta (beide Leitungsenden).
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;T-Stück&lt;/b&gt; (3 Anschlüsse): ζ&lt;sub&gt;Durchgang&lt;/sub&gt; = 0.4, ζ&lt;sub&gt;Abzweig&lt;/sub&gt; = 1.4 (Mittel aus Trennung 0.3/1.3 und Vereinigung 0.5/1.5, Vor- und Rücklauf strömen gegenläufig). &lt;b&gt;Kreuzstück&lt;/b&gt; (≥ 4): 0.5 / 1.5.&lt;/li&gt;
+&lt;li&gt;Aufteilung pro Knotenanschluss: Durchgangsleitungen je ζ&lt;sub&gt;Durchgang&lt;/sub&gt;/2, Abzweigleitungen ζ&lt;sub&gt;Abzweig&lt;/sub&gt; − ζ&lt;sub&gt;Durchgang&lt;/sub&gt;/2. Ein Strömungsweg durch den Knoten ist die Summe seiner zwei Anschlüsse.&lt;/li&gt;
+&lt;li&gt;Durchgang: die zwei Anschlüsse mit dem grössten Innendurchmesser (±1 %), bei gleichen Durchmessern das am besten fluchtende Paar.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Reduktion&lt;/b&gt; (auf das kleinere Rohr bezogen, β = (d&lt;sub&gt;klein&lt;/sub&gt;/d&lt;sub&gt;gross&lt;/sub&gt;)²): Verengung ζ = 0.5·(1 − β), Erweiterung (Borda-Carnot) ζ = (1 − β)², verwendet wird der Mittelwert (scharfkantig, z. B. DN100 → DN50: 0.47). Gilt auch für einen Durchgang mit verschiedenen Durchmessern.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Rohrreibung&lt;/b&gt; (Vergleich im Dialog Zeta-Werte): ζ&lt;sub&gt;R&lt;/sub&gt; = λ·L/d, Re = v·d/ν, λ = 64/Re (Re &amp;lt; 2300), sonst Swamee-Jain λ = 0.25 / [log&lt;sub&gt;10&lt;/sub&gt;(k/(3.7·d) + 5.74/Re&lt;sup&gt;0.9&lt;/sup&gt;)]² (explizite Näherung von Colebrook-White).&lt;/li&gt;
+&lt;li&gt;Nicht enthalten: Bögen, Armaturen und Formstücke innerhalb einer Leitung, diese in lines.zeta oder junctions.zeta eintragen.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;b&gt;Literatur&lt;/b&gt;: Recknagel, Sprenger, Albers: Taschenbuch für Heizung + Klimatechnik (Einzelwiderstände); VDI 2073 Blatt 1: Hydraulik in Anlagen der Technischen Gebäudeausrüstung; I. E. Idelchik: Handbook of Hydraulic Resistance, 3rd ed., Begell House 1994 (Diagramme der Abschnitte 4 und 7: Querschnittsänderungen, T- und Kreuzstücke); P. K. Swamee, A. K. Jain: Explicit equations for pipe-flow problems, J. Hydraul. Div. ASCE 102 (1976) 657–664; C. F. Colebrook: Turbulent flow in pipes, J. Inst. Civ. Eng. 11 (1939) 133–156.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />

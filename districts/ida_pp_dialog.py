@@ -11,7 +11,7 @@ from .utility_functions.db import (
     dbConnect, dropDBTriggers, featureCount, getNetworks, getPipeBundleNames, getPlantIds, getTableAttr,
     getTableNumericAttr, getTemplateNames, getTemplatesInfo, insertDBTriggers, streetsCount,
 )
-from .utility_functions.dialog import CheckableComboBox, checkState, qt_item_flag, runWithButtonDisabled
+from .utility_functions.dialog import CheckableComboBox, checkState, infoTextEdit, qt_item_flag, runWithButtonDisabled
 from .utility_functions.error_handling import checkIntersectingFeatures
 from .utility_functions.layer_visualization import removeTempLayers
 from .utility_functions.topology import checkNetwork, getNetworkSequences, saveTempTables
@@ -506,6 +506,8 @@ class PipeLayingDialog(QDialog):
         #main layout
         layout_win = QVBoxLayout()
         layout_win.addWidget(self.check_heating_network)
+        self.text_info=infoTextEdit(['pipe_laying_info','zeta_reference_info'])
+        layout_win.addWidget(self.text_info)
         layout_win.addLayout(layout_heating)
         layout_win.addWidget(self.check_cooling_network)
         layout_win.addLayout(layout_cooling)
@@ -920,6 +922,8 @@ class NetworkTopologyDialog(QDialog):
         
         layout_win = QVBoxLayout()
         layout_win.addWidget(self.rbtn_keep_templates)
+        self.text_info=infoTextEdit(['network_topology_info','zeta_reference_info'])
+        layout_win.addWidget(self.text_info)
         layout_win.addWidget(self.rbtn_override_templates)
         layout_win.addLayout(layout_overrideTemplate)
         layout_win.addLayout(layout_additional_options)
@@ -1227,6 +1231,8 @@ class PipeSizingDlg(QDialog):
         layout_win.addLayout(layout_sizing_options)
         layout_win.addWidget(self.checkBoxSimultaneity)
         layout_win.addWidget(self.combo_simultaneity)
+        self.text_info=infoTextEdit(['pipe_sizing_info','zeta_reference_info'])
+        layout_win.addWidget(self.text_info)
         layout_win.addWidget(self.check_calc_junction_zeta)
         layout_win.addWidget(self.label_circuits)
         layout_win.addLayout(layout_buttons_circuits)

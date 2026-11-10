@@ -31,9 +31,9 @@ ZETA_BRANCH = {3: 1.4, 4: 1.5}     # branch: diverging 1.3, combining 1.5 (tee);
 DIAMETER_EQUAL_RTOL = 0.01         # diameters within 1 % are equal (no reducer, run chosen by the geometry)
 
 ZETA_PROPERTY = 'districts_zeta'
-ZETA_LAYERS = ['lines', 'junctions', 'connections']
+ZETA_LAYERS = ['lines', 'connections']
 # translation keys of the layer names
-ZETA_LAYER_NAMES = {'lines': 'lines', 'junctions': 'junctions', 'connections': 'junction_connections'}
+ZETA_LAYER_NAMES = {'lines': 'lines', 'connections': 'junction_connections'}
 ZERO_COLOR = '#b4b4b4'
 
 
@@ -272,14 +272,6 @@ WHERE l.geom IS NOT NULL ORDER BY l.id;""".format(s=schema))  # nosec B608
     return rows
 
 
-def zetaJunctionRows(cur, schema):
-    cur.execute("""SELECT j.id, j.network, j.n_connections, coalesce(j.zeta, 0) AS zeta_junction,
-       coalesce(sum(jc.zeta), 0) AS zeta_connections, ST_AsText(j.geom) AS wkt
-FROM "{s}".junctions j LEFT JOIN "{s}".junction_connections jc ON jc.jid = j.id
-WHERE j.geom IS NOT NULL GROUP BY j.id ORDER BY j.id;""".format(s=schema))  # nosec B608
-    return cur.fetchall()
-
-
 def zetaConnectionRows(cur, schema):
     """one point per connection on its line near the junction (1/4 of the line, at most 3 m) with the zeta added to the line"""
     cur.execute("""SELECT jc.id, jc.jid, jc.lid, coalesce(jc.zeta, 0) AS zeta_connection, coalesce(j.zeta, 0) / 2 AS zeta_junction_half,
@@ -317,7 +309,8 @@ def classBounds(values, n_classes, quantile=False):
 def showZetaValues(cur, schema, layer_names, ramp_name='Turbo', invert_ramp=False, n_classes=5, labels=True,
                    friction=None, color_by_share=False):
     """memory layers in the group 'zeta values': lines colored by the total zeta of the network model,
-    junctions by the sum of their values, connections (points on the lines near the junctions) by the zeta added to the line.
+    connections (points on the lines near the junctions) by the zeta added to the line (the junctions are no layer: the
+    sum of their connections is no loss of a flow path and is not used in the simulation).
     friction {'velocity': m/s, 'viscosity': m2/s}: the lines also get the pipe friction as zeta (lambda * L / d) and the share
     of the local losses in % of it (color_by_share: lines colored by this share, quantile classes).
     Returns {layer_name: (n_features, n_with_value, max_value)} and with friction 'local_share_median' (%)."""
@@ -326,7 +319,7 @@ def showZetaValues(cur, schema, layer_names, ramp_name='Turbo', invert_ramp=Fals
     ensureConnectionZetaColumn(cur, schema)
     result = {}
     # points on top of the lines
-    for layer_name in [n for n in ['connections', 'junctions', 'lines'] if n in layer_names]:
+    for layer_name in [n for n in ['connections', 'lines'] if n in layer_names]:
         unit, quantile = '', False
         if layer_name == 'lines':
             rows = zetaLineRows(cur, schema, friction)
@@ -341,11 +334,6 @@ def showZetaValues(cur, schema, layer_names, ramp_name='Turbo', invert_ramp=Fals
                     result['local_share_median'] = shares[len(shares) // 2]
                 if color_by_share:
                     value_field, unit, quantile = 'local_share_pct', ' %', True
-        elif layer_name == 'junctions':
-            rows = zetaJunctionRows(cur, schema)
-            fields = [('id', 'integer'), ('network', 'integer'), ('n_connections', 'integer'), ('zeta_junction', 'double'),
-                      ('zeta_connections', 'double')]
-            geom_type, value_field, srid_table = 'PointZ', 'zeta_connections', 'junctions'
         else:
             rows = zetaConnectionRows(cur, schema)
             fields = [('id', 'integer'), ('jid', 'integer'), ('lid', 'integer'), ('zeta_connection', 'double'),

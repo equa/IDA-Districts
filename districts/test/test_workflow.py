@@ -546,6 +546,7 @@ class TestWorkflow:
         dlg = plugin.dlg_pipeLayingAlgorithm
         dlg.check_heating_network.setCheckState(checkState())
         dlg.check_calc_junction_zeta.setChecked(True)
+        assert 'Idelchik' in dlg.text_info.toPlainText() and 'Dijkstra' in dlg.text_info.toPlainText()
         customer_template = wf.imported_templates.get('customer')
         if customer_template:
             # the connected customers get the imported template
@@ -568,6 +569,7 @@ class TestWorkflow:
         assert hasattr(plugin, 'window_topology'), "topology dialog not opened: {}".format(plugin_state(plugin))
         dlg = plugin.window_topology
         dlg.rbtn_override_templates.setChecked(True)
+        assert 'Idelchik' in dlg.text_info.toPlainText() and 'terrain' in dlg.text_info.toPlainText()
         for checkbox in [dlg.check_del_network_ends, dlg.check_connectCustomers, dlg.check_connectPlants,
                          dlg.check_deleteUnconnectedCustomers, dlg.check_deleteUnconnectedLines, dlg.check_calc_junction_zeta]:
             checkbox.setCheckState(checkState())
@@ -657,6 +659,7 @@ class TestWorkflow:
         for row in range(dlg.table_sequences.rowCount()):
             dlg.table_sequences.cellWidget(row, 1).setAllItemsChecked(checked=True)
         dlg.check_calc_junction_zeta.setChecked(True)
+        assert 'Idelchik' in dlg.text_info.toPlainText() and 'Δp′' in dlg.text_info.toPlainText()
         # old project: junction_connections without zeta (added again when the results are saved)
         version = plugin.config['versionName']
         plugin.cur.execute('ALTER TABLE "{}".junction_connections DROP COLUMN IF EXISTS zeta;'.format(version))
@@ -696,11 +699,15 @@ class TestWorkflow:
             plugin.cur.execute('UPDATE "{}".junctions SET zeta=1 WHERE id={};'.format(version, jid))  # nosec B608
 
         dlg = ZetaDialog()
+        assert not hasattr(dlg, 'checkBox_junctions')
+        # equations and references of the textbook values (translated html, not the key)
+        reference = dlg.text_info.toPlainText()
+        assert 'Swamee' in reference and 'Idelchik' in reference and '2300' in reference, reference[:200]
         dlg.comboBox_colorRamp.setCurrentText('Spectral')
         runZetaVisualization(dlg)
         errors.check()
         layers = {l.name(): l for l in QgsProject.instance().mapLayers().values() if l.customProperty(ZETA_PROPERTY)}
-        assert len(layers) == 3, list(layers)
+        assert len(layers) == 2, list(layers)
         for layer in layers.values():
             assert isinstance(layer.renderer(), QgsRuleBasedRenderer), layer.name()
         lines_layer = layers['{} – {}'.format(tr('@default', 'lines'), tr('@default', 'zeta'))]
@@ -719,7 +726,6 @@ FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP
 
         # compared with the pipe friction (lambda * L / d), lines colored by the share of the local losses
         dlg = ZetaDialog()
-        dlg.checkBox_junctions.setChecked(False)
         dlg.checkBox_connections.setChecked(False)
         dlg.groupBox_friction.setChecked(True)
         dlg.checkBox_colorByShare.setChecked(True)

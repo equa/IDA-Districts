@@ -4198,7 +4198,69 @@
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
             <source>zeta_values_info</source>
-            <translation type="unfinished">Shows the zeta values used in the network model as layers in the group Zeta values: lines (total of lines.zeta, junctions.zeta/2 and the junction connections), junctions (sum of their connections) and junction connections (value added to the line, point on the line near the junction). The layers are a snapshot, run it again after changes.</translation>
+            <translation type="unfinished">Shows the zeta values used in the network model as layers in the group Zeta values: lines (total of lines.zeta, junctions.zeta/2 and the junction connections, the value used in the simulation) and junction connections (value added to the line, point on the line near the junction). The layers are a snapshot, run it again after changes.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>pipe_laying_info</source>
+            <translation type="unfinished">&lt;b&gt;Pipe laying algorithm&lt;/b&gt;&lt;br&gt;
+Lays the lines of a new heating and/or cooling network along the streets for the energy plants and customers of the selected network.
+&lt;ol&gt;
+&lt;li&gt;The energy plants and the customers that meet the constraints are connected to the nearest street by a straight line.&lt;/li&gt;
+&lt;li&gt;The streets are split at the intersections, line ends within the snapping tolerance are joined.&lt;/li&gt;
+&lt;li&gt;For every customer the shortest path along the streets to the energy plant is determined (Dijkstra). Cost of an edge: length, with &lt;i&gt;consider trench and pipe costs&lt;/i&gt; length · (street costs costs_eur7m + heat loss · revenue · amortization period).&lt;/li&gt;
+&lt;li&gt;The customers are connected in passes: linear heat density = energy demand / length of the part of their path that is not laid yet. Every pass lays all customers that reach the minimum linear heat density; paths already laid shorten the rest of the other customers. Then customers on a common branch are combined (highest density first) if together they reach the minimum density. Without this constraint all customers that meet the other constraints are connected.&lt;/li&gt;
+&lt;li&gt;Junctions and connections are created, line type, pipe bundle and customer template are set, lines are merged at junctions with two connections and the heights are taken from the layer terrain.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Constraints&lt;/b&gt; (columns of the customers): maximum supply temperature (customers ≤ value, energy plants ≥ value), minimum heat demand and minimum heating load (customers ≥ value). Cooling network accordingly (minimum supply temperature).&lt;br&gt;
+&lt;b&gt;Keep unconnected customers&lt;/b&gt;: when off, customers that are not on a laid line are deleted.&lt;br&gt;
+The result is shown as temporary layers. &lt;b&gt;Save&lt;/b&gt; replaces the lines, junctions, customers and energy plants of the version by the result, &lt;b&gt;Reject&lt;/b&gt; discards it. &lt;b&gt;Stop&lt;/b&gt; ends the laying and builds the network from the lines laid so far.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>network_topology_info</source>
+            <translation type="unfinished">&lt;b&gt;Generate network topology&lt;/b&gt;&lt;br&gt;
+Rebuilds the topology of the drawn lines of the selected networks (no new routes are searched):
+&lt;ul&gt;
+&lt;li&gt;Lines are split at intersections and at customers and energy plants on the line, line ends within the snapping tolerance are joined and short loose pieces without customer or energy plant are deleted.&lt;/li&gt;
+&lt;li&gt;Junctions and the connections of lines, customers and energy plants are created. At junctions with two connections, lines with the same pipe bundle are merged (their zeta values are added).&lt;/li&gt;
+&lt;li&gt;The heights are taken from the layer terrain or kept from the lines.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;b&gt;Keep templates&lt;/b&gt;: customers and lines keep their template and pipe bundle. &lt;b&gt;Override templates&lt;/b&gt;: all lines and customers of the selected networks get the chosen pipe bundle or customer template.&lt;br&gt;
+&lt;b&gt;Options&lt;/b&gt;: delete unconnected network ends (one segment per open end without customer or energy plant), add customers to unconnected network ends (new customer with the chosen template), connect unconnected customers or energy plants (straight line to the nearest line with the chosen pipe bundle), delete unconnected customers (not on a line), delete unconnected lines (single segments without contact to other lines).&lt;br&gt;
+&lt;b&gt;Prerequisites&lt;/b&gt;: every selected network needs at least one customer and one energy plant on its lines (or the connect option). Lines without a network get network 1 after a question.&lt;br&gt;
+The result is shown as temporary layers. &lt;b&gt;Save&lt;/b&gt; replaces the lines, junctions, customers and energy plants of the version by the result, &lt;b&gt;Reject&lt;/b&gt; discards it.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>pipe_sizing_info</source>
+            <translation type="unfinished">&lt;b&gt;Pipe sizing&lt;/b&gt;&lt;br&gt;
+Chooses the pipe of every sequence (supply, return, …) of the lines of the selected network:
+&lt;ol&gt;
+&lt;li&gt;Load per line: &lt;i&gt;customers' energy demand&lt;/i&gt; – sum of the loads of all customers whose shortest path to the energy plant passes the line (the network topology of the network is generated first); &lt;i&gt;line's energy demand&lt;/i&gt; – load column of the line.&lt;/li&gt;
+&lt;li&gt;Mass flow ṁ = φ · Q / (c&lt;sub&gt;p&lt;/sub&gt; · |T&lt;sub&gt;supply&lt;/sub&gt; − T&lt;sub&gt;return&lt;/sub&gt;|), summed over the liquid circuits of the sequence (Q in W). Simultaneity φ = 0.55 · 1.01&lt;sup&gt;−(n−1)&lt;/sup&gt; + 0.45 with n customers behind the line (or a column of the line), otherwise φ = 1.&lt;/li&gt;
+&lt;li&gt;Diameter for the specific pressure drop Δp′ (Pa per m pipe): d = (8 · f · ṁ² / (π² · ρ · Δp′))&lt;sup&gt;1/5&lt;/sup&gt;, friction factor f from Colebrook with the roughness ε, Re = v · d / ν (ν from the field or from the temperature of the circuit).&lt;/li&gt;
+&lt;li&gt;The smallest of the selected pipes of the sequence with an inner diameter larger than d is chosen. If none is large enough, the sizing stops with a message.&lt;/li&gt;
+&lt;li&gt;The pipes of the sequences and the pipe ambient form the pipe bundle of the line (existing pipe bundle types are reused, otherwise new ones are created).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Liquid circuits&lt;/b&gt;: supply and return sequence, temperatures and load column. &lt;b&gt;Sequences&lt;/b&gt;: the pipes to consider per sequence.&lt;br&gt;
+The result is shown as a temporary layer. &lt;b&gt;Save&lt;/b&gt; writes the pipe bundles to the lines of the network, &lt;b&gt;Reject&lt;/b&gt; discards the result and deletes newly created pipe bundle types.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>zeta_reference_info</source>
+            <translation type="unfinished">&lt;b&gt;Zeta values of the junctions (textbook values)&lt;/b&gt;&lt;br&gt;
+Pressure loss Δp = ζ · ρv²/2 with the velocity v of the line the value is added to.&lt;br&gt;
+Network model: ζ&lt;sub&gt;line&lt;/sub&gt; = lines.zeta + Σ junctions.zeta/2 + Σ junction_connections.zeta (both line ends).
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Tee&lt;/b&gt; (3 connections): ζ&lt;sub&gt;run&lt;/sub&gt; = 0.4, ζ&lt;sub&gt;branch&lt;/sub&gt; = 1.4 (mean of diverging 0.3/1.3 and combining flow 0.5/1.5, supply and return flow in opposite directions). &lt;b&gt;Cross&lt;/b&gt; (≥ 4): 0.5 / 1.5.&lt;/li&gt;
+&lt;li&gt;Split per junction connection: run lines ζ&lt;sub&gt;run&lt;/sub&gt;/2 each, branch lines ζ&lt;sub&gt;branch&lt;/sub&gt; − ζ&lt;sub&gt;run&lt;/sub&gt;/2. A flow path through the junction is the sum of its two connections.&lt;/li&gt;
+&lt;li&gt;Run: the two connections with the largest inner diameter (±1 %), with equal diameters the pair most in line.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Reducer&lt;/b&gt; (referenced to the smaller pipe, β = (d&lt;sub&gt;small&lt;/sub&gt;/d&lt;sub&gt;large&lt;/sub&gt;)²): contraction ζ = 0.5·(1 − β), expansion (Borda-Carnot) ζ = (1 − β)², the mean is used (sharp-edged, e.g. DN100 → DN50: 0.47). Also applied to a run with different diameters.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Pipe friction&lt;/b&gt; (comparison in the zeta values dialog): ζ&lt;sub&gt;R&lt;/sub&gt; = λ·L/d, Re = v·d/ν, λ = 64/Re (Re &amp;lt; 2300), otherwise Swamee-Jain λ = 0.25 / [log&lt;sub&gt;10&lt;/sub&gt;(k/(3.7·d) + 5.74/Re&lt;sup&gt;0.9&lt;/sup&gt;)]² (explicit approximation of Colebrook-White).&lt;/li&gt;
+&lt;li&gt;Not included: bends, valves and fittings within a line, enter them in lines.zeta or junctions.zeta.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;b&gt;References&lt;/b&gt;: Recknagel, Sprenger, Albers: Taschenbuch für Heizung + Klimatechnik (local resistances); VDI 2073 Part 1: Hydraulics in building services systems; I. E. Idelchik: Handbook of Hydraulic Resistance, 3rd ed., Begell House 1994 (diagrams of sections 4 and 7: changes of cross section, tees and crosses); P. K. Swamee, A. K. Jain: Explicit equations for pipe-flow problems, J. Hydraul. Div. ASCE 102 (1976) 657–664; C. F. Colebrook: Turbulent flow in pipes, J. Inst. Civ. Eng. 11 (1939) 133–156.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
