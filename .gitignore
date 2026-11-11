@@ -4,3 +4,6 @@ QGIS-legendView-main
 qgis_weather_time_profile
 .qgis-settings/
 .pytest_cache/
+
+# Node (OpenSpec CLI)
+node_modules/

@@ -1,0 +1,28 @@
+schema: spec-driven
+
+# Injected by the CLI into every artifact prompt; they survive `openspec update`
+# regenerating the skills and take precedence over a skill that says to
+# generate all artifacts in one step.
+context: |
+  IDA-Districts: the QGIS plugin "Districts Modeler" (folder districts/, QGIS
+  3.x and 4.x) for district energy systems: projects and versions in
+  PostgreSQL/PostGIS, pipe laying, network topology, pipe sizing, result
+  maps and the coupling to IDA Districts simulations. Tests are pytest with
+  pytest-qgis in districts/test (markers e2e: test DB, ida: IDA Districts);
+  CI runs them on a self-hosted Windows runner on every push to dev. Every
+  artifact of a change lives in this repository, under
+  openspec/changes/<name>/; specs under openspec/specs/.
+rules:
+  specs:
+    - "Design gate: write specs only after the user has confirmed the proposal and the design, the design has no open question, and every high risk has a mitigation the user accepted. Otherwise stop and resolve it with the user."
+  design:
+    - "Name the QGIS versions the change must run on (3.44 and 4.2) and any Qt5/Qt6 difference it touches (utility_functions/compat.py)."
+    - "A change to the project DB schema states how old projects are upgraded (upgrade.py)."
+  tasks:
+    - "Design gate: write tasks only after the user has confirmed the proposal and the design, the design has no open question, and every high risk has a mitigation the user accepted. Otherwise stop and resolve it with the user."
+    - "Include a test task: each new or changed behaviour gets a pytest test in districts/test, with the marker e2e or ida when it needs the test DB or IDA Districts."
+    - "Include a local validation task: from districts/, the QGIS Python runs `-m pytest` and it passes (with `-m \"not ida\"` when IDA Districts is not installed), including test_static_mypy.py and test_messages.py."
+    - "Include a translation task when the change adds or changes a user message or UI text: tr_msg with a German translation, translations de/en compiled."
+    - "Include a CI validation task: commit, push to dev, and watch the plugin-tests run (`gh run watch`, or the Actions tab) until both QGIS jobs pass."
+    - "Include a documentation task: update README.md and CLAUDE.md for each new or changed command or file path, and .github/RUNNER_SETUP.md for a change to the runner's needs."
+    - "Keep each task item on one line."
