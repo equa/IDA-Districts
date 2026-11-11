@@ -31,6 +31,16 @@ def cleanupResultsSensors(cur):
     );"""
     cur.execute(sql)
     
+def getParentVersion(cur,version):
+    """name of the parent version (public.versionhandling.id_base) of the version, None for a base version or
+    if the schema of the parent version does not exist"""
+    cur.execute("""SELECT b.name FROM public.versionhandling v
+    JOIN public.versionhandling b ON b.id = v.id_base
+    JOIN pg_namespace n ON n.nspname = b.name
+    WHERE v.name = %s;""", (version,))
+    row=cur.fetchone()
+    return row['name'] if row else None
+
 def getNetworkVolume(cur,config,networks=None):
     sql="""SELECT sum(innerpipediameter * innerpipediameter*3.1415/4*ST_length(l.geom)) as volume_m3
     FROM "{}".lines l, bundle_pipes bp, pipes p
@@ -413,7 +423,7 @@ def getUsedFilteredFeatureTemplates(feature_type,cur,config):
     sql="""SELECT f.template, f_t.template_name
     FROM "{}".{}s f,{}_templates f_t 
     WHERE f.template=f_t.template
-    GROUP BY f.template,f_t.template_name;""".format(config['versionName'],feature_type,feature_type,config['versionName']) # nosec B608
+    GROUP BY f.template,f_t.template_name;""".format(config['versionName'],feature_type,feature_type) # nosec B608
     dprint(sql)
     cur.execute(sql)
     return cur.fetchall()
@@ -952,9 +962,9 @@ def getFilteredNotInDropDownItems(cur,dropdowns):
 def getDropDownItems(cur,dropdowns):
     dropdownItems={}
     for id,version,table,column,name in dropdowns:         
-        sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table,column) # nosec B608
+        sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table) # nosec B608
         dprint(sql)
-        cur.execute(sql) 
+        cur.execute(sql)
         dropdown_data = cur.fetchall()
         dropdownItems[id]={i['key'] : str(i['key'])+':'+tr('@default',i['name']) for i in dropdown_data}
     return dropdownItems
@@ -1152,4 +1162,52 @@ ORDER BY ordinal_position;""".format(schema,table) # nosec B608
     dprint(sql)
     cur.execute(sql)
     return {i['column_name']: {'data_type': i['data_type'],'column_default': i['column_default']} for i in cur.fetchall()}
+
+#mechanical properties of the materials (pipe statics): Young's modulus [N/mm2], coefficient of thermal expansion [1/K],
+#yield strength [N/mm2], Poisson's ratio [-]; optional (NULL), projects created before do not have the columns
+MATERIAL_MECHANICAL_COLUMNS=['youngs_modulus_n7mm2','thermal_expansion_17kelvin','yield_strength_n7mm2','poissons_ratio']
+MATERIAL_COLUMNS=['name','thermal_conductivity_w7mkelvin','specific_heat_j7kgkelvin','density_kg7m3']+MATERIAL_MECHANICAL_COLUMNS
+
+def addMissingColumns(cur,table,columns):
+    """Adds the columns {name: type} which the table of the schema public does not have. The table is only altered if
+    a column is missing (ALTER TABLE waits for every other connection reading the table), in one statement (the event
+    trigger restrict_column_alterations fails on a query with more than one ALTER TABLE)."""
+    cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = %s;""",(table,))
+    existing=[i['column_name'] for i in cur.fetchall()]
+    missing=['ADD COLUMN IF NOT EXISTS {} {}'.format(col,typ) for col,typ in columns.items() if col not in existing]
+    if missing:
+        cur.execute('ALTER TABLE public.{} {};'.format(table,', '.join(missing))) # nosec B608
+
+def ensureMaterialMechanicalColumns(cur):
+    """Adds the mechanical properties to public.materials of projects created before (the values stay empty)."""
+    addMissingColumns(cur,'materials',{col: 'numeric' for col in MATERIAL_MECHANICAL_COLUMNS})
+
+#pipes: series = pipes of one product line (the pipe sizing chooses among the pipes of the series, without a series among the
+#pipes of the same construction); casing_construction_id = shared casing of a twin pipe (two pipes of a pipe bundle with the
+#same casing; its layers from the axis outwards: foam body (radius), casing wall); the construction of such a pipe is the
+#carrier pipe only. Both optional (NULL), projects created before do not have the columns
+PIPE_TWIN_COLUMNS={'series': 'text', 'casing_construction_id': 'integer'}
+
+def ensurePipeTwinColumns(cur):
+    """Adds the series and the twin pipe casing to public.pipes of projects created before (the values stay empty)."""
+    addMissingColumns(cur,'pipes',PIPE_TWIN_COLUMNS)
+
+def pipeTwinSelect(cur,alias='p'):
+    """Select list of the series and the twin pipe casing of the pipes; NULL for the columns the DB of the cursor does not have."""
+    cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pipes';""")
+    existing=[i['column_name'] for i in cur.fetchall()]
+    return ', '.join('{}.{}'.format(alias,col) if col in existing else 'NULL AS {}'.format(col) for col in PIPE_TWIN_COLUMNS)
+
+def materialMechanicalSelect(cur,alias='m'):
+    """Select list of the mechanical properties of the materials; NULL for the columns the DB of the cursor does not have
+    (resources are read from other, possibly older projects)."""
+    cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'materials';""")
+    existing=[i['column_name'] for i in cur.fetchall()]
+    return ', '.join('{}.{}'.format(alias,col) if col in existing else 'NULL AS {}'.format(col) for col in MATERIAL_MECHANICAL_COLUMNS)
+
+def materialInsertSql(row,name_key='name'):
+    """INSERT of a material from a row with the material columns (missing or empty values are NULL)."""
+    values=["'{}'".format((row.get(name_key) or '').replace("'","''"))]
+    values+=['NULL' if row.get(col) is None else str(row[col]) for col in MATERIAL_COLUMNS[1:]]
+    return "INSERT INTO materials ({}) VALUES ({});".format(','.join(MATERIAL_COLUMNS),','.join(values)) # nosec B608
 

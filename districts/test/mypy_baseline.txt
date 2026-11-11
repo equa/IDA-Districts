@@ -1,0 +1,147 @@
+# Known findings of mypy (test/test_static_mypy.py): count, file, error code, message (tab separated).
+# Written with: python -m pytest test/test_static_mypy.py --update-mypy-baseline
+# Only remove findings here by fixing them. mypy 2.4.1, 958 findings.
+2	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "close"
+1	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "cursor"
+68	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "execute"
+6	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "fetchall"
+3	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "fetchone"
+1	GenerateNetworkTopology.py	has-type	Cannot determine type of "progress_value"
+2	PipeLayingAlgorithm.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "int")
+1	PipeLayingAlgorithm.py	assignment	Incompatible types in assignment (expression has type "tuple[float, float]", variable has type "tuple[int, int]")
+1	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "cancel"
+2	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "close"
+1	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "cursor"
+56	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "execute"
+5	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "fetchall"
+9	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "fetchone"
+2	districts.py	union-attr	Item "None" of "Any | None" has no attribute "execute"
+2	districts.py	union-attr	Item "None" of "Any | None" has no attribute "fetchall"
+4	districts.py	union-attr	Item "None" of "Any | None" has no attribute "itemFromIndex"
+4	dynamic_pipe_sizing.py	method-assign	Cannot assign to a method
+1	elevation_data.py	attr-defined	"str" has no attribute "cursor"
+8	elevation_data.py	attr-defined	"str" has no attribute "execute"
+1	elevation_data.py	attr-defined	"str" has no attribute "fetchone"
+2	elevation_data.py	union-attr	Item "None" of "IO[bytes] | None" has no attribute "close"
+1	ida_import.py	assignment	Incompatible types in assignment (expression has type "dict[Never, Never]", variable has type "list[Any]")
+1	ida_import.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "int")
+1	ida_import.py	assignment	Incompatible types in assignment (expression has type "int", variable has type "bool")
+1	ida_resources_dialog.py	attr-defined	"str" has no attribute "cursor"
+1	ida_resources_dialog.py	attr-defined	"str" has no attribute "execute"
+1	ida_resources_dialog.py	attr-defined	"str" has no attribute "fetchall"
+1	ida_rv.py	assignment	Incompatible types in assignment (expression has type "bool", variable has type "str")
+2	ida_rv_dialog.py	arg-type	Argument 1 to "max" has incompatible type "Any | None"; expected "Iterable[Any]"
+2	ida_rv_dialog.py	arg-type	Argument 1 to "min" has incompatible type "Any | None"; expected "Iterable[Any]"
+1	ida_rv_dialog.py	arg-type	Argument 1 to "suptitle" of "FigureBase" has incompatible type "Any | None"; expected "str"
+6	ida_rv_dialog.py	index	Value of type "Any | None" is not indexable
+1	ida_rv_dialog.py	union-attr	Item "FigureManagerBase" of "FigureManagerBase | None" has no attribute "window"
+4	ida_rv_dialog.py	union-attr	Item "None" of "Any | None" has no attribute "__iter__" (not iterable)
+1	ida_rv_dialog.py	union-attr	Item "None" of "FigureManagerBase | None" has no attribute "window"
+1	invoke_network.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "int")
+4	invoke_network.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "str")
+1	invoke_network.py	assignment	Incompatible types in assignment (expression has type "int", variable has type "str")
+1	invoke_network.py	attr-defined	"str" has no attribute "cursor"
+1	invoke_network.py	has-type	Cannot determine type of "progress_text"
+2	invoke_network.py	has-type	Cannot determine type of "progress_value"
+1	invoke_network.py	index	Value of type "Any | None" is not indexable
+1	invoke_network.py	index	Value of type "None" is not indexable
+1	load_results.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "int")
+1	load_results.py	assignment	Incompatible types in assignment (expression has type "tuple[Any, Any, Any, tuple[str, ...]]", variable has type "tuple[Any, Any, Any, str]")
+2	load_results.py	attr-defined	"str" has no attribute "cursor"
+13	load_results.py	attr-defined	"str" has no attribute "execute"
+5	load_results.py	attr-defined	"str" has no attribute "fetchall"
+1	load_results.py	call-overload	No overload variant of "range" matches argument type "float"
+2	outputs.py	arg-type	Argument 1 to "append" of "list" has incompatible type "dict[Any, Any]"; expected "list[Any]"
+4	outputs.py	arg-type	Argument 1 to "append" of "list" has incompatible type "dict[str, str]"; expected "list[Any]"
+1	outputs.py	assignment	Incompatible types in assignment (expression has type "dict[str, str]", variable has type "list[str]")
+2	outputs.py	assignment	Incompatible types in assignment (expression has type "list[Never]", variable has type "dict[str, str]")
+6	outputs.py	attr-defined	"dict[str, str]" has no attribute "append"
+1	outputs.py	attr-defined	"str" has no attribute "cursor"
+1	outputs.py	call-overload	No overload variant of "__getitem__" of "list" matches argument type "str"
+4	outputs.py	list-item	List item 0 has incompatible type "dict[str, str]"; expected "list[Any]"
+10	path_report.py	attr-defined	"str" has no attribute "execute"
+2	path_report.py	attr-defined	"str" has no attribute "fetchall"
+7	path_report.py	attr-defined	"str" has no attribute "fetchone"
+1	pipe_sizing.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "int")
+1	simulation_tests/run_simulation.py	assignment	Incompatible types in assignment (expression has type "str", target has type "float")
+6	supervisory_control.py	assignment	Incompatible types in assignment (expression has type "int", variable has type "bool")
+1	supervisory_control.py	assignment	Incompatible types in assignment (expression has type "list[Never]", variable has type "str")
+4	supervisory_control.py	assignment	Incompatible types in assignment (expression has type "str", variable has type "bool")
+1	supervisory_control.py	attr-defined	"str" has no attribute "append"
+5	supervisory_control.py	operator	Unsupported operand types for + ("Literal[False]" and "str")
+1	supervisory_control.py	operator	Unsupported operand types for + ("bool" and "str")
+1	test/run_in_qgis.py	arg-type	Argument 1 to "join" has incompatible type "str | None"; expected "str"
+1	test/run_in_qgis.py	type-var	Value of type variable "AnyOrLiteralStr" of "dirname" cannot be "str | None"
+1	test/test_dynamic_pipe_sizing.py	arg-type	Argument 2 to "join" has incompatible type "str | None"; expected "str"
+1	test/test_init.py	assignment	Incompatible types in assignment (expression has type "type[str]", variable has type "Callable[[str], str]")
+1	test/test_init.py	method-assign	Cannot assign to a method
+1	test/test_workflow.py	arg-type	Argument 1 to "float" has incompatible type "str | Any | None"; expected "str | Buffer | SupportsFloat | SupportsIndex"
+1	test/test_workflow.py	arg-type	Argument 1 to "float" has incompatible type "str | None"; expected "str | Buffer | SupportsFloat | SupportsIndex"
+1	test/test_workflow.py	arg-type	Argument 1 to "int" has incompatible type "str | None"; expected "str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc"
+1	test/test_workflow.py	assignment	Incompatible types in assignment (expression has type "list[Any]", variable has type "dict[Any, Any]")
+1	test/test_workflow.py	func-returns-value	"append" of "list" does not return a value (it only ever returns None)
+1	test/test_workflow.py	union-attr	Item "None" of "Element[str] | None" has no attribute "get"
+2	update_boundaries.py	arg-type	Argument 1 to "append" of "list" has incompatible type "dict[str, str]"; expected "list[Any]"
+1	update_boundaries.py	assignment	Incompatible types in assignment (expression has type "bool", variable has type "str")
+2	update_boundaries.py	assignment	Incompatible types in assignment (expression has type "str", variable has type "bool")
+1	update_sensors.py	attr-defined	"str" has no attribute "close"
+1	update_sensors.py	attr-defined	"str" has no attribute "cursor"
+4	update_sensors.py	attr-defined	"str" has no attribute "execute"
+1	utility_functions/dynamic_sizing_results.py	operator	Unsupported left operand type for - ("None")
+4	utility_functions/files.py	assignment	Incompatible types in assignment (expression has type "dict[Any, Any]", variable has type "str")
+1	utility_functions/flow_tracing.py	assignment	Incompatible types in assignment (expression has type "tuple[Any, Any]", target has type "tuple[str, float, float]")
+1	utility_functions/hydraulic_balancing.py	arg-type	Argument "key" to "min" has incompatible type overloaded function; expected "Callable[[Any], SupportsDunderLT[Any] | SupportsDunderGT[Any]]"
+1	utility_functions/hydraulic_balancing.py	arg-type	Argument "key" to "sorted" has incompatible type overloaded function; expected "Callable[[Any], SupportsDunderLT[Any] | SupportsDunderGT[Any]]"
+1	utility_functions/ida_components.py	assignment	Incompatible types in assignment (expression has type "list[float]", variable has type "list[int]")
+1	utility_functions/ida_components.py	assignment	Incompatible types in assignment (expression has type "set[Any]", variable has type "list[Any]")
+1	utility_functions/ida_components.py	index	Invalid index type "str" for "str"; expected type "SupportsIndex | slice[SupportsIndex | None, SupportsIndex | None, SupportsIndex | None]"
+1	utility_functions/ida_components.py	operator	Unsupported operand types for + ("str" and "int")
+1	utility_functions/invoke.py	attr-defined	"str" has no attribute "cursor"
+1	utility_functions/invoke.py	attr-defined	"str" has no attribute "execute"
+1	utility_functions/layer_visualization.py	assignment	Incompatible types in assignment (expression has type "dict[Any, Any]", variable has type "str")
+1	utility_functions/plots.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "int")
+2	utility_functions/plots.py	attr-defined	"Figure" has no attribute "bound_update_ref"
+2	utility_functions/plots.py	attr-defined	"Figure" has no attribute "qgis_canvas_ref"
+1	utility_functions/plots.py	union-attr	Item "FigureManagerBase" of "FigureManagerBase | None" has no attribute "window"
+3	utility_functions/plots.py	union-attr	Item "None" of "FigureManagerBase | None" has no attribute "window"
+2	utility_functions/sensor_signals.py	assignment	Incompatible types in assignment (expression has type "int", variable has type "bool")
+2	utility_functions/sensor_signals.py	assignment	Incompatible types in assignment (expression has type "str", variable has type "bool")
+2	utility_functions/sensor_signals.py	operator	Unsupported operand types for + ("Literal[False]" and "str")
+1	utility_functions/show_on_map.py	assignment	Incompatible types in assignment (expression has type "Any | None", variable has type "list[Any]")
+1	utility_functions/show_on_map.py	attr-defined	"str" has no attribute "cursor"
+6	utility_functions/show_on_map.py	attr-defined	"str" has no attribute "execute"
+1	utility_functions/show_on_map.py	attr-defined	"str" has no attribute "fetchall"
+1	utility_functions/show_on_map.py	attr-defined	"str" has no attribute "fetchone"
+24	utility_functions/show_on_map.py	index	Unsupported target for indexed assignment ("Collection[str]")
+3	utility_functions/show_on_map.py	operator	Unsupported operand types for + ("bool" and "str")
+1	utility_functions/templateFiles.py	arg-type	Argument 1 to "append" of "list" has incompatible type "dict[str, str]"; expected "list[Any]"
+12	utility_functions/templateFiles.py	arg-type	Argument 1 to "enumerate" has incompatible type "object"; expected "Iterable[Never]"
+1	utility_functions/templateFiles.py	assignment	Incompatible types in assignment (expression has type "dict[Never, Never]", variable has type "str")
+2	utility_functions/templateFiles.py	assignment	Incompatible types in assignment (expression has type "object", variable has type "bool")
+2	utility_functions/templateFiles.py	assignment	Incompatible types in assignment (expression has type "object", variable has type "str")
+4	utility_functions/templateFiles.py	attr-defined	"object" has no attribute "__iter__"; maybe "__dir__" or "__str__"? (not iterable)
+4	utility_functions/templateFiles.py	attr-defined	"object" has no attribute "append"
+4	utility_functions/templateFiles.py	attr-defined	"object" has no attribute "index"
+10	utility_functions/templateFiles.py	attr-defined	"object" has no attribute "split"
+8	utility_functions/templateFiles.py	index	Value of type "object" is not indexable
+4	utility_functions/templateFiles.py	operator	Unsupported operand types for + ("object" and "int")
+4	utility_functions/templateFiles.py	operator	Unsupported operand types for - ("object" and "int")
+487	utility_functions/translations.py	call-arg	Missing positional argument "key" in call to "tr"
+1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "None", variable has type "str")
+2	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "bool", variable has type "str")
+1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "str | None")
+1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "str")
+1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "int", variable has type "str | None")
+1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "int", variable has type "str")
+1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "str | None", target has type "str")
+1	utility_functions/utility.py	operator	"object" not callable
+2	utility_functions/utility.py	operator	Cannot call function of unknown type
+1	utility_functions/workers.py	assignment	Incompatible types in assignment (expression has type "dict[Any, Any]", variable has type "str")
+1	utility_functions/workers.py	assignment	Incompatible types in assignment (expression has type "dict[str, Any]", variable has type "str")
+2	utility_functions/workers.py	assignment	Incompatible types in assignment (expression has type "ndarray[tuple[Any, ...], dtype[Any]]", variable has type "list[list[float]]")
+1	utility_functions/workers.py	assignment	Incompatible types in assignment (expression has type "ndarray[tuple[int], dtype[float64 | Any]]", variable has type "list[Any]")
+1	utility_functions/workers.py	assignment	Incompatible types in assignment (expression has type "str", variable has type "list[str]")
+2	utility_functions/workers.py	attr-defined	"str" has no attribute "cursor"
+1	utility_functions/workers.py	call-overload	No overload variant of "__getitem__" of "list" matches argument type "tuple[int, int]"
+2	utility_functions/workers.py	call-overload	No overload variant of "__getitem__" of "list" matches argument type "tuple[slice[None, None, None], int]"
+5	utility_functions/workers.py	index	Invalid index type "str" for "str"; expected type "SupportsIndex | slice[SupportsIndex | None, SupportsIndex | None, SupportsIndex | None]"

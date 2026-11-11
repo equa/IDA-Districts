@@ -10,7 +10,8 @@ from pathlib import Path
 from .update_boundaries import updateTemplateBoundaryValues
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import (
-    delIfNotInDBIds, getClimateData, getDropDownItems, getMaxId, getMaxTableValue, rowCountDB, setSeqIdToMax,
+    MATERIAL_MECHANICAL_COLUMNS, PIPE_TWIN_COLUMNS, delIfNotInDBIds, ensureMaterialMechanicalColumns, ensurePipeTwinColumns, getClimateData,
+    getDropDownItems, getMaxId, getMaxTableValue, materialInsertSql, materialMechanicalSelect, pipeTwinSelect, rowCountDB, setSeqIdToMax,
 )
 from .utility_functions.dialog import (
     TableDialog, addTableRowTrace, checkIDADistrictsInstallation, closeDialog, copyTableRow,
@@ -37,6 +38,7 @@ from .utility_functions.templateFiles import ExchangeConntypeFiles,WriteTemplate
 from .utility_functions.invoke import CopyTemplateFiles
 
 import traceback
+import re
 import pandas as pd
 import numpy as np
 from .utility_functions.debug_log import dprint, debug_enabled
@@ -49,6 +51,30 @@ def sqlInsertQuery(dlg,table,row,db_table):
                             if isNumber(table.item(row,col).data(Qt.ItemDataRole.UserRole)) or table.item(row,col).data(Qt.ItemDataRole.UserRole) in ('True','False','None') else  # nosec B608
                         f"'{table.item(row,col).data(Qt.ItemDataRole.UserRole)}'"  # nosec B608
                             for col in range(2,table.columnCount())])) # nosec B608
+
+def pipeInsertSql(i):
+    """INSERT of a pipe of the resource export; the ids of its construction and of the casing of a twin pipe are placeholders
+    replaced by the ids of the imported constructions."""
+    casing=i.get('casing_construction_id')
+    return "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}',{},{});".format( # nosec B608
+        i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '',
+        "'{}'".format(i['series'].replace("'","''")) if i.get('series') else 'NULL','NULL' if casing is None else '$casing_construction_id:{}$'.format(casing))
+
+def exportCasingConstructions(cur,export_dict,rows):
+    """The casing constructions of the twin pipes in rows are exported with their layers and materials."""
+    ids={str(i['casing_construction_id']) for i in rows if i.get('casing_construction_id') is not None}-set(export_dict['pipe_constructions'].keys())
+    if not ids:
+        return
+    cur.execute("""SELECT c.id AS pipe_construction_id, c.name AS construction_name, l.materialid, l.thickness, l.sequence,
+    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3, {}
+    FROM pipe_constructions c, pipe_layers l, materials m
+    WHERE c.id IN ({}) AND l.pipe_construction_id=c.id AND m.id=l.materialid
+    ORDER BY c.id, l.sequence;""".format(materialMechanicalSelect(cur),','.join(sorted(ids)))) # nosec B608
+    for i in cur.fetchall():
+        cid=str(i['pipe_construction_id'])
+        export_dict['pipe_constructions'].setdefault(cid,"INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '')) # nosec B608
+        export_dict['pipe_layers'].setdefault(cid,{})[str(i['materialid'])]='INSERT INTO pipe_layers (pipe_construction_id,materialid,thickness,sequence) VALUES ($pipe_construction_id$,$materialid$,{},{});'.format(i['thickness'],i['sequence']) # nosec B608
+        export_dict['materials'].setdefault(str(i['materialid']),materialInsertSql(i,'material_name'))
 
 def importResources(dlg,main,import_all=False):
     dprint('importResources')
@@ -113,7 +139,8 @@ def importResources(dlg,main,import_all=False):
     pipes_max_id=setSeqIdToMax('pipes_id_seq','pipes','id',main.cur)
     for pipe_key, pipe_value in import_dict['pipes'].items():
         for construction_key, construction_value in pipe_value.items():
-            db_import+=construction_value.replace('$pipe_construction_id$',str(dict_keys['pipe_constructions'][construction_key]))
+            db_import+=re.sub(r'\$casing_construction_id:(\d+)\$',lambda m: str(dict_keys['pipe_constructions'][m.group(1)]), #casing of a twin pipe
+                construction_value.replace('$pipe_construction_id$',str(dict_keys['pipe_constructions'][construction_key])))
             dict_keys['pipes']={i: pipes_max_id for i in import_dict['pipes']}
             pipes_max_id+=1
     
@@ -158,6 +185,8 @@ def importResources(dlg,main,import_all=False):
 
     dprint(db_import)
     if db_import:
+        ensureMaterialMechanicalColumns(main.cur)  # materials of a newer project have the mechanical properties
+        ensurePipeTwinColumns(main.cur)  # pipes of a newer project have the series and the twin pipe casing
         main.cur.execute(db_import)       
         main.dlg.statusMessage.setText(tr_msg('Resources are imported successfully!'))
         main.dlg.progress.setValue(100)
@@ -262,7 +291,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         result=cur.fetchall()
         
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['name'] if i['name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
+        missing={str(i['materialid']) : materialInsertSql(i,'name') for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
         export_dict['materials'] = export_dict['materials'] | missing
         
         #check for pipe_layers
@@ -275,25 +304,25 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
     #pipes
     pipe_ids=[dlg.tableWidget_pipes.item(i,1).data(Qt.ItemDataRole.UserRole) for i in range(dlg.tableWidget_pipes.rowCount()) if dlg.tableWidget_pipes.cellWidget(i,0).isChecked()]
     if pipe_ids:
-        sql="""SELECT p.id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
+        sql="""SELECT p.id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description, {},
     l.materialid, l.thickness, l.sequence, 
-    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3,
+    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3, {},
     c.name AS construction_name
     FROM pipes p, pipe_layers l, materials m, pipe_constructions c
     WHERE p.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id
-    ORDER BY p.id, l.sequence;""".format(','.join(pipe_ids)) # nosec B608
+    ORDER BY p.id, l.sequence;""".format(pipeTwinSelect(cur),materialMechanicalSelect(cur),','.join(pipe_ids)) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for pipes
         for i in result:
             if str(i['id']) in export_dict['pipes']:
-                export_dict['pipes'][str(i['id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '') # nosec B608
+                export_dict['pipes'][str(i['id'])][str(i['pipe_construction_id'])] = pipeInsertSql(i) # nosec B608
             else:
-                export_dict['pipes'][str(i['id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')} # nosec B608
+                export_dict['pipes'][str(i['id'])]={str(i['pipe_construction_id']) : pipeInsertSql(i)} # nosec B608
 
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
+        missing={str(i['materialid']) : materialInsertSql(i,'material_name') for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
         export_dict['materials'] = export_dict['materials'] | missing
       
         #check for missing pipe_layers
@@ -306,6 +335,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         
         missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()} # nosec B608
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
+        exportCasingConstructions(cur,export_dict,result)
 
     #pipe bundles
     for row in range(dlg.tableWidget_pipe_bundles.rowCount()):
@@ -314,22 +344,22 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
             
     if export_dict['pipe_bundle_types']:
         sql="""SELECT p_bundles.id, p_bundles.description, bp.sequence AS pipe_seq, x, y ,ambient ,
-    p.id AS pipe_id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description,
+    p.id AS pipe_id, p.name AS pipe_name, p.innerpipediameter, p.piperoughnessfactor, p.pipe_construction_id, p.costs, p.description AS pipe_description, {},
     l.materialid, l.thickness, l.sequence AS layer_seq, 
-    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3,
+    m.name AS material_name, m.thermal_conductivity_w7mkelvin, m.specific_heat_j7kgkelvin, m.density_kg7m3, {},
     c.name AS construction_name
     FROM pipes p, pipe_layers l, materials m, pipe_constructions c, bundle_pipes bp, pipe_bundle_types p_bundles
     WHERE p_bundles.id IN ({}) AND l.pipe_construction_id=p.pipe_construction_id AND l.materialid=m.id AND c.id=p.pipe_construction_id AND bp.pipe_bundle_type_id=p_bundles.id AND p.id=bp.pipe_id
-    ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(','.join(export_dict['pipe_bundle_types'].keys())) # nosec B608
+    ORDER BY p_bundles.id, bp.sequence, l.sequence;""".format(pipeTwinSelect(cur),materialMechanicalSelect(cur),','.join(export_dict['pipe_bundle_types'].keys())) # nosec B608
         cur.execute(sql)
         result=cur.fetchall()
         
         #check for missing pipes
         for i in result:
             if str(i['pipe_id']) in export_dict['pipes']:
-                export_dict['pipes'][str(i['pipe_id'])][str(i['pipe_construction_id'])] = "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '') # nosec B608
+                export_dict['pipes'][str(i['pipe_id'])][str(i['pipe_construction_id'])] = pipeInsertSql(i) # nosec B608
             else:
-                export_dict['pipes'][str(i['pipe_id'])]={str(i['pipe_construction_id']) : "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}');".format(i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '')} # nosec B608
+                export_dict['pipes'][str(i['pipe_id'])]={str(i['pipe_construction_id']) : pipeInsertSql(i)} # nosec B608
 
         #check for bundle_pipes
         for i in result:
@@ -339,7 +369,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
                 export_dict['bundle_pipes'][str(i['id'])]={str(i['pipe_seq']) : [str(i['pipe_id']),'INSERT INTO bundle_pipes (pipe_bundle_type_id,sequence,pipe_id,x,y,ambient) VALUES ($pipe_bundle_type_id$,{},$pipe_id$,{},{},{});'.format(i['pipe_seq'],i['x'],i['y'],i['ambient'])]} # nosec B608
 
         #check for missing materials
-        missing={str(i['materialid']) : "INSERT INTO materials (name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3) VALUES ('{}',{},{},{});".format(i['material_name'] if i['material_name'] else '',i['thermal_conductivity_w7mkelvin'],i['specific_heat_j7kgkelvin'],i['density_kg7m3']) for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
+        missing={str(i['materialid']) : materialInsertSql(i,'material_name') for i in result if str(i['materialid']) not in export_dict['materials'].keys()} # nosec B608
         export_dict['materials'] = export_dict['materials'] | missing
       
         #check for missing pipe_layers
@@ -352,6 +382,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         
         missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()} # nosec B608
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
+        exportCasingConstructions(cur,export_dict,result)
         
     if import_fromDB:
         temp_name='resource_export'
@@ -1145,6 +1176,9 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
         dlg.tableWidget.itemChanged.connect(dlg.changeItem)
     dlg.show()
     
+#columns saved as NULL if the cell is empty
+NULLABLE_COLUMNS=['p','mdot','costs','invest_costs','operation_costs']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)
+
 def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
     values=[]
     p=False
@@ -1171,10 +1205,10 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
                     p=True
                 if value and columns[col]=='mdot':
                     mdot=True
-                if not value and (columns[col].lower() in ['p','mdot','costs','invest_costs','operation_costs']):
+                if not value and (columns[col].lower() in NULLABLE_COLUMNS):
                     value='Null'
             else:
-                if columns[col].lower() in ['p','mdot','costs','invest_costs','operation_costs']:
+                if columns[col].lower() in NULLABLE_COLUMNS:
                     value='Null'
                 else:
                     value=''
@@ -1410,7 +1444,7 @@ def writeDefaultsToDB(dlg,table,cur,config,plugin_dir,main):
             )
         if value:
             if value==tr("@default",'no_selection'):
-                sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input,value) # nosec B608
+                sql='ALTER TABLE "{}".{} ALTER COLUMN {} DROP DEFAULT;'.format(config['versionName'],table,input) # nosec B608
                 dprint(sql)
                 cur.execute(sql)    
             else:

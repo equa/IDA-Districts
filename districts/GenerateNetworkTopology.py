@@ -252,7 +252,7 @@ SELECT sub.id FROM sub,temp.streets_help_vertices_pgr shv
             dprint(sql)
             self.cur.execute(sql)
             #delete vertixes in streets_help_vertices_pgr
-            sql="""DELETE FROM temp.streets_help_vertices_pgr shv WHERE id IN ({});""".format(vertex_ids,vertex_ids)  # nosec B608
+            sql="""DELETE FROM temp.streets_help_vertices_pgr shv WHERE id IN ({});""".format(vertex_ids)  # nosec B608
             dprint(sql)
             self.cur.execute(sql)     
 
@@ -509,7 +509,7 @@ ALTER TABLE temp.junctions ADD PRIMARY KEY (id);
 CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING constraints);
 CREATE SEQUENCE temp.lines_id_seq OWNED BY temp.lines.id;
 ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');
-ALTER TABLE temp.lines ADD PRIMARY KEY (id);""".format(version,version,version,version,version,version)) # nosec B608
+ALTER TABLE temp.lines ADD PRIMARY KEY (id);""".format(version,version,version,version)) # nosec B608
         self.cur.execute("""TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
 
         if self.keepTemplates:
@@ -678,7 +678,7 @@ UPDATE temp.streets_help a SET id = sub.new_id
         dprint(sql)
         self.cur.execute(sql)
         
-        sql="""SELECT sh.id FROM temp.streets_help_vertices_pgr v,temp.streets_help sh WHERE v.chk!=0 AND (v.id=sh.source OR v.id=sh.target);""".format(self.tolerance) # nosec B608
+        sql="""SELECT sh.id FROM temp.streets_help_vertices_pgr v,temp.streets_help sh WHERE v.chk!=0 AND (v.id=sh.source OR v.id=sh.target);"""
         dprint(sql)
         self.cur.execute(sql)
         sh_ids=self.cur.fetchall()

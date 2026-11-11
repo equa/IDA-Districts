@@ -75,7 +75,7 @@ ORDER BY time;
 
             # Keep datetime objects directly
             if isinstance(t, str):
-                t = datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
+                t = datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
             time.append(t)
 
             if dt is not None:
@@ -205,7 +205,7 @@ ORDER BY time;
 
             # Keep datetime objects directly
             if isinstance(t, str):
-                t = datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
+                t = datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
             time.append(t)
             
             for col in var_colmns:

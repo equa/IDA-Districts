@@ -33,7 +33,7 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 (DOCUMENT-HEADER :TYPE DISTRICTS-MACRO :D "Districts macro" :APP (DISTRICTS :VER {}))\n""".format(getIDAVersion(config),getIDADistrictsVersion(config))]
 
     #add irefs targets if target type==results (4)
-    filedata.append(''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 209)\n""".format(j['iref'],network) 
+    filedata.append(''.join(["""(:IREF :N "Int_Ref_Sensor_Target_{}" :T IN :F 209)\n""".format(j['iref'])
                         for i in sensor_dec_data  if i['target_type'] ==4 
                         for j in i['irefs_target'] if j['iref'].split('_')[-1]==network]))
     connections=[]
@@ -509,7 +509,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
         for i in added_sensor_info['heatbalance_system']:
             if i['template_name'] in used_templates:
                 name= 'hb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
-                filedata.append("""\n(EQUATION-FRAME :AT (({} 275)) :R (16 16) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name,name))
+                filedata.append("""\n(EQUATION-FRAME :AT (({} 275)) :R (16 16) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name))
                 filedata.append("""\n(CONNECTION-LINE :AT ((10 240) ({} 240) ({} 275) ({} 275)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("{}" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,i['id'],network,name))
                 x_coord+=dx_coord  
     x_coord=46
@@ -518,7 +518,7 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
         for i in added_sensor_info['massbalance_system']:
             if i['template_name'] in used_templates:
                 name= 'mdotb_'+('customer' if i['type']==1 else 'energy_plant')+'_' + i['template_name']
-                filedata.append("""\n(EQUATION-FRAME :AT (({} 375)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name,name))
+                filedata.append("""\n(EQUATION-FRAME :AT (({} 375)) :R (18 18) :ICON "lib:gain.ids" :SLOT ("") :NAME "{}" :DATA MODEL) """.format(x_coord,name))
                 filedata.append("""\n(CONNECTION-LINE :AT ((10 340) ({} 340) ({} 375) ({} 375)) :FIRST-LINK (:SELF (0.0 0.074) "Int_Ref_Sensor_Target_{}_X_X_X_{}") :LAST-LINK ("{}" (0 0.5) |u|) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-31,x_coord-31,x_coord-21.5,i['id'],network,name))
                 x_coord+=dx_coord    
             

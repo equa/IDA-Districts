@@ -22,6 +22,9 @@ def _register_translation_keys():
     tr("sequence")
     tr("no_pipe")
     tr("no_pipe_bundles_found")
+    tr("compare_with_parent_version")
+    tr("no_parent_version")
+    tr("no_pipe_in_parent_version")
     tr("name")
     tr("networks")
     tr("templates")
@@ -237,6 +240,7 @@ def _register_translation_keys():
     tr("pipe_laying_info")
     tr("network_topology_info")
     tr("pipe_sizing_info")
+    tr("dynamic_pipe_sizing_info")
     tr("zeta_values")
     tr("zeta_values_info")
     tr("zeta_values_failed")
@@ -538,11 +542,17 @@ def _register_translation_keys():
     tr("innerpipediameter")
     tr("piperoughnessfactor")
     tr("pipe_costs")
+    tr("pipe_series")
+    tr("casing_construction_id")
     
     #materials
     tr("thermal_conductivity_w7mkelvin")
     tr("specific_heat_j7kgkelvin")
     tr("density_kg7m3")
+    tr("youngs_modulus_n7mm2")
+    tr("thermal_expansion_17kelvin")
+    tr("yield_strength_n7mm2")
+    tr("poissons_ratio")
 
     #defaults dialog
     tr("defaults_layer_lines")

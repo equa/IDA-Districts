@@ -2227,6 +2227,16 @@
             <translation type="unfinished">Konstruktion ID</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="481" />
+            <source>pipe_series</source>
+            <translation type="unfinished">Serie (Rohrdimensionierung)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="481" />
+            <source>casing_construction_id</source>
+            <translation type="unfinished">Doppelrohr: Konstruktion ID der gemeinsamen Hülle</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="483" />
             <source>inner_diameter</source>
             <translation type="unfinished">Rohrinnendurchmesser, m</translation>
@@ -4041,6 +4051,26 @@
             <translation type="unfinished">Dichte, kg/m3</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>youngs_modulus_n7mm2</source>
+            <translation type="unfinished">E-Modul, N/mm2</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>thermal_expansion_17kelvin</source>
+            <translation type="unfinished">Wärmeausdehnungskoeffizient, 1/K</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>yield_strength_n7mm2</source>
+            <translation type="unfinished">Streckgrenze, N/mm2</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>poissons_ratio</source>
+            <translation type="unfinished">Querdehnzahl, -</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="151" />
             <source>template_name</source>
             <translation type="unfinished">Vorlagenname</translation>
@@ -4108,6 +4138,21 @@
             <location filename="../utility_functions/translations.py" line="18" />
             <source>no_pipe_bundles_found</source>
             <translation type="unfinished">Keine Rohrbündel mit einem Rohr in dieser Sequenz gefunden</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="25" />
+            <source>compare_with_parent_version</source>
+            <translation type="unfinished">Mit Mutterversion vergleichen</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="26" />
+            <source>no_parent_version</source>
+            <translation type="unfinished">keine Mutterversion</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="27" />
+            <source>no_pipe_in_parent_version</source>
+            <translation type="unfinished">kein Rohr in der Mutterversion</translation>
         </message>
         <message>
             <location filename="../utility_functions/layer_visualization.py" line="257" />
@@ -4247,6 +4292,27 @@ Wählt für jede Sequenz (Vorlauf, Rücklauf, …) der Trassen des gewählten Ne
 &lt;/ol&gt;
 &lt;b&gt;Flüssigkeitskreisläufe&lt;/b&gt;: Vorlauf- und Rücklaufsequenz, Temperaturen und Lastspalte. &lt;b&gt;Sequenzen&lt;/b&gt;: die zu berücksichtigenden Rohre je Sequenz.&lt;br&gt;
 Das Ergebnis wird als temporärer Layer angezeigt. &lt;b&gt;Speichern&lt;/b&gt; schreibt die Rohrbündel in die Trassen des Netzes, &lt;b&gt;Verwerfen&lt;/b&gt; verwirft das Ergebnis und löscht neu erzeugte Rohrbündeltypen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>dynamic_pipe_sizing_info</source>
+            <translation type="unfinished">&lt;b&gt;Dynamische Rohrdimensionierung mit hydraulischem Abgleich&lt;/b&gt;&lt;br&gt;
+Dimensioniert die Rohre des gewählten Netzes mit der dynamischen Simulation so, dass die Abnehmer an ihren Übergabestationen etwa den gleichen Differenzdruck erhalten (hydraulischer Abgleich), ohne ein Rohr zu überlasten. In jeder Iteration:
+&lt;ol&gt;
+&lt;li&gt;&lt;b&gt;Erstellen&lt;/b&gt; des Netzmodells des Netzes und Teilmodells mit den aktuellen Rohrbündeln der Trassen (in der ersten Iteration nur mit &lt;i&gt;Build the network model before the first simulation&lt;/i&gt;).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Simulieren&lt;/b&gt; des Teilmodells mit den Einstellungen des Simulationsdialogs und &lt;b&gt;Laden der Ergebnisse&lt;/b&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Strömungsverfolgung&lt;/b&gt; für jeden Zeitschritt: der Massenstrom jedes Abnehmers wird den Trassen und Energiezentralen zugeordnet, die ihn versorgen (vollständige Mischung an den Knoten, auch für vermaschte Netze und mehrere Zentralen). Netzdruckverlust eines Abnehmers Δp&lt;sub&gt;Netz&lt;/sub&gt; = (p&lt;sub&gt;EZ,VL&lt;/sub&gt; − p&lt;sub&gt;A,VL&lt;/sub&gt;) + (p&lt;sub&gt;A,RL&lt;/sub&gt; − p&lt;sub&gt;EZ,RL&lt;/sub&gt;) zu den versorgenden Zentralen mit einem Anteil ≥ &lt;i&gt;Min. share of a plant&lt;/i&gt; (Maximum oder mit den Anteilen gewichtet).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Zeitschritt je Abnehmer&lt;/b&gt;: sein maximales Δp&lt;sub&gt;Netz&lt;/sub&gt;, sein maximaler Massenstrom an der Übergabestation oder der global kritische Zeitschritt aller Abnehmer. Der Abnehmer mit dem grössten Δp&lt;sub&gt;Netz&lt;/sub&gt; ist der Schlechtpunkt der Simulation. In diesem Zeitschritt: Δp&lt;sub&gt;A&lt;/sub&gt; = p&lt;sub&gt;VL&lt;/sub&gt; − p&lt;sub&gt;RL&lt;/sub&gt; an der Übergabestation und die Massenströme des Abnehmers in seinen Trassen (c_lid).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Auslegungsmassenstrom&lt;/b&gt; einer Trasse = Summe der Abnehmermassenströme in c_lid. Spezifischer Druckverlust R der Trasse [Pa/m] (Vor- + Rücklaufrohr): Darcy-Weisbach mit Colebrook aus Innendurchmesser und Rauhigkeit des Rohrs und der Temperatur im kritischen Zeitschritt (70/40 °C falls fehlend). Einzelverluste (ζ) sind in R nicht enthalten.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Vordimensionierung&lt;/b&gt; (optional): jede Trasse erhält das kleinste Rohr derselben Bauart mit R ≤ Sollwert je Rohr für ihren Auslegungsmassenstrom, mindestens für ihren Spitzenmassenstrom über den ganzen Simulationszeitraum. Trassen, deren Rohre den &lt;i&gt;Max. specific pressure loss at peak flow&lt;/i&gt; überschreiten, werden vergrössert.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Hydraulischer Abgleich&lt;/b&gt;: Ziel = Δp&lt;sub&gt;A&lt;/sub&gt; des Schlechtpunkt-Abnehmers (kleinstes Δp&lt;sub&gt;A&lt;/sub&gt; nach der Vordimensionierung); seine Versorgungstrassen werden nicht verändert. Wiederholt erhält der Abnehmer mit dem höchsten Δp&lt;sub&gt;A&lt;/sub&gt; über Ziel + &lt;i&gt;Tolerance exceedance&lt;/i&gt; in seiner Trasse mit dem kleinsten R das nächstkleinere Rohr (gleiche Bauart, Vor- und Rücklauf); die zuletzt geänderte Trasse nur, wenn keine andere möglich ist. Eine Verkleinerung wird verworfen, wenn die Geschwindigkeit oder der spezifische Druckverlust bei Spitzenlast die Grenze überschreitet oder ein betroffener Abnehmer unter Ziel − &lt;i&gt;Tolerance undershoot&lt;/i&gt; fallen würde. Der zusätzliche Verlust ΔR · L wird von Δp&lt;sub&gt;A&lt;/sub&gt; aller über die Trasse versorgten Abnehmer abgezogen (mit &lt;i&gt;Weight the pressure loss ...&lt;/i&gt;: mal dem Anteil der Trasse am Abnehmermassenstrom). Der Abgleich endet, wenn alle Abnehmer innerhalb der Toleranz liegen oder keine Verkleinerung mehr möglich ist; die Quote ist der Anteil der abgeglichenen Abnehmer.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Schreiben der Rohre&lt;/b&gt;: geänderte Trassen erhalten den Rohrbündeltyp mit den neuen Rohren (ein vorhandener wird wiederverwendet, ein fehlender mit den Positionen des ursprünglichen Bündels erzeugt). c_lid vor und nach der Dimensionierung wird als dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid.json / _c_lid_sized.json im Versionsordner gespeichert.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Iterationen&lt;/b&gt;: jede Iteration wird als dynamic_sizing_iter&amp;lt;n&amp;gt;.json im Versionsordner gespeichert und im Reiter &lt;i&gt;Iterations&lt;/i&gt; aufgelistet (kritischer Zeitpunkt, Schlechtpunkt, dp min/max und Spreizung an den Übergabestationen simuliert, Spreizung nach der Dimensionierung geschätzt, Quote, geänderte Trassen, Ergebnis); die Dateien eines früheren Laufs werden beim Start gelöscht. Mit &lt;i&gt;Show every iteration on the map&lt;/i&gt;, oder nachträglich mit &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (oder Doppelklick), erhält die Gruppe &lt;i&gt;Dynamische Rohrdimensionierung&lt;/i&gt; eine Untergruppe je Iteration: Abnehmer mit abgestuften Farben des dp an der Übergabestation (rot = tief, blau = hoch, der Schlechtpunkt als grösserer, beschrifteter Punkt), Trassen mit abgestuften Farben und Breiten des Auslegungsmassenstroms und die Trassen mit neuen Rohren (beschriftet altes → neues Rohr). Die Klassen sind für alle Iterationen gleich, die letzte ist sichtbar; zum Vergleichen die Untergruppen im Layerbaum umschalten. Die Layer werden beim Laden einer Version entfernt.&lt;br&gt;
+&lt;b&gt;Ende&lt;/b&gt;: konvergiert, wenn sich die Rohre nicht mehr ändern; abgebrochen, wenn die Rohre eine frühere Iteration wiederholen (Oszillation, die Trassen werden nicht geändert) oder nach der max. Anzahl Iterationen (die Trassen enthalten dann die Rohre der letzten Iteration, noch nicht simuliert). &lt;b&gt;Stop after this step&lt;/b&gt; hält vor dem nächsten Schritt an, erneut gedrückt bricht es sofort ab (eine laufende Simulation wird nicht unterbrochen).&lt;br&gt;
+Die Massenströme bleiben innerhalb einer Iteration konstant, Δp&lt;sub&gt;A&lt;/sub&gt; nach der Dimensionierung ist eine Schätzung; die nächste Simulation zeigt die tatsächliche Wirkung.&lt;br&gt;
+&lt;b&gt;Version&lt;/b&gt;: vor der ersten Iteration wird eine neue Kindversion der geladenen Version erstellt und geladen (die geladene Version behält ihre Rohre), oder die Rohre der geladenen Version werden überschrieben.&lt;br&gt;
+&lt;b&gt;Voraussetzungen&lt;/b&gt;: aktuelle Netz-Topologie; Ergebnisse der Massenströme und Temperaturen der Trassen sowie der Drücke und Massenströme an den Anschlüssen der Abnehmer und Energiezentralen (angeforderte Ausgaben); ein Rohrkatalog mit mehreren Innendurchmessern je Rohrbauart.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -7266,7 +7332,9 @@ li.checked::marker { content: "\2612"; }
         <message>
             <location filename="../districts_stylePipeDiameter.ui" line="29" />
             <source>info_stylePipeDiameter</source>
-            <translation type="unfinished">Kategorisiert den Layer Leitungen nach dem Rohrinnendurchmesser des Rohrs mit der gewählten Sequenz im Rohrbündel. Die Farben verlaufen stetig entlang der Farbrampe vom kleinsten zum größten Durchmesser. Leitungen ohne Rohr in dieser Sequenz werden grau dargestellt.</translation>
+            <translation type="unfinished">Kategorisiert den Layer Leitungen nach dem Rohrinnendurchmesser des Rohrs mit der gewählten Sequenz im Rohrbündel. Die Farben verlaufen stetig entlang der Farbrampe vom kleinsten zum größten Durchmesser. Leitungen ohne Rohr in dieser Sequenz werden grau dargestellt.
+
+Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Rohrinnendurchmessers zur Leitung mit derselben ID in der Mutterversion (+ größer, − kleiner als in der Mutterversion). Die Farbrampe ist bei der Differenz 0 zentriert, unveränderte Leitungen werden dunkelgrau, Leitungen ohne Rohr in der Mutterversion (z. B. neue Leitungen) schwarz dargestellt. Die Beschriftung zeigt die Differenz der geänderten Leitungen in mm.</translation>
         </message>
         <message>
             <location filename="../districts_stylePipeDiameter.ui" line="38" />
@@ -7319,8 +7387,8 @@ li.checked::marker { content: "\2612"; }
             <translation>  c_lid konnte nicht gespeichert werden: </translation>
         </message>
         <message>
-            <source>  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, balancing steps {}</source>
-            <translation>  Schätzung nach der Dimensionierung: Schlechtpunkt Abnehmer {}, Quote {:.0%}, Spreizung {:.0f} Pa, vordimensioniert {}, Abgleichschritte {}</translation>
+            <source>  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, hydraulic balancing steps {}</source>
+            <translation>  Schätzung nach der Dimensionierung: Schlechtpunkt Abnehmer {}, Quote {:.0%}, Spreizung {:.0f} Pa, vordimensioniert {}, Schritte hydraulischer Abgleich {}</translation>
         </message>
         <message>
             <source>  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa</source>
@@ -7651,8 +7719,8 @@ li.checked::marker { content: "\2612"; }
             <translation>Iteration {}: Netzmodell wird erstellt ...</translation>
         </message>
         <message>
-            <source>Iteration {}: flow tracing and pipe sizing ...</source>
-            <translation>Iteration {}: Strömungsverfolgung und Rohrdimensionierung ...</translation>
+            <source>Iteration {}: flow tracing, pipe sizing and hydraulic balancing ...</source>
+            <translation>Iteration {}: Strömungsverfolgung, Rohrdimensionierung und hydraulischer Abgleich ...</translation>
         </message>
         <message>
             <source>Iteration {}: loading the results ...</source>
@@ -8159,8 +8227,8 @@ li.checked::marker { content: "\2612"; }
             <translation>Wird gestartet</translation>
         </message>
         <message>
-            <source>Static pipe sizing: </source>
-            <translation>Statische Rohrdimensionierung: </translation>
+            <source>Dynamic pipe sizing: </source>
+            <translation>Dynamische Rohrdimensionierung: </translation>
         </message>
         <message>
             <source>Stop after this step</source>
@@ -8549,6 +8617,114 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>{}: {} and {}: {} intersect.</source>
             <translation>{}: {} und {}: {} überschneiden sich.</translation>
+        </message>
+        <message>
+            <source>pipes changed</source>
+            <translation>Rohre geändert</translation>
+        </message>
+        <message>
+            <source>converged</source>
+            <translation>konvergiert</translation>
+        </message>
+        <message>
+            <source>oscillation</source>
+            <translation>Oszillation</translation>
+        </message>
+        <message>
+            <source>pipes changed, max. iterations</source>
+            <translation>Rohre geändert, max. Iterationen</translation>
+        </message>
+        <message>
+            <source>Dynamic pipe sizing</source>
+            <translation>Dynamische Rohrdimensionierung</translation>
+        </message>
+        <message>
+            <source>Iteration {}</source>
+            <translation>Iteration {}</translation>
+        </message>
+        <message>
+            <source>weak point</source>
+            <translation>Schlechtpunkt</translation>
+        </message>
+        <message>
+            <source>no result</source>
+            <translation>kein Ergebnis</translation>
+        </message>
+        <message>
+            <source>no flow</source>
+            <translation>kein Durchfluss</translation>
+        </message>
+        <message>
+            <source>Lines – design mass flow [kg/s]</source>
+            <translation>Trassen – Auslegungsmassenstrom [kg/s]</translation>
+        </message>
+        <message>
+            <source>Lines – new pipes</source>
+            <translation>Trassen – neue Rohre</translation>
+        </message>
+        <message>
+            <source>Customers – dp substation [bar]</source>
+            <translation>Abnehmer – dp Übergabestation [bar]</translation>
+        </message>
+        <message>
+            <source>Iteration</source>
+            <translation>Iteration</translation>
+        </message>
+        <message>
+            <source>Critical time</source>
+            <translation>Kritischer Zeitpunkt</translation>
+        </message>
+        <message>
+            <source>Weak point (plant)</source>
+            <translation>Schlechtpunkt (Zentrale)</translation>
+        </message>
+        <message>
+            <source>dp min [bar]</source>
+            <translation>dp min [bar]</translation>
+        </message>
+        <message>
+            <source>dp max [bar]</source>
+            <translation>dp max [bar]</translation>
+        </message>
+        <message>
+            <source>Spread [bar]</source>
+            <translation>Spreizung [bar]</translation>
+        </message>
+        <message>
+            <source>Spread after sizing (est.) [bar]</source>
+            <translation>Spreizung nach Dimensionierung (gesch.) [bar]</translation>
+        </message>
+        <message>
+            <source>Quota [%]</source>
+            <translation>Quote [%]</translation>
+        </message>
+        <message>
+            <source>Changed lines</source>
+            <translation>Geänderte Trassen</translation>
+        </message>
+        <message>
+            <source>Outcome</source>
+            <translation>Ergebnis</translation>
+        </message>
+        <message>
+            <source>Description</source>
+            <translation>Beschreibung</translation>
+        </message>
+        <message>
+            <source>Please select one or more iterations in the table.</source>
+            <translation>Bitte eine oder mehrere Iterationen in der Tabelle auswählen.</translation>
+        </message>
+        <message>
+            <source>The iterations could not be shown: </source>
+            <translation>Die Iterationen konnten nicht angezeigt werden: </translation>
+        </message>
+        <message>
+            <source>  the results of the iteration could not be saved or shown: </source>
+            <translation>  die Ergebnisse der Iteration konnten nicht gespeichert oder angezeigt werden: </translation>
+        </message>
+        <message>
+            <source>Twin pipe of the pipe bundle {}: {}</source>
+            <translation>Doppelrohr des Rohrbündels {}: {}</translation>
         </message>
     </context>
 </TS>

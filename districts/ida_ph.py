@@ -15,7 +15,7 @@ from .utility_functions.compat import (
 from .utility_functions.height_check import HEIGHT_CHECK_LAYERS, heightConsistency, heightGraduated
 from .utility_functions.zeta import ZETA_LAYER_NAMES, ZETA_LAYERS, showZetaValues
 from .utility_functions.db import (
-    checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getProjectVersionNames, getTableAttr,
+    checkDBName, checkDBVersionConnected, copy_schema, dbConnect, getParentVersion, getProjectVersionNames, getTableAttr,
     setDistrictsModelerVersion2DB,
 )
 from .utility_functions.dialog import closeDialog, closeOtherDistrictsDialogs, infoTextEdit
@@ -79,7 +79,8 @@ class ShowPipeDiameterStyleDialog:
 def setPipeDiameterStyle(dlg):
     if not stylePipeDiameter(dlg.cur, sequence=dlg.spinBox_sequence.value(), only_used=dlg.checkBox_onlyUsed.isChecked(),
                              show_labels=dlg.checkBox_showLabels.isChecked(), ramp_name=dlg.comboBox_colorRamp.currentText(),
-                             invert_ramp=dlg.checkBox_invertRamp.isChecked()):
+                             invert_ramp=dlg.checkBox_invertRamp.isChecked(),
+                             compare_version=dlg.parent_version if dlg.checkBox_compareParent.isChecked() else None):
         iface.messageBar().pushMessage(tr('@default','style_pipe_diameter'), tr('@default','no_pipe_bundles_found'), level=MessageInfo, duration=5)
         return
     closeDialog(dlg)
@@ -254,6 +255,25 @@ class PipeDiameterStyleDialog(QDialog):
         row=self.cur.fetchone()
         if row and row['max'] is not None:
             self.spinBox_sequence.setRange(int(row['min']),int(row['max']))
+
+        # comparison with the parent version (difference of the inner diameter of the lines with the same id)
+        self.parent_version=getParentVersion(self.cur,self.config['versionName'])
+        self.checkBox_compareParent.setText('{} ({})'.format(tr('@default','compare_with_parent_version'),
+                                                             self.parent_version or tr('@default','no_parent_version')))
+        self.checkBox_compareParent.setEnabled(bool(self.parent_version))
+        self.checkBox_compareParent.toggled.connect(self.compareParentToggled)
+
+    def compareParentToggled(self,checked):
+        """diverging color ramp for the differences (smaller blue, larger red), the previous one without comparison"""
+        if checked:
+            self.ramp_before=(self.comboBox_colorRamp.currentText(),self.checkBox_invertRamp.isChecked())
+            if self.comboBox_colorRamp.findText('RdBu')>=0:
+                self.comboBox_colorRamp.setCurrentText('RdBu')
+                self.checkBox_invertRamp.setChecked(True)
+        else:
+            self.comboBox_colorRamp.setCurrentText(self.ramp_before[0])
+            self.checkBox_invertRamp.setChecked(self.ramp_before[1])
+        self.checkBox_onlyUsed.setEnabled(not checked)
 
 class HeightCheckDialog(QDialog):
     def __init__(self):
@@ -605,7 +625,7 @@ class WorkerAddChildVersion(QRunnable):
         self.password=password
 
     def run(self):
-        from .utility_functions.pipe_downsizing import createChildVersion
+        from .utility_functions.hydraulic_balancing import createChildVersion
         try:
             self.signals.progress.emit(10)
             createChildVersion(self.cur,self.config,self.plugin_dir,self.versionName,self.description,self.username,self.password)

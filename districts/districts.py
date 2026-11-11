@@ -82,11 +82,13 @@ from .ida_rv_dialog import (
 )
 from .osm import WorkerOSMImport, get_overpass_bbox
 from .pipe_sizing import loadPipes, rejectPipeSizingResults, savePipeSizingResults, startPipeSizing
-from .static_pipe_sizing import StaticPipeSizingDialog
+from .dynamic_pipe_sizing import DynamicPipeSizingDialog
 from .update_sensors import UpdateSensors
 from .utility_functions.compat import ApplicationShortcut, MessageCritical, MessageInfo, QAction
 from .utility_functions.db import (
-    closeIdleDistrictsConnections, connectDBPostgres, dbConnect, getClimateData, getNetworks, getUsedNetworkSubmodels,
+    MATERIAL_MECHANICAL_COLUMNS, closeIdleDistrictsConnections, connectDBPostgres, dbConnect, ensureMaterialMechanicalColumns,
+    ensurePipeTwinColumns,
+    getClimateData, getNetworks, getUsedNetworkSubmodels,
     updateProjectNamesList,
 )
 from .utility_functions.dialog import (
@@ -873,7 +875,8 @@ class Districts:
             
     def manageMaterials(self):
         if self.conn:
-            show_TableDialog(main=self,title=tr('@default','materials'),table='materials',headers=[tr('@default','id'),tr('@default','name'),tr('@default','thermal_conductivity'),tr('@default','specific_heat'),tr('@default','density')],columns='(id,name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3)') 
+            ensureMaterialMechanicalColumns(self.cur)  # projects created before do not have the mechanical properties
+            show_TableDialog(main=self,title=tr('@default','materials'),table='materials',headers=[tr('@default','id'),tr('@default','name'),tr('@default','thermal_conductivity'),tr('@default','specific_heat'),tr('@default','density')]+[tr('@default',col) for col in MATERIAL_MECHANICAL_COLUMNS],columns='(id,name,thermal_conductivity_w7mkelvin,specific_heat_j7kgkelvin,density_kg7m3,{})'.format(','.join(MATERIAL_MECHANICAL_COLUMNS))) 
 
     def managePipeConstructions(self):
         if self.conn:
@@ -881,7 +884,8 @@ class Districts:
 
     def managePipes(self):
         if self.conn:
-            show_TableDialog(main=self,title=tr('@default','pipes'),table='pipes',headers=[tr('@default','id'),tr('@default','name'),tr('@default','inner_diameter'),tr('@default','absolute_roughness'),tr('@default','pipe_construction_id'),tr('@default','pipe_costs'),tr('@default','description')],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
+            ensurePipeTwinColumns(self.cur)  # projects created before do not have the series and the twin pipe casing
+            show_TableDialog(main=self,title=tr('@default','pipes'),table='pipes',headers=[tr('@default','id'),tr('@default','name'),tr('@default','inner_diameter'),tr('@default','absolute_roughness'),tr('@default','pipe_construction_id'),tr('@default','pipe_costs'),tr('@default','description'),tr('@default','pipe_series'),tr('@default','casing_construction_id')],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
 
     def manageTemplates(self,type):
         if self.conn:
@@ -1292,16 +1296,16 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
-    def showStaticPipeSizing(self):
-        """Static pipe sizing: loop of building the network model, simulation, loading results and pipe sizing"""
+    def showDynamicPipeSizing(self):
+        """Dynamic pipe sizing: loop of building the network model, simulation, loading results and pipe sizing"""
         if self.conn:
             if self.config['versionName']:
                 if not checkIDADistrictsInstallation(self.config):
                     return
                 self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-                self.dlg_staticPipeSizing=StaticPipeSizingDialog(self)
-                self.dlg_staticPipeSizing.fillCombos(self.cur,self.config)
-                self.dlg_staticPipeSizing.show()
+                self.dlg_dynamicPipeSizing=DynamicPipeSizingDialog(self)
+                self.dlg_dynamicPipeSizing.fillCombos(self.cur,self.config)
+                self.dlg_dynamicPipeSizing.show()
             else:
                 self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
@@ -1589,7 +1593,7 @@ class Districts:
             self.dlg.btn_buildModel.clicked.connect(self.showBuildModel)
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
             self.dlg.btn_runModel.clicked.connect(self.showRunModel)
-            self.dlg.btn_staticPipeSizing.clicked.connect(self.showStaticPipeSizing)
+            self.dlg.btn_dynamicPipeSizing.clicked.connect(self.showDynamicPipeSizing)
             self.dlg.btn_calibration.clicked.connect(self.showCalibration)
             
             #results and visualization

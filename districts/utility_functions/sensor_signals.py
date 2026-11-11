@@ -583,7 +583,7 @@ SELECT sub.sensor_id AS sensor_id, s.type AS source_type, type2.name AS source_t
     sub.irefs_source,sub.irefs_target, s.test_value,s.description AS description_source, t.description AS description_target
     FROM sub, sensor_source s, sensor_target t, signal_function s_f, measure m, type type1, type type2
     WHERE s.sensor_id=sub.sensor_id AND t.sensor_id=s.sensor_id AND m.id=s.measure 
-    AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) 
+    AND s_f.id=s.function AND type1.id=t.type AND type2.id=s.type AND s.type IN ({}) AND t.type IN ({}) {}
     GROUP BY sub.source_template_name, sub.target_template_name, s.measure,sub.function,sub.sensor_id, s.type, t.type, type1.name, type2.name, s_f.function, m.measure, s.test_value,sub.irefs_source,s.description, t.description,irefs_target
     ORDER BY sub.sensor_id;""".format( # nosec B608
     #feature blocks: customers and energy plants alternating

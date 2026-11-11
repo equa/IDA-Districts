@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>StaticPipeSizingDialog</class>
- <widget class="QDialog" name="StaticPipeSizingDialog">
+ <class>DynamicPipeSizingDialog</class>
+ <widget class="QDialog" name="DynamicPipeSizingDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,37 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Static pipe sizing</string>
+   <string>Dynamic pipe sizing and hydraulic balancing</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_main">
    <item>
-    <widget class="QTextEdit" name="textEdit_info">
-     <property name="readOnly">
-      <bool>true</bool>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>190</height>
-      </size>
-     </property>
-     <property name="html">
-      <string>&lt;p&gt;&lt;b&gt;Static pipe sizing&lt;/b&gt;&lt;/p&gt;
-&lt;p&gt;Iterative sizing of the pipe dimensions with the dynamic network simulation. Every iteration:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;build the network model (pipe bundles of the lines),&lt;/li&gt;
-&lt;li&gt;run the simulation (settings of &lt;i&gt;run simulation&lt;/i&gt;) and load the results,&lt;/li&gt;
-&lt;li&gt;flow tracing: mass flow of every customer per line (c_lid) and differential pressure at the substations,&lt;/li&gt;
-&lt;li&gt;optional pre-sizing with the specific pressure loss setpoint, then balancing of the customers by reducing pipe dimensions,&lt;/li&gt;
-&lt;li&gt;the new pipe bundles are written to the lines (missing bundle types are created).&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;The loop stops when the pipe dimensions do not change anymore, when a state repeats or after the maximal number of iterations. Every pipe is checked against the maximal specific pressure loss at its peak mass flow over the whole simulation period, so lines are not undersized.&lt;/p&gt;
-&lt;p&gt;&lt;b&gt;Version:&lt;/b&gt; either a new child version of the loaded version is created and loaded before the first iteration (the loaded version keeps its pipes), or the pipes of the loaded version are overridden. The mass flows are kept constant within an iteration, the next simulation shows the real effect.&lt;/p&gt;</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_version">
+    <widget class="QgsCollapsibleGroupBox" name="groupBox_version">
      <property name="title">
       <string>Version</string>
      </property>
@@ -91,7 +65,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_network">
+    <widget class="QgsCollapsibleGroupBox" name="groupBox_network">
      <property name="title">
       <string>Network</string>
      </property>
@@ -187,9 +161,9 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_balancing">
+    <widget class="QgsCollapsibleGroupBox" name="groupBox_balancing">
      <property name="title">
-      <string>Balancing of the customers</string>
+      <string>Hydraulic balancing of the customers</string>
      </property>
      <layout class="QFormLayout" name="formLayout_balancing">
       <item row="0" column="0">
@@ -249,7 +223,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_sizing">
+    <widget class="QgsCollapsibleGroupBox" name="groupBox_sizing">
      <property name="title">
       <string>Pipe sizing</string>
      </property>
@@ -280,7 +254,7 @@
       <item row="1" column="0" colspan="2">
        <widget class="QCheckBox" name="checkBox_presizeOnly">
         <property name="text">
-         <string>Only pre-sizing (no balancing of the customers)</string>
+         <string>Only pre-sizing (no hydraulic balancing)</string>
         </property>
        </widget>
       </item>
@@ -337,7 +311,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_iteration">
+    <widget class="QgsCollapsibleGroupBox" name="groupBox_iteration">
      <property name="title">
       <string>Iteration</string>
      </property>
@@ -379,17 +353,89 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QCheckBox" name="checkBox_showMap">
+        <property name="text">
+         <string>Show every iteration on the map</string>
+        </property>
+        <property name="toolTip">
+         <string>dp at the substations, weak point and design mass flow of the lines of every iteration as layers in the group Dynamic pipe sizing</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
    <item>
-    <widget class="QPlainTextEdit" name="textEdit_log">
-     <property name="readOnly">
-      <bool>true</bool>
+    <widget class="QTabWidget" name="tabWidget_results">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <property name="placeholderText">
-      <string>Progress of the iterations</string>
-     </property>
+     <widget class="QWidget" name="tab_log">
+      <attribute name="title">
+       <string>Log</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_log">
+       <item>
+        <widget class="QPlainTextEdit" name="textEdit_log">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="placeholderText">
+          <string>Progress of the iterations</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_iterations">
+      <attribute name="title">
+       <string>Iterations</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_iterations">
+       <item>
+        <widget class="QTableWidget" name="table_iterations">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="toolTip">
+          <string>Iterations of the last run in the loaded version (dp at the substations as simulated, spread after sizing estimated). Select one or more iterations and show them on the map.</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_iterations">
+         <item>
+          <widget class="QPushButton" name="btn_showIterations">
+           <property name="text">
+            <string>Show selected iterations on the map</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_removeIterationLayers">
+           <property name="text">
+            <string>Remove the iteration layers</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_reloadIterations">
+           <property name="text">
+            <string>Reload</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>
@@ -429,6 +475,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

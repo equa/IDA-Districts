@@ -386,7 +386,7 @@ def getFeatureIdsPerSubmodel(submodel,cur,config):
     UNION
     SELECT 2 AS feature, id FROM "{}".energy_plants WHERE submodel={}
 )
-ORDER BY feature,id;""".format(config['versionName'],submodel,config['versionName'],submodel,submodel) # nosec B608
+ORDER BY feature,id;""".format(config['versionName'],submodel,config['versionName'],submodel) # nosec B608
     cur.execute(sql)
     return cur.fetchall()
     

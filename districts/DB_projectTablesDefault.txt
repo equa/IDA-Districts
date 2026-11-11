@@ -376,6 +376,8 @@ CREATE TABLE public.pipes
   pipe_construction_id integer,
   costs numeric,
   description text,
+  series text, --product line: the pipe sizing chooses among the pipes of the series (optional)
+  casing_construction_id integer, --twin pipe: shared casing (pipe_constructions) of the two pipes of a pipe bundle (optional)
   CONSTRAINT pipes_pkey PRIMARY KEY (id)
 );
   
@@ -409,6 +411,10 @@ CREATE TABLE public.materials
   thermal_conductivity_w7mkelvin numeric,
   specific_heat_j7kgkelvin numeric,
   density_kg7m3 numeric,
+  youngs_modulus_n7mm2 numeric, --mechanical properties (pipe statics), optional
+  thermal_expansion_17kelvin numeric,
+  yield_strength_n7mm2 numeric,
+  poissons_ratio numeric,
   CONSTRAINT material_pkey PRIMARY KEY (id)
 );
 

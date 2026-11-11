@@ -27,13 +27,15 @@ from qgis.PyQt.QtWidgets import QApplication, QCheckBox, QComboBox, QDialog, QMe
 
 from districts.ida_mosim import buildModel, checkTopologyBeforeBuild, runModel, setRequestedOutputs
 from districts.ida_ph import (
-    HeightCheckDialog, ShowLoadAttributeDialog, ZetaDialog, addBaseVersion, createNewProject, deleteProject, loadVersion,
-    runHeightCheck, runZetaVisualization, setLoadAttribute,
+    HeightCheckDialog, PipeDiameterStyleDialog, ShowLoadAttributeDialog, ZetaDialog, addBaseVersion, createNewProject,
+    deleteProject, loadVersion, runHeightCheck, runZetaVisualization, setLoadAttribute, setPipeDiameterStyle,
 )
 from districts.ida_ph_dialog import ApproveDialog, IDA_Districts_NameDialog
 from districts.ida_rv import loadResults, runPathReports, showOnMap
 from districts.pipe_sizing import savePipeSizingResults
+from districts.upgrade import upgradeVersionDB
 from districts.utility_functions import reports
+from districts.utility_functions.db import MATERIAL_MECHANICAL_COLUMNS, PIPE_TWIN_COLUMNS
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.files import districtsModelerTempDir
 from districts.utility_functions.height_check import HEIGHT_CHECK_PROPERTY
@@ -56,7 +58,8 @@ TEMPLATE_KEYS = {HEATING: "heating_network", EMPTY: "empty_project", DB_DEFAULTS
 NETWORK_TEMPLATES = (HEATING, EMPTY, DB_DEFAULTS)
 
 # minimal resources of a heating network (like the template 'DB default values')
-MATERIALS = [(1, 'P235TR1', 55.2, 460, 7850), (2, 'Polyurethan foam', 0.027, 130, 60)]
+# the steel with its mechanical properties (E, alpha, yield strength, Poisson's ratio), the foam without (optional)
+MATERIALS = [(1, 'P235TR1', 55.2, 460, 7850, 210000, 0.000012, 235, 0.3), (2, 'Polyurethan foam', 0.027, 130, 60)]
 PIPE_CONSTRUCTION = (1, '0.01 m P235TR1 0.08 m Polyurethan foam')
 PIPE_LAYERS = [(1, 1, 0.01), (2, 2, 0.08)]  # sequence, material, thickness
 PIPES = [(i + 1, 'DN{}'.format(dn), d, 0.000045, 1, '', 'DN{}'.format(dn)) for i, (dn, d) in enumerate([
@@ -425,6 +428,66 @@ class TestWorkflow:
         plugin = wf.plugin
         self._table_with_rows(plugin, errors, plugin.manageMaterials, MATERIALS)
         assert [r['name'] for r in public_rows(plugin, 'materials')] == [m[1] for m in MATERIALS]
+        steel, foam = public_rows(plugin, 'materials')
+        assert [float(steel[col]) for col in MATERIAL_MECHANICAL_COLUMNS] == list(MATERIALS[0][5:])
+        assert [foam[col] for col in MATERIAL_MECHANICAL_COLUMNS] == [None] * 4
+
+    def test_materials_of_old_project(self, wf, errors):
+        """a project created before the mechanical properties: the columns are added on loading a version and by the
+        materials dialog, the materials are kept and saved with empty mechanical properties"""
+        plugin = wf.plugin
+        before = public_rows(plugin, 'materials')
+        drop = 'ALTER TABLE public.materials {};'.format(', '.join('DROP COLUMN {}'.format(col) for col in MATERIAL_MECHANICAL_COLUMNS))
+        plugin.cur.execute(drop)
+        upgradeVersionDB(plugin.cur, plugin.config)
+        upgradeVersionDB(plugin.cur, plugin.config)  # a second load changes nothing
+        rows = public_rows(plugin, 'materials')
+        assert [r['name'] for r in rows] == [r['name'] for r in before]
+        assert all(r[col] is None for r in rows for col in MATERIAL_MECHANICAL_COLUMNS)
+
+        plugin.cur.execute(drop)
+        dlg = new_dialog(plugin.manageMaterials)
+        assert dlg.tableWidget.columnCount() == 5 + len(MATERIAL_MECHANICAL_COLUMNS)
+        save_dialog(dlg, errors)
+        rows = public_rows(plugin, 'materials')
+        assert [(r['name'], r['density_kg7m3']) for r in rows] == [(r['name'], r['density_kg7m3']) for r in before]
+        assert all(r[col] is None for r in rows for col in MATERIAL_MECHANICAL_COLUMNS)
+
+        for r in before:  # the values of the template / of test_create_materials again
+            plugin.cur.execute('UPDATE public.materials SET {} WHERE id = %s;'.format(
+                ', '.join('{} = %s'.format(col) for col in MATERIAL_MECHANICAL_COLUMNS)),  # nosec B608
+                [r[col] for col in MATERIAL_MECHANICAL_COLUMNS] + [r['id']])
+        assert public_rows(plugin, 'materials') == before
+
+    def test_pipes_of_old_project(self, wf, errors):
+        """a project created before the series and the twin pipe casing of the pipes: the columns are added on loading a
+        version and by the pipes dialog, the pipes are kept"""
+        plugin = wf.plugin
+        before = public_rows(plugin, 'pipes')
+        drop = 'ALTER TABLE public.pipes {};'.format(', '.join('DROP COLUMN {}'.format(col) for col in PIPE_TWIN_COLUMNS))
+        plugin.cur.execute(drop)
+        upgradeVersionDB(plugin.cur, plugin.config)
+        upgradeVersionDB(plugin.cur, plugin.config)  # a second load changes nothing
+        rows = public_rows(plugin, 'pipes')
+        assert [r['name'] for r in rows] == [r['name'] for r in before]
+        assert all(r[col] is None for r in rows for col in PIPE_TWIN_COLUMNS)
+
+        plugin.cur.execute(drop)
+        dlg = new_dialog(plugin.managePipes)
+        assert dlg.tableWidget.columnCount() == 7 + len(PIPE_TWIN_COLUMNS)
+        save_dialog(dlg, errors)
+        rows = public_rows(plugin, 'pipes')
+        assert [(r['name'], r['pipe_construction_id']) for r in rows] == [(r['name'], r['pipe_construction_id']) for r in before]
+        assert all(r[col] is None for r in rows for col in PIPE_TWIN_COLUMNS)
+
+        for r in before:  # the values of the template again
+            plugin.cur.execute('UPDATE public.pipes SET series = %s, casing_construction_id = %s WHERE id = %s;',
+                               (r['series'], r['casing_construction_id'], r['id']))
+        assert public_rows(plugin, 'pipes') == before
+        if wf.template in (HEATING, DB_DEFAULTS):  # isoplus catalogue: single pipes DRE and twin pipes DRD with their casing
+            assert sum(1 for r in before if r['series'] == 'Isoplus DRE Standard') == 28
+            twins = [r for r in before if r['series'] == 'Isoplus DRD Standard']
+            assert len(twins) == 11 and all(r['casing_construction_id'] for r in twins)
 
     def test_create_pipe_constructions(self, wf, errors):
         only_for(wf, EMPTY)
@@ -688,6 +751,53 @@ class TestWorkflow:
         assert count(plugin, 'lines', 'WHERE pipe_bundle_type_id IS NULL') == 0
         assert_junction_zeta(plugin)
 
+    def test_pipe_diameter_style(self, wf, errors):
+        """style action of the lines: categorized by the inner pipe diameter; with a parent version by the difference
+        of the inner diameter to the parent version"""
+        only_for(wf, *NETWORK_TEMPLATES)
+        plugin = wf.plugin
+        version = plugin.config['versionName']
+        layer = QgsProject.instance().mapLayersByName(tr('@default', 'lines'))[0]
+
+        # base version: no parent version to compare with
+        dlg = PipeDiameterStyleDialog()
+        assert dlg.parent_version is None
+        assert not dlg.checkBox_compareParent.isEnabled()
+        assert tr('@default', 'no_parent_version') in dlg.checkBox_compareParent.text()
+        setPipeDiameterStyle(dlg)
+        errors.check()
+        assert isinstance(layer.renderer(), QgsCategorizedSymbolRenderer)
+        assert all(c.label().startswith('d_i') for c in layer.renderer().categories()[:-1])
+
+        # parent version: the lines of the version, one line without pipe bundle
+        parent = version + '_parent'
+        plugin.cur.execute('SELECT id, id_base FROM public.versionhandling WHERE name = %s;', (version,))
+        row = plugin.cur.fetchone()
+        plugin.cur.execute('SELECT min(id) AS id FROM "{}".lines;'.format(version))  # nosec B608
+        lid = plugin.cur.fetchone()['id']
+        try:
+            plugin.cur.execute('CREATE SCHEMA "{p}"; CREATE TABLE "{p}".lines AS SELECT id, pipe_bundle_type_id FROM "{v}".lines;'.format(p=parent, v=version))  # nosec B608
+            plugin.cur.execute('UPDATE "{}".lines SET pipe_bundle_type_id = NULL WHERE id = {};'.format(parent, lid))  # nosec B608
+            plugin.cur.execute("INSERT INTO public.versionhandling (name, id_base, description) VALUES (%s, 0, '') RETURNING id;", (parent,))
+            plugin.cur.execute('UPDATE public.versionhandling SET id_base = %s WHERE id = %s;', (plugin.cur.fetchone()['id'], row['id']))
+
+            dlg = PipeDiameterStyleDialog()
+            assert dlg.parent_version == parent
+            assert dlg.checkBox_compareParent.isEnabled() and parent in dlg.checkBox_compareParent.text()
+            dlg.checkBox_compareParent.setChecked(True)
+            dlg.checkBox_showLabels.setChecked(True)
+            setPipeDiameterStyle(dlg)
+            errors.check()
+            categories = {str(c.value()): c.label() for c in layer.renderer().categories()}
+            # all lines unchanged except the one without pipe in the parent version
+            assert set(categories) == {'0', 'no_parent', 'no_pipe'}, categories
+            assert parent in categories['no_parent']
+            assert layer.labelsEnabled()
+        finally:
+            plugin.cur.execute('UPDATE public.versionhandling SET id_base = %s WHERE id = %s;', (row['id_base'], row['id']))
+            plugin.cur.execute('DELETE FROM public.versionhandling WHERE name = %s;', (parent,))
+            plugin.cur.execute('DROP SCHEMA IF EXISTS "{}" CASCADE;'.format(parent))
+
     def test_zeta_values(self, wf, errors):
         """zeta action (lines, junctions): memory layers in the group 'zeta values' with the zeta used in the network model,
         removed when the version is loaded again"""
@@ -876,9 +986,41 @@ FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP
         assert getUnconnectedFeatures(plugin.cur, version, ['1']) == []
         errors.check()
 
-    def test_build_network_model(self, wf, errors):
+    def test_twin_pipe_lines(self, wf, errors):
+        """every third line with two equal single pipes gets the twin pipe of the same nominal diameter"""
+        only_for(wf, HEATING, DB_DEFAULTS)
+        plugin = wf.plugin
+        v = plugin.config['versionName']
+        plugin.cur.execute("""SELECT l.id, min(tbp.pipe_bundle_type_id) AS twin_bundle
+FROM "{v}".lines l
+JOIN public.bundle_pipes bp ON bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND bp.sequence = 1
+JOIN public.pipes p ON p.id = bp.pipe_id
+JOIN public.pipes tp ON tp.name = replace(p.name, 'DRE-', 'DRD-') AND tp.casing_construction_id IS NOT NULL
+JOIN public.bundle_pipes tbp ON tbp.pipe_id = tp.id AND tbp.sequence = 1
+WHERE (SELECT count(*) FROM public.bundle_pipes o WHERE o.pipe_bundle_type_id = l.pipe_bundle_type_id) = 2
+  AND NOT EXISTS (SELECT 1 FROM public.bundle_pipes o WHERE o.pipe_bundle_type_id = l.pipe_bundle_type_id AND o.pipe_id <> bp.pipe_id)
+GROUP BY l.id ORDER BY l.id;""".format(v=v))  # nosec B608
+        rows = plugin.cur.fetchall()[::3]
+        assert rows, "no line with two equal single pipes up to DN 200"
+        for row in rows:
+            plugin.cur.execute('UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;'.format(v), (row['twin_bundle'], row['id']))  # nosec B608
+        TestWorkflow.twin_lines[wf.template] = len(rows)
+        errors.check()
+
+    twin_lines = {}  # template: number of lines with a twin pipe
+
+    def test_build_network_model(self, wf, errors, monkeypatch):
         only_for(wf, *NETWORK_TEMPLATES)
         plugin = wf.plugin
+        import districts.invoke_network as invoke_network
+        twin_calls = []
+        convert = invoke_network.twinPipeEquivalent
+
+        def convert_and_record(*args, **kwargs):
+            twin_calls.append(convert(*args, **kwargs))
+            return twin_calls[-1]
+
+        monkeypatch.setattr(invoke_network, 'twinPipeEquivalent', convert_and_record)
         plugin.showBuildModel()
         dlg = plugin.dlg_buildModel
         dlg.combo_network_models.setItemChecked(1, True)
@@ -887,6 +1029,10 @@ FROM "{v}".junction_connections jc JOIN "{v}".junctions j ON j.id = jc.jid GROUP
         wait_for_process(dlg, timeout=60)
         closeDialog(dlg)
         errors.check()
+        # the twin pipes are built as two separately insulated pipes with the equivalent insulation and distance
+        twin_lines = TestWorkflow.twin_lines.get(wf.template, 0)
+        assert len(twin_calls) >= twin_lines and bool(twin_calls) == bool(twin_lines)
+        assert all(0 < min(thicknesses) and max(thicknesses) < 0.2 and 0 < dx < 0.01 for thicknesses, dx in twin_calls)
 
     @pytest.mark.ida
     def test_run_simulation(self, wf, errors):

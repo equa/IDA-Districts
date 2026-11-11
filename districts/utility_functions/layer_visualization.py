@@ -1,11 +1,13 @@
+import math
 import os
 from qgis.core import (
-    QgsAction, QgsApplication, QgsAttributeEditorAction, QgsAuthMethodConfig, QgsPalLayerSettings, QgsProperty,
+    QgsAction, QgsApplication, QgsAttributeEditorAction, QgsAuthMethodConfig, QgsFeatureRequest, QgsPalLayerSettings, QgsProperty,
     QgsSimpleMarkerSymbolLayer, QgsStyle, QgsSymbolLayer, QgsVectorLayerSimpleLabeling,
 )
 from .compat import MessageCritical, MessageWarning
 from .db import getNetworks, getPlantIds, getTemplatesInfo
 from .files import loadProjectConfig
+from .dynamic_sizing_results import removeSizingLayers
 from .height_check import removeHeightCheckLayers
 from .zeta import removeZetaLayers
 from .reports import setupCustomerDataSheet
@@ -305,9 +307,16 @@ def turboColor(t):
     b = 0.10667330 + t * (12.64194608 + t * (-60.58204836 + t * (110.36276771 + t * (-89.90310912 + t * 27.34824973))))
     return QColor.fromRgbF(*(min(max(c, 0.0), 1.0) for c in (r, g, b)))
 
-def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_name='Turbo', invert_ramp=False, width=0.75):
+def roundLikeExpression(x):
+    """round(x) of the QGIS expressions (half away from zero, python rounds half to even)"""
+    return int(math.copysign(math.floor(abs(x) + 0.5), x))
+
+def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_name='Turbo', invert_ramp=False, width=0.75, compare_version=None):
     """Categorizes the lines by the inner diameter of the pipe with the given sequence in the pipe bundle.
-    The colors follow the color ramp continuously between the smallest and the largest diameter."""
+    The colors follow the color ramp continuously between the smallest and the largest diameter.
+    With compare_version (the parent version) the lines are categorized by the difference of the inner diameter
+    to the line with the same id in that version (+ larger, - smaller than in compare_version); the color ramp is
+    centered at the difference 0."""
     layer = QgsProject.instance().mapLayersByName(tr('@default', 'lines'))[0]
 
     cur.execute("""SELECT bp.pipe_bundle_type_id, p.innerpipediameter::float8 AS d FROM public.bundle_pipes bp
@@ -332,6 +341,9 @@ def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_n
     expr = "map_get(map({}), to_string(\"pipe_bundle_type_id\"))".format(
         ', '.join("'{}', {!r}".format(b, d) for b, d in d_by_bundle.items()))
 
+    if compare_version:
+        return stylePipeDiameterDifference(cur, layer, compare_version, sequence, d_by_bundle, expr, rampColor, show_labels, width)
+
     d_min, d_max = diameters[0], diameters[-1]
     categories = []
     for d in diameters:
@@ -353,6 +365,64 @@ def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_n
         pal = QgsPalLayerSettings()
         pal.isExpression = True
         pal.fieldName = "format_number(({}) * 1000, 1)".format(expr)
+        pal.placement = Qgis.LabelPlacement.Line
+        layer.setLabeling(QgsVectorLayerSimpleLabeling(pal))
+    layer.setLabelsEnabled(show_labels)
+
+    layer.triggerRepaint()
+    iface.layerTreeView().refreshLayerSymbology(layer.id())
+    return True
+
+def stylePipeDiameterDifference(cur, layer, compare_version, sequence, d_by_bundle, d_expr, rampColor, show_labels=False, width=0.75):
+    """Categorizes the lines by the difference of the inner diameter (pipe with the given sequence) to the line with
+    the same id in compare_version. d_by_bundle / d_expr: inner diameter [m] of the pipe bundles of the layer.
+    Categories: difference in 0.1 mm (integer), 'no_pipe' (line without pipe in this sequence) and 'no_parent'
+    (line not in compare_version or without pipe there). Changed lines are drawn wider."""
+    cur.execute("""SELECT l.id, p.innerpipediameter::float8 AS d FROM "{}".lines l
+    JOIN public.bundle_pipes bp ON bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND bp.sequence = %s
+    JOIN public.pipes p ON p.id = bp.pipe_id WHERE p.innerpipediameter IS NOT NULL;""".format(compare_version), (int(sequence),))  # nosec B608
+    d_parent = {int(row['id']): float(row['d']) for row in cur.fetchall()}
+
+    # differences of the lines of the layer, calculated like in the expression of the renderer
+    request = QgsFeatureRequest().setSubsetOfAttributes(['id', 'pipe_bundle_type_id'], layer.fields())
+    differences = set()
+    for f in layer.getFeatures(request):
+        try:
+            d, d_p = d_by_bundle.get(int(f['pipe_bundle_type_id'])), d_parent.get(int(f['id']))
+        except (TypeError, ValueError):  # NULL
+            continue
+        if d is not None and d_p is not None:
+            differences.add(roundLikeExpression((d - d_p) * 10000))
+
+    parent_expr = "map_get(map({}), to_string(\"id\"))".format(
+        ', '.join("'{}', {!r}".format(i, d) for i, d in d_parent.items())) if d_parent else 'NULL'
+    diff_expr = "(@d - @d_parent) * 10000"
+    variables = "with_variable('d', {}, with_variable('d_parent', {}, {{}}))".format(d_expr, parent_expr)
+    expr = variables.format("CASE WHEN @d IS NULL THEN 'no_pipe' WHEN @d_parent IS NULL THEN 'no_parent' ELSE round({}) END".format(diff_expr))
+
+    def category(value, color, label, w=width):
+        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        symbol.setWidth(w)
+        symbol.setColor(color)
+        return QgsRendererCategory(value, symbol, label)
+
+    max_abs = max((abs(diff) for diff in differences), default=0)
+    categories = []
+    for diff in sorted(differences):
+        if diff == 0:
+            categories.append(category(0, QColor('#808080'), 'Δd_i = ±0 mm'))
+        else:
+            categories.append(category(diff, rampColor(0.5 + 0.5 * diff / max_abs), 'Δd_i = {:+g} mm'.format(diff / 10), width * 1.6))
+    categories.append(category('no_parent', QColor('#000000'), '{} ({})'.format(tr('@default', 'no_pipe_in_parent_version'), compare_version)))
+    categories.append(category('no_pipe', QColor('#bdbdbd'), '{} ({} {})'.format(tr('@default', 'no_pipe'), tr('@default', 'sequence'), sequence)))
+
+    layer.setRenderer(QgsCategorizedSymbolRenderer(expr, categories))
+
+    if show_labels:
+        # only the changed lines, with sign
+        pal = QgsPalLayerSettings()
+        pal.isExpression = True
+        pal.fieldName = variables.format("CASE WHEN round({d}) <> 0 THEN if(@d > @d_parent, '+', '') || format_number(round({d}) / 10.0, 1) END".format(d=diff_expr))
         pal.placement = Qgis.LabelPlacement.Line
         layer.setLabeling(QgsVectorLayerSimpleLabeling(pal))
     layer.setLabelsEnabled(show_labels)
@@ -584,6 +654,8 @@ def removeLayers():
     removeHeightCheckLayers()
     # zeta layers (memory layers, snapshot of the old version)
     removeZetaLayers()
+    # iterations of the dynamic pipe sizing (memory layers of the old version)
+    removeSizingLayers()
     iface.mapCanvas().refresh()
 
         

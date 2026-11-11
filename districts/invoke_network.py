@@ -21,6 +21,7 @@ from .utility_functions.files import (
 )
 from .utility_functions.ida_components import getSimData
 from .utility_functions.sensor_signals import getResultSensorData, getSensorData, getSensorDecData
+from .utility_functions.twin_pipe import twinPipeEquivalent
 from .utility_functions.templateFiles import (
     CopyDecoupledTemplateMacro, CopyTemplateMacro, readDecoupledFeatureSensorSignals,
 )
@@ -398,24 +399,7 @@ class InvokeNetworkModel:
                 )
                 
             
-    def closeDocument(self):
-        """Close IDA project"""
-        script="""((close-document [@])
-(close-unused-documents))"""
-        dprint(script)
-        changeWallFlag = self.util.call_ida_api_function(self.util.ida_lib.runIDAScript, self.building, script.encode('utf-8'))   
-    
-    def openFile(self):
-        """ Save the file"""
-        # Open the building with the IDA Districts Python API
-        self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.buildingIdmFilePath.encode('utf-8'))
-    
-    def saveFile(self):
-        """ Save the file"""
-        # Save the new building using the API
-        savedFile = self.util.call_ida_api_function(self.util.ida_lib.saveDocument, self.building, self.buildingFilePath.encode('utf-8'), 1)            
-    
-    def insertLines (self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
+    def insertLines(self,submodel,requestedOutputs,modellingSettings,idm,idc,networks):
         """ Inserts the lines in the submodel.
         zeta of a line: lines.zeta + per junction junctions.zeta/2 + junction_connections.zeta (textbook values, see utility_functions/zeta.py)"""
         #old projects have no zeta in junction_connections (the build does not change the tables)
@@ -494,6 +478,7 @@ ORDER BY m.id;
         i=1
         alpha_i=4000
         pipe_info_cache={} #pipe data per pipe bundle type (query once per type instead of once per line)
+        twin_casing_cache={} #layers per casing construction of the twin pipes
         for pipe_bundle in self.cur.fetchall():
             dprint(pipe_bundle)
             lid=pipe_bundle['id']
@@ -508,10 +493,10 @@ ORDER BY m.id;
             dprint(coordinates)
             
             if bunde_type not in pipe_info_cache:
-                sql="""SELECT p.innerpipediameter,p.piperoughnessfactor, bp.sequence AS se_pipe, bp.ambient, bp.x, bp.y AS depth, ARRAY_AGG(pl.sequence::text||':'|| round(pl.thickness,4)::text||':'||m.thermal_conductivity_w7mkelvin::text||':'||m.specific_heat_j7kgkelvin::text||':'||m.density_kg7m3 ORDER BY pl.sequence) AS layers
+                sql="""SELECT p.innerpipediameter,p.piperoughnessfactor, p.casing_construction_id, bp.sequence AS se_pipe, bp.ambient, bp.x, bp.y AS depth, ARRAY_AGG(pl.sequence::text||':'|| round(pl.thickness,4)::text||':'||m.thermal_conductivity_w7mkelvin::text||':'||m.specific_heat_j7kgkelvin::text||':'||m.density_kg7m3 ORDER BY pl.sequence) AS layers
     FROM public.bundle_pipes bp, public.pipes p, public.pipe_layers pl, public.materials m
     WHERE bp.pipe_bundle_type_id={} AND bp.pipe_id=p.id AND pl.pipe_construction_id=p.pipe_construction_id AND m.id=pl.materialid
-    GROUP BY p.innerpipediameter,p.piperoughnessfactor, se_pipe,bp.ambient, bp.x, bp.y
+    GROUP BY p.innerpipediameter,p.piperoughnessfactor, p.casing_construction_id, se_pipe,bp.ambient, bp.x, bp.y
     ORDER BY bp.sequence;""".format(bunde_type) # nosec B608
                 dprint(sql)
                 self.cur.execute(sql)
@@ -531,6 +516,10 @@ ORDER BY m.id;
             
             x_coord=[i['x'] for i in pipe_info]
             depth=[i['depth'] for i in pipe_info]
+            twin_error=self.convertTwinPipes(pipe_info,pipe,insulation,x_coord,depth,modellingSettings['ground_lambda'],twin_casing_cache)
+            if twin_error:
+                self.signals.error.emit(tr_msg('Twin pipe of the pipe bundle {}: {}').format(bunde_type,twin_error))
+                return idm,idc
                 
             
             if pipe_info[0]['ambient']==1: #air
@@ -628,6 +617,45 @@ ORDER BY m.id;
         
         return idm,idc
     
+    def convertTwinPipes(self,pipe_info,pipe,insulation,x_coord,depth,lambda_soil,casing_cache):
+        """Twin pipes of a pipe bundle (two pipes with the same casing_construction_id): insulation, x coordinates and depth
+        of the two pipes are replaced by the values of two separately insulated pipes with the same heat loss
+        (utility_functions.twin_pipe). Returns an error text or None."""
+        casings={}
+        for idx,info in enumerate(pipe_info):
+            if info['casing_construction_id'] is not None:
+                casings.setdefault(info['casing_construction_id'],[]).append(idx)
+        for casing_id,idxs in casings.items():
+            if len(idxs)!=2:
+                return 'the casing construction {} is used by {} pipe(s) of the bundle instead of 2'.format(casing_id,len(idxs))
+            if casing_id not in casing_cache:
+                self.cur.execute("""SELECT pl.thickness, m.thermal_conductivity_w7mkelvin AS lambda, m.specific_heat_j7kgkelvin AS cp, m.density_kg7m3 AS rho
+    FROM public.pipe_layers pl, public.materials m WHERE pl.pipe_construction_id=%s AND m.id=pl.materialid ORDER BY pl.sequence;""",(casing_id,))
+                casing_cache[casing_id]=self.cur.fetchall()
+            layers=casing_cache[casing_id]
+            if not layers:
+                return 'the casing construction {} has no layers'.format(casing_id)
+            foam=layers[0]
+            a,b=idxs
+            #positions relative to the casing centre (the middle of the two pipe centres), y downwards
+            x_casing=(float(x_coord[a])+float(x_coord[b]))/2
+            depth_casing=(float(depth[a])+float(depth[b]))/2
+            pipes=[(float(x_coord[i])-x_casing,float(depth[i])-depth_casing,float(pipe_info[i]['innerpipediameter'])/2+float(pipe[i]['thickness'])) for i in idxs]
+            try:
+                thicknesses,dx=twinPipeEquivalent(pipes,float(foam['thickness']),depth_casing,float(foam['lambda']),float(lambda_soil),ground=pipe_info[0]['ambient']==2)
+            except ValueError as e:
+                return str(e)
+            for i,thickness in zip(idxs,thicknesses):
+                insulation[i]={'thickness': str(round(thickness,5)), 'lambda': str(foam['lambda']), 'cp': str(foam['cp']), 'rho': str(foam['rho'])}
+                depth[i]=depth_casing
+            #only the differences of the x coordinates count: a bundle of one twin pipe is centred (the equivalent distance is tiny)
+            x_centre=0.0 if len(pipe_info)==2 else x_casing
+            dx=max(dx,abs(x_centre)*1e-9)
+            sign=1 if float(x_coord[b])>=float(x_coord[a]) else -1
+            x_coord[a]=x_centre-sign*dx/2
+            x_coord[b]=x_centre+sign*dx/2
+        return None
+
     def insertJunctionPlugConnections(self,submodel,idm_conn,idc_conn,networks):
         """Insert the junction connections between plants or customers and pipes"""
         sql="""WITH q AS (

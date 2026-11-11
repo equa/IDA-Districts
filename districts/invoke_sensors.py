@@ -110,7 +110,7 @@ def sensorMacroIdmData(submodel,supervisory_submodel,sensor_dec_data,sensor_data
  (:PAR :N COEFF :DIM (1) :V #(1))
  (:PAR :N N_IN :V 1))\n""".format(j['iref'],
                         " ".join(["""(1 :SYSTEM "{}" "{}" {})""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getPMT2muxName(cur,getConnValuesByFeature(i['source_type'],j['iref'].split('_')[1],j['iref'].split('_')[3],cur,config)['conn_bundle_type_id'],j['iref'].split('_')[3]), returnVarName(i['measure']))]),
-                        " ".join(["""(1 :SYSTEM "{}" "{}" P)""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getMeterName(cur,getConnBundleByFeature(i['source_type'],j['iref'].split('_')[1],cur,config),j['iref'].split('_')[1],j['iref'].split('_')[2]))])) 
+                        " ".join(["""(1 :SYSTEM "{}" "{}" P)""".format(getMacroTypeName(i['source_type'])+'_'+j['iref'].split('_')[1], getMeterName(cur,getConnBundleByFeature(i['source_type'],j['iref'].split('_')[1],cur,config),j['iref'].split('_')[2]))])) 
                         for i in sensor_dec_data if i['function'] ==6 and i['measure'] in (1,2,3,4) for j in i['irefs_source']]))
     dprint('add Adder comp for function  Individual signals for each target (6) if measure in (1,2,3,4) finished')
                         

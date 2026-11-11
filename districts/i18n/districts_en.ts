@@ -2245,6 +2245,16 @@
             <translation type="unfinished">Construction ID</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="481" />
+            <source>pipe_series</source>
+            <translation type="unfinished">Series (pipe sizing)</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="481" />
+            <source>casing_construction_id</source>
+            <translation type="unfinished">Twin pipe: construction ID of the shared casing</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="483" />
             <source>inner_diameter</source>
             <translation type="unfinished">Inner pipe diameter, m</translation>
@@ -4057,6 +4067,26 @@
             <translation type="unfinished">Density, kg/m3</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>youngs_modulus_n7mm2</source>
+            <translation type="unfinished">Young&apos;s modulus, N/mm2</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>thermal_expansion_17kelvin</source>
+            <translation type="unfinished">Coefficient of thermal expansion, 1/K</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>yield_strength_n7mm2</source>
+            <translation type="unfinished">Yield strength, N/mm2</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="491" />
+            <source>poissons_ratio</source>
+            <translation type="unfinished">Poisson&apos;s ratio, -</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="151" />
             <source>template_name</source>
             <translation type="unfinished">Template name</translation>
@@ -4111,6 +4141,21 @@
             <location filename="../utility_functions/translations.py" line="18" />
             <source>no_pipe_bundles_found</source>
             <translation type="unfinished">No pipe bundles with a pipe in this sequence found</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="25" />
+            <source>compare_with_parent_version</source>
+            <translation type="unfinished">Compare with the parent version</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="26" />
+            <source>no_parent_version</source>
+            <translation type="unfinished">no parent version</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="27" />
+            <source>no_pipe_in_parent_version</source>
+            <translation type="unfinished">no pipe in the parent version</translation>
         </message>
         <message>
             <location filename="../utility_functions/layer_visualization.py" line="257" />
@@ -4250,6 +4295,27 @@ Chooses the pipe of every sequence (supply, return, …) of the lines of the sel
 &lt;/ol&gt;
 &lt;b&gt;Liquid circuits&lt;/b&gt;: supply and return sequence, temperatures and load column. &lt;b&gt;Sequences&lt;/b&gt;: the pipes to consider per sequence.&lt;br&gt;
 The result is shown as a temporary layer. &lt;b&gt;Save&lt;/b&gt; writes the pipe bundles to the lines of the network, &lt;b&gt;Reject&lt;/b&gt; discards the result and deletes newly created pipe bundle types.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>dynamic_pipe_sizing_info</source>
+            <translation type="unfinished">&lt;b&gt;Dynamic pipe sizing with hydraulic balancing&lt;/b&gt;&lt;br&gt;
+Sizes the pipes of the selected network with the dynamic simulation so that the customers get about the same differential pressure at their substations (hydraulic balancing) without overloading a pipe. Every iteration:
+&lt;ol&gt;
+&lt;li&gt;&lt;b&gt;Build&lt;/b&gt; the network model of the network and submodel with the current pipe bundles of the lines (in the first iteration only with &lt;i&gt;Build the network model before the first simulation&lt;/i&gt;).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Simulate&lt;/b&gt; the submodel with the settings of the simulation dialog and &lt;b&gt;load the results&lt;/b&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Flow tracing&lt;/b&gt; for every time step: the mass flow of every customer is attributed to the lines and energy plants supplying it (complete mixing at the nodes, also for meshed networks and several plants). Network pressure loss of a customer Δp&lt;sub&gt;net&lt;/sub&gt; = (p&lt;sub&gt;EP,sup&lt;/sub&gt; − p&lt;sub&gt;C,sup&lt;/sub&gt;) + (p&lt;sub&gt;C,ret&lt;/sub&gt; − p&lt;sub&gt;EP,ret&lt;/sub&gt;) to the supplying plants with a share ≥ &lt;i&gt;Min. share of a plant&lt;/i&gt; (maximum or weighted with the shares).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Time step per customer&lt;/b&gt;: its maximal Δp&lt;sub&gt;net&lt;/sub&gt;, its maximal mass flow at the substation, or the global critical time step of all customers. The customer with the largest Δp&lt;sub&gt;net&lt;/sub&gt; is the weak point of the simulation. At this time step: Δp&lt;sub&gt;C&lt;/sub&gt; = p&lt;sub&gt;sup&lt;/sub&gt; − p&lt;sub&gt;ret&lt;/sub&gt; at the substation and the mass flows of the customer in its lines (c_lid).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Design mass flow&lt;/b&gt; of a line = sum of the customer mass flows in c_lid. Specific pressure loss R of the line [Pa/m] (supply + return pipe): Darcy-Weisbach with Colebrook from the inner diameter and roughness of the pipe and the temperature at the critical time step (70/40 °C if missing). Local losses (ζ) are not included in R.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Pre-sizing&lt;/b&gt; (optional): every line gets the smallest pipe of the same construction with R ≤ setpoint per pipe for its design flow, at least for its peak flow over the whole simulation period. Lines whose pipes exceed the &lt;i&gt;Max. specific pressure loss at peak flow&lt;/i&gt; are enlarged.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Hydraulic balancing&lt;/b&gt;: target = Δp&lt;sub&gt;C&lt;/sub&gt; of the weak point customer (smallest Δp&lt;sub&gt;C&lt;/sub&gt; after the pre-sizing); its supply lines are not changed. Repeatedly the customer with the highest Δp&lt;sub&gt;C&lt;/sub&gt; above target + &lt;i&gt;Tolerance exceedance&lt;/i&gt; gets the next smaller pipe (same construction, supply and return) in its line with the lowest R; the line changed last only if no other one is possible. A reduction is rejected if the velocity or the specific pressure loss at peak flow exceeds its limit or an affected customer would fall below target − &lt;i&gt;Tolerance undershoot&lt;/i&gt;. The additional loss ΔR · L is subtracted from Δp&lt;sub&gt;C&lt;/sub&gt; of all customers supplied via the line (with &lt;i&gt;Weight the pressure loss ...&lt;/i&gt;: times the share of the line in the customer mass flow). It ends when all customers are within the tolerance or no reduction is possible; the quota is the share of balanced customers.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Writing the pipes&lt;/b&gt;: changed lines get the pipe bundle type with the new pipes (an existing one is reused, a missing one is created with the positions of the original bundle). c_lid before and after the sizing is saved as dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid.json / _c_lid_sized.json in the version folder.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Iterations&lt;/b&gt;: every iteration is saved as dynamic_sizing_iter&amp;lt;n&amp;gt;.json in the version folder and listed in the tab &lt;i&gt;Iterations&lt;/i&gt; (critical time, weak point, dp min/max and spread at the substations as simulated, spread after the sizing as estimated, quota, changed lines, outcome); the files of a previous run are deleted when a new run starts. With &lt;i&gt;Show every iteration on the map&lt;/i&gt;, or afterwards with &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (or a double click), the group &lt;i&gt;Dynamic pipe sizing&lt;/i&gt; gets a subgroup per iteration: customers with graduated colors of dp at the substation (red = low, blue = high, the weak point as a bigger, labelled point), lines with graduated colors and widths of the design mass flow and the lines with new pipes (labelled old → new pipe). The classes are the same for all iterations, the last one is visible; switch the subgroups in the layer tree to compare. The layers are removed when a version is loaded.&lt;br&gt;
+&lt;b&gt;End&lt;/b&gt;: converged when the pipes do not change anymore; stopped if the pipes repeat an earlier iteration (oscillation, the lines are not changed) or after the max. number of iterations (the lines then contain the pipes of the last iteration, not yet simulated). &lt;b&gt;Stop after this step&lt;/b&gt; stops before the next step, pressed again it aborts at once (a running simulation is not interrupted).&lt;br&gt;
+The mass flows are kept constant within an iteration, Δp&lt;sub&gt;C&lt;/sub&gt; after the sizing is an estimate; the next simulation shows the real effect.&lt;br&gt;
+&lt;b&gt;Version&lt;/b&gt;: a new child version of the loaded version is created and loaded before the first iteration (the loaded version keeps its pipes), or the pipes of the loaded version are overridden.&lt;br&gt;
+&lt;b&gt;Prerequisites&lt;/b&gt;: up-to-date network topology; results of the line mass flows and temperatures and of the pressures and mass flows at the connections of the customers and energy plants (requested outputs); a pipe catalog with several inner diameters per pipe construction.</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -7644,7 +7710,9 @@ li.checked::marker { content: "\2612"; }
         <message>
             <location filename="../districts_stylePipeDiameter.ui" line="29" />
             <source>info_stylePipeDiameter</source>
-            <translation type="unfinished">Categorizes the lines layer by the inner diameter of the pipe with the selected sequence in the pipe bundle. The colors follow the color ramp continuously from the smallest to the largest diameter. Lines without a pipe in this sequence are shown in grey.</translation>
+            <translation type="unfinished">Categorizes the lines layer by the inner diameter of the pipe with the selected sequence in the pipe bundle. The colors follow the color ramp continuously from the smallest to the largest diameter. Lines without a pipe in this sequence are shown in grey.
+
+Compare with the parent version: shows the difference of the inner pipe diameter to the line with the same id in the parent version instead of the diameter (+ larger, − smaller than in the parent version). The color ramp is centered at the difference 0, unchanged lines are shown in dark grey, lines without a pipe in the parent version (e.g. new lines) in black. The labels show the difference of the changed lines in mm.</translation>
         </message>
         <message>
             <location filename="../districts_stylePipeDiameter.ui" line="38" />

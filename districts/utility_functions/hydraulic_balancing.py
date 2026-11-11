@@ -1,4 +1,4 @@
-"""Pressure balancing of customers by reducing pipe diameters.
+"""Hydraulic balancing of the customers by reducing pipe diameters (with optional pre-sizing).
 
 Extended result structure:
     c_lid = {cid : [dp, {lid : [dp_spez, mdot]}]}
@@ -11,7 +11,7 @@ Procedure (optimizePipeDiameters):
        mass flow of the line (sum of the customer mass flows in c_lid); presize_only=True stops here
     1. customer with the highest dp
     2. line of this customer with the lowest dp_spez
-    3. next smaller pipe dimension (same pipe construction) for supply and return pipe
+    3. next smaller pipe dimension (same series, see getPipeCatalog) for supply and return pipe
     4. new pressure loss of the line with unchanged mass flow, the difference is subtracted from
        dp of all customers supplied via this line
     5. repeat until dp of all customers is within the tolerance above the minimal dp (tol_above); customers
@@ -60,16 +60,17 @@ def specificPressureLoss(mdot, d, k, temp):
 
 
 def getPipeCatalog(cur):
-    """Returns {pipe_id: {'d', 'k', 'construction', 'name'}} of the table pipes."""
-    cur.execute("""SELECT id, name, innerpipediameter, piperoughnessfactor, pipe_construction_id FROM public.pipes WHERE innerpipediameter > 0;""")
+    """Returns {pipe_id: {'d', 'k', 'construction', 'series', 'name'}} of the table pipes; series is the product line the
+    pipe sizing chooses from: the column series or, if empty, the pipe construction."""
+    cur.execute("""SELECT * FROM public.pipes WHERE innerpipediameter > 0;""")
     return {int(row['id']): {'d': float(row['innerpipediameter']), 'k': float(row['piperoughnessfactor'] or 0.0),
-        'construction': row['pipe_construction_id'], 'name': row['name']} for row in cur.fetchall()}
+        'construction': row['pipe_construction_id'], 'series': row.get('series') or ('construction', row['pipe_construction_id']), 'name': row['name']} for row in cur.fetchall()}
 
 
 def getNextSmallerPipe(pipe_id, catalog):
-    """Next smaller inner diameter of the same pipe construction or None."""
+    """Next smaller inner diameter of the same series or None."""
     pipe = catalog[pipe_id]
-    smaller = [(p['d'], pid) for pid, p in catalog.items() if p['construction'] == pipe['construction'] and p['d'] < pipe['d']]
+    smaller = [(p['d'], pid) for pid, p in catalog.items() if p['series'] == pipe['series'] and p['d'] < pipe['d']]
     return max(smaller)[1] if smaller else None
 
 
@@ -169,7 +170,7 @@ def getCustomerLinePressure(cur, config, network=1, **kwargs):
 
 
 def presizePipes(c_lid, lines, catalog, dp_spez_setpoint):
-    """Pre-sizing: for every line the smallest pipe of the same construction whose specific pressure loss [Pa/m]
+    """Pre-sizing: for every line the smallest pipe of the same series whose specific pressure loss [Pa/m]
     does not exceed dp_spez_setpoint in each pipe (supply and return get the same dimension; largest pipe if none
     fits). The mass flow of a line is the sum of the customer mass flows in c_lid = {cid: [dp, {lid: [dp_spez, mdot]}]},
     but at least the peak mass flow of the line over all time steps (mdot_max), so that no line is undersized
@@ -186,8 +187,8 @@ def presizePipes(c_lid, lines, catalog, dp_spez_setpoint):
         pipes[lid] = {seq: pipe['pipe_id'] for seq, pipe in line['pipes'].items()}
         if mdot.get(lid, 0.0) <= 0:
             continue
-        constructions = {catalog[pipe['pipe_id']]['construction'] for pipe in line['pipes'].values()}
-        candidates = sorted((p['d'], pid) for pid, p in catalog.items() if p['construction'] in constructions)
+        series = {catalog[pipe['pipe_id']]['series'] for pipe in line['pipes'].values()}
+        candidates = sorted((p['d'], pid) for pid, p in catalog.items() if p['series'] in series)
         fitting = [pid for d, pid in candidates
             if all(specificPressureLoss(mdot[lid], d, catalog[pid]['k'], pipe['temp'])[0] <= dp_spez_setpoint for pipe in line['pipes'].values())]
         pid = fitting[0] if fitting else candidates[-1][1]
@@ -197,7 +198,7 @@ def presizePipes(c_lid, lines, catalog, dp_spez_setpoint):
 
 def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0, dp_target=None, cid_weak=None, weighted=False, v_max=None, dp_spez_max=300.0,
         dp_spez_setpoint=None, presize_only=False, max_iter=1000):
-    """Iterative reduction of pipe diameters until dp of all customers is within dp_target ... dp_target + tol_above
+    """Hydraulic balancing: iterative reduction of pipe diameters until dp of all customers is within dp_target ... dp_target + tol_above
     (dp_target default: minimal dp of all customers). The mass flows are kept constant.
 
     tol_above:   tolerance of exceedance [Pa]: a customer with dp <= dp_target + tol_above is balanced.

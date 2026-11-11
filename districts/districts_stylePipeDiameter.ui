@@ -75,6 +75,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBox_compareParent">
+     <property name="text">
+      <string>compare_with_parent_version</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="checkBox_showLabels">
      <property name="text">
       <string>show_labels</string>

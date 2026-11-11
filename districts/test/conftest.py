@@ -53,6 +53,9 @@ def pytest_addoption(parser):
                      help="slow mode to watch the tests: pause SECONDS before each button click, "
                           "after a dialog opens and after each test step (default: DISTRICTS_TEST_SLOW or 0). "
                           "Needs the GUI: -o qgis_gui_enabled=true")
+    parser.addoption("--update-mypy-baseline", action="store_true",
+                     help="static type check (test_static_mypy.py): store the findings of this run "
+                          "as the known findings in test/mypy_baseline.txt")
 
 
 # ---------------- slow mode ----------------

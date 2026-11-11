@@ -1,9 +1,11 @@
-"""Static pipe sizing: iteration of building the network model, simulation, loading the results and
-pipe sizing / balancing (utility_functions.pipe_downsizing) until the pipe dimensions do not change anymore."""
+"""Dynamic pipe sizing: iteration of building the network model, simulation, loading the results, pipe sizing and
+hydraulic balancing (utility_functions.hydraulic_balancing) until the pipe dimensions do not change anymore.
+The workflow is described in the info text dynamic_pipe_sizing_info (i18n/districts_*.ts)."""
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QObject, QThreadPool, pyqtSlot
-from qgis.PyQt.QtWidgets import QDialog, QMessageBox
+from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QMessageBox, QTableWidgetItem, QVBoxLayout
 from qgis.core import QgsMessageLog
+from qgis.gui import QgsCollapsibleGroupBox
 from qgis.utils import iface
 
 from .ida_mosim import runModel
@@ -13,7 +15,11 @@ from .ida_rv_dialog import LoadResultsDialog
 from .invoke_network import WorkerBuildNetworkModel
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect, getUsedNetworkSubmodels
-from .utility_functions.pipe_downsizing import (
+from .utility_functions.dialog import infoTextEdit
+from .utility_functions.dynamic_sizing_results import (
+    deleteIterations, iterationRow, iterationSummary, loadIterations, removeSizingLayers, saveIteration, showIteration, showIterations,
+)
+from .utility_functions.hydraulic_balancing import (
     createChildVersion, getCustomerLinePressure, getOrCreatePipeBundles, optimizePipeDiameters, saveCLidPressure,
 )
 from .utility_functions.translations import tr, tr_msg
@@ -30,10 +36,18 @@ TIME_MODES = ['customer', 'customer_mdot', 'global']
 EP_AGGREGATES = ['max', 'weighted']
 
 
-class StaticPipeSizingDialog(QDialog):
+class DynamicPipeSizingDialog(QDialog):
     def __init__(self, main):
         super().__init__()
-        uic.loadUi(os.path.join(os.path.dirname(__file__), 'static_pipe_sizing.ui'), self)
+        uic.loadUi(os.path.join(os.path.dirname(__file__), 'dynamic_pipe_sizing.ui'), self)
+        # all sections are collapsible (state kept in the QGIS settings), the log and the iterations get the remaining height
+        self.groupBox_info = QgsCollapsibleGroupBox(tr_msg('Description'))
+        self.groupBox_info.setObjectName('groupBox_info')
+        self.text_info = infoTextEdit(['dynamic_pipe_sizing_info'], 260)
+        QVBoxLayout(self.groupBox_info).addWidget(self.text_info)
+        self.groupBox_info.setCollapsed(True)  # default before the first use, afterwards the saved state
+        self.verticalLayout_main.insertWidget(0, self.groupBox_info)
+        self.verticalLayout_main.setStretchFactor(self.tabWidget_results, 1)
         self.main = main
         self.process_running = False
         self.run = None
@@ -45,6 +59,56 @@ class StaticPipeSizingDialog(QDialog):
         self.btn_start.clicked.connect(self.start)
         self.btn_stop.clicked.connect(self.stop)
         self.btn_cancel.clicked.connect(self.close)
+        self.btn_showIterations.clicked.connect(self.showSelectedIterations)
+        self.btn_removeIterationLayers.clicked.connect(lambda: removeSizingLayers())
+        self.btn_reloadIterations.clicked.connect(self.loadIterationTable)
+        self.table_iterations.itemDoubleClicked.connect(lambda item: self.showSelectedIterations())
+        self.table_iterations.setColumnCount(len(self.iterationHeaders()))
+        self.table_iterations.setHorizontalHeaderLabels(self.iterationHeaders())
+        self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table_iterations.verticalHeader().setVisible(False)
+
+    @staticmethod
+    def iterationHeaders():
+        return [tr_msg('Iteration'), tr_msg('Critical time'), tr_msg('Weak point (plant)'), tr_msg('dp min [bar]'), tr_msg('dp max [bar]'),
+            tr_msg('Spread [bar]'), tr_msg('Spread after sizing (est.) [bar]'), tr_msg('Quota [%]'), tr_msg('Changed lines'), tr_msg('Outcome')]
+
+    def loadIterationTable(self):
+        """Fills the table with the iterations saved in the loaded version."""
+        self.table_iterations.setRowCount(0)
+        try:
+            summaries = loadIterations(self.main.config)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            summaries = []
+        for summary in summaries:
+            self.addIterationRow(summary)
+
+    def addIterationRow(self, summary):
+        row = self.table_iterations.rowCount()
+        self.table_iterations.insertRow(row)
+        for col, value in enumerate(iterationRow(summary)):
+            # pressures in bar with 3 decimals (1 mbar)
+            text = '' if value is None else '{:.3f}'.format(value) if isinstance(value, float) else str(value)
+            self.table_iterations.setItem(row, col, QTableWidgetItem(text))
+
+    def selectedIterations(self):
+        rows = sorted({index.row() for index in self.table_iterations.selectedIndexes()})
+        return [int(self.table_iterations.item(row, 0).text()) for row in rows]
+
+    def showSelectedIterations(self):
+        iterations = self.selectedIterations()
+        if not iterations:
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Please select one or more iterations in the table.'), level=MessageInfo)
+            return
+        try:
+            cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            showIterations(cur, self.main.config, iterations)
+            iface.mapCanvas().refresh()
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"), tr_msg('The iterations could not be shown: ') + traceback.format_exc().splitlines()[-1],
+                level=MessageCritical)
 
     def updateEnabled(self):
         self.spin_dpSpezSetpoint.setEnabled(self.checkBox_presize.isChecked())
@@ -61,7 +125,8 @@ class StaticPipeSizingDialog(QDialog):
         self.combo_network.addItems([str(row['network']) for row in cur.fetchall()])
         self.combo_submodel.addItems(getUsedNetworkSubmodels(cur, config))
         self.lineEdit_versionName.setText(config['versionName'] + '_sizing')
-        self.lineEdit_versionDescription.setText('Static pipe sizing of version {}'.format(config['versionName']))
+        self.lineEdit_versionDescription.setText('Dynamic pipe sizing of version {}'.format(config['versionName']))
+        self.loadIterationTable()
 
     def parameters(self):
         return {
@@ -81,6 +146,7 @@ class StaticPipeSizingDialog(QDialog):
             'v_max': self.spin_vMax.value() if self.checkBox_vMax.isChecked() else None,
             'max_iter': self.spin_maxIter.value(),
             'build_first': self.checkBox_buildFirst.isChecked(),
+            'show_map': self.checkBox_showMap.isChecked(),
         }
 
     def log(self, message):
@@ -93,6 +159,9 @@ class StaticPipeSizingDialog(QDialog):
         self.process_running = running
         self.btn_start.setEnabled(not running)
         self.btn_stop.setEnabled(running)
+        # while running the iterations are added to the table and shown by the run itself (option)
+        for widget in (self.btn_showIterations, self.btn_reloadIterations):
+            widget.setEnabled(not running)
         for box in (self.groupBox_version, self.groupBox_network, self.groupBox_balancing, self.groupBox_sizing, self.groupBox_iteration):
             box.setEnabled(not running)
 
@@ -119,7 +188,7 @@ class StaticPipeSizingDialog(QDialog):
             return
         self.textEdit_log.clear()
         self.setRunning(True)
-        self.run = StaticPipeSizingRun(self, self.main, self.parameters())
+        self.run = DynamicPipeSizingRun(self, self.main, self.parameters())
         self.run.start()
 
     def stop(self):
@@ -144,7 +213,7 @@ class StaticPipeSizingDialog(QDialog):
             event.accept()
 
 
-class StaticPipeSizingRun(QObject):
+class DynamicPipeSizingRun(QObject):
     """State machine of the iteration; the steps are started as workers and continued by their signals."""
 
     def __init__(self, dlg, main, parms):
@@ -182,6 +251,11 @@ class StaticPipeSizingRun(QObject):
         p = self.parms
         self.dlg.log(tr_msg('Version {}, network {}, submodel {}').format(self.config['versionName'], p['network'], p['submodel']))
         self.iteration = 1
+        self.started = datetime.datetime.now().isoformat(timespec='seconds')
+        # iterations of a previous run (or copied from the parent version) do not belong to this run
+        deleteIterations(self.config)
+        removeSizingLayers()
+        self.dlg.table_iterations.setRowCount(0)
         if p['build_first']:
             self.build()
         else:
@@ -235,7 +309,7 @@ class StaticPipeSizingRun(QObject):
         self.done = True
         self.dlg.log(message)
         self.dlg.update_progress(100 if not error else 0)
-        iface.messageBar().pushMessage(tr_msg("Error") if error else tr_msg("Info"), tr_msg('Static pipe sizing: ') + message, level=MessageCritical if error else MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Error") if error else tr_msg("Info"), tr_msg('Dynamic pipe sizing: ') + message, level=MessageCritical if error else MessageInfo)
         self.dlg.finished()
 
     def checkStop(self):
@@ -347,14 +421,14 @@ class StaticPipeSizingRun(QObject):
         self.dlg.log('  ' + message)
         self.evaluate()
 
-    # ------------------------------------------------------------------ 4. pipe sizing
+    # ------------------------------------------------------------------ 4. pipe sizing and hydraulic balancing
     def evaluate(self):
         if self.checkStop():
             return
         self.progress(3)
         self.stage = 'evaluate'
         p = self.parms
-        self.dlg.log(tr_msg('Iteration {}: flow tracing and pipe sizing ...').format(self.iteration))
+        self.dlg.log(tr_msg('Iteration {}: flow tracing, pipe sizing and hydraulic balancing ...').format(self.iteration))
         try:
             conn = dbConnect(self.config, True)
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -367,20 +441,26 @@ class StaticPipeSizingRun(QObject):
             dps = [val[0] for val in res['c_lid'].values() if val[0] is not None]
             self.dlg.log(tr_msg('  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa').format(
                 res['time'], res['cid_dp'], res['epid_dp'], min(dps), max(dps)))
-            self.dlg.log(tr_msg('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, balancing steps {}').format(
+            self.dlg.log(tr_msg('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, hydraulic balancing steps {}').format(
                 opt['cid_weak'], opt['quota'], opt['spread'], len(opt['presize']), len(opt['history'])))
             self.saveResult(res, opt)
 
             current = {lid: {seq: pipe['pipe_id'] for seq, pipe in line['pipes'].items()} for lid, line in lines.items()}
             changed = {lid: new for lid, new in opt['pipes'].items() if new != current[lid]}
+            state = sorted((lid, sorted(pipes.items())) for lid, pipes in opt['pipes'].items())
             if not changed:
+                outcome = 'converged'
+            elif state in self.states:
+                outcome = 'oscillation'
+            else:
+                outcome = 'max_iter' if self.iteration >= p['max_iter'] else 'changed'
+            self.saveIteration(res, opt, outcome, changed if outcome in ('changed', 'max_iter') else {})
+            if outcome == 'converged':
                 self.finish(tr_msg('Converged in iteration {}: the pipe dimensions do not change anymore.').format(self.iteration))
                 return
             for lid, new in sorted(changed.items()):
                 self.dlg.log(tr_msg('    line {}: {} -> {}').format(lid, catalog[current[lid][min(current[lid])]]['name'], catalog[new[min(new)]]['name']))
-
-            state = sorted((lid, sorted(pipes.items())) for lid, pipes in opt['pipes'].items())
-            if state in self.states:
+            if outcome == 'oscillation':
                 self.finish(tr_msg('Stopped in iteration {}: the pipe dimensions repeat a previous iteration (oscillation), the lines are not changed.').format(self.iteration), error=True)
                 return
             self.states.append(state)
@@ -400,12 +480,29 @@ class StaticPipeSizingRun(QObject):
         except Exception:
             self.onException()
 
+    def saveIteration(self, res, opt, outcome, changed):
+        """Saves the summary of the iteration in the version folder, adds it to the table and shows it on the map (option)."""
+        try:
+            summary = iterationSummary(self.iteration, self.started, res, opt, outcome, changed)
+            saveIteration(self.config, summary)
+            self.dlg.addIterationRow(summary)
+            if self.parms['show_map']:
+                cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                # the class bounds of all iterations so far; the earlier iterations stay in the layer tree, hidden
+                summaries = loadIterations(self.config)
+                for earlier in summaries[:-1]:
+                    showIteration(cur, self.config, earlier, summaries, visible=False)
+                showIteration(cur, self.config, summary, summaries)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            self.dlg.log(tr_msg('  the results of the iteration could not be saved or shown: ') + traceback.format_exc().splitlines()[-1])
+
     def saveResult(self, res, opt):
         """Saves c_lid of the simulated state and after the sizing in the version directory."""
         try:
             path = os.path.join(self.config['pathProjects'], self.config['projectName'], 'versions', self.config['versionName'])
-            saveCLidPressure(res['c_lid'], os.path.join(path, 'static_sizing_iter{}_c_lid.json'.format(self.iteration)))
-            saveCLidPressure(opt['c_lid'], os.path.join(path, 'static_sizing_iter{}_c_lid_sized.json'.format(self.iteration)))
+            saveCLidPressure(res['c_lid'], os.path.join(path, 'dynamic_sizing_iter{}_c_lid.json'.format(self.iteration)))
+            saveCLidPressure(opt['c_lid'], os.path.join(path, 'dynamic_sizing_iter{}_c_lid_sized.json'.format(self.iteration)))
         except Exception:
             self.dlg.log(tr_msg('  c_lid could not be saved: ') + traceback.format_exc().splitlines()[-1])
 

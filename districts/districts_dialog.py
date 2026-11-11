@@ -227,8 +227,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_featureModels.setIconSize(QSize(btn_size, btn_size))   
         self.btn_runModel.setIcon(QIcon(":/images/themes/default/mTemporalNavigationAnimated.svg"))
         self.btn_runModel.setIconSize(QSize(btn_size, btn_size))
-        self.btn_staticPipeSizing.setIcon(QIcon(":/images/themes/default/mActionReload.svg"))
-        self.btn_staticPipeSizing.setIconSize(QSize(btn_size, btn_size))
+        self.btn_dynamicPipeSizing.setIcon(QIcon(":/images/themes/default/mActionReload.svg"))
+        self.btn_dynamicPipeSizing.setIconSize(QSize(btn_size, btn_size))
 
         #results & visualization
         btn_size=100

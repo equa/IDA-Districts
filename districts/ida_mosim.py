@@ -490,13 +490,14 @@ def setModellingSettings(plugin_dir,config,dlg):
     writeModellingSettings(config,modellingSettings)
     closeDialog(dlg)    
   
-def buildBuildingModel(dlg):
+def buildBuildingModel(dlg,main):
                 
     submodel_templates={dlg.tableWidget.cellWidget(i,0).currentText(): dlg.tableWidget.cellWidget(i,1).currentText() for i in range(dlg.tableWidget.rowCount())}
 
     if submodel_templates:
         dprint(submodel_templates)
-        config=getDBConnectionData(plugin_dir)
+        config=main.config
+        plugin_dir=main.plugin_dir
         conn=dbConnect(config,False)
         if conn:
             if config['versionName']:
@@ -647,9 +648,9 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     ida_script+="""(save-document [@])"""
                     ida_scripts.append('('+ida_script+')')
                     
-                    src_dir=getDataCenterDir(plugin_dir)+"\\{}\\building_templates\\".format(config['projectName'])
+                    src_dir=config['pathProjects']+config['projectName']+'\\building_templates\\'
                     dprint(src_dir)
-                    buildingModel_dir=plugin_dir+'\\versions\\{}\\{}\\'.format(config['projectName'],config['versionName'])
+                    buildingModel_dir=config['pathProjects']+config['projectName']+'\\versions\\{}\\{}\\'.format(config['projectName'],config['versionName'])
                     dprint(buildingModel_dir)
                     file_path=buildingModel_dir+'building_{}.idm'.format(submodel)
                     dprint(file_path)
@@ -657,7 +658,7 @@ WHERE submodel={};""".format(config['versionName'],submodel) # nosec B608
                     copy_tree_filter_extensions_and_folders(src_dir+submodel_templates[submodel], buildingModel_dir+'building_'+str(submodel))
                 
                     
-                    worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,plugin_dir,ida_scripts,exit_ida=False,finished_fn=finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data})
+                    worker_buildBuildingModel = WorkerOpenRunScriptAPI(file_path,plugin_dir,config,ida_scripts,exit_ida=False,finished_fn=finishedBuildBuildingModel,finished_fn_args={'dlg': dlg,'submodel': submodel,'conn_data': conn_data,'config': config,'cur': cur})
                     QThreadPool.globalInstance().start(worker_buildBuildingModel)
                     worker_buildBuildingModel.signals.error.connect(show_error_message)
                     worker_buildBuildingModel.signals.progress.connect(dlg.update_progress)
@@ -683,6 +684,8 @@ def finishedBuildBuildingModel(args):
         dlg=args['dlg']
         submodel=args['submodel']
         conn_data=args['conn_data']
+        config=args['config']
+        cur=args['cur']
         co_sim=dlg.checkbox_cosim.isChecked()
         reinvoke=dlg.checkbox_reinvokeFeatures.isChecked()
         dprint(co_sim)
