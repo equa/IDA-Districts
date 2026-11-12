@@ -79,7 +79,10 @@ def slow_pause(factor=1.0):
 
 # ---------------- incremental steps ----------------
 # Steps of a class marked with @pytest.mark.incremental build on each other:
-# after the first failing step the remaining steps of the same parametrization are skipped.
+# after the first failing step, or a step whose fixture is missing a prerequisite, the remaining
+# steps of the same parametrization are skipped.
+# A fixture skips only for a missing prerequisite (e.g. sample data); a step that does not apply
+# to a template skips in its body (only_for) or with the marker templates, which keeps the workflow running.
 _failed_steps = {}
 
 
@@ -89,16 +92,31 @@ def _incremental_key(item):
 
 
 def pytest_runtest_makereport(item, call):
-    if "incremental" in item.keywords and call.excinfo is not None \
-            and not call.excinfo.errisinstance(pytest.skip.Exception):
-        _failed_steps.setdefault(_incremental_key(item), item.originalname or item.name)
+    if "incremental" not in item.keywords or call.excinfo is None:
+        return
+    step = item.originalname or item.name
+    if not call.excinfo.errisinstance(pytest.skip.Exception):
+        _failed_steps.setdefault(_incremental_key(item), "previous step failed ({})".format(step))
+    elif call.when == "setup":
+        reason = call.excinfo.value.msg
+        if reason.startswith("not part of the template"):
+            return
+        # a skip raised by pytest_runtest_setup below already names the step that caused it
+        if not reason.startswith("previous step"):
+            reason = "previous step skipped ({}: {})".format(step, reason)
+        _failed_steps.setdefault(_incremental_key(item), reason)
 
 
 def pytest_runtest_setup(item):
     if "incremental" in item.keywords:
-        failed = _failed_steps.get(_incremental_key(item))
-        if failed:
-            pytest.skip("previous step failed ({})".format(failed))
+        reason = _failed_steps.get(_incremental_key(item))
+        if reason:
+            pytest.skip(reason)
+        # checked before the fixtures, so the prerequisite fixture of a step for other templates is not set up
+        templates = item.get_closest_marker("templates")
+        template = getattr(item, "callspec", None) and item.callspec.params.get("wf")
+        if templates and template and template not in templates.args:
+            pytest.skip("not part of the template '{}'".format(template))
 
 
 # ---------------- helpers ----------------

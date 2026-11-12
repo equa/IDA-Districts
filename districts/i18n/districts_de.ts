@@ -7899,6 +7899,10 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
             <translation>Kein Netz zu erzeugen</translation>
         </message>
         <message>
+            <source>No network topology result to save. Generate the network topology first.</source>
+            <translation>Kein Ergebnis der Netz-Topologie zum Speichern. Erzeuge zuerst die Netz-Topologie.</translation>
+        </message>
+        <message>
             <source>No parameters mapped to layer customers!</source>
             <translation>Dem Layer Abnehmer sind keine Parameter zugeordnet!</translation>
         </message>
@@ -7909,6 +7913,10 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
         <message>
             <source>No pipe bundle type attribute selected!</source>
             <translation>Kein Rohrbündeltyp-Attribut ausgewählt!</translation>
+        </message>
+        <message>
+            <source>No pipe laying result to save. Run the pipe laying first.</source>
+            <translation>Kein Ergebnis der Rohrverlegung zum Speichern. Führe zuerst die Rohrverlegung aus.</translation>
         </message>
         <message>
             <source>No project tables loaded</source>

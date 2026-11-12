@@ -6,7 +6,7 @@ from qgis.PyQt import QtGui, QtCore
 from qgis.PyQt.QtGui import QIcon
 
 from .pipe_sizing import WorkerPipeSizing, rejectPipeSizingResults
-from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.compat import MessageCritical, MessageInfo, MessageWarning
 from .utility_functions.db import (
     dbConnect, dropDBTriggers, featureCount, getNetworks, getPipeBundleNames, getPlantIds, getTableAttr,
     getTableNumericAttr, getTemplateNames, getTemplatesInfo, insertDBTriggers, streetsCount,
@@ -32,6 +32,15 @@ def junctionZetaCheckBox(cur,config):
     except Exception:
         checkbox.setChecked(False)
     return checkbox
+
+def runResultSavable(dlg,message):
+    """True if the dialog's last run finished; otherwise warns with message.
+    The temp schema is shared by the dialogs and outlives their runs, so only the dialog's own run says whether it holds a result to save."""
+    if dlg.run_result=='finished':
+        return True
+    iface.messageBar().pushMessage(tr_msg("Warning"), message, level=MessageWarning)
+    return False
+
 
 class JunctionZetaWidget(QWidget):
     """checkbox 'calculate the zeta values of the junctions' and the zeta values of the flow paths of the tee and cross
@@ -110,6 +119,7 @@ class PipeLayingDialog(QDialog):
         self.setWindowTitle(tr('@default',"pipe_laying_algorithm"))      
         columns=getTableAttr(self.cur,self.config,'customer')
         self.process_running=False
+        self.run_result=None
         
         #heating network
         self.check_heating_network =QCheckBox(tr('@default',"generate_heating_network"))
@@ -625,6 +635,7 @@ class PipeLayingDialog(QDialog):
             iface.messageBar().pushMessage(tr_msg("Error"), tr_msg("Please insert customers of network: {} into the customers layer.").format(self.combo_network.currentText()), level=MessageCritical)
         elif not layerCheck:
             self.process_running=True
+            self.run_result=None
             self.worker = WorkerPipeLaying(tsup_max_col=self.tsup_max_col.currentText(),linearHeatDensity_min_col=self.linearHeatDensity_min_col.currentText(),heat_demand_min_col=self.heat_demand_min_col.currentText(),heating_load_min_col=self.heating_load_min_col.currentText(),
                 tsup_min_col=self.tsup_min_col.currentText(),linearColdDensity_min_col=self.linearColdDensity_min_col.currentText(),cold_demand_min_col=self.cold_demand_min_col.currentText(),cooling_load_min_col=self.cooling_load_min_col.currentText(),
                 checkbox_tsup_min=self.checkbox_tsup_min.isChecked(),checkbox_linearColdDensity_min=self.checkbox_linearColdDensity_min.isChecked(),checkbox_cold_demand_min=self.checkbox_cold_demand_min.isChecked(),checkbox_cooling_load_min=self.checkbox_cooling_load_min.isChecked(),  
@@ -660,6 +671,7 @@ class PipeLayingDialog(QDialog):
     
     def update_finished(self,message):
         self.process_running=False
+        self.run_result=message
         
     def heating_network_generation_state(self,s):
         dprint('change heating network generation state')
@@ -723,6 +735,8 @@ class PipeLayingDialog(QDialog):
     
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
+        if not runResultSavable(self,tr_msg("No pipe laying result to save. Run the pipe laying first.")):
+            return
         dprint('save Results')
         self.conn=dbConnect(self.config,True)
         if self.conn:
@@ -757,6 +771,7 @@ class PipeLayingDialog(QDialog):
     def rejectResults(self):
         """keep old topology"""
         dprint('Reject Results')
+        self.run_result=None
         removeTempLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         for layer in ['lines','junctions','customers','energy_plants']:
@@ -781,6 +796,7 @@ class NetworkTopologyDialog(QDialog):
         closeConnectionOnFinish(self)
         self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         self.setWindowTitle(tr('@default',"generate_topology"))
+        self.run_result=None
         #todo get values from data center
         customer_templates=getTemplateNames(self.cur,'customer')
         pipeBundleTypes=getPipeBundleNames(self.cur)
@@ -1000,6 +1016,7 @@ class NetworkTopologyDialog(QDialog):
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             if checkNetwork(self.cur,self.config['versionName'],networks):
                 self.process_running=True
+                self.run_result=None
                 self.worker = WorkerGenerateNetworkTopology(config=self.config,plugin_dir=self.plugin_dir, networks=networks ,redraw_submodels_polygons=self.redraw_submodels_polygons, deleteUnconnectedCustomers=self.check_deleteUnconnectedCustomers.isChecked(), deleteUnconnectedLines=self.check_deleteUnconnectedLines.isChecked(),
                     connectCustomers=self.check_connectCustomers.isChecked(),connectCustomers_template_pipeBundle=self.connectCustomers_template_pipeBundle.currentText(),
                     addCustomers=self.check_add_customers_network_ends.isChecked(),addCustomers_template_customers=self.addCustomers_template_customers.currentText(),
@@ -1021,6 +1038,7 @@ class NetworkTopologyDialog(QDialog):
 
     def update_finished(self,message):
         self.process_running=False
+        self.run_result=message
         
     def addCustomers_network_ends_state(self,s):
         dprint('add customers to network ends state')
@@ -1090,6 +1108,8 @@ class NetworkTopologyDialog(QDialog):
 
     def saveResults(self):
         """Writes results (lines, customers, junctions) from temp schema to version schema"""
+        if not runResultSavable(self,tr_msg("No network topology result to save. Generate the network topology first.")):
+            return
         self.conn=dbConnect(self.config,True)
         if self.conn:
             self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -1108,6 +1128,7 @@ class NetworkTopologyDialog(QDialog):
     def rejectResults(self):
         """keep old topolgy"""
         dprint('Reject Results')
+        self.run_result=None
         removeTempLayers()
         layerTreeRoot = QgsProject.instance().layerTreeRoot()  
         for layer in ['lines','junctions','customers','energy_plants']:

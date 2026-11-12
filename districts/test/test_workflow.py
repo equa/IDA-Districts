@@ -35,6 +35,7 @@ from districts.ida_rv import loadResults, runPathReports, showOnMap
 from districts.pipe_sizing import savePipeSizingResults
 from districts.upgrade import upgradeVersionDB
 from districts.utility_functions import reports
+from districts.utility_functions.compat import MessageWarning
 from districts.utility_functions.db import MATERIAL_MECHANICAL_COLUMNS, PIPE_TWIN_COLUMNS
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.files import districtsModelerTempDir
@@ -209,6 +210,27 @@ def plugin_state(plugin):
         QSettings().value('districts/versionName'), messages)
 
 
+def bar_messages(plugin, level):
+    """texts in the message bar with level (pytest-qgis mock bar, or the bar of QGIS with GUI)"""
+    bar = plugin.iface.messageBar()
+    if hasattr(bar, 'get_messages'):
+        return [str(m) for m in bar.get_messages(level)]
+    return [item.text() for item in bar.items() if item.level() == level]
+
+
+def network_counts(plugin):
+    return {table: count(plugin, table) for table in ('lines', 'customers', 'junctions', 'energy_plants')}
+
+
+def assert_save_refused(plugin, dlg, message, before):
+    """Save of the dialog writes nothing into the version and warns with message"""
+    warnings_before = len(bar_messages(plugin, MessageWarning))
+    dlg.saveResults()
+    new_warnings = bar_messages(plugin, MessageWarning)[warnings_before:]
+    assert any(message in m for m in new_warnings), new_warnings
+    assert network_counts(plugin) == before
+
+
 def public_rows(plugin, table):
     plugin.cur.execute('SELECT * FROM public.{} ORDER BY id;'.format(table))  # nosec B608
     return plugin.cur.fetchall()
@@ -340,22 +362,22 @@ class TestWorkflow:
         wait_for_process(dlg, timeout=timeout)
         closeDialog(dlg)
 
+    @pytest.mark.templates(EMPTY, DB_DEFAULTS)
     def test_import_streets(self, wf, errors, osm_offline):
-        only_for(wf, EMPTY, DB_DEFAULTS)
         plugin = wf.plugin
         self._import_osm(plugin, streets=True, buildings=False, timeout=60)
         errors.check()
         assert count(plugin, 'streets') > 0
 
+    @pytest.mark.templates(EMPTY, DB_DEFAULTS)
     def test_import_buildings(self, wf, errors, osm_offline):
-        only_for(wf, EMPTY, DB_DEFAULTS)
         plugin = wf.plugin
         self._import_osm(plugin, streets=False, buildings=True, timeout=60)
         errors.check()
         assert count(plugin, 'buildings') > 0
 
+    @pytest.mark.templates(EMPTY, DB_DEFAULTS)
     def test_import_elevation_data(self, wf, errors, samples_dir):
-        only_for(wf, EMPTY, DB_DEFAULTS)
         plugin = wf.plugin
         for i, tile in enumerate(['N59E017.hgt', 'N59E018.hgt']):
             self._import(plugin, 'Elevation data', plugin.importElevationData,
@@ -604,6 +626,25 @@ class TestWorkflow:
         errors.check()
         assert count(plugin, 'energy_plants', 'WHERE template<>{}'.format(template)) == 0
 
+    def test_save_without_pipe_laying_run(self, wf, errors):
+        """Save writes only a finished run of the dialog: not before a run (no temp.lines yet),
+        after a failed or stopped run, or after Reject"""
+        only_for(wf, EMPTY, DB_DEFAULTS)
+        plugin = wf.plugin
+        before = network_counts(plugin)
+        plugin.pipeLayingAlgorithm()
+        dlg = plugin.dlg_pipeLayingAlgorithm
+        message = tr_msg("No pipe laying result to save. Run the pipe laying first.")
+        assert_save_refused(plugin, dlg, message, before)
+        for result in ('error', 'stopped'):
+            dlg.update_finished(result)
+            assert_save_refused(plugin, dlg, message, before)
+        dlg.update_finished('finished')
+        dlg.rejectResults()
+        assert_save_refused(plugin, dlg, message, before)
+        closeDialog(dlg)
+        errors.check()
+
     def test_pipe_laying_algorithm(self, wf, errors):
         only_for(wf, EMPTY, DB_DEFAULTS)
         plugin = wf.plugin
@@ -616,8 +657,11 @@ class TestWorkflow:
         if customer_template:
             # the connected customers get the imported template
             select_id(dlg.heating_template_customer, customer_template)
+        dlg.run_result = 'finished'  # of an earlier run: starting a run must clear it
         dlg.execute()
+        assert dlg.run_result is None
         wait_for_process(dlg, timeout=120)
+        assert dlg.run_result == 'finished'
         dlg.saveResults()
         wait(500)
         closeDialog(dlg)
@@ -626,6 +670,24 @@ class TestWorkflow:
         if customer_template:
             assert count(plugin, 'customers', 'WHERE template<>{}'.format(customer_template)) == 0
         assert_junction_zeta(plugin)
+
+    def test_save_without_topology_run(self, wf, errors):
+        """Save of the topology dialog writes only its own finished run (not before a run, after a failed run or Reject)"""
+        only_for(wf, HEATING)
+        plugin = wf.plugin
+        before = network_counts(plugin)
+        plugin.generateNetworkTopology()
+        assert hasattr(plugin, 'window_topology'), "topology dialog not opened: {}".format(plugin_state(plugin))
+        dlg = plugin.window_topology
+        message = tr_msg("No network topology result to save. Generate the network topology first.")
+        assert_save_refused(plugin, dlg, message, before)
+        dlg.update_finished('error')
+        assert_save_refused(plugin, dlg, message, before)
+        dlg.update_finished('finished')
+        dlg.rejectResults()
+        assert_save_refused(plugin, dlg, message, before)
+        closeDialog(dlg)
+        errors.check()
 
     def test_generate_network_topology(self, wf, errors):
         only_for(wf, HEATING)
