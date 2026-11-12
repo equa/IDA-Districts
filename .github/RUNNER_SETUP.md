@@ -12,9 +12,10 @@ a **self-hosted runner**: a Windows PC of ours, not a GitHub cloud machine.
 
 The PC needs, like for running the tests manually:
 
-- QGIS 4.2.3 and QGIS 3.44.8 in `C:\Program Files\QGIS ...` (other paths: change `matrix.python` in the workflow)
+- QGIS 4.2.3 and QGIS 3.44.15 in `C:\Program Files\QGIS ...` (other paths: change `matrix.python` in the workflow)
 - IDA Districts in `C:\Program Files (x86)\IDA Districts\` with a valid license for the runner's Windows user
-- PostgreSQL 18 (`C:\Program Files\PostgreSQL\18\`, used for `psql`) and the test server on port 5433
+- PostgreSQL 18 (`C:\Program Files\PostgreSQL\18\`, used for `psql`) with PostGIS and pgRouting, as the
+  Windows service `postgresql-x64-18` on port 5432 (the installer's default; it runs without anyone logged in)
 - the sample data in `C:\EQUA\Projekte\districts\samples` (other path: repository variable `DISTRICTS_TEST_SAMPLES`)
 - pytest for the QGIS Python, installed **as the runner's Windows user** (QGIS 4.2 and 3.44 share the user site):
 
@@ -22,18 +23,11 @@ The PC needs, like for running the tests manually:
   & "C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat" -m pip install --user pytest==9.2.0 pytest-qgis==5.0.2
   ```
 
-## 2. Test server as Windows service
+## 2. Test DB server
 
-The test server must run without anyone being logged in. Register it once as a service
-(PowerShell **as administrator**; stop a running instance first):
-
-```powershell
-& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" -D "C:\PostgreSQL\18\districts_test" stop
-& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" register -N "postgresql-districts-test" -D "C:\PostgreSQL\18\districts_test" -S auto
-Start-Service postgresql-districts-test
-```
-
-The service account (default: Network Service) needs full access to `C:\PostgreSQL\18\districts_test`.
+The tests use the PostgreSQL server of the PC (`localhost:5432`, the same as for running the tests manually).
+They create and drop only their own databases (`autotest_*`). For another server or port set the repository
+variables `DISTRICTS_TEST_DB_HOST` / `DISTRICTS_TEST_DB_PORT` (step 4).
 
 ## 3. Install the runner
 
@@ -44,9 +38,10 @@ and the longest plugin file adds 140 characters (Windows path limit: 260).
 When `config.cmd` asks:
 
 - labels: add **`districts`** (the workflow uses `runs-on: [self-hosted, windows, districts]`)
-- run as service: **No**. Start it with `C:\actions-runner\run.cmd` in the session of the Windows user that owns
-  the IDA license and the pytest installation (e.g. via autostart / task scheduler "at log on").
-  A runner service running as Network Service would neither have the IDA license nor pytest.
+- run as service: **Yes, under the Windows user** that owns the IDA license and the pytest installation
+  (not the default Network Service, which has neither). An already configured runner is switched with
+  `.github/scripts/install-runner-service.ps1` (PowerShell as administrator, logged in as that user; it asks
+  for the user's Windows password and registers the runner `PETER` again with the label `districts`).
 
 Only one runner should have the label `districts`: the tests use one test DB and one IDA installation.
 
@@ -59,7 +54,7 @@ GitHub → Settings → Secrets and variables → Actions:
 | `DISTRICTS_TEST_DB_USER` | secret | DB user of the test server (superuser, creates and drops the test DBs) |
 | `DISTRICTS_TEST_DB_PASSWORD` | secret | its password |
 | `DISTRICTS_TEST_DB_HOST` | variable (optional) | default `localhost` |
-| `DISTRICTS_TEST_DB_PORT` | variable (optional) | default `5433` |
+| `DISTRICTS_TEST_DB_PORT` | variable (optional) | default `5432` |
 | `DISTRICTS_TEST_SAMPLES` | variable (optional) | default `C:\EQUA\Projekte\districts\samples` |
 | `DISTRICTS_SIM_CASES` | variable (optional) | simulation test cases, default `C:\EQUA\Projekte\districts\testing` |
 
@@ -87,7 +82,7 @@ both checks are green. Pushing directly to main is blocked.
 
 ## Security
 
-The runner executes the code of the tested commit on this PC, as the Windows user running `run.cmd`.
+The runner executes the code of the tested commit on this PC, as the Windows user of the runner service.
 The repository is public, so the workflow has **no `pull_request` trigger**: for a pull request from a fork,
 GitHub would use the workflow file of that pull request, and an outsider could run their own code here.
 A push to `dev` and a manual run need write access to the repository.
@@ -99,4 +94,4 @@ A push to `dev` and a manual run need write access to the repository.
   - Fork pull request approval: "Require approval for all external contributors"
   - Workflow permissions: "Read repository contents and packages permissions";
     "Allow GitHub Actions to create and approve pull requests" off
-- The DB secrets are only for the local test server (port 5433), never for a production database.
+- The DB secrets are only for the local server of the runner PC (port 5432), never for a production database.

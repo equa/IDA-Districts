@@ -4,7 +4,7 @@
 Only runs with a project given (it is not created by the test); the pipes are sized in a new child version
 of the version, which is kept for inspection:
 
-    DISTRICTS_TEST_PATH_PROJECTS=C:\\projects  DISTRICTS_TEST_DB_PORT=5433
+    DISTRICTS_TEST_PATH_PROJECTS=C:\\projects  DISTRICTS_TEST_DB_PORT=5432
     DISTRICTS_TEST_DYNAMIC_SIZING_PROJECT=dyn_opt  (DISTRICTS_TEST_DYNAMIC_SIZING_VERSION=base1)
     (DISTRICTS_TEST_DYNAMIC_SIZING_MAX_ITER=3, DISTRICTS_TEST_DYNAMIC_SIZING_TIMEOUT=7200 [s])
     python -m pytest test/test_dynamic_pipe_sizing.py -v -s

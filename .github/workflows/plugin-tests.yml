@@ -41,10 +41,10 @@ jobs:
           - qgis: '4.2'
             python: 'C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat'
           - qgis: '3.44'
-            python: 'C:\Program Files\QGIS 3.44.8\bin\python-qgis-ltr.bat'
+            python: 'C:\Program Files\QGIS 3.44.15\bin\python-qgis-ltr.bat'
     env:
       DISTRICTS_TEST_DB_HOST: ${{ vars.DISTRICTS_TEST_DB_HOST || 'localhost' }}
-      DISTRICTS_TEST_DB_PORT: ${{ vars.DISTRICTS_TEST_DB_PORT || '5433' }}
+      DISTRICTS_TEST_DB_PORT: ${{ vars.DISTRICTS_TEST_DB_PORT || '5432' }}
       DISTRICTS_TEST_DB_USER: ${{ secrets.DISTRICTS_TEST_DB_USER }}
       DISTRICTS_TEST_DB_PASSWORD: ${{ secrets.DISTRICTS_TEST_DB_PASSWORD }}
       DISTRICTS_TEST_SAMPLES: ${{ vars.DISTRICTS_TEST_SAMPLES || 'C:\EQUA\Projekte\districts\samples' }}
