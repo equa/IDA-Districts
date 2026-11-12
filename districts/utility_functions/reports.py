@@ -26,6 +26,36 @@ import traceback
 from .debug_log import dprint, debug_enabled
 
 
+def textFormat(font, color=None):
+    """QgsTextFormat with the family, style and point size of font (setFont/setFontColor are deprecated since QGIS 3.40)."""
+    text_format = QgsTextFormat()
+    text_format.setFont(font)
+    # the size of the QFont is ignored by QgsTextFormat
+    text_format.setSize(font.pointSizeF())
+    text_format.setSizeUnit(Qgis.RenderUnit.Points)
+    text_format.setColor(color if color is not None else QColor("black"))
+    return text_format
+
+
+def setLegendFontSizes(legend):
+    """Point sizes of the layer, group and title texts of a layout legend."""
+    for style_type, size in ((QgsLegendStyle.SymbolLabel, 8), (QgsLegendStyle.Group, 9), (QgsLegendStyle.Title, 10)):
+        style = legend.style(style_type)
+        text_format = style.textFormat()
+        text_format.setSize(size)
+        text_format.setSizeUnit(Qgis.RenderUnit.Points)
+        style.setTextFormat(text_format)
+        legend.setStyle(style_type, style)
+
+
+def styleScaleBar(scale):
+    """Arial 15 black text and black boxes of a scale bar."""
+    scale.setTextFormat(textFormat(QFont("Arial", 15)))
+    fill = scale.fillSymbol().clone()
+    fill.setColor(QColor("Black"))
+    scale.setFillSymbol(fill)
+
+
 def getKPIUnit(name):
     if name.startswith("tsup") or name.startswith("tret"):
         return '°C'
@@ -84,15 +114,14 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     # Add header project label
     label_project = QgsLayoutItemLabel(layout)
     label_project.setText(tr("@default","project")+": ")
-    label_project.setFont(font_header_label)
+    label_project.setTextFormat(textFormat(font_header_label))
     label_project.adjustSizeToText()
     label_project.attemptMove(QgsLayoutPoint(20, 10, QgsUnitTypes.LayoutMillimeters))
     label_project.attemptResize(QgsLayoutSize(140, 15), True)
 
     project_ = QgsLayoutItemLabel(layout)
     project_.setText(config['projectName'])
-    project_.setFont(font_header)
-    project_.setFontColor(QColor("gray"))
+    project_.setTextFormat(textFormat(font_header, QColor("gray")))
     project_.adjustSizeToText()
     project_.attemptMove(QgsLayoutPoint(60, 10, QgsUnitTypes.LayoutMillimeters))
     project_.attemptResize(QgsLayoutSize(140, 15), True)
@@ -101,15 +130,14 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     # Add header project label
     label_version = QgsLayoutItemLabel(layout)
     label_version.setText(tr("@default","version")+": ")
-    label_version.setFont(font_header_label)
+    label_version.setTextFormat(textFormat(font_header_label))
     label_version.adjustSizeToText()
     label_version.attemptMove(QgsLayoutPoint(20, 18, QgsUnitTypes.LayoutMillimeters))
     label_version.attemptResize(QgsLayoutSize(140, 15), True)
 
     version = QgsLayoutItemLabel(layout)
     version.setText(config['versionName'])
-    version.setFont(font_header)
-    version.setFontColor(QColor("gray"))
+    version.setTextFormat(textFormat(font_header, QColor("gray")))
     version.adjustSizeToText()
     version.attemptMove(QgsLayoutPoint(60, 18, QgsUnitTypes.LayoutMillimeters))
     version.attemptResize(QgsLayoutSize(140, 15), True)
@@ -244,26 +272,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     legend.setLinkedMap(map)
     layout.addLayoutItem(legend)
     
-    # Set layer font size
-    style = legend.style(QgsLegendStyle.SymbolLabel)
-    font = style.font()
-    font.setPointSize(8)
-    style.setFont(font)
-    legend.setStyle(QgsLegendStyle.SymbolLabel, style)
-
-    # Set group font size
-    style = legend.style(QgsLegendStyle.Group)
-    font = style.font()
-    font.setPointSize(9)
-    style.setFont(font)
-    legend.setStyle(QgsLegendStyle.Group, style)
-
-    # Set title font size
-    style = legend.style(QgsLegendStyle.Title)
-    font = style.font()
-    font.setPointSize(10)
-    style.setFont(font)
-    legend.setStyle(QgsLegendStyle.Title, style)
+    setLegendFontSizes(legend)
     
     legend.setSymbolWidth(5)   # mm
     legend.setSymbolHeight(1)  # mm
@@ -278,10 +287,8 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     #Add scale bar    
     scale=QgsLayoutItemScaleBar(layout)
     scale.setStyle('Single Box')
-    scale.setFont(QFont("Arial",15))
-    scale.setFontColor(QColor("Black"))
     scale.setBackgroundEnabled(True)
-    scale.setFillColor(QColor("Black"))
+    styleScaleBar(scale)
     scale.applyDefaultSize(QgsUnitTypes.DistanceMeters)
     scale.setMapUnitsPerScaleBarUnit(1)
     scale.setNumberOfSegments(2)
@@ -321,7 +328,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         # Add title network
         label_networks[network] = QgsLayoutItemLabel(layout)
         label_networks[network].setText(tr("@default","network")+': '+network)
-        label_networks[network].setFont(font_header_label)
+        label_networks[network].setTextFormat(textFormat(font_header_label))
         label_networks[network].adjustSizeToText()
         label_networks[network].attemptMove(
             QgsLayoutPoint(20, y_layout),
@@ -537,7 +544,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         # Add title
         label_map_plots = QgsLayoutItemLabel(layout)
         label_map_plots.setText(tr("@default","map_plots"))
-        label_map_plots.setFont(font_header_label)
+        label_map_plots.setTextFormat(textFormat(font_header_label))
         label_map_plots.adjustSizeToText()
         label_map_plots.attemptMove(QgsLayoutPoint(20,y_layout - 10, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
         label_map_plots.attemptResize(QgsLayoutSize(140, 15), True)
@@ -626,26 +633,7 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             legends[counter].setLinkedMap(maps[counter])
             layout.addLayoutItem(legends[counter])
             
-            # Set layer font size
-            style = legends[counter].style(QgsLegendStyle.SymbolLabel)
-            font = style.font()
-            font.setPointSize(8)
-            style.setFont(font)
-            legends[counter].setStyle(QgsLegendStyle.SymbolLabel, style)
-
-            # Set group font size
-            style = legends[counter].style(QgsLegendStyle.Group)
-            font = style.font()
-            font.setPointSize(9)
-            style.setFont(font)
-            legends[counter].setStyle(QgsLegendStyle.Group, style)
-
-            # Set title font size
-            style = legends[counter].style(QgsLegendStyle.Title)
-            font = style.font()
-            font.setPointSize(10)
-            style.setFont(font)
-            legends[counter].setStyle(QgsLegendStyle.Title, style)
+            setLegendFontSizes(legends[counter])
             
             legends[counter].setSymbolWidth(5)   # mm
             legends[counter].setSymbolHeight(1)  # mm
@@ -659,10 +647,8 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             #Add scale bar    
             scales[counter]=QgsLayoutItemScaleBar(layout)
             scales[counter].setStyle('Single Box')
-            scales[counter].setFont(QFont("Arial",15))
-            scales[counter].setFontColor(QColor("Black"))
             scales[counter].setBackgroundEnabled(True)
-            scales[counter].setFillColor(QColor("Black"))
+            styleScaleBar(scales[counter])
             scales[counter].applyDefaultSize(QgsUnitTypes.DistanceMeters)
             scales[counter].setMapUnitsPerScaleBarUnit(1)
             scales[counter].setNumberOfSegments(2)
@@ -740,6 +726,7 @@ from districts.utility_functions.plots import *
 from districts.utility_functions.db import *
 from districts.utility_functions.files import *
 from districts.utility_functions.translations import *
+from districts.utility_functions.reports import textFormat, styleScaleBar
 
 
 import subprocess
@@ -787,15 +774,14 @@ font_table = QFont("Arial", 10)
 # Add header project label
 label_project = QgsLayoutItemLabel(layout)
 label_project.setText(tr('@default',"project")+': ')
-label_project.setFont(font_header_label)
+label_project.setTextFormat(textFormat(font_header_label))
 label_project.adjustSizeToText()
 label_project.attemptMove(QgsLayoutPoint(20, 10, QgsUnitTypes.LayoutMillimeters))
 label_project.attemptResize(QgsLayoutSize(140, 15), True)
 
 project_ = QgsLayoutItemLabel(layout)
 project_.setText(projectName)
-project_.setFont(font_header)
-project_.setFontColor(QColor("gray"))
+project_.setTextFormat(textFormat(font_header, QColor("gray")))
 project_.adjustSizeToText()
 project_.attemptMove(QgsLayoutPoint(60, 10, QgsUnitTypes.LayoutMillimeters))
 project_.attemptResize(QgsLayoutSize(140, 15), True)
@@ -804,15 +790,14 @@ project_.attemptResize(QgsLayoutSize(140, 15), True)
 # Add header project label
 label_version = QgsLayoutItemLabel(layout)
 label_version.setText("Version: ")
-label_version.setFont(font_header_label)
+label_version.setTextFormat(textFormat(font_header_label))
 label_version.adjustSizeToText()
 label_version.attemptMove(QgsLayoutPoint(20, 18, QgsUnitTypes.LayoutMillimeters))
 label_version.attemptResize(QgsLayoutSize(140, 15), True)
 
 version = QgsLayoutItemLabel(layout)
 version.setText(versionName)
-version.setFont(font_header)
-version.setFontColor(QColor("gray"))
+version.setTextFormat(textFormat(font_header, QColor("gray")))
 version.adjustSizeToText()
 version.attemptMove(QgsLayoutPoint(60, 18, QgsUnitTypes.LayoutMillimeters))
 version.attemptResize(QgsLayoutSize(140, 15), True)
@@ -906,9 +891,16 @@ else:
     else:
         project.addMapLayer(layer_osm)
 
-layer_network = project.mapLayersByName(tr('@default','lines'))[0]
-layer_ep = project.mapLayersByName(tr('@default','energy_plants'))[0]
-  
+def first_layer(name):
+    layers = project.mapLayersByName(name)
+    return layers[0] if layers else None
+
+# a layer removed from the map (or an OSM layer that could not be loaded) is left out of map and legend
+layer_network = first_layer(tr('@default','lines'))
+layer_ep = first_layer(tr('@default','energy_plants'))
+map_layers = [l for l in (layer_customer_mem, layer_ep, layer_network, layer_buildings_mem, layer_osm)
+              if l is not None and l.isValid() and project.mapLayer(l.id())]
+
 # ------------map-------------
 #Map
 map=QgsLayoutItemMap(layout)
@@ -928,11 +920,8 @@ layout.addLayoutItem(map)
 
 # legend
 root = QgsLayerTree()
-root.addLayer(layer_customer_mem)
-root.addLayer(layer_ep)
-root.addLayer(layer_network)
-root.addLayer(layer_buildings_mem)
-root.addLayer(layer_osm)
+for map_layer in map_layers:
+    root.addLayer(map_layer)
 
 # Legenden-Objekt erstellen und hinzufügen (wie bisher)
 legend = QgsLayoutItemLegend(layout)
@@ -948,10 +937,8 @@ legend.attemptMove(QgsLayoutPoint(138, 35, QgsUnitTypes.LayoutMillimeters))
 #Add scale bar    
 scale=QgsLayoutItemScaleBar(layout)
 scale.setStyle('Single Box')
-scale.setFont(QFont("Arial",15))
-scale.setFontColor(QColor("Black"))
 scale.setBackgroundEnabled(True)
-scale.setFillColor(QColor("Black"))
+styleScaleBar(scale)
 scale.applyDefaultSize(QgsUnitTypes.DistanceMeters)
 scale.setMapUnitsPerScaleBarUnit(1)
 scale.setNumberOfSegments(2)
@@ -970,7 +957,7 @@ north.attemptMove(QgsLayoutPoint(25, 35, QgsUnitTypes.LayoutMillimeters))
 north.attemptResize(QgsLayoutSize(*[150,150], QgsUnitTypes.LayoutPixels))
 layout.addLayoutItem(north)
 
-map.setLayers([layer_customer_mem,layer_ep,layer_network,layer_buildings_mem,layer_osm])
+map.setLayers(map_layers)
   
 #title.setText(str(round([% $x %],1)) + " , " + str(round([% $y %],1)) + " SRID: 4326")  # Replace SRID if needed
 
@@ -1098,7 +1085,7 @@ if filenames:
     # Add title simulation results
     label_simulation_results = QgsLayoutItemLabel(layout)
     label_simulation_results.setText(tr('@default',"simulation_results"))
-    label_simulation_results.setFont(font_header_label)
+    label_simulation_results.setTextFormat(textFormat(font_header_label))
     label_simulation_results.adjustSizeToText()
     label_simulation_results.attemptMove(QgsLayoutPoint(20, needed_table_height+157, QgsUnitTypes.LayoutMillimeters))
     label_simulation_results.attemptResize(QgsLayoutSize(140, 15), True)
