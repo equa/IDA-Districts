@@ -38,10 +38,13 @@ and the longest plugin file adds 140 characters (Windows path limit: 260).
 When `config.cmd` asks:
 
 - labels: add **`districts`** (the workflow uses `runs-on: [self-hosted, windows, districts]`)
-- run as service: **Yes, under the Windows user** that owns the IDA license and the pytest installation
-  (not the default Network Service, which has neither). An already configured runner is switched with
-  `.github/scripts/install-runner-service.ps1` (PowerShell as administrator, logged in as that user; it asks
-  for the user's Windows password and registers the runner `PETER` again with the label `districts`).
+- run as service: **No**. A service has no desktop, and IDA Districts (started with a GUI) cannot simulate
+  there: the simulation tests fail with "Simulation failed".
+
+Then, logged in as the Windows user that owns the IDA license and the pytest installation, run
+`.github/scripts/install-runner-autostart.ps1` in a PowerShell **as administrator**. It removes a runner
+service if there is one and registers a scheduled task that starts `run.cmd` at this user's logon, in the
+user's desktop session. The runner is online while the user is logged in (locking the screen is fine).
 
 Only one runner should have the label `districts`: the tests use one test DB and one IDA installation.
 
@@ -82,7 +85,7 @@ both checks are green. Pushing directly to main is blocked.
 
 ## Security
 
-The runner executes the code of the tested commit on this PC, as the Windows user of the runner service.
+The runner executes the code of the tested commit on this PC, as the Windows user running `run.cmd`.
 The repository is public, so the workflow has **no `pull_request` trigger**: for a pull request from a fork,
 GitHub would use the workflow file of that pull request, and an outsider could run their own code here.
 A push to `dev` and a manual run need write access to the repository.
