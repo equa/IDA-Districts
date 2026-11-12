@@ -36,4 +36,4 @@
 ## 7. CI validation
 
 - [x] 7.1 Commit (explicit paths, with the change's artifacts), `git pull --rebase`, push to `dev`
-- [ ] 7.2 Watch the plugin-tests run (`gh run watch` or the Actions tab) until both QGIS jobs pass
+- [x] 7.2 Watch the plugin-tests run (`gh run watch` or the Actions tab) until both QGIS jobs pass
