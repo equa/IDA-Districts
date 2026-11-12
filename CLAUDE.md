@@ -22,7 +22,7 @@ say what each git command does before you run it.
 
 - Tests: pytest with pytest-qgis in `districts/test` (`districts/pytest.ini`),
   run from `districts/` with the QGIS Python, e.g.
-  `& "C:\Program Files\QGIS 4.2.0\bin\python-qgis.bat" -m pytest`.
+  `& "C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat" -m pytest`.
   Marker `e2e` needs the test DB (`DISTRICTS_TEST_DB_*`), `ida` needs IDA
   Districts; `-m "not ida"` skips the simulations. `test/run_in_qgis.py` runs
   them inside a running QGIS.

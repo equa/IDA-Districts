@@ -39,7 +39,7 @@ jobs:
       matrix:
         include:
           - qgis: '4.2'
-            python: 'C:\Program Files\QGIS 4.2.0\bin\python-qgis.bat'
+            python: 'C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat'
           - qgis: '3.44'
             python: 'C:\Program Files\QGIS 3.44.8\bin\python-qgis-ltr.bat'
     env:
@@ -118,7 +118,7 @@ jobs:
       - name: pytest simulation_tests
         working-directory: profile/python/plugins/districts
         run: |
-          & 'C:\Program Files\QGIS 4.2.0\bin\python-qgis.bat' -m pytest simulation_tests -v -rfEw --junitxml=simulation-report.xml
+          & 'C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat' -m pytest simulation_tests -v -rfEw --junitxml=simulation-report.xml
           exit $LASTEXITCODE
 
       - name: Clean up IDA Districts processes of this job

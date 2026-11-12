@@ -12,14 +12,14 @@ a **self-hosted runner**: a Windows PC of ours, not a GitHub cloud machine.
 
 The PC needs, like for running the tests manually:
 
-- QGIS 4.2.0 and QGIS 3.44.8 in `C:\Program Files\QGIS ...` (other paths: change `matrix.python` in the workflow)
+- QGIS 4.2.3 and QGIS 3.44.8 in `C:\Program Files\QGIS ...` (other paths: change `matrix.python` in the workflow)
 - IDA Districts in `C:\Program Files (x86)\IDA Districts\` with a valid license for the runner's Windows user
 - PostgreSQL 18 (`C:\Program Files\PostgreSQL\18\`, used for `psql`) and the test server on port 5433
 - the sample data in `C:\EQUA\Projekte\districts\samples` (other path: repository variable `DISTRICTS_TEST_SAMPLES`)
 - pytest for the QGIS Python, installed **as the runner's Windows user** (QGIS 4.2 and 3.44 share the user site):
 
   ```powershell
-  & "C:\Program Files\QGIS 4.2.0\bin\python-qgis.bat" -m pip install --user pytest==9.2.0 pytest-qgis==5.0.2
+  & "C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat" -m pip install --user pytest==9.2.0 pytest-qgis==5.0.2
   ```
 
 ## 2. Test server as Windows service
