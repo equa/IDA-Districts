@@ -3,7 +3,9 @@ hydraulic balancing (utility_functions.hydraulic_balancing) until the pipe dimen
 The workflow is described in the info text dynamic_pipe_sizing_info (i18n/districts_*.ts)."""
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QObject, QThreadPool, pyqtSlot
-from qgis.PyQt.QtWidgets import QDialog, QHeaderView, QMessageBox, QTableWidgetItem, QVBoxLayout
+from qgis.PyQt.QtWidgets import (
+    QDialog, QFrame, QHBoxLayout, QHeaderView, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+)
 from qgis.core import QgsMessageLog
 from qgis.gui import QgsCollapsibleGroupBox
 from qgis.utils import iface
@@ -17,10 +19,15 @@ from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect, getUsedNetworkSubmodels
 from .utility_functions.dialog import infoTextEdit
 from .utility_functions.dynamic_sizing_results import (
-    deleteIterations, iterationRow, iterationSummary, loadIterations, removeSizingLayers, saveIteration, showIteration, showIterations,
+    deleteIterations, iterationRows, iterationSummary, loadIterations, pairSummary, removeSizingLayers, saveIteration, showIteration,
+    showIterations,
 )
 from .utility_functions.hydraulic_balancing import (
-    createChildVersion, getCustomerLinePressure, getOrCreatePipeBundles, optimizePipeDiameters, saveCLidPressure,
+    createChildVersion, getCustomerLinePressure, getOrCreatePipeBundles, getPipeBundles, optimizePipeDiameters, saveCLidPressure,
+)
+from .utility_functions.pipe_pairs import (
+    DEFAULT_TEMPS, checkPairs, getNetworkSequences, getPlantConnections, iterationOutcome, mergePairPipes, missingResultTables, pairLabel,
+    suggestPairs,
 )
 from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import sanitize_pg_identifier, write_plugin_settings
@@ -33,6 +40,10 @@ import psycopg2.extras
 import traceback
 
 TIME_MODES = ['customer', 'customer_mdot', 'global']
+
+
+def pipeName(catalog, pipe_id):
+    return catalog[pipe_id]['name'] if pipe_id in catalog else str(pipe_id)
 EP_AGGREGATES = ['max', 'weighted']
 
 
@@ -51,6 +62,8 @@ class DynamicPipeSizingDialog(QDialog):
         self.main = main
         self.process_running = False
         self.run = None
+        self.filling_pairs = False
+        self.setupPairTable()
         self.checkBox_presize.toggled.connect(self.updateEnabled)
         self.checkBox_dpSpezMax.toggled.connect(self.updateEnabled)
         self.checkBox_vMax.toggled.connect(self.updateEnabled)
@@ -68,9 +81,104 @@ class DynamicPipeSizingDialog(QDialog):
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table_iterations.verticalHeader().setVisible(False)
 
+    # ------------------------------------------------------------------ supply/return pairs
+    def setupPairTable(self):
+        self.table_pairs = QTableWidget(0, 4)
+        self.table_pairs.setObjectName('table_pairs')
+        self.table_pairs.setHorizontalHeaderLabels([tr_msg('Supply'), tr_msg('Return'), tr_msg('Supply temp. [°C]'), tr_msg('Return temp. [°C]')])
+        self.table_pairs.setFrameShape(QFrame.Shape.Box)
+        header = self.table_pairs.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(True)
+        for col, width in enumerate((60, 60, 110)):
+            self.table_pairs.setColumnWidth(col, width)
+        self.table_pairs.verticalHeader().setVisible(False)
+        self.table_pairs.setMaximumHeight(110)
+        self.table_pairs.setToolTip(tr_msg('Supply and return pipe sequence of every circuit, suggested from the connections of the energy plants '
+            '(k-th supply with k-th return connection). Every pair is balanced separately. The design temperatures are used for lines '
+            'without a temperature result.'))
+        self.table_pairs.itemChanged.connect(self.onPairEdited)
+        self.btn_addPair = QPushButton('+')
+        self.btn_addPair.setToolTip(tr_msg('Add a pair'))
+        self.btn_addPair.clicked.connect(lambda: self.addPairRow(None, None, None, None))
+        self.btn_removePair = QPushButton('−')
+        self.btn_removePair.setToolTip(tr_msg('Remove the selected pairs'))
+        self.btn_removePair.clicked.connect(self.removeSelectedPairs)
+        buttons = QVBoxLayout()
+        buttons.addWidget(self.btn_addPair)
+        buttons.addWidget(self.btn_removePair)
+        buttons.addStretch()
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.table_pairs)
+        layout.addLayout(buttons)
+        self.formLayout_network.insertRow(1, tr_msg('Supply/return pairs'), container)
+        self.combo_network.currentTextChanged.connect(lambda text: self.fillPairs())
+
+    def fillPairs(self):
+        """Pairs suggested from the connections of the energy plants of the selected network."""
+        if not self.combo_network.currentText():
+            return
+        try:
+            cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            pairs, warnings = suggestPairs(getPlantConnections(cur, self.main.config, int(self.combo_network.currentText())))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            pairs, warnings = [], [tr_msg('The pairs could not be suggested: ') + traceback.format_exc().splitlines()[-1]]
+        self.table_pairs.setRowCount(0)
+        for pair in pairs:
+            self.addPairRow(*pair)
+        for warning in warnings:
+            self.log(warning)
+
+    def addPairRow(self, supply, ret, t_supply, t_return):
+        self.filling_pairs = True
+        row = self.table_pairs.rowCount()
+        self.table_pairs.insertRow(row)
+        for col, value in enumerate((supply, ret, t_supply, t_return)):
+            self.table_pairs.setItem(row, col, QTableWidgetItem('' if value is None else '{:g}'.format(value)))
+        self.filling_pairs = False
+
+    def removeSelectedPairs(self):
+        for row in sorted({index.row() for index in self.table_pairs.selectedIndexes()}, reverse=True):
+            self.table_pairs.removeRow(row)
+
+    def onPairEdited(self, item):
+        # the design temperatures belong to the suggested connections, not to edited sequences
+        if self.filling_pairs or item.column() >= 2:
+            return
+        self.filling_pairs = True
+        for col in (2, 3):
+            self.table_pairs.item(item.row(), col).setText('')
+        self.filling_pairs = False
+
+    def pairs(self):
+        """([(supply, return, t_supply, t_return)], errors) of the pair table; temperatures None if not known."""
+        result, errors = [], []
+        for row in range(self.table_pairs.rowCount()):
+            texts = [self.table_pairs.item(row, col).text().strip() if self.table_pairs.item(row, col) else '' for col in range(4)]
+            try:
+                supply, ret = int(texts[0]), int(texts[1])
+                if supply < 1 or ret < 1:
+                    raise ValueError
+            except ValueError:
+                errors.append(tr_msg('Row {} of the pairs: the sequences must be positive integers.').format(row + 1))
+                continue
+            try:
+                temps = [float(t.replace(',', '.')) if t else None for t in texts[2:]]
+            except ValueError:
+                errors.append(tr_msg('Row {} of the pairs: the temperatures must be numbers.').format(row + 1))
+                continue
+            result.append((supply, ret, temps[0], temps[1]))
+        if not result and not errors:
+            errors.append(tr_msg('Please enter at least one supply/return pair.'))
+        return result, errors
+
+    # ------------------------------------------------------------------ iterations
     @staticmethod
     def iterationHeaders():
-        return [tr_msg('Iteration'), tr_msg('Critical time'), tr_msg('Weak point (plant)'), tr_msg('dp min [bar]'), tr_msg('dp max [bar]'),
+        return [tr_msg('Iteration'), tr_msg('Pair'), tr_msg('Critical time'), tr_msg('Weak point (plant)'), tr_msg('dp min [bar]'), tr_msg('dp max [bar]'),
             tr_msg('Spread [bar]'), tr_msg('Spread after sizing (est.) [bar]'), tr_msg('Quota [%]'), tr_msg('Changed lines'), tr_msg('Outcome')]
 
     def loadIterationTable(self):
@@ -85,16 +193,18 @@ class DynamicPipeSizingDialog(QDialog):
             self.addIterationRow(summary)
 
     def addIterationRow(self, summary):
-        row = self.table_iterations.rowCount()
-        self.table_iterations.insertRow(row)
-        for col, value in enumerate(iterationRow(summary)):
-            # pressures in bar with 3 decimals (1 mbar)
-            text = '' if value is None else '{:.3f}'.format(value) if isinstance(value, float) else str(value)
-            self.table_iterations.setItem(row, col, QTableWidgetItem(text))
+        for values in iterationRows(summary):
+            row = self.table_iterations.rowCount()
+            self.table_iterations.insertRow(row)
+            for col, value in enumerate(values):
+                # pressures in bar with 3 decimals (1 mbar)
+                text = '' if value is None else '{:.3f}'.format(value) if isinstance(value, float) else str(value)
+                self.table_iterations.setItem(row, col, QTableWidgetItem(text))
 
     def selectedIterations(self):
+        """[(iteration, pair label)] of the selected rows"""
         rows = sorted({index.row() for index in self.table_iterations.selectedIndexes()})
-        return [int(self.table_iterations.item(row, 0).text()) for row in rows]
+        return [(int(self.table_iterations.item(row, 0).text()), self.table_iterations.item(row, 1).text()) for row in rows]
 
     def showSelectedIterations(self):
         iterations = self.selectedIterations()
@@ -145,6 +255,7 @@ class DynamicPipeSizingDialog(QDialog):
             'dp_spez_max': self.spin_dpSpezMax.value() if self.checkBox_dpSpezMax.isChecked() else None,
             'v_max': self.spin_vMax.value() if self.checkBox_vMax.isChecked() else None,
             'max_iter': self.spin_maxIter.value(),
+            'pairs': self.pairs()[0],
             'build_first': self.checkBox_buildFirst.isChecked(),
             'show_map': self.checkBox_showMap.isChecked(),
         }
@@ -169,6 +280,18 @@ class DynamicPipeSizingDialog(QDialog):
         if not self.combo_network.currentText() or not self.combo_submodel.currentText():
             iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Please select a network and a submodel!'), level=MessageInfo)
             return
+        pairs, errors = self.pairs()
+        skipped = {}
+        if not errors:
+            try:
+                cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                errors, skipped = checkPairs([(s, r) for s, r, _, _ in pairs], *getNetworkSequences(cur, self.main.config, int(self.combo_network.currentText())))
+            except Exception:
+                QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+                errors = [tr_msg('The pairs could not be checked: ') + traceback.format_exc().splitlines()[-1]]
+        if errors:
+            QMessageBox.warning(self, self.windowTitle(), '\n'.join(errors))
+            return
         version = self.main.config['versionName']
         new_version = self.parameters()['new_version']
         if self.rbtn_newVersion.isChecked():
@@ -187,8 +310,11 @@ class DynamicPipeSizingDialog(QDialog):
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.textEdit_log.clear()
+        for (s, r), n in sorted(skipped.items()):
+            if n:
+                self.log(tr_msg('Pair {}: {} customers without the connections {} and {} are not included.').format(pairLabel((s, r)), n, s, r))
         self.setRunning(True)
-        self.run = DynamicPipeSizingRun(self, self.main, self.parameters())
+        self.run = DynamicPipeSizingRun(self, self.main, dict(self.parameters(), skipped={pairLabel(pair): n for pair, n in skipped.items()}))
         self.run.start()
 
     def stop(self):
@@ -241,7 +367,7 @@ class DynamicPipeSizingRun(QObject):
     # ------------------------------------------------------------------ control
     def start(self):
         p = self.parms
-        self.dlg.log(tr_msg('Parameters: ') + ', '.join('{}={}'.format(k, v) for k, v in p.items() if k not in ('network', 'submodel', 'new_version', 'description')))
+        self.dlg.log(tr_msg('Parameters: ') + ', '.join('{}={}'.format(k, v) for k, v in p.items() if k not in ('network', 'submodel', 'new_version', 'description', 'skipped')))
         if p['new_version']:
             self.createVersion()
         else:
@@ -432,40 +558,37 @@ class DynamicPipeSizingRun(QObject):
         try:
             conn = dbConnect(self.config, True)
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            res = getCustomerLinePressure(cur, self.config, network=p['network'], time_mode=p['time_mode'],
-                ep_aggregate=p['ep_aggregate'], min_share=p['min_share'])
-            lines, catalog = res['lines'], res['catalog']
-            opt = optimizePipeDiameters(res['c_lid'], lines, catalog, tol_above=p['tol_above'], tol_below=p['tol_below'],
-                weighted=p['weighted'], v_max=p['v_max'], dp_spez_max=p['dp_spez_max'],
-                dp_spez_setpoint=p['dp_spez_setpoint'], presize_only=p['presize_only'])
-            dps = [val[0] for val in res['c_lid'].values() if val[0] is not None]
-            self.dlg.log(tr_msg('  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa').format(
-                res['time'], res['cid_dp'], res['epid_dp'], min(dps), max(dps)))
-            self.dlg.log(tr_msg('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, hydraulic balancing steps {}').format(
-                opt['cid_weak'], opt['quota'], opt['spread'], len(opt['presize']), len(opt['history'])))
-            self.saveResult(res, opt)
+            missing = missingResultTables(cur, self.config, [(s, r) for s, r, _, _ in p['pairs']])
+            if missing:
+                conn.close()
+                self.finish(tr_msg('Line results missing: {}. Request the line mass flow and temperature outputs of the network and run again.').format(
+                    ', '.join(missing)), error=True)
+                return
+            results = []
+            for s, r, t_s, t_r in p['pairs']:
+                results.append(self.evaluatePair(cur, (s, r), (DEFAULT_TEMPS[0] if t_s is None else t_s, DEFAULT_TEMPS[1] if t_r is None else t_r)))
 
-            current = {lid: {seq: pipe['pipe_id'] for seq, pipe in line['pipes'].items()} for lid, line in lines.items()}
-            changed = {lid: new for lid, new in opt['pipes'].items() if new != current[lid]}
-            state = sorted((lid, sorted(pipes.items())) for lid, pipes in opt['pipes'].items())
-            if not changed:
-                outcome = 'converged'
-            elif state in self.states:
-                outcome = 'oscillation'
-            else:
-                outcome = 'max_iter' if self.iteration >= p['max_iter'] else 'changed'
-            self.saveIteration(res, opt, outcome, changed if outcome in ('changed', 'max_iter') else {})
+            # one decision over all pairs: the lines get the new pipes of every pair, the other pipes of the bundle stay
+            bundles = getPipeBundles(cur)
+            line_bundles = {lid: line['bundle'] for _, _, res, _ in results for lid, line in res['lines'].items()}
+            current = {lid: dict(bundles.get(bid, {})) for lid, bid in line_bundles.items()}
+            merged = mergePairPipes(current, [opt['pipes'] for _, _, _, opt in results])
+            outcome, changed, state = iterationOutcome(current, merged, self.states, self.iteration, p['max_iter'])
+            self.saveIteration(results, outcome, current, changed if outcome in ('changed', 'max_iter') else {})
             if outcome == 'converged':
                 self.finish(tr_msg('Converged in iteration {}: the pipe dimensions do not change anymore.').format(self.iteration))
                 return
+            catalog = results[0][2]['catalog']
             for lid, new in sorted(changed.items()):
-                self.dlg.log(tr_msg('    line {}: {} -> {}').format(lid, catalog[current[lid][min(current[lid])]]['name'], catalog[new[min(new)]]['name']))
+                seqs = [seq for seq in sorted(new) if new[seq] != current[lid].get(seq)]
+                self.dlg.log(tr_msg('    line {}: {} -> {}').format(lid, ', '.join(pipeName(catalog, current[lid].get(seq)) for seq in seqs),
+                    ', '.join(pipeName(catalog, new[seq]) for seq in seqs)))
             if outcome == 'oscillation':
                 self.finish(tr_msg('Stopped in iteration {}: the pipe dimensions repeat a previous iteration (oscillation), the lines are not changed.').format(self.iteration), error=True)
                 return
             self.states.append(state)
 
-            line_bundles, new_bundles = getOrCreatePipeBundles(cur, lines, opt['pipes'])
+            line_bundles, new_bundles = getOrCreatePipeBundles(cur, line_bundles, {lid: merged[lid] for lid in changed})
             for lid, bid in line_bundles.items():
                 cur.execute("""UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;""".format(self.config['versionName']), (bid, lid))  # nosec B608
             self.dlg.log(tr_msg('  {} lines changed{}').format(len(line_bundles), tr_msg(', new pipe bundle types: {}').format(new_bundles) if new_bundles else ''))
@@ -480,10 +603,37 @@ class DynamicPipeSizingRun(QObject):
         except Exception:
             self.onException()
 
-    def saveIteration(self, res, opt, outcome, changed):
-        """Saves the summary of the iteration in the version folder, adds it to the table and shows it on the map (option)."""
+    def evaluatePair(self, cur, pair, temps):
+        """Flow tracing, pipe sizing and hydraulic balancing of one pair (circuit). Returns (pair, temps, res, opt)."""
+        p = self.parms
+        label = pairLabel(pair)
+        res = getCustomerLinePressure(cur, self.config, network=p['network'], pair=pair, default_temps=temps, time_mode=p['time_mode'],
+            ep_aggregate=p['ep_aggregate'], min_share=p['min_share'])
+        lines, catalog = res['lines'], res['catalog']
+        opt = optimizePipeDiameters(res['c_lid'], lines, catalog, tol_above=p['tol_above'], tol_below=p['tol_below'],
+            weighted=p['weighted'], v_max=p['v_max'], dp_spez_max=p['dp_spez_max'],
+            dp_spez_setpoint=p['dp_spez_setpoint'], presize_only=p['presize_only'])
+        dps = [val[0] for val in res['c_lid'].values() if val[0] is not None]
+        self.dlg.log(tr_msg('  pair {}: {} lines, {} customers').format(label, len(lines), len(res['c_lid'])))
+        self.dlg.log(tr_msg('  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa').format(
+            res['time'], res['cid_dp'], res['epid_dp'], min(dps), max(dps)))
+        self.dlg.log(tr_msg('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, hydraulic balancing steps {}').format(
+            opt['cid_weak'], opt['quota'], opt['spread'], len(opt['presize']), len(opt['history'])))
+        n_default = sum(1 for line in lines.values() if any(pipe['temp_default'] for pipe in line['pipes'].values()))
+        if n_default:
+            self.dlg.log(tr_msg('  pair {}: {} lines without a temperature result, {:g} / {:g} °C used').format(label, n_default, temps[0], temps[1]))
+        self.saveResult(res, opt, pair)
+        return pair, temps, res, opt
+
+    def saveIteration(self, results, outcome, current, changed):
+        """Saves the summary of the iteration in the version folder, adds it to the table and shows it on the map (option).
+        results = [(pair, temps, res, opt)], current = pipes of the lines before the sizing, changed = lines with new pipes."""
         try:
-            summary = iterationSummary(self.iteration, self.started, res, opt, outcome, changed)
+            pairs = []
+            for pair, temps, res, opt in results:
+                changed_pair = {lid for lid, new in opt['pipes'].items() if lid in changed and any(current[lid].get(seq) != pid for seq, pid in new.items())}
+                pairs.append(pairSummary(pair, temps, res, opt, changed_pair, self.parms['skipped'].get(pairLabel(pair), 0)))
+            summary = iterationSummary(self.iteration, self.started, pairs, outcome, len(changed))
             saveIteration(self.config, summary)
             self.dlg.addIterationRow(summary)
             if self.parms['show_map']:
@@ -497,12 +647,12 @@ class DynamicPipeSizingRun(QObject):
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
             self.dlg.log(tr_msg('  the results of the iteration could not be saved or shown: ') + traceback.format_exc().splitlines()[-1])
 
-    def saveResult(self, res, opt):
-        """Saves c_lid of the simulated state and after the sizing in the version directory."""
+    def saveResult(self, res, opt, pair):
+        """Saves c_lid of the pair of the simulated state and after the sizing in the version directory."""
         try:
             path = os.path.join(self.config['pathProjects'], self.config['projectName'], 'versions', self.config['versionName'])
-            saveCLidPressure(res['c_lid'], os.path.join(path, 'dynamic_sizing_iter{}_c_lid.json'.format(self.iteration)))
-            saveCLidPressure(opt['c_lid'], os.path.join(path, 'dynamic_sizing_iter{}_c_lid_sized.json'.format(self.iteration)))
+            saveCLidPressure(res['c_lid'], os.path.join(path, 'dynamic_sizing_iter{}_c_lid_{}_{}.json'.format(self.iteration, *pair)))
+            saveCLidPressure(opt['c_lid'], os.path.join(path, 'dynamic_sizing_iter{}_c_lid_sized_{}_{}.json'.format(self.iteration, *pair)))
         except Exception:
             self.dlg.log(tr_msg('  c_lid could not be saved: ') + traceback.format_exc().splitlines()[-1])
 

@@ -1,6 +1,6 @@
 # Known findings of mypy (test/test_static_mypy.py): count, file, error code, message (tab separated).
 # Written with: python -m pytest test/test_static_mypy.py --update-mypy-baseline
-# Only remove findings here by fixing them. mypy 2.4.1, 958 findings.
+# Only remove findings here by fixing them. mypy 2.4.1, 959 findings.
 2	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "close"
 1	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "cursor"
 68	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "execute"
@@ -87,7 +87,6 @@
 1	update_sensors.py	attr-defined	"str" has no attribute "close"
 1	update_sensors.py	attr-defined	"str" has no attribute "cursor"
 4	update_sensors.py	attr-defined	"str" has no attribute "execute"
-1	utility_functions/dynamic_sizing_results.py	operator	Unsupported left operand type for - ("None")
 4	utility_functions/files.py	assignment	Incompatible types in assignment (expression has type "dict[Any, Any]", variable has type "str")
 1	utility_functions/flow_tracing.py	assignment	Incompatible types in assignment (expression has type "tuple[Any, Any]", target has type "tuple[str, float, float]")
 1	utility_functions/hydraulic_balancing.py	arg-type	Argument "key" to "min" has incompatible type overloaded function; expected "Callable[[Any], SupportsDunderLT[Any] | SupportsDunderGT[Any]]"

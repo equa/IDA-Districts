@@ -84,8 +84,10 @@ def getPipeBundles(cur):
 
 
 def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(70.0, 40.0)):
-    """Returns {lid: {'length', 'bundle', 'pipes': {seq: {'pipe_id', 'mdot', 'temp', 'mdot_max'}}}} at the given time;
-    mdot_max is the maximal absolute mass flow of the pipe over all time steps (peak load for the pipe sizing)."""
+    """Returns {lid: {'length', 'bundle', 'pipes': {seq: {'pipe_id', 'mdot', 'temp', 'mdot_max', 'temp_default'}}}} at the
+    given time for the lines whose pipe bundle has all sequences (a pair (supply, return));
+    mdot_max is the maximal absolute mass flow of the pipe over all time steps (peak load for the pipe sizing),
+    temp_default is True if the line has no temperature result and default_temps[i] is used for sequences[i]."""
     v = config['versionName']
     cur.execute("""SELECT l.id, ST_3DLength(l.geom) AS length, l.pipe_bundle_type_id, bp.sequence, bp.pipe_id
     FROM "{}".lines l, public.bundle_pipes bp
@@ -93,7 +95,9 @@ def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(7
     lines = {}
     for row in cur.fetchall():
         line = lines.setdefault(row['id'], {'length': float(row['length']), 'bundle': row['pipe_bundle_type_id'], 'pipes': {}})
-        line['pipes'][row['sequence']] = {'pipe_id': int(row['pipe_id']), 'mdot': 0.0, 'temp': None, 'mdot_max': 0.0}
+        line['pipes'][row['sequence']] = {'pipe_id': int(row['pipe_id']), 'mdot': 0.0, 'temp': None, 'mdot_max': 0.0, 'temp_default': False}
+    # a line without one of the pipes is not part of the circuit (e.g. a heating-only line for the cooling pair)
+    lines = {lid: line for lid, line in lines.items() if all(seq in line['pipes'] for seq in sequences)}
 
     cur.execute("""SELECT table_name FROM information_schema.tables WHERE table_schema = %s;""", (v,))
     tables = {row['table_name'] for row in cur.fetchall()}
@@ -115,7 +119,16 @@ def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(7
         for line in lines.values():
             if seq in line['pipes'] and line['pipes'][seq]['temp'] is None:
                 line['pipes'][seq]['temp'] = default_temps[min(i, len(default_temps) - 1)]
+                line['pipes'][seq]['temp_default'] = True
     return lines
+
+
+def getPairLines(cur, config, network, pair):
+    """Ids of the lines of the network whose pipe bundle has both sequences of the pair."""
+    cur.execute("""SELECT l.id FROM "{}".lines l, public.bundle_pipes bp
+    WHERE bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network = %s AND bp.sequence IN (%s, %s)
+    GROUP BY l.id HAVING count(DISTINCT bp.sequence) = 2;""".format(config['versionName']), (int(network), int(pair[0]), int(pair[1])))  # nosec B608
+    return {row['id'] for row in cur.fetchall()}
 
 
 def lineSpecificPressureLoss(line, catalog, pipe_ids=None, peak=False):
@@ -144,16 +157,21 @@ def buildCLid(c_lid_mdot, dp_c, dp_spez):
     return {cid: [dp_c.get(cid), {lid: [dp_spez.get(lid), m] for lid, m in lids.items()}] for cid, lids in c_lid_mdot.items()}
 
 
-def getCustomerLinePressure(cur, config, network=1, **kwargs):
+def getCustomerLinePressure(cur, config, network=1, pair=(1, 2), default_temps=(70.0, 40.0), **kwargs):
     """Flow tracing (see flow_tracing.getCustomerLineMdot) extended by dp of the customers and dp_spez of the lines.
     The mass flow of a line (dp_spez, pipe sizing) is the sum of the customer mass flows in c_lid, so with
     time_mode='customer' every customer contributes with its flow at the time of its maximal network pressure
     loss; dp of a customer is taken at the same time. Temperatures are taken at the global critical time.
+    pair = (supply, return) sequence: line results line_s_mdot$supply / line_s_temp$..., the lines whose bundle has
+    both pipes and the connections supply / return of the customers and energy plants; default_temps for lines
+    without a temperature result.
     Returns the result dict of getCustomerLineMdot with c_lid = {cid: [dp, {lid: [dp_spez, mdot]}]}
     and additionally 'c_lid_mdot', 'lines', 'catalog', 'dp_spez'."""
-    res = getCustomerLineMdot(cur, config, network=network, **kwargs)
+    s, r = pair
+    res = getCustomerLineMdot(cur, config, network=network, line_mdot_table='line_s_mdot${}'.format(int(s)), sup_seq=s, ret_seq=r,
+        lids=getPairLines(cur, config, network, pair), **kwargs)
     catalog = getPipeCatalog(cur)
-    lines = getLineData(cur, config, res['time'], network)
+    lines = getLineData(cur, config, res['time'], network, (s, r), default_temps)
     mdot_design = defaultdict(float)
     for lids in res['c_lid'].values():
         for lid, m in lids.items():
@@ -330,39 +348,60 @@ def loadCLidPressure(path):
         return {int(cid): [dp, {int(lid): val for lid, val in lids.items()}] for cid, (dp, lids) in json.load(f).items()}
 
 
-def getOrCreatePipeBundles(cur, lines, pipes):
-    """Returns {lid: pipe_bundle_type_id} for all lines whose pipes changed. Missing pipe bundle types are created
-    in public.pipe_bundle_types / public.bundle_pipes (x, y, ambient taken over from the original bundle).
-    Returns (line_bundles, new_bundle_ids)."""
+def planPipeBundles(bundle_rows, line_bundles, pipes):
+    """Pipe bundles of the lines whose pipes change (without DB access).
+    bundle_rows:  {bid: {seq: {'pipe_id', 'x', 'y', 'ambient'}}} of public.bundle_pipes
+    line_bundles: {lid: current bid}
+    pipes:        {lid: {seq: pipe_id}} new pipes of some sequences (e.g. of one or several pairs); the other
+                  sequences of the current bundle are kept.
+    Returns (assign, new_bundles): assign = {lid: ('bundle', bid) | ('new', index into new_bundles)} of the changed
+    lines, new_bundles = [{seq: {'pipe_id', 'x', 'y', 'ambient'}}] with the positions of the line's current bundle."""
+    bundles = {bid: {seq: int(row['pipe_id']) for seq, row in seqs.items()} for bid, seqs in bundle_rows.items()}
+    assign = {}
+    new_bundles = []
+    for lid, new in sorted(pipes.items()):
+        bid = line_bundles.get(lid)
+        current = bundles.get(bid, {})
+        full = {**current, **new}
+        if full == current:
+            continue
+        match = [b for b, b_pipes in sorted(bundles.items()) if b_pipes == full]
+        if match:
+            assign[lid] = ('bundle', match[0])
+            continue
+        match = [i for i, rows in enumerate(new_bundles) if {seq: row['pipe_id'] for seq, row in rows.items()} == full]
+        if match:
+            assign[lid] = ('new', match[0])
+            continue
+        orig = bundle_rows.get(bid, {})
+        new_bundles.append({seq: {'pipe_id': full[seq], 'x': orig[seq]['x'] if seq in orig else 0.25 * (seq - 1),
+            'y': orig[seq]['y'] if seq in orig else 1, 'ambient': orig[seq]['ambient'] if seq in orig else 2} for seq in sorted(full)})
+        assign[lid] = ('new', len(new_bundles) - 1)
+    return assign, new_bundles
+
+
+def getOrCreatePipeBundles(cur, line_bundles, pipes):
+    """Pipe bundle types of the lines whose pipes change (see planPipeBundles: the sequences not in pipes keep their
+    pipes); missing ones are created in public.pipe_bundle_types / public.bundle_pipes.
+    Returns (line_bundles_new {lid: bid}, new_bundle_ids)."""
     cur.execute("""SELECT pipe_bundle_type_id, sequence, pipe_id, x, y, ambient FROM public.bundle_pipes;""")
     bundle_rows = defaultdict(dict)
     for row in cur.fetchall():
         bundle_rows[row['pipe_bundle_type_id']][row['sequence']] = row
-    bundles = {bid: {seq: int(row['pipe_id']) for seq, row in seqs.items()} for bid, seqs in bundle_rows.items()}
-    line_bundles = {}
+    assign, new_bundles = planPipeBundles(bundle_rows, line_bundles, pipes)
     new_bundle_ids = []
-    for lid, new in pipes.items():
-        if new == {seq: p['pipe_id'] for seq, p in lines[lid]['pipes'].items()}:
-            continue
-        match = [bid for bid, b in sorted(bundles.items()) if b == new]
-        if match:
-            line_bundles[lid] = match[0]
-            continue
+    for rows in new_bundles:
         cur.execute("""SELECT COALESCE(MAX(id), 0) + 1 AS id FROM public.pipe_bundle_types;""")
         bid = cur.fetchone()['id']
-        cur.execute("""INSERT INTO public.pipe_bundle_types (id, description) VALUES (%s, %s);""", (bid, 'pipes: ' + ','.join(str(new[seq]) for seq in sorted(new))))
-        orig = bundle_rows.get(lines[lid]['bundle'], {})
-        for seq in sorted(new):
+        cur.execute("""INSERT INTO public.pipe_bundle_types (id, description) VALUES (%s, %s);""",
+            (bid, 'pipes: ' + ','.join(str(rows[seq]['pipe_id']) for seq in sorted(rows))))
+        for seq in sorted(rows):
             cur.execute("""SELECT COALESCE(MAX(id), 0) + 1 AS id FROM public.bundle_pipes;""")
             bp_id = cur.fetchone()['id']
-            o = orig.get(seq) or {'x': 0.25 * (seq - 1), 'y': 1, 'ambient': 2}
             cur.execute("""INSERT INTO public.bundle_pipes (id, pipe_bundle_type_id, sequence, pipe_id, x, y, ambient) VALUES (%s, %s, %s, %s, %s, %s, %s);""",
-                (bp_id, bid, seq, new[seq], o['x'], o['y'], o['ambient']))
-        bundles[bid] = dict(new)
-        bundle_rows[bid] = {seq: {'x': orig.get(seq, {}).get('x', 0.25 * (seq - 1)), 'y': 1, 'ambient': 2, 'pipe_id': new[seq]} for seq in new}
+                (bp_id, bid, seq, rows[seq]['pipe_id'], rows[seq]['x'], rows[seq]['y'], rows[seq]['ambient']))
         new_bundle_ids.append(bid)
-        line_bundles[lid] = bid
-    return line_bundles, new_bundle_ids
+    return {lid: new_bundle_ids[ref] if kind == 'new' else ref for lid, (kind, ref) in assign.items()}, new_bundle_ids
 
 
 def createChildVersion(cur, config, plugin_dir, new_version, description='', username=None, password=None):
@@ -404,7 +443,7 @@ def createVersionWithPipes(cur, config, plugin_dir, lines, pipes, new_version, d
     the new version is simulated.
     Returns (line_bundles, new_bundle_ids)."""
     createChildVersion(cur, config, plugin_dir, new_version, description, username, password)
-    line_bundles, new_bundle_ids = getOrCreatePipeBundles(cur, lines, pipes)
+    line_bundles, new_bundle_ids = getOrCreatePipeBundles(cur, {lid: line['bundle'] for lid, line in lines.items()}, pipes)
     for lid, bid in line_bundles.items():
         cur.execute("""UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;""".format(new_version), (bid, lid))  # nosec B608
     return line_bundles, new_bundle_ids

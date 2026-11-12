@@ -1,17 +1,23 @@
 """Results of the iterations of the dynamic pipe sizing (dynamic_pipe_sizing.py).
 
-Every iteration is saved as dynamic_sizing_iter<n>.json in the version folder:
-    {'iteration', 'started', 'time', 'cid_weak', 'epid_weak', 'dp_net_weak', 'cid_target', 'dp_target', 'quota',
-     'spread_sized', 'n_presized', 'n_balancing_steps', 'n_changed', 'outcome',
-     'customers': {cid: {'dp', 'dp_sized', 'dp_net', 'epid', 'time'}},
-     'lines': {lid: {'mdot', 'mdot_max', 'dp_spez', 'pipe', 'pipe_new', 'changed'}}}
+Every iteration is saved as dynamic_sizing_iter<n>.json in the version folder, with the results of every
+supply/return pair (circuit, see pipe_pairs.py):
+    {'iteration', 'started', 'outcome', 'n_changed',
+     'pairs': [{'supply', 'return', 'temps', 'time', 'cid_weak', 'epid_weak', 'dp_net_weak', 'cid_target', 'dp_target',
+                'quota', 'spread_sized', 'n_presized', 'n_balancing_steps', 'n_changed', 'n_customers_skipped',
+                'customers': {cid: {'dp', 'dp_sized', 'dp_net', 'epid', 'time'}},
+                'lines': {lid: {'mdot', 'mdot_max', 'dp_spez', 'pipe', 'pipe_new', 'changed'}}}]}
+    temps        ... design temperatures of supply and return (fallback for lines without a temperature result) [degC]
+    pipe, pipe_new ... pipe of the supply sequence before / after the sizing
+Files of earlier runs have the results of the pair 1/2 at the top level instead of 'pairs' (see loadIterations).
     dp, dp_sized ... differential pressure at the substation simulated / estimated after the sizing [Pa]
     dp_net       ... network pressure loss to the supplying plant [Pa] (the weak point has the largest one)
     mdot         ... design mass flow of the line (sum of the customer mass flows of the flow tracing) [kg/s]
     mdot_max     ... peak mass flow of the line over the whole simulation period [kg/s]
-They are shown on the map as memory layers in the group 'dynamic pipe sizing' (one subgroup per iteration):
-customers with graduated colors of dp (weak point as bigger point) and lines with graduated colors and widths
-of the design mass flow; lines with new pipes are labelled. The class bounds are the same for all iterations.
+They are shown on the map as memory layers in the group 'dynamic pipe sizing' (one subgroup per iteration and in it
+one per pair): customers with graduated colors of dp (weak point as bigger point) and lines with graduated colors
+and widths of the design mass flow; lines with new pipes are labelled. The class bounds of a pair are the same for
+all iterations.
 """
 import glob
 import json
@@ -19,15 +25,17 @@ import os
 import re
 
 from qgis.core import (
-    Qgis, QgsFeature, QgsGeometry, QgsPalLayerSettings, QgsProject, QgsRuleBasedRenderer, QgsStyle, QgsSymbol,
+    Qgis, QgsFeature, QgsGeometry, QgsLayerTree, QgsPalLayerSettings, QgsProject, QgsRuleBasedRenderer, QgsStyle, QgsSymbol,
     QgsProperty, QgsSingleSymbolRenderer, QgsTextFormat, QgsVectorLayer, QgsVectorLayerSimpleLabeling,
 )
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor
 
+from .pipe_pairs import pairLabel
 from .translations import tr_msg
 
 SIZING_PROPERTY = 'districts_dynamic_pipe_sizing'
+PAIR_PROPERTY = 'districts_dynamic_pipe_sizing_pair'
 ITERATION_FILE = 'dynamic_sizing_iter{}.json'
 OUTCOMES = ('changed', 'converged', 'oscillation', 'max_iter')
 N_CLASSES = 7
@@ -38,10 +46,11 @@ def versionPath(config):
     return os.path.join(config['pathProjects'], config['projectName'], 'versions', config['versionName'])
 
 
-def iterationSummary(iteration, started, res, opt, outcome, changed):
-    """Summary of an iteration (see the module doc) from the results of getCustomerLinePressure (res) and
-    optimizePipeDiameters (opt); changed = {lid: {seq: pipe_id}} of the lines with new pipes."""
+def pairSummary(pair, temps, res, opt, changed, n_skipped=0):
+    """Results of a pair in an iteration (see the module doc) from getCustomerLinePressure (res) and
+    optimizePipeDiameters (opt); pair = (supply, return), changed = lines whose pipes of the pair changed."""
     catalog, lines = res['catalog'], res['lines']
+    supply = pair[0]
     customers = {}
     for cid, (dp, _) in res['c_lid'].items():
         dp_net, epid = res['dvar'].get(cid, (None, None))
@@ -49,16 +58,32 @@ def iterationSummary(iteration, started, res, opt, outcome, changed):
             'time': str(res['times'].get(cid, ''))}
     line_rows = {}
     for lid, line in lines.items():
-        seq = min(line['pipes'])
-        pipe = line['pipes'][seq]
-        new = opt['pipes'].get(lid, {}).get(seq, pipe['pipe_id'])
+        pipe = line['pipes'][supply]
+        new = opt['pipes'].get(lid, {}).get(supply, pipe['pipe_id'])
         line_rows[str(lid)] = {'mdot': abs(pipe['mdot']), 'mdot_max': max(abs(p.get('mdot_max', 0.0)) for p in line['pipes'].values()),
             'dp_spez': res['dp_spez'].get(lid), 'pipe': catalog[pipe['pipe_id']]['name'], 'pipe_new': catalog[new]['name'],
             'changed': lid in changed}
-    return {'iteration': iteration, 'started': started, 'time': str(res['time']), 'cid_weak': res['cid_dp'], 'epid_weak': res['epid_dp'],
-        'dp_net_weak': res['dp'], 'cid_target': opt['cid_weak'], 'dp_target': opt['dp_target'], 'quota': opt['quota'],
-        'spread_sized': opt['spread'], 'n_presized': len(opt['presize']), 'n_balancing_steps': len(opt['history']),
-        'n_changed': len(changed), 'outcome': outcome, 'customers': customers, 'lines': line_rows}
+    return {'supply': pair[0], 'return': pair[1], 'temps': list(temps), 'time': str(res['time']), 'cid_weak': res['cid_dp'],
+        'epid_weak': res['epid_dp'], 'dp_net_weak': res['dp'], 'cid_target': opt['cid_weak'], 'dp_target': opt['dp_target'],
+        'quota': opt['quota'], 'spread_sized': opt['spread'], 'n_presized': len(opt['presize']), 'n_balancing_steps': len(opt['history']),
+        'n_changed': len(changed), 'n_customers_skipped': n_skipped, 'customers': customers, 'lines': line_rows}
+
+
+def iterationSummary(iteration, started, pairs, outcome, n_changed):
+    """Summary of an iteration (see the module doc); pairs = [pairSummary], n_changed = lines with a new pipe bundle."""
+    return {'iteration': iteration, 'started': started, 'outcome': outcome, 'n_changed': n_changed, 'pairs': pairs}
+
+
+ITERATION_KEYS = ('iteration', 'started', 'outcome', 'n_changed')
+
+
+def normalizedSummary(summary):
+    """A file of an earlier run (results of the pair 1/2 at the top level) as a summary with 'pairs'."""
+    if 'pairs' in summary:
+        return summary
+    pair = {k: v for k, v in summary.items() if k not in ITERATION_KEYS}
+    pair.update({'supply': 1, 'return': 2, 'temps': [None, None], 'n_changed': summary.get('n_changed', 0), 'n_customers_skipped': 0})
+    return dict({k: summary[k] for k in ITERATION_KEYS if k in summary}, pairs=[pair])
 
 
 def saveIteration(config, summary):
@@ -67,12 +92,12 @@ def saveIteration(config, summary):
 
 
 def loadIterations(config):
-    """Returns the saved iterations of the loaded version sorted by their number."""
+    """Returns the saved iterations of the loaded version sorted by their number (with 'pairs', see normalizedSummary)."""
     result = []
     for path in glob.glob(os.path.join(versionPath(config), ITERATION_FILE.format('*'))):
         if re.fullmatch(ITERATION_FILE.format(r'\d+'), os.path.basename(path)):
             with open(path, encoding='utf-8') as f:
-                result.append(json.load(f))
+                result.append(normalizedSummary(json.load(f)))
     return sorted(result, key=lambda s: s['iteration'])
 
 
@@ -83,14 +108,17 @@ def deleteIterations(config):
             os.remove(path)
 
 
-def iterationRow(summary):
-    """Values of the iteration table: (iteration, critical time, weak point, dp min, dp max, spread, spread sized,
-    quota, changed lines, outcome); pressures in bar."""
-    dps = [c['dp'] for c in summary['customers'].values() if c['dp'] is not None]
-    dp_min, dp_max = (min(dps), max(dps)) if dps else (None, None)
-    return (summary['iteration'], summary['time'], '{} ({})'.format(summary['cid_weak'], summary['epid_weak']),
-        bar(dp_min), bar(dp_max), bar(dp_max - dp_min) if dps else None, bar(summary['spread_sized']),
-        round(100 * summary['quota']), summary['n_changed'], outcomeText(summary['outcome']))
+def iterationRows(summary):
+    """Rows of the iteration table, one per pair: (iteration, pair, critical time, weak point, dp min, dp max, spread,
+    spread sized, quota, changed lines of the pair, outcome); pressures in bar."""
+    rows = []
+    for pair in summary['pairs']:
+        dps = [c['dp'] for c in pair['customers'].values() if c['dp'] is not None]
+        rows.append((summary['iteration'], pairLabel((pair['supply'], pair['return'])), pair['time'],
+            '{} ({})'.format(pair['cid_weak'], pair['epid_weak']), bar(min(dps)) if dps else None, bar(max(dps)) if dps else None,
+            bar(max(dps) - min(dps)) if dps else None, bar(pair['spread_sized']), round(100 * pair['quota']), pair['n_changed'],
+            outcomeText(summary['outcome'])))
+    return rows
 
 
 def bar(value):
@@ -112,14 +140,21 @@ def removeSizingLayers(iteration=None):
             project.removeMapLayer(layer.id())
     group = project.layerTreeRoot().findGroup(tr_msg('Dynamic pipe sizing'))
     if group is not None:
-        for child in list(group.children()):
-            if not child.children():
-                group.removeChildNode(child)
+        removeEmptyGroups(group)
         if not group.children():
             group.parent().removeChildNode(group)
 
 
-def sizingGroup(iteration):
+def removeEmptyGroups(group):
+    for child in list(group.children()):
+        if QgsLayerTree.isGroup(child):
+            removeEmptyGroups(child)
+            if not child.children():
+                group.removeChildNode(child)
+
+
+def sizingGroup(iteration, label=None):
+    """Subgroup of the iteration, or with label (pair 's/r') its subgroup of the pair."""
     root = QgsProject.instance().layerTreeRoot()
     group = root.findGroup(tr_msg('Dynamic pipe sizing'))
     if group is None:
@@ -130,10 +165,13 @@ def sizingGroup(iteration):
         # iterations in ascending order
         index = len([c for c in group.children() if (int(re.sub(r'\D', '', c.name()) or 0)) < iteration])
         sub = group.insertGroup(index, name)
-    return sub
+    if label is None:
+        return sub
+    name = tr_msg('Pair {}').format(label)
+    return sub.findGroup(name) or sub.addGroup(name)
 
 
-def createLayer(name, geom_type, srid, fields, rows, iteration):
+def createLayer(name, geom_type, srid, fields, rows, iteration, label):
     uri = "{}?crs=EPSG:{}&{}".format(geom_type, srid, '&'.join('field={}:{}'.format(n, t) for n, t in fields))
     layer = QgsVectorLayer(uri, name, 'memory')
     features = []
@@ -145,8 +183,9 @@ def createLayer(name, geom_type, srid, fields, rows, iteration):
     layer.dataProvider().addFeatures(features)
     layer.updateExtents()
     layer.setCustomProperty(SIZING_PROPERTY, iteration)
+    layer.setCustomProperty(PAIR_PROPERTY, label)
     QgsProject.instance().addMapLayer(layer, False)
-    sizingGroup(iteration).addLayer(layer)
+    sizingGroup(iteration, label).addLayer(layer)
     return layer
 
 
@@ -258,51 +297,68 @@ def srid(cur, config, table):
     return int(row['srid']) if row else 0
 
 
-def showIteration(cur, config, summary, all_summaries=None, visible=True):
-    """Memory layers of an iteration (customers: dp at the substation, lines: design mass flow, changed pipes).
-    The class bounds are taken from all_summaries (default: this one), so the iterations can be compared.
-    Returns the created layers."""
+def showIteration(cur, config, summary, all_summaries=None, visible=True, labels=None):
+    """Memory layers of an iteration, per pair (customers: dp at the substation, lines: design mass flow, changed pipes).
+    The class bounds of a pair are taken from the same pair in all_summaries (default: this one), so the iterations can
+    be compared. labels: the pairs ('s/r') to show, None -> all. Returns the created layers."""
     iteration = summary['iteration']
     removeSizingLayers(iteration)
     all_summaries = all_summaries or [summary]
-    dp_bounds = classBounds([bar(c['dp']) for s in all_summaries for c in s['customers'].values()])
-    mdot_bounds = classBounds([line['mdot'] for s in all_summaries for line in s['lines'].values() if line['mdot'] > 0])
+    layers = []
+    for pair in summary['pairs']:
+        label = pairLabel((pair['supply'], pair['return']))
+        if labels is None or label in labels:
+            same = [p for s in all_summaries for p in s['pairs'] if pairLabel((p['supply'], p['return'])) == label]
+            layers += showPair(cur, config, iteration, label, pair, same)
+    sizingGroup(iteration).setItemVisibilityChecked(visible)
+    return layers
+
+
+def showPair(cur, config, iteration, label, pair, all_pairs):
+    """Layers of a pair of an iteration; class bounds from all_pairs (the same pair in all iterations)."""
+    dp_bounds = classBounds([bar(c['dp']) for p in all_pairs for c in p['customers'].values()])
+    mdot_bounds = classBounds([line['mdot'] for p in all_pairs for line in p['lines'].values() if line['mdot'] > 0])
 
     # layer order (top to bottom): customers, lines, changed lines as a halo below the lines
-    wkt = geometries(cur, config, 'customers', summary['customers'])
+    wkt = geometries(cur, config, 'customers', pair['customers'])
     customer_rows = [{'id': int(cid), 'dp_bar': bar(c['dp']), 'dp_sized_bar': bar(c['dp_sized']), 'dp_net_bar': bar(c['dp_net']),
-        'epid': c['epid'], 'time': c['time'], 'weak': str(summary['cid_weak']) == cid, 'wkt': wkt[cid]}
-        for cid, c in summary['customers'].items() if cid in wkt]
+        'epid': c['epid'], 'time': c['time'], 'weak': str(pair['cid_weak']) == cid, 'wkt': wkt[cid]}
+        for cid, c in pair['customers'].items() if cid in wkt]
     customer_fields = [('id', 'integer'), ('dp_bar', 'double'), ('dp_sized_bar', 'double'), ('dp_net_bar', 'double'), ('epid', 'integer'),
         ('time', 'string'), ('weak', 'boolean')]
-    customers = createLayer(tr_msg('Customers – dp substation [bar]'), 'Point', srid(cur, config, 'customers'), customer_fields, customer_rows, iteration)
+    customers = createLayer(tr_msg('Customers – dp substation [bar]'), 'Point', srid(cur, config, 'customers'), customer_fields, customer_rows, iteration, label)
     customers.setRenderer(customerRenderer(dp_bounds))
     setLabels(customers, "if(\"weak\", '{} ' || \"id\" || ': ' || format_number(\"dp_bar\", 3) || ' bar', '')".format(tr_msg('weak point')))
 
-    wkt = geometries(cur, config, 'lines', summary['lines'])
-    line_rows = [dict(line, id=int(lid), wkt=wkt[lid]) for lid, line in summary['lines'].items() if lid in wkt]
+    wkt = geometries(cur, config, 'lines', pair['lines'])
+    line_rows = [dict(line, id=int(lid), wkt=wkt[lid]) for lid, line in pair['lines'].items() if lid in wkt]
     line_fields = [('id', 'integer'), ('mdot', 'double'), ('mdot_max', 'double'), ('dp_spez', 'double'), ('pipe', 'string'),
         ('pipe_new', 'string'), ('changed', 'boolean')]
-    lines = createLayer(tr_msg('Lines – design mass flow [kg/s]'), 'LineString', srid(cur, config, 'lines'), line_fields, line_rows, iteration)
+    lines = createLayer(tr_msg('Lines – design mass flow [kg/s]'), 'LineString', srid(cur, config, 'lines'), line_fields, line_rows, iteration, label)
     lines.setRenderer(lineRenderer(mdot_bounds))
 
     changed_rows = [row for row in line_rows if row['changed']]
-    changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', srid(cur, config, 'lines'), line_fields, changed_rows, iteration)
+    changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', srid(cur, config, 'lines'), line_fields, changed_rows, iteration, label)
     changed.setRenderer(QgsSingleSymbolRenderer(lineSymbol('#e31a1c', 3.0, opacity=0.4)))
     setLabels(changed, "\"pipe\" || ' → ' || \"pipe_new\"", '#b30000')
 
-    group = sizingGroup(iteration)
-    group.setItemVisibilityChecked(visible)
     for layer in (customers, changed, lines):
         layer.triggerRepaint()
     return [customers, changed, lines]
 
 
-def showIterations(cur, config, iterations):
-    """Shows the given iteration numbers; only the last one is visible (switch in the layer tree to compare)."""
+def showIterations(cur, config, selection):
+    """Shows the selected iterations: selection = [(iteration, pair label 's/r' or None for all pairs)]. Only the last
+    iteration is visible (switch in the layer tree to compare)."""
+    wanted: dict = {}
+    for iteration, label in selection:
+        if label is None:
+            wanted[iteration] = None
+        elif wanted.get(iteration, set()) is not None:
+            wanted.setdefault(iteration, set()).add(label)
     summaries = loadIterations(config)
-    selected = [s for s in summaries if s['iteration'] in iterations]
+    selected = [s for s in summaries if s['iteration'] in wanted]
     layers = []
     for i, summary in enumerate(selected):
-        layers += showIteration(cur, config, summary, summaries, visible=i == len(selected) - 1)
+        layers += showIteration(cur, config, summary, summaries, visible=i == len(selected) - 1, labels=wanted[summary['iteration']])
     return layers

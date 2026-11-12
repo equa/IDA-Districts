@@ -175,6 +175,17 @@ def getTimeSeries(cur, config, fid_tables, column, time=None):
     return series
 
 
+def circuitTables(cur, config, network, sup_seq=1, ret_seq=2, lids=None):
+    """(graph, customer p tables, energy plant p tables, customer mdot tables) of a circuit (see scanNetworkPressureLoss)."""
+    graph = getNetworkGraph(cur, config, network)
+    if lids is not None:
+        graph = {lid: nodes for lid, nodes in graph.items() if lid in lids}
+    c_tables = getFeatureConnTables(cur, config, 'customer', 'p', network, sup_seq=sup_seq, ret_seq=ret_seq)
+    ep_tables = getFeatureConnTables(cur, config, 'energy_plant', 'p', network, sup_seq=sup_seq, ret_seq=ret_seq)
+    c_mdot_tables = {cid: t[0] for cid, t in getFeatureConnTables(cur, config, 'customer', 'mdot', network, sup_seq=sup_seq, ret_seq=ret_seq).items()}
+    return graph, c_tables, ep_tables, c_mdot_tables
+
+
 def getCustomerPlantShares(graph, c_lid):
     """Returns {cid: {epid: mdot}}, the share of every energy plant in the customer mass flow
     (sum over the plant lines = mdot of the customer)."""
@@ -213,7 +224,8 @@ def networkPressureLoss(c_ep, p_c, p_ep, ep_aggregate='max', min_share=0.01):
     return result
 
 
-def getTimeMaxNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_s_mdot$1', ep_aggregate='max', min_share=0.01, eps=1e-9):
+def getTimeMaxNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_s_mdot$1', ep_aggregate='max', min_share=0.01, eps=1e-9,
+        sup_seq=1, ret_seq=2, lids=None):
     """Returns the simulation time with the maximal network pressure loss between a customer and the energy
     plant(s) supplying it: dvar = (p_ep_sup - p_c_sup) + (p_c_ret - p_ep_ret).
 
@@ -222,20 +234,20 @@ def getTimeMaxNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_
     The pressure difference at the substations alone is not suitable, because it is also small
     when the network pump is switched off.
     Returns dict {'time', 'dp', 'cid', 'epid'} of the weak point or None."""
-    return scanNetworkPressureLoss(cur, config, network, line_mdot_table, ep_aggregate, min_share, eps)[0]
+    return scanNetworkPressureLoss(cur, config, network, line_mdot_table, ep_aggregate, min_share, eps, sup_seq=sup_seq, ret_seq=ret_seq, lids=lids)[0]
 
 
-def scanNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_s_mdot$1', ep_aggregate='max', min_share=0.01, eps=1e-9, select='dvar'):
+def scanNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_s_mdot$1', ep_aggregate='max', min_share=0.01, eps=1e-9, select='dvar',
+        sup_seq=1, ret_seq=2, lids=None):
     """Flow tracing and network pressure loss dvar (see getTimeMaxNetworkPressureLoss) for all time steps.
+    sup_seq / ret_seq: connections of the customers and energy plants (conn_seq of conn_type_seq 1) of the circuit;
+    lids: only these lines form the network graph (the lines carrying the circuit's pipes), None -> all lines.
     Returns (best, per_customer):
         best         = {'time', 'dp', 'cid', 'epid'} of the maximal dvar of all customers
         per_customer = {cid: {'time', 'dvar', 'epid', 'lids': {lid: mdot}, 'c_ep': {epid: mdot}, 'mdot', 'dp'}}
                        at the time of the maximal dvar (select='dvar') or of the maximal mass flow at the substation
                        (select='mdot') of this customer (dp = p_sup - p_ret at the substation)."""
-    graph = getNetworkGraph(cur, config, network)
-    c_tables = getFeatureConnTables(cur, config, 'customer', 'p', network)
-    ep_tables = getFeatureConnTables(cur, config, 'energy_plant', 'p', network)
-    c_mdot_tables = {cid: t[0] for cid, t in getFeatureConnTables(cur, config, 'customer', 'mdot', network).items()}
+    graph, c_tables, ep_tables, c_mdot_tables = circuitTables(cur, config, network, sup_seq, ret_seq, lids)
 
     p_c_sup = getTimeSeries(cur, config, {cid: t[0] for cid, t in c_tables.items()}, '$p')
     p_c_ret = getTimeSeries(cur, config, {cid: t[1] for cid, t in c_tables.items()}, '$p')
@@ -268,7 +280,8 @@ def scanNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_s_mdot
     return best, per_customer
 
 
-def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1', time=None, time_mode='customer', ep_aggregate='max', min_share=0.01, eps=1e-9):
+def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1', time=None, time_mode='customer', ep_aggregate='max', min_share=0.01, eps=1e-9,
+        sup_seq=1, ret_seq=2, lids=None):
     """Determines c_lid = {cid: {lid: mdot}}. The result tables of the customers and energy plants are derived
     from their templates (getFeatureConnTables).
     time_mode:  'customer' -> the mass flows of every customer are taken at the time of its own maximal network
@@ -277,13 +290,14 @@ def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1',
                               flow at the substation (only if time is None)
                 'global'   -> all customers at the time with the maximal network pressure loss of all customers
                               (or at the given time)
+    sup_seq / ret_seq / lids: the circuit, see scanNetworkPressureLoss.
     Returns dict {'time', 'dp', 'cid_dp', 'epid_dp', 'c_lid', 'c_ep', 'dvar', 'mdot_customers', 'times', 'dp_c', 'warnings'}
     with time = global critical time, dvar = {cid: (network pressure loss to the supplying plant, epid)},
     times = {cid: time used for the customer} and dp_c = {cid: p_sup - p_ret at the substation at this time}."""
     dp = cid_dp = epid_dp = None
     if time is None and time_mode in ('customer', 'customer_mdot'):
         best, per_customer = scanNetworkPressureLoss(cur, config, network, line_mdot_table, ep_aggregate, min_share, eps,
-            'mdot' if time_mode == 'customer_mdot' else 'dvar')
+            'mdot' if time_mode == 'customer_mdot' else 'dvar', sup_seq, ret_seq, lids)
         if not best:
             raise ValueError('No pressure results found for network {}'.format(network))
         return {'time': best['time'], 'dp': best['dp'], 'cid_dp': best['cid'], 'epid_dp': best['epid'],
@@ -294,15 +308,12 @@ def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1',
             'times': {cid: pc['time'] for cid, pc in per_customer.items()},
             'dp_c': {cid: pc['dp'] for cid, pc in per_customer.items()}, 'warnings': []}
     if time is None:
-        crit = getTimeMaxNetworkPressureLoss(cur, config, network, line_mdot_table, ep_aggregate, min_share, eps)
+        crit = getTimeMaxNetworkPressureLoss(cur, config, network, line_mdot_table, ep_aggregate, min_share, eps, sup_seq, ret_seq, lids)
         if not crit:
             raise ValueError('No pressure results found for network {}'.format(network))
         time, dp, cid_dp, epid_dp = crit['time'], crit['dp'], crit['cid'], crit['epid']
 
-    graph = getNetworkGraph(cur, config, network)
-    c_tables = getFeatureConnTables(cur, config, 'customer', 'p', network)
-    ep_tables = getFeatureConnTables(cur, config, 'energy_plant', 'p', network)
-    c_mdot_tables = {cid: t[0] for cid, t in getFeatureConnTables(cur, config, 'customer', 'mdot', network).items()}
+    graph, c_tables, ep_tables, c_mdot_tables = circuitTables(cur, config, network, sup_seq, ret_seq, lids)
     mdot_lines = getTimeSeries(cur, config, {lid: line_mdot_table for lid in graph}, '$mdot', time).get(time, {})
     mdot_customers = getTimeSeries(cur, config, c_mdot_tables, '$mdot', time).get(time, {})
     c_lid, warnings = traceCustomerSupply(graph, mdot_lines, mdot_customers, eps)

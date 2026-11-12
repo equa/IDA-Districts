@@ -4297,22 +4297,22 @@ Das Ergebnis wird als temporärer Layer angezeigt. &lt;b&gt;Speichern&lt;/b&gt; 
             <location filename="../utility_functions/translations.py" line="0" />
             <source>dynamic_pipe_sizing_info</source>
             <translation type="unfinished">&lt;b&gt;Dynamische Rohrdimensionierung mit hydraulischem Abgleich&lt;/b&gt;&lt;br&gt;
-Dimensioniert die Rohre des gewählten Netzes mit der dynamischen Simulation so, dass die Abnehmer an ihren Übergabestationen etwa den gleichen Differenzdruck erhalten (hydraulischer Abgleich), ohne ein Rohr zu überlasten. In jeder Iteration:
+Dimensioniert die Rohre des gewählten Netzes mit der dynamischen Simulation so, dass die Abnehmer an ihren Übergabestationen etwa den gleichen Differenzdruck erhalten (hydraulischer Abgleich), ohne ein Rohr zu überlasten. Jede Zeile von &lt;i&gt;Vorlauf-/Rücklaufpaare&lt;/i&gt; ist ein eigener Kreis (z.B. Heizung 1/3 und Kühlung 2/4 im selben Graben): die Schritte 3 bis 7 laufen je Paar, auf den Trassen, deren Rohrbündel beide Sequenzen hat, mit den Abnehmern und Energiezentralen, die die Anschlüsse dieser Sequenzen haben. Die Paare werden aus den Anschlüssen der Energiezentralen des Netzes vorgeschlagen (k-ter Vorlauf- mit k-tem Rücklaufanschluss, mit ihren Auslegungstemperaturen) und können bearbeitet werden. In jeder Iteration:
 &lt;ol&gt;
 &lt;li&gt;&lt;b&gt;Erstellen&lt;/b&gt; des Netzmodells des Netzes und Teilmodells mit den aktuellen Rohrbündeln der Trassen (in der ersten Iteration nur mit &lt;i&gt;Build the network model before the first simulation&lt;/i&gt;).&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Simulieren&lt;/b&gt; des Teilmodells mit den Einstellungen des Simulationsdialogs und &lt;b&gt;Laden der Ergebnisse&lt;/b&gt;.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Strömungsverfolgung&lt;/b&gt; für jeden Zeitschritt: der Massenstrom jedes Abnehmers wird den Trassen und Energiezentralen zugeordnet, die ihn versorgen (vollständige Mischung an den Knoten, auch für vermaschte Netze und mehrere Zentralen). Netzdruckverlust eines Abnehmers Δp&lt;sub&gt;Netz&lt;/sub&gt; = (p&lt;sub&gt;EZ,VL&lt;/sub&gt; − p&lt;sub&gt;A,VL&lt;/sub&gt;) + (p&lt;sub&gt;A,RL&lt;/sub&gt; − p&lt;sub&gt;EZ,RL&lt;/sub&gt;) zu den versorgenden Zentralen mit einem Anteil ≥ &lt;i&gt;Min. share of a plant&lt;/i&gt; (Maximum oder mit den Anteilen gewichtet).&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Zeitschritt je Abnehmer&lt;/b&gt;: sein maximales Δp&lt;sub&gt;Netz&lt;/sub&gt;, sein maximaler Massenstrom an der Übergabestation oder der global kritische Zeitschritt aller Abnehmer. Der Abnehmer mit dem grössten Δp&lt;sub&gt;Netz&lt;/sub&gt; ist der Schlechtpunkt der Simulation. In diesem Zeitschritt: Δp&lt;sub&gt;A&lt;/sub&gt; = p&lt;sub&gt;VL&lt;/sub&gt; − p&lt;sub&gt;RL&lt;/sub&gt; an der Übergabestation und die Massenströme des Abnehmers in seinen Trassen (c_lid).&lt;/li&gt;
-&lt;li&gt;&lt;b&gt;Auslegungsmassenstrom&lt;/b&gt; einer Trasse = Summe der Abnehmermassenströme in c_lid. Spezifischer Druckverlust R der Trasse [Pa/m] (Vor- + Rücklaufrohr): Darcy-Weisbach mit Colebrook aus Innendurchmesser und Rauhigkeit des Rohrs und der Temperatur im kritischen Zeitschritt (70/40 °C falls fehlend). Einzelverluste (ζ) sind in R nicht enthalten.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Auslegungsmassenstrom&lt;/b&gt; einer Trasse = Summe der Abnehmermassenströme in c_lid. Spezifischer Druckverlust R der Trasse [Pa/m] (Vor- + Rücklaufrohr): Darcy-Weisbach mit Colebrook aus Innendurchmesser und Rauhigkeit des Rohrs und der Temperatur im kritischen Zeitschritt (Auslegungstemperatur des Paars, wenn eine Trasse keinen Wert hat; der Lauf bricht ab, wenn die Temperaturergebnisse eines Paars fehlen). Einzelverluste (ζ) sind in R nicht enthalten.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Vordimensionierung&lt;/b&gt; (optional): jede Trasse erhält das kleinste Rohr derselben Bauart mit R ≤ Sollwert je Rohr für ihren Auslegungsmassenstrom, mindestens für ihren Spitzenmassenstrom über den ganzen Simulationszeitraum. Trassen, deren Rohre den &lt;i&gt;Max. specific pressure loss at peak flow&lt;/i&gt; überschreiten, werden vergrössert.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Hydraulischer Abgleich&lt;/b&gt;: Ziel = Δp&lt;sub&gt;A&lt;/sub&gt; des Schlechtpunkt-Abnehmers (kleinstes Δp&lt;sub&gt;A&lt;/sub&gt; nach der Vordimensionierung); seine Versorgungstrassen werden nicht verändert. Wiederholt erhält der Abnehmer mit dem höchsten Δp&lt;sub&gt;A&lt;/sub&gt; über Ziel + &lt;i&gt;Tolerance exceedance&lt;/i&gt; in seiner Trasse mit dem kleinsten R das nächstkleinere Rohr (gleiche Bauart, Vor- und Rücklauf); die zuletzt geänderte Trasse nur, wenn keine andere möglich ist. Eine Verkleinerung wird verworfen, wenn die Geschwindigkeit oder der spezifische Druckverlust bei Spitzenlast die Grenze überschreitet oder ein betroffener Abnehmer unter Ziel − &lt;i&gt;Tolerance undershoot&lt;/i&gt; fallen würde. Der zusätzliche Verlust ΔR · L wird von Δp&lt;sub&gt;A&lt;/sub&gt; aller über die Trasse versorgten Abnehmer abgezogen (mit &lt;i&gt;Weight the pressure loss ...&lt;/i&gt;: mal dem Anteil der Trasse am Abnehmermassenstrom). Der Abgleich endet, wenn alle Abnehmer innerhalb der Toleranz liegen oder keine Verkleinerung mehr möglich ist; die Quote ist der Anteil der abgeglichenen Abnehmer.&lt;/li&gt;
-&lt;li&gt;&lt;b&gt;Schreiben der Rohre&lt;/b&gt;: geänderte Trassen erhalten den Rohrbündeltyp mit den neuen Rohren (ein vorhandener wird wiederverwendet, ein fehlender mit den Positionen des ursprünglichen Bündels erzeugt). c_lid vor und nach der Dimensionierung wird als dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid.json / _c_lid_sized.json im Versionsordner gespeichert.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Schreiben der Rohre&lt;/b&gt;: geänderte Trassen erhalten den Rohrbündeltyp mit den neuen Rohren aller Paare und den unveränderten Rohren der übrigen Sequenzen (ein vorhandener wird wiederverwendet, ein fehlender mit den Positionen des ursprünglichen Bündels erzeugt). c_lid jedes Paars vor und nach der Dimensionierung wird als dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json / _c_lid_sized_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json im Versionsordner gespeichert.&lt;/li&gt;
 &lt;/ol&gt;
-&lt;b&gt;Iterationen&lt;/b&gt;: jede Iteration wird als dynamic_sizing_iter&amp;lt;n&amp;gt;.json im Versionsordner gespeichert und im Reiter &lt;i&gt;Iterations&lt;/i&gt; aufgelistet (kritischer Zeitpunkt, Schlechtpunkt, dp min/max und Spreizung an den Übergabestationen simuliert, Spreizung nach der Dimensionierung geschätzt, Quote, geänderte Trassen, Ergebnis); die Dateien eines früheren Laufs werden beim Start gelöscht. Mit &lt;i&gt;Show every iteration on the map&lt;/i&gt;, oder nachträglich mit &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (oder Doppelklick), erhält die Gruppe &lt;i&gt;Dynamische Rohrdimensionierung&lt;/i&gt; eine Untergruppe je Iteration: Abnehmer mit abgestuften Farben des dp an der Übergabestation (rot = tief, blau = hoch, der Schlechtpunkt als grösserer, beschrifteter Punkt), Trassen mit abgestuften Farben und Breiten des Auslegungsmassenstroms und die Trassen mit neuen Rohren (beschriftet altes → neues Rohr). Die Klassen sind für alle Iterationen gleich, die letzte ist sichtbar; zum Vergleichen die Untergruppen im Layerbaum umschalten. Die Layer werden beim Laden einer Version entfernt.&lt;br&gt;
-&lt;b&gt;Ende&lt;/b&gt;: konvergiert, wenn sich die Rohre nicht mehr ändern; abgebrochen, wenn die Rohre eine frühere Iteration wiederholen (Oszillation, die Trassen werden nicht geändert) oder nach der max. Anzahl Iterationen (die Trassen enthalten dann die Rohre der letzten Iteration, noch nicht simuliert). &lt;b&gt;Stop after this step&lt;/b&gt; hält vor dem nächsten Schritt an, erneut gedrückt bricht es sofort ab (eine laufende Simulation wird nicht unterbrochen).&lt;br&gt;
+&lt;b&gt;Iterationen&lt;/b&gt;: jede Iteration wird als dynamic_sizing_iter&amp;lt;n&amp;gt;.json im Versionsordner gespeichert und im Reiter &lt;i&gt;Iterations&lt;/i&gt; aufgelistet, eine Zeile je Paar (kritischer Zeitpunkt, Schlechtpunkt, dp min/max und Spreizung an den Übergabestationen simuliert, Spreizung nach der Dimensionierung geschätzt, Quote, geänderte Trassen, Ergebnis); die Dateien eines früheren Laufs werden beim Start gelöscht. Mit &lt;i&gt;Show every iteration on the map&lt;/i&gt;, oder nachträglich mit &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (oder Doppelklick), erhält die Gruppe &lt;i&gt;Dynamische Rohrdimensionierung&lt;/i&gt; eine Untergruppe je Iteration und darin eine je Paar: Abnehmer mit abgestuften Farben des dp an der Übergabestation (rot = tief, blau = hoch, der Schlechtpunkt als grösserer, beschrifteter Punkt), Trassen mit abgestuften Farben und Breiten des Auslegungsmassenstroms und die Trassen mit neuen Rohren (beschriftet altes → neues Rohr). Die Klassen eines Paars sind für alle Iterationen gleich, die letzte ist sichtbar; zum Vergleichen die Untergruppen im Layerbaum umschalten. Die Layer werden beim Laden einer Version entfernt. Iterationsdateien von Läufen vor den Vorlauf-/Rücklaufpaaren werden als Paar 1/2 angezeigt.&lt;br&gt;
+&lt;b&gt;Ende&lt;/b&gt;: konvergiert, wenn sich die Rohre keines Paars mehr ändern; abgebrochen, wenn die Rohre eine frühere Iteration wiederholen (Oszillation, die Trassen werden nicht geändert) oder nach der max. Anzahl Iterationen (die Trassen enthalten dann die Rohre der letzten Iteration, noch nicht simuliert). &lt;b&gt;Stop after this step&lt;/b&gt; hält vor dem nächsten Schritt an, erneut gedrückt bricht es sofort ab (eine laufende Simulation wird nicht unterbrochen).&lt;br&gt;
 Die Massenströme bleiben innerhalb einer Iteration konstant, Δp&lt;sub&gt;A&lt;/sub&gt; nach der Dimensionierung ist eine Schätzung; die nächste Simulation zeigt die tatsächliche Wirkung.&lt;br&gt;
 &lt;b&gt;Version&lt;/b&gt;: vor der ersten Iteration wird eine neue Kindversion der geladenen Version erstellt und geladen (die geladene Version behält ihre Rohre), oder die Rohre der geladenen Version werden überschrieben.&lt;br&gt;
-&lt;b&gt;Voraussetzungen&lt;/b&gt;: aktuelle Netz-Topologie; Ergebnisse der Massenströme und Temperaturen der Trassen sowie der Drücke und Massenströme an den Anschlüssen der Abnehmer und Energiezentralen (angeforderte Ausgaben); ein Rohrkatalog mit mehreren Innendurchmessern je Rohrbauart.</translation>
+&lt;b&gt;Voraussetzungen&lt;/b&gt;: aktuelle Netz-Topologie; Ergebnisse der Massenströme und Temperaturen der Trassen jedes Paars (der Lauf bricht ab, wenn sie fehlen) sowie der Drücke und Massenströme an den Anschlüssen der Abnehmer und Energiezentralen (angeforderte Ausgaben); ein Rohrkatalog mit mehreren Innendurchmessern je Rohrbauart; jedes Paar braucht eine Energiezentrale und einen Abnehmer mit seinen Anschlüssen (Abnehmer ohne diese werden im Paar nicht berücksichtigt).</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -7374,6 +7374,110 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
     </context>
     <context>
         <name>Messages</name>
+        <message>
+            <source>Row {} of the pairs: the temperatures must be numbers.</source>
+            <translation>Zeile {} der Paare: die Temperaturen müssen Zahlen sein.</translation>
+        </message>
+        <message>
+            <source>  pair {}: {} lines without a temperature result, {:g} / {:g} °C used</source>
+            <translation>  Paar {}: {} Trassen ohne Temperaturergebnis, {:g} / {:g} °C verwendet</translation>
+        </message>
+        <message>
+            <source>  pair {}: {} lines, {} customers</source>
+            <translation>  Paar {}: {} Trassen, {} Abnehmer</translation>
+        </message>
+        <message>
+            <source>Add a pair</source>
+            <translation>Paar hinzufügen</translation>
+        </message>
+        <message>
+            <source>Energy plant {}: {} supply and {} return connections, no pair suggested from it.</source>
+            <translation>Energiezentrale {}: {} Vorlauf- und {} Rücklaufanschlüsse, daraus wird kein Paar vorgeschlagen.</translation>
+        </message>
+        <message>
+            <source>Line results missing: {}. Request the line mass flow and temperature outputs of the network and run again.</source>
+            <translation>Trassenergebnisse fehlen: {}. Fordere die Ausgaben Massenstrom und Temperatur der Trassen an und starte erneut.</translation>
+        </message>
+        <message>
+            <source>Pair {}</source>
+            <translation>Paar {}</translation>
+        </message>
+        <message>
+            <source>Pair {}: no customer of the network has the connections {} and {}.</source>
+            <translation>Paar {}: kein Abnehmer des Netzes hat die Anschlüsse {} und {}.</translation>
+        </message>
+        <message>
+            <source>Pair {}: no energy plant of the network has the connections {} and {}.</source>
+            <translation>Paar {}: keine Energiezentrale des Netzes hat die Anschlüsse {} und {}.</translation>
+        </message>
+        <message>
+            <source>Pair {}: no line of the network has a pipe bundle with both sequences.</source>
+            <translation>Paar {}: keine Trasse des Netzes hat ein Rohrbündel mit beiden Sequenzen.</translation>
+        </message>
+        <message>
+            <source>Pair {}: supply and return are the same sequence.</source>
+            <translation>Paar {}: Vorlauf und Rücklauf sind dieselbe Sequenz.</translation>
+        </message>
+        <message>
+            <source>Pair {}: {} customers without the connections {} and {} are not included.</source>
+            <translation>Paar {}: {} Abnehmer ohne die Anschlüsse {} und {} werden nicht berücksichtigt.</translation>
+        </message>
+        <message>
+            <source>Pair</source>
+            <translation>Paar</translation>
+        </message>
+        <message>
+            <source>Please enter at least one supply/return pair.</source>
+            <translation>Bitte gib mindestens ein Vorlauf-/Rücklaufpaar ein.</translation>
+        </message>
+        <message>
+            <source>Remove the selected pairs</source>
+            <translation>Ausgewählte Paare entfernen</translation>
+        </message>
+        <message>
+            <source>Return temp. [°C]</source>
+            <translation>Rücklauftemp. [°C]</translation>
+        </message>
+        <message>
+            <source>Return</source>
+            <translation>Rücklauf</translation>
+        </message>
+        <message>
+            <source>Row {} of the pairs: the sequences must be positive integers.</source>
+            <translation>Zeile {} der Paare: die Sequenzen müssen positive ganze Zahlen sein.</translation>
+        </message>
+        <message>
+            <source>Sequence {} is paired differently by the energy plants ({}), no pair suggested for it.</source>
+            <translation>Sequenz {} ist bei den Energiezentralen unterschiedlich gepaart ({}), dafür wird kein Paar vorgeschlagen.</translation>
+        </message>
+        <message>
+            <source>Sequence {} is used in more than one pair.</source>
+            <translation>Sequenz {} wird in mehr als einem Paar verwendet.</translation>
+        </message>
+        <message>
+            <source>Supply and return pipe sequence of every circuit, suggested from the connections of the energy plants (k-th supply with k-th return connection). Every pair is balanced separately. The design temperatures are used for lines without a temperature result.</source>
+            <translation>Vorlauf- und Rücklaufsequenz der Rohre jedes Kreises, vorgeschlagen aus den Anschlüssen der Energiezentralen (k-ter Vorlauf- mit k-tem Rücklaufanschluss). Jedes Paar wird separat abgeglichen. Die Auslegungstemperaturen werden für Trassen ohne Temperaturergebnis verwendet.</translation>
+        </message>
+        <message>
+            <source>Supply temp. [°C]</source>
+            <translation>Vorlauftemp. [°C]</translation>
+        </message>
+        <message>
+            <source>Supply</source>
+            <translation>Vorlauf</translation>
+        </message>
+        <message>
+            <source>Supply/return pairs</source>
+            <translation>Vorlauf-/Rücklaufpaare</translation>
+        </message>
+        <message>
+            <source>The pairs could not be checked: </source>
+            <translation>Die Paare konnten nicht geprüft werden: </translation>
+        </message>
+        <message>
+            <source>The pairs could not be suggested: </source>
+            <translation>Die Paare konnten nicht vorgeschlagen werden: </translation>
+        </message>
         <message>
             <source>    line {}: {} -&gt; {}</source>
             <translation>    Trasse {}: {} -&gt; {}</translation>
