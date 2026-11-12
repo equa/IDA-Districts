@@ -15,6 +15,7 @@ from .utility import (
     rmtree_long_path, sanitize_pg_identifier, strToDict, write_plugin_settings,
 )
 import os
+import re
 import numpy as np
 from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal, QRunnable, QThreadPool, QThread, QCoreApplication, Qt
 import threading
@@ -44,6 +45,26 @@ def process_wait(dlg,max_sec=60):
 def show_error_message(message):
     # Show the error message in a messageBar
     iface.messageBar().pushMessage(tr_msg("Error"), message, level=MessageCritical)
+
+_PG_TO_PYTHON_ENCODING={'UTF8':'utf-8','UNICODE':'utf-8','SQL_ASCII':'latin-1','LATIN1':'latin-1','LATIN9':'iso8859-15'}
+
+_OWNER_STATEMENT=re.compile(r"^ALTER [A-Z ]+ \S.* OWNER TO \S+;\r?\n", re.MULTILINE)
+
+_CREATE_SCHEMA=re.compile(r"^CREATE SCHEMA (?!IF NOT EXISTS )", re.MULTILINE)
+
+def sqlDumpEncoding(sql_file):
+    """Python codec of the 'SET client_encoding' in the header of a pg_dump file (utf-8 if there is none)."""
+    with open(sql_file,'rb') as f:
+        head=f.read(4096).decode('ascii',errors='replace')
+    match=re.search(r"SET client_encoding = '([^']+)'",head)
+    if not match:
+        return 'utf-8'
+    pg=match.group(1).upper()
+    if pg in _PG_TO_PYTHON_ENCODING:
+        return _PG_TO_PYTHON_ENCODING[pg]
+    if pg.startswith('WIN'):
+        return 'cp'+pg[3:]
+    return pg.lower()
 
 def runPsqlFile(config,username,dbname,sql_file,env):
     """Execute sql_file with psql. Errors are logged in the message log 'Districts'.
@@ -466,12 +487,19 @@ ALTER TABLE "base1".customers ADD COLUMN gfa_m2 NUMERIC;"""
                 """copy src_file to the temp folder with the paths replaced (None if src_file does not exist)"""
                 if not os.path.exists(src_file):
                     return None
-                with open(src_file, "r") as myfile:
+                # older exports are in the client encoding of the exporting machine (WIN1252);
+                # keep the encoding the header declares, psql honours that SET
+                encoding=sqlDumpEncoding(src_file)
+                with open(src_file, "r", encoding=encoding, newline='') as myfile:
                     filedata=myfile.read()
+                # older exports name the owner role of the exporting server, which need not exist here
+                filedata = _OWNER_STATEMENT.sub('', filedata)
+                # the import creates schemas such as temp and topology before the dump runs
+                filedata = _CREATE_SCHEMA.sub('CREATE SCHEMA IF NOT EXISTS ', filedata)
                 filedata = filedata.replace("$plugins_path$", os.path.normpath(self.plugin_dir).replace('\\','\\\\'))
                 filedata = filedata.replace("$districts_path$", os.path.normpath(self.config['pathDistricts']).replace('\\','\\\\'))
                 temp_file=temp_dir+Path(src_file).stem+'_.sql'
-                with open(temp_file,'w') as myfile:
+                with open(temp_file,'w', encoding=encoding, newline='') as myfile:
                     myfile.write(filedata)
                 return temp_file
 
@@ -565,6 +593,9 @@ class WorkerExportProject(QRunnable):
         cmd = [
             os.path.join(self.config['pathPostgresql'],"bin\\pg_dump"),  # Path to pg_dump
             "--dbname=postgresql://{}:{}@{}:{}/{}".format(self.username,self.password ,self.config['host'],self.config['port'],self.config['projectName']),
+            "--encoding=UTF8",  # independent of the locale of the exporting machine
+            "--no-owner",  # the roles of this server need not exist where the project is imported
+            "--no-privileges",
             "--exclude-table=temp.result_vis_*",  # 'show data on map' results (dropped when the project/version is loaded)
         ]
         if self.no_db_results:
