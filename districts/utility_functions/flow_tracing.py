@@ -277,7 +277,19 @@ def scanNetworkPressureLoss(cur, config, network=1, line_mdot_table='line_s_mdot
                 dvar, ep = dvars.get(cid, (None, None))
                 per_customer[cid] = {'value': value, 'time': time, 'dvar': dvar, 'epid': ep, 'lids': c_lid[cid], 'c_ep': c_ep[cid],
                     'mdot': mdot_customers[time][cid], 'dp': p_c[cid][0] - p_c[cid][1]}
+    peak = peakValues(mdot_customers)
+    for cid, pc in per_customer.items():
+        pc['mdot_peak'] = peak.get(cid, 0.0)
     return best, per_customer
+
+
+def peakValues(series):
+    """{fid: maximal absolute value} of a time series {time: {fid: value}}"""
+    peak: dict = {}
+    for values in series.values():
+        for fid, value in values.items():
+            peak[fid] = max(peak.get(fid, 0.0), abs(value))
+    return peak
 
 
 def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1', time=None, time_mode='customer', ep_aggregate='max', min_share=0.01, eps=1e-9,
@@ -291,9 +303,10 @@ def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1',
                 'global'   -> all customers at the time with the maximal network pressure loss of all customers
                               (or at the given time)
     sup_seq / ret_seq / lids: the circuit, see scanNetworkPressureLoss.
-    Returns dict {'time', 'dp', 'cid_dp', 'epid_dp', 'c_lid', 'c_ep', 'dvar', 'mdot_customers', 'times', 'dp_c', 'warnings'}
-    with time = global critical time, dvar = {cid: (network pressure loss to the supplying plant, epid)},
-    times = {cid: time used for the customer} and dp_c = {cid: p_sup - p_ret at the substation at this time}."""
+    Returns dict {'time', 'dp', 'cid_dp', 'epid_dp', 'c_lid', 'c_ep', 'dvar', 'mdot_customers', 'mdot_peak_customers', 'times',
+    'dp_c', 'warnings'} with time = global critical time, dvar = {cid: (network pressure loss to the supplying plant, epid)},
+    times = {cid: time used for the customer}, dp_c = {cid: p_sup - p_ret at the substation at this time} and
+    mdot_peak_customers = {cid: maximal absolute mass flow at the substation over all time steps}."""
     dp = cid_dp = epid_dp = None
     if time is None and time_mode in ('customer', 'customer_mdot'):
         best, per_customer = scanNetworkPressureLoss(cur, config, network, line_mdot_table, ep_aggregate, min_share, eps,
@@ -305,6 +318,7 @@ def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1',
             'c_ep': {cid: pc['c_ep'] for cid, pc in per_customer.items()},
             'dvar': {cid: (pc['dvar'], pc['epid']) for cid, pc in per_customer.items()},
             'mdot_customers': {cid: pc['mdot'] for cid, pc in per_customer.items()},
+            'mdot_peak_customers': {cid: pc['mdot_peak'] for cid, pc in per_customer.items()},
             'times': {cid: pc['time'] for cid, pc in per_customer.items()},
             'dp_c': {cid: pc['dp'] for cid, pc in per_customer.items()}, 'warnings': []}
     if time is None:
@@ -326,7 +340,8 @@ def getCustomerLineMdot(cur, config, network=1, line_mdot_table='line_s_mdot$1',
     dvar = networkPressureLoss(c_ep, {cid: (p, p_c_ret[cid]) for cid, p in p_c_sup.items() if cid in p_c_ret},
         {ep: (p, p_ep_ret[ep]) for ep, p in p_ep_sup.items() if ep in p_ep_ret}, ep_aggregate, min_share)
     return {'time': time, 'dp': dp, 'cid_dp': cid_dp, 'epid_dp': epid_dp, 'c_lid': c_lid, 'c_ep': c_ep, 'dvar': dvar,
-        'mdot_customers': mdot_customers, 'times': {cid: time for cid in c_lid},
+        'mdot_customers': mdot_customers, 'mdot_peak_customers': peakValues(getTimeSeries(cur, config, c_mdot_tables, '$mdot')),
+        'times': {cid: time for cid in c_lid},
         'dp_c': {cid: p - p_c_ret[cid] for cid, p in p_c_sup.items() if cid in p_c_ret}, 'warnings': warnings}
 
 

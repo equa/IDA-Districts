@@ -280,6 +280,7 @@ def _register_translation_keys():
     tr("low_temperature_network")
     tr("secondary_network")
     tr("hc_network")
+    tr("dynamic_optimization")
     
     #descriptions
     tr("description_importPRNData")

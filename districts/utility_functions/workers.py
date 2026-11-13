@@ -442,7 +442,8 @@ CREATE EXTENSION IF NOT EXISTS postgis_raster WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;"""
             self.cur.execute(sql)
             self.signals.progress.emit(71)
-            if self.project_name and name not in ['secondary_network','low_temperature_network','hc_network']:
+            # these templates are complete dumps that create their own schemas and tables
+            if self.project_name and name not in ['secondary_network','low_temperature_network','hc_network','dynamic_optimization']:
                 sql='\n'.join(["CREATE SCHEMA IF NOT EXISTS {};".format(version) for version in self.versionNames]) # nosec B608
                 dprint(sql)
                 if sql:

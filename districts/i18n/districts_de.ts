@@ -3788,6 +3788,10 @@
             <translation type="unfinished">Wärme/Kältenetz</translation>
         </message>
         <message>
+            <source>dynamic_optimization</source>
+            <translation>Dynamische Optimierung</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/workers.py" line="114" />
             <source>@default</source>
             <comment>path_not_exists</comment>
@@ -4309,6 +4313,8 @@ Dimensioniert die Rohre des gewählten Netzes mit der dynamischen Simulation so,
 &lt;li&gt;&lt;b&gt;Schreiben der Rohre&lt;/b&gt;: geänderte Trassen erhalten den Rohrbündeltyp mit den neuen Rohren aller Paare und den unveränderten Rohren der übrigen Sequenzen (ein vorhandener wird wiederverwendet, ein fehlender mit den Positionen des ursprünglichen Bündels erzeugt). c_lid jedes Paars vor und nach der Dimensionierung wird als dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json / _c_lid_sized_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json im Versionsordner gespeichert.&lt;/li&gt;
 &lt;/ol&gt;
 &lt;b&gt;Iterationen&lt;/b&gt;: jede Iteration wird als dynamic_sizing_iter&amp;lt;n&amp;gt;.json im Versionsordner gespeichert und im Reiter &lt;i&gt;Iterations&lt;/i&gt; aufgelistet, eine Zeile je Paar (kritischer Zeitpunkt, Schlechtpunkt, dp min/max und Spreizung an den Übergabestationen simuliert, Spreizung nach der Dimensionierung geschätzt, Quote, geänderte Trassen, Ergebnis); die Dateien eines früheren Laufs werden beim Start gelöscht. Mit &lt;i&gt;Show every iteration on the map&lt;/i&gt;, oder nachträglich mit &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (oder Doppelklick), erhält die Gruppe &lt;i&gt;Dynamische Rohrdimensionierung&lt;/i&gt; eine Untergruppe je Iteration und darin eine je Paar: Abnehmer mit abgestuften Farben des dp an der Übergabestation (rot = tief, blau = hoch, der Schlechtpunkt als grösserer, beschrifteter Punkt), Trassen mit abgestuften Farben und Breiten des Auslegungsmassenstroms und die Trassen mit neuen Rohren (beschriftet altes → neues Rohr). Die Klassen eines Paars sind für alle Iterationen gleich, die letzte ist sichtbar; zum Vergleichen die Untergruppen im Layerbaum umschalten. Die Layer werden beim Laden einer Version entfernt. Iterationsdateien von Läufen vor den Vorlauf-/Rücklaufpaaren werden als Paar 1/2 angezeigt.&lt;br&gt;
+&lt;b&gt;Zeitraum&lt;/b&gt;: &lt;i&gt;Berechnungszeitraum&lt;/i&gt; und &lt;i&gt;Startup-Zeitraum&lt;/i&gt; sind die Zeiträume des Simulationsdialogs (mit der Version in networkSimData.txt gespeichert); jede Simulation des Laufs verwendet sie. Wähle einen Zeitraum, der jedes Paar belastet, z.B. einen Sommertag für einen Kältekreis: hat der Ziel-Abnehmer eines Paars in seinem kritischen Zeitpunkt fast keinen Durchfluss (unter 1 % seines Spitzenmassenstroms), warnt das Protokoll.&lt;br&gt;
+&lt;b&gt;Referenzlauf&lt;/b&gt; (Iteration 0): simuliert mit den aktuellen Rohren und wertet jedes Paar aus, ohne ein Rohr zu ändern, dann hält der Lauf an; Tabelle und Karte prüfen. Mit einer neuen Kindversion wird diese zuerst erstellt und danach &lt;i&gt;Override the pipes of the loaded version&lt;/i&gt; ausgewählt, so dass die Dimensionierung (zweiter Start, ohne Referenzlauf) in derselben Version arbeitet und Iteration 0 zum Vergleich behält.&lt;br&gt;
 &lt;b&gt;Ende&lt;/b&gt;: konvergiert, wenn sich die Rohre keines Paars mehr ändern; abgebrochen, wenn die Rohre eine frühere Iteration wiederholen (Oszillation, die Trassen werden nicht geändert) oder nach der max. Anzahl Iterationen (die Trassen enthalten dann die Rohre der letzten Iteration, noch nicht simuliert). &lt;b&gt;Stop after this step&lt;/b&gt; hält vor dem nächsten Schritt an, erneut gedrückt bricht es sofort ab (eine laufende Simulation wird nicht unterbrochen).&lt;br&gt;
 Die Massenströme bleiben innerhalb einer Iteration konstant, Δp&lt;sub&gt;A&lt;/sub&gt; nach der Dimensionierung ist eine Schätzung; die nächste Simulation zeigt die tatsächliche Wirkung.&lt;br&gt;
 &lt;b&gt;Version&lt;/b&gt;: vor der ersten Iteration wird eine neue Kindversion der geladenen Version erstellt und geladen (die geladene Version behält ihre Rohre), oder die Rohre der geladenen Version werden überschrieben.&lt;br&gt;
@@ -7374,6 +7380,54 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
     </context>
     <context>
         <name>Messages</name>
+        <message>
+            <source>to</source>
+            <translation>bis</translation>
+        </message>
+        <message>
+            <source>The calculation period must end after it begins.</source>
+            <translation>Der Berechnungszeitraum muss nach seinem Beginn enden.</translation>
+        </message>
+        <message>
+            <source>The start-up period must end after it begins.</source>
+            <translation>Der Startup-Zeitraum muss nach seinem Beginn enden.</translation>
+        </message>
+        <message>
+            <source>Calculation period</source>
+            <translation>Berechnungszeitraum</translation>
+        </message>
+        <message>
+            <source>Start-up period</source>
+            <translation>Startup-Zeitraum</translation>
+        </message>
+        <message>
+            <source>Reference run before the sizing (iteration 0)</source>
+            <translation>Referenzlauf vor der Dimensionierung (Iteration 0)</translation>
+        </message>
+        <message>
+            <source>Simulate with the current pipes and evaluate every pair without changing a pipe, then stop: check the iteration 0 in the table and on the map, then start the sizing without the reference run.</source>
+            <translation>Mit den aktuellen Rohren simulieren und jedes Paar auswerten, ohne ein Rohr zu ändern, dann anhalten: Iteration 0 in der Tabelle und auf der Karte prüfen, dann die Dimensionierung ohne Referenzlauf starten.</translation>
+        </message>
+        <message>
+            <source>Reference run: the network of version "{}" is simulated with its current pipes, no pipe is changed. Continue?</source>
+            <translation>Referenzlauf: das Netz der Version "{}" wird mit seinen aktuellen Rohren simuliert, kein Rohr wird geändert. Fortfahren?</translation>
+        </message>
+        <message>
+            <source>  Warning: pair {}: target customer {} has almost no flow at its critical time ({:.3g} of {:.3g} kg/s); check the simulation period.</source>
+            <translation>  Warnung: Paar {}: der Ziel-Abnehmer {} hat in seinem kritischen Zeitpunkt fast keinen Durchfluss ({:.3g} von {:.3g} kg/s); prüfe den Simulationszeitraum.</translation>
+        </message>
+        <message>
+            <source>The sizing continues in version {}: "Override the pipes of the loaded version" is selected.</source>
+            <translation>Die Dimensionierung wird in der Version {} fortgesetzt: "Override the pipes of the loaded version" ist ausgewählt.</translation>
+        </message>
+        <message>
+            <source>Reference run finished: check the iterations, then start the sizing without the reference run.</source>
+            <translation>Referenzlauf abgeschlossen: prüfe die Iterationen, dann starte die Dimensionierung ohne Referenzlauf.</translation>
+        </message>
+        <message>
+            <source>reference</source>
+            <translation>Referenz</translation>
+        </message>
         <message>
             <source>Row {} of the pairs: the temperatures must be numbers.</source>
             <translation>Zeile {} der Paare: die Temperaturen müssen Zahlen sein.</translation>

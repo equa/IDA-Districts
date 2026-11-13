@@ -6,6 +6,7 @@ from collections import defaultdict
 from .translations import tr_msg
 
 DEFAULT_TEMPS = (70.0, 40.0)
+NO_FLOW_SHARE = 0.01  # share of the customer's own peak mass flow below which a target customer has no flow
 SUPPLY, RETURN = 1, 2  # public.connections.type
 
 
@@ -128,6 +129,15 @@ def missingResultTables(cur, config, pairs):
             if table not in needed:
                 needed.append(table)
     return [t for t in needed if t not in tables]
+
+
+def targetFlow(res, cid):
+    """(mass flow at the critical time, peak mass flow, no_flow) of the customer cid in the result of
+    getCustomerLinePressure; no_flow if the mass flow is below NO_FLOW_SHARE of the peak (or there is no flow at all),
+    which points to a simulation period that does not load the circuit."""
+    mdot = abs(res.get('mdot_customers', {}).get(cid) or 0.0)
+    peak = res.get('mdot_peak_customers', {}).get(cid) or 0.0
+    return mdot, peak, mdot < NO_FLOW_SHARE * peak or peak <= 0.0
 
 
 # ---------------------------------------------------------------- merge of the pairs

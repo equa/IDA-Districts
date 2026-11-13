@@ -2,9 +2,10 @@
 hydraulic balancing (utility_functions.hydraulic_balancing) until the pipe dimensions do not change anymore.
 The workflow is described in the info text dynamic_pipe_sizing_info (i18n/districts_*.ts)."""
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QObject, QThreadPool, pyqtSlot
+from qgis.PyQt.QtCore import QDateTime, QObject, QThreadPool, pyqtSlot
 from qgis.PyQt.QtWidgets import (
-    QDialog, QFrame, QHBoxLayout, QHeaderView, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QCheckBox, QDateTimeEdit, QDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget,
 )
 from qgis.core import QgsMessageLog
 from qgis.gui import QgsCollapsibleGroupBox
@@ -18,6 +19,7 @@ from .invoke_network import WorkerBuildNetworkModel
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect, getUsedNetworkSubmodels
 from .utility_functions.dialog import infoTextEdit
+from .utility_functions.files import loadNetworkSimData
 from .utility_functions.dynamic_sizing_results import (
     deleteIterations, iterationRows, iterationSummary, loadIterations, pairSummary, removeSizingLayers, saveIteration, showIteration,
     showIterations,
@@ -27,7 +29,7 @@ from .utility_functions.hydraulic_balancing import (
 )
 from .utility_functions.pipe_pairs import (
     DEFAULT_TEMPS, checkPairs, getNetworkSequences, getPlantConnections, iterationOutcome, mergePairPipes, missingResultTables, pairLabel,
-    suggestPairs,
+    suggestPairs, targetFlow,
 )
 from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import sanitize_pg_identifier, write_plugin_settings
@@ -40,11 +42,23 @@ import psycopg2.extras
 import traceback
 
 TIME_MODES = ['customer', 'customer_mdot', 'global']
+EP_AGGREGATES = ['max', 'weighted']
+DATE_FORMAT = 'yyyy-MM-dd hh:mm:ss'  # as in networkSimData.txt and the simulation dialog
+PERIOD_KEYS = ('calc_time_from', 'calc_time_to', 'startup_time_from', 'startup_time_to')
 
 
 def pipeName(catalog, pipe_id):
     return catalog[pipe_id]['name'] if pipe_id in catalog else str(pipe_id)
-EP_AGGREGATES = ['max', 'weighted']
+
+
+def periodErrors(periods):
+    """Messages for periods {key of PERIOD_KEYS: 'yyyy-mm-dd hh:mm:ss'} whose start is not before their end."""
+    errors = []
+    if not periods['calc_time_from'] < periods['calc_time_to']:
+        errors.append(tr_msg('The calculation period must end after it begins.'))
+    if not periods['startup_time_from'] < periods['startup_time_to']:
+        errors.append(tr_msg('The start-up period must end after it begins.'))
+    return errors
 
 
 class DynamicPipeSizingDialog(QDialog):
@@ -64,6 +78,7 @@ class DynamicPipeSizingDialog(QDialog):
         self.run = None
         self.filling_pairs = False
         self.setupPairTable()
+        self.setupPeriods()
         self.checkBox_presize.toggled.connect(self.updateEnabled)
         self.checkBox_dpSpezMax.toggled.connect(self.updateEnabled)
         self.checkBox_vMax.toggled.connect(self.updateEnabled)
@@ -80,6 +95,43 @@ class DynamicPipeSizingDialog(QDialog):
         self.table_iterations.setHorizontalHeaderLabels(self.iterationHeaders())
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table_iterations.verticalHeader().setVisible(False)
+
+    # ------------------------------------------------------------------ simulation period and reference run
+    def setupPeriods(self):
+        """Calculation and start-up period (the settings of the simulation dialog) and the reference run, in the group Iteration."""
+        self.dateedit_period = {}
+        for row, (label, keys) in enumerate(((tr_msg('Calculation period'), PERIOD_KEYS[:2]), (tr_msg('Start-up period'), PERIOD_KEYS[2:]))):
+            container = QWidget()
+            layout = QHBoxLayout(container)
+            layout.setContentsMargins(0, 0, 0, 0)
+            for i, key in enumerate(keys):
+                if i:
+                    layout.addWidget(QLabel(tr_msg('to')))
+                edit = QDateTimeEdit()
+                edit.setCalendarPopup(True)
+                edit.setDisplayFormat(DATE_FORMAT)
+                self.dateedit_period[key] = edit
+                layout.addWidget(edit)
+            self.formLayout_iteration.insertRow(1 + row, label, container)
+        self.checkBox_referenceRun = QCheckBox(tr_msg('Reference run before the sizing (iteration 0)'))
+        self.checkBox_referenceRun.setObjectName('checkBox_referenceRun')
+        self.checkBox_referenceRun.setToolTip(tr_msg('Simulate with the current pipes and evaluate every pair without changing a pipe, '
+            'then stop: check the iteration 0 in the table and on the map, then start the sizing without the reference run.'))
+        self.formLayout_iteration.insertRow(3, self.checkBox_referenceRun)
+
+    def fillPeriods(self, config):
+        """The periods saved for the version (networkSimData.txt, as shown by the simulation dialog)."""
+        try:
+            data = loadNetworkSimData(self.main.plugin_dir, config) or {}
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            data = {}
+        for key, edit in self.dateedit_period.items():
+            if data.get(key):
+                edit.setDateTime(QDateTime.fromString(data[key], DATE_FORMAT))
+
+    def periods(self):
+        return {key: edit.dateTime().toString(DATE_FORMAT) for key, edit in self.dateedit_period.items()}
 
     # ------------------------------------------------------------------ supply/return pairs
     def setupPairTable(self):
@@ -236,6 +288,7 @@ class DynamicPipeSizingDialog(QDialog):
         self.combo_submodel.addItems(getUsedNetworkSubmodels(cur, config))
         self.lineEdit_versionName.setText(config['versionName'] + '_sizing')
         self.lineEdit_versionDescription.setText('Dynamic pipe sizing of version {}'.format(config['versionName']))
+        self.fillPeriods(config)
         self.loadIterationTable()
 
     def parameters(self):
@@ -258,6 +311,8 @@ class DynamicPipeSizingDialog(QDialog):
             'pairs': self.pairs()[0],
             'build_first': self.checkBox_buildFirst.isChecked(),
             'show_map': self.checkBox_showMap.isChecked(),
+            'periods': self.periods(),
+            'reference_run': self.checkBox_referenceRun.isChecked(),
         }
 
     def log(self, message):
@@ -281,6 +336,7 @@ class DynamicPipeSizingDialog(QDialog):
             iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Please select a network and a submodel!'), level=MessageInfo)
             return
         pairs, errors = self.pairs()
+        errors += periodErrors(self.periods())
         skipped = {}
         if not errors:
             try:
@@ -306,6 +362,9 @@ class DynamicPipeSizingDialog(QDialog):
             question = tr_msg('A child version "{}" of version "{}" will be created and loaded, its pipes will be sized. Continue?').format(new_version, version)
         else:
             question = tr_msg('The pipe bundles of the lines of the loaded version "{}" will be overridden. Continue?').format(version)
+        if self.checkBox_referenceRun.isChecked():
+            question = tr_msg('Reference run: the network of version "{}" is simulated with its current pipes, no pipe is changed. Continue?').format(
+                new_version if self.rbtn_newVersion.isChecked() else version)
         answer = QMessageBox.question(self, self.windowTitle(), question)
         if answer != QMessageBox.StandardButton.Yes:
             return
@@ -376,12 +435,13 @@ class DynamicPipeSizingRun(QObject):
     def startIteration(self):
         p = self.parms
         self.dlg.log(tr_msg('Version {}, network {}, submodel {}').format(self.config['versionName'], p['network'], p['submodel']))
-        self.iteration = 1
+        self.iteration = 0 if p['reference_run'] else 1
         self.started = datetime.datetime.now().isoformat(timespec='seconds')
-        # iterations of a previous run (or copied from the parent version) do not belong to this run
-        deleteIterations(self.config)
+        # iterations of a previous run (or copied from the parent version) do not belong to this run; the reference
+        # run (iteration 0) simulated in this version is kept for the sizing that follows it
+        deleteIterations(self.config, keep_reference=not p['reference_run'] and not p['new_version'])
         removeSizingLayers()
-        self.dlg.table_iterations.setRowCount(0)
+        self.dlg.loadIterationTable()
         if p['build_first']:
             self.build()
         else:
@@ -448,6 +508,9 @@ class DynamicPipeSizingRun(QObject):
 
     def progress(self, step):
         """step 0..3 within the iteration"""
+        if self.iteration == 0:
+            self.dlg.update_progress(int(step / 4 * 100))
+            return
         self.dlg.update_progress(int(((self.iteration - 1) * 4 + step) / (self.parms['max_iter'] * 4) * 100))
 
     # ------------------------------------------------------------------ 1. build network model
@@ -487,6 +550,9 @@ class DynamicPipeSizingRun(QObject):
             self.dlg_run.combo_submodels.addItem(tr('@default', 'check_all_items'))
             self.dlg_run.combo_submodels.addItem(self.parms['submodel'])
             self.dlg_run.combo_submodels.setItemChecked(1, True)
+            # the periods of the sizing dialog; runModel saves them with the other settings of the version
+            for key, attr in zip(PERIOD_KEYS, ('dateedit_calcFrom', 'dateedit_calcTo', 'dateedit_startupFrom', 'dateedit_startupTo')):
+                getattr(self.dlg_run, attr).setDateTime(QDateTime.fromString(self.parms['periods'][key], DATE_FORMAT))
             # redirect the signals of the simulation workers to this object
             self.dlg_run.updateStatusBar = self.onSimStatus
             self.dlg_run.show_error_message = self.onSimError
@@ -567,6 +633,11 @@ class DynamicPipeSizingRun(QObject):
             results = []
             for s, r, t_s, t_r in p['pairs']:
                 results.append(self.evaluatePair(cur, (s, r), (DEFAULT_TEMPS[0] if t_s is None else t_s, DEFAULT_TEMPS[1] if t_r is None else t_r)))
+            if self.iteration == 0:
+                conn.close()
+                self.saveIteration(results, 'reference', {}, {})
+                self.finishReference()
+                return
 
             # one decision over all pairs: the lines get the new pipes of every pair, the other pipes of the bundle stay
             bundles = getPipeBundles(cur)
@@ -622,8 +693,20 @@ class DynamicPipeSizingRun(QObject):
         n_default = sum(1 for line in lines.values() if any(pipe['temp_default'] for pipe in line['pipes'].values()))
         if n_default:
             self.dlg.log(tr_msg('  pair {}: {} lines without a temperature result, {:g} / {:g} °C used').format(label, n_default, temps[0], temps[1]))
+        mdot, peak, res['target_no_flow'] = targetFlow(res, opt['cid_weak'])
+        if res['target_no_flow']:
+            self.dlg.log(tr_msg('  Warning: pair {}: target customer {} has almost no flow at its critical time ({:.3g} of {:.3g} kg/s); check the simulation period.').format(
+                label, opt['cid_weak'], mdot, peak))
         self.saveResult(res, opt, pair)
         return pair, temps, res, opt
+
+    def finishReference(self):
+        """End of the reference run: the sizing is a second start in the same version, without the reference run."""
+        if self.parms['new_version']:
+            self.dlg.rbtn_overrideVersion.setChecked(True)
+            self.dlg.log(tr_msg('The sizing continues in version {}: "Override the pipes of the loaded version" is selected.').format(self.config['versionName']))
+        self.dlg.checkBox_referenceRun.setChecked(False)
+        self.finish(tr_msg('Reference run finished: check the iterations, then start the sizing without the reference run.'))
 
     def saveIteration(self, results, outcome, current, changed):
         """Saves the summary of the iteration in the version folder, adds it to the table and shows it on the map (option).
@@ -632,7 +715,8 @@ class DynamicPipeSizingRun(QObject):
             pairs = []
             for pair, temps, res, opt in results:
                 changed_pair = {lid for lid, new in opt['pipes'].items() if lid in changed and any(current[lid].get(seq) != pid for seq, pid in new.items())}
-                pairs.append(pairSummary(pair, temps, res, opt, changed_pair, self.parms['skipped'].get(pairLabel(pair), 0)))
+                pairs.append(pairSummary(pair, temps, res, opt, changed_pair, self.parms['skipped'].get(pairLabel(pair), 0),
+                    reference=outcome == 'reference', target_no_flow=res.get('target_no_flow', False)))
             summary = iterationSummary(self.iteration, self.started, pairs, outcome, len(changed))
             saveIteration(self.config, summary)
             self.dlg.addIterationRow(summary)

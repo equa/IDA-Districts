@@ -46,9 +46,10 @@ def versionPath(config):
     return os.path.join(config['pathProjects'], config['projectName'], 'versions', config['versionName'])
 
 
-def pairSummary(pair, temps, res, opt, changed, n_skipped=0):
+def pairSummary(pair, temps, res, opt, changed, n_skipped=0, reference=False, target_no_flow=False):
     """Results of a pair in an iteration (see the module doc) from getCustomerLinePressure (res) and
-    optimizePipeDiameters (opt); pair = (supply, return), changed = lines whose pipes of the pair changed."""
+    optimizePipeDiameters (opt); pair = (supply, return), changed = lines whose pipes of the pair changed.
+    reference: reference run (iteration 0), the pipes are not changed (pipe_new = pipe)."""
     catalog, lines = res['catalog'], res['lines']
     supply = pair[0]
     customers = {}
@@ -59,14 +60,15 @@ def pairSummary(pair, temps, res, opt, changed, n_skipped=0):
     line_rows = {}
     for lid, line in lines.items():
         pipe = line['pipes'][supply]
-        new = opt['pipes'].get(lid, {}).get(supply, pipe['pipe_id'])
+        new = pipe['pipe_id'] if reference else opt['pipes'].get(lid, {}).get(supply, pipe['pipe_id'])
         line_rows[str(lid)] = {'mdot': abs(pipe['mdot']), 'mdot_max': max(abs(p.get('mdot_max', 0.0)) for p in line['pipes'].values()),
             'dp_spez': res['dp_spez'].get(lid), 'pipe': catalog[pipe['pipe_id']]['name'], 'pipe_new': catalog[new]['name'],
-            'changed': lid in changed}
+            'changed': lid in changed and not reference}
     return {'supply': pair[0], 'return': pair[1], 'temps': list(temps), 'time': str(res['time']), 'cid_weak': res['cid_dp'],
         'epid_weak': res['epid_dp'], 'dp_net_weak': res['dp'], 'cid_target': opt['cid_weak'], 'dp_target': opt['dp_target'],
         'quota': opt['quota'], 'spread_sized': opt['spread'], 'n_presized': len(opt['presize']), 'n_balancing_steps': len(opt['history']),
-        'n_changed': len(changed), 'n_customers_skipped': n_skipped, 'customers': customers, 'lines': line_rows}
+        'n_changed': 0 if reference else len(changed), 'n_customers_skipped': n_skipped, 'target_no_flow': target_no_flow,
+        'customers': customers, 'lines': line_rows}
 
 
 def iterationSummary(iteration, started, pairs, outcome, n_changed):
@@ -101,11 +103,13 @@ def loadIterations(config):
     return sorted(result, key=lambda s: s['iteration'])
 
 
-def deleteIterations(config):
-    """Removes the iteration files of a previous run (also the ones copied from the parent version)."""
+def deleteIterations(config, keep_reference=False):
+    """Removes the iteration files of a previous run (also the ones copied from the parent version); with
+    keep_reference the files of the reference run (iteration 0) are kept."""
     for pattern in (ITERATION_FILE.format('*'), 'dynamic_sizing_iter*_c_lid*.json'):
         for path in glob.glob(os.path.join(versionPath(config), pattern)):
-            os.remove(path)
+            if not (keep_reference and re.match(r'dynamic_sizing_iter0[._]', os.path.basename(path))):
+                os.remove(path)
 
 
 def iterationRows(summary):
@@ -127,7 +131,7 @@ def bar(value):
 
 def outcomeText(outcome):
     return {'changed': tr_msg('pipes changed'), 'converged': tr_msg('converged'), 'oscillation': tr_msg('oscillation'),
-        'max_iter': tr_msg('pipes changed, max. iterations')}.get(outcome, outcome)
+        'max_iter': tr_msg('pipes changed, max. iterations'), 'reference': tr_msg('reference')}.get(outcome, outcome)
 
 
 # ---------------------------------------------------------------- map layers
@@ -309,13 +313,14 @@ def showIteration(cur, config, summary, all_summaries=None, visible=True, labels
         label = pairLabel((pair['supply'], pair['return']))
         if labels is None or label in labels:
             same = [p for s in all_summaries for p in s['pairs'] if pairLabel((p['supply'], p['return'])) == label]
-            layers += showPair(cur, config, iteration, label, pair, same)
+            layers += showPair(cur, config, iteration, label, pair, same, new_pipes=summary['outcome'] != 'reference')
     sizingGroup(iteration).setItemVisibilityChecked(visible)
     return layers
 
 
-def showPair(cur, config, iteration, label, pair, all_pairs):
-    """Layers of a pair of an iteration; class bounds from all_pairs (the same pair in all iterations)."""
+def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True):
+    """Layers of a pair of an iteration; class bounds from all_pairs (the same pair in all iterations).
+    new_pipes=False: without the layer of the lines with new pipes (reference run)."""
     dp_bounds = classBounds([bar(c['dp']) for p in all_pairs for c in p['customers'].values()])
     mdot_bounds = classBounds([line['mdot'] for p in all_pairs for line in p['lines'].values() if line['mdot'] > 0])
 
@@ -337,14 +342,16 @@ def showPair(cur, config, iteration, label, pair, all_pairs):
     lines = createLayer(tr_msg('Lines – design mass flow [kg/s]'), 'LineString', srid(cur, config, 'lines'), line_fields, line_rows, iteration, label)
     lines.setRenderer(lineRenderer(mdot_bounds))
 
-    changed_rows = [row for row in line_rows if row['changed']]
-    changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', srid(cur, config, 'lines'), line_fields, changed_rows, iteration, label)
-    changed.setRenderer(QgsSingleSymbolRenderer(lineSymbol('#e31a1c', 3.0, opacity=0.4)))
-    setLabels(changed, "\"pipe\" || ' → ' || \"pipe_new\"", '#b30000')
-
-    for layer in (customers, changed, lines):
+    layers = [customers, lines]
+    if new_pipes:
+        changed_rows = [row for row in line_rows if row['changed']]
+        changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', srid(cur, config, 'lines'), line_fields, changed_rows, iteration, label)
+        changed.setRenderer(QgsSingleSymbolRenderer(lineSymbol('#e31a1c', 3.0, opacity=0.4)))
+        setLabels(changed, "\"pipe\" || ' → ' || \"pipe_new\"", '#b30000')
+        layers.insert(1, changed)
+    for layer in layers:
         layer.triggerRepaint()
-    return [customers, changed, lines]
+    return layers
 
 
 def showIterations(cur, config, selection):

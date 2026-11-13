@@ -3811,6 +3811,10 @@
             <translation type="unfinished">Heating/cooling network</translation>
         </message>
         <message>
+            <source>dynamic_optimization</source>
+            <translation>Dynamic optimization</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/workers.py" line="114" />
             <source>@default</source>
             <comment>path_not_exists</comment>
@@ -4312,6 +4316,8 @@ Sizes the pipes of the selected network with the dynamic simulation so that the 
 &lt;li&gt;&lt;b&gt;Writing the pipes&lt;/b&gt;: changed lines get the pipe bundle type with the new pipes of all pairs and the unchanged pipes of the other sequences (an existing one is reused, a missing one is created with the positions of the original bundle). c_lid of every pair before and after the sizing is saved as dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json / _c_lid_sized_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json in the version folder.&lt;/li&gt;
 &lt;/ol&gt;
 &lt;b&gt;Iterations&lt;/b&gt;: every iteration is saved as dynamic_sizing_iter&amp;lt;n&amp;gt;.json in the version folder and listed in the tab &lt;i&gt;Iterations&lt;/i&gt;, one row per pair (critical time, weak point, dp min/max and spread at the substations as simulated, spread after the sizing as estimated, quota, changed lines, outcome); the files of a previous run are deleted when a new run starts. With &lt;i&gt;Show every iteration on the map&lt;/i&gt;, or afterwards with &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (or a double click), the group &lt;i&gt;Dynamic pipe sizing&lt;/i&gt; gets a subgroup per iteration and in it one per pair: customers with graduated colors of dp at the substation (red = low, blue = high, the weak point as a bigger, labelled point), lines with graduated colors and widths of the design mass flow and the lines with new pipes (labelled old → new pipe). The classes of a pair are the same for all iterations, the last one is visible; switch the subgroups in the layer tree to compare. The layers are removed when a version is loaded. Iteration files of runs before the supply/return pairs are shown as the pair 1/2.&lt;br&gt;
+&lt;b&gt;Period&lt;/b&gt;: &lt;i&gt;Calculation period&lt;/i&gt; and &lt;i&gt;Start-up period&lt;/i&gt; are the periods of the simulation dialog (saved with the version in networkSimData.txt); every simulation of the run uses them. Choose a period that loads every pair, e.g. a summer day for a cooling circuit: if the target customer of a pair has almost no flow at its critical time (below 1 % of its peak mass flow), the log warns.&lt;br&gt;
+&lt;b&gt;Reference run&lt;/b&gt; (iteration 0): simulates with the current pipes and evaluates every pair without changing a pipe, then the run stops; check the table and the map. With a new child version, the child is created first and &lt;i&gt;Override the pipes of the loaded version&lt;/i&gt; is selected afterwards, so the sizing (second start, without the reference run) works in the same version and keeps iteration 0 for comparison.&lt;br&gt;
 &lt;b&gt;End&lt;/b&gt;: converged when the pipes of no pair change anymore; stopped if the pipes repeat an earlier iteration (oscillation, the lines are not changed) or after the max. number of iterations (the lines then contain the pipes of the last iteration, not yet simulated). &lt;b&gt;Stop after this step&lt;/b&gt; stops before the next step, pressed again it aborts at once (a running simulation is not interrupted).&lt;br&gt;
 The mass flows are kept constant within an iteration, Δp&lt;sub&gt;C&lt;/sub&gt; after the sizing is an estimate; the next simulation shows the real effect.&lt;br&gt;
 &lt;b&gt;Version&lt;/b&gt;: a new child version of the loaded version is created and loaded before the first iteration (the loaded version keeps its pipes), or the pipes of the loaded version are overridden.&lt;br&gt;

@@ -1100,7 +1100,7 @@ def finishedImportProject(dlg=None,main=None,projectName=''):
         main.dlg.selectProject.addItem(main.config['projectName'])
         main.dlg.selectProject.setCurrentText(main.config['projectName'])
         main.loadProject()
-        if dlg and dlg.selectTemplate.currentData() in ['heating_network','hc_network','secondary_network']:
+        if dlg and dlg.selectTemplate.currentData() in ['heating_network','hc_network','secondary_network','dynamic_optimization']:
             main.config['versionName']='base1'
             loadVersion(main=main)
         else:
@@ -1210,7 +1210,7 @@ def createNewProject(dlg,main):
         versionNames=['base1']
     dprint(main.plugin_dir)
     project_name=dlg.selectTemplate.currentText().lower().replace(' ','_')
-    if dlg.selectTemplate.currentData() in ['db_default_values','empty_project','heating_network']:
+    if os.path.isdir(os.path.join(main.plugin_dir, 'templates', dlg.selectTemplate.currentData())):
         filename=main.plugin_dir+'\\templates\\'+dlg.selectTemplate.currentData()
         filename=filename.replace('/','\\')
     else:

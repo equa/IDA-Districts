@@ -18,6 +18,7 @@ from qgis.PyQt.QtWidgets import QMessageBox
 
 from districts.ida_ph import loadVersion
 from districts.utility_functions.dynamic_sizing_results import PAIR_PROPERTY, SIZING_PROPERTY, iterationRows, loadIterations, removeSizingLayers
+from districts.utility_functions.files import loadNetworkSimData
 from districts.utility_functions.hydraulic_balancing import loadCLidPressure
 from districts.utility_functions.translations import tr, tr_msg
 from districts.utility_functions.utility import write_plugin_settings
@@ -53,6 +54,9 @@ def test_dynamic_pipe_sizing(districts_plugin, errors, monkeypatch):
     pairs, errors = dlg.pairs()
     assert pairs and not errors, errors  # suggested from the connections of the energy plants
     first = '{}_{}'.format(pairs[0][0], pairs[0][1])
+    # the run settings at their defaults: the version's simulation periods, no reference run
+    sim_data = loadNetworkSimData(plugin.plugin_dir, plugin.config)
+    assert dlg.periods() == {key: sim_data[key] for key in dlg.periods()} and not dlg.checkBox_referenceRun.isChecked()
     dlg.rbtn_newVersion.setChecked(True)
     dlg.lineEdit_versionName.setText(new_version)
     dlg.spin_maxIter.setValue(MAX_ITER)

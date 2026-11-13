@@ -125,7 +125,7 @@
 8	utility_functions/templateFiles.py	index	Value of type "object" is not indexable
 4	utility_functions/templateFiles.py	operator	Unsupported operand types for + ("object" and "int")
 4	utility_functions/templateFiles.py	operator	Unsupported operand types for - ("object" and "int")
-487	utility_functions/translations.py	call-arg	Missing positional argument "key" in call to "tr"
+488	utility_functions/translations.py	call-arg	Missing positional argument "key" in call to "tr"
 1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "None", variable has type "str")
 2	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "bool", variable has type "str")
 1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "str | None")
