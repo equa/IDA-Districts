@@ -311,6 +311,23 @@ def roundLikeExpression(x):
     """round(x) of the QGIS expressions (half away from zero, python rounds half to even)"""
     return int(math.copysign(math.floor(abs(x) + 0.5), x))
 
+def diameterColors(diameters, ramp_name='Turbo', invert=False):
+    """{d: QColor} of the distinct diameters, continuous on the ramp from the smallest to the largest (any unit)."""
+    diameters = sorted(set(diameters))
+    if not diameters:
+        return {}
+    ramp = QgsStyle.defaultStyle().colorRamp(ramp_name)
+    d_min, d_max = diameters[0], diameters[-1]
+    colors = {}
+    for d in diameters:
+        t = (d - d_min) / (d_max - d_min) if d_max > d_min else 0.5
+        t = 1.0 - t if invert else t
+        colors[d] = ramp.color(t) if ramp else turboColor(t)
+    return colors
+
+def diameterLabel(d_mm):
+    return 'd_i = {:g} mm'.format(round(d_mm, 1))
+
 def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_name='Turbo', invert_ramp=False, width=0.75, compare_version=None):
     """Categorizes the lines by the inner diameter of the pipe with the given sequence in the pipe bundle.
     The colors follow the color ramp continuously between the smallest and the largest diameter.
@@ -344,14 +361,12 @@ def stylePipeDiameter(cur, sequence=1, only_used=True, show_labels=False, ramp_n
     if compare_version:
         return stylePipeDiameterDifference(cur, layer, compare_version, sequence, d_by_bundle, expr, rampColor, show_labels, width)
 
-    d_min, d_max = diameters[0], diameters[-1]
     categories = []
-    for d in diameters:
-        t = (d - d_min) / (d_max - d_min) if d_max > d_min else 0.5
+    for d, color in diameterColors(diameters, ramp_name, invert_ramp).items():
         symbol = QgsSymbol.defaultSymbol(layer.geometryType())
         symbol.setWidth(width)
-        symbol.setColor(rampColor(t))
-        categories.append(QgsRendererCategory(d, symbol, 'd_i = {:g} mm'.format(round(d * 1000, 1))))
+        symbol.setColor(color)
+        categories.append(QgsRendererCategory(d, symbol, diameterLabel(d * 1000)))
 
     # lines without pipe bundle or without pipe in this sequence
     symbol = QgsSymbol.defaultSymbol(layer.geometryType())

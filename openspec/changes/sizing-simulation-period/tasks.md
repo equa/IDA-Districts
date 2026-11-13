@@ -35,4 +35,4 @@
 
 - [x] 6.1 From the plugin folder of the QGIS profile, the QGIS Python runs `-m pytest -m "not ida"` and it passes, including test_static_mypy.py and test_messages.py; test_dynamic_optimization.py and test_hc_network.py pass with IDA Districts
 - [x] 6.2 `npx openspec validate --all` passes
-- [ ] 6.3 Commit code and artifacts, `git pull --rebase`, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass
+- [x] 6.3 Commit code and artifacts, `git pull --rebase`, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass

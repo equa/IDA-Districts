@@ -138,6 +138,12 @@ class TestDynamicOptimization:
         shown = {(int(layer.customProperty(SIZING_PROPERTY)), layer.customProperty(PAIR_PROPERTY))
                  for layer in QgsProject.instance().mapLayers().values() if layer.customProperty(SIZING_PROPERTY) is not None}
         assert shown == {(s['iteration'], '1/2') for s in summaries}  # iteration 0 is still shown from the reference run
+        # inner diameters: the changed lines got another diameter; one diameter layer per shown iteration
+        changed = [line for s in summaries for line in s['pairs'][0]['lines'].values() if line['changed']]
+        assert changed and all(line['d'] > 0 and line['d_new'] != line['d'] for line in changed)
+        diameter_layers = [layer for layer in QgsProject.instance().mapLayers().values() if layer.customProperty(SIZING_PROPERTY) is not None
+                           and layer.name() in (tr_msg('Lines – inner diameter after sizing [mm]'), tr_msg('Lines – inner diameter [mm]'))]
+        assert sorted(int(layer.customProperty(SIZING_PROPERTY)) for layer in diameter_layers) == [s['iteration'] for s in summaries]
         dlg.close()
         errors.check()
 

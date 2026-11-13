@@ -6,18 +6,19 @@ supply/return pair (circuit, see pipe_pairs.py):
      'pairs': [{'supply', 'return', 'temps', 'time', 'cid_weak', 'epid_weak', 'dp_net_weak', 'cid_target', 'dp_target',
                 'quota', 'spread_sized', 'n_presized', 'n_balancing_steps', 'n_changed', 'n_customers_skipped',
                 'customers': {cid: {'dp', 'dp_sized', 'dp_net', 'epid', 'time'}},
-                'lines': {lid: {'mdot', 'mdot_max', 'dp_spez', 'pipe', 'pipe_new', 'changed'}}}]}
+                'lines': {lid: {'mdot', 'mdot_max', 'dp_spez', 'pipe', 'pipe_new', 'd', 'd_new', 'changed'}}}]}
     temps        ... design temperatures of supply and return (fallback for lines without a temperature result) [degC]
     pipe, pipe_new ... pipe of the supply sequence before / after the sizing
+    d, d_new     ... its inner diameter before / after the sizing [mm] (missing in files of earlier runs)
 Files of earlier runs have the results of the pair 1/2 at the top level instead of 'pairs' (see loadIterations).
     dp, dp_sized ... differential pressure at the substation simulated / estimated after the sizing [Pa]
     dp_net       ... network pressure loss to the supplying plant [Pa] (the weak point has the largest one)
     mdot         ... design mass flow of the line (sum of the customer mass flows of the flow tracing) [kg/s]
     mdot_max     ... peak mass flow of the line over the whole simulation period [kg/s]
 They are shown on the map as memory layers in the group 'dynamic pipe sizing' (one subgroup per iteration and in it
-one per pair): customers with graduated colors of dp (weak point as bigger point) and lines with graduated colors
-and widths of the design mass flow; lines with new pipes are labelled. The class bounds of a pair are the same for
-all iterations.
+one per pair), top to bottom: customers with graduated colors of dp (weak point as bigger point), lines categorized
+by the inner diameter after the sizing, lines with new pipes (labelled), lines with graduated colors and widths of
+the design mass flow (switched off). The classes and categories of a pair are the same for all iterations.
 """
 import glob
 import json
@@ -25,8 +26,9 @@ import os
 import re
 
 from qgis.core import (
-    Qgis, QgsFeature, QgsGeometry, QgsLayerTree, QgsPalLayerSettings, QgsProject, QgsRuleBasedRenderer, QgsStyle, QgsSymbol,
-    QgsProperty, QgsSingleSymbolRenderer, QgsTextFormat, QgsVectorLayer, QgsVectorLayerSimpleLabeling,
+    Qgis, QgsCategorizedSymbolRenderer, QgsFeature, QgsGeometry, QgsLayerTree, QgsPalLayerSettings, QgsProject, QgsRendererCategory,
+    QgsRuleBasedRenderer, QgsStyle, QgsSymbol, QgsProperty, QgsSingleSymbolRenderer, QgsTextFormat, QgsVectorLayer,
+    QgsVectorLayerSimpleLabeling,
 )
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor
@@ -46,6 +48,11 @@ def versionPath(config):
     return os.path.join(config['pathProjects'], config['projectName'], 'versions', config['versionName'])
 
 
+def mm(d):
+    """inner diameter [m] -> [mm], rounded to 0.1 mm"""
+    return round(d * 1000, 1)
+
+
 def pairSummary(pair, temps, res, opt, changed, n_skipped=0, reference=False, target_no_flow=False):
     """Results of a pair in an iteration (see the module doc) from getCustomerLinePressure (res) and
     optimizePipeDiameters (opt); pair = (supply, return), changed = lines whose pipes of the pair changed.
@@ -63,7 +70,7 @@ def pairSummary(pair, temps, res, opt, changed, n_skipped=0, reference=False, ta
         new = pipe['pipe_id'] if reference else opt['pipes'].get(lid, {}).get(supply, pipe['pipe_id'])
         line_rows[str(lid)] = {'mdot': abs(pipe['mdot']), 'mdot_max': max(abs(p.get('mdot_max', 0.0)) for p in line['pipes'].values()),
             'dp_spez': res['dp_spez'].get(lid), 'pipe': catalog[pipe['pipe_id']]['name'], 'pipe_new': catalog[new]['name'],
-            'changed': lid in changed and not reference}
+            'd': mm(catalog[pipe['pipe_id']]['d']), 'd_new': mm(catalog[new]['d']), 'changed': lid in changed and not reference}
     return {'supply': pair[0], 'return': pair[1], 'temps': list(temps), 'time': str(res['time']), 'cid_weak': res['cid_dp'],
         'epid_weak': res['epid_dp'], 'dp_net_weak': res['dp'], 'cid_target': opt['cid_weak'], 'dp_target': opt['dp_target'],
         'quota': opt['quota'], 'spread_sized': opt['spread'], 'n_presized': len(opt['presize']), 'n_balancing_steps': len(opt['history']),
@@ -182,7 +189,7 @@ def createLayer(name, geom_type, srid, fields, rows, iteration, label):
     for row in rows:
         f = QgsFeature(layer.fields())
         f.setGeometry(QgsGeometry.fromWkt(row['wkt']))
-        f.setAttributes([row[n] for n, _ in fields])
+        f.setAttributes([row.get(n) for n, _ in fields])
         features.append(f)
     layer.dataProvider().addFeatures(features)
     layer.updateExtents()
@@ -272,6 +279,16 @@ def lineRenderer(bounds):
     return QgsRuleBasedRenderer(root)
 
 
+def diameterRenderer(diameters, width=1.2):
+    """one category per inner diameter [mm] of d_new (colors as in the pipe diameter style of the lines layer);
+    grey for lines without a diameter (files of earlier runs)"""
+    from .layer_visualization import diameterColors, diameterLabel
+    categories = [QgsRendererCategory(d, lineSymbol(color, width), diameterLabel(d))
+        for d, color in diameterColors([d for d in diameters if d is not None]).items()]
+    categories.append(QgsRendererCategory('', lineSymbol('#bdbdbd', 0.6), tr_msg('no diameter')))
+    return QgsCategorizedSymbolRenderer('d_new', categories)
+
+
 def setLabels(layer, expression, color='#000000', size=8):
     settings = QgsPalLayerSettings()
     settings.fieldName = expression
@@ -319,12 +336,13 @@ def showIteration(cur, config, summary, all_summaries=None, visible=True, labels
 
 
 def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True):
-    """Layers of a pair of an iteration; class bounds from all_pairs (the same pair in all iterations).
+    """Layers of a pair of an iteration (top to bottom: customers, diameters, new pipes, mass flow); classes and
+    diameter categories from all_pairs (the same pair in all iterations).
     new_pipes=False: without the layer of the lines with new pipes (reference run)."""
     dp_bounds = classBounds([bar(c['dp']) for p in all_pairs for c in p['customers'].values()])
     mdot_bounds = classBounds([line['mdot'] for p in all_pairs for line in p['lines'].values() if line['mdot'] > 0])
 
-    # layer order (top to bottom): customers, lines, changed lines as a halo below the lines
+    # the layers are added in their order in the layer tree, top to bottom
     wkt = geometries(cur, config, 'customers', pair['customers'])
     customer_rows = [{'id': int(cid), 'dp_bar': bar(c['dp']), 'dp_sized_bar': bar(c['dp_sized']), 'dp_net_bar': bar(c['dp_net']),
         'epid': c['epid'], 'time': c['time'], 'weak': str(pair['cid_weak']) == cid, 'wkt': wkt[cid]}
@@ -335,20 +353,26 @@ def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True):
     customers.setRenderer(customerRenderer(dp_bounds))
     setLabels(customers, "if(\"weak\", '{} ' || \"id\" || ': ' || format_number(\"dp_bar\", 3) || ' bar', '')".format(tr_msg('weak point')))
 
+    # created top to bottom: diameters, the changed lines as a halo below them, the mass flow (switched off)
     wkt = geometries(cur, config, 'lines', pair['lines'])
     line_rows = [dict(line, id=int(lid), wkt=wkt[lid]) for lid, line in pair['lines'].items() if lid in wkt]
     line_fields = [('id', 'integer'), ('mdot', 'double'), ('mdot_max', 'double'), ('dp_spez', 'double'), ('pipe', 'string'),
-        ('pipe_new', 'string'), ('changed', 'boolean')]
-    lines = createLayer(tr_msg('Lines – design mass flow [kg/s]'), 'LineString', srid(cur, config, 'lines'), line_fields, line_rows, iteration, label)
-    lines.setRenderer(lineRenderer(mdot_bounds))
-
-    layers = [customers, lines]
+        ('pipe_new', 'string'), ('d', 'double'), ('d_new', 'double'), ('changed', 'boolean')]
+    line_srid = srid(cur, config, 'lines')
+    name = tr_msg('Lines – inner diameter after sizing [mm]') if new_pipes else tr_msg('Lines – inner diameter [mm]')
+    diameters = createLayer(name, 'LineString', line_srid, line_fields, line_rows, iteration, label)
+    diameters.setRenderer(diameterRenderer([line.get(k) for p in all_pairs for line in p['lines'].values() for k in ('d', 'd_new')]))
+    layers = [customers, diameters]
     if new_pipes:
         changed_rows = [row for row in line_rows if row['changed']]
-        changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', srid(cur, config, 'lines'), line_fields, changed_rows, iteration, label)
+        changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', line_srid, line_fields, changed_rows, iteration, label)
         changed.setRenderer(QgsSingleSymbolRenderer(lineSymbol('#e31a1c', 3.0, opacity=0.4)))
         setLabels(changed, "\"pipe\" || ' → ' || \"pipe_new\"", '#b30000')
-        layers.insert(1, changed)
+        layers.append(changed)
+    lines = createLayer(tr_msg('Lines – design mass flow [kg/s]'), 'LineString', line_srid, line_fields, line_rows, iteration, label)
+    lines.setRenderer(lineRenderer(mdot_bounds))
+    sizingGroup(iteration, label).findLayer(lines.id()).setItemVisibilityChecked(False)
+    layers.append(lines)
     for layer in layers:
         layer.triggerRepaint()
     return layers

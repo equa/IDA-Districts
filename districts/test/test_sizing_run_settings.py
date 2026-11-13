@@ -76,7 +76,7 @@ def test_delete_all(version_dir):
 
 def result(pipe_new):
     """result of getCustomerLinePressure / optimizePipeDiameters of a pair 1/3 with one line (pipe 5, sized: pipe_new)"""
-    catalog = {4: {'name': 'DRE-40'}, 5: {'name': 'DRE-50'}}
+    catalog = {4: {'name': 'DRE-40', 'd': 0.0372}, 5: {'name': 'DRE-50', 'd': 0.0431}}
     res = {'catalog': catalog, 'c_lid': {7: [1e5, {}]}, 'dvar': {7: (4e4, 1)}, 'times': {7: 't'}, 'time': 't', 'cid_dp': 7, 'epid_dp': 1, 'dp': 4e4,
            'dp_spez': {3: 50.0}, 'lines': {3: {'pipes': {1: {'pipe_id': 5, 'mdot': 1.0, 'mdot_max': 2.0}, 3: {'pipe_id': 5, 'mdot': 1.0}}}}}
     opt = {'c_lid': {7: [0.9e5, {}]}, 'pipes': {3: {1: pipe_new, 3: pipe_new}}, 'cid_weak': 7, 'dp_target': 0.9e5, 'quota': 1.0,
