@@ -37,6 +37,7 @@
 - [x] 6.4 Unit tests of `loadIterations` (file without `pairs` → pair 1/2) and of the table rows per pair
 - [x] 6.5 e2e tests against the project hc_network (DISTRICTS_TEST_PAIRS_PROJECT, skipped if missing): pair suggestion 1/3 and 2/4, checks with skipped heating-only customers, lines of the pair 2/4 = the 4-pipe lines
 - [x] 6.6 e2e test of the result table check: missing `line_s_temp$r` stops with its name
+- [x] 6.8 e2e + ida test test_hc_network_sizing.py: project from the IDA Districts sample hc_network, build, simulate, load results, dynamic pipe sizing in a child version (pairs 1/3 and 2/4 suggested, iteration files, table rows and layers per pair, heating-only customers skipped in 2/4, every line keeps its number of pipes)
 - [ ] 6.7 Regression: existing tests of test_dynamic_pipe_sizing.py pass with the single pair 1/2
 
 ## 7. Translations and documentation
@@ -50,5 +51,5 @@
 
 - [x] 8.1 From districts/, the QGIS Python runs `-m pytest -m "not ida"` and it passes, including test_static_mypy.py and test_messages.py
 - [x] 8.2 `npx openspec validate --all` passes
-- [ ] 8.3 Commit code and artifacts, `git pull --rebase`, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass
+- [x] 8.3 Commit code and artifacts, `git pull --rebase`, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass
 - [ ] 8.4 Manual run in QGIS on hc_network (with line mass flow and temperature outputs requested): pairs 1/3 and 2/4 suggested, both balanced, layers per pair
