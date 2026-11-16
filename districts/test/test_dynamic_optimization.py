@@ -38,15 +38,39 @@ PERIODS = {'calc_time_from': '2026-01-01 00:00:00', 'calc_time_to': '2026-01-02 
            'startup_time_from': '2026-01-01 00:00:00', 'startup_time_to': '2026-01-02 00:00:00'}
 
 
-@pytest.fixture(scope='class')
-def dynopt(request, districts_plugin, errors):
-    plugin = districts_plugin
+def skip_without_template(plugin):
     if not os.path.exists(os.path.join(plugin.config['pathDistricts'], 'bin', 'ida-districts.exe')):
         pytest.skip('IDA Districts not installed in {}'.format(plugin.config['pathDistricts']))
     # delivered as an IDA Districts sample; a copy in the plugin's templates folder is used first
     if not any(os.path.isdir(os.path.join(folder, TEMPLATE)) for folder in
                (os.path.join(plugin.plugin_dir, 'templates'), os.path.join(plugin.config['pathDistricts'], 'Samples', 'districts'))):
         pytest.skip('template {} not found'.format(TEMPLATE))
+
+
+def create_dynopt_project(plugin, errors, project_name):
+    """Creates the project from the template; base1 is loaded afterwards."""
+    plugin.showCreateNewProject()
+    dlg = plugin.dlg_createNewProject
+    dlg.project_name.setText(project_name)
+    index = dlg.selectTemplate.findData(TEMPLATE)
+    assert index >= 0, 'template {} not offered'.format(TEMPLATE)
+    dlg.selectTemplate.setCurrentIndex(index)
+    dlg.checkbox_db_defaultValues.setCheckState(uncheckState())
+    dlg.checkbox_invokedFeatures.setCheckState(checkState())
+    dlg.checkbox_prn.setCheckState(checkState())
+    dlg.checkbox_DBResults.setCheckState(uncheckState())
+    createNewProject(dlg, plugin)
+    wait_for_process(dlg, timeout=180)
+    wait_for_process(plugin.dlg, timeout=180)  # loading the version base1
+    errors.check()
+    assert plugin.config['projectName'] == project_name
+    assert plugin.config['versionName'] == 'base1'
+
+
+@pytest.fixture(scope='class')
+def dynopt(request, districts_plugin, errors):
+    plugin = districts_plugin
+    skip_without_template(plugin)
     state = SimpleNamespace(plugin=plugin, project_name=project_name_for(TEMPLATE), sized_version=None, base_bundles=None)
     yield state
     if not request.config.getoption('--keep-projects'):
@@ -57,22 +81,7 @@ def dynopt(request, districts_plugin, errors):
 class TestDynamicOptimization:
     def test_create_project(self, dynopt, errors):
         plugin = dynopt.plugin
-        plugin.showCreateNewProject()
-        dlg = plugin.dlg_createNewProject
-        dlg.project_name.setText(dynopt.project_name)
-        index = dlg.selectTemplate.findData(TEMPLATE)
-        assert index >= 0, 'template {} not offered'.format(TEMPLATE)
-        dlg.selectTemplate.setCurrentIndex(index)
-        dlg.checkbox_db_defaultValues.setCheckState(uncheckState())
-        dlg.checkbox_invokedFeatures.setCheckState(checkState())
-        dlg.checkbox_prn.setCheckState(checkState())
-        dlg.checkbox_DBResults.setCheckState(uncheckState())
-        createNewProject(dlg, plugin)
-        wait_for_process(dlg, timeout=180)
-        wait_for_process(plugin.dlg, timeout=180)  # loading the version base1
-        errors.check()
-        assert plugin.config['projectName'] == dynopt.project_name
-        assert plugin.config['versionName'] == 'base1'
+        create_dynopt_project(plugin, errors, dynopt.project_name)
         plugin.cur.execute('SELECT count(*) AS n FROM base1.energy_plants;')
         assert plugin.cur.fetchone()['n'] == 2
         # every junction and plant has its height above sea level (the z of its line ends, 22 to 29 m)

@@ -1,62 +1,65 @@
 # coding=utf-8
-"""Dynamic pipe sizing and hydraulic balancing (dynamic_pipe_sizing.py) on an existing project with simulation results.
+"""Dynamic pipe sizing and hydraulic balancing (dynamic_pipe_sizing.py) started directly, without a reference run, on
+a project created from the template dynamic_optimization (skipped without it; see test_dynamic_optimization.py): the
+pair 1/2 suggested, the periods of the version as defaults (then 1 January), the sizing in a new child version, the
+iteration layers and table, the table again after reopening the dialog, the layers removed by loading a version.
 
-Only runs with a project given (it is not created by the test); the pipes are sized in a new child version
-of the version, which is kept for inspection:
-
-    DISTRICTS_TEST_PATH_PROJECTS=C:\\projects  DISTRICTS_TEST_DB_PORT=5432
-    DISTRICTS_TEST_DYNAMIC_SIZING_PROJECT=dyn_opt  (DISTRICTS_TEST_DYNAMIC_SIZING_VERSION=base1)
-    (DISTRICTS_TEST_DYNAMIC_SIZING_MAX_ITER=3, DISTRICTS_TEST_DYNAMIC_SIZING_TIMEOUT=7200 [s])
     python -m pytest test/test_dynamic_pipe_sizing.py -v -s
+    (DISTRICTS_TEST_DYNAMIC_SIZING_MAX_ITER=3, DISTRICTS_TEST_DYNAMIC_SIZING_TIMEOUT=7200 [s], --keep-projects)
 """
 import os
 import time
 
 import pytest
 from qgis.core import Qgis, QgsProject
+from qgis.PyQt.QtCore import QDateTime
 from qgis.PyQt.QtWidgets import QMessageBox
 
+from districts.dynamic_pipe_sizing import DATE_FORMAT
 from districts.ida_ph import loadVersion
 from districts.utility_functions.dynamic_sizing_results import PAIR_PROPERTY, SIZING_PROPERTY, iterationRows, loadIterations, removeSizingLayers
 from districts.utility_functions.files import loadNetworkSimData
 from districts.utility_functions.hydraulic_balancing import loadCLidPressure
 from districts.utility_functions.translations import tr, tr_msg
-from districts.utility_functions.utility import write_plugin_settings
 
 from .conftest import wait, wait_for_process, wait_until
+from .test_dynamic_optimization import PAIRS, PERIODS, create_dynopt_project, skip_without_template
+from .test_workflow import delete_project, project_name_for
 
 pytestmark = [pytest.mark.e2e, pytest.mark.ida]
 
-PROJECT = os.environ.get("DISTRICTS_TEST_DYNAMIC_SIZING_PROJECT")
-VERSION = os.environ.get("DISTRICTS_TEST_DYNAMIC_SIZING_VERSION", "base1")
+VERSION = "base1"
 MAX_ITER = int(os.environ.get("DISTRICTS_TEST_DYNAMIC_SIZING_MAX_ITER", "3"))
 TIMEOUT = int(os.environ.get("DISTRICTS_TEST_DYNAMIC_SIZING_TIMEOUT", "7200"))
 
 
-@pytest.mark.skipif(not PROJECT, reason="DISTRICTS_TEST_DYNAMIC_SIZING_PROJECT not set")
-def test_dynamic_pipe_sizing(districts_plugin, errors, monkeypatch):
+@pytest.fixture(scope="module")
+def project(request, districts_plugin, errors):
     plugin = districts_plugin
-    assert PROJECT in plugin.dlg.projectNames, "project {} not found on the server".format(PROJECT)
-    plugin.config['projectName'] = PROJECT
-    plugin.config['versionName'] = VERSION
-    write_plugin_settings(plugin.config)
-    plugin.loadProject()
-    loadVersion(main=plugin)
-    wait_for_process(plugin.dlg, timeout=120)
-    errors.check()
-    assert plugin.config['versionName'] == VERSION
+    skip_without_template(plugin)
+    name = project_name_for("dynamic_pipe_sizing")
+    yield name
+    if not request.config.getoption("--keep-projects"):
+        delete_project(plugin, errors, name)
+
+
+def test_dynamic_pipe_sizing(project, districts_plugin, errors, monkeypatch):
+    plugin = districts_plugin
+    create_dynopt_project(plugin, errors, project)
 
     plugin.showDynamicPipeSizing()
     dlg = plugin.dlg_dynamicPipeSizing
     new_version = '{}_hb_{}'.format(VERSION, time.strftime('%m%d%H%M'))
     assert dlg.text_info.toHtml() and 'dynamic_pipe_sizing_info' not in dlg.text_info.toPlainText()
     assert dlg.combo_network.count() and dlg.combo_submodel.count()
-    pairs, errors = dlg.pairs()
-    assert pairs and not errors, errors  # suggested from the connections of the energy plants
+    pairs, pair_errors = dlg.pairs()
+    assert (pairs, pair_errors) == (PAIRS, [])  # suggested from the connections of the energy plants
     first = '{}_{}'.format(pairs[0][0], pairs[0][1])
     # the run settings at their defaults: the version's simulation periods, no reference run
     sim_data = loadNetworkSimData(plugin.plugin_dir, plugin.config)
     assert dlg.periods() == {key: sim_data[key] for key in dlg.periods()} and not dlg.checkBox_referenceRun.isChecked()
+    for key, value in PERIODS.items():  # one day keeps the iterations short
+        dlg.dateedit_period[key].setDateTime(QDateTime.fromString(value, DATE_FORMAT))
     dlg.rbtn_newVersion.setChecked(True)
     dlg.lineEdit_versionName.setText(new_version)
     dlg.spin_maxIter.setValue(MAX_ITER)
@@ -69,7 +72,7 @@ def test_dynamic_pipe_sizing(districts_plugin, errors, monkeypatch):
     wait(500)
     log = dlg.textEdit_log.toPlainText()
     print('\n' + log)
-    path = os.path.join(plugin.config['pathProjects'], PROJECT, 'versions', new_version)
+    path = os.path.join(plugin.config['pathProjects'], project, 'versions', new_version)
     with open(os.path.join(path, 'dynamic_sizing_test.log'), 'w', encoding='utf-8') as f:
         f.write(log)
 
@@ -97,7 +100,7 @@ def test_dynamic_pipe_sizing(districts_plugin, errors, monkeypatch):
     labels = {'{}/{}'.format(a, b) for a, b, _, _ in pairs}
     assert set(sizingLayers()) == {(i, label) for i in range(1, n + 1) for label in labels}
     for (iteration, label), layers in sizingLayers().items():
-        assert len(layers) == 3
+        assert len(layers) == 4  # customers, inner diameter, new pipes, design mass flow
         pair = [p for p in summaries[0]['pairs'] if '{}/{}'.format(p['supply'], p['return']) == label][0]
         customers = [l for l in layers if l.geometryType() == Qgis.GeometryType.Point][0]
         assert customers.featureCount() == len(pair['customers'])

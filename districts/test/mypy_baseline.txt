@@ -72,7 +72,6 @@
 1	supervisory_control.py	operator	Unsupported operand types for + ("bool" and "str")
 1	test/run_in_qgis.py	arg-type	Argument 1 to "join" has incompatible type "str | None"; expected "str"
 1	test/run_in_qgis.py	type-var	Value of type variable "AnyOrLiteralStr" of "dirname" cannot be "str | None"
-1	test/test_dynamic_pipe_sizing.py	arg-type	Argument 2 to "join" has incompatible type "str | None"; expected "str"
 1	test/test_init.py	assignment	Incompatible types in assignment (expression has type "type[str]", variable has type "Callable[[str], str]")
 1	test/test_init.py	method-assign	Cannot assign to a method
 1	test/test_workflow.py	arg-type	Argument 1 to "float" has incompatible type "str | Any | None"; expected "str | Buffer | SupportsFloat | SupportsIndex"

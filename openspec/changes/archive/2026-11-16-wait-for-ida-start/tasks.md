@@ -26,4 +26,4 @@
 
 - [x] 6.1 From the plugin folder of the QGIS profile, the QGIS Python runs `-m pytest` with IDA Districts and it passes, including test_static_mypy.py, test_messages.py and the `ida` tests
 - [x] 6.2 `npx openspec validate --all` passes
-- [ ] 6.3 Commit code and artifacts, `git pull --rebase`, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass; this run also closes task 6.3 of show-iteration-pipe-diameters
+- [x] 6.3 Commit code and artifacts, `git pull --rebase`, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass; this run also closes task 6.3 of show-iteration-pipe-diameters
