@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dynamic pipe sizing and hydraulic balancing</string>
+   <string>Hydraulic balancing</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_main">
    <item>
@@ -359,7 +359,7 @@
          <string>Show every iteration on the map</string>
         </property>
         <property name="toolTip">
-         <string>dp at the substations, weak point and design mass flow of the lines of every iteration as layers in the group Dynamic pipe sizing</string>
+         <string>dp at the substations, weak point and design mass flow of the lines of every iteration as layers in the group Hydraulic balancing</string>
         </property>
         <property name="checked">
          <bool>true</bool>

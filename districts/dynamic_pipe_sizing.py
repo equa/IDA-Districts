@@ -287,7 +287,7 @@ class DynamicPipeSizingDialog(QDialog):
         self.combo_network.addItems([str(row['network']) for row in cur.fetchall()])
         self.combo_submodel.addItems(getUsedNetworkSubmodels(cur, config))
         self.lineEdit_versionName.setText(config['versionName'] + '_sizing')
-        self.lineEdit_versionDescription.setText('Dynamic pipe sizing of version {}'.format(config['versionName']))
+        self.lineEdit_versionDescription.setText('Hydraulic balancing of version {}'.format(config['versionName']))
         self.fillPeriods(config)
         self.loadIterationTable()
 
@@ -495,7 +495,7 @@ class DynamicPipeSizingRun(QObject):
         self.done = True
         self.dlg.log(message)
         self.dlg.update_progress(100 if not error else 0)
-        iface.messageBar().pushMessage(tr_msg("Error") if error else tr_msg("Info"), tr_msg('Dynamic pipe sizing: ') + message, level=MessageCritical if error else MessageInfo)
+        iface.messageBar().pushMessage(tr_msg("Error") if error else tr_msg("Info"), tr_msg('Hydraulic balancing: ') + message, level=MessageCritical if error else MessageInfo)
         self.dlg.finished()
 
     def checkStop(self):

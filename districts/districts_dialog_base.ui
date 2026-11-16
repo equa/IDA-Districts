@@ -1448,7 +1448,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <item row="1" column="2">
              <widget class="QPushButton" name="btn_dynamicPipeSizing">
               <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Dynamic pipe sizing and hydraulic balancing: iteration of simulation, pipe sizing and hydraulic balancing until the pipe dimensions do not change anymore&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hydraulic balancing: iteration of simulation and pipe resizing until the customers get about the same differential pressure and the pipes do not change anymore&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="text">
                <string/>

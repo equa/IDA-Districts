@@ -149,7 +149,7 @@ def removeSizingLayers(iteration=None):
         prop = layer.customProperty(SIZING_PROPERTY)
         if prop is not None and (iteration is None or str(prop) == str(iteration)):
             project.removeMapLayer(layer.id())
-    group = project.layerTreeRoot().findGroup(tr_msg('Dynamic pipe sizing'))
+    group = project.layerTreeRoot().findGroup(tr_msg('Hydraulic balancing'))
     if group is not None:
         removeEmptyGroups(group)
         if not group.children():
@@ -167,9 +167,9 @@ def removeEmptyGroups(group):
 def sizingGroup(iteration, label=None):
     """Subgroup of the iteration, or with label (pair 's/r') its subgroup of the pair."""
     root = QgsProject.instance().layerTreeRoot()
-    group = root.findGroup(tr_msg('Dynamic pipe sizing'))
+    group = root.findGroup(tr_msg('Hydraulic balancing'))
     if group is None:
-        group = root.insertGroup(0, tr_msg('Dynamic pipe sizing'))
+        group = root.insertGroup(0, tr_msg('Hydraulic balancing'))
     name = tr_msg('Iteration {}').format(iteration)
     sub = group.findGroup(name)
     if sub is None:

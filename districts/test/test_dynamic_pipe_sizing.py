@@ -105,7 +105,7 @@ def test_dynamic_pipe_sizing(project, districts_plugin, errors, monkeypatch):
         customers = [l for l in layers if l.geometryType() == Qgis.GeometryType.Point][0]
         assert customers.featureCount() == len(pair['customers'])
         assert sum(1 for f in customers.getFeatures() if f['weak']) == 1
-    group = QgsProject.instance().layerTreeRoot().findGroup(tr_msg('Dynamic pipe sizing'))
+    group = QgsProject.instance().layerTreeRoot().findGroup(tr_msg('Hydraulic balancing'))
     assert [c.isVisible() for c in group.children()] == [False] * (n - 1) + [True]
 
     # afterwards: reopen the dialog, the table is filled from the version folder; show the first row only
