@@ -115,6 +115,24 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </widget>
             </item>
             <item>
+             <layout class="QHBoxLayout" name="layout_substation_pump_power">
+              <item>
+               <widget class="QCheckBox" name="checkBoxSubstationPumpPower">
+                <property name="text">
+                 <string>substation_pump_power</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_network_pumps_c">
+                <property name="text">
+                 <string>network_pumps</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
              <widget class="QCheckBox" name="checkBoxSubstationConnTemp">
               <property name="text">
                <string>substation_connection_temperatures</string>
@@ -306,6 +324,24 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <string>plant_power</string>
               </property>
              </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="layout_plant_pump_power">
+              <item>
+               <widget class="QCheckBox" name="checkBoxPlantPumpPower">
+                <property name="text">
+                 <string>plant_pump_power</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_network_pumps_ep">
+                <property name="text">
+                 <string>network_pumps</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item>
              <widget class="QCheckBox" name="checkBoxPlantConnTemp">

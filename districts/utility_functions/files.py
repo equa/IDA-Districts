@@ -202,11 +202,20 @@ def loadRequestedOutputs(plugin_dir,config):
                     for line in myfile:        
                         requestedOutputs+=line
         dprint(requestedOutputs)
-        requestedOutputs=strToDict(requestedOutputs)
+        requestedOutputs=withDefaultOutputs(strToDict(requestedOutputs),plugin_dir)
     else:
         dprint('No project name')
         pass
     return requestedOutputs
+
+def withDefaultOutputs(requestedOutputs,plugin_dir):
+    """Fills keys added after the project was created with the template's value (False for outputs)."""
+    file_template=os.path.join(plugin_dir,'config','requestedOutputs_template.txt')
+    if not isinstance(requestedOutputs,dict) or not os.path.exists(file_template):
+        return requestedOutputs
+    with open(file_template, "r") as myfile:
+        defaults=strToDict(myfile.read())
+    return {**defaults,**requestedOutputs}
     
 def loadSimulatedOutputs(config):
     simulatedOutputs=""

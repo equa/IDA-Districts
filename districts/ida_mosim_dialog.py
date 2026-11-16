@@ -14,6 +14,7 @@ from .utility_functions.db import (
     getUsedNetworkSubmodels,
 )
 from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
+from .network_pumps_dialog import NetworkPumpsDialog
 from .utility_functions.files import loadNetworkSimData
 from .utility_functions.translations import tr, tr_msg
 
@@ -105,17 +106,25 @@ class SensorSignalsDialog(QDialog):
         self.process_running=False
 
 class RequestedOutputsDialog(QDialog):
-    def __init__(self,requestedOutputs):
+    def __init__(self,requestedOutputs,config=None,cur=None):
         super().__init__()
 
         self.process_running=False
         self.requestedOutputs_old=requestedOutputs.copy()
-        
+        self.config=config
+        self.cur=cur
+        self.pump_list_changed=False
+
         # Load UI
         ui_path = os.path.join(os.path.dirname(__file__), "RequestedOutputs_dialog.ui")
         uic.loadUi(ui_path, self)
         self.info_requested_ouputs.setReadOnly(True)
-        
+        self.checkBoxSubstationPumpPower.setChecked(bool(requestedOutputs.get('ppump_c')))
+        self.checkBoxPlantPumpPower.setChecked(bool(requestedOutputs.get('ppump_ep')))
+        for button in (self.btn_network_pumps_c,self.btn_network_pumps_ep):
+            button.setEnabled(config is not None and cur is not None)
+            button.clicked.connect(self.showNetworkPumps)
+
         #------------------temporal results----------------------        
         #--Customers--  
         if requestedOutputs['power_c']:
@@ -292,6 +301,11 @@ class RequestedOutputsDialog(QDialog):
             self.groupBox_network_kpis.show()
             self.groupBox_system_kpis.show()
             
+    def showNetworkPumps(self):
+        dlg=NetworkPumpsDialog(self.config,self.cur,self)
+        if dlg.exec() and dlg.changed:
+            self.pump_list_changed=True
+
     def select_all(self,check):
         tab_name = self.tabWidget.currentWidget().objectName()        
         if tab_name=='tab_customers':

@@ -16,6 +16,9 @@ from .utility_functions.files import (
 from .utility_functions.ida_components import (
     getCompClass, getCompName, getIDAListComponents, propertyListCompsIDM,
 )
+from .utility_functions.network_pumps import (
+    estimateSeries, loadPumpList, markMissing, prnColumns, templateEntries, variableSeries,
+)
 from .utility_functions.topology import (
     getConnsValues, getPMT2muxIdentFromConnValues, getPMT2muxIdents, getUsedConnBundleTypes,
     getUsedConnTypeIdents, getUsedPipeBundleSequences,
@@ -70,6 +73,9 @@ class WorkerLoadResults(QRunnable):
 
         srid=loadProjectConfig(self.config)['srid']
         modellingSettings=loadModellingSettings(self.plugin_dir,self.config)
+        pump_list=loadPumpList(self.config)
+        if pump_list:
+            markMissing(self.config,pump_list)
 
         #re-create table line_seg for temperature (according to the pipe distrectization) and pressure (2 segments per line), which holds the geometry of the simulated pipe segements
         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_seg_{};
@@ -111,7 +117,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                     c_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output]]
                     if c_outputs:
                         used_b_types=getUsedConnBundleTypes('customer',self.cur,self.config)
-                        c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power','qsup']]
+                        c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power','qsup','ppump']]
                         c_power_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] in ['power']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('customer',self.cur,self.config)
@@ -159,7 +165,13 @@ CREATE TABLE "{}".customer_s_troom
     "$troom" numeric,
     CONSTRAINT customer_s_troom_pkey PRIMARY KEY (id)
 );""".format(self.config['versionName'],self.config['versionName'],srid) # nosec B608
-                            tables.append('customer_s_troom')   
+                            tables.append('customer_s_troom')
+                            sql+=''.join(self.valueTableSql('customer_s_'+var,var,srid) for var in ('tset','hcmode'))
+                            tables+=['customer_s_tset','customer_s_hcmode']
+
+                        if 'ppump' in c_outputs:
+                            sql+=self.pumpTableSql('customer_s_ppump',srid)
+                            tables.append('customer_s_ppump')
 
                         #heat balance table
                         if 'heatbalance' in c_outputs:
@@ -322,8 +334,15 @@ CREATE TABLE "{}".customer_s_ventilation
                                         file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
 
                                     dprint(file_data)
-                                    col_var_dict={2: {'var': 'troom','name': '','table_name': 'customer_s_troom'}}
+                                    with open(fname, "r") as myfile:
+                                        columns=prnColumns(myfile.readline())
+                                    # files of earlier simulations have only troom (column 2)
+                                    col_var_dict={columns.get(var,2 if var=='troom' else None): {'var': var,'name': '','table_name': 'customer_s_'+var}
+                                        for var in ('troom','tset','hcmode') if var=='troom' or var in columns}
                                     self.copy_feature_sData(copy_buffer,file_data,id['id'],geom,col_var_dict,start_datetime)
+
+                            if 'ppump' in c_outputs:
+                                self.loadPumpPower(copy_buffer,'customer',dir_path,id,geom,start_datetime,pump_list)
                                 
                             if 'heatbalance' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'
@@ -351,7 +370,7 @@ CREATE TABLE "{}".customer_s_ventilation
                     ep_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output]]
                     if ep_outputs:
                         used_b_types=getUsedConnBundleTypes('energy_plant',self.cur,self.config)
-                        ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power','qsup']]
+                        ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power','qsup','ppump']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('energy_plant',self.cur,self.config)
                         tables=[]
@@ -385,6 +404,9 @@ CREATE TABLE "{}".energy_plant_s_power${}
 );""".format(self.config['versionName'],ident,self.config['versionName'],ident,srid,ident)  # nosec B608
                                 for ident in conn_t_power_names])
                             tables+=["energy_plant_s_power${}".format(ident) for ident in conn_t_power_names]
+                        if 'ppump' in ep_outputs:
+                            sql+=self.pumpTableSql('energy_plant_s_ppump',srid)
+                            tables.append('energy_plant_s_ppump')
                         
                         dprint(sql)
                         if sql:
@@ -440,6 +462,8 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                             file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
                                         dprint(file_data)
                                         self.copy_feature_sData(copy_buffer,file_data,id['id'],geoms.get(id['id'],''),col_var_dict,start_datetime)
+                            if 'ppump' in ep_outputs:
+                                self.loadPumpPower(copy_buffer,'energy_plant',dir_path,id,geoms.get(id['id'],''),start_datetime,pump_list)
                             self.emitProgress(int(33+counter / len(epids) *33))
                         copy_buffer.flush()
                         #index after loading the data
@@ -855,6 +879,95 @@ CREATE TABLE "{}".massbalance_{}_s
             copy_buffer.add(table_name,''.join([
                 '{}{}{}{}{}\n'.format(row_id,middle,t,suffix,value)
                 for row_id,t,value in zip(range(first_id,first_id+n),time_strings,sdata[:,col].tolist())]))
+
+    def valueTableSql(self,table,var,srid):
+        """result table of one variable of a feature (columns id, fid, time, geom, value)"""
+        return """\nDROP TABLE IF EXISTS "{schema}".{table} CASCADE;
+CREATE TABLE "{schema}".{table}
+(
+    id serial,
+    fid integer,
+    time timestamp,
+    geom geometry(PointZ,{srid}),
+    "${var}" numeric,
+    CONSTRAINT {table}_pkey PRIMARY KEY (id)
+);""".format(schema=self.config['versionName'],table=table,srid=srid,var=var) # nosec B608
+
+    def pumpTableSql(self,table,srid):
+        """pump power table: one row per feature, pump and time step (pump = component, kind variable/estimate)"""
+        return """\nDROP TABLE IF EXISTS "{schema}".{table} CASCADE;
+CREATE TABLE "{schema}".{table}
+(
+    id serial,
+    fid integer,
+    pump text,
+    kind text,
+    time timestamp,
+    geom geometry(PointZ,{srid}),
+    "$ppump" numeric,
+    CONSTRAINT {table}_pkey PRIMARY KEY (id)
+);""".format(schema=self.config['versionName'],table=table,srid=srid) # nosec B608
+
+    def readOutputFile(self,fname):
+        """(columns, data) of an IDA output file, interpolated like the other results; None if it does not exist"""
+        if not os.path.exists(fname):
+            return None
+        with open(fname, "r") as myfile:
+            columns=prnColumns(myfile.readline())
+        file_data=np.loadtxt(fname, skiprows=1,dtype=float,ndmin=2)
+        if self.dlg.checkbox_timestep.checkState() == checkState():
+            file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
+        return columns,file_data
+
+    def loadPumpPower(self,copy_buffer,feature_type,dir_path,feature,geom,start_datetime,pump_list):
+        """pump power of a feature: the listed pump variables (PumpPower.prn) and the estimated entries (from the
+        connection files mdot/p)"""
+        entries=templateEntries(pump_list,feature_type,feature['template_name'])
+        if not entries:
+            return
+        feature_dir=dir_path+'{}_{}\\'.format(feature_type,feature['id'])
+        table='{}_s_ppump'.format(feature_type)
+        variables=[e for e in entries if e['kind']=='variable']
+        if variables:
+            pump_file=self.readOutputFile(feature_dir+'PumpPower.prn')
+            series=[]
+            if pump_file:
+                columns,data=pump_file
+                series=variableSeries(columns,data,variables)
+                for entry,values in series:
+                    self.copy_pump_sData(copy_buffer,table,data[:,0],feature['id'],geom,entry,values,start_datetime)
+            missing=[e['component'] for e in variables if e not in [entry for entry,_ in series]]
+            if missing:
+                self.logOnce((feature_type,feature['template_name'],'ppump',tuple(missing)),
+                    "{} template {} (e.g. {} {}): pump power missing in 'PumpPower.prn': {}".format(
+                    feature_type,feature['template_name'],feature_type,feature['id'],', '.join(missing)))
+        estimates=[e for e in entries if e['kind']=='estimate']
+        if estimates:
+            conn_files=[f for f in (self.readOutputFile(os.path.join(feature_dir,name)) for name in sorted(os.listdir(feature_dir))
+                if name.startswith('Connection type sequence_') and name.endswith('.prn')) if f] if os.path.isdir(feature_dir) else []
+            for entry in estimates:
+                values=estimateSeries(conn_files,entry)
+                if values is None:
+                    self.logOnce((feature_type,feature['template_name'],'estimate',entry['component']),
+                        "{} template {} (e.g. {} {}): pump power of {} not estimated, the connection mass flows and pressures are missing".format(
+                        feature_type,feature['template_name'],feature_type,feature['id'],entry['component']))
+                    continue
+                self.copy_pump_sData(copy_buffer,table,conn_files[0][1][:,0],feature['id'],geom,entry,values,start_datetime)
+
+    def logOnce(self,key,message):
+        if key not in self.reported_errors:
+            self.reported_errors.add(key)
+            QgsMessageLog.logMessage(message,"Districts",MessageCritical)
+
+    def copy_pump_sData(self,copy_buffer,table,times,fid,geom,entry,values,start_datetime) -> None:
+        time_strings=self.timeStrings(times,start_datetime)
+        n=len(time_strings)
+        # csv quoting: component names may contain blanks
+        middle='|{}|"{}"|{}|'.format(fid,entry['component'].replace('"','""'),entry['kind'])
+        suffix='|{}|'.format(geom)
+        first_id=copy_buffer.nextId(table,n)
+        copy_buffer.add(table,''.join(['{}{}{}{}{}\n'.format(row_id,middle,t,suffix,float(value))
+            for row_id,t,value in zip(range(first_id,first_id+n),time_strings,values)]))
 
     def createResultLayerIndex(self,tables,type):
         for counter,table_name in enumerate(tables,1):

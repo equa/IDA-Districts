@@ -86,7 +86,7 @@
 1	update_sensors.py	attr-defined	"str" has no attribute "close"
 1	update_sensors.py	attr-defined	"str" has no attribute "cursor"
 4	update_sensors.py	attr-defined	"str" has no attribute "execute"
-4	utility_functions/files.py	assignment	Incompatible types in assignment (expression has type "dict[Any, Any]", variable has type "str")
+3	utility_functions/files.py	assignment	Incompatible types in assignment (expression has type "dict[Any, Any]", variable has type "str")
 1	utility_functions/flow_tracing.py	assignment	Incompatible types in assignment (expression has type "tuple[Any, Any]", target has type "tuple[str, float, float]")
 1	utility_functions/hydraulic_balancing.py	arg-type	Argument "key" to "min" has incompatible type overloaded function; expected "Callable[[Any], SupportsDunderLT[Any] | SupportsDunderGT[Any]]"
 1	utility_functions/hydraulic_balancing.py	arg-type	Argument "key" to "sorted" has incompatible type overloaded function; expected "Callable[[Any], SupportsDunderLT[Any] | SupportsDunderGT[Any]]"

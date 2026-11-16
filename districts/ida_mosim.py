@@ -237,12 +237,12 @@ def checkSimOutputs(invokedOutputs,requestedOutputs):
     for type in ['customers','energy_plants']:
         for i in invokedOutputs['customers']:
             for j in invokedOutputs['customers'][i]:
-                if invokedOutputs['customers'][i][j]!=requestedOutputs[j]:
+                if invokedOutputs['customers'][i][j]!=requestedOutputs.get(j,False):
                     return False
-    
+
     #check lines
     for i in invokedOutputs['lines']:
-        if invokedOutputs['lines'][i]!=requestedOutputs[i]:
+        if invokedOutputs['lines'][i]!=requestedOutputs.get(i,False):
             return False
     
     return True

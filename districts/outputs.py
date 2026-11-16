@@ -14,6 +14,7 @@ from .utility_functions.files import (
 from .utility_functions.ida_components import (
     getCompClass, getCompName, getCompPerName, getCompTemplate, getIDAListComponents, propertyListCompsIDM,
 )
+from .utility_functions.network_pumps import ensurePumpList, templateEntries
 from .utility_functions.topology import (
     getConnBundleByTemplate, getConnsByConntype, getConnsValues, getConntypesByTemplate, getUsedConnTypes,
     getUsedConnectionsFilteredByDirection,
@@ -25,6 +26,59 @@ from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal,QRunnable
 from qgis.core import QgsMessageLog, Qgis
 import traceback
 from .utility_functions.debug_log import dprint, debug_enabled
+
+SETPOINT_OUTPUTS={'|TSet_var|': '"tset"', '|HCMode_var|': '"hcmode"'}
+
+
+def _vars(comp):
+    """The :VAR entries of a component (property list: header dict followed by its entries)."""
+    return [i for i in comp[1:] if isinstance(i,dict) and i.get(':C')==':VAR']
+
+
+def pumpPowerComp(comp,pump_vars,enabled):
+    """Sets (enabled) or removes the output file "PumpPower" on the power variable of a listed pump.
+    pump_vars = {'"<component>"': variable}; outputs of components no longer listed are removed as well."""
+    items=comp if isinstance(comp,list) else [comp]
+    name=getCompName(items)
+    wanted=pump_vars.get(name) if enabled else None
+    if not wanted and not any(i.get(':L')=='"PumpPower"' for i in _vars(items)):
+        return comp
+    found=False
+    for i in _vars(items):
+        if i.get(':L')=='"PumpPower"' and getCompName(i)!=wanted:
+            i.pop(':L',None)
+            i.pop(':AS',None)
+        if wanted and getCompName(i)==wanted:
+            i[':L']='"PumpPower"'
+            i[':AS']=name
+            found=True
+    if wanted and not found:
+        items=items+[{':C': ':VAR', ':N': wanted, ':L': '"PumpPower"', ':AS': name}]
+    return items
+
+
+def setpointOutputsComp(comp,enabled):
+    """Setpoint and heating/cooling mode of a load model in the output file "TRoom" (only variables it has)."""
+    for i in _vars(comp):
+        if getCompName(i) in SETPOINT_OUTPUTS:
+            if enabled:
+                i[':L']='"TRoom"'
+                i[':AS']=SETPOINT_OUTPUTS[getCompName(i)]
+            elif i.get(':L')=='"TRoom"':
+                i.pop(':L',None)
+                i.pop(':AS',None)
+    return comp
+
+
+def withEstimateConnectionOutputs(requestedOutputs,pump_list):
+    """Estimated pumps need the connection mass flows and pressures of their feature type."""
+    requestedOutputs=dict(requestedOutputs)
+    for feature,suffix in (('customer','c'),('energy_plant','ep')):
+        estimates=[e for e in (pump_list or {}).get('entries',[]) if e['feature']==feature and e['kind']=='estimate' and not e.get('missing')]
+        if requestedOutputs.get('ppump_'+suffix) and estimates:
+            requestedOutputs['mdot_'+suffix]=True
+            requestedOutputs['p_'+suffix]=True
+    return requestedOutputs
 
 def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_sensor_info,network):
     dprint('--writeMacroResultsIdm--')
@@ -739,7 +793,9 @@ class WorkerSetRequestedOutputs(QRunnable):
             self.requestedOutputs['troom_c']=True
         else:
             self.requestedOutputs['troom_c']=False
-        
+        #-----------pump power----------
+        self.requestedOutputs['ppump_c']=self.dlg.checkBoxSubstationPumpPower.isChecked()
+
         #-------------network------------
         #+++lines+++
         #temp
@@ -852,6 +908,7 @@ class WorkerSetRequestedOutputs(QRunnable):
             self.requestedOutputs['power_ep']=True
         else:
             self.requestedOutputs['power_ep']=False
+        self.requestedOutputs['ppump_ep']=self.dlg.checkBoxPlantPumpPower.isChecked()
         #-----------temperature----------
         if self.dlg.checkBoxPlantConnTemp.isChecked():
             self.requestedOutputs['temp_ep']=True
@@ -1035,7 +1092,10 @@ class WorkerSetRequestedOutputs(QRunnable):
             
         #-------------------timestep for outputs----------------------
         self.requestedOutputs['dt_outputs']=str(self.dlg.outputTimestep.value())
-            
+
+        pump_list=ensurePumpList(self.config,{feature: getTemplateNames(self.cur,feature,seperator='_') for feature in ('customer','energy_plant')})
+        self.requestedOutputs=withEstimateConnectionOutputs(self.requestedOutputs,pump_list)
+
         writeRequestedOutputs(self.config,self.requestedOutputs)
         dprint(self.requestedOutputs)
         dprint(self.dlg.requestedOutputs_old)
@@ -1053,7 +1113,14 @@ class WorkerSetRequestedOutputs(QRunnable):
                     outputs_ep[out]=self.requestedOutputs[out]
                 if 'dt_outputs'==out:
                     new_outputTimestep=self.requestedOutputs[out]
-                    
+        # written again even if unchanged: the setpoint labels came after troom_c, the pump list may have changed
+        if self.requestedOutputs.get('troom_c'):
+            outputs_c.setdefault('troom_c',True)
+        for key,outputs in (('ppump_c',outputs_c),('ppump_ep',outputs_ep)):
+            if self.requestedOutputs.get(key) or getattr(self.dlg,'pump_list_changed',False):
+                outputs.setdefault(key,self.requestedOutputs.get(key,False))
+        self.pump_list=pump_list
+
         dprint(outputs_c)
         dprint(outputs_ep)
         self.signals.progress.emit(5)
@@ -1117,9 +1184,17 @@ class WorkerSetRequestedOutputs(QRunnable):
                     flowmeters=['"'+str(conn_bundle_type_id)+'_'+str(seq)+'_Flowmeter2"' for seq in conn_type_seq]
                     dprint(flowmeters)   
                     pmtmuxs={'"PMT2mux_{}_{}_{}_{}"'.format(value['conn_bundle_type_id'],value['conn_type_seq'],value['conn_type_id'],value['conn_seq']) : {'seq':seq,'conn_bundle_type_id':value['conn_bundle_type_id'],'conn_seq':value['conn_seq']} for seq in conn_type_seq for value in connValues if seq==value['conn_type_seq']}
-                    dprint(pmtmuxs)            
+                    dprint(pmtmuxs)
+                    pump_key='ppump_c' if feature=='customer' else 'ppump_ep'
+                    pump_vars={'"{}"'.format(e['component']): e['variable'] for e in templateEntries(getattr(self,'pump_list',None),feature,t_name,kind='variable')}
+                    pump_enabled=bool(outputs.get(pump_key)) and bool(pump_vars)
                     for comp in components_idm:
                         if debug_enabled(): dprint(getCompName(comp))
+                        if pump_key in outputs and getCompClass(comp)!='OUTPUT-FILE':
+                            comp=pumpPowerComp(comp,pump_vars,pump_enabled)
+                        if getCompClass(comp)=='OUTPUT-FILE' and getCompName(comp)=='"PumpPower"':
+                            if pump_key in outputs or getCompPerName(data_idm,'"PumpPower"'):
+                                continue
                         if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|','FLOWMETER2','PMT2\\m\\u\\x'] or getCompClass(comp) in 'OUTPUT-FILE':
                             if not isinstance(comp, list):
                                 comp=[comp]
@@ -1138,8 +1213,9 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         new_comp.append(i)
                                 for i in outputs_to_set:
                                     new_comp.append({':C': ':VAR', ':N': i, ':L': '"TRoom"'})
-                                comp=new_comp
-                                data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TRoom"', ':T': 'OUTPUT-FILE'}])
+                                comp=setpointOutputsComp(new_comp,True)
+                                if not getCompPerName(data_idm,'"TRoom"'):
+                                    data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"TRoom"', ':T': 'OUTPUT-FILE'}])
                             if getCompTemplate(comp) in ['|lM_H_G_L|','|lM_HC_G_L_MCTRL|','|lm_h_g_t_hx|'] and 'heatbalance_c' in [i for i in outputs if outputs[i]]:
                                 dprint('---add heatbalance output----')
                                 dprint(comp)
@@ -1192,7 +1268,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         new_comp.append(i)
                                     else:
                                         new_comp.append(i)
-                                comp=new_comp
+                                comp=setpointOutputsComp(new_comp,False)
                             if getCompName(comp) in pmtmuxs:
                                 dprint('-------pmtmux-----')
                                 dprint(comp)
@@ -1302,7 +1378,7 @@ class WorkerSetRequestedOutputs(QRunnable):
                                         new_comp.append({':C': ':VAR', ':N': i, ':L': '"Connection type sequence_{}"'.format(conn_type_seq)})
                                     comp=new_comp
                             if getCompClass(comp) in 'OUTPUT-FILE':
-                                if (getCompName(comp)=='"TRoom"' and 'troom_c' in [i for i in outputs if not outputs[i]] or
+                                if (getCompName(comp)=='"TRoom"' and ('troom_c' in [i for i in outputs if not outputs[i]] or getCompPerName(data_idm,'"TRoom"')) or
                                     getCompName(comp)=='"Heatbalance"' and 'heatbalance_c' in [i for i in outputs if not outputs[i]] or
                                     "Connection type sequence_" in getCompName(comp) and not [True for i in self.requestedOutputs if i in ['power_c','temp_c','p_c','mdot_c'] and self.requestedOutputs[i]]):
                                     dprint('++++not outputfile++++')
@@ -1310,10 +1386,13 @@ class WorkerSetRequestedOutputs(QRunnable):
                                 else:
                                     data_idm.append(comp)
                             else:
-                                data_idm.append(comp)    
+                                data_idm.append(comp)
                         else:
                             data_idm.append(comp)
                         writePropertyListIDMToFile(data_idm,dir+t_name,fname,self.config)
+                    if pump_enabled and not getCompPerName(data_idm,'"PumpPower"'):
+                        data_idm.append([{':C': 'OUTPUT-FILE', ':N': '"PumpPower"', ':T': 'OUTPUT-FILE'}])  # type: ignore[list-item]
+                    writePropertyListIDMToFile(data_idm,dir+t_name,fname,self.config)
             except Exception:
                 QgsMessageLog.logMessage(
                     traceback.format_exc(),
