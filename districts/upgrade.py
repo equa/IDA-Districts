@@ -2,6 +2,7 @@
 
 from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColumns, ensurePipeTwinColumns
 from .utility_functions.debug_log import dprint
+from .utility_functions.economic_data import ensureEconomicTables, ensurePipeCostColumns
 
 #upgrade versions DB table structure
 def upgradeVersionDB(cur,config):
@@ -18,6 +19,9 @@ def upgradeVersionDB(cur,config):
     if 't_ref' not in table_info:
         sql="""ALTER TABLE "{}".network ADD COLUMN t_ref numeric DEFAULT 60;\n""".format(config['versionName'])
         cur.execute(sql)
+    #surface class of the streets (trench cost curves of the economic scenarios)
+    if getDBColumnInfo(cur,config['versionName'],'streets') and 'surface' not in getDBColumnInfo(cur,config['versionName'],'streets'):
+        cur.execute("""ALTER TABLE "{}".streets ADD COLUMN surface text;""".format(config['versionName'])) # nosec B608
     upgradeProjectDB(cur)
     dprint('--upgrade finished--')
 
@@ -27,5 +31,8 @@ def upgradeProjectDB(cur):
     ensureMaterialMechanicalColumns(cur)
     #series and twin pipe casing of the pipes
     ensurePipeTwinColumns(cur)
+    #costs: maintenance, lifetime, p_max of the pipes and the economic scenarios
+    ensurePipeCostColumns(cur)
+    ensureEconomicTables(cur)
     
     

@@ -15,9 +15,10 @@ from qgis.core import (
 from qgis.utils import iface
 from .compat import MessageCritical
 from .db import getBuildingsEra, getNetworkLength, getNetworkVolume, getNetworks, getPipeInfo
-from .files import districtsModelerTempDir, loadProjectConfig, loadSimulatedOutputs
+from .files import districtsModelerTempDir, loadModellingSettings, loadProjectConfig, loadSimulatedOutputs
+from .network_economics import evaluateVersion
 from .show_on_map import renderMapPlot, showOnMapMemoryLayer
-from .translations import tr
+from .translations import tr, tr_msg
 
 import tempfile
 import os 
@@ -75,6 +76,95 @@ def getKPIUnit(name):
     else:
         return ''
     
+def fillScenarioCombo(cur,combo):
+    """economic scenarios of the project (name, data = id); none in projects without the scenario tables"""
+    combo.clear()
+    # a failing query would abort the transaction of the shared cursor
+    cur.execute("SELECT to_regclass('public.economic_scenarios') IS NOT NULL AS ok;")
+    if not cur.fetchone()['ok']:
+        return
+    cur.execute("SELECT id, name FROM public.economic_scenarios ORDER BY id;")
+    for row in cur.fetchall():
+        combo.addItem(row['name'],row['id'])
+
+
+def _money(value):
+    return '{:,.0f} €'.format(value).replace(',',"'")
+
+
+def economicsRows(evaluation):
+    """[label, value] rows of the Economics section from evaluateVersion"""
+    scenario=(evaluation.get('scenario') or {}).get('scenario') or {}
+    rows=[[tr_msg('Scenario'),'{}{}'.format(scenario.get('name',''),' – '+tr_msg('example values in use') if evaluation.get('example') or scenario.get('example') else '')]]
+    if evaluation.get('missing'):
+        return rows+[[tr_msg('Results needed'),', '.join(tr_msg(name) for name in evaluation['missing'])]]
+    if 'short' in evaluation:
+        return rows+[[tr_msg('Results needed'),tr_msg('the results cover {:.0f} days; results covering a full year are needed').format(evaluation['short'])]]
+    items=evaluation['items']
+    pipes=sum(i['cost'] for key,i in items.items() if key[0]=='pipe')
+    trench=sum(i['cost'] for key,i in items.items() if key[0]=='trench')
+    energy,costs,npv=evaluation['energy'],evaluation['costs'],evaluation['npv']
+    split=npv['split']
+    rows+=[[tr_msg('Investment pipes'),_money(pipes)],
+           [tr_msg('Investment trench'),_money(trench)],
+           [tr_msg('Investment pumps ({:.1f} kW peak)').format(evaluation['pump_kw']),_money(evaluation['pump_item']['cost'])],
+           [tr_msg('Pump energy per year'),'{:,.0f} kWh, {}'.format(energy['pump_kwh'],_money(costs['pump_energy'])).replace(',',"'")],
+           [tr_msg('Heat losses per year'),'{:,.0f} kWh, {}'.format(energy['heat_kwh'],_money(costs['heat_losses'])).replace(',',"'")],
+           [tr_msg('Cold losses per year'),'{:,.0f} kWh, {}'.format(energy['cold_kwh'],_money(costs['cold_losses'])).replace(',',"'")],
+           [tr_msg('Period, interest'),'{} a, {} %'.format(scenario.get('period_a'),scenario.get('interest_pct'))]]
+    if evaluation.get('periods'):
+        periods=evaluation['periods']
+        rows.append([tr_msg('Representative periods'),tr_msg('weeks from {}; {:.0%} of the year more than 1 K away; run {}').format(
+            ', '.join(periods['weeks']),periods.get('coverage') or 0,periods.get('run_time',''))])
+    for key,label in (('investment','NPV investment and replacements'),('pump_energy','NPV pump energy'),('heat_losses','NPV heat losses'),
+                      ('cold_losses','NPV cold losses'),('maintenance','NPV maintenance'),('residual','NPV residual value')):
+        rows.append([tr_msg(label),_money(split[key])])
+    rows+=[[tr_msg('Net present value'),_money(npv['npv'])],[tr_msg('Annuity'),_money(npv['annuity'])+'/a']]
+    if evaluation['no_costs']:
+        rows.append([tr_msg('Pipes in use without costs'),', '.join(evaluation['no_costs'])])
+    if evaluation['loss_check']:
+        lids=sorted(evaluation['loss_check'])
+        rows.append([tr_msg('Lines whose calculated heat loss deviates more than 15 % from the simulated one'),
+                     ', '.join(str(lid) for lid in lids[:20])+(' …' if len(lids)>20 else '')])
+    return rows
+
+
+def addTablePage(layout,title,rows,font_header,font_table,font_table_label):
+    """a new page with a title and a two-column text table; returns the page number"""
+    page=QgsLayoutItemPage(layout)
+    page.setPageSize('A4',QgsLayoutItemPage.Orientation.Portrait)
+    layout.pageCollection().addPage(page)
+    current_page=layout.pageCollection().pageCount()
+    label=QgsLayoutItemLabel(layout)
+    label.setText(title)
+    label.setTextFormat(textFormat(font_header))
+    label.attemptMove(QgsLayoutPoint(20,15,QgsUnitTypes.LayoutMillimeters),page=current_page-1)
+    label.attemptResize(QgsLayoutSize(170,15),True)
+    layout.addLayoutItem(label)
+    table=QgsLayoutItemTextTable(layout)
+    layout.addMultiFrame(table)
+    cols=[]
+    for heading,width in (('',95),('',75)):
+        col=QgsLayoutTableColumn()
+        col.setHeading(heading)
+        col.setWidth(width)
+        cols.append(col)
+    table.setColumns(cols)
+    table.setGridStrokeWidth(0.000001)
+    table.setGridColor(QColor("White"))
+    table.setContentTextFormat(textFormat(font_table))
+    table.setHeaderTextFormat(textFormat(font_table_label))
+    table.setContents(rows)
+    frame=QgsLayoutFrame(layout,table)
+    frame.setId("table economics")
+    layout.addLayoutItem(frame)
+    table.addFrame(frame)
+    table.refreshAttributes()
+    frame.attemptResize(QgsLayoutSize(170,max(10,table.totalHeight()+1.5),QgsUnitTypes.LayoutMillimeters))
+    frame.attemptMove(QgsLayoutPoint(20,35,QgsUnitTypes.LayoutMillimeters),page=current_page-1)
+    return current_page
+
+
 def networkReport(dlg,plugin_dir,cur,config,main_dlg):
     dprint('---------Network report--------')
     # Get current project
@@ -528,6 +618,15 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             frame_networks[network].attemptResize(QgsLayoutSize(width, max(10, table_networks[network] .totalHeight() + 1.5), QgsUnitTypes.LayoutMillimeters))
             frame_networks[network].attemptMove(QgsLayoutPoint(20, y_layout, QgsUnitTypes.LayoutMillimeters),page=current_page - 1)
             
+    if getattr(dlg,'checkBox_economics',None) is not None and dlg.checkBox_economics.isChecked():
+        try:
+            evaluation=evaluateVersion(cur,config,dlg.combo_scenario.currentData(),loadModellingSettings(plugin_dir,config),
+                profile_dir=os.path.join(config['pathProjects']+config['projectName'],'prices'))
+            current_page=addTablePage(layout,tr_msg('Economics'),economicsRows(evaluation),font_header_label,font_table,font_table_label)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
+            iface.messageBar().pushMessage(tr_msg("Error"),tr_msg('The economic evaluation failed (see the message log Districts).'),level=MessageCritical)
+
     #plot images
     map_layers=[]
     if dlg.data:

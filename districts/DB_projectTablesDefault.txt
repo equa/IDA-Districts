@@ -378,6 +378,10 @@ CREATE TABLE public.pipes
   description text,
   series text, --product line: the pipe sizing chooses among the pipes of the series (optional)
   casing_construction_id integer, --twin pipe: shared casing (pipe_constructions) of the two pipes of a pipe bundle (optional)
+  maintenance_pct numeric, --maintenance and repair per year, % of the investment (costs)
+  lifetime_a numeric, --service life, years
+  p_max_bar numeric, --maximum operating pressure, bar
+  example boolean DEFAULT false, --costs, maintenance, lifetime and p_max are example values
   CONSTRAINT pipes_pkey PRIMARY KEY (id)
 );
   

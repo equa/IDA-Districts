@@ -1177,7 +1177,8 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
     dlg.show()
     
 #columns saved as NULL if the cell is empty
-NULLABLE_COLUMNS=['p','mdot','costs','invest_costs','operation_costs']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)
+NULLABLE_COLUMNS=['p','mdot','costs','invest_costs','operation_costs','maintenance_pct','lifetime_a','p_max_bar','example',
+    'start_price','escalation_pct','interest_pct','period_a','pump_costs_eur7kw','pump_maintenance_pct','pump_lifetime_a','el_profile_file','default_surface']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)
 
 def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
     values=[]

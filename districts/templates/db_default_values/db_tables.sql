@@ -481,46 +481,46 @@ COPY public.pipe_layers (id, pipe_construction_id, materialid, thickness, sequen
 -- Data for Name: pipes; Type: TABLE DATA; Schema: public;
 --
 
-COPY public.pipes (id, name, innerpipediameter, piperoughnessfactor, pipe_construction_id, costs, description, series, casing_construction_id) FROM stdin;
-1	Isoplus DRE-20	0.0217	0.00002	1	\N	DN20; Da Casing Pipe 90 mm Standard	Isoplus DRE Standard	\N
-2	Isoplus DRE-25	0.0273	0.00002	2	\N	DN25; Da Casing Pipe 90 mm Standard	Isoplus DRE Standard	\N
-3	Isoplus DRE-32	0.036	0.00002	3	\N	DN32; Da Casing Pipe 110 mm Standard	Isoplus DRE Standard	\N
-4	Isoplus DRE-40	0.0419	0.00002	4	\N	DN40; Da Casing Pipe 110 mm Standard	Isoplus DRE Standard	\N
-5	Isoplus DRE-50	0.0539	0.00002	5	\N	DN50; Da Casing Pipe 125 mm Standard	Isoplus DRE Standard	\N
-6	Isoplus DRE-65	0.0697	0.00002	6	\N	DN65; Da Casing Pipe 140 mm Standard	Isoplus DRE Standard	\N
-7	Isoplus DRE-80	0.0825	0.00002	7	\N	DN80; Da Casing Pipe 160 mm Standard	Isoplus DRE Standard	\N
-8	Isoplus DRE-100	0.1071	0.00002	8	\N	DN100; Da Casing Pipe 200 mm Standard	Isoplus DRE Standard	\N
-9	Isoplus DRE-125	0.1325	0.00002	9	\N	DN125; Da Casing Pipe 225 mm Standard	Isoplus DRE Standard	\N
-10	Isoplus DRE-150	0.1603	0.00002	10	\N	DN150; Da Casing Pipe 250 mm Standard	Isoplus DRE Standard	\N
-11	Isoplus DRE-175	0.1847	0.00002	11	\N	DN175; Da Casing Pipe 280 mm Standard	Isoplus DRE Standard	\N
-12	Isoplus DRE-200	0.2101	0.00002	12	\N	DN200; Da Casing Pipe 315 mm Standard	Isoplus DRE Standard	\N
-13	Isoplus DRE-225	0.2345	0.00002	13	\N	DN225; Da Casing Pipe 355 mm Standard	Isoplus DRE Standard	\N
-14	Isoplus DRE-250	0.263	0.00002	14	\N	DN250; Da Casing Pipe 400 mm Standard	Isoplus DRE Standard	\N
-15	Isoplus DRE-300	0.3127	0.00002	15	\N	DN300; Da Casing Pipe 450 mm Standard	Isoplus DRE Standard	\N
-16	Isoplus DRE-350	0.3444	0.00002	16	\N	DN350; Da Casing Pipe 500 mm Standard	Isoplus DRE Standard	\N
-17	Isoplus DRE-400	0.3938	0.00002	17	\N	DN400; Da Casing Pipe 560 mm Standard	Isoplus DRE Standard	\N
-18	Isoplus DRE-450	0.4444	0.00002	18	\N	DN450; Da Casing Pipe 630 mm Standard	Isoplus DRE Standard	\N
-19	Isoplus DRE-500	0.4954	0.00002	19	\N	DN500; Da Casing Pipe 710 mm Standard	Isoplus DRE Standard	\N
-20	Isoplus DRE-550	0.5462	0.00002	20	\N	DN550; Da Casing Pipe 710 mm Standard	Isoplus DRE Standard	\N
-21	Isoplus DRE-600	0.5958	0.00002	21	\N	DN600; Da Casing Pipe 800 mm Standard	Isoplus DRE Standard	\N
-22	Isoplus DRE-650	0.6458	0.00002	22	\N	DN650; Da Casing Pipe 900 mm Standard	Isoplus DRE Standard	\N
-23	Isoplus DRE-700	0.695	0.00002	23	\N	DN700; Da Casing Pipe 900 mm Standard	Isoplus DRE Standard	\N
-24	Isoplus DRE-750	0.746	0.00002	24	\N	DN750; Da Casing Pipe 1000 mm Standard	Isoplus DRE Standard	\N
-25	Isoplus DRE-800	0.7954	0.00002	25	\N	DN800; Da Casing Pipe 1000 mm Standard	Isoplus DRE Standard	\N
-26	Isoplus DRE-850	0.8464	0.00002	26	\N	DN850; Da Casing Pipe 1100 mm Standard	Isoplus DRE Standard	\N
-27	Isoplus DRE-900	0.894	0.00002	27	\N	DN900; Da Casing Pipe 1100 mm Standard	Isoplus DRE Standard	\N
-28	Isoplus DRE-1000	0.994	0.00002	28	\N	DN1000; Da Casing Pipe 1200 mm Standard	Isoplus DRE Standard	\N
-29	Isoplus DRD-20	0.0217	0.00002	29	\N	DN20; twin pipe, Da Casing Pipe 125 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	40
-30	Isoplus DRD-25	0.0273	0.00002	30	\N	DN25; twin pipe, Da Casing Pipe 140 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	41
-31	Isoplus DRD-32	0.036	0.00002	31	\N	DN32; twin pipe, Da Casing Pipe 160 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	42
-32	Isoplus DRD-40	0.0419	0.00002	32	\N	DN40; twin pipe, Da Casing Pipe 160 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	43
-33	Isoplus DRD-50	0.0539	0.00002	33	\N	DN50; twin pipe, Da Casing Pipe 200 mm Standard, clear pipe distance 20 mm	Isoplus DRD Standard	44
-34	Isoplus DRD-65	0.0697	0.00002	34	\N	DN65; twin pipe, Da Casing Pipe 225 mm Standard, clear pipe distance 20 mm	Isoplus DRD Standard	45
-35	Isoplus DRD-80	0.0825	0.00002	35	\N	DN80; twin pipe, Da Casing Pipe 250 mm Standard, clear pipe distance 25 mm	Isoplus DRD Standard	46
-36	Isoplus DRD-100	0.1071	0.00002	36	\N	DN100; twin pipe, Da Casing Pipe 315 mm Standard, clear pipe distance 25 mm	Isoplus DRD Standard	47
-37	Isoplus DRD-125	0.1325	0.00002	37	\N	DN125; twin pipe, Da Casing Pipe 400 mm Standard, clear pipe distance 30 mm	Isoplus DRD Standard	48
-38	Isoplus DRD-150	0.1603	0.00002	38	\N	DN150; twin pipe, Da Casing Pipe 450 mm Standard, clear pipe distance 40 mm	Isoplus DRD Standard	49
-39	Isoplus DRD-200	0.2101	0.00002	39	\N	DN200; twin pipe, Da Casing Pipe 560 mm Standard, clear pipe distance 45 mm	Isoplus DRD Standard	50
+COPY public.pipes (id, name, innerpipediameter, piperoughnessfactor, pipe_construction_id, costs, description, series, casing_construction_id, maintenance_pct, lifetime_a, p_max_bar, example) FROM stdin;
+1	Isoplus DRE-20	0.0217	0.00002	1	35.5	DN20; Da Casing Pipe 90 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+2	Isoplus DRE-25	0.0273	0.00002	2	43.5	DN25; Da Casing Pipe 90 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+3	Isoplus DRE-32	0.036	0.00002	3	55.5	DN32; Da Casing Pipe 110 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+4	Isoplus DRE-40	0.0419	0.00002	4	68.5	DN40; Da Casing Pipe 110 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+5	Isoplus DRE-50	0.0539	0.00002	5	84.5	DN50; Da Casing Pipe 125 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+6	Isoplus DRE-65	0.0697	0.00002	6	108.5	DN65; Da Casing Pipe 140 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+7	Isoplus DRE-80	0.0825	0.00002	7	132.5	DN80; Da Casing Pipe 160 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+8	Isoplus DRE-100	0.1071	0.00002	8	164	DN100; Da Casing Pipe 200 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+9	Isoplus DRE-125	0.1325	0.00002	9	203	DN125; Da Casing Pipe 225 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+10	Isoplus DRE-150	0.1603	0.00002	10	241.5	DN150; Da Casing Pipe 250 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+11	Isoplus DRE-175	0.1847	0.00002	11	280	DN175; Da Casing Pipe 280 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+12	Isoplus DRE-200	0.2101	0.00002	12	318	DN200; Da Casing Pipe 315 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+13	Isoplus DRE-225	0.2345	0.00002	13	356	DN225; Da Casing Pipe 355 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+14	Isoplus DRE-250	0.263	0.00002	14	393.5	DN250; Da Casing Pipe 400 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+15	Isoplus DRE-300	0.3127	0.00002	15	468.5	DN300; Da Casing Pipe 450 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+16	Isoplus DRE-350	0.3444	0.00002	16	543	DN350; Da Casing Pipe 500 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+17	Isoplus DRE-400	0.3938	0.00002	17	621.5	DN400; Da Casing Pipe 560 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+18	Isoplus DRE-450	0.4444	0.00002	18	697.8	DN450; Da Casing Pipe 630 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+19	Isoplus DRE-500	0.4954	0.00002	19	774	DN500; Da Casing Pipe 710 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+20	Isoplus DRE-550	0.5462	0.00002	20	850.2	DN550; Da Casing Pipe 710 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+21	Isoplus DRE-600	0.5958	0.00002	21	926.5	DN600; Da Casing Pipe 800 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+22	Isoplus DRE-650	0.6458	0.00002	22	1002.7	DN650; Da Casing Pipe 900 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+23	Isoplus DRE-700	0.695	0.00002	23	1079	DN700; Da Casing Pipe 900 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+24	Isoplus DRE-750	0.746	0.00002	24	1155.2	DN750; Da Casing Pipe 1000 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+25	Isoplus DRE-800	0.7954	0.00002	25	1231.5	DN800; Da Casing Pipe 1000 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+26	Isoplus DRE-850	0.8464	0.00002	26	1307.8	DN850; Da Casing Pipe 1100 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+27	Isoplus DRE-900	0.894	0.00002	27	1384	DN900; Da Casing Pipe 1100 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+28	Isoplus DRE-1000	0.994	0.00002	28	1536.5	DN1000; Da Casing Pipe 1200 mm Standard	Isoplus DRE Standard	\N	1	40	16	t
+29	Isoplus DRD-20	0.0217	0.00002	29	35.5	DN20; twin pipe, Da Casing Pipe 125 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	40	1	40	16	t
+30	Isoplus DRD-25	0.0273	0.00002	30	43.5	DN25; twin pipe, Da Casing Pipe 140 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	41	1	40	16	t
+31	Isoplus DRD-32	0.036	0.00002	31	55.5	DN32; twin pipe, Da Casing Pipe 160 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	42	1	40	16	t
+32	Isoplus DRD-40	0.0419	0.00002	32	68.5	DN40; twin pipe, Da Casing Pipe 160 mm Standard, clear pipe distance 19 mm	Isoplus DRD Standard	43	1	40	16	t
+33	Isoplus DRD-50	0.0539	0.00002	33	84.5	DN50; twin pipe, Da Casing Pipe 200 mm Standard, clear pipe distance 20 mm	Isoplus DRD Standard	44	1	40	16	t
+34	Isoplus DRD-65	0.0697	0.00002	34	108.5	DN65; twin pipe, Da Casing Pipe 225 mm Standard, clear pipe distance 20 mm	Isoplus DRD Standard	45	1	40	16	t
+35	Isoplus DRD-80	0.0825	0.00002	35	132.5	DN80; twin pipe, Da Casing Pipe 250 mm Standard, clear pipe distance 25 mm	Isoplus DRD Standard	46	1	40	16	t
+36	Isoplus DRD-100	0.1071	0.00002	36	164	DN100; twin pipe, Da Casing Pipe 315 mm Standard, clear pipe distance 25 mm	Isoplus DRD Standard	47	1	40	16	t
+37	Isoplus DRD-125	0.1325	0.00002	37	203	DN125; twin pipe, Da Casing Pipe 400 mm Standard, clear pipe distance 30 mm	Isoplus DRD Standard	48	1	40	16	t
+38	Isoplus DRD-150	0.1603	0.00002	38	241.5	DN150; twin pipe, Da Casing Pipe 450 mm Standard, clear pipe distance 40 mm	Isoplus DRD Standard	49	1	40	16	t
+39	Isoplus DRD-200	0.2101	0.00002	39	318	DN200; twin pipe, Da Casing Pipe 560 mm Standard, clear pipe distance 45 mm	Isoplus DRD Standard	50	1	40	16	t
 \.
 
 

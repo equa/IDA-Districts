@@ -227,6 +227,7 @@ CREATE TABLE "$versionName$".streets
   costs_eur7m numeric DEFAULT 100,
   source integer,
   target integer,
+  surface text, --surface class of the trench cost curves (economic scenario); NULL = the scenario's default surface
   CONSTRAINT streets_pkey PRIMARY KEY (id)
 );
 

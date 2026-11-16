@@ -37,6 +37,7 @@ from districts.upgrade import upgradeVersionDB
 from districts.utility_functions import reports
 from districts.utility_functions.compat import MessageWarning
 from districts.utility_functions.db import MATERIAL_MECHANICAL_COLUMNS, PIPE_TWIN_COLUMNS
+from districts.utility_functions.economic_data import PIPE_COST_COLUMNS
 from districts.utility_functions.dialog import addParmTableRow, checkState, closeDialog, uncheckState
 from districts.utility_functions.files import districtsModelerTempDir
 from districts.utility_functions.height_check import HEIGHT_CHECK_PROPERTY
@@ -233,7 +234,8 @@ def assert_save_refused(plugin, dlg, message, before):
 
 def public_rows(plugin, table):
     plugin.cur.execute('SELECT * FROM public.{} ORDER BY id;'.format(table))  # nosec B608
-    return plugin.cur.fetchall()
+    # plain dicts: re-added columns come last, the order of the columns does not matter
+    return [dict(row) for row in plugin.cur.fetchall()]
 
 
 @pytest.fixture
@@ -496,7 +498,7 @@ class TestWorkflow:
 
         plugin.cur.execute(drop)
         dlg = new_dialog(plugin.managePipes)
-        assert dlg.tableWidget.columnCount() == 7 + len(PIPE_TWIN_COLUMNS)
+        assert dlg.tableWidget.columnCount() == 7 + len(PIPE_TWIN_COLUMNS) + len(PIPE_COST_COLUMNS)
         save_dialog(dlg, errors)
         rows = public_rows(plugin, 'pipes')
         assert [(r['name'], r['pipe_construction_id']) for r in rows] == [(r['name'], r['pipe_construction_id']) for r in before]
