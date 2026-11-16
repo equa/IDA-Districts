@@ -1,7 +1,7 @@
 # coding=utf-8
 """Simulate one IDA Districts model in its own process (started by the simulation tests).
 
-    python-qgis.bat run_simulation.py <model.idm> <work_dir> <result.json> <path IDA Districts> [api delay s]
+    python-qgis.bat run_simulation.py <model.idm> <work_dir> <result.json> <path IDA Districts>
 
 Own process: idaapi2.dll holds one IDA connection per process, parallel simulations need separate processes.
 Own TEMP folder (<work_dir>/tmp): IDA writes footprint.txt to %TEMP%/idamod*/, parallel IDA sessions would
@@ -30,7 +30,7 @@ def read_footprint(path):
     return result
 
 
-def main(model, work_dir, result_file, path_districts, api_delay="10"):
+def main(model, work_dir, result_file, path_districts):
     result = {"model": model, "status": None, "errors": [], "footprint": None, "footprint_file": None}
     start = time.time()
     try:
@@ -52,7 +52,7 @@ def main(model, work_dir, result_file, path_districts, api_delay="10"):
 
         from districts.utility_functions.workers import WorkerSimulateAPI
 
-        config = {"pathDistricts": os.path.join(path_districts, ""), "districts_api_delay": api_delay}
+        config = {"pathDistricts": os.path.join(path_districts, "")}
         worker = WorkerSimulateAPI(model, plugin_dir, config)
         worker.signals.status.connect(lambda s: result.__setitem__("status", s))
         worker.signals.error.connect(result["errors"].append)

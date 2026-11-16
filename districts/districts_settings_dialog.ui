@@ -46,13 +46,6 @@
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QLabel" name="label_6">
-          <property name="text">
-           <string>IDA_API_delay</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </item>
       <item>
@@ -106,13 +99,6 @@
            </widget>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEdit_districts_api_delay">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
         </item>
        </layout>
       </item>

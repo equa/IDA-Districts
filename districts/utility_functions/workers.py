@@ -9,7 +9,7 @@ from .files import (
     replace_in_folder, writeToFile,
 )
 from .translations import tr, tr_msg
-from .util import Util_api
+from .util import IdaOpenError, Util_api
 from .utility import (
     copy_tree_filter_extensions_and_folders, getTemplateNameById, getTypeIdByName, getTypeNameById,
     rmtree_long_path, sanitize_pg_identifier, strToDict, write_plugin_settings,
@@ -777,9 +777,6 @@ class WorkerSimulateFilesAPI(QRunnable):
         self.util=Util_api(self.plugin_dir,self.config)
 
         dprint(self.util.pid)
-        
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        dprint(connectionTest)
         file_path=""
         building=None
         try:
@@ -788,7 +785,10 @@ class WorkerSimulateFilesAPI(QRunnable):
                     dprint(file_path)
                     #open file
                     dprint('+++++++++opening+++++++++++')
-                    building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
+                    if building is None:
+                        building = self.util.open_document(file_path)
+                    else:
+                        building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, file_path.encode('utf-8'))
                     dprint('+++++++++opened+++++++++++')
                     #run sim (IDA is closed after the last file, not here: the next files use the same session)
                     script="""((RUN-SIMULATION [@ :SYSTEM])
@@ -810,6 +810,10 @@ class WorkerSimulateFilesAPI(QRunnable):
                     self.signals.error.emit(tr_msg("Sim model does not exist!"))
             self.signals.progress.emit(100)
             dprint('simulation-finished')
+        except IdaOpenError as e:
+            self.signals.progress.emit(0)
+            self.signals.status.emit(tr_msg('Simulation failed'))
+            self.signals.error.emit(tr_msg("IDA Districts could not open {}: {}").format(e.path, e.text))
         except Exception:
             self.signals.progress.emit(0)
             self.signals.error.emit(tr_msg("Failed to open the feature: {}!").format(file_path))
@@ -833,16 +837,13 @@ class WorkerSimulateAPI(QRunnable):
         self.util=Util_api(self.plugin_dir,self.config)
 
         dprint(self.util.pid)
-        
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        dprint(connectionTest)
         self.building={}
         try:
             if os.path.exists(self.file_path):
                 dprint(self.file_path)
                 #open file
                 dprint('+++++++++opening+++++++++++')
-                self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
+                self.building = self.util.open_document(self.file_path)
                 dprint('+++++++++opened+++++++++++')
                 #run sim
                 script="""((RUN-SIMULATION [@ :SYSTEM])
@@ -858,6 +859,9 @@ class WorkerSimulateAPI(QRunnable):
             else:
                 self.signals.error.emit(tr_msg("Sim model does not exist!"))
             dprint('++++simulation-finished++++')
+        except IdaOpenError as e:
+            self.signals.status.emit(tr_msg('Simulation failed'))
+            self.signals.error.emit(tr_msg("IDA Districts could not open {}: {}").format(e.path, e.text))
         except Exception:
             self.signals.error.emit(tr_msg("Failed to open the feature: {}!").format(self.file_path))
         finally:
@@ -905,12 +909,13 @@ class WorkerOpenAPI(QRunnable):
         self.util=Util_api(self.plugin_dir,self.config,submodel=self.submodel)
 
         dprint(self.util.pid)
-        
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        dprint(connectionTest)
         try:
-            result = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
+            self.util.open_document(self.file_path)
             self.signals.progress.emit(100)
+        except IdaOpenError as e:
+            self.signals.progress.emit(0)
+            self.signals.error.emit(tr_msg("IDA Districts could not open {}: {}").format(e.path, e.text))
+            self.util.exit_ida()
         except Exception:
             self.signals.progress.emit(0)
             self.signals.error.emit(tr_msg("Failed to open the feature!"))  
@@ -991,11 +996,8 @@ class WorkerOpenRunScriptAPI(QRunnable):
         self.util=Util_api(self.plugin_dir,self.config)
 
         dprint(self.util.pid)
-        
-        connectionTest = self.util.ida_lib.connect_to_ida(b"5945", self.util.pid.encode())
-        dprint(connectionTest)
         try:
-            self.building = self.util.call_ida_api_function(self.util.ida_lib.openDocument, self.file_path.encode('utf-8'))
+            self.building = self.util.open_document(self.file_path)
             dprint(self.building)
             self.signals.progress.emit(50)
             if isinstance(self.script, list): 
@@ -1024,6 +1026,10 @@ class WorkerOpenRunScriptAPI(QRunnable):
                     self.finished_fn(self.finished_fn_args)
                 self.signals.progress.emit(100)
 
+        except IdaOpenError as e:
+            self.signals.progress.emit(0)
+            self.signals.error.emit(tr_msg("IDA Districts could not open {}: {}").format(e.path, e.text))
+            self.util.exit_ida()
         except Exception:
             self.signals.progress.emit(0)
-            self.signals.error.emit(tr_msg("Failed to open the feature or run the script!"))     
+            self.signals.error.emit(tr_msg("Failed to open the feature or run the script!"))

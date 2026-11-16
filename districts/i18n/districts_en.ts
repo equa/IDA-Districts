@@ -4584,11 +4584,6 @@ li.checked::marker { content: "\2612"; }
         </message>
         <message>
             <location filename="../districts_settings_dialog.ui" line="61" />
-            <source>IDA_API_delay</source>
-            <translation type="unfinished">IDA API delay, s</translation>
-        </message>
-        <message>
-            <location filename="../districts_settings_dialog.ui" line="61" />
             <source>postgres_path</source>
             <translation type="obsolete">PostgreSQL path</translation>
         </message>

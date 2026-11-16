@@ -81,7 +81,6 @@ class DistrictsSettingsDialog(QtWidgets.QDialog):
         self.lineEdit_pathProjects.setText(config["pathProjects"].replace('////','//'))
         self.lineEdit_pathDistricts.setText(config["pathDistricts"].replace('////','//'))
         self.lineEdit_pathPostgresql.setText(config["pathPostgresql"].replace('////','//'))
-        self.lineEdit_districts_api_delay.setText(config["districts_api_delay"])
         self.checkBox_debug.setChecked(config["debug"])
         self.checkBox_debug_console.setChecked(config["debug_console"])
         self.checkBox_debug_console.setEnabled(config["debug"])

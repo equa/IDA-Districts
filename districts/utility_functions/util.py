@@ -8,7 +8,31 @@ from .compat import MessageCritical, MessageWarning
 import traceback
 
 from qgis.core import QgsMessageLog, Qgis
+from .compat import MessageInfo
 from .debug_log import dprint, debug_enabled
+from .translations import tr_msg
+
+# IDA registers with its message broker when it accepts API calls; the line is not documented by the IDA API
+BROKER_LOG = os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), 'equa', 'ida_message_broker_log.txt')
+REGISTER_MAX_WAIT = 60
+OPEN_MAX_WAIT = 180
+POLL_INTERVAL = 0.2
+
+
+class IdaOpenError(Exception):
+    """The first model of an IDA session could not be opened; text is IDA's answer or the reason."""
+    def __init__(self, path, text):
+        super().__init__('{}: {}'.format(path, text))
+        self.path = path
+        self.text = text
+
+
+def fileSize(path):
+    try:
+        return os.path.getsize(path)
+    except OSError:
+        return None
+
 
 class Util_api:
     def __init__(self,plugin_dir,config,submodel='1'):
@@ -16,12 +40,15 @@ class Util_api:
         path_to_districts = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
         command = "\""+path_to_districts + "ida-districts.exe\" \"" + path_to_districts + "ida.img\" -G1 -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
         dprint(command)
+        # before the start: the registration of this process is looked for only after this offset
+        self.broker_log = BROKER_LOG
+        self.log_offset = fileSize(self.broker_log)
         startObj = win32process.STARTUPINFO()
         ret = win32process.CreateProcess(None,command,None,None,0,0,None,None,startObj)
+        self.start_time = time.monotonic()
         self.process_handle = ret[0]
         self.pid = str(ret[2])
         dprint(self.pid)
-        time.sleep(float(config['districts_api_delay']))
         #Add path_to_districts to PATH variable, is removed when program finishes
         os.environ['PATH'] = path_to_districts + os.pathsep  + os.environ['PATH']
 
@@ -116,6 +143,75 @@ class Util_api:
         self.ida_lib.printReport.argtypes = [ctypes.c_long, ctypes.c_char_p, ctypes.c_long, ctypes.c_char_p, ctypes.c_int]
 
     #Utility functions
+    def elapsed(self):
+        return time.monotonic() - self.start_time
+
+    def process_ended(self):
+        try:
+            return win32event.WaitForSingleObject(self.process_handle, 0) == win32event.WAIT_OBJECT_0
+        except Exception:
+            return False
+
+    def new_log_lines(self):
+        """Complete lines added to the broker log since the last read, None if it cannot be read."""
+        if self.log_offset is None:
+            return None
+        size = fileSize(self.broker_log)
+        if size is None:
+            return None
+        if size < self.log_offset:
+            self.log_offset = 0
+        try:
+            with open(self.broker_log, 'rb') as f:
+                f.seek(self.log_offset)
+                data = f.read(size - self.log_offset)
+        except OSError:
+            return None
+        # a line still being written is read again next time
+        end = data.rfind(b'\n') + 1
+        self.log_offset += end
+        return [line.strip() for line in data[:end].decode('utf-8', 'replace').splitlines()]
+
+    def wait_for_registration(self, max_wait=REGISTER_MAX_WAIT):
+        """'registered', 'ended' (IDA process gone) or 'unknown' (no log, or no line within max_wait)"""
+        needle = 'Registering...: {}'.format(self.pid)
+        while True:
+            lines = self.new_log_lines()
+            if lines is None:
+                return 'unknown'
+            if needle in lines:
+                return 'registered'
+            if self.process_ended():
+                return 'ended'
+            if self.elapsed() >= max_wait:
+                return 'unknown'
+            time.sleep(POLL_INTERVAL)
+
+    def open_document(self, path, max_wait=OPEN_MAX_WAIT):
+        """Open the first model of this session: wait for IDA's registration, then openDocument, retried after a
+        timeout (a call sent before IDA is ready is never answered, and the connection only works again after a
+        new connect_to_ida). Returns the document handle or raises IdaOpenError."""
+        state = self.wait_for_registration()
+        if state == 'ended':
+            raise IdaOpenError(path, tr_msg('IDA Districts ended during the start'))
+        if state == 'unknown':
+            QgsMessageLog.logMessage(tr_msg('IDA Districts registration not found after {} s, opening anyway')
+                                     .format(round(self.elapsed())), 'Districts', MessageInfo)
+        while True:
+            self.ida_lib.connect_to_ida(b"5945", self.pid.encode())
+            result = self.call_ida_api_function(self.ida_lib.openDocument, path.encode('utf-8'))
+            if isinstance(result, int) and not isinstance(result, bool) and result > 0:
+                return result
+            text = str(result)
+            if not text.startswith('Timeout'):
+                raise IdaOpenError(path, text)
+            if self.process_ended():
+                raise IdaOpenError(path, tr_msg('IDA Districts ended during the start'))
+            if self.elapsed() >= max_wait:
+                raise IdaOpenError(path, text)
+            QgsMessageLog.logMessage(tr_msg('IDA Districts not ready after {} s, retrying')
+                                     .format(round(self.elapsed())), 'Districts', MessageInfo)
+
     def exit_ida(self,doc=None,timeout=30):
         """Close the IDA Districts session started by this Util_api.
         Sends the lisp function (exit-ida) via runIDAScript (needs an open document), otherwise the API

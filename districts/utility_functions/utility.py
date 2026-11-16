@@ -205,7 +205,6 @@ def load_plugin_settings():
         "pathProjects": settings.value("pathProjects","C:\\projects\\"),
         "pathDistricts": settings.value("pathDistricts","C:\\Program Files (x86)\\IDA Districts\\"),
         "pathPostgresql": settings.value("pathPostgresql","C:\\Program Files\\PostgreSQL\\18\\"),
-        "districts_api_delay": settings.value("districts_api_delay","10"),
         "debug": settings.value("debug",False, type=bool),
         "debug_console": settings.value("debug_console",False, type=bool),
         "autosave": settings.value("autosave", True, type=bool),

@@ -4585,11 +4585,6 @@ li.checked::marker { content: "\2612"; }
             <translation type="unfinished">IDA Districts Pfad</translation>
         </message>
         <message>
-            <location filename="../districts_settings_dialog.ui" line="61" />
-            <source>IDA_API_delay</source>
-            <translation type="unfinished">IDA-API-Verzögerung, s</translation>
-        </message>
-        <message>
             <location filename="../districts_settings_dialog.ui" line="133" />
             <source>debug_mode</source>
             <translation type="unfinished">Debug-Modus</translation>
@@ -7795,6 +7790,22 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
         <message>
             <source>Failed to open the feature: {}!</source>
             <translation>Das Feature konnte nicht geöffnet werden: {}!</translation>
+        </message>
+        <message>
+            <source>IDA Districts could not open {}: {}</source>
+            <translation>IDA Districts konnte {} nicht öffnen: {}</translation>
+        </message>
+        <message>
+            <source>IDA Districts ended during the start</source>
+            <translation>IDA Districts wurde während des Starts beendet</translation>
+        </message>
+        <message>
+            <source>IDA Districts not ready after {} s, retrying</source>
+            <translation>IDA Districts nach {} s nicht bereit, neuer Versuch</translation>
+        </message>
+        <message>
+            <source>IDA Districts registration not found after {} s, opening anyway</source>
+            <translation>Anmeldung von IDA Districts nach {} s nicht gefunden, das Modell wird trotzdem geöffnet</translation>
         </message>
         <message>
             <source>Feature not yet invoked!</source>

@@ -991,7 +991,6 @@ class Districts:
             checkIDADistrictsInstallation(self.config)
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
-        settings.setValue("districts_api_delay", dlg.lineEdit_districts_api_delay.text())
         settings.setValue("debug", dlg.checkBox_debug.isChecked())
         settings.setValue("debug_console", dlg.checkBox_debug_console.isChecked())
         settings.setValue("autosave", dlg.groupBox_autosave.isChecked())
