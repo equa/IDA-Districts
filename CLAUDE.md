@@ -17,6 +17,23 @@ say what each git command does before you run it.
   Manager, that deletes the repository's folder.
 - `openspec/`, `.claude/`, `package.json` and `node_modules/` sit at the root,
   outside `districts/`: QGIS never loads them.
+- Requested outputs, the IDA templates and the network pump list
+  (`networkPumps.json`, from `utility_functions/template_graph.py` and
+  `network_pumps.py`) live per project, not per version: outputs are written
+  into the project's templates.
+- Cost data: pipe columns and the economic scenario tables
+  (`utility_functions/economic_data.py`, created by `upgrade.py` at every
+  version load), electricity profiles in `<project>\prices\`; the evaluation
+  is `network_economics.py` (with `economics.py`, `pipe_losses.py`).
+- Representative periods (`representative_periods.py`, `utility_functions/periods.py`):
+  a period run keeps the result tables of each week as `<table>_period<k>`
+  and writes `versions/<version>/periods.json`; the economic evaluation
+  uses them when the results do not cover a full year.
+- Cost optimization (`cost_optimization.py`, `utility_functions/cost_model.py`,
+  `cost_model_data.py`, `penalties.py`, `required_load.py`): iteration files
+  `versions/<version>/cost_optimization_iter<k>.json`, required-load columns
+  in `<project>\requiredLoads.json`. `test_cost_optimization_annual.py` runs
+  only with `DISTRICTS_TEST_ANNUAL=1` (hours).
 
 ## Build and test
 

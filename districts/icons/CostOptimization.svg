@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- pipes of three diameters: the sizes the optimizer chooses from -->
+  <g fill="#2f80ed" stroke="#1b4f91" stroke-width="4">
+    <rect x="40" y="318" width="96" height="22" rx="11"/>
+    <rect x="152" y="306" width="96" height="46" rx="23"/>
+    <rect x="264" y="292" width="96" height="74" rx="37"/>
+  </g>
+  <g fill="#cfe3fb">
+    <rect x="58" y="325" width="60" height="8" rx="4"/>
+    <rect x="170" y="318" width="60" height="22" rx="11"/>
+    <rect x="282" y="309" width="60" height="40" rx="20"/>
+  </g>
+
+  <!-- axes and the total cost over the pipe size: investment rises, operation falls, the sum has a minimum -->
+  <polyline points="40,40 40,268 372,268" fill="none" stroke="#33414e" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M 70 70 C 120 230, 180 250, 200 250 C 230 250, 300 225, 350 160" fill="none" stroke="#33414e" stroke-width="10" stroke-linecap="round"/>
+  <line x1="200" y1="250" x2="200" y2="290" stroke="#2e9e44" stroke-width="6" stroke-dasharray="10 8"/>
+  <circle cx="200" cy="250" r="17" fill="#2e9e44" stroke="#ffffff" stroke-width="5"/>
+
+  <!-- the euro coin -->
+  <circle cx="300" cy="86" r="58" fill="#f2c12e" stroke="#7a5a00" stroke-width="6"/>
+  <path d="M 330 58 A 34 34 0 1 0 330 114" fill="none" stroke="#7a5a00" stroke-width="10" stroke-linecap="round"/>
+  <g stroke="#7a5a00" stroke-width="8" stroke-linecap="round">
+    <line x1="262" y1="78" x2="306" y2="78"/>
+    <line x1="262" y1="96" x2="300" y2="96"/>
+  </g>
+</svg>

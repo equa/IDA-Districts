@@ -878,6 +878,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </widget>
               </item>
               <item>
+               <widget class="QPushButton" name="btn_economic_scenarios">
+                <property name="toolTip">
+                 <string>tooltip_economic_scenarios</string>
+                </property>
+                <property name="text">
+                 <string notr="true">€</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <spacer name="verticalSpacer_6">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
@@ -1449,6 +1459,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <widget class="QPushButton" name="btn_dynamicPipeSizing">
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hydraulic balancing: iteration of simulation and pipe resizing until the customers get about the same differential pressure and the pipes do not change anymore&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QPushButton" name="btn_costOptimization">
+              <property name="toolTip">
+               <string>tooltip_cost_optimization</string>
               </property>
               <property name="text">
                <string/>

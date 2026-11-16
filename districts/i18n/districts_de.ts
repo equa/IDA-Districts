@@ -4312,6 +4312,7 @@ Gleicht die Abnehmer des gewählten Netzes mit der dynamischen Simulation hydrau
 &lt;li&gt;&lt;b&gt;Hydraulischer Abgleich&lt;/b&gt;: Ziel = Δp&lt;sub&gt;A&lt;/sub&gt; des Schlechtpunkt-Abnehmers (kleinstes Δp&lt;sub&gt;A&lt;/sub&gt; nach der Vordimensionierung); seine Versorgungstrassen werden nicht verändert. Wiederholt erhält der Abnehmer mit dem höchsten Δp&lt;sub&gt;A&lt;/sub&gt; über Ziel + &lt;i&gt;Tolerance exceedance&lt;/i&gt; in seiner Trasse mit dem kleinsten R das nächstkleinere Rohr (gleiche Bauart, Vor- und Rücklauf); die zuletzt geänderte Trasse nur, wenn keine andere möglich ist. Eine Verkleinerung wird verworfen, wenn die Geschwindigkeit oder der spezifische Druckverlust bei Spitzenlast die Grenze überschreitet oder ein betroffener Abnehmer unter Ziel − &lt;i&gt;Tolerance undershoot&lt;/i&gt; fallen würde. Der zusätzliche Verlust ΔR · L wird von Δp&lt;sub&gt;A&lt;/sub&gt; aller über die Trasse versorgten Abnehmer abgezogen (mit &lt;i&gt;Weight the pressure loss ...&lt;/i&gt;: mal dem Anteil der Trasse am Abnehmermassenstrom). Der Abgleich endet, wenn alle Abnehmer innerhalb der Toleranz liegen oder keine Verkleinerung mehr möglich ist; die Quote ist der Anteil der abgeglichenen Abnehmer.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Schreiben der Rohre&lt;/b&gt;: geänderte Trassen erhalten den Rohrbündeltyp mit den neuen Rohren aller Paare und den unveränderten Rohren der übrigen Sequenzen (ein vorhandener wird wiederverwendet, ein fehlender mit den Positionen des ursprünglichen Bündels erzeugt). c_lid jedes Paars vor und nach der Dimensionierung wird als dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json / _c_lid_sized_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json im Versionsordner gespeichert.&lt;/li&gt;
 &lt;/ol&gt;
+&lt;b&gt;Geschützte Trassen&lt;/b&gt;: die Trassen der Liste behalten ihre Rohre in jedem Paar und jeder Iteration (keine Vordimensionierung, keine Vergrösserung, keine Reduktion); ihr Druckverlust zählt weiterhin für die Abnehmer, eine geschützte Trasse über dem max. spezifischen Druckverlust wird im Log genannt. Eine ID mit + hinzufügen oder Trassen in der Karte wählen und &lt;i&gt;Gewählte Trassen hinzufügen&lt;/i&gt; drücken. Die Liste wird beim Start in dynamic_sizing_protected_lines.json im Versionsordner gespeichert; IDs anderer Netze werden im Log genannt und ignoriert.&lt;br&gt;
 &lt;b&gt;Iterationen&lt;/b&gt;: jede Iteration wird als dynamic_sizing_iter&amp;lt;n&amp;gt;.json im Versionsordner gespeichert und im Reiter &lt;i&gt;Iterations&lt;/i&gt; aufgelistet, eine Zeile je Paar (kritischer Zeitpunkt, Schlechtpunkt, dp min/max und Spreizung an den Übergabestationen simuliert, Spreizung nach der Dimensionierung geschätzt, Quote, geänderte Trassen, Ergebnis); die Dateien eines früheren Laufs werden beim Start gelöscht. Mit &lt;i&gt;Show every iteration on the map&lt;/i&gt;, oder nachträglich mit &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (oder Doppelklick), erhält die Gruppe &lt;i&gt;Hydraulischer Abgleich&lt;/i&gt; eine Untergruppe je Iteration und darin eine je Paar: Abnehmer mit abgestuften Farben des dp an der Übergabestation (rot = tief, blau = hoch, der Schlechtpunkt als grösserer, beschrifteter Punkt), Trassen mit dem Innendurchmesser des Vorlaufrohrs nach der Dimensionierung (eine Farbe je Durchmesser wie in der Rohrdurchmesser-Darstellung des Trassenlayers; im Referenzlauf der aktuelle Durchmesser), die Trassen mit neuen Rohren (beschriftet altes → neues Rohr) und, darunter ausgeschaltet, Trassen mit abgestuften Farben und Breiten des Auslegungsmassenstroms. Die Klassen und Durchmesserfarben eines Paars sind für alle Iterationen gleich, die letzte ist sichtbar; zum Vergleichen die Untergruppen im Layerbaum umschalten. Die Layer werden beim Laden einer Version entfernt. Iterationsdateien von Läufen vor den Vorlauf-/Rücklaufpaaren werden als Paar 1/2 angezeigt.&lt;br&gt;
 &lt;b&gt;Zeitraum&lt;/b&gt;: &lt;i&gt;Berechnungszeitraum&lt;/i&gt; und &lt;i&gt;Startup-Zeitraum&lt;/i&gt; sind die Zeiträume des Simulationsdialogs (mit der Version in networkSimData.txt gespeichert); jede Simulation des Laufs verwendet sie. Wähle einen Zeitraum, der jedes Paar belastet, z.B. einen Sommertag für einen Kältekreis: hat der Ziel-Abnehmer eines Paars in seinem kritischen Zeitpunkt fast keinen Durchfluss (unter 1 % seines Spitzenmassenstroms), warnt das Protokoll.&lt;br&gt;
 &lt;b&gt;Referenzlauf&lt;/b&gt; (Iteration 0): simuliert mit den aktuellen Rohren und wertet jedes Paar aus, ohne ein Rohr zu ändern, dann hält der Lauf an; Tabelle und Karte prüfen. Mit einer neuen Kindversion wird diese zuerst erstellt und danach &lt;i&gt;Override the pipes of the loaded version&lt;/i&gt; ausgewählt, so dass die Dimensionierung (zweiter Start, ohne Referenzlauf) in derselben Version arbeitet und Iteration 0 zum Vergleich behält.&lt;br&gt;
@@ -5499,6 +5500,26 @@ li.checked::marker { content: "\2612"; }
             <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_osm&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
             <translation type="unfinished">OpenStreetMap Daten importieren</translation>
         </message>
+        <message>
+            <source>tooltip_economic_scenarios</source>
+            <translation type="unfinished">Wirtschaftlichkeit: Szenarien, Preise, Grabenkosten</translation>
+        </message>
+        <message>
+            <source>representative_periods</source>
+            <translation type="unfinished">Perioden</translation>
+        </message>
+        <message>
+            <source>tooltip_representative_periods</source>
+            <translation type="unfinished">Repräsentative Perioden: drei Wochen simulieren und auf das Jahr gewichten</translation>
+        </message>
+        <message>
+            <source>cost_optimization</source>
+            <translation type="unfinished">Kosten</translation>
+        </message>
+        <message>
+            <source>tooltip_cost_optimization</source>
+            <translation type="unfinished">Kostenoptimierung: Rohrgrössen mit dem kleinsten Barwert, durch Simulationen geprüft</translation>
+        </message>
     </context>
     <context>
         <name>ExportResourceDialog</name>
@@ -6281,6 +6302,10 @@ li.checked::marker { content: "\2612"; }
             <source>plot_diagram_name</source>
             <translation type="unfinished">Kartendarstellung</translation>
         </message>
+        <message>
+            <source>economics</source>
+            <translation type="unfinished">Wirtschaftlichkeit</translation>
+        </message>
     </context>
     <context>
         <name>PlotLoadProfilesDialog</name>
@@ -6632,6 +6657,18 @@ li.checked::marker { content: "\2612"; }
             <location filename="../RequestedOutputs_dialog.ui" line="859" />
             <source>cancel</source>
             <translation type="unfinished">Abbrechen</translation>
+        </message>
+        <message>
+            <source>substation_pump_power</source>
+            <translation type="unfinished">Abnehmer Pumpenleistung (Netzpumpen), W</translation>
+        </message>
+        <message>
+            <source>plant_pump_power</source>
+            <translation type="unfinished">Anlagen Pumpenleistung (Netzpumpen), W</translation>
+        </message>
+        <message>
+            <source>network_pumps</source>
+            <translation type="unfinished">Netzpumpen...</translation>
         </message>
     </context>
     <context>
@@ -7375,6 +7412,54 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
     </context>
     <context>
         <name>Messages</name>
+        <message>
+            <source>Line IDs whose pipes the sizing never changes (no pre-sizing, no enlargement, no reduction) in every pair; their pressure loss still counts for the customers. Saved with the version at the start.</source>
+            <translation>Trassen-IDs, deren Rohre die Dimensionierung in keinem Paar ändert (keine Vordimensionierung, keine Vergrösserung, keine Reduktion); ihr Druckverlust zählt weiterhin für die Abnehmer. Wird beim Start mit der Version gespeichert.</translation>
+        </message>
+        <message>
+            <source>Add a line ID</source>
+            <translation>Trassen-ID hinzufügen</translation>
+        </message>
+        <message>
+            <source>Remove the selected line IDs</source>
+            <translation>Gewählte Trassen-IDs entfernen</translation>
+        </message>
+        <message>
+            <source>Add selected lines</source>
+            <translation>Gewählte Trassen hinzufügen</translation>
+        </message>
+        <message>
+            <source>Add the lines selected on the map (layer lines)</source>
+            <translation>Die in der Karte gewählten Trassen hinzufügen (Layer Trassen)</translation>
+        </message>
+        <message>
+            <source>Protected lines</source>
+            <translation>Geschützte Trassen</translation>
+        </message>
+        <message>
+            <source>Please select lines in the layer lines.</source>
+            <translation>Bitte Trassen im Layer Trassen auswählen.</translation>
+        </message>
+        <message>
+            <source>Protected lines: not a line ID: {}</source>
+            <translation>Geschützte Trassen: keine Trassen-ID: {}</translation>
+        </message>
+        <message>
+            <source>The protected lines could not be saved: </source>
+            <translation>Die geschützten Trassen konnten nicht gespeichert werden: </translation>
+        </message>
+        <message>
+            <source>Protected lines not in network {}, not protected in this run: {}</source>
+            <translation>Geschützte Trassen nicht im Netz {}, in diesem Lauf nicht geschützt: {}</translation>
+        </message>
+        <message>
+            <source>  pair {}: {} protected lines keep their pipes</source>
+            <translation>  Paar {}: {} geschützte Trassen behalten ihre Rohre</translation>
+        </message>
+        <message>
+            <source>  Warning: pair {}: protected lines above the max. specific pressure loss: {}</source>
+            <translation>  Warnung: Paar {}: geschützte Trassen über dem max. spezifischen Druckverlust: {}</translation>
+        </message>
         <message>
             <source>to</source>
             <translation>bis</translation>
@@ -8914,6 +8999,770 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>Twin pipe of the pipe bundle {}: {}</source>
             <translation>Doppelrohr des Rohrbündels {}: {}</translation>
+        </message>
+        <message>
+            <source>{} template {}: file not found ({}).</source>
+            <translation>{} Vorlage {}: Datei nicht gefunden ({}).</translation>
+        </message>
+        <message>
+            <source>Network pumps</source>
+            <translation>Netzpumpen</translation>
+        </message>
+        <message>
+            <source>Pumps that move network water. Found: in the flow path between the network connections of the template without a heat exchanger in between. Estimate: power from the connection mass flow and pressures, Δp int. and η.</source>
+            <translation>Pumpen, die Netzwasser fördern. Gefunden: im Strömungsweg zwischen den Netzanschlüssen der Vorlage ohne Wärmeübertrager dazwischen. Schätzung: Leistung aus Massenstrom und Drücken der Anschlüsse, Δp int. und η.</translation>
+        </message>
+        <message>
+            <source>Detect</source>
+            <translation>Erkennen</translation>
+        </message>
+        <message>
+            <source>Add...</source>
+            <translation>Hinzufügen...</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Entfernen</translation>
+        </message>
+        <message>
+            <source>OK</source>
+            <translation>OK</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Abbrechen</translation>
+        </message>
+        <message>
+            <source>Add a network pump</source>
+            <translation>Netzpumpe hinzufügen</translation>
+        </message>
+        <message>
+            <source>variable</source>
+            <translation>Variable</translation>
+        </message>
+        <message>
+            <source>estimate</source>
+            <translation>Schätzung</translation>
+        </message>
+        <message>
+            <source>Template</source>
+            <translation>Vorlage</translation>
+        </message>
+        <message>
+            <source>Component</source>
+            <translation>Komponente</translation>
+        </message>
+        <message>
+            <source>Kind</source>
+            <translation>Art</translation>
+        </message>
+        <message>
+            <source>Power variable</source>
+            <translation>Leistungsvariable</translation>
+        </message>
+        <message>
+            <source>η</source>
+            <translation>η</translation>
+        </message>
+        <message>
+            <source>Δp int. [kPa]</source>
+            <translation>Δp int. [kPa]</translation>
+        </message>
+        <message>
+            <source>{} template {}: pump {} in {} is not analysed; add it if it moves network water.</source>
+            <translation>{} Vorlage {}: Pumpe {} in {} wird nicht untersucht; füge sie hinzu, wenn sie Netzwasser fördert.</translation>
+        </message>
+        <message>
+            <source>{} template {}: {} cannot be read ({}).</source>
+            <translation>{} Vorlage {}: {} kann nicht gelesen werden ({}).</translation>
+        </message>
+        <message>
+            <source>Feature type</source>
+            <translation>Objekttyp</translation>
+        </message>
+        <message>
+            <source>Source</source>
+            <translation>Herkunft</translation>
+        </message>
+        <message>
+            <source>found</source>
+            <translation>gefunden</translation>
+        </message>
+        <message>
+            <source>added</source>
+            <translation>hinzugefügt</translation>
+        </message>
+        <message>
+            <source>Detection: {} new entries.</source>
+            <translation>Erkennung: {} neue Einträge.</translation>
+        </message>
+        <message>
+            <source>The component no longer exists in the template; no output is written for it.</source>
+            <translation>Die Komponente gibt es in der Vorlage nicht mehr; für sie wird keine Ausgabe geschrieben.</translation>
+        </message>
+        <message>
+            <source>{} template {}: component {} no longer exists.</source>
+            <translation>{} Vorlage {}: Komponente {} gibt es nicht mehr.</translation>
+        </message>
+        <message>
+            <source>Economic scenarios</source>
+            <translation>Wirtschaftlichkeitsszenarien</translation>
+        </message>
+        <message>
+            <source>Costs and prices of the economic evaluation. Electricity: start price × level of the year × hourly profile; heat and cold: price curve of the supply temperature × level of the year; trench: a + b × DN of the largest pipe per surface.</source>
+            <translation>Kosten und Preise der Wirtschaftlichkeitsbewertung. Strom: Startpreis × Niveau des Jahres × Stundenprofil; Wärme und Kälte: Preiskurve der Vorlauftemperatur × Niveau des Jahres; Graben: a + b × DN des grössten Rohrs je Oberfläche.</translation>
+        </message>
+        <message>
+            <source>Name of the copy</source>
+            <translation>Name der Kopie</translation>
+        </message>
+        <message>
+            <source>Copy scenario</source>
+            <translation>Szenario kopieren</translation>
+        </message>
+        <message>
+            <source>Electricity profile...</source>
+            <translation>Strompreisprofil...</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Schliessen</translation>
+        </message>
+        <message>
+            <source>Electricity profile</source>
+            <translation>Strompreisprofil</translation>
+        </message>
+        <message>
+            <source>Scenario</source>
+            <translation>Szenario</translation>
+        </message>
+        <message>
+            <source>Select a scenario and enter a name for the copy.</source>
+            <translation>Wähle ein Szenario und gib einen Namen für die Kopie ein.</translation>
+        </message>
+        <message>
+            <source>Profile {} set for scenario {}.</source>
+            <translation>Profil {} für Szenario {} gesetzt.</translation>
+        </message>
+        <message>
+            <source>The profile must have 8760 or 8784 hourly values, the file has {}.</source>
+            <translation>Das Profil muss 8760 oder 8784 Stundenwerte haben, die Datei hat {}.</translation>
+        </message>
+        <message>
+            <source>Maintenance [%/a]</source>
+            <translation>Instandhaltung [%/a]</translation>
+        </message>
+        <message>
+            <source>Lifetime [a]</source>
+            <translation>Nutzungsdauer [a]</translation>
+        </message>
+        <message>
+            <source>p max [bar]</source>
+            <translation>p max [bar]</translation>
+        </message>
+        <message>
+            <source>Example values</source>
+            <translation>Beispielwerte</translation>
+        </message>
+        <message>
+            <source>Investment pipes</source>
+            <translation>Investition Rohre</translation>
+        </message>
+        <message>
+            <source>Investment trench</source>
+            <translation>Investition Graben</translation>
+        </message>
+        <message>
+            <source>Pump energy per year</source>
+            <translation>Pumpenenergie pro Jahr</translation>
+        </message>
+        <message>
+            <source>Heat losses per year</source>
+            <translation>Wärmeverluste pro Jahr</translation>
+        </message>
+        <message>
+            <source>Cold losses per year</source>
+            <translation>Kälteverluste pro Jahr</translation>
+        </message>
+        <message>
+            <source>Period, interest</source>
+            <translation>Zeitraum, Zins</translation>
+        </message>
+        <message>
+            <source>Net present value</source>
+            <translation>Barwert</translation>
+        </message>
+        <message>
+            <source>Annuity</source>
+            <translation>Annuität</translation>
+        </message>
+        <message>
+            <source>Pipes in use without costs</source>
+            <translation>Verwendete Rohre ohne Kosten</translation>
+        </message>
+        <message>
+            <source>Lines whose calculated heat loss deviates more than 15 % from the simulated one</source>
+            <translation>Leitungen, deren berechneter Wärmeverlust mehr als 15 % vom simulierten abweicht</translation>
+        </message>
+        <message>
+            <source>Economics</source>
+            <translation>Wirtschaftlichkeit</translation>
+        </message>
+        <message>
+            <source>Results needed</source>
+            <translation>Benötigte Ergebnisse</translation>
+        </message>
+        <message>
+            <source>Investment pumps ({:.1f} kW peak)</source>
+            <translation>Investition Pumpen ({:.1f} kW Spitze)</translation>
+        </message>
+        <message>
+            <source>The economic evaluation failed (see the message log Districts).</source>
+            <translation>Die Wirtschaftlichkeitsbewertung ist fehlgeschlagen (siehe Meldungsprotokoll Districts).</translation>
+        </message>
+        <message>
+            <source>example values in use</source>
+            <translation>Beispielwerte in Verwendung</translation>
+        </message>
+        <message>
+            <source>the results cover {:.0f} days; results covering a full year are needed</source>
+            <translation>die Ergebnisse umfassen {:.0f} Tage; Ergebnisse über ein ganzes Jahr werden benötigt</translation>
+        </message>
+        <message>
+            <source>Scenarios</source>
+            <translation>Szenarien</translation>
+        </message>
+        <message>
+            <source>Prices per cost group</source>
+            <translation>Preise je Kostengruppe</translation>
+        </message>
+        <message>
+            <source>Price levels per year</source>
+            <translation>Preisniveaus je Jahr</translation>
+        </message>
+        <message>
+            <source>Price curves heat and cold</source>
+            <translation>Preiskurven Wärme und Kälte</translation>
+        </message>
+        <message>
+            <source>Trench costs per surface</source>
+            <translation>Grabenkosten je Oberfläche</translation>
+        </message>
+        <message>
+            <source>ID</source>
+            <translation>ID</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Name</translation>
+        </message>
+        <message>
+            <source>Interest [%/a]</source>
+            <translation>Zins [%/a]</translation>
+        </message>
+        <message>
+            <source>Period [a]</source>
+            <translation>Betrachtungszeitraum [a]</translation>
+        </message>
+        <message>
+            <source>Residual value</source>
+            <translation>Restwert</translation>
+        </message>
+        <message>
+            <source>Default surface</source>
+            <translation>Standard-Oberfläche</translation>
+        </message>
+        <message>
+            <source>Electricity profile file</source>
+            <translation>Datei Strompreisprofil</translation>
+        </message>
+        <message>
+            <source>Pumps [€/kW]</source>
+            <translation>Pumpen [€/kW]</translation>
+        </message>
+        <message>
+            <source>Pump maintenance [%/a]</source>
+            <translation>Instandhaltung Pumpen [%/a]</translation>
+        </message>
+        <message>
+            <source>Pump lifetime [a]</source>
+            <translation>Nutzungsdauer Pumpen [a]</translation>
+        </message>
+        <message>
+            <source>Cost group</source>
+            <translation>Kostengruppe</translation>
+        </message>
+        <message>
+            <source>Start price [€/kWh]</source>
+            <translation>Startpreis [€/kWh]</translation>
+        </message>
+        <message>
+            <source>Escalation [%/a]</source>
+            <translation>Preissteigerung [%/a]</translation>
+        </message>
+        <message>
+            <source>Year</source>
+            <translation>Jahr</translation>
+        </message>
+        <message>
+            <source>Factor</source>
+            <translation>Faktor</translation>
+        </message>
+        <message>
+            <source>Mode</source>
+            <translation>Modus</translation>
+        </message>
+        <message>
+            <source>Supply temperature [°C]</source>
+            <translation>Vorlauftemperatur [°C]</translation>
+        </message>
+        <message>
+            <source>Price [€/kWh]</source>
+            <translation>Preis [€/kWh]</translation>
+        </message>
+        <message>
+            <source>Surface</source>
+            <translation>Oberfläche</translation>
+        </message>
+        <message>
+            <source>a [€/m]</source>
+            <translation>a [€/m]</translation>
+        </message>
+        <message>
+            <source>b [€/m per DN]</source>
+            <translation>b [€/m je DN]</translation>
+        </message>
+        <message>
+            <source>NPV investment and replacements</source>
+            <translation>Barwert Investition und Ersatz</translation>
+        </message>
+        <message>
+            <source>NPV pump energy</source>
+            <translation>Barwert Pumpenenergie</translation>
+        </message>
+        <message>
+            <source>NPV heat losses</source>
+            <translation>Barwert Wärmeverluste</translation>
+        </message>
+        <message>
+            <source>NPV cold losses</source>
+            <translation>Barwert Kälteverluste</translation>
+        </message>
+        <message>
+            <source>NPV maintenance</source>
+            <translation>Barwert Instandhaltung</translation>
+        </message>
+        <message>
+            <source>NPV residual value</source>
+            <translation>Barwert Restwert</translation>
+        </message>
+        <message>
+            <source>pump power</source>
+            <translation>Pumpenleistung</translation>
+        </message>
+        <message>
+            <source>line temperature</source>
+            <translation>Leitungstemperatur</translation>
+        </message>
+        <message>
+            <source>energy plant temperature</source>
+            <translation>Temperatur Energiezentralen</translation>
+        </message>
+        <message>
+            <source>line heat loss</source>
+            <translation>Wärmeverlust Leitungen</translation>
+        </message>
+        <message>
+            <source>Representative periods</source>
+            <translation>Repräsentative Perioden</translation>
+        </message>
+        <message>
+            <source>Add the warmest week</source>
+            <translation>Wärmste Woche hinzufügen</translation>
+        </message>
+        <message>
+            <source>Annual simulation instead of the weeks</source>
+            <translation>Jahressimulation statt der Wochen</translation>
+        </message>
+        <message>
+            <source>Build the network model first</source>
+            <translation>Zuerst das Netzmodell erstellen</translation>
+        </message>
+        <message>
+            <source>Network</source>
+            <translation>Netz</translation>
+        </message>
+        <message>
+            <source>Submodel</source>
+            <translation>Teilmodell</translation>
+        </message>
+        <message>
+            <source>Length of a week [days]</source>
+            <translation>Länge einer Woche [Tage]</translation>
+        </message>
+        <message>
+            <source>Start-up before each week [days]</source>
+            <translation>Einschwingzeit vor jeder Woche [Tage]</translation>
+        </message>
+        <message>
+            <source>Choose the weeks</source>
+            <translation>Wochen wählen</translation>
+        </message>
+        <message>
+            <source>Start</source>
+            <translation>Start</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Stopp</translation>
+        </message>
+        <message>
+            <source>day of the year</source>
+            <translation>Tag des Jahres</translation>
+        </message>
+        <message>
+            <source>air temperature [°C]</source>
+            <translation>Lufttemperatur [°C]</translation>
+        </message>
+        <message>
+            <source>Building the network model ...</source>
+            <translation>Das Netzmodell wird erstellt ...</translation>
+        </message>
+        <message>
+            <source>No submodel to simulate.</source>
+            <translation>Kein Teilmodell zum Simulieren.</translation>
+        </message>
+        <message>
+            <source>Stopping after the current step ...</source>
+            <translation>Abbruch nach dem aktuellen Schritt ...</translation>
+        </message>
+        <message>
+            <source>Stopped by the user.</source>
+            <translation>Vom Benutzer abgebrochen.</translation>
+        </message>
+        <message>
+            <source>Representative periods: </source>
+            <translation>Repräsentative Perioden: </translation>
+        </message>
+        <message>
+            <source>Building the network model failed.</source>
+            <translation>Das Erstellen des Netzmodells ist fehlgeschlagen.</translation>
+        </message>
+        <message>
+            <source>anchor week</source>
+            <translation>Ankerwoche</translation>
+        </message>
+        <message>
+            <source>week for the coverage</source>
+            <translation>Woche für die Abdeckung</translation>
+        </message>
+        <message>
+            <source>{:.0%} of the hours of the year are more than 1 K from a simulated hour{}</source>
+            <translation>{:.0%} der Stunden des Jahres liegen mehr als 1 K von einer simulierten Stunde entfernt{}</translation>
+        </message>
+        <message>
+            <source> – the weeks represent the year poorly</source>
+            <translation> – die Wochen bilden das Jahr schlecht ab</translation>
+        </message>
+        <message>
+            <source>Period {}: simulating {} to {} ...</source>
+            <translation>Periode {}: Simulation {} bis {} ...</translation>
+        </message>
+        <message>
+            <source>Finished: {} periods simulated and kept.</source>
+            <translation>Fertig: {} Perioden simuliert und gespeichert.</translation>
+        </message>
+        <message>
+            <source>Error: {}</source>
+            <translation>Fehler: {}</translation>
+        </message>
+        <message>
+            <source>Requested outputs the economic evaluation needs are switched off: {}</source>
+            <translation>Ausgaben, die die Wirtschaftlichkeitsbewertung braucht, sind ausgeschaltet: {}</translation>
+        </message>
+        <message>
+            <source>The simulation of period {} failed.</source>
+            <translation>Die Simulation der Periode {} ist fehlgeschlagen.</translation>
+        </message>
+        <message>
+            <source>The climate file cannot be read: {}</source>
+            <translation>Die Klimadatei kann nicht gelesen werden: {}</translation>
+        </message>
+        <message>
+            <source>  {} result tables kept</source>
+            <translation>  {} Ergebnistabellen gespeichert</translation>
+        </message>
+        <message>
+            <source>weeks from {}; {:.0%} of the year more than 1 K away; run {}</source>
+            <translation>Wochen ab {}; {:.0%} des Jahres mehr als 1 K entfernt; Lauf {}</translation>
+        </message>
+        <message>
+            <source>investment</source>
+            <translation>Investition</translation>
+        </message>
+        <message>
+            <source>pump_energy</source>
+            <translation>Pumpenenergie</translation>
+        </message>
+        <message>
+            <source>heat_losses</source>
+            <translation>Wärmeverluste</translation>
+        </message>
+        <message>
+            <source>cold_losses</source>
+            <translation>Kälteverluste</translation>
+        </message>
+        <message>
+            <source>maintenance</source>
+            <translation>Instandhaltung</translation>
+        </message>
+        <message>
+            <source>residual</source>
+            <translation>Restwert</translation>
+        </message>
+        <message>
+            <source>penalties</source>
+            <translation>Strafkosten</translation>
+        </message>
+        <message>
+            <source>changed</source>
+            <translation>geändert</translation>
+        </message>
+        <message>
+            <source>Cost optimization</source>
+            <translation>Kostenoptimierung</translation>
+        </message>
+        <message>
+            <source>Supply/return pairs, e.g. 1/2, 3/4</source>
+            <translation>Vorlauf/Rücklauf-Paare, z. B. 1/2, 3/4</translation>
+        </message>
+        <message>
+            <source>Representative weeks</source>
+            <translation>Repräsentative Wochen</translation>
+        </message>
+        <message>
+            <source>Annual simulation</source>
+            <translation>Jahressimulation</translation>
+        </message>
+        <message>
+            <source>New child version</source>
+            <translation>Neue Kindversion</translation>
+        </message>
+        <message>
+            <source>Override the pipes of the loaded version</source>
+            <translation>Die Rohre der geladenen Version überschreiben</translation>
+        </message>
+        <message>
+            <source>Pairs</source>
+            <translation>Paare</translation>
+        </message>
+        <message>
+            <source>Periods</source>
+            <translation>Perioden</translation>
+        </message>
+        <message>
+            <source>Penalties</source>
+            <translation>Strafkosten</translation>
+        </message>
+        <message>
+            <source>Max. iterations</source>
+            <translation>Max. Iterationen</translation>
+        </message>
+        <message>
+            <source>Version</source>
+            <translation>Version</translation>
+        </message>
+        <message>
+            <source>iteration</source>
+            <translation>Iteration</translation>
+        </message>
+        <message>
+            <source>net present value [€]</source>
+            <translation>Barwert [€]</translation>
+        </message>
+        <message>
+            <source>max. iterations</source>
+            <translation>max. Iterationen</translation>
+        </message>
+        <message>
+            <source>no improvement</source>
+            <translation>keine Verbesserung</translation>
+        </message>
+        <message>
+            <source>no improving change</source>
+            <translation>keine verbessernde Änderung</translation>
+        </message>
+        <message>
+            <source>days</source>
+            <translation>Tage</translation>
+        </message>
+        <message>
+            <source>start-up</source>
+            <translation>Einschwingzeit</translation>
+        </message>
+        <message>
+            <source>€/Kh</source>
+            <translation>€/Kh</translation>
+        </message>
+        <message>
+            <source>tolerance [K]</source>
+            <translation>Toleranz [K]</translation>
+        </message>
+        <message>
+            <source>€/kWh unmet</source>
+            <translation>€/kWh ungedeckt</translation>
+        </message>
+        <message>
+            <source>Column</source>
+            <translation>Spalte</translation>
+        </message>
+        <message>
+            <source>Unit</source>
+            <translation>Einheit</translation>
+        </message>
+        <message>
+            <source>Required load of source-file customers (column of the source file)</source>
+            <translation>Benötigte Leistung der Abnehmer mit Quelldatei (Spalte der Quelldatei)</translation>
+        </message>
+        <message>
+            <source>NPV simulated</source>
+            <translation>Barwert simuliert</translation>
+        </message>
+        <message>
+            <source>NPV model</source>
+            <translation>Barwert Modell</translation>
+        </message>
+        <message>
+            <source>Model error</source>
+            <translation>Modellfehler</translation>
+        </message>
+        <message>
+            <source>larger</source>
+            <translation>grösser</translation>
+        </message>
+        <message>
+            <source>smaller</source>
+            <translation>kleiner</translation>
+        </message>
+        <message>
+            <source>rejected</source>
+            <translation>verworfen</translation>
+        </message>
+        <message>
+            <source>The version has no iterations of the hydraulic balancing; run it first for a balanced start.</source>
+            <translation>Die Version hat keine Iterationen des hydraulischen Abgleichs; führe ihn zuerst aus, für einen abgeglichenen Start.</translation>
+        </message>
+        <message>
+            <source>Choose a scenario, a submodel and at least one pair.</source>
+            <translation>Wähle ein Szenario, ein Teilmodell und mindestens ein Paar.</translation>
+        </message>
+        <message>
+            <source>Maximal number of iterations reached.</source>
+            <translation>Maximale Anzahl Iterationen erreicht.</translation>
+        </message>
+        <message>
+            <source>The cost model could not be built from the results.</source>
+            <translation>Das Kostenmodell konnte aus den Ergebnissen nicht erstellt werden.</translation>
+        </message>
+        <message>
+            <source>No change improves the costs.</source>
+            <translation>Keine Änderung verbessert die Kosten.</translation>
+        </message>
+        <message>
+            <source>The pipes repeat an earlier iteration (oscillation).</source>
+            <translation>Die Rohre wiederholen eine frühere Iteration (Oszillation).</translation>
+        </message>
+        <message>
+            <source>Cost optimization: </source>
+            <translation>Kostenoptimierung: </translation>
+        </message>
+        <message>
+            <source>model</source>
+            <translation>Modell</translation>
+        </message>
+        <message>
+            <source>Iteration {}: simulating the periods ...</source>
+            <translation>Iteration {}: Simulation der Perioden ...</translation>
+        </message>
+        <message>
+            <source>  {} lines changed</source>
+            <translation>  {} Leitungen geändert</translation>
+        </message>
+        <message>
+            <source>The pipes of iteration {} are restored and simulated again.</source>
+            <translation>Die Rohre der Iteration {} werden wiederhergestellt und erneut simuliert.</translation>
+        </message>
+        <message>
+            <source>Iteration {} – changed lines</source>
+            <translation>Iteration {} – geänderte Leitungen</translation>
+        </message>
+        <message>
+            <source>Requested outputs the optimization needs are switched off: {}</source>
+            <translation>Ausgaben, die die Optimierung braucht, sind ausgeschaltet: {}</translation>
+        </message>
+        <message>
+            <source>Weeks from {}</source>
+            <translation>Wochen ab {}</translation>
+        </message>
+        <message>
+            <source>The check of iteration {} failed.</source>
+            <translation>Die Prüfung der Iteration {} ist fehlgeschlagen.</translation>
+        </message>
+        <message>
+            <source>The results of iteration {} cannot be evaluated: {}</source>
+            <translation>Die Ergebnisse der Iteration {} können nicht bewertet werden: {}</translation>
+        </message>
+        <message>
+            <source>No improvement of the simulated NPV for {} iterations.</source>
+            <translation>Keine Verbesserung des simulierten Barwerts seit {} Iterationen.</translation>
+        </message>
+        <message>
+            <source>Finished: the pipes of iteration {} are in the version and simulated.</source>
+            <translation>Fertig: die Rohre der Iteration {} sind in der Version und simuliert.</translation>
+        </message>
+        <message>
+            <source>Finished: iteration {} has the least NPV ({:,.0f} €).</source>
+            <translation>Fertig: Iteration {} hat den kleinsten Barwert ({:,.0f} €).</translation>
+        </message>
+        <message>
+            <source>Start-up before each period [days]</source>
+            <translation>Einschwingzeit vor jeder Periode [Tage]</translation>
+        </message>
+        <message>
+            <source>Component name</source>
+            <translation>Komponentenname</translation>
+        </message>
+        <message>
+            <source>Starting ...</source>
+            <translation>Start ...</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Einstellungen</translation>
+        </message>
+        <message>
+            <source>Results</source>
+            <translation>Ergebnisse</translation>
+        </message>
+        <message>
+            <source>Choosing the weeks ...</source>
+            <translation>Die Wochen werden gewählt ...</translation>
+        </message>
+        <message>
+            <source>The weeks are still being chosen; start again in a moment.</source>
+            <translation>Die Wochen werden noch gewählt; starte gleich noch einmal.</translation>
+        </message>
+        <message>
+            <source>Iteration {}: evaluating the results ...</source>
+            <translation>Iteration {}: Auswertung der Ergebnisse ...</translation>
+        </message>
+        <message>
+            <source>Iteration {}: cost model and step ...</source>
+            <translation>Iteration {}: Kostenmodell und Schritt ...</translation>
+        </message>
+        <message>
+            <source>No database connection</source>
+            <translation>Keine Datenbankverbindung</translation>
         </message>
     </context>
 </TS>

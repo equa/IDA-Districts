@@ -228,6 +228,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_runModel.setIconSize(QSize(btn_size, btn_size))
         self.btn_dynamicPipeSizing.setIcon(QIcon(os.path.join(plugin_dir, "icons/HydraulicBalancing.svg")))
         self.btn_dynamicPipeSizing.setIconSize(QSize(btn_size, btn_size))
+        self.btn_costOptimization.setIcon(QIcon(os.path.join(plugin_dir, "icons/CostOptimization.svg")))
+        self.btn_costOptimization.setIconSize(QSize(btn_size, btn_size))
 
         #results & visualization
         btn_size=100

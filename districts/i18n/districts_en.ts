@@ -4315,6 +4315,7 @@ Balances the customers of the selected network with the dynamic simulation: the 
 &lt;li&gt;&lt;b&gt;Hydraulic balancing&lt;/b&gt;: target = Δp&lt;sub&gt;C&lt;/sub&gt; of the weak point customer (smallest Δp&lt;sub&gt;C&lt;/sub&gt; after the pre-sizing); its supply lines are not changed. Repeatedly the customer with the highest Δp&lt;sub&gt;C&lt;/sub&gt; above target + &lt;i&gt;Tolerance exceedance&lt;/i&gt; gets the next smaller pipe (same construction, supply and return) in its line with the lowest R; the line changed last only if no other one is possible. A reduction is rejected if the velocity or the specific pressure loss at peak flow exceeds its limit or an affected customer would fall below target − &lt;i&gt;Tolerance undershoot&lt;/i&gt;. The additional loss ΔR · L is subtracted from Δp&lt;sub&gt;C&lt;/sub&gt; of all customers supplied via the line (with &lt;i&gt;Weight the pressure loss ...&lt;/i&gt;: times the share of the line in the customer mass flow). It ends when all customers are within the tolerance or no reduction is possible; the quota is the share of balanced customers.&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Writing the pipes&lt;/b&gt;: changed lines get the pipe bundle type with the new pipes of all pairs and the unchanged pipes of the other sequences (an existing one is reused, a missing one is created with the positions of the original bundle). c_lid of every pair before and after the sizing is saved as dynamic_sizing_iter&amp;lt;n&amp;gt;_c_lid_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json / _c_lid_sized_&amp;lt;s&amp;gt;_&amp;lt;r&amp;gt;.json in the version folder.&lt;/li&gt;
 &lt;/ol&gt;
+&lt;b&gt;Protected lines&lt;/b&gt;: the lines of the list keep their pipes in every pair and iteration (no pre-sizing, no enlargement, no reduction); their pressure loss still counts for the customers, a protected line above the max. specific pressure loss is named in the log. Add an ID with + or select lines on the map and press &lt;i&gt;Add selected lines&lt;/i&gt;. The list is saved at the start in dynamic_sizing_protected_lines.json in the version folder; IDs of other networks are logged and ignored.&lt;br&gt;
 &lt;b&gt;Iterations&lt;/b&gt;: every iteration is saved as dynamic_sizing_iter&amp;lt;n&amp;gt;.json in the version folder and listed in the tab &lt;i&gt;Iterations&lt;/i&gt;, one row per pair (critical time, weak point, dp min/max and spread at the substations as simulated, spread after the sizing as estimated, quota, changed lines, outcome); the files of a previous run are deleted when a new run starts. With &lt;i&gt;Show every iteration on the map&lt;/i&gt;, or afterwards with &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (or a double click), the group &lt;i&gt;Hydraulic balancing&lt;/i&gt; gets a subgroup per iteration and in it one per pair: customers with graduated colors of dp at the substation (red = low, blue = high, the weak point as a bigger, labelled point), lines with the inner diameter of the supply pipe after the sizing (one color per diameter as in the pipe diameter style of the lines layer; in a reference run the current diameter), the lines with new pipes (labelled old → new pipe) and, switched off below them, lines with graduated colors and widths of the design mass flow. The classes and diameter colors of a pair are the same for all iterations, the last one is visible; switch the subgroups in the layer tree to compare. The layers are removed when a version is loaded. Iteration files of runs before the supply/return pairs are shown as the pair 1/2.&lt;br&gt;
 &lt;b&gt;Period&lt;/b&gt;: &lt;i&gt;Calculation period&lt;/i&gt; and &lt;i&gt;Start-up period&lt;/i&gt; are the periods of the simulation dialog (saved with the version in networkSimData.txt); every simulation of the run uses them. Choose a period that loads every pair, e.g. a summer day for a cooling circuit: if the target customer of a pair has almost no flow at its critical time (below 1 % of its peak mass flow), the log warns.&lt;br&gt;
 &lt;b&gt;Reference run&lt;/b&gt; (iteration 0): simulates with the current pipes and evaluates every pair without changing a pipe, then the run stops; check the table and the map. With a new child version, the child is created first and &lt;i&gt;Override the pipes of the loaded version&lt;/i&gt; is selected afterwards, so the sizing (second start, without the reference run) works in the same version and keeps iteration 0 for comparison.&lt;br&gt;
@@ -5805,6 +5806,26 @@ p, li { white-space: pre-wrap; }
             <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_import_osm&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
             <translation type="unfinished">OpenStreetMap dat import</translation>
         </message>
+        <message>
+            <source>tooltip_economic_scenarios</source>
+            <translation type="unfinished">Economic scenarios: prices, trench costs</translation>
+        </message>
+        <message>
+            <source>representative_periods</source>
+            <translation type="unfinished">Periods</translation>
+        </message>
+        <message>
+            <source>tooltip_representative_periods</source>
+            <translation type="unfinished">Representative periods: simulate three weeks and weight them to the year</translation>
+        </message>
+        <message>
+            <source>cost_optimization</source>
+            <translation type="unfinished">Costs</translation>
+        </message>
+        <message>
+            <source>tooltip_cost_optimization</source>
+            <translation type="unfinished">Cost optimization: pipe sizes with the least net present value, checked by simulations</translation>
+        </message>
     </context>
     <context>
         <name>ExportResourceDialog</name>
@@ -6610,6 +6631,10 @@ li.checked::marker { content: "\2612"; }
             <source>plot_diagram_name</source>
             <translation type="unfinished">Map plots</translation>
         </message>
+        <message>
+            <source>economics</source>
+            <translation type="unfinished">Economics</translation>
+        </message>
     </context>
     <context>
         <name>PlotLoadProfilesDialog</name>
@@ -6961,6 +6986,18 @@ li.checked::marker { content: "\2612"; }
             <location filename="../RequestedOutputs_dialog.ui" line="859" />
             <source>cancel</source>
             <translation type="unfinished">Cancel</translation>
+        </message>
+        <message>
+            <source>substation_pump_power</source>
+            <translation type="unfinished">Substation pump power (network pumps), W</translation>
+        </message>
+        <message>
+            <source>plant_pump_power</source>
+            <translation type="unfinished">Plant pump power (network pumps), W</translation>
+        </message>
+        <message>
+            <source>network_pumps</source>
+            <translation type="unfinished">Network pumps...</translation>
         </message>
     </context>
     <context>

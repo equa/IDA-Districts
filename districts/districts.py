@@ -101,7 +101,10 @@ from .utility_functions.files import (
 )
 from .utility_functions.invoke import InvokeFeatures, setFeatureParm
 from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer, removeLayers
-from .utility_functions.reports import networkReport
+from .economic_scenarios_dialog import EconomicScenariosDialog
+from .cost_optimization import CostOptimizationDialog
+from .utility_functions.economic_data import ensurePipeCostColumns
+from .utility_functions.reports import fillScenarioCombo, networkReport
 from .utility_functions.show_on_map import dropResultVisTables
 from .utility_functions.topology import getLayerAttributesName
 from .utility_functions.translations import tr, tr_msg
@@ -885,7 +888,13 @@ class Districts:
     def managePipes(self):
         if self.conn:
             ensurePipeTwinColumns(self.cur)  # projects created before do not have the series and the twin pipe casing
-            show_TableDialog(main=self,title=tr('@default','pipes'),table='pipes',headers=[tr('@default','id'),tr('@default','name'),tr('@default','inner_diameter'),tr('@default','absolute_roughness'),tr('@default','pipe_construction_id'),tr('@default','pipe_costs'),tr('@default','description'),tr('@default','pipe_series'),tr('@default','casing_construction_id')],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
+            ensurePipeCostColumns(self.cur)  # nor maintenance, lifetime, p_max and example
+            show_TableDialog(main=self,title=tr('@default','pipes'),table='pipes',headers=[tr('@default','id'),tr('@default','name'),tr('@default','inner_diameter'),tr('@default','absolute_roughness'),tr('@default','pipe_construction_id'),tr('@default','pipe_costs'),tr('@default','description'),tr('@default','pipe_series'),tr('@default','casing_construction_id'),tr_msg('Maintenance [%/a]'),tr_msg('Lifetime [a]'),tr_msg('p max [bar]'),tr_msg('Example values')],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id,maintenance_pct,lifetime_a,p_max_bar,example)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
+
+    def manageEconomicScenarios(self):
+        if self.conn:
+            self.dlg_economicScenarios=EconomicScenariosDialog(self)
+            self.dlg_economicScenarios.show()
 
     def manageTemplates(self,type):
         if self.conn:
@@ -1148,7 +1157,7 @@ class Districts:
         if self.conn:
             if self.config['versionName']:
                 self.requestedOutputs=loadRequestedOutputs(self.plugin_dir,self.config)
-                self.dlg_outputs=RequestedOutputsDialog(self.requestedOutputs)
+                self.dlg_outputs=RequestedOutputsDialog(self.requestedOutputs,self.config,self.cur)
                 self.dlg_outputs.btn_ok.clicked.connect(lambda: runWithButtonDisabled(self.dlg_outputs.btn_ok,setRequestedOutputs,self.config,self.plugin_dir,self.dlg_outputs,self.requestedOutputs))
                 self.dlg_outputs.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_outputs))
                 self.dlg_outputs.show()
@@ -1295,6 +1304,20 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
 
+    def showCostOptimization(self):
+        """Cost optimization: pipe sizes with the least net present value, checked by simulations"""
+        if self.conn:
+            if self.config['versionName']:
+                if not checkIDADistrictsInstallation(self.config):
+                    return
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_costOptimization=CostOptimizationDialog(self)
+                self.dlg_costOptimization.show()
+            else:
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
+        else:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
+
     def showDynamicPipeSizing(self):
         """Dynamic pipe sizing: loop of building the network model, simulation, loading results and pipe sizing"""
         if self.conn:
@@ -1412,6 +1435,7 @@ class Districts:
         if self.conn:
             if self.config['versionName']:
                 self.dlg_networkReport=NetworkReportDialog(self.plugin_dir)
+                fillScenarioCombo(self.cur,self.dlg_networkReport.combo_scenario)
                 self.dlg_networkReport.btn_addPlot.clicked.connect(lambda: self.showDataOnMap(networkReportDlg=self.dlg_networkReport,function_items=['Max','Min','Average','Sum','Last value','First value'],time_values=[]))
                 self.dlg_networkReport.btn_deletePlot.clicked.connect(self.dlg_networkReport.deleteTableRow)
                 self.dlg_networkReport.btn_ok.clicked.connect(lambda: networkReport(self.dlg_networkReport,self.plugin_dir,self.cur,self.config,self.dlg))
@@ -1570,6 +1594,7 @@ class Districts:
             self.dlg.btn_materials.clicked.connect(lambda: self.manageMaterials())
             self.dlg.btn_pipe_constructions.clicked.connect(lambda: self.managePipeConstructions())
             self.dlg.btn_pipes.clicked.connect(lambda: self.managePipes())
+            self.dlg.btn_economic_scenarios.clicked.connect(lambda: self.manageEconomicScenarios())
             self.dlg.btn_manageCustomerTemplates.clicked.connect(lambda: self.manageTemplates('customer'))
             self.dlg.btn_manageEnergyPlantTemplates.clicked.connect(lambda: self.manageTemplates('energy_plant'))
             
@@ -1593,6 +1618,7 @@ class Districts:
             self.dlg.btn_openModel.clicked.connect(lambda: self.showOpenModel(mode='network'))
             self.dlg.btn_runModel.clicked.connect(self.showRunModel)
             self.dlg.btn_dynamicPipeSizing.clicked.connect(self.showDynamicPipeSizing)
+            self.dlg.btn_costOptimization.clicked.connect(self.showCostOptimization)
             self.dlg.btn_calibration.clicked.connect(self.showCalibration)
             
             #results and visualization
