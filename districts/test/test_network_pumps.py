@@ -132,7 +132,9 @@ def test_network_pumps_dialog(project, monkeypatch):
     monkeypatch.setattr(network_pumps_dialog, 'projectTemplates', lambda cur: templates)
     dlg = network_pumps_dialog.NetworkPumpsDialog(config, None)
     assert dlg.table.rowCount() == 3
-    components = [dlg.table.item(row, 2).text() for row in range(dlg.table.rowCount())]
+    name, dp = network_pumps_dialog.COLUMNS.index('component'), network_pumps_dialog.COL_DP
+    components = [dlg.table.item(row, name).text() for row in range(dlg.table.rowCount())]
+    assert [dlg.table.item(row, 2).text() for row in range(dlg.table.rowCount())] == ['PUMP', 'PUMP', 'PUMP']  # the component type
     dlg.table.selectRow(components.index('PUMP1'))
     dlg.remove()
     add = network_pumps_dialog.AddPumpDialog(config, templates, dlg)
@@ -144,7 +146,7 @@ def test_network_pumps_dialog(project, monkeypatch):
     assert (entry['kind'], entry['variable'], entry['source']) == ('estimate', '', 'added')
     dlg.data['entries'].append(entry)
     dlg.fill()
-    dlg.table.item(dlg.table.rowCount() - 1, 6).setText('35')
+    dlg.table.item(dlg.table.rowCount() - 1, dp).setText('35')
     dlg.accept()
     assert dlg.changed
     saved = loadPumpList(config)
@@ -237,3 +239,25 @@ def test_output_files_are_read_by_header():
     conn = (prnColumns('# time order mdot_1 mdot_2 p_1 p_2 power'), np.array([[0, 1, -0.2, 0.2, 1e5, 1.3e5, 9]]))
     assert estimateSeries([conn], newEntry('customer', 't', 'HP', kind='estimate')) == [pytest.approx(20.0)]
     assert estimateSeries([], newEntry('customer', 't', 'HP', kind='estimate')) is None
+
+
+# ---------------------------------------------------------------- invoked outputs
+def test_invoked_outputs_record_the_pump_power():
+    from districts.utility_functions.files import featureOutputs
+    requested = {'power_ep': True, 'ppump_ep': True, 'ppump_c': False, 'troom_c': True}
+    assert featureOutputs('energy_plants', requested) == {'power_ep': True, 'temp_ep': False, 'p_ep': False, 'mdot_ep': False, 'ppump_ep': True}
+    assert featureOutputs('customers', requested)['ppump_c'] is False and featureOutputs('customers', requested)['troom_c'] is True
+
+
+def test_pump_power_switched_on_needs_the_models_invoked_again():
+    # a record of an earlier build has no pump power: switched on, the simulation asks for invoking the templates again
+    old = {'customers': {}, 'energy_plants': {1: {'power_ep': True, 'temp_ep': False, 'p_ep': False, 'mdot_ep': False}}, 'lines': {}}
+    assert checkSimOutputs(old, {'power_ep': True})
+    assert not checkSimOutputs(old, {'power_ep': True, 'ppump_ep': True})
+
+
+def test_changed_plant_outputs_are_noticed():
+    # before, only the customers were compared (twice)
+    invoked = {'customers': {7: {'power_c': True}}, 'energy_plants': {1: {'power_ep': False}}, 'lines': {}}
+    assert not checkSimOutputs(invoked, {'power_c': True, 'power_ep': True})
+    assert checkSimOutputs(invoked, {'power_c': True, 'power_ep': False})

@@ -1,6 +1,6 @@
 # coding=utf-8
 """Representative periods (OpenSpec change representative-periods) on a project from the template
-dynamic_optimization (skipped without it): the dialog with three one-day weeks, the period run (simulate, load and
+dynamic_optimization (skipped without it): the periods widget with three one-day weeks, the period run (simulate, load and
 keep three times), periods.json, the dates of the version restored, a second run, the economic evaluation from the
 kept weeks.
 
@@ -12,6 +12,8 @@ from types import SimpleNamespace
 import pytest
 
 from districts.ida_mosim import buildModel, setRequestedOutputs
+from districts.representative_periods import PeriodRun, PeriodsWidget
+from districts.utility_functions.db import getUsedNetworkSubmodels
 from districts.utility_functions.dialog import closeDialog
 from districts.utility_functions.files import loadModellingSettings, loadNetworkSimData
 from districts.utility_functions.network_economics import evaluateVersion
@@ -40,22 +42,51 @@ def period_tables(plugin):
     return sorted(row['table_name'] for row in plugin.cur.fetchall())
 
 
-def run_periods(plugin, errors):
-    plugin.showRepresentativePeriods()
-    dlg = plugin.dlg_representativePeriods
-    dlg.periods.spin_days.setValue(1)
-    dlg.periods.spin_startup.setValue(1)
-    dlg.periods.chooseWeeks()
-    assert len(dlg.periods.date_edits) == 3
-    dlg.btn_start.click()
-    assert dlg.process_running
-    wait_until(lambda: not dlg.process_running, TIMEOUT, lambda: 'still running:\n' + dlg.log_edit.toPlainText()[-3000:])
+class PeriodHost:
+    """what PeriodRun needs of a dialog, with the periods widget (the cost optimization is the only dialog with it)"""
+
+    def __init__(self, plugin):
+        self.periods = PeriodsWidget(plugin)
+        self.lines, self.progress, self.done, self.ok = [], 0, False, None
+        self.run = None
+
+    year = property(lambda self: self.periods.year)
+    t_year = property(lambda self: self.periods.t_year)
+    climate = property(lambda self: self.periods.climate)
+
+    def log(self, message):
+        self.lines.append(message)
+
+    def update_progress(self, value):
+        self.progress = value
+
+    def finished(self):
+        self.done = True
+
+
+def run_periods(plugin, errors, annual=False, build=False, days=1):
+    """a period run with three weeks of `days` days (or a year) and one day start-up; returns the host"""
+    host = PeriodHost(plugin)
+    wait_until(lambda: host.periods.ready, 120, 'choosing the weeks')
+    host.periods.check_annual.setChecked(annual)
+    host.periods.spin_startup.setValue(1)
+    if not annual:
+        host.periods.spin_days.setValue(days)
+        host.periods.chooseWeeks()
+        wait_until(lambda: host.periods.ready, 120, 'choosing the weeks')
+        assert len(host.periods.date_edits) == 3
+    plugin.cur.execute('SELECT network FROM "{}".lines GROUP BY network ORDER BY network;'.format(plugin.config['versionName']))  # nosec B608
+    parms = {'network': str(plugin.cur.fetchone()['network']), 'submodel': getUsedNetworkSubmodels(plugin.cur, plugin.config)[0],
+             'build_first': build, **host.periods.parameters()}
+    host.run = PeriodRun(host, plugin, parms, on_finished=lambda ok: setattr(host, 'ok', ok))
+    host.run.start()
+    wait_until(lambda: host.done, TIMEOUT, lambda: 'still running:\n' + '\n'.join(host.lines)[-3000:])
     wait(500)
-    log = dlg.log_edit.toPlainText()
+    log = '\n'.join(host.lines)
     print('\n' + log)
     errors.check()
-    assert dlg.progress.value() == 100, log
-    return dlg
+    assert host.ok and host.progress == 100, log
+    return host
 
 
 @pytest.mark.incremental
@@ -81,14 +112,23 @@ class TestRepresentativePeriods:
     def test_period_run(self, rp, errors):
         plugin = rp.plugin
         before = {k: v for k, v in loadNetworkSimData(plugin.plugin_dir, plugin.config).items()}
-        dlg = run_periods(plugin, errors)
+        host = run_periods(plugin, errors)
         tables = period_tables(plugin)
         for k in (1, 2, 3):
             assert 'line_s_qamb_period{}'.format(k) in tables and 'energy_plant_s_ppump_period{}'.format(k) in tables
         periods = loadPeriods(plugin.config)
-        assert [w['role'] for w in periods['weeks']] == dlg.periods.roles and len(periods['hours']) == 3 * 24
+        assert [w['role'] for w in periods['weeks']] == host.periods.roles and len(periods['hours']) == 3 * 24
         assert sum(w for _, _, w in periods['hours']) == pytest.approx(8760)
         assert loadNetworkSimData(plugin.plugin_dir, plugin.config) == before  # the dates of the version as before
+        # the weeks ran in parallel in model copies: each kept its own results, no copy is left
+        schema = plugin.config['versionName']
+        contents = set()
+        for k in (1, 2, 3):
+            plugin.cur.execute("""SELECT md5(string_agg(t::text, '')) AS h FROM "{}"."line_s_qamb_period{}" t;""".format(schema, k))
+            contents.add(plugin.cur.fetchone()['h'])
+        assert len(contents) == 3
+        version_dir = os.path.join(plugin.config['pathProjects'] + plugin.config['projectName'], 'versions', schema)
+        assert not [name for name in os.listdir(version_dir) if name.startswith('period_')]
         rp.tables = tables
 
     def test_second_run(self, rp, errors):

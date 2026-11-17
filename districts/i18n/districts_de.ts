@@ -9764,5 +9764,93 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>No database connection</source>
             <translation>Keine Datenbankverbindung</translation>
         </message>
+        <message>
+            <source>Period {}: </source>
+            <translation>Periode {}: </translation>
+        </message>
+        <message>
+            <source>Period {}: no results found.</source>
+            <translation>Periode {}: keine Ergebnisse gefunden.</translation>
+        </message>
+        <message>
+            <source>Period {}: simulated</source>
+            <translation>Periode {}: simuliert</translation>
+        </message>
+        <message>
+            <source>Simulating {} periods in parallel ...</source>
+            <translation>{} Perioden werden parallel simuliert ...</translation>
+        </message>
+        <message>
+            <source>The requested outputs differ from the invoked ones: please build the network model with the features invoked again.</source>
+            <translation>Die angeforderten Ausgaben weichen von den eingebundenen ab: bitte das Netzmodell mit erneut eingebundenen Features erstellen.</translation>
+        </message>
+        <message>
+            <source>Customers with deficit</source>
+            <translation>Kunden mit Defizit</translation>
+        </message>
+        <message>
+            <source>Customers – new deficit (penalty)</source>
+            <translation>Kunden – neues Defizit (Strafe)</translation>
+        </message>
+        <message>
+            <source>Iterations of the last run in the loaded version. Select one or more iterations and show them on the map (inner diameters, lines changed for the iteration, customers with a new deficit).</source>
+            <translation>Iterationen des letzten Laufs in der geladenen Version. Eine oder mehrere Iterationen wählen und auf der Karte zeigen (Innendurchmesser, für die Iteration geänderte Leitungen, Kunden mit neuem Defizit).</translation>
+        </message>
+        <message>
+            <source>Iterations</source>
+            <translation>Iterationen</translation>
+        </message>
+        <message>
+            <source>Lines – changed for this iteration</source>
+            <translation>Leitungen – für diese Iteration geändert</translation>
+        </message>
+        <message>
+            <source>Log</source>
+            <translation>Protokoll</translation>
+        </message>
+        <message>
+            <source>Outputs</source>
+            <translation>Ausgaben</translation>
+        </message>
+        <message>
+            <source>Pump power of the customers and energy plants, temperatures and losses of the lines, plant temperatures, room temperatures and power of the customers; written into the templates of the project, the first run invokes the features again</source>
+            <translation>Pumpenleistung der Kunden und Energiezentralen, Temperaturen und Verluste der Leitungen, Temperaturen der Zentralen, Raumtemperaturen und Leistung der Kunden; in die Vorlagen des Projekts geschrieben, der erste Lauf bindet die Features neu ein</translation>
+        </message>
+        <message>
+            <source>Reload</source>
+            <translation>Neu laden</translation>
+        </message>
+        <message>
+            <source>Remove the iteration layers</source>
+            <translation>Iterationslayer entfernen</translation>
+        </message>
+        <message>
+            <source>Requested outputs the optimization needs ({}): {}</source>
+            <translation>Angeforderte Ausgaben, die die Optimierung braucht ({}): {}</translation>
+        </message>
+        <message>
+            <source>Show selected iterations on the map</source>
+            <translation>Gewählte Iterationen auf der Karte zeigen</translation>
+        </message>
+        <message>
+            <source>Switch on the requested outputs the optimization needs at the start</source>
+            <translation>Die von der Optimierung benötigten Ausgaben beim Start einschalten</translation>
+        </message>
+        <message>
+            <source>Switching on the requested outputs: {} ...</source>
+            <translation>Angeforderte Ausgaben werden eingeschaltet: {} ...</translation>
+        </message>
+        <message>
+            <source>The requested outputs could not be switched on: {}</source>
+            <translation>Die angeforderten Ausgaben konnten nicht eingeschaltet werden: {}</translation>
+        </message>
+        <message>
+            <source>switched off</source>
+            <translation>ausgeschaltet</translation>
+        </message>
+        <message>
+            <source>switched on at the start</source>
+            <translation>werden beim Start eingeschaltet</translation>
+        </message>
     </context>
 </TS>

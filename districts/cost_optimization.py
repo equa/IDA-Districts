@@ -4,6 +4,7 @@ pipes as reference; each iteration changes every line with a negative model ΔNP
 the pipes, builds the network model and simulates the periods (PeriodRun); the run ends without improvement, on
 oscillation, without an improving step or at max. iterations and restores the best simulated iteration."""
 import glob
+import html
 import json
 import os
 import traceback
@@ -15,16 +16,18 @@ from matplotlib.figure import Figure
 from qgis.PyQt.QtCore import QObject, Qt, QThreadPool, QTimer, pyqtSlot
 from qgis.PyQt.QtGui import QColor, QGuiApplication
 from qgis.PyQt.QtWidgets import (
-    QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QProgressBar,
-    QPushButton, QRadioButton, QScrollArea, QSpinBox, QSplitter, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget,
+    QAbstractItemView, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QProgressBar, QPushButton, QRadioButton, QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget, QTextEdit, QVBoxLayout,
+    QWidget,
 )
-from qgis.core import QgsCategorizedSymbolRenderer, QgsFeature, QgsGeometry, QgsMessageLog, QgsProject, QgsRendererCategory, QgsSymbol, QgsVectorLayer
+from qgis.core import QgsMessageLog
 from qgis.gui import QgsCollapsibleGroupBox
 from qgis.utils import iface
 
 from .representative_periods import NEEDED_OUTPUTS, PeriodRun, PeriodsWidget, startTask
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.cost_model_data import buildModel, checkSources, series
+from .utility_functions.cost_optimization_layers import iterationPath, loadCostIterations, removeCostLayers, showCostIterations
 from .utility_functions.db import getUsedNetworkSubmodels
 from .utility_functions.dynamic_sizing_results import loadIterations
 from .utility_functions.files import loadModellingSettings, loadRequestedOutputs
@@ -38,14 +41,18 @@ from .utility_functions.translations import tr_msg
 from .utility_functions.utility import write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
 
-ITER_PREFIX = 'cost_optimization_iter'
 NO_IMPROVEMENT = 2
-OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('troom_c', 'power_c', 'mdot_lines')
-LAYER_GROUP = 'Cost optimization'
+OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines')
+# the checkbox of each output in the requested outputs dialog
+OUTPUT_CHECKBOXES = {'ppump_ep': 'checkBoxPlantPumpPower', 'ppump_c': 'checkBoxSubstationPumpPower', 'temp_lines': 'checkBoxTempPipe',
+                     'qamb_lines': 'checkBoxQambPipe', 'temp_ep': 'checkBoxPlantConnTemp', 'troom_c': 'checkBoxSubstationTair',
+                     'power_c': 'checkBoxSubstationPower', 'mdot_lines': 'checkBoxMdotNode'}
+BALANCING_LINK = 'balancing'
 
 
-def iterationPath(config, k):
-    return os.path.join(config['pathProjects'] + config['projectName'], 'versions', config['versionName'], '{}{}.json'.format(ITER_PREFIX, k))
+def missingOutputs(plugin_dir, config):
+    outputs = loadRequestedOutputs(plugin_dir, config) or {}
+    return [key for key in OPTIMIZATION_OUTPUTS if not outputs.get(key)]
 
 
 def deleteIterationFiles(config):
@@ -145,6 +152,11 @@ class CostOptimizationDialog(QDialog):
         self.rbtn_override = QRadioButton(tr_msg('Override the pipes of the loaded version'))
         self.rbtn_new.setChecked(True)
         self.edit_version = QLineEdit(config['versionName'] + '_costopt')
+        self.check_outputs = QCheckBox(tr_msg('Switch on the requested outputs the optimization needs at the start'))
+        self.check_outputs.setToolTip(tr_msg('Pump power of the customers and energy plants, temperatures and losses of the lines, plant temperatures, '
+                                             'room temperatures and power of the customers; written into the templates of the project, '
+                                             'the first run invokes the features again'))
+        self.check_outputs.setChecked(True)
         penalties = QHBoxLayout()
         for widget in (QLabel(tr_msg('€/Kh')), self.spin_price_kh, QLabel(tr_msg('tolerance [K]')), self.spin_tolerance, QLabel(tr_msg('€/kWh unmet')), self.spin_price_kwh):
             penalties.addWidget(widget)
@@ -157,9 +169,12 @@ class CostOptimizationDialog(QDialog):
         form.addRow(tr_msg('Pairs'), self.edit_pairs)
         form.addRow(tr_msg('Penalties'), penalties)
         form.addRow(tr_msg('Max. iterations'), self.spin_iter)
+        form.addRow(tr_msg('Outputs'), self.check_outputs)
         form.addRow(tr_msg('Version'), version)
         self.label_hints = QLabel()
         self.label_hints.setWordWrap(True)
+        self.label_hints.setTextFormat(Qt.TextFormat.RichText)
+        self.label_hints.linkActivated.connect(self.onHintLink)
         layout.addWidget(self.label_hints)
         # the sections scroll, so the progress bar and the buttons stay visible on any screen
         sections = QWidget()
@@ -185,18 +200,39 @@ class CostOptimizationDialog(QDialog):
         self.table_required.setMaximumHeight(120)
         self.box_required = self.section(tr_msg('Required load of source-file customers (column of the source file)'), self.table_required, collapsed=True)
         layout.addWidget(self.box_required)
-        self.table_iterations = QTableWidget(0, 8)
+        self.table_iterations = QTableWidget(0, 9)
         self.table_iterations.setHorizontalHeaderLabels([tr_msg('Iteration'), tr_msg('NPV simulated'), tr_msg('NPV model'), tr_msg('Model error'),
-                                                         tr_msg('larger'), tr_msg('smaller'), tr_msg('rejected'), tr_msg('Outcome')])
+                                                         tr_msg('larger'), tr_msg('smaller'), tr_msg('rejected'), tr_msg('Customers with deficit'),
+                                                         tr_msg('Outcome')])
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table_iterations.verticalHeader().setVisible(False)
+        self.table_iterations.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_iterations.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_iterations.setToolTip(tr_msg('Iterations of the last run in the loaded version. Select one or more iterations and show them on the map '
+                                                '(inner diameters, lines changed for the iteration, customers with a new deficit).'))
+        self.table_iterations.itemDoubleClicked.connect(lambda item: self.showSelectedIterations())
+        self.btn_showIterations = QPushButton(tr_msg('Show selected iterations on the map'))
+        self.btn_removeLayers = QPushButton(tr_msg('Remove the iteration layers'))
+        self.btn_reload = QPushButton(tr_msg('Reload'))
+        self.btn_showIterations.clicked.connect(self.showSelectedIterations)
+        self.btn_removeLayers.clicked.connect(lambda: removeCostLayers())
+        self.btn_reload.clicked.connect(self.loadIterationTable)
+        tab_iterations = QWidget()
+        inner = QVBoxLayout(tab_iterations)
+        inner.addWidget(self.table_iterations)
+        row_buttons = QHBoxLayout()
+        for button in (self.btn_showIterations, self.btn_removeLayers, self.btn_reload):
+            row_buttons.addWidget(button)
+        inner.addLayout(row_buttons)
         self.figure = Figure(figsize=(9, 4))
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(250)
-        # results: the parts can be resized against each other
-        results = QSplitter(Qt.Orientation.Vertical)
-        for widget in (self.table_iterations, self.canvas, self.log_edit):
-            results.addWidget(widget)
-        results.setStretchFactor(1, 3)
+        results = QTabWidget()
+        results.addTab(tab_iterations, tr_msg('Iterations'))
+        results.addTab(self.canvas, tr_msg('Net present value'))
+        results.addTab(self.log_edit, tr_msg('Log'))
+        results.setMinimumHeight(330)
+        self.tabs_results = results
         # opened when a run starts; before, the settings and periods have the room
         self.box_results = self.section(tr_msg('Results'), results, collapsed=True)
         layout.addWidget(self.box_results, 1)
@@ -217,9 +253,11 @@ class CostOptimizationDialog(QDialog):
         self.btn_close.clicked.connect(self.close)
         self.combo_network.currentIndexChanged.connect(self.suggestPairs)
         self.suggestPairs()
+        self.check_outputs.toggled.connect(self.updateHints)
         self.fillRequired()
         self.updateHints()
         self.updateEnabled()
+        self.loadIterationTable()
 
     # ---------------------------------------------------------------- settings
     def section(self, title, content, collapsed=False):
@@ -280,23 +318,32 @@ class CostOptimizationDialog(QDialog):
     def updateHints(self):
         hints = []
         if not loadIterations(self.main.config):
-            hints.append(tr_msg('The version has no iterations of the hydraulic balancing; run it first for a balanced start.'))
-        outputs = loadRequestedOutputs(self.main.plugin_dir, self.main.config) or {}
-        missing = [key for key in OPTIMIZATION_OUTPUTS if not outputs.get(key)]
+            hints.append('<a href="{}">{}</a>'.format(BALANCING_LINK, html.escape(
+                tr_msg('The version has no iterations of the hydraulic balancing; run it first for a balanced start.'))))
+        missing = missingOutputs(self.main.plugin_dir, self.main.config)
         if missing:
-            hints.append(tr_msg('Requested outputs the optimization needs are switched off: {}').format(', '.join(missing)))
-        self.label_hints.setText('\n'.join(hints))
+            state = tr_msg('switched on at the start') if self.check_outputs.isChecked() else tr_msg('switched off')
+            hints.append(html.escape(tr_msg('Requested outputs the optimization needs ({}): {}').format(state, ', '.join(missing))))
+        self.label_hints.setText('<br>'.join(hints))
+
+    def onHintLink(self, link):
+        if link == BALANCING_LINK:
+            self.main.showDynamicPipeSizing()
 
     def updateEnabled(self):
         self.periods.setRunning(self.process_running)
         self.btn_start.setEnabled(not self.process_running)
         self.btn_stop.setEnabled(self.process_running)
+        # while running the run adds and shows the iterations itself
+        for button in (self.btn_showIterations, self.btn_reload):
+            button.setEnabled(not self.process_running)
 
     def parameters(self):
         return {'scenario': self.combo_scenario.currentData(), 'network': self.combo_network.currentText(), 'submodel': self.combo_submodel.currentText(),
                 'pairs': self.pairs(), 'periods': self.periods.parameters(),
                 'price_kh': self.spin_price_kh.value(), 'tolerance': self.spin_tolerance.value(), 'price_kwh': self.spin_price_kwh.value(),
-                'max_iter': self.spin_iter.value(), 'new_version': self.edit_version.text().strip() if self.rbtn_new.isChecked() else None}
+                'max_iter': self.spin_iter.value(), 'new_version': self.edit_version.text().strip() if self.rbtn_new.isChecked() else None,
+                'set_outputs': self.check_outputs.isChecked()}
 
     # ---------------------------------------------------------------- run
     def start(self):
@@ -329,13 +376,45 @@ class CostOptimizationDialog(QDialog):
     def finished(self):
         self.process_running = False
         self.updateEnabled()
+        self.updateHints()
+
+    def loadIterationTable(self):
+        """the iterations saved in the loaded version"""
+        self.table_iterations.setRowCount(0)
+        try:
+            rows = loadCostIterations(self.main.config)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            rows = []
+        for row in rows:
+            self.addRow(row)
+        if rows:
+            self.plot(rows)
+            self.markBest(min(rows, key=lambda r: r['npv'])['iteration'])
+            self.box_results.setCollapsed(False)
+
+    def selectedIterations(self):
+        return sorted({int(self.table_iterations.item(index.row(), 0).text()) for index in self.table_iterations.selectedIndexes()})
+
+    def showSelectedIterations(self):
+        selected = self.selectedIterations()
+        if not selected:
+            iface.messageBar().pushMessage(tr_msg('Info'), tr_msg('Please select one or more iterations in the table.'), level=MessageInfo)
+            return
+        try:
+            showCostIterations(self.main.cur, self.main.config, selected, loadCostIterations(self.main.config))
+            iface.mapCanvas().refresh()
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            iface.messageBar().pushMessage(tr_msg('Error'), tr_msg('The iterations could not be shown: ') + traceback.format_exc().splitlines()[-1],
+                                           level=MessageCritical)
 
     def addRow(self, row):
         r = self.table_iterations.rowCount()
         self.table_iterations.insertRow(r)
         values = [row['iteration'], '{:,.0f}'.format(row['npv']).replace(',', "'"), '' if row.get('npv_model') is None else '{:,.0f}'.format(row['npv_model']).replace(',', "'"),
                   '' if row.get('model_error') is None else '{:.1%}'.format(row['model_error']), row.get('n_larger', ''), row.get('n_smaller', ''),
-                  row.get('n_rejected', ''), row.get('outcome', '')]
+                  row.get('n_rejected', ''), len(row.get('penalty_customers') or []), row.get('outcome', '')]
         for col, value in enumerate(values):
             self.table_iterations.setItem(r, col, QTableWidgetItem(str(value)))
 
@@ -345,7 +424,7 @@ class CostOptimizationDialog(QDialog):
             for col in range(self.table_iterations.columnCount()):
                 item = self.table_iterations.item(r, col)
                 if item:
-                    item.setBackground(QColor('#c8e6c9') if best else QColor('white'))
+                    item.setBackground(QColor('#c8e6c9') if best else QColor(0, 0, 0, 0))
 
     def plot(self, rows):
         self.figure.clear()
@@ -412,8 +491,50 @@ class CostOptimizationRun(QObject):
             self.settings = loadModellingSettings(self.plugin_dir, self.config)
             self.prices = os.path.join(self.config['pathProjects'] + self.config['projectName'], 'prices')
             self.year, self.t_year, self.climate = self.dlg.periods.year, self.dlg.periods.t_year, self.dlg.periods.climate
+            missing = missingOutputs(self.plugin_dir, self.config) if self.parms.get('set_outputs') else []
         except Exception:
             self.onException()
+            return
+        if missing:
+            self.setOutputs(missing)
+        else:
+            self.afterOutputs()
+
+    def setOutputs(self, missing):
+        """the missing outputs switched on as in the requested outputs dialog (written into the project's templates)"""
+        from .ida_mosim_dialog import RequestedOutputsDialog
+        from .outputs import WorkerSetRequestedOutputs
+        self.dlg.log(tr_msg('Switching on the requested outputs: {} ...').format(', '.join(missing)))
+        try:
+            requested = loadRequestedOutputs(self.plugin_dir, self.config)
+            self.dlg_outputs = RequestedOutputsDialog(requested, self.config, self.cur)
+            for key in missing:
+                getattr(self.dlg_outputs, OUTPUT_CHECKBOXES[key]).setChecked(True)
+            self.worker_outputs = WorkerSetRequestedOutputs(config=self.config, plugin_dir=self.plugin_dir, dlg=self.dlg_outputs, requestedOutputs=requested)
+            self.worker_outputs.signals.error.connect(self.onOutputsError)
+            self.worker_outputs.signals.finished.connect(self.onOutputsSet)
+            QThreadPool.globalInstance().start(self.worker_outputs)
+        except Exception:
+            self.onException()
+
+    @pyqtSlot(str)
+    def onOutputsError(self, message):
+        self.dlg.log('  ' + message)
+
+    @pyqtSlot(str)
+    def onOutputsSet(self, message):
+        if self.done:
+            return
+        self.main.requestedOutputs = loadRequestedOutputs(self.plugin_dir, self.config)
+        still = missingOutputs(self.plugin_dir, self.config)
+        if still:
+            self.finish(tr_msg('The requested outputs could not be switched on: {}').format(', '.join(still)), error=True)
+            return
+        self.dlg.updateHints()
+        self.afterOutputs()
+
+    def afterOutputs(self):
+        if self.stopCheck():
             return
         if self.parms['new_version']:
             self.createVersion()
@@ -455,7 +576,7 @@ class CostOptimizationRun(QObject):
 
     def begin(self):
         deleteIterationFiles(self.config)
-        self.removeLayers()
+        removeCostLayers()
         self.periods = self.parms['periods']
         if not self.periods['annual']:
             self.dlg.log(tr_msg('Weeks from {}').format(', '.join(str(d[0].date()) for d in self.periods['periods'])))
@@ -466,7 +587,9 @@ class CostOptimizationRun(QObject):
         if self.stopCheck():
             return
         self.dlg.log(tr_msg('Iteration {}: simulating the periods ...').format(self.iteration))
-        parms = {'network': self.parms['network'], 'submodel': self.parms['submodel'], 'build_first': build, **self.periods}
+        parms = {'network': self.parms['network'], 'submodel': self.parms['submodel'], 'build_first': build,
+                 # the first run invokes the customers and plants again, so their outputs match the requested ones
+                 'reinvoke': self.iteration == 0 and not self.final_check, **self.periods}
         self.period_run = PeriodRun(_CheckDialog(self.dlg, self.year, self.t_year, self.climate), self.main, parms, on_finished=self.onChecked)
         self.period_run.start()
 
@@ -593,8 +716,10 @@ class CostOptimizationRun(QObject):
         self.dlg.addRow(row)
         self.dlg.plot(self.rows)
         self.dlg.update_progress(min(99, (row['iteration'] + 1) / (self.parms['max_iter'] + 1) * 100))
-        if steps:
-            self.showLayer(row, [s['line'] for s in steps])
+        try:
+            showCostIterations(self.cur, self.config, [row['iteration']], loadCostIterations(self.config))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
 
     # ---------------------------------------------------------------- end
     def best(self):
@@ -637,39 +762,3 @@ class CostOptimizationRun(QObject):
     def onException(self):
         QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         self.finish(tr_msg('Error in iteration {}: {}').format(self.iteration, traceback.format_exc().splitlines()[-1]), error=True)
-
-    # ---------------------------------------------------------------- map
-    def removeLayers(self):
-        root = QgsProject.instance().layerTreeRoot()
-        group = root.findGroup(LAYER_GROUP)
-        if group:
-            for layer in [node.layer() for node in group.findLayers()]:
-                QgsProject.instance().removeMapLayer(layer.id())
-            root.removeChildNode(group)
-
-    def showLayer(self, row, lids):
-        schema = self.config['versionName']
-        self.cur.execute('SELECT id, ST_AsText(geom) AS wkt, ST_SRID(geom) AS srid FROM "{}".lines WHERE id = ANY(%s);'.format(schema), (list(lids),))  # nosec B608
-        rows = self.cur.fetchall()
-        if not rows:
-            return
-        layer = QgsVectorLayer('LineString?crs=EPSG:{}&field=lid:integer&field=change:string'.format(rows[0]['srid']),
-                               tr_msg('Iteration {} – changed lines').format(row['iteration']), 'memory')
-        features = []
-        for r in rows:
-            feature = QgsFeature(layer.fields())
-            feature.setGeometry(QgsGeometry.fromWkt(r['wkt']))
-            feature.setAttributes([r['id'], 'larger' if r['id'] in row.get('larger', []) else 'smaller'])
-            features.append(feature)
-        layer.dataProvider().addFeatures(features)
-        categories = []
-        for value, color in (('larger', '#2e7d32'), ('smaller', '#c62828')):
-            symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-            symbol.setColor(QColor(color))
-            symbol.setWidth(1.2)
-            categories.append(QgsRendererCategory(value, symbol, tr_msg(value)))
-        layer.setRenderer(QgsCategorizedSymbolRenderer('change', categories))
-        root = QgsProject.instance().layerTreeRoot()
-        group = root.findGroup(LAYER_GROUP) or root.insertGroup(0, LAYER_GROUP)
-        QgsProject.instance().addMapLayer(layer, False)
-        group.insertLayer(0, layer)

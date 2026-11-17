@@ -22,19 +22,27 @@ Every hour of the year SHALL be assigned to the simulated hours of the same hour
 - **WHEN** a year hour at 5 °C has simulated hours of its hour of day at 4 °C and 8 °C
 - **THEN** 0.75 of it goes to the 4 °C hour and 0.25 to the 8 °C hour
 
-### Requirement: Representative periods dialog
-A dialog "Representative periods" SHALL show the year's air temperature with the chosen weeks (anchor marked), the length (default 7 days), the start-up before each week (default 3 days), the options "add the warmest week", "annual simulation" and "build the network model first", and the coverage; the user SHALL be able to move a week by its start date or by clicking the diagram, after which the coverage is recalculated. Start, Stop, log and progress SHALL work as in the dynamic pipe sizing dialog.
+### Requirement: Periods widget
+A periods widget, shown in the dialog of the cost optimization, SHALL show the year's air temperature with the chosen weeks (anchor marked), the length (default 7 days), the start-up before each period (default 3 days), the options "add the warmest week" and "annual simulation", and the coverage; the user SHALL be able to move a week by its start date or by clicking the diagram, after which the coverage is recalculated. The climate file SHALL be read and the weeks chosen outside the main thread, the widget showing that the weeks are being chosen. With "annual simulation" the week length, the warmest week, the diagram, the weeks and the coverage SHALL be hidden.
 
 #### Scenario: Move a week
 - **WHEN** the user moves the second week to another start date
 - **THEN** the diagram shows the new week and the coverage is recalculated
 
+#### Scenario: Annual simulation
+- **WHEN** the user selects "annual simulation"
+- **THEN** the diagram, the weeks and the coverage are hidden and only the start-up remains
+
 ### Requirement: Period run and kept results
-Starting SHALL delete the version's `_period*` tables and `periods.json`, optionally build the network model, and for each week set the start-up and calculation dates, simulate, load the results and copy the result tables of lines, energy plants and customers needed for the economics (temperatures, mass flows, pressures, losses, pump power, room temperature, power) with the suffix `_period<k>`; then it SHALL write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period, time, weight and profile sum, coverage). After the run the version's simulation dates SHALL be those before the run. With "annual simulation" one simulation of the whole year SHALL run, without copies, all weights 1.
+Starting SHALL delete the version's `_period*` tables and `periods.json`, optionally build the network model, simulate the weeks in parallel, each in its own copy of the network model with the week's start-up and calculation dates, and for each week load the results and copy the result tables of lines, energy plants and customers needed for the economics (temperatures, mass flows, pressures, losses, pump power, room temperature, power) with the suffix `_period<k>`; then it SHALL write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period, time, weight and profile sum, coverage). After the run the version's simulation dates SHALL be those before the run. With "annual simulation" one simulation of the whole year SHALL run, without copies, all weights 1.
 
 #### Scenario: Three weeks
 - **WHEN** the user starts a period run with three weeks
-- **THEN** three simulations run, the version has the result tables of each week with suffixes `_period1` to `_period3`, `periods.json` lists the weeks and weights, and the simulation dialog shows the dates from before the run
+- **THEN** three simulations run at the same time, the version has the result tables of each week with suffixes `_period1` to `_period3`, `periods.json` lists the weeks and weights, and the simulation dialog shows the dates from before the run
+
+#### Scenario: Failed week
+- **WHEN** the simulation of one week fails
+- **THEN** the run waits for the other weeks, ends with an error naming the week, and no model copy is left
 
 #### Scenario: Second run
 - **WHEN** a second period run is started in the same version

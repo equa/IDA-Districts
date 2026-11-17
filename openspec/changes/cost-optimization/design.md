@@ -146,13 +146,20 @@ model error (model NPV against simulated NPV) is saved per iteration.
 (`utility_functions/cost_model.py`). Settings: scenario, pair table (suggested by `suggestPairs`, as in the sizing),
 periods (the shared periods widget of `representative-periods`: diagram with the movable weeks, coverage, or the
 annual option, which hides them; every check simulates exactly the weeks shown), penalty prices (€/Kh with tolerance band, €/kWh unmet), max.
-iterations, version (new child version or override). Results: iteration table (NPV split, model vs simulation, lines
-larger/smaller, best iteration marked), NPV diagram (stacked by cost group, model prediction as a line), map layers
-of the changed lines. The sizing's machinery is reused as functions, not its dialog.
+iterations, version (new child version or override). Outputs: an option (on by default) switches on the
+needed requested outputs at the start through the requested outputs worker; the hint about missing balancing
+iterations is a link to the hydraulic balancing dialog. Results in tabs as in the hydraulic balancing: iteration
+table (NPV split, model vs simulation, lines larger/smaller, customers with a new deficit, best iteration marked;
+saved iterations listed when the dialog opens; selected rows shown on the map), NPV diagram (stacked by cost group,
+model prediction as a line), log. Map (`cost_optimization_layers.py`): a group per iteration with the inner diameters
+(categories over all iterations), the lines changed for it as a halo with 'before → after' and the customers with a
+new deficit; only the last iteration visible. The sizing's machinery is reused as functions, not its dialog.
 *Alternative:* a mode of the dynamic pipe sizing dialog (collides with its parameters and the `protect-lines` work).
 
 **D19 – Start (O3).** The pipes of the loaded version. Iteration 0 is the reference check: the periods simulated
-with the current pipes, the NPV, and per customer Kh and unmet kWh as reference of the penalties (D9). The dialog
+with the current pipes, the NPV, and per customer Kh and unmet kWh as reference of the penalties (D9). Its build
+invokes the customers and plants again, so their outputs (pump power, setpoints) match the requested ones; later
+iterations only change pipes and build without it. The dialog
 hints at the dynamic pipe sizing when the version has no sizing iterations.
 *Alternatives:* the sizing as stage 1 (couples two runs and their settings); pre-sizing in the model (the penalty
 reference would be a network the user never had).

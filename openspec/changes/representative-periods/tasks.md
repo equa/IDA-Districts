@@ -7,14 +7,14 @@
 
 ## 2. Period run
 
-- [x] 2.1 Class `PeriodRun` (QObject, signals as DynamicPipeSizingRun): delete `_period*` and periods.json, optional build, per week set dates on the hidden RunNetworkModelDialog, simulate, load, copy tables with suffix `_period<k>`
+- [x] 2.1 Class `PeriodRun` (QObject, signals as DynamicPipeSizingRun): delete `_period*` and periods.json, optional build (re-invoke only when asked), the weeks simulated in parallel in model copies `period_<k>` with their own dates, then per week copy the saved model with its results back, load, copy tables with suffix `_period<k>`; copies removed at the end
 - [x] 2.2 Name the outputs the kept tables need if they are off; restore the version's simulation dates after the run; annual option without copies, weights 1
 - [x] 2.3 Write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period/hour/weight, coverage, annual flag; profile sums at evaluation)
 
-## 3. Dialog
+## 3. Periods widget
 
-- [x] 3.1 Dialog "Representative periods" (menu entry next to the simulation): matplotlib T_air diagram (backend_qtagg) with week bands and anchor, length, start-up, options, coverage; move a week by date field or click; enums through compat.py
-- [x] 3.2 Start, Stop, log and progress as in the dynamic pipe sizing dialog
+- [x] 3.1 PeriodsWidget (in the cost optimization dialog; the own dialog and its button were removed after the review in QGIS): matplotlib T_air diagram (backend_qtagg) with week bands and anchor, length, start-up, options, coverage; move a week by date field or click; enums through compat.py
+- [x] 3.2 Weeks chosen in the thread pool; the annual option hides the week settings, the diagram and the coverage
 
 ## 4. Report
 

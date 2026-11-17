@@ -31,8 +31,8 @@ IDA Districts https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/ is a si
 - Coupling of spatial district data with physical models
 - Analysis of thermal networks and energy flows
 - Economic evaluation of a simulated version in the network report: investment of pipes, trench and pumps, pump energy, heat and cold losses, maintenance, net present value and annuity, with cost data in the pipe catalog and named economic scenarios (prices per year, hourly electricity profile, price curves of the supply temperature, trench costs per surface; example values from public sources)
-- Cost optimization: pipe sizes with the least net present value over the amortization period (investment, trench, pumps, maintenance, pump energy, heat and cold losses, comfort penalties), one pipe size per line and iteration, each iteration checked by simulation
-- Representative periods: three weeks chosen from the climate file (the coldest or warmest week and two weeks for the best coverage of the year) are simulated and weighted to the year, as a faster alternative to an annual simulation for the economic evaluation
+- Cost optimization: pipe sizes with the least net present value over the amortization period (investment, trench, pumps, maintenance, pump energy, heat and cold losses, comfort penalties), one pipe size per line and iteration, each iteration checked by simulation; the needed outputs are switched on at the start, every iteration is shown on the map (diameters, changed lines, customers with a deficit)
+- Representative periods: three weeks chosen from the climate file (the coldest or warmest week and two weeks for the best coverage of the year) are simulated in parallel and weighted to the year, as a faster alternative to an annual simulation in the cost optimization
 - Electric power of the network pumps (found automatically in the plant and customer templates, editable per project in `networkPumps.json`) and room setpoints as simulation results
 - Scenario-based planning and optimization
 - Support for engineering decision-making in district development

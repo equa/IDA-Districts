@@ -15,9 +15,11 @@
 ## 3. Run and dialog
 
 - [x] 3.1 Dialog "Cost optimization" (cost_optimization.py, button in the main dialog): scenario, pair table (suggestPairs), periods (weeks or annual, from representative_periods), penalty prices, max. iterations, version; hint without sizing iterations; needed outputs named; enums through compat.py
-- [x] 3.2 Run: optional child version, iteration 0 as reference (PeriodRun), iterations: step, write the pipes (getOrCreatePipeBundles), PeriodRun, evaluation (network_economics with penalties), model error
+- [x] 3.2 Run: optional child version, iteration 0 as reference (PeriodRun, build with the features invoked again), iterations: step, write the pipes (getOrCreatePipeBundles), PeriodRun, evaluation (network_economics with penalties), model error
 - [x] 3.3 End: no improvement for 2 iterations, oscillation, no improving step, max. iterations; restore the best iteration and simulate it again if it was not the last
 - [x] 3.4 Iteration files (row, steps, rejected changes) in the version folder, iteration table, NPV diagram (matplotlib, stacked, model line), map layers of the changed lines; files of earlier runs removed at the start
+- [x] 3.6 Option to switch on the needed requested outputs at the start (requested outputs worker); hint about missing balancing iterations as a link to the hydraulic balancing dialog
+- [x] 3.7 Results in tabs (iterations, NPV, log); per iteration a map group (`cost_optimization_layers.py`: inner diameters, lines changed for the iteration, customers with a new deficit); saved iterations listed at the opening, selected rows shown on the map
 - [x] 3.5 Protected lines of protect-lines honoured if the version has them
 
 ## 4. Tests

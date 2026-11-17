@@ -236,6 +236,14 @@ def loadSimulatedOutputs(config):
         pass
     return simulatedOutputs
     
+# outputs written into the invoked customer and plant models; a change needs the templates invoked again
+FEATURE_OUTPUTS={'customers': ('power_c','temp_c','p_c','mdot_c','heatbalance_c','troom_c','ppump_c'),
+    'energy_plants': ('power_ep','temp_ep','p_ep','mdot_ep','ppump_ep')}
+
+def featureOutputs(feature_type,requestedOutputs):
+    """record of the outputs a customer or plant model is invoked with (feature_type 'customers' or 'energy_plants')"""
+    return {key: bool(requestedOutputs.get(key)) for key in FEATURE_OUTPUTS[feature_type]}
+
 def loadInvokedOutputs(config):
     invokedOutputs=""
     if config['projectName']:

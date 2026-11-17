@@ -18,6 +18,7 @@ from districts.utility_functions.network_economics import evaluateVersion
 from .conftest import wait, wait_until
 from .test_cost_optimization import TestCostOptimization
 from .test_dynamic_optimization import skip_without_template
+from .test_representative_periods import run_periods
 from .test_workflow import delete_project, project_name_for
 
 pytestmark = [pytest.mark.e2e, pytest.mark.ida, pytest.mark.annual,
@@ -41,15 +42,7 @@ def base_scenario(plugin):
 
 
 def periods_run(plugin, errors, annual):
-    plugin.showRepresentativePeriods()
-    dlg = plugin.dlg_representativePeriods
-    dlg.periods.check_annual.setChecked(annual)
-    dlg.check_build.setChecked(True)
-    dlg.btn_start.click()
-    wait_until(lambda: not dlg.process_running, TIMEOUT, lambda: dlg.log_edit.toPlainText()[-3000:])
-    wait(500)
-    errors.check()
-    assert dlg.progress.value() == 100, dlg.log_edit.toPlainText()
+    run_periods(plugin, errors, annual=annual, build=True, days=7)
     return evaluateVersion(plugin.cur, plugin.config, base_scenario(plugin), loadModellingSettings(plugin.plugin_dir, plugin.config))
 
 

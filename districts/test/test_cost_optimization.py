@@ -12,7 +12,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from districts.cost_optimization import iterationPath
+from qgis.core import QgsProject
+
+from districts.cost_optimization import iterationPath, missingOutputs
+from districts.utility_functions.cost_optimization_layers import removeCostLayers
 from districts.ida_mosim import setRequestedOutputs
 from districts.utility_functions.economic_data import examplePipeCosts
 
@@ -42,14 +45,15 @@ class TestCostOptimization:
         for row in plugin.cur.fetchall():
             plugin.cur.execute('UPDATE public.pipes SET costs = %s, maintenance_pct = 1, lifetime_a = 40, p_max_bar = 16 WHERE id = %s;',
                                (examplePipeCosts(round(float(row['innerpipediameter']) * 1000)), row['id']))
+        # only some of the outputs: the dialog switches on the others at the start
         plugin.showRequestedOutputs()
         dlg = plugin.dlg_outputs
-        for checkbox in (dlg.checkBoxPlantPumpPower, dlg.checkBoxPlantConnTemp, dlg.checkBoxTempPipe, dlg.checkBoxQambPipe,
-                         dlg.checkBoxMdotNode, dlg.checkBoxSubstationTair, dlg.checkBoxSubstationPower):
+        for checkbox in (dlg.checkBoxTempPipe, dlg.checkBoxQambPipe):
             checkbox.setChecked(True)
         setRequestedOutputs(plugin.config, plugin.plugin_dir, dlg, plugin.requestedOutputs)
         wait_for_process(dlg, timeout=120)
         errors.check()
+        assert missingOutputs(plugin.plugin_dir, plugin.config)
         co.parent = plugin.config['versionName']
         co.parent_bundles = bundles(plugin, co.parent)
 
@@ -58,7 +62,9 @@ class TestCostOptimization:
         plugin.showCostOptimization()
         dlg = plugin.dlg_costOptimization
         assert dlg.pairs() == [(1, 2)]
+        assert dlg.check_outputs.isChecked() and 'ppump_ep' in dlg.label_hints.text()
         periods = dlg.periods
+        wait_until(lambda: periods.ready, 120, 'choosing the weeks')
         # the annual option hides the weeks with their diagram; the weeks shown are the weeks of the checks
         periods.check_annual.setChecked(True)
         assert not periods.weeks_box.isVisibleTo(dlg)
@@ -67,6 +73,7 @@ class TestCostOptimization:
         periods.spin_days.setValue(1)
         periods.spin_startup.setValue(1)
         periods.chooseWeeks()
+        wait_until(lambda: periods.ready, 120, 'choosing the weeks')
         weeks = [str(d[0].date()) for d in periods.parameters()['periods']]
         dlg.spin_iter.setValue(2)
         dlg.edit_version.setText(co.parent + '_co')
@@ -98,3 +105,21 @@ class TestCostOptimization:
         assert {str(k): v for k, v in bundles(plugin, plugin.config['versionName']).items()} == best['state']
         assert bundles(plugin, co.parent) == co.parent_bundles  # the parent version is unchanged
         assert dlg.table_iterations.rowCount() == len(rows)
+        # the outputs were switched on at the start
+        assert 'ppump_ep' in log and not missingOutputs(plugin.plugin_dir, plugin.config)
+        # every iteration on the map (only the last visible), and again from the table
+        group = QgsProject.instance().layerTreeRoot().findGroup('Cost optimization')
+        assert group is not None and len(group.children()) == len(rows)
+        assert group.children()[-1].isVisible() and not group.children()[0].itemVisibilityChecked()
+        removeCostLayers()
+        dlg.loadIterationTable()
+        assert dlg.table_iterations.rowCount() == len(rows)
+        dlg.table_iterations.selectAll()
+        dlg.showSelectedIterations()
+        group = QgsProject.instance().layerTreeRoot().findGroup('Cost optimization')
+        assert len(group.children()) == len(rows)
+        layer_names = {node.name() for node in group.children()[0].findLayers()}
+        assert 'Lines – inner diameter [mm]' in layer_names
+        if len(rows) > 1 and rows[0].get('steps'):
+            assert 'Lines – changed for this iteration' in {node.name() for node in group.children()[1].findLayers()}
+        removeCostLayers()

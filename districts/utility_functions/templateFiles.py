@@ -1,7 +1,7 @@
 import copy
 from .db import getDecoupledFeatureCompPerFeature, getFeatureDecIds, getUsedSubmodels
 from .files import (
-    copyFile, copyFileReplaceStr, createDir, createSubDir, getResourcesFromFileDataList,
+    copyFile, copyFileReplaceStr, createDir, createSubDir, featureOutputs, getResourcesFromFileDataList,
     loadRequestedOutputs, moveFileReplaceStr, readFileToList, readFileToString, writeMacroSFIdc,
     writeMacroSFIdm, writePropertyListIDCToFile, writePropertyListIDMToFile, writeToFile,
     writeToFileFromList,
@@ -802,9 +802,9 @@ class CopyTemplateMacro:
             if not os.path.exists(source_f_idm) or reinvoke:
                 invokeOneFeature(False,str(feature['id']),cur,config,type_name,False,False,parallize=parallize,signals=signals)
                 if type=='energy_plants':
-                    self.invokedFeatureOutputs[feature['id']]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
+                    self.invokedFeatureOutputs[feature['id']]=featureOutputs('energy_plants',requestedOutputs)
                 elif type=='customers':
-                    self.invokedFeatureOutputs[feature['id']]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
+                    self.invokedFeatureOutputs[feature['id']]=featureOutputs('customers',requestedOutputs)
             #collect resources
             source_f="{}\\{}_{}.idm".format(source_dir,type_name.capitalize(),str(feature['id']))     
             file_data=readFileToList(source_f)

@@ -13,7 +13,7 @@ from .utility_functions.db import (
 )
 from .utility_functions.dialog import closeDialog
 from .utility_functions.files import (
-    copyFile, getResourcesFromFileDataList, loadInvokedOutputs, loadRequestedOutputs, readFileToList,
+    FEATURE_OUTPUTS, copyFile, getResourcesFromFileDataList, loadInvokedOutputs, loadRequestedOutputs, readFileToList,
     readFileToString, writeModellingSettings, writeNetworkSimData, writePropertyListIDMToFile,
     writeSimulatedOutputs, writeToFileFromList,
 )
@@ -233,11 +233,11 @@ def setSupervisoryCrtlSubmodel(dlg,cur):
     closeDialog(dlg)
         
 def checkSimOutputs(invokedOutputs,requestedOutputs):
-    #check customers plants
+    #check customers plants: every output of the feature type (a record without a key was invoked without that output)
     for type in ['customers','energy_plants']:
-        for i in invokedOutputs['customers']:
-            for j in invokedOutputs['customers'][i]:
-                if invokedOutputs['customers'][i][j]!=requestedOutputs.get(j,False):
+        for i in invokedOutputs.get(type,{}):
+            for j in FEATURE_OUTPUTS[type]:
+                if bool(invokedOutputs[type][i].get(j,False))!=bool(requestedOutputs.get(j,False)):
                     return False
 
     #check lines

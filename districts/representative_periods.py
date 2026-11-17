@@ -1,30 +1,37 @@
 # coding=utf-8
-"""The periods widget and the period run (OpenSpec change representative-periods): three weeks (or a
-year) simulated one after the other, the results of each week kept as copies of the result tables (suffix
+"""The periods widget and the period run (OpenSpec change representative-periods): three weeks simulated in parallel
+(or a year), the results of each week kept as copies of the result tables (suffix
 _period<k>), the weeks and weights in versions/<version>/periods.json."""
 import datetime
+import os
 import re
+import shutil
 import traceback
 
 import psycopg2.extras
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from qgis.PyQt.QtCore import QDate, QDateTime, QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QDate, QDateTime, QObject, QRunnable, QThreadPool, QTimer, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtWidgets import (
     QCheckBox, QDateEdit, QFormLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget,
 )
 from qgis.core import QgsMessageLog
 from qgis.utils import iface
 
-from .ida_mosim import runModel
+from .ida_mosim import checkSimOutputs, runModel
 from .ida_mosim_dialog import RunNetworkModelDialog
 from .ida_rv import loadResults
 from .ida_rv_dialog import LoadResultsDialog
 from .invoke_network import WorkerBuildNetworkModel
+from .simulate_process import simulateInProcess
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect
-from .utility_functions.files import loadNetworkSimData, writeNetworkSimData
+from .utility_functions.files import (
+    loadInvokedOutputs, loadNetworkSimData, loadRequestedOutputs, readFileToString, writeNetworkSimData, writePropertyListIDMToFile,
+    writeSimulatedOutputs,
+)
+from .utility_functions.ida_components import getCompClass, getIDAListComponents, getSimData, propertyListCompsIDM
 from .utility_functions.network_economics import plantModes
 from .utility_functions.periods import (
     COVERAGE_WARNING, chooseWeeks, climateFile, deletePeriods, readClimate, savePeriods, weekDates, weekHours, weights,
@@ -221,6 +228,62 @@ class PeriodsWidget(QWidget):
                 'roles': list(self.roles), 'days': days, 'startup_days': self.spin_startup.value(), 'start_days': self.startDays()}
 
 
+PERIOD_DIR = 'period_{}'
+SIM_START_GAP_MS = 15000
+
+
+def versionDir(config):
+    return os.path.join(config['pathProjects'] + config['projectName'], 'versions', config['versionName'])
+
+
+def removePeriodModels(config):
+    """the model copies of a parallel period run"""
+    for name in os.listdir(versionDir(config)) if os.path.isdir(versionDir(config)) else []:
+        if re.match(r'^period_\d+$', name):
+            shutil.rmtree(os.path.join(versionDir(config), name), ignore_errors=True)
+
+
+def preparePeriodModels(config, submodel, sim_data, requested):
+    """one copy of the network model per period (versions/<version>/period_<k>), each with the dates of its period;
+    returns the model files (worker thread: file work only)"""
+    vdir = versionDir(config)
+    name = 'network_{}'.format(submodel)
+    removePeriodModels(config)
+    files = []
+    for k, data in enumerate(sim_data, 1):
+        pdir = os.path.join(vdir, PERIOD_DIR.format(k))
+        shutil.copytree(os.path.join(vdir, name), os.path.join(pdir, name))
+        for ext in ('.idm', '.idc'):
+            if os.path.exists(os.path.join(vdir, name + ext)):
+                shutil.copyfile(os.path.join(vdir, name + ext), os.path.join(pdir, name + ext))
+        fname = os.path.join(pdir, name + '.idm')
+        components = propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
+        data_idm = [propertyListCompsIDM(getIDAListComponents(getSimData(requested, data))) if getCompClass(comp) == 'SIMULATION_DATA' else comp
+                    for comp in components]
+        writePropertyListIDMToFile(data_idm, pdir + '\\', fname, config)
+        files.append(fname)
+    return files
+
+
+def copyResultsBack(config, submodel, k):
+    """the model of period k as IDA saved it (results .prn and the macros IDA rewrote, which the loading parses) into
+    the version's model folder; returns the number of .prn files"""
+    name = 'network_{}'.format(submodel)
+    pdir = os.path.join(versionDir(config), PERIOD_DIR.format(k))
+    source, target = os.path.join(pdir, name), os.path.join(versionDir(config), name)
+    count = 0
+    for folder, _, files in os.walk(source):
+        destination = os.path.join(target, os.path.relpath(folder, source))
+        os.makedirs(destination, exist_ok=True)
+        for file in files:
+            shutil.copyfile(os.path.join(folder, file), os.path.join(destination, file))
+            count += file.lower().endswith('.prn')
+    for ext in ('.idm', '.idc'):
+        if os.path.exists(os.path.join(pdir, name + ext)):
+            shutil.copyfile(os.path.join(pdir, name + ext), os.path.join(versionDir(config), name + ext))
+    return count
+
+
 class _TaskSignals(QObject):
     done = pyqtSignal(object)
     failed = pyqtSignal(str)
@@ -279,17 +342,34 @@ def startTask(owner, config, fn, done, failed):
 
 
 class _BuildSettings:
-    """the settings the network model build reads from a dialog: pipe changes do not re-invoke the customer and plant
-    models (the dialogs of the periods and the cost optimization have no such option)"""
+    """the settings the network model build reads from a dialog: the customer and plant models are invoked again only
+    when asked (the first run of an optimization; pipe changes do not need it)"""
 
-    def __init__(self):
+    def __init__(self, reinvoke=False):
         self.process_running = False
         self.checkbox_reinvokeFeatures = QCheckBox()
+        self.checkbox_reinvokeFeatures.setChecked(reinvoke)
+
+
+class _PeriodRelay(QObject):
+    """carries the signals of one week's simulation worker to the main thread, with the week's index"""
+
+    def __init__(self, run, k):
+        super().__init__()
+        self.run, self.k = run, k
+
+    @pyqtSlot(object)
+    def done(self, result):
+        self.run.onPeriodResult(self.k, result)
+
+    @pyqtSlot(str)
+    def failed(self, message):
+        self.run.onPeriodResult(self.k, {'ok': False, 'errors': [message]})
 
 
 class PeriodRun(QObject):
-    """Build (option), then for each period: dates, simulation, loading, copies of the result tables; finally
-    periods.json and the dates of the version as before the run. Reused by the cost optimization for its checks."""
+    """Build (option), the periods simulated in parallel (own model copies), then for each period: loading and copies of
+    the result tables; finally periods.json and the dates of the version as before the run. Reused by the cost optimization for its checks."""
 
     def __init__(self, dlg, main, parms, on_finished=None):
         super().__init__()
@@ -327,7 +407,11 @@ class PeriodRun(QObject):
 
     def progress(self, step):
         n = len(self.parms['periods'])
-        self.dlg.update_progress((self.k * 3 + step) / (n * 3) * 100)
+        if self.parms['annual']:
+            self.dlg.update_progress((self.k * 3 + step) / (n * 3) * 100)
+        else:
+            # the parallel simulations take the first half
+            self.dlg.update_progress(50 + (self.k * 2 + step - 1) / (n * 2) * 50)
 
     def checkStop(self):
         if self.done:
@@ -343,6 +427,7 @@ class PeriodRun(QObject):
         self.done = True
         try:
             writeNetworkSimData(self.config, self.sim_data_before)
+            removePeriodModels(self.config)
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         self.dlg.log(message)
@@ -357,7 +442,7 @@ class PeriodRun(QObject):
         self.stage = 'build'
         self.dlg.log(tr_msg('Building the network model ...'))
         try:
-            self.worker_build = WorkerBuildNetworkModel(main=self.main, config=self.config, plugin_dir=self.plugin_dir, dlg=_BuildSettings(),
+            self.worker_build = WorkerBuildNetworkModel(main=self.main, config=self.config, plugin_dir=self.plugin_dir, dlg=_BuildSettings(reinvoke=self.parms.get('reinvoke', False)),
                                                         networks=[str(self.parms['network'])], submodels=[self.parms['submodel']])
             self.worker_build.signals.error.connect(self.onError)
             self.worker_build.signals.finished.connect(self.onBuildFinished)
@@ -372,6 +457,121 @@ class PeriodRun(QObject):
         self.simulate()
 
     def simulate(self):
+        if self.parms['annual']:
+            self.simulateOne()
+        else:
+            self.simulateParallel()
+
+    def weekSimData(self, k):
+        data = dict(self.sim_data_before)
+        for key, value in zip(PERIOD_KEYS, self.parms['periods'][k]):
+            data[key] = value.strftime('%Y-%m-%d %H:%M:%S')
+        return data
+
+    def simulateParallel(self):
+        """all weeks at once, each in its own copy of the model (versions/<version>/period_<k>)"""
+        if self.checkStop():
+            return
+        self.stage = 'simulate'
+        self.dlg.update_progress(5)
+        requested = loadRequestedOutputs(self.plugin_dir, self.config)
+        if not checkSimOutputs(loadInvokedOutputs(self.config), requested):
+            self.finish(tr_msg('The requested outputs differ from the invoked ones: please build the network model with the features invoked again.'), error=True)
+            return
+        n = len(self.parms['periods'])
+        self.dlg.log(tr_msg('Simulating {} periods in parallel ...').format(n))
+        sim_data = [self.weekSimData(k) for k in range(n)]
+        config, submodel = dict(self.config), self.parms['submodel']
+        self.requested = requested
+        self.prepare_task = CalcTask(lambda: preparePeriodModels(config, submodel, sim_data, requested))
+        self.prepare_task.signals.done.connect(self.startPeriodSims)
+        self.prepare_task.signals.failed.connect(self.onTaskFailed)
+        QThreadPool.globalInstance().start(self.prepare_task)
+
+    @pyqtSlot(str)
+    def onTaskFailed(self, message):
+        self.finish(tr_msg('Error: {}').format(message), error=True)
+
+    @pyqtSlot(object)
+    def startPeriodSims(self, files):
+        if self.checkStop():
+            return
+        try:
+            writeSimulatedOutputs(self.config, self.requested)
+            self.failed_periods = set()
+            self.finished_sims = 0
+            self.workers, self.relays = [], []
+            path_districts = self.config['pathDistricts']
+            for k, fname in enumerate(files):
+                # each week in its own process: one IDA connection per process (simulate_process.py)
+                worker = CalcTask(lambda fname=fname: simulateInProcess(fname, os.path.dirname(fname), path_districts))
+                relay = _PeriodRelay(self, k)
+                worker.signals.done.connect(relay.done)
+                worker.signals.failed.connect(relay.failed)
+                self.workers.append(worker)
+                self.relays.append(relay)
+            self.startNextSim()
+        except Exception:
+            self.onException()
+
+    def startNextSim(self):
+        """IDA instances started at the same moment fail to start (session lock), so one after another with a gap"""
+        if self.done:
+            return
+        started = sum(1 for worker in self.workers if getattr(worker, 'started', False))
+        if started >= len(self.workers):
+            return
+        worker = self.workers[started]
+        worker.started = True
+        QThreadPool.globalInstance().start(worker)
+        if started + 1 < len(self.workers):
+            QTimer.singleShot(SIM_START_GAP_MS, self.startNextSim)
+
+    def onPeriodResult(self, k, result):
+        if self.done or self.stage != 'simulate':
+            return
+        if result.get('ok'):
+            self.dlg.log(tr_msg('Period {}: simulated').format(k + 1))
+        else:
+            self.failed_periods.add(k)
+            for message in result.get('errors') or [tr_msg('Simulation failed')]:
+                self.dlg.log(tr_msg('Period {}: ').format(k + 1) + message)
+        self.finished_sims += 1
+        self.dlg.update_progress(5 + 45 * self.finished_sims / len(self.workers))
+        if self.finished_sims < len(self.workers):
+            return
+        if self.failed_periods:
+            self.finish(tr_msg('The simulation of period {} failed.').format(', '.join(str(k + 1) for k in sorted(self.failed_periods))), error=True)
+            return
+        self.k = 0
+        self.loadPeriod()
+
+    def loadPeriod(self):
+        """the results of week k into the version's model folder, then loaded like a single simulation"""
+        if self.checkStop():
+            return
+        self.stage = 'copy'
+        config, submodel, k = dict(self.config), self.parms['submodel'], self.k + 1
+        self.copy_task = CalcTask(lambda: copyResultsBack(config, submodel, k))
+        self.copy_task.signals.done.connect(self.onResultsCopied)
+        self.copy_task.signals.failed.connect(self.onTaskFailed)
+        QThreadPool.globalInstance().start(self.copy_task)
+
+    @pyqtSlot(object)
+    def onResultsCopied(self, count):
+        if self.done or self.stage != 'copy':
+            return
+        if not count:
+            self.finish(tr_msg('Period {}: no results found.').format(self.k + 1), error=True)
+            return
+        try:
+            writeNetworkSimData(self.config, self.weekSimData(self.k))
+        except Exception:
+            self.onException()
+            return
+        self.load()
+
+    def simulateOne(self):
         if self.checkStop():
             return
         self.progress(0)
@@ -457,7 +657,7 @@ class PeriodRun(QObject):
                 self.dlg.log(tr_msg('  {} result tables kept').format(len(kept)))
             self.k += 1
             if self.k < len(self.parms['periods']):
-                self.simulate()
+                self.loadPeriod()
             else:
                 self.writePeriods()
         except Exception:

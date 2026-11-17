@@ -12,7 +12,7 @@ from .compat import MessageCritical, MessageInfo
 from .db import dbConnect
 from .dialog import closeDialog
 from .files import (
-    copyFileReplaceStr, createDir, createSubDir, delSFAndConnsAddLinks, getSFLinkRefs, getSFList,
+    copyFileReplaceStr, createDir, createSubDir, delSFAndConnsAddLinks, featureOutputs, getSFLinkRefs, getSFList,
     loadInvokedOutputs, loadRequestedOutputs, readAndReplaceFileToList, readFileToList, readFileToString,
     replaceKeywordsInFiledata, replaceKeywordsInPList, writeInvokedOutputs, writePropertyListIDMToFile,
     writeToFileFromList,
@@ -184,9 +184,9 @@ class WorkerInvokeFeatures(QRunnable):
             dprint(idx)
             invokeOneFeature(self.dlg,idx,self.cur,self.config,self.type,True,parallize=True,signals=self.signals)
             if self.type=='energy_plant':
-                invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_ep': True if requestedOutputs['power_ep'] else False, 'temp_ep': True if requestedOutputs['temp_ep'] else False, 'p_ep': True if requestedOutputs['p_ep'] else False, 'mdot_ep': True if requestedOutputs['mdot_ep'] else False}
+                invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]=featureOutputs('energy_plants',requestedOutputs)
             elif self.type=='customer':
-                invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]={'power_c': True if requestedOutputs['power_c'] else False, 'temp_c': True if requestedOutputs['temp_c'] else False, 'p_c': True if requestedOutputs['p_c'] else False, 'mdot_c': True if requestedOutputs['mdot_c'] else False, 'heatbalance_c': True if requestedOutputs['heatbalance_c'] else False, 'troom_c': True if requestedOutputs['troom_c'] else False}
+                invokedOutputs[self.type+'s'][int(self.dlg.tableWidget_customer.item(idx,0).text())]=featureOutputs('customers',requestedOutputs)
             self.progress_value=int((idx+1)/rows_count*98)
             self.signals.progress.emit(self.progress_value)
         writeInvokedOutputs(self.config,invokedOutputs)

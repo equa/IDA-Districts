@@ -49,7 +49,8 @@ i; Σ w = 8760. For each simulated hour the module also keeps Σ share × shape(
 more than 1 K away; a warning above 40 % (the recommended choice on `BROMMA.PRN` has 39 %, three extreme weeks 49 %).
 *Alternative:* nearest only (coarser); regression curves per quantity (loses per-line states).
 
-**D4 – Dialog "Representative periods".** The periods part is a widget (`PeriodsWidget`) shared with the dialog of
+**D4 – Periods widget (first a dialog "Representative periods"; after the review in QGIS the dialog and its
+button were removed, the widget lives in the dialog of the cost optimization).** The periods part is a widget (`PeriodsWidget`) shared with the dialog of
 the cost optimization; with "annual simulation" it hides the week length, the warmest week, the diagram, the weeks and
 the coverage (the start-up stays, it applies to the year too). Menu entry next to the simulation. Shows the year's T_air (matplotlib),
 the weeks as bands (anchor marked), length (default 7 days), start-up (default 3 days, before each week),
@@ -57,9 +58,15 @@ the weeks as bands (anchor marked), length (default 7 days), start-up (default 3
 clicking the diagram. Start, Stop, log and progress as in the sizing dialog; "build the network model first" as
 option.
 
-**D5 – Period run.** Class `PeriodRun` (QObject, signals as `DynamicPipeSizingRun`): optional build; for each week
-set start-up and calculation dates on the hidden `RunNetworkModelDialog`, simulate, load results, copy the tables
-of D6 with suffix `_period<k>`; the outputs the evaluation needs (pump power, line and plant temperatures, line
+**D5 – Period run.** Class `PeriodRun` (QObject, signals as `DynamicPipeSizingRun`): optional build (the customers
+and plants invoked again only when the caller asks, e.g. the first check of the cost optimization); the weeks are
+simulated in parallel, each in its own copy of the network model (`versions/<version>/period_<k>/network_<sub>.idm`
+and its folder, no absolute paths inside) with the week's start-up and calculation dates in its SIMULATION_DATA and
+its own process (`simulate_process.py`, own TEMP folder: idaapi2.dll holds one IDA connection per process, so
+threads in the QGIS process would switch each other's connection), started 15 s apart (IDA instances started at
+the same moment fail with a session lock); when all are done, week by week the model as IDA saved it (results and the rewritten macros the loading parses) is copied
+back into the version's model folder, loaded, and the tables of D6 copied with suffix `_period<k>` (loading stays sequential: it writes the same
+result tables); the copies are removed at the end. A failed week fails the run after all have finished; the outputs the evaluation needs (pump power, line and plant temperatures, line
 losses) are named in the log if they are off – switching outputs rewrites the project's templates, which stays the
 requested outputs dialog's job; then write `periods.json`. Before the first
 week the old `_period*` tables and `periods.json` are deleted. After the run the version's dates are set back to
