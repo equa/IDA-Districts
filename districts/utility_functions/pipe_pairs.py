@@ -118,6 +118,20 @@ def getNetworkSequences(cur, config, network):
     return tuple(result)
 
 
+def networkSequences(cur, config, network):
+    """{sequence: label} for choosing a pair: the pipe sequences of the network's bundles and the connection sequences
+    of its energy plants, labelled with the connection type and design temperature of the first plant having it."""
+    lines, _, _ = getNetworkSequences(cur, config, network)
+    sequences = {seq: '' for seqs in lines.values() for seq in seqs}
+    for row in sorted(getPlantConnections(cur, config, network), key=lambda r: (r['epid'], r['conn_seq'])):
+        if sequences.get(row['conn_seq']):
+            continue
+        kind = tr_msg('supply') if row['type'] == SUPPLY else tr_msg('return') if row['type'] == RETURN else ''
+        t = temp(row['temp'])
+        sequences[row['conn_seq']] = (kind + (' {:g} °C'.format(t) if t is not None else '')).strip()
+    return dict(sorted(sequences.items()))
+
+
 def missingResultTables(cur, config, pairs):
     """Names of the line result tables of the pairs that do not exist in the version (the line temperatures are
     needed for the specific pressure loss, the mass flows for the flow tracing)."""

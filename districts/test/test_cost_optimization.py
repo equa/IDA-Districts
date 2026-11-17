@@ -63,6 +63,7 @@ class TestCostOptimization:
         dlg = plugin.dlg_costOptimization
         assert dlg.pairs() == [(1, 2)]
         assert dlg.check_outputs.isChecked() and 'ppump_ep' in dlg.label_hints.text()
+        assert dlg.text_info.toPlainText() and 'cost_optimization_info' not in dlg.text_info.toPlainText()
         periods = dlg.periods
         wait_until(lambda: periods.ready, 120, 'choosing the weeks')
         # the annual option hides the weeks with their diagram; the weeks shown are the weeks of the checks

@@ -529,6 +529,11 @@
             <translation type="obsolete">No. connections</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="174" />
+            <source>surface</source>
+            <translation>Surface</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="162" />
             <source>length_m</source>
             <translation type="unfinished">Length, m</translation>
@@ -4326,6 +4331,45 @@ The mass flows are kept constant within an iteration, Δp&lt;sub&gt;C&lt;/sub&gt
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
+            <source>cost_optimization_info</source>
+            <translation type="unfinished">&lt;b&gt;Cost optimization&lt;/b&gt;&lt;br&gt;
+Looks for the pipe sizes of a network with the least net present value (NPV) over the amortization period of the economic scenario: investment and maintenance of pipes, trench and pumps, pump energy, heat and cold losses, residual value and comfort violations. It starts from the pipes of the loaded version (best a hydraulically balanced one, see the hint above the settings). &lt;i&gt;Pairs&lt;/i&gt; are the supply/return sequences of the network, suggested from the connections of its energy plants. Every iteration:
+&lt;ol&gt;
+&lt;li&gt;&lt;b&gt;Check&lt;/b&gt;: build the network model and simulate the weeks of &lt;i&gt;Periods&lt;/i&gt; (in parallel, each in its own process, started a few seconds apart) or one year; the results of every week are kept and weighted to the year. Iteration 0 is the reference with the current pipes; its build invokes the customers and energy plants again, so their outputs match the requested ones.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Evaluate&lt;/b&gt;: the NPV of the simulated results with the scenario (prices per year, hourly electricity profile, price curves of the supply temperature, trench costs per surface) plus the comfort violations.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Cost model&lt;/b&gt;: calibrated with the simulated results (pump efficiency from the simulated pump power, losses per pipe), it estimates for every line the change of the NPV with the next larger and the next smaller pipe of its series, without simulating: pressure drops of every simulated hour, head of central pumps over the critical path and of decentral pumps over their own path, heat and cold losses, investment and maintenance.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Step&lt;/b&gt;: every line whose NPV falls gets its best one-size change. A change is rejected if a pipe exceeds its max. pressure (p_max_bar of the pipe catalog) or a smaller pipe exceeds, at the peak flow of the line, the &lt;i&gt;max. specific pressure loss&lt;/i&gt; or the &lt;i&gt;max. velocity&lt;/i&gt; of &lt;i&gt;Smaller pipe at peak flow&lt;/i&gt; (default 300 Pa/m and 3 m/s, as in the hydraulic balancing). The new pipes are written into the lines and the next iteration checks them.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Comfort violations&lt;/b&gt;: smaller pipes save investment and losses, but they can leave customers short of heat or cold. The run counts this per customer and puts a price on it, so that a cheaper network that no longer supplies its customers does not win:
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Degree hours&lt;/b&gt; (customers with a load model, e.g. a building with a room temperature): per simulated hour, while the customer needs heating (HCMode 1) the shortfall TSet − &lt;i&gt;tolerance&lt;/i&gt; − TRoom, while it needs cooling (HCMode −1) the excess TRoom − TSet − &lt;i&gt;tolerance&lt;/i&gt;, otherwise 0; a room temperature between the heating and the cooling setpoint counts nothing. The hours are weighted to the year (Kh per year).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Unmet load&lt;/b&gt; (customers whose load comes from a source file): per time step max(0, required − supplied), the required load from the column of the source file (see &lt;i&gt;Required load of source-file customers&lt;/i&gt;), the supplied load from the simulated power of the customer; deviations below &lt;i&gt;tolerance [%]&lt;/i&gt; of the required load (default 2 %) are ignored (kWh per year).&lt;/li&gt;
+&lt;/ul&gt;
+Both count only above iteration 0, the reference: a customer that is already too cold with the starting pipes is not charged for it, only for what an iteration makes worse. The yearly costs (&lt;i&gt;€/Kh&lt;/i&gt; × additional Kh + &lt;i&gt;€/kWh unmet&lt;/i&gt; × additional kWh) are discounted over the period of the scenario and appear as the cost group &lt;i&gt;comfort violations&lt;/i&gt; of the NPV. A customer with a new violation (column &lt;i&gt;Customers with deficit&lt;/i&gt;, red points on the map) also blocks the lines made smaller in the step before from being made smaller again. High prices practically forbid a violation, low prices trade a little comfort for lower costs.&lt;br&gt;
+&lt;b&gt;Protected lines&lt;/b&gt;: the lines of the list keep their pipes in every iteration; their costs and pressure losses still count. It is the list of the hydraulic balancing, saved with the version at the start (a new child version takes it over); add an ID with + or select lines on the map and press &lt;i&gt;Add selected lines&lt;/i&gt;. IDs of another network are named in the log and not protected.&lt;br&gt;
+&lt;b&gt;Outputs&lt;/b&gt;: the optimization needs the pump power of the customers and energy plants, temperatures and losses of the lines, plant temperatures, room temperatures and power of the customers. With &lt;i&gt;Outputs&lt;/i&gt; switched on, the missing ones are switched on at the start (written into the templates of the project).&lt;br&gt;
+&lt;b&gt;Version&lt;/b&gt;: a new child version of the loaded version (default), or the pipes of the loaded version are overwritten.&lt;br&gt;
+&lt;b&gt;End&lt;/b&gt;: no improvement of the simulated NPV for 2 iterations, the pipes repeat an earlier iteration (oscillation), no change improves the NPV of the model, or &lt;i&gt;Max. iterations&lt;/i&gt; reached. The pipes of the iteration with the least simulated NPV are then restored and, if it was not the last one, simulated again, so that pipes and results of the version match. &lt;b&gt;Stop&lt;/b&gt; ends the run after the current step.&lt;br&gt;
+&lt;b&gt;Results&lt;/b&gt;: every iteration is saved as cost_optimization_iter&amp;lt;k&amp;gt;.json in the version folder and listed in the tab &lt;i&gt;Iterations&lt;/i&gt; (NPV simulated and of the model, model error, lines larger/smaller, rejected changes, customers with a deficit, outcome; the best iteration marked green); the iterations of the last run are listed when the dialog opens. The tab &lt;i&gt;Net present value&lt;/i&gt; shows the NPV per cost group and iteration, the prediction of the model as a dashed line. On the map, the group &lt;i&gt;Cost optimization&lt;/i&gt; gets a subgroup per iteration: inner diameters of the lines, the lines changed for the iteration (green larger, red smaller, labelled old → new pipe) and the customers with a new deficit. The last iteration is visible, switch the subgroups in the layer tree to compare; selected rows of the table are shown with &lt;i&gt;Show selected iterations on the map&lt;/i&gt; (or a double click). The layers are removed when a version is loaded.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>economic_scenarios_info</source>
+            <translation type="unfinished">&lt;b&gt;Economic scenarios&lt;/b&gt;&lt;br&gt;
+A scenario holds the economic assumptions of the evaluation of a version (network report, section &lt;i&gt;Economics&lt;/i&gt;) and of the cost optimization. Every project has the scenario &lt;i&gt;base&lt;/i&gt; with example values from public sources (marked &lt;i&gt;Example values&lt;/i&gt;); adapt them to the project, or copy a scenario to compare assumptions (e.g. a higher electricity price).
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Scenarios&lt;/b&gt;: interest rate and period (amortization period in years) of the net present value (NPV) and the annuity; &lt;i&gt;Residual value&lt;/i&gt;: parts with lifetime left at the end of the period are credited linearly; the default surface of lines that do not lie on a street; the electricity profile; pump costs (€/kW of the peak pump power), their maintenance and lifetime.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Prices per cost group&lt;/b&gt; (electricity, heat, cold, maintenance, investment): start price in year 0 and escalation per year. Electricity is the price of the pump energy. Heat and cold take their price from the price curves, investment and maintenance their costs from the pipes, the trench and the pumps; for them only the escalation counts.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Price levels per year&lt;/b&gt;: a factor per cost group and year relative to year 0; it replaces the escalation in that year (e.g. a forecast of the electricity price).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Price curves heat and cold&lt;/b&gt;: price [€/kWh] over the supply temperature, linear between the points and constant outside; every simulated hour uses the supply temperature of the plant. The heat losses of heating pipes are valued with the heat curve, heat entering cooling pipes with the cold curve; heat a heating pipe gains from the ground counts as a benefit.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Trench costs per surface&lt;/b&gt;: civil works per trench metre a + b × DN of the largest pipe of the bundle, per surface (e.g. paved, unpaved). The surface of a line is the one of the street it lies on (column surface of the streets), otherwise the default surface of the scenario.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;b&gt;Electricity profile&lt;/b&gt;: an hourly file (8760 or 8784 values, .csv/.prn/.txt, the last number of every line) with the shape of the electricity price over the year. It is scaled to a mean of 1, so the price of an hour = start price × level of the year × profile value; without a profile the price is the same in every hour. The file is copied into the folder prices of the project.&lt;br&gt;
+&lt;b&gt;Copy scenario&lt;/b&gt;: copies the selected scenario with all its rows under a new name.&lt;br&gt;
+&lt;b&gt;Pipes&lt;/b&gt;: the costs per metre of a pipe (material and laying), maintenance [%/a], lifetime and max. pressure are in the pipe catalog (&lt;i&gt;Pipes&lt;/i&gt;). Every part is replaced at the end of its lifetime within the period; its maintenance per year is a share of its investment.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
             <source>zeta_tee</source>
             <translation type="unfinished">Tee</translation>
         </message>
@@ -5423,6 +5467,11 @@ li.checked::marker { content: "\2612"; }
 &lt;ul&gt;
   &lt;li&gt;&lt;strong&gt;Each feature model&lt;/strong&gt; for testing and evaluation, with plots at fixed boundaries.&lt;/li&gt;
   &lt;li&gt;The &lt;strong&gt;full districts model&lt;/strong&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Two features build on the simulated network (IDA Districts needed):&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Hydraulic balancing&lt;/strong&gt;: simulation and pipe resizing in turn, until all customers get about the same differential pressure and the pipes do not change anymore. A map layer of the changed lines per iteration.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Cost optimization&lt;/strong&gt; (dynamic optimization): finds the pipe sizes with the least net present value over the period – investment (pipes, trench, pumps), maintenance, pump electricity and heat and cold losses, valued with an economic scenario. Every step is simulated with representative weeks (or a year); comfort violations of the customers count as penalty costs. Needs the cost data of the pipes and a scenario (button € next to the pipe bundles).&lt;/li&gt;
 &lt;/ul&gt;</translation>
         </message>
         <message>

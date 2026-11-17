@@ -89,6 +89,17 @@ missing. The pipe table shows the per-pipe costs.
 **D8 – Upgrade.** `upgradeProjectDB`: `ensurePipeCostColumns` (new columns, `example` false, existing costs kept),
 `ensureEconomicTables` (tables and scenario "base" with example values). `upgradeVersionDB`: `streets.surface`.
 Existing pipes get no example costs automatically; the report warns about pipes in use without costs.
+`pipe_bundle_types.invest_costs` and `operation_costs` were never read (costs are per pipe and per scenario): removed
+from new projects and the templates, dropped by the upgrade, skipped when resources of older projects are imported.
+
+**D9 – Samples of IDA Districts.** The four samples (`dynamic_optimization`, `hc_network`, `low_temperature_network`,
+`secondary_network`) are full dumps in the IDA Districts installation, not in this repository: their `db_tables.sql`
+get the pipe columns (series, casing, cost columns) and example values, handed over as files and copied into
+IDA Districts. Steel pipes as `heating_network`, series 'Isoplus DRE Standard'. PE100-RC pipes (GEROtec Anergie of
+`low_temperature_network`, d = outside diameter): material ≈ 1160·d² €/m (SDR 17, PE-TEC price list 2023: d110
+14.25, d225 58.70, d315 114.40 €/m), SDR 11 with 1.5 times the wall ≈ 1740·d²; PN 16 (SDR 11) / PN 10 (SDR 17),
+50 a, 1 %/a; one series 'GEROtec Anergie PE100-RC', so the optimization steps from SDR 11 to SDR 17 (d125 is
+cheaper than d110, as in the price lists).
 
 ## Risks / Trade-offs
 

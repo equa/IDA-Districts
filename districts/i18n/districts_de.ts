@@ -519,6 +519,11 @@
             <translation type="unfinished">Zeta</translation>
         </message>
         <message>
+            <location filename="../utility_functions/translations.py" line="174" />
+            <source>surface</source>
+            <translation>Oberfläche</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="162" />
             <source>length_m</source>
             <translation type="unfinished">Länge, m</translation>
@@ -4323,6 +4328,45 @@ Die Massenströme bleiben innerhalb einer Iteration konstant, Δp&lt;sub&gt;A&lt
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
+            <source>cost_optimization_info</source>
+            <translation type="unfinished">&lt;b&gt;Kostenoptimierung&lt;/b&gt;&lt;br&gt;
+Sucht die Rohrgrössen eines Netzes mit dem kleinsten Barwert (NPV) über die Amortisationsdauer des Wirtschaftlichkeitsszenarios: Investition und Wartung von Rohren, Graben und Pumpen, Pumpenenergie, Wärme- und Kälteverluste, Restwert und Komfortverletzungen. Ausgangspunkt sind die Rohre der geladenen Version (am besten einer hydraulisch abgeglichenen, siehe den Hinweis über den Einstellungen). &lt;i&gt;Paare&lt;/i&gt; sind die Vorlauf-/Rücklaufsequenzen des Netzes, vorgeschlagen aus den Anschlüssen seiner Energiezentralen. In jeder Iteration:
+&lt;ol&gt;
+&lt;li&gt;&lt;b&gt;Prüfen&lt;/b&gt;: Netzmodell erstellen und die Wochen von &lt;i&gt;Perioden&lt;/i&gt; simulieren (parallel, jede in einem eigenen Prozess, einige Sekunden versetzt gestartet) oder ein Jahr; die Ergebnisse jeder Woche werden behalten und auf das Jahr gewichtet. Iteration 0 ist die Referenz mit den aktuellen Rohren; ihr Erstellen ruft die Abnehmer und Energiezentralen erneut auf, so dass ihre Ausgaben den angeforderten entsprechen.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Bewerten&lt;/b&gt;: der Barwert der simulierten Ergebnisse mit dem Szenario (Preise je Jahr, stündliches Strompreisprofil, Preiskurven der Vorlauftemperatur, Grabenkosten je Oberfläche) plus die Komfortverletzungen.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Kostenmodell&lt;/b&gt;: mit den simulierten Ergebnissen kalibriert (Pumpenwirkungsgrad aus der simulierten Pumpenleistung, Verluste je Rohr), schätzt es für jede Trasse die Änderung des Barwerts mit dem nächstgrösseren und dem nächstkleineren Rohr ihrer Serie, ohne zu simulieren: Druckverluste jeder simulierten Stunde, Förderhöhe zentraler Pumpen über den kritischen Pfad und dezentraler Pumpen über ihren eigenen Pfad, Wärme- und Kälteverluste, Investition und Wartung.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Schritt&lt;/b&gt;: jede Trasse, deren Barwert sinkt, erhält ihre beste Änderung um eine Grösse. Eine Änderung wird verworfen, wenn ein Rohr seinen max. Druck überschreitet (p_max_bar des Rohrkatalogs) oder ein kleineres Rohr beim Spitzenmassenstrom der Trasse den &lt;i&gt;max. spezifischen Druckverlust&lt;/i&gt; oder die &lt;i&gt;max. Geschwindigkeit&lt;/i&gt; von &lt;i&gt;Kleineres Rohr bei Spitzenmassenstrom&lt;/i&gt; überschreitet (Standard 300 Pa/m und 3 m/s, wie im hydraulischen Abgleich). Die neuen Rohre werden in die Trassen geschrieben, die nächste Iteration prüft sie.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;b&gt;Komfortverletzungen&lt;/b&gt;: kleinere Rohre sparen Investition und Verluste, können aber Abnehmer mit zu wenig Wärme oder Kälte versorgen. Der Lauf zählt das je Abnehmer und bewertet es mit einem Preis, so dass ein günstigeres Netz, das seine Abnehmer nicht mehr versorgt, nicht gewinnt:
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Gradstunden&lt;/b&gt; (Abnehmer mit einem Lastmodell, z.B. ein Gebäude mit Raumtemperatur): je simulierter Stunde, solange der Abnehmer Heizen braucht (HCMode 1), die Unterschreitung TSet − &lt;i&gt;Toleranz&lt;/i&gt; − TRoom, solange er Kühlen braucht (HCMode −1), die Überschreitung TRoom − TSet − &lt;i&gt;Toleranz&lt;/i&gt;, sonst 0; eine Raumtemperatur zwischen Heiz- und Kühlsollwert zählt nichts. Die Stunden werden auf das Jahr gewichtet (Kh pro Jahr).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Ungedeckte Last&lt;/b&gt; (Abnehmer, deren Last aus einer Quelldatei kommt): je Zeitschritt max(0, benötigt − geliefert), die benötigte Leistung aus der Spalte der Quelldatei (siehe &lt;i&gt;Benötigte Leistung der Abnehmer mit Quelldatei&lt;/i&gt;), die gelieferte aus der simulierten Leistung des Abnehmers; Abweichungen unter &lt;i&gt;Toleranz [%]&lt;/i&gt; der benötigten Leistung (Standard 2 %) werden ignoriert (kWh pro Jahr).&lt;/li&gt;
+&lt;/ul&gt;
+Beide zählen nur über Iteration 0, der Referenz: ein Abnehmer, der schon mit den Anfangsrohren zu kalt ist, wird dafür nicht belastet, nur für das, was eine Iteration verschlechtert. Die jährlichen Kosten (&lt;i&gt;€/Kh&lt;/i&gt; × zusätzliche Kh + &lt;i&gt;€/kWh ungedeckt&lt;/i&gt; × zusätzliche kWh) werden über die Dauer des Szenarios abgezinst und erscheinen als Kostengruppe &lt;i&gt;Komfortverletzungen&lt;/i&gt; des Barwerts. Ein Abnehmer mit einer neuen Verletzung (Spalte &lt;i&gt;Kunden mit Defizit&lt;/i&gt;, rote Punkte auf der Karte) sperrt zudem die im Schritt davor verkleinerten Trassen für eine weitere Verkleinerung. Hohe Preise verbieten eine Verletzung praktisch, tiefe tauschen etwas Komfort gegen tiefere Kosten.&lt;br&gt;
+&lt;b&gt;Geschützte Trassen&lt;/b&gt;: die Trassen der Liste behalten in jeder Iteration ihre Rohre; ihre Kosten und Druckverluste zählen weiterhin. Es ist die Liste des hydraulischen Abgleichs, beim Start mit der Version gespeichert (eine neue Kindversion übernimmt sie); eine ID mit + hinzufügen oder Trassen in der Karte wählen und &lt;i&gt;Gewählte Trassen hinzufügen&lt;/i&gt; drücken. IDs eines anderen Netzes werden im Log genannt und nicht geschützt.&lt;br&gt;
+&lt;b&gt;Ausgaben&lt;/b&gt;: die Optimierung braucht die Pumpenleistung der Abnehmer und Energiezentralen, Temperaturen und Verluste der Trassen, Temperaturen der Zentralen, Raumtemperaturen und Leistung der Abnehmer. Mit eingeschalteten &lt;i&gt;Ausgaben&lt;/i&gt; werden die fehlenden beim Start eingeschaltet (in die Vorlagen des Projekts geschrieben).&lt;br&gt;
+&lt;b&gt;Version&lt;/b&gt;: eine neue Kindversion der geladenen Version (Standard), oder die Rohre der geladenen Version werden überschrieben.&lt;br&gt;
+&lt;b&gt;Ende&lt;/b&gt;: keine Verbesserung des simulierten Barwerts während 2 Iterationen, die Rohre wiederholen eine frühere Iteration (Oszillation), keine Änderung verbessert den Barwert des Modells, oder &lt;i&gt;Max. Iterationen&lt;/i&gt; erreicht. Danach werden die Rohre der Iteration mit dem kleinsten simulierten Barwert wiederhergestellt und, falls es nicht die letzte war, nochmals simuliert, so dass Rohre und Ergebnisse der Version zusammenpassen. &lt;b&gt;Stopp&lt;/b&gt; beendet den Lauf nach dem laufenden Schritt.&lt;br&gt;
+&lt;b&gt;Ergebnisse&lt;/b&gt;: jede Iteration wird als cost_optimization_iter&amp;lt;k&amp;gt;.json im Versionsordner gespeichert und im Reiter &lt;i&gt;Iterationen&lt;/i&gt; aufgelistet (Barwert simuliert und des Modells, Modellfehler, Trassen grösser/kleiner, verworfene Änderungen, Abnehmer mit Defizit, Ergebnis; die beste Iteration grün markiert); die Iterationen des letzten Laufs werden beim Öffnen des Dialogs aufgelistet. Der Reiter &lt;i&gt;Barwert&lt;/i&gt; zeigt den Barwert je Kostengruppe und Iteration, die Vorhersage des Modells als gestrichelte Linie. Auf der Karte erhält die Gruppe &lt;i&gt;Kostenoptimierung&lt;/i&gt; eine Untergruppe je Iteration: Innendurchmesser der Trassen, die für die Iteration geänderten Trassen (grün grösser, rot kleiner, beschriftet altes → neues Rohr) und die Abnehmer mit einem neuen Defizit. Die letzte Iteration ist sichtbar, zum Vergleichen die Untergruppen im Layerbaum umschalten; gewählte Zeilen der Tabelle werden mit &lt;i&gt;Gewählte Iterationen auf der Karte zeigen&lt;/i&gt; (oder Doppelklick) angezeigt. Die Layer werden beim Laden einer Version entfernt.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>economic_scenarios_info</source>
+            <translation type="unfinished">&lt;b&gt;Wirtschaftlichkeitsszenarien&lt;/b&gt;&lt;br&gt;
+Ein Szenario enthält die wirtschaftlichen Annahmen der Bewertung einer Version (Netzbericht, Abschnitt &lt;i&gt;Wirtschaftlichkeit&lt;/i&gt;) und der Kostenoptimierung. Jedes Projekt hat das Szenario &lt;i&gt;base&lt;/i&gt; mit Beispielwerten aus öffentlichen Quellen (markiert mit &lt;i&gt;Beispielwerte&lt;/i&gt;); passe sie an das Projekt an oder kopiere ein Szenario, um Annahmen zu vergleichen (z.B. einen höheren Strompreis).
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Szenarien&lt;/b&gt;: Zinssatz und Dauer (Amortisationsdauer in Jahren) des Barwerts und der Annuität; &lt;i&gt;Restwert&lt;/i&gt;: Teile mit Restlebensdauer am Ende der Dauer werden linear gutgeschrieben; die Standard-Oberfläche von Trassen, die auf keiner Strasse liegen; das Strompreisprofil; Pumpenkosten (€/kW der Spitzen-Pumpenleistung), ihre Wartung und Lebensdauer.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Preise je Kostengruppe&lt;/b&gt; (Strom, Wärme, Kälte, Wartung, Investition): Startpreis im Jahr 0 und Teuerung pro Jahr. Strom ist der Preis der Pumpenenergie. Wärme und Kälte nehmen ihren Preis aus den Preiskurven, Investition und Wartung ihre Kosten aus den Rohren, dem Graben und den Pumpen; für sie zählt nur die Teuerung.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Preisniveaus je Jahr&lt;/b&gt;: ein Faktor je Kostengruppe und Jahr relativ zum Jahr 0; er ersetzt in diesem Jahr die Teuerung (z.B. eine Prognose des Strompreises).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Preiskurven Wärme und Kälte&lt;/b&gt;: Preis [€/kWh] über der Vorlauftemperatur, linear zwischen den Punkten und ausserhalb konstant; jede simulierte Stunde verwendet die Vorlauftemperatur der Zentrale. Die Wärmeverluste von Heizrohren werden mit der Wärmekurve bewertet, Wärme, die in Kälterohre eindringt, mit der Kältekurve; Wärme, die ein Heizrohr aus dem Erdreich aufnimmt, zählt als Nutzen.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Grabenkosten je Oberfläche&lt;/b&gt;: Tiefbau je Grabenmeter a + b × DN des grössten Rohrs des Bündels, je Oberfläche (z.B. befestigt, unbefestigt). Die Oberfläche einer Trasse ist die der Strasse, auf der sie liegt (Spalte surface der Strassen), sonst die Standard-Oberfläche des Szenarios.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;b&gt;Strompreisprofil&lt;/b&gt;: eine stündliche Datei (8760 oder 8784 Werte, .csv/.prn/.txt, die letzte Zahl jeder Zeile) mit dem Verlauf des Strompreises über das Jahr. Sie wird auf einen Mittelwert von 1 skaliert, der Preis einer Stunde = Startpreis × Niveau des Jahres × Profilwert; ohne Profil ist der Preis in jeder Stunde gleich. Die Datei wird in den Ordner prices des Projekts kopiert.&lt;br&gt;
+&lt;b&gt;Szenario kopieren&lt;/b&gt;: kopiert das gewählte Szenario mit allen Zeilen unter einem neuen Namen.&lt;br&gt;
+&lt;b&gt;Rohre&lt;/b&gt;: die Kosten je Meter eines Rohrs (Material und Verlegung), Wartung [%/a], Lebensdauer und max. Druck stehen im Rohrkatalog (&lt;i&gt;Rohre&lt;/i&gt;). Jedes Teil wird am Ende seiner Lebensdauer innerhalb der Dauer ersetzt; seine Wartung pro Jahr ist ein Anteil seiner Investition.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
             <source>zeta_tee</source>
             <translation type="unfinished">T-Stück</translation>
         </message>
@@ -5364,6 +5408,11 @@ li.checked::marker { content: "\2612"; }
 &lt;ul&gt;
   &lt;li&gt;&lt;strong&gt;Jedes Feature-Modell&lt;/strong&gt; zur Prüfung und Bewertung, mit Darstellungen an festen Grenzen.&lt;/li&gt;
   &lt;li&gt;Das &lt;strong&gt;gesamte Districts-Modell&lt;/strong&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Auf dem simulierten Netz bauen zwei Funktionen auf (IDA Districts nötig):&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Hydraulischer Abgleich&lt;/strong&gt;: Simulation und Neudimensionierung der Rohre im Wechsel, bis alle Abnehmer etwa denselben Differenzdruck erhalten und sich die Rohre nicht mehr ändern. Pro Iteration ein Kartenlayer der geänderten Leitungen.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Kostenoptimierung&lt;/strong&gt; (dynamische Optimierung): sucht die Rohrgrössen mit dem kleinsten Barwert über den Betrachtungszeitraum – Investition (Rohre, Graben, Pumpen), Wartung, Pumpenstrom sowie Wärme- und Kälteverluste, bewertet mit einem Wirtschaftlichkeitsszenario. Jeder Schritt wird mit repräsentativen Wochen (oder einem Jahr) simuliert; Komfortverletzungen der Abnehmer werden als Strafkosten angerechnet. Benötigt die Kostendaten der Rohre und ein Szenario (Knopf € bei den Rohrbündeln).&lt;/li&gt;
 &lt;/ul&gt;</translation>
         </message>
         <message>
@@ -9565,6 +9614,150 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <translation>Strafkosten</translation>
         </message>
         <message>
+            <source>Comfort violations</source>
+            <translation>Komfortverletzungen</translation>
+        </message>
+        <message>
+            <source>comfort violations</source>
+            <translation>Komfortverletzungen</translation>
+        </message>
+        <message>
+            <source>Smaller pipe at peak flow</source>
+            <translation>Kleineres Rohr bei Spitzenmassenstrom</translation>
+        </message>
+        <message>
+            <source>max. specific pressure loss [Pa/m]</source>
+            <translation>max. spezifischer Druckverlust [Pa/m]</translation>
+        </message>
+        <message>
+            <source>max. velocity [m/s]</source>
+            <translation>max. Geschwindigkeit [m/s]</translation>
+        </message>
+        <message>
+            <source>tolerance [%]</source>
+            <translation>Toleranz [%]</translation>
+        </message>
+        <message>
+            <source>Unmet load counts only above this share of the required load</source>
+            <translation>Ungedeckte Last zählt erst über diesem Anteil der benötigten Leistung</translation>
+        </message>
+        <message>
+            <source>Pipe costs</source>
+            <translation>Rohrkosten</translation>
+        </message>
+        <message>
+            <source>Choose the supply and the return sequence of every pair, or remove the row.</source>
+            <translation>Wähle die Vorlauf- und die Rücklaufsequenz jedes Paars oder entferne die Zeile.</translation>
+        </message>
+        <message>
+            <source>paved</source>
+            <translation>befestigt</translation>
+        </message>
+        <message>
+            <source>unpaved</source>
+            <translation>unbefestigt</translation>
+        </message>
+        <message>
+            <source>(none: default surface of the scenario)</source>
+            <translation>(keine: Standard-Oberfläche des Szenarios)</translation>
+        </message>
+        <message>
+            <source>Surfaces without trench costs (valued as {})</source>
+            <translation>Oberflächen ohne Grabenkosten (bewertet als {})</translation>
+        </message>
+        <message>
+            <source>not in the network</source>
+            <translation>nicht im Netz</translation>
+        </message>
+        <message>
+            <source>Add a point</source>
+            <translation>Punkt hinzufügen</translation>
+        </message>
+        <message>
+            <source>Graph</source>
+            <translation>Grafik</translation>
+        </message>
+        <message>
+            <source>Price of the heat and cold losses over the supply temperature of the plant, linear between the points and constant outside. Graph: drag a point, double-click to add one, right-click to remove one.</source>
+            <translation>Preis der Wärme- und Kälteverluste über der Vorlauftemperatur der Zentrale, linear zwischen den Punkten und ausserhalb konstant. Grafik: einen Punkt ziehen, Doppelklick fügt einen hinzu, Rechtsklick entfernt einen.</translation>
+        </message>
+        <message>
+            <source>Remove the selected points</source>
+            <translation>Gewählte Punkte entfernen</translation>
+        </message>
+        <message>
+            <source>Save the changed price curves?</source>
+            <translation>Die geänderten Preiskurven speichern?</translation>
+        </message>
+        <message>
+            <source>Save</source>
+            <translation>Speichern</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>Tabelle</translation>
+        </message>
+        <message>
+            <source>double-click to add a point</source>
+            <translation>Doppelklick fügt einen Punkt hinzu</translation>
+        </message>
+        <message>
+            <source>electricity</source>
+            <translation>Strom</translation>
+        </message>
+        <message>
+            <source>heat</source>
+            <translation>Wärme</translation>
+        </message>
+        <message>
+            <source>cold</source>
+            <translation>Kälte</translation>
+        </message>
+        <message>
+            <source>Only for networks that heat and cool: the coldest week is the anchor, the warmest week adds the cooling peak. A network that only heats (or only cools) has its extreme week as the anchor already.</source>
+            <translation>Nur für Netze, die heizen und kühlen: die kälteste Woche ist der Anker, die wärmste Woche ergänzt die Kühlspitze. Ein Netz, das nur heizt (oder nur kühlt), hat seine extreme Woche bereits als Anker.</translation>
+        </message>
+        <message>
+            <source>Price curve cold</source>
+            <translation>Preiskurve Kälte</translation>
+        </message>
+        <message>
+            <source>Price curve heat</source>
+            <translation>Preiskurve Wärme</translation>
+        </message>
+        <message>
+            <source>no curve: the losses cost nothing</source>
+            <translation>keine Kurve: die Verluste kosten nichts</translation>
+        </message>
+        <message>
+            <source>supply temperature [°C]</source>
+            <translation>Vorlauftemperatur [°C]</translation>
+        </message>
+        <message>
+            <source>Line IDs whose pipes the optimization never changes; their costs and pressure losses still count. The same list as in the hydraulic balancing, saved with the version at the start.</source>
+            <translation>Trassen-IDs, deren Rohre die Optimierung nie ändert; ihre Kosten und Druckverluste zählen weiterhin. Dieselbe Liste wie im hydraulischen Abgleich, beim Start mit der Version gespeichert.</translation>
+        </message>
+        <message>
+            <source>{} protected lines keep their pipes</source>
+            <translation>{} geschützte Trassen behalten ihre Rohre</translation>
+        </message>
+        <message>
+            <source>supply</source>
+            <translation>Vorlauf</translation>
+        </message>
+        <message>
+            <source>return</source>
+            <translation>Rücklauf</translation>
+        </message>
+        <message>
+            <source>Supply and return pipe sequence of every circuit, suggested from the connections of the energy plants; heating and cooling in the same trench are two rows</source>
+            <translation>Vorlauf- und Rücklauf-Rohrsequenz jedes Kreises, vorgeschlagen aus den Anschlüssen der Energiezentralen; Heizen und Kühlen im selben Graben sind zwei Zeilen</translation>
+        </message>
+        <message>
+            <source>Prices, interest, period, electricity profile and trench costs of the scenarios; costs, maintenance, lifetime and max. pressure of the pipes</source>
+            <translation>Preise, Zins, Dauer, Strompreisprofil und Grabenkosten der Szenarien; Kosten, Wartung, Lebensdauer und max. Druck der Rohre</translation>
+        </message>
+        <message>
             <source>Max. iterations</source>
             <translation>Max. Iterationen</translation>
         </message>
@@ -9851,6 +10044,462 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>switched on at the start</source>
             <translation>werden beim Start eingeschaltet</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Änderung</translation>
+        </message>
+        <message>
+            <source>Cost analysis</source>
+            <translation>Kostenanalyse</translation>
+        </message>
+        <message>
+            <source>Cost optimization – report</source>
+            <translation>Kostenoptimierung – Bericht</translation>
+        </message>
+        <message>
+            <source>Customers not included</source>
+            <translation>Nicht berücksichtigte Abnehmer</translation>
+        </message>
+        <message>
+            <source>Customers with a new deficit</source>
+            <translation>Abnehmer mit neuem Defizit</translation>
+        </message>
+        <message>
+            <source>Design mass flow [kg/s]</source>
+            <translation>Auslegungsmassenstrom [kg/s]</translation>
+        </message>
+        <message>
+            <source>Difference [€]</source>
+            <translation>Differenz [€]</translation>
+        </message>
+        <message>
+            <source>Difference to iteration {}</source>
+            <translation>Differenz zu Iteration {}</translation>
+        </message>
+        <message>
+            <source>Difference</source>
+            <translation>Differenz</translation>
+        </message>
+        <message>
+            <source>Differential pressure at the substations</source>
+            <translation>Differenzdruck an den Übergabestationen</translation>
+        </message>
+        <message>
+            <source>Economic scenario</source>
+            <translation>Wirtschaftlichkeitsszenario</translation>
+        </message>
+        <message>
+            <source>Every pipe of the bundles (supply and return), so about twice the trench length.</source>
+            <translation>Jedes Rohr der Rohrbündel (Vor- und Rücklauf), also etwa die doppelte Grabenlänge.</translation>
+        </message>
+        <message>
+            <source>HTML report of the iterations of the loaded version: inputs incl. the economic scenario, iteration tables, maps and the cost analysis, opened in the browser.</source>
+            <translation>HTML-Bericht der Iterationen der geladenen Version: Eingaben inkl. Wirtschaftlichkeitsszenario, Iterationstabellen, Karten und Kostenanalyse, im Browser geöffnet.</translation>
+        </message>
+        <message>
+            <source>HTML report of the iterations of the loaded version: inputs, iteration tables, pipes and trenches per iteration and a map per iteration, opened in the browser.</source>
+            <translation>HTML-Bericht der Iterationen der geladenen Version: Eingaben, Iterationstabellen, Rohre und Gräben je Iteration und eine Karte je Iteration, im Browser geöffnet.</translation>
+        </message>
+        <message>
+            <source>Hydraulic balancing – report</source>
+            <translation>Hydraulischer Abgleich – Bericht</translation>
+        </message>
+        <message>
+            <source>Initial investment without the pumps and the replacements; the pumps are sized from the simulated peak power.</source>
+            <translation>Erstinvestition ohne Pumpen und Ersatzinvestitionen; die Pumpen werden aus der simulierten Spitzenleistung bemessen.</translation>
+        </message>
+        <message>
+            <source>Inputs</source>
+            <translation>Eingaben</translation>
+        </message>
+        <message>
+            <source>Investment per iteration [€]</source>
+            <translation>Investition je Iteration [€]</translation>
+        </message>
+        <message>
+            <source>Investment {} [€]</source>
+            <translation>Investition {} [€]</translation>
+        </message>
+        <message>
+            <source>Item</source>
+            <translation>Punkt</translation>
+        </message>
+        <message>
+            <source>Iteration {} has the least net present value.</source>
+            <translation>Iteration {} hat den kleinsten Barwert.</translation>
+        </message>
+        <message>
+            <source>Least net present value against the first iteration [€]</source>
+            <translation>Kleinster Barwert gegenüber der ersten Iteration [€]</translation>
+        </message>
+        <message>
+            <source>Least net present value: iteration {}</source>
+            <translation>Kleinster Barwert: Iteration {}</translation>
+        </message>
+        <message>
+            <source>Length [m]</source>
+            <translation>Länge [m]</translation>
+        </message>
+        <message>
+            <source>Length {} [m]</source>
+            <translation>Länge {} [m]</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>Leitung</translation>
+        </message>
+        <message>
+            <source>Lines changed for this iteration</source>
+            <translation>Für diese Iteration geänderte Leitungen</translation>
+        </message>
+        <message>
+            <source>Lines with new pipes, pair {}</source>
+            <translation>Leitungen mit neuen Rohren, Paar {}</translation>
+        </message>
+        <message>
+            <source>NPV change estimated [€]</source>
+            <translation>Geschätzte Barwertänderung [€]</translation>
+        </message>
+        <message>
+            <source>Net present value of iteration {}</source>
+            <translation>Barwert der Iteration {}</translation>
+        </message>
+        <message>
+            <source>Net present value per part [€]</source>
+            <translation>Barwert je Anteil [€]</translation>
+        </message>
+        <message>
+            <source>Note</source>
+            <translation>Hinweis</translation>
+        </message>
+        <message>
+            <source>Number</source>
+            <translation>Anzahl</translation>
+        </message>
+        <message>
+            <source>Outcome of the last iteration</source>
+            <translation>Ergebnis der letzten Iteration</translation>
+        </message>
+        <message>
+            <source>Overlap of the lines with the streets (1 m), the rest with the default surface of the first scenario.</source>
+            <translation>Überlappung der Leitungen mit den Strassen (1 m), der Rest mit der Standard-Oberfläche des ersten Szenarios.</translation>
+        </message>
+        <message>
+            <source>Overlap of the lines with the streets (1 m), the rest with the default surface of the scenario.</source>
+            <translation>Überlappung der Leitungen mit den Strassen (1 m), der Rest mit der Standard-Oberfläche des Szenarios.</translation>
+        </message>
+        <message>
+            <source>Overview</source>
+            <translation>Übersicht</translation>
+        </message>
+        <message>
+            <source>Parameter</source>
+            <translation>Parameter</translation>
+        </message>
+        <message>
+            <source>Part</source>
+            <translation>Anteil</translation>
+        </message>
+        <message>
+            <source>Pipe after</source>
+            <translation>Rohr nachher</translation>
+        </message>
+        <message>
+            <source>Pipe before</source>
+            <translation>Rohr vorher</translation>
+        </message>
+        <message>
+            <source>Pipe lengths per iteration [m]</source>
+            <translation>Rohrlängen je Iteration [m]</translation>
+        </message>
+        <message>
+            <source>Pipe</source>
+            <translation>Rohr</translation>
+        </message>
+        <message>
+            <source>Pipes after</source>
+            <translation>Rohre nachher</translation>
+        </message>
+        <message>
+            <source>Pipes before</source>
+            <translation>Rohre vorher</translation>
+        </message>
+        <message>
+            <source>Pipes in use</source>
+            <translation>Verwendete Rohre</translation>
+        </message>
+        <message>
+            <source>Pipes</source>
+            <translation>Rohre</translation>
+        </message>
+        <message>
+            <source>Pipes: first iteration and least net present value</source>
+            <translation>Rohre: erste Iteration und kleinster Barwert</translation>
+        </message>
+        <message>
+            <source>Project</source>
+            <translation>Projekt</translation>
+        </message>
+        <message>
+            <source>Reason</source>
+            <translation>Grund</translation>
+        </message>
+        <message>
+            <source>Rejected changes</source>
+            <translation>Verworfene Änderungen</translation>
+        </message>
+        <message>
+            <source>Report</source>
+            <translation>Bericht</translation>
+        </message>
+        <message>
+            <source>Run parameters saved</source>
+            <translation>Laufparameter gespeichert</translation>
+        </message>
+        <message>
+            <source>Run parameters</source>
+            <translation>Laufparameter</translation>
+        </message>
+        <message>
+            <source>Specific pressure loss [Pa/m]</source>
+            <translation>Spezifischer Druckverlust [Pa/m]</translation>
+        </message>
+        <message>
+            <source>Started</source>
+            <translation>Gestartet</translation>
+        </message>
+        <message>
+            <source>Supply pipe of every pair after the sizing of the iteration.</source>
+            <translation>Vorlaufrohr jedes Paars nach der Dimensionierung der Iteration.</translation>
+        </message>
+        <message>
+            <source>Surface, DN</source>
+            <translation>Oberfläche, DN</translation>
+        </message>
+        <message>
+            <source>T return [°C]</source>
+            <translation>T Rücklauf [°C]</translation>
+        </message>
+        <message>
+            <source>T supply [°C]</source>
+            <translation>T Vorlauf [°C]</translation>
+        </message>
+        <message>
+            <source>The economic scenario of the run does not exist anymore.</source>
+            <translation>Das Wirtschaftlichkeitsszenario des Laufs existiert nicht mehr.</translation>
+        </message>
+        <message>
+            <source>The loaded version has no iterations.</source>
+            <translation>Die geladene Version hat keine Iterationen.</translation>
+        </message>
+        <message>
+            <source>The report could not be written: </source>
+            <translation>Der Bericht konnte nicht geschrieben werden: </translation>
+        </message>
+        <message>
+            <source>The run parameters were not saved (run before this report existed).</source>
+            <translation>Die Laufparameter wurden nicht gespeichert (Lauf vor diesem Bericht).</translation>
+        </message>
+        <message>
+            <source>The start price is used for electricity; heat and cold are valued with the price curves, the investment with the pipe, trench and pump costs. Escalation applies to every group.</source>
+            <translation>Der Startpreis gilt für Strom; Wärme und Kälte werden mit den Preiskurven bewertet, die Investition mit den Rohr-, Graben- und Pumpenkosten. Die Teuerung gilt für jede Gruppe.</translation>
+        </message>
+        <message>
+            <source>Total</source>
+            <translation>Total</translation>
+        </message>
+        <message>
+            <source>Trench lengths per surface and DN per iteration [m]</source>
+            <translation>Grabenlängen je Oberfläche und DN je Iteration [m]</translation>
+        </message>
+        <message>
+            <source>Trench lengths per surface</source>
+            <translation>Grabenlängen je Oberfläche</translation>
+        </message>
+        <message>
+            <source>Trench</source>
+            <translation>Graben</translation>
+        </message>
+        <message>
+            <source>Trench: first iteration and least net present value</source>
+            <translation>Graben: erste Iteration und kleinster Barwert</translation>
+        </message>
+        <message>
+            <source>Value</source>
+            <translation>Wert</translation>
+        </message>
+        <message>
+            <source>a year</source>
+            <translation>ein Jahr</translation>
+        </message>
+        <message>
+            <source>d_i after [mm]</source>
+            <translation>d_i nachher [mm]</translation>
+        </message>
+        <message>
+            <source>d_i before [mm]</source>
+            <translation>d_i vorher [mm]</translation>
+        </message>
+        <message>
+            <source>dp max</source>
+            <translation>dp max</translation>
+        </message>
+        <message>
+            <source>dp min</source>
+            <translation>dp min</translation>
+        </message>
+        <message>
+            <source>flat</source>
+            <translation>konstant</translation>
+        </message>
+        <message>
+            <source>no change</source>
+            <translation>keine Änderung</translation>
+        </message>
+        <message>
+            <source>no geometries</source>
+            <translation>keine Geometrien</translation>
+        </message>
+        <message>
+            <source>no trench costs: default surface</source>
+            <translation>keine Grabenkosten: Standard-Oberfläche</translation>
+        </message>
+        <message>
+            <source>no</source>
+            <translation>nein</translation>
+        </message>
+        <message>
+            <source>none</source>
+            <translation>keine</translation>
+        </message>
+        <message>
+            <source>yes</source>
+            <translation>ja</translation>
+        </message>
+        <message>
+            <source>DN</source>
+            <translation>DN</translation>
+        </message>
+        <message>
+            <source>d_i [mm]</source>
+            <translation>d_i [mm]</translation>
+        </message>
+        <message>
+            <source>Series</source>
+            <translation>Serie</translation>
+        </message>
+        <message>
+            <source>Costs [€/m]</source>
+            <translation>Kosten [€/m]</translation>
+        </message>
+        <message>
+            <source>p_max [bar]</source>
+            <translation>p_max [bar]</translation>
+        </message>
+        <message>
+            <source>Example value</source>
+            <translation>Beispielwert</translation>
+        </message>
+        <message>
+            <source>Time step per customer</source>
+            <translation>Zeitschritt je Abnehmer</translation>
+        </message>
+        <message>
+            <source>Several energy plants</source>
+            <translation>Mehrere Energiezentralen</translation>
+        </message>
+        <message>
+            <source>Min. share of a plant</source>
+            <translation>Min. Anteil einer Zentrale</translation>
+        </message>
+        <message>
+            <source>Tolerance exceedance [Pa]</source>
+            <translation>Toleranz Überschreitung [Pa]</translation>
+        </message>
+        <message>
+            <source>Tolerance undershoot [Pa]</source>
+            <translation>Toleranz Unterschreitung [Pa]</translation>
+        </message>
+        <message>
+            <source>Weighted with the mass flow shares</source>
+            <translation>Gewichtet mit den Massenstromanteilen</translation>
+        </message>
+        <message>
+            <source>Pre-sizing with setpoint [Pa/m]</source>
+            <translation>Vordimensionierung mit Sollwert [Pa/m]</translation>
+        </message>
+        <message>
+            <source>Only pre-sizing</source>
+            <translation>Nur Vordimensionierung</translation>
+        </message>
+        <message>
+            <source>Max. specific pressure loss at peak flow [Pa/m]</source>
+            <translation>Max. spezifischer Druckverlust bei Spitzendurchfluss [Pa/m]</translation>
+        </message>
+        <message>
+            <source>Max. velocity at peak flow [m/s]</source>
+            <translation>Max. Geschwindigkeit bei Spitzendurchfluss [m/s]</translation>
+        </message>
+        <message>
+            <source>Max. number of iterations</source>
+            <translation>Max. Anzahl Iterationen</translation>
+        </message>
+        <message>
+            <source>Reference run</source>
+            <translation>Referenzlauf</translation>
+        </message>
+        <message>
+            <source>Simulated periods</source>
+            <translation>Simulierte Zeiträume</translation>
+        </message>
+        <message>
+            <source>Price of a degree hour [€/Kh]</source>
+            <translation>Preis einer Gradstunde [€/Kh]</translation>
+        </message>
+        <message>
+            <source>Tolerance of the room temperature [K]</source>
+            <translation>Toleranz der Raumtemperatur [K]</translation>
+        </message>
+        <message>
+            <source>Price of unmet load [€/kWh]</source>
+            <translation>Preis nicht gedeckter Leistung [€/kWh]</translation>
+        </message>
+        <message>
+            <source>Tolerance of unmet load [%]</source>
+            <translation>Toleranz nicht gedeckter Leistung [%]</translation>
+        </message>
+        <message>
+            <source>Outputs switched on</source>
+            <translation>Ausgaben eingeschaltet</translation>
+        </message>
+        <message>
+            <source>protected line</source>
+            <translation>geschützte Leitung</translation>
+        </message>
+        <message>
+            <source>smaller pipe made a customer fall short before</source>
+            <translation>kleineres Rohr führte bereits zu einem Defizit eines Abnehmers</translation>
+        </message>
+        <message>
+            <source>not in a pair</source>
+            <translation>in keinem Paar</translation>
+        </message>
+        <message>
+            <source>no larger pipe in the series</source>
+            <translation>kein grösseres Rohr in der Serie</translation>
+        </message>
+        <message>
+            <source>no smaller pipe in the series</source>
+            <translation>kein kleineres Rohr in der Serie</translation>
+        </message>
+        <message>
+            <source>pressure above p_max of the pipe</source>
+            <translation>Druck über p_max des Rohrs</translation>
+        </message>
+        <message>
+            <source>specific pressure loss or velocity at peak flow above the limit</source>
+            <translation>spezifischer Druckverlust oder Geschwindigkeit bei Spitzendurchfluss über dem Grenzwert</translation>
         </message>
     </context>
 </TS>

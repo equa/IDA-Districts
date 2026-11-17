@@ -345,8 +345,6 @@ DROP TABLE IF EXISTS public.pipe_bundle_types CASCADE;
 CREATE TABLE public.pipe_bundle_types
 (
   id serial,
-  invest_costs numeric,
-  operation_costs numeric,
   description text,
   CONSTRAINT pipe_bundle_types_pkey PRIMARY KEY (id)
 );

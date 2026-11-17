@@ -36,4 +36,10 @@
 
 - [x] 6.1 tr_msg / tr with German translations for headings, dialogs, the report section and messages; translations de/en compiled
 - [x] 6.2 README.md and CLAUDE.md: the scenario tables, `<project>\prices\`, economics.py and pipe_losses.py
+- [x] 6.6 Dialog 'Economic scenarios': info text in a read-only text field (`economic_scenarios_info`, en/de) on the tables, the profile, copying and the pipe costs
+- [x] 6.7 Samples of IDA Districts: invest_costs / operation_costs of the pipe bundles removed from the handed-over db_tables.sql as well
+- [x] 6.8 Dialog 'Economic scenarios': small graphs of the price curves heat and cold of the selected scenario (constant outside the points, a hint without a curve)
+- [x] 6.9 Streets of the templates (plugin heating_network, the four IDA Districts samples) with the surface 'paved'; trench parts off the streets keep the default surface of the scenario
+- [x] 6.5 invest_costs / operation_costs of the pipe bundles removed (table definition, templates, pipe bundle dialog, upgrade, resource import)
+- [x] 6.4 Samples of IDA Districts (D9): db_tables.sql of the four samples with the pipe columns and example values, loaded into a test DB, handed over to be copied into IDA Districts
 - [ ] 6.3 `npx openspec validate --all`, commit the artifacts with the code (explicit paths), `git pull --rebase`, push to dev and watch the plugin-tests run until both QGIS jobs pass

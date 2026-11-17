@@ -79,11 +79,11 @@ def requiredAt(file_hours, required, result_hours):
     return np.interp(np.asarray(result_hours, dtype=float), file_hours, required)
 
 
-def unmetKwh(required, supplied, weights, mode='heating'):
+def unmetKwh(required, supplied, weights, mode='heating', tolerance=TOLERANCE):
     """unmet load [kWh per year]: max(0, required - supplied) per step above the tolerance, weighted.
     supplied: the simulated customer power (heating > 0, cooling < 0)."""
     supplied = np.asarray(supplied, dtype=float)
     supplied = np.maximum(supplied, 0) if mode == 'heating' else np.maximum(-supplied, 0)
     deficit = np.asarray(required, dtype=float) - supplied
-    deficit = np.where(deficit > TOLERANCE * np.asarray(required, dtype=float), deficit, 0.0)
+    deficit = np.where(deficit > tolerance * np.asarray(required, dtype=float), deficit, 0.0)
     return float(np.sum(np.asarray(weights, dtype=float) * deficit) / 1000)

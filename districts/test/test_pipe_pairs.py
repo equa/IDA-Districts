@@ -184,22 +184,58 @@ def pair_dialog(qgis_app):
 
 def test_pair_table_temperatures_are_editable(pair_dialog):
     dlg = pair_dialog
+    dlg.sequences = {1: 'supply 70 °C', 2: 'supply 12 °C', 3: 'return 30 °C', 4: 'return 18 °C'}
     dlg.addPairRow(1, 3, 70.0, 30.0)
+    supply, ret = dlg.table_pairs.cellWidget(0, 0), dlg.table_pairs.cellWidget(0, 1)
+    assert supply.count() == 4 and supply.currentText() == '1 – supply 70 °C'
     dlg.table_pairs.item(0, 2).setText('65,5')
     assert dlg.pairs() == ([(1, 3, 65.5, 30.0)], [])
-    dlg.table_pairs.item(0, 1).setText('4')  # other sequence: the suggested temperatures do not belong to it
+    ret.setCurrentIndex(ret.findData(4))  # other sequence: the suggested temperatures do not belong to it
     assert dlg.pairs() == ([(1, 4, None, None)], [])
 
 
 def test_pair_table_invalid_input(pair_dialog):
     dlg = pair_dialog
     assert dlg.pairs()[1]  # no pair
-    dlg.addPairRow(1, 3, None, None)
+    dlg.addPairRow(1, 3, None, None)  # sequences the network does not have are added to the dropdowns
+    assert dlg.pairs() == ([(1, 3, None, None)], [])
     dlg.table_pairs.item(0, 3).setText('warm')
     assert len(dlg.pairs()[1]) == 1
     dlg.table_pairs.item(0, 3).setText('')
-    dlg.table_pairs.item(0, 0).setText('0')
+    dlg.addPairRow(None, None, None, None)  # + : nothing chosen yet
     assert len(dlg.pairs()[1]) == 1
+    dlg.table_pairs.setCurrentCell(1, 2)
+    dlg.removeSelectedPairs()
+    assert dlg.pairs() == ([(1, 3, None, None)], [])
+
+
+def test_pair_table_of_the_cost_optimization(qgis_app):
+    from districts.utility_functions.pair_widgets import PairTable
+    table = PairTable()
+    table.setPairs({1: 'supply 70 °C', 2: 'return 40 °C'}, [(1, 2, 70.0, 40.0)])
+    assert table.pairs() == [(1, 2)] and not table.incomplete()
+    table.addRow(None, None)
+    assert table.pairs() == [(1, 2)] and table.incomplete() == 1
+
+
+def test_sections_of_the_hydraulic_balancing_scroll(pair_dialog):
+    # the progress bar and the buttons stay below the scrolling sections
+    from qgis.PyQt.QtWidgets import QScrollArea
+    main = pair_dialog.verticalLayout_main
+    assert isinstance(main.itemAt(0).widget(), QScrollArea)
+    assert main.itemAt(1).widget() is pair_dialog.progress
+    assert pair_dialog.groupBox_network.window() is pair_dialog
+
+
+def test_protected_lines_of_the_cost_optimization(qgis_app):
+    from districts.utility_functions.protected_lines_widget import ProtectedLinesWidget
+    widget = ProtectedLinesWidget()
+    widget.setLines([12, 7])
+    widget.addEntry('x')
+    assert widget.entries() == ([12, 7], ['x'])
+    widget.list.item(2).setSelected(True)
+    widget.removeSelected()
+    assert widget.entries() == ([12, 7], [])
 
 
 # ---------------------------------------------------------------- e2e: project with heating and cooling pairs

@@ -94,6 +94,9 @@ def test_pressure_limit():
 def test_peak_limit_of_smaller_pipes():
     m = model(pipes=2)
     assert m.change(1, larger=False)['reason'] == 'peak'  # 2 kg/s in DN40
+    # the limits of the dialog: high enough, the smaller pipe is allowed
+    m.dp_spez_max, m.v_max = 1e6, 100.0
+    assert m.change(1, larger=False)['reason'] is None
 
 
 def test_step_changes_one_size_at_most():

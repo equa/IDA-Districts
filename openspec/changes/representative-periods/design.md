@@ -63,7 +63,7 @@ and plants invoked again only when the caller asks, e.g. the first check of the 
 simulated in parallel, each in its own copy of the network model (`versions/<version>/period_<k>/network_<sub>.idm`
 and its folder, no absolute paths inside) with the week's start-up and calculation dates in its SIMULATION_DATA and
 its own process (`simulate_process.py`, own TEMP folder: idaapi2.dll holds one IDA connection per process, so
-threads in the QGIS process would switch each other's connection), started 15 s apart (IDA instances started at
+threads in the QGIS process would switch each other's connection), started 5 s apart (IDA instances started at
 the same moment fail with a session lock); when all are done, week by week the model as IDA saved it (results and the rewritten macros the loading parses) is copied
 back into the version's model folder, loaded, and the tables of D6 copied with suffix `_period<k>` (loading stays sequential: it writes the same
 result tables); the copies are removed at the end. A failed week fails the run after all have finished; the outputs the evaluation needs (pump power, line and plant temperatures, line

@@ -13,6 +13,7 @@ from .utility_functions.db import (
     MATERIAL_MECHANICAL_COLUMNS, PIPE_TWIN_COLUMNS, delIfNotInDBIds, ensureMaterialMechanicalColumns, ensurePipeTwinColumns, getClimateData,
     getDropDownItems, getMaxId, getMaxTableValue, materialInsertSql, materialMechanicalSelect, pipeTwinSelect, rowCountDB, setSeqIdToMax,
 )
+from .utility_functions.economic_data import BUNDLE_COST_COLUMNS, SURFACES
 from .utility_functions.dialog import (
     TableDialog, addTableRowTrace, checkIDADistrictsInstallation, closeDialog, copyTableRow,
     deleteTableRowTrace, getMaxTableId, get_item_flag, qt_item_flag,
@@ -51,6 +52,28 @@ def sqlInsertQuery(dlg,table,row,db_table):
                             if isNumber(table.item(row,col).data(Qt.ItemDataRole.UserRole)) or table.item(row,col).data(Qt.ItemDataRole.UserRole) in ('True','False','None') else  # nosec B608
                         f"'{table.item(row,col).data(Qt.ItemDataRole.UserRole)}'"  # nosec B608
                             for col in range(2,table.columnCount())])) # nosec B608
+
+def withoutBundleCostColumns(statement):
+    """INSERT of a pipe bundle exported from an older project without invest_costs and operation_costs (removed)."""
+    m=re.match(r"\s*INSERT INTO pipe_bundle_types \(([^)]*)\) VALUES \((.*)\);\s*$",statement,re.S)
+    if not m:
+        return statement
+    columns=[c.strip() for c in m.group(1).split(',')]
+    if not set(columns)&set(BUNDLE_COST_COLUMNS):
+        return statement
+    rest,values=m.group(2),[]
+    for n in range(len(columns)):
+        if n==len(columns)-1:
+            values.append(rest.strip())
+            break
+        # a quoted value may contain commas (quotes doubled)
+        v=re.match(r"\s*('(?:[^']|'')*'|[^,]*)\s*,(.*)$",rest,re.S)
+        if v is None:
+            return statement
+        values.append(v.group(1).strip())
+        rest=v.group(2)
+    kept=[(c,val) for c,val in zip(columns,values) if c not in BUNDLE_COST_COLUMNS]
+    return "INSERT INTO pipe_bundle_types ({}) VALUES ({});".format(','.join(c for c,_ in kept),','.join(val for _,val in kept)) # nosec B608
 
 def pipeInsertSql(i):
     """INSERT of a pipe of the resource export; the ids of its construction and of the casing of a twin pipe are placeholders
@@ -113,7 +136,10 @@ def importResources(dlg,main,import_all=False):
     for table in ['connections','connection_types','conn_bundle_types','materials','pipe_constructions','pipe_bundle_types']:
         if import_dict[table]:
             seq_id=setSeqIdToMax(table+'_id_seq',table,'id',main.cur)
-            db_import+=''.join(import_dict[table].values())
+            statements=import_dict[table].values()
+            if table=='pipe_bundle_types':
+                statements=[withoutBundleCostColumns(i) for i in statements]
+            db_import+=''.join(statements)
             dict_keys[table]={i: counter+seq_id for counter,i in enumerate(import_dict[table],1)}
         
     #connection_type_connections
@@ -1049,6 +1075,16 @@ def show_TableCurrentRowDialog(main,table,columns,dropdowns,dlg,id,openFnArg,tra
     else:
         iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_item_selected'), level=MessageInfo) 
 
+# free-text columns whose built-in values are shown translated and saved as the key (a user-defined value stays as typed)
+TRANSLATED_VALUES={'surface':SURFACES}
+
+def displayValue(column,value):
+    return tr_msg(value) if value in TRANSLATED_VALUES.get(column,()) else value
+
+def storedValue(column,text):
+    keys={tr_msg(key):key for key in TRANSLATED_VALUES.get(column,())}
+    return keys.get(text.strip(),text) if isinstance(text,str) else text
+
 def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=[0]):
     """show table content"""
     dprint('show table content')
@@ -1060,6 +1096,7 @@ def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=
     dlg.tableWidget.setRowCount(rowCountDB(table,'',cur_dict))
     
     dropdownItems=getDropDownItems(cur_dict,dropdowns)
+    names=columns[1:-1].split(',') if columns else []
     rowPosition = 0
     traceTableValues={}
     for row in data:
@@ -1070,9 +1107,14 @@ def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=
             if col in list([i[0] for i in dropdowns]):
                 dprint('dropdown: '+str(col))
                 comboBox = QComboBox()
-                comboBox.addItems(dropdownItems[col].values())
-                currentText=str([i for i in dropdownItems[col].values() if str(row[col]) == i.split(':')[0]][0])
-                comboBox.setCurrentText(currentText)
+                # the key as the data (as a new row): a fixed value is saved as it is, an id as the number
+                for key, text in dropdownItems[col].items():
+                    comboBox.addItem(text, key)
+                index=comboBox.findData(row[col])
+                if index<0:
+                    index=next((k for k,text in enumerate(dropdownItems[col].values()) if str(row[col]) == text.split(':')[0]),-1)
+                comboBox.setCurrentIndex(index)
+                currentText=comboBox.currentText()
                 dlg.tableWidget.setCellWidget(rowPosition, col, comboBox)   
                 if dlg.trace_type:
                     traceTableValues[rowPosition][col]=[currentText,'']
@@ -1081,6 +1123,8 @@ def showTableContent(cur_dict,conn,dlg,table,dropdowns,columns=None,deactivated=
                     value=''
                 else:
                     value=str(row[col])
+                if col<len(names):
+                    value=displayValue(names[col],value)
                 item=QTableWidgetItem(value)
                 if col in deactivated:
                     item.setFlags(get_item_flag("ItemIsSelectable") | get_item_flag("ItemIsEnabled"))
@@ -1177,7 +1221,7 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
     dlg.show()
     
 #columns saved as NULL if the cell is empty
-NULLABLE_COLUMNS=['p','mdot','costs','invest_costs','operation_costs','maintenance_pct','lifetime_a','p_max_bar','example',
+NULLABLE_COLUMNS=['p','mdot','costs','maintenance_pct','lifetime_a','p_max_bar','example',
     'start_price','escalation_pct','interest_pct','period_a','pump_costs_eur7kw','pump_maintenance_pct','pump_lifetime_a','el_profile_file','default_surface']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)
 
 def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
@@ -1200,7 +1244,7 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
                 if debug_enabled(): dprint(dlg.tableWidget.item(row,col).text())
                 value=dlg.tableWidget.item(row,col).data(Qt.ItemDataRole.UserRole)
                 if not value or col==0:
-                    value=dlg.tableWidget.item(row,col).text()
+                    value=storedValue(columns[col],dlg.tableWidget.item(row,col).text())
                 dprint(value)
                 if value and columns[col]=='p':
                     p=True

@@ -48,7 +48,7 @@ until the simulated NPV no longer falls. Start: the balanced result of the dynam
 
 **D2 – Limits (T2).** p_max of every pipe (`pipes.p_max_bar`) is hard: the model rejects a step that exceeds it in
 any hour, a check that exceeds it rejects the iteration. The guard against starving a customer is implemented as limits of a smaller pipe at the line's
-peak flow (300 Pa/m, 3 m/s, as the sizing): the model covers a longer path with a higher head. Room temperature outside the setpoints (load models) and
+peak flow (300 Pa/m, 3 m/s, as the sizing; settable in the dialog, as the 2 % tolerance of the unmet load): the model covers a longer path with a higher head. Room temperature outside the setpoints (load models) and
 unmet required load (source-file customers) are penalties (D9). A guard in the model: no smaller pipe that lowers a
 customer's available pressure difference below its need at its critical hour.
 
@@ -153,7 +153,12 @@ table (NPV split, model vs simulation, lines larger/smaller, customers with a ne
 saved iterations listed when the dialog opens; selected rows shown on the map), NPV diagram (stacked by cost group,
 model prediction as a line), log. Map (`cost_optimization_layers.py`): a group per iteration with the inner diameters
 (categories over all iterations), the lines changed for it as a halo with 'before → after' and the customers with a
-new deficit; only the last iteration visible. The sizing's machinery is reused as functions, not its dialog.
+new deficit; only the last iteration visible. The groups are removed when a version is loaded, and new layers go
+to the top of the layer tree again: QGIS inserts a new layer next to the current one, so a version loaded after a run
+landed in the last iteration group and the hidden table layers hid rows of the layer panel. The pairs are rows of supply and return dropdowns with the sequences of the network, as in the pair table
+of the hydraulic balancing. Next to the scenario, links open the
+dialogs of the economic scenarios and of the pipes (their costs). An info text
+(`cost_optimization_info`, collapsible as in the hydraulic balancing) describes the run. The sizing's machinery is reused as functions, not its dialog.
 *Alternative:* a mode of the dynamic pipe sizing dialog (collides with its parameters and the `protect-lines` work).
 
 **D19 – Start (O3).** The pipes of the loaded version. Iteration 0 is the reference check: the periods simulated
@@ -177,6 +182,19 @@ into it. The run ends when the simulated NPV has not improved for 2 iterations, 
 step improves the model NPV, or the max. iterations are reached. Then the pipes of the iteration with the best
 simulated NPV are restored and, if that was not the last iteration, checked once more, so that pipes and results of
 the version match. Protected lines of `protect-lines` (if present) are never changed.
+
+**D22 – Report of the iterations.** A button 'Report' in the cost optimization and in the hydraulic balancing writes one
+self-contained HTML file (`versions/<version>/reports/<feature>_<time>.html`, tables, diagrams and maps embedded as
+PNG) and opens it in the browser (`iteration_report.py`). Both reports have the inputs (run parameters, pairs,
+protected lines, pipes in use with their cost data, trench lengths per surface) and the outputs (iteration table,
+pipe lengths and trench lengths per surface and DN per iteration, per iteration a map and the changed lines); the cost
+optimization adds the scenario (prices, curves, trench costs) and a cost analysis (NPV parts per iteration, the least
+NPV against iteration 0, initial investment per iteration, pipes and trench of both, rejected changes by reason).
+The maps are rendered from the same layers as the iteration groups, built without entering the layer tree, so a
+report leaves the user's layers alone; at most 10 maps per pair (first, best, last and evenly spread). A run saves
+its settings in `versions/<version>/<feature>_run.json`, because the dialog may have changed until the report is
+written; runs from before have no parameter table.
+*Alternative:* a QGIS print layout as the network report (PDF): fixed pages, harder for long tables.
 
 ## Risks / Trade-offs
 

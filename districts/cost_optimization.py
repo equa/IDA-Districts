@@ -26,17 +26,23 @@ from qgis.utils import iface
 
 from .representative_periods import NEEDED_OUTPUTS, PeriodRun, PeriodsWidget, startTask
 from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.cost_model import DP_SPEZ_MAX, V_MAX
 from .utility_functions.cost_model_data import buildModel, checkSources, series
 from .utility_functions.cost_optimization_layers import iterationPath, loadCostIterations, removeCostLayers, showCostIterations
 from .utility_functions.db import getUsedNetworkSubmodels
+from .utility_functions.dialog import infoTextEdit
 from .utility_functions.dynamic_sizing_results import loadIterations
 from .utility_functions.files import loadModellingSettings, loadRequestedOutputs
+from .utility_functions.iteration_report import npvBars, openReport, saveRunParameters
 from .utility_functions.hydraulic_balancing import createChildVersion, getOrCreatePipeBundles, getPipeBundles
 from .utility_functions.network_economics import evaluateVersion, resultTables
 from .utility_functions.penalties import customerValues, penaltyCost, penaltyNpv
-from .utility_functions.pipe_pairs import getPlantConnections, suggestPairs
+from .utility_functions.pair_widgets import PairTable
+from .utility_functions.pipe_pairs import getPlantConnections, networkSequences, suggestPairs
+from .utility_functions.protected_lines import loadProtectedLines, networkLineIds, saveProtectedLines
+from .utility_functions.protected_lines_widget import ProtectedLinesWidget
 from .utility_functions.reports import fillScenarioCombo
-from .utility_functions.required_load import ensureRequired, saveRequired
+from .utility_functions.required_load import TOLERANCE, ensureRequired, saveRequired
 from .utility_functions.translations import tr_msg
 from .utility_functions.utility import write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
@@ -65,7 +71,7 @@ def lineState(cur, schema):
     return {row['id']: row['bid'] for row in cur.fetchall()}
 
 
-def penaltyValues(cur, config, required, submodel, tolerance):
+def penaltyValues(cur, config, required, submodel, tolerance, unmet_tolerance):
     """{cid: (Kh, unmet kWh)} per year of the checked iteration (worker thread: only the given cursor)"""
     check = checkSources(cur, config)
     if not check:
@@ -82,7 +88,7 @@ def penaltyValues(cur, config, required, submodel, tolerance):
     cur.execute("""SELECT c.id, t.template::text || '_' || t.template_name AS t_name FROM "{}".customers c, customer_templates t
         WHERE c.template = t.template;""".format(schema))  # nosec B608
     templates = {row['id']: row['t_name'] for row in cur.fetchall()}
-    return customerValues(data, hours, w, required, templates, config, submodel, tolerance)
+    return customerValues(data, hours, w, required, templates, config, submodel, tolerance, unmet_tolerance)
 
 
 def modelStep(cur, config, parms, settings, prices, no_smaller):
@@ -91,6 +97,7 @@ def modelStep(cur, config, parms, settings, prices, no_smaller):
     model = buildModel(cur, config, parms['scenario'], parms['pairs'], settings, profile_dir=prices)
     if model is None:
         return None
+    model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
     for lid in no_smaller:
         if lid in model.lines:
             model.lines[lid]['no_smaller'] = True
@@ -134,8 +141,8 @@ class CostOptimizationDialog(QDialog):
         self.combo_network.addItems([str(row['network']) for row in cur.fetchall()])
         self.combo_submodel = QComboBox()
         self.combo_submodel.addItems(getUsedNetworkSubmodels(cur, config))
-        self.edit_pairs = QLineEdit()
-        self.edit_pairs.setToolTip(tr_msg('Supply/return pairs, e.g. 1/2, 3/4'))
+        self.pair_table = PairTable(tr_msg('Supply and return pipe sequence of every circuit, suggested from the connections of the energy plants; '
+                                           'heating and cooling in the same trench are two rows'))
         self.spin_price_kh = QDoubleSpinBox()
         self.spin_price_kh.setRange(0, 1000)
         self.spin_price_kh.setValue(0.5)
@@ -145,6 +152,19 @@ class CostOptimizationDialog(QDialog):
         self.spin_price_kwh = QDoubleSpinBox()
         self.spin_price_kwh.setRange(0, 1000)
         self.spin_price_kwh.setValue(1.0)
+        self.spin_tolerance_kwh = QDoubleSpinBox()
+        self.spin_tolerance_kwh.setRange(0, 50)
+        self.spin_tolerance_kwh.setValue(TOLERANCE * 100)
+        self.spin_tolerance_kwh.setToolTip(tr_msg('Unmet load counts only above this share of the required load'))
+        self.spin_dp_max = QDoubleSpinBox()
+        self.spin_dp_max.setRange(10, 5000)
+        self.spin_dp_max.setDecimals(0)
+        self.spin_dp_max.setSingleStep(50)
+        self.spin_dp_max.setValue(DP_SPEZ_MAX)
+        self.spin_v_max = QDoubleSpinBox()
+        self.spin_v_max.setRange(0.1, 10)
+        self.spin_v_max.setSingleStep(0.1)
+        self.spin_v_max.setValue(V_MAX)
         self.spin_iter = QSpinBox()
         self.spin_iter.setRange(1, 100)
         self.spin_iter.setValue(10)
@@ -158,19 +178,41 @@ class CostOptimizationDialog(QDialog):
                                              'the first run invokes the features again'))
         self.check_outputs.setChecked(True)
         penalties = QHBoxLayout()
-        for widget in (QLabel(tr_msg('€/Kh')), self.spin_price_kh, QLabel(tr_msg('tolerance [K]')), self.spin_tolerance, QLabel(tr_msg('€/kWh unmet')), self.spin_price_kwh):
+        for widget in (QLabel(tr_msg('€/Kh')), self.spin_price_kh, QLabel(tr_msg('tolerance [K]')), self.spin_tolerance, QLabel(tr_msg('€/kWh unmet')), self.spin_price_kwh,
+                       QLabel(tr_msg('tolerance [%]')), self.spin_tolerance_kwh):
             penalties.addWidget(widget)
+        limits = QHBoxLayout()
+        for widget in (QLabel(tr_msg('max. specific pressure loss [Pa/m]')), self.spin_dp_max, QLabel(tr_msg('max. velocity [m/s]')), self.spin_v_max):
+            limits.addWidget(widget)
+        limits.addStretch()
         version = QHBoxLayout()
         for widget in (self.rbtn_new, self.edit_version, self.rbtn_override):
             version.addWidget(widget)
-        form.addRow(tr_msg('Scenario'), self.combo_scenario)
+        # the cost data of the run: scenarios and the pipe catalog are edited in their own dialogs
+        self.label_costLinks = QLabel('<a href="scenarios">{}</a> &nbsp; <a href="pipes">{}</a>'.format(
+            html.escape(tr_msg('Economic scenarios')), html.escape(tr_msg('Pipe costs'))))
+        self.label_costLinks.setTextFormat(Qt.TextFormat.RichText)
+        self.label_costLinks.setToolTip(tr_msg('Prices, interest, period, electricity profile and trench costs of the scenarios; '
+                                               'costs, maintenance, lifetime and max. pressure of the pipes'))
+        self.label_costLinks.linkActivated.connect(self.onCostLink)
+        scenario = QHBoxLayout()
+        scenario.addWidget(self.combo_scenario, 1)
+        scenario.addWidget(self.label_costLinks)
+        form.addRow(tr_msg('Scenario'), scenario)
         form.addRow(tr_msg('Network'), self.combo_network)
         form.addRow(tr_msg('Submodel'), self.combo_submodel)
-        form.addRow(tr_msg('Pairs'), self.edit_pairs)
-        form.addRow(tr_msg('Penalties'), penalties)
+        form.addRow(tr_msg('Pairs'), self.pair_table)
+        form.addRow(tr_msg('Smaller pipe at peak flow'), limits)
+        form.addRow(tr_msg('Comfort violations'), penalties)
         form.addRow(tr_msg('Max. iterations'), self.spin_iter)
         form.addRow(tr_msg('Outputs'), self.check_outputs)
         form.addRow(tr_msg('Version'), version)
+        self.groupBox_info = QgsCollapsibleGroupBox(tr_msg('Description'))
+        self.groupBox_info.setObjectName('groupBox_costOptimizationInfo')
+        self.text_info = infoTextEdit(['cost_optimization_info'], 260)
+        QVBoxLayout(self.groupBox_info).addWidget(self.text_info)
+        self.groupBox_info.setCollapsed(True)  # default before the first use, afterwards the saved state
+        layout.addWidget(self.groupBox_info)
         self.label_hints = QLabel()
         self.label_hints.setWordWrap(True)
         self.label_hints.setTextFormat(Qt.TextFormat.RichText)
@@ -194,6 +236,14 @@ class CostOptimizationDialog(QDialog):
         self.periods = PeriodsWidget(main, self.log)
         self.box_periods = self.section(tr_msg('Periods'), self.periods)
         layout.addWidget(self.box_periods)
+        self.protected_lines = ProtectedLinesWidget(tr_msg('Line IDs whose pipes the optimization never changes; their costs and pressure losses still count. '
+                                                           'The same list as in the hydraulic balancing, saved with the version at the start.'))
+        try:
+            self.protected_lines.setLines(loadProtectedLines(config))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+        self.box_protected = self.section(tr_msg('Protected lines'), self.protected_lines, collapsed=not self.protected_lines.texts())
+        layout.addWidget(self.box_protected)
         self.table_required = QTableWidget(0, 4)
         self.table_required.setHorizontalHeaderLabels([tr_msg('Template'), tr_msg('Column'), tr_msg('Unit'), tr_msg('Mode')])
         self.table_required.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
@@ -214,6 +264,10 @@ class CostOptimizationDialog(QDialog):
         self.btn_showIterations = QPushButton(tr_msg('Show selected iterations on the map'))
         self.btn_removeLayers = QPushButton(tr_msg('Remove the iteration layers'))
         self.btn_reload = QPushButton(tr_msg('Reload'))
+        self.btn_report = QPushButton(tr_msg('Report'))
+        self.btn_report.setToolTip(tr_msg('HTML report of the iterations of the loaded version: inputs incl. the economic scenario, iteration '
+                                          'tables, maps and the cost analysis, opened in the browser.'))
+        self.btn_report.clicked.connect(lambda: openReport(self, self.main.cur, self.main.config, 'cost'))
         self.btn_showIterations.clicked.connect(self.showSelectedIterations)
         self.btn_removeLayers.clicked.connect(lambda: removeCostLayers())
         self.btn_reload.clicked.connect(self.loadIterationTable)
@@ -221,7 +275,7 @@ class CostOptimizationDialog(QDialog):
         inner = QVBoxLayout(tab_iterations)
         inner.addWidget(self.table_iterations)
         row_buttons = QHBoxLayout()
-        for button in (self.btn_showIterations, self.btn_removeLayers, self.btn_reload):
+        for button in (self.btn_showIterations, self.btn_removeLayers, self.btn_reload, self.btn_report):
             row_buttons.addWidget(button)
         inner.addLayout(row_buttons)
         self.figure = Figure(figsize=(9, 4))
@@ -282,18 +336,14 @@ class CostOptimizationDialog(QDialog):
 
     def suggestPairs(self):
         try:
-            pairs, _ = suggestPairs(getPlantConnections(self.main.cur, self.main.config, int(self.combo_network.currentText() or 1)))
-            self.edit_pairs.setText(', '.join('{}/{}'.format(p[0], p[1]) for p in pairs))
+            network = int(self.combo_network.currentText() or 1)
+            pairs, _ = suggestPairs(getPlantConnections(self.main.cur, self.main.config, network))
+            self.pair_table.setPairs(networkSequences(self.main.cur, self.main.config, network), pairs)
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
 
     def pairs(self):
-        pairs = []
-        for text in self.edit_pairs.text().split(','):
-            if '/' in text:
-                s, r = text.split('/')
-                pairs.append((int(s), int(r)))
-        return pairs
+        return self.pair_table.pairs()
 
     def fillRequired(self):
         from .utility_functions.db import getTemplateNames
@@ -304,6 +354,26 @@ class CostOptimizationDialog(QDialog):
             self.table_required.insertRow(row)
             for col, key in enumerate(('template', 'column', 'unit', 'mode')):
                 self.table_required.setItem(row, col, QTableWidgetItem(str(entry[key])))
+
+    def saveProtected(self, p):
+        """checks and saves the protected lines (the run reads them from the version folder; a child version copies it)"""
+        protected, invalid = self.protected_lines.entries()
+        if invalid:
+            self.log(tr_msg('Protected lines: not a line ID: {}').format(', '.join(invalid)))
+            return False
+        try:
+            network_lids = networkLineIds(self.main.cur, self.main.config, int(p['network']))
+            saveProtectedLines(self.main.config, protected)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            self.log(tr_msg('The protected lines could not be saved: ') + traceback.format_exc().splitlines()[-1])
+            return False
+        foreign = [lid for lid in protected if lid not in network_lids]
+        if foreign:
+            self.log(tr_msg('Protected lines not in network {}, not protected in this run: {}').format(p['network'], ', '.join(str(lid) for lid in foreign)))
+        if len(protected) > len(foreign):
+            self.log(tr_msg('{} protected lines keep their pipes').format(len(protected) - len(foreign)))
+        return True
 
     def requiredEntries(self):
         entries = []
@@ -326,6 +396,23 @@ class CostOptimizationDialog(QDialog):
             hints.append(html.escape(tr_msg('Requested outputs the optimization needs ({}): {}').format(state, ', '.join(missing))))
         self.label_hints.setText('<br>'.join(hints))
 
+    def onCostLink(self, link):
+        if link == 'scenarios':
+            self.main.manageEconomicScenarios()
+            dialog = getattr(self.main, 'dlg_economicScenarios', None)
+            if dialog is not None:
+                # new or renamed scenarios are offered when the dialog is closed
+                dialog.finished.connect(lambda _: self.refreshScenarios())
+        elif link == 'pipes':
+            self.main.managePipes()
+
+    def refreshScenarios(self):
+        current = self.combo_scenario.currentData()
+        fillScenarioCombo(self.main.cur, self.combo_scenario)
+        index = self.combo_scenario.findData(current)
+        if index >= 0:
+            self.combo_scenario.setCurrentIndex(index)
+
     def onHintLink(self, link):
         if link == BALANCING_LINK:
             self.main.showDynamicPipeSizing()
@@ -342,6 +429,7 @@ class CostOptimizationDialog(QDialog):
         return {'scenario': self.combo_scenario.currentData(), 'network': self.combo_network.currentText(), 'submodel': self.combo_submodel.currentText(),
                 'pairs': self.pairs(), 'periods': self.periods.parameters(),
                 'price_kh': self.spin_price_kh.value(), 'tolerance': self.spin_tolerance.value(), 'price_kwh': self.spin_price_kwh.value(),
+                'unmet_tolerance': self.spin_tolerance_kwh.value(), 'dp_spez_max': self.spin_dp_max.value(), 'v_max': self.spin_v_max.value(),
                 'max_iter': self.spin_iter.value(), 'new_version': self.edit_version.text().strip() if self.rbtn_new.isChecked() else None,
                 'set_outputs': self.check_outputs.isChecked()}
 
@@ -351,8 +439,13 @@ class CostOptimizationDialog(QDialog):
             self.log(tr_msg('The weeks are still being chosen; start again in a moment.'))
             return
         p = self.parameters()
+        if self.pair_table.incomplete():
+            self.log(tr_msg('Choose the supply and the return sequence of every pair, or remove the row.'))
+            return
         if p['scenario'] is None or not p['pairs'] or not p['submodel']:
             self.log(tr_msg('Choose a scenario, a submodel and at least one pair.'))
+            return
+        if not self.saveProtected(p):
             return
         saveRequired(self.main.config, self.requiredEntries())
         self.process_running = True
@@ -428,22 +521,7 @@ class CostOptimizationDialog(QDialog):
 
     def plot(self, rows):
         self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        groups = ('investment', 'pump_energy', 'heat_losses', 'cold_losses', 'maintenance', 'residual', 'penalties')
-        x = [row['iteration'] for row in rows]
-        bottom_pos, bottom_neg = [0.0] * len(rows), [0.0] * len(rows)
-        for group in groups:
-            values = [row['split'].get(group, 0.0) for row in rows]
-            base = [bp if v >= 0 else bn for v, bp, bn in zip(values, bottom_pos, bottom_neg)]
-            ax.bar(x, values, bottom=base, label=tr_msg(group))
-            bottom_pos = [bp + max(v, 0) for v, bp in zip(values, bottom_pos)]
-            bottom_neg = [bn + min(v, 0) for v, bn in zip(values, bottom_neg)]
-        model = [(row['iteration'], row['npv_model']) for row in rows if row.get('npv_model') is not None]
-        if model:
-            ax.plot([m[0] for m in model], [m[1] for m in model], 'k--o', label=tr_msg('model'))
-        ax.set_xlabel(tr_msg('iteration'))
-        ax.set_ylabel(tr_msg('net present value [€]'))
-        ax.legend(fontsize=6, ncol=4)
+        npvBars(self.figure.add_subplot(111), rows)
         self.figure.tight_layout()
         self.canvas.draw()
 
@@ -576,6 +654,10 @@ class CostOptimizationRun(QObject):
 
     def begin(self):
         deleteIterationFiles(self.config)
+        try:
+            saveRunParameters(self.config, 'cost', dict(self.parms, protected=loadProtectedLines(self.config)))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         removeCostLayers()
         self.periods = self.parms['periods']
         if not self.periods['annual']:
@@ -619,7 +701,7 @@ class CostOptimizationRun(QObject):
             evaluation = evaluateVersion(cur, config, p['scenario'], settings, profile_dir=prices)
             if 'npv' not in evaluation:
                 return evaluation, None, None
-            return evaluation, penaltyValues(cur, config, required, p['submodel'], p['tolerance']), lineState(cur, config['versionName'])
+            return evaluation, penaltyValues(cur, config, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100), lineState(cur, config['versionName'])
 
         startTask(self, self.config, work, self.onEvaluated, self.onTaskFailed)
 

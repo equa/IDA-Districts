@@ -3,11 +3,13 @@ hydraulic balancing (utility_functions.hydraulic_balancing) until the pipe dimen
 The workflow is described in the info text dynamic_pipe_sizing_info (i18n/districts_*.ts)."""
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, QObject, QThreadPool, pyqtSlot
+from qgis.PyQt.QtGui import QGuiApplication
 from qgis.PyQt.QtWidgets import (
-    QCheckBox, QDateTimeEdit, QDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget,
+    QAbstractItemView, QCheckBox, QDateTimeEdit, QDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
+    QScrollArea,
+    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
-from qgis.core import QgsMessageLog
+from qgis.core import QgsMessageLog, QgsProject
 from qgis.gui import QgsCollapsibleGroupBox
 from qgis.utils import iface
 
@@ -18,19 +20,22 @@ from .ida_rv_dialog import LoadResultsDialog
 from .invoke_network import WorkerBuildNetworkModel
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect, getUsedNetworkSubmodels
-from .utility_functions.dialog import infoTextEdit
+from .utility_functions.dialog import infoTextEdit, qt_item_flag
 from .utility_functions.files import loadNetworkSimData
+from .utility_functions.iteration_report import openReport, saveRunParameters
 from .utility_functions.dynamic_sizing_results import (
-    deleteIterations, iterationRows, iterationSummary, loadIterations, pairSummary, removeSizingLayers, saveIteration, showIteration,
+    deleteIterations, iterationHeaders, iterationRows, iterationSummary, loadIterations, pairSummary, removeSizingLayers, saveIteration, showIteration,
     showIterations,
 )
 from .utility_functions.hydraulic_balancing import (
     createChildVersion, getCustomerLinePressure, getOrCreatePipeBundles, getPipeBundles, optimizePipeDiameters, saveCLidPressure,
 )
+from .utility_functions.pair_widgets import comboRow, rowsToRemove, sequenceCombo
 from .utility_functions.pipe_pairs import (
-    DEFAULT_TEMPS, checkPairs, getNetworkSequences, getPlantConnections, iterationOutcome, mergePairPipes, missingResultTables, pairLabel,
-    suggestPairs, targetFlow,
+    DEFAULT_TEMPS, checkPairs, getNetworkSequences, getPlantConnections, iterationOutcome, mergePairPipes, missingResultTables, networkSequences,
+    pairLabel, suggestPairs, targetFlow,
 )
+from .utility_functions.protected_lines import loadProtectedLines, networkLineIds, parseProtectedEntries, saveProtectedLines
 from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import sanitize_pg_identifier, write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
@@ -72,12 +77,13 @@ class DynamicPipeSizingDialog(QDialog):
         QVBoxLayout(self.groupBox_info).addWidget(self.text_info)
         self.groupBox_info.setCollapsed(True)  # default before the first use, afterwards the saved state
         self.verticalLayout_main.insertWidget(0, self.groupBox_info)
-        self.verticalLayout_main.setStretchFactor(self.tabWidget_results, 1)
+        self.scrollSections()
         self.main = main
         self.process_running = False
         self.run = None
         self.filling_pairs = False
         self.setupPairTable()
+        self.setupProtectedLines()
         self.setupPeriods()
         self.checkBox_presize.toggled.connect(self.updateEnabled)
         self.checkBox_dpSpezMax.toggled.connect(self.updateEnabled)
@@ -90,11 +96,39 @@ class DynamicPipeSizingDialog(QDialog):
         self.btn_showIterations.clicked.connect(self.showSelectedIterations)
         self.btn_removeIterationLayers.clicked.connect(lambda: removeSizingLayers())
         self.btn_reloadIterations.clicked.connect(self.loadIterationTable)
+        self.btn_report = QPushButton(tr_msg('Report'))
+        self.btn_report.setToolTip(tr_msg('HTML report of the iterations of the loaded version: inputs, iteration tables, pipes and trenches '
+                                          'per iteration and a map per iteration, opened in the browser.'))
+        self.horizontalLayout_iterations.addWidget(self.btn_report)
+        self.btn_report.clicked.connect(lambda: openReport(self, self.main.cur, self.main.config, 'balancing'))
         self.table_iterations.itemDoubleClicked.connect(lambda item: self.showSelectedIterations())
-        self.table_iterations.setColumnCount(len(self.iterationHeaders()))
-        self.table_iterations.setHorizontalHeaderLabels(self.iterationHeaders())
+        self.table_iterations.setColumnCount(len(iterationHeaders()))
+        self.table_iterations.setHorizontalHeaderLabels(iterationHeaders())
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table_iterations.verticalHeader().setVisible(False)
+
+    def scrollSections(self):
+        """The sections scroll, so the progress bar and the buttons stay visible on any screen (as the cost optimization)."""
+        main = self.verticalLayout_main
+        sections = QWidget()
+        inner = QVBoxLayout(sections)
+        inner.setContentsMargins(0, 0, 0, 0)
+        # every item above the progress bar is a widget of the .ui (the sections and the result tabs)
+        while main.count() and main.itemAt(0).widget() is not self.progress:
+            widget = main.takeAt(0).widget()
+            if widget is not None:
+                inner.addWidget(widget)
+        inner.setStretchFactor(self.tabWidget_results, 1)
+        self.tabWidget_results.setMinimumHeight(250)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(sections)
+        main.insertWidget(0, scroll, 1)
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            available = screen.availableGeometry()
+            self.resize(min(self.width(), available.width() - 40), min(self.height(), available.height() - 80))
 
     # ------------------------------------------------------------------ simulation period and reference run
     def setupPeriods(self):
@@ -142,10 +176,12 @@ class DynamicPipeSizingDialog(QDialog):
         header = self.table_pairs.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setStretchLastSection(True)
-        for col, width in enumerate((60, 60, 110)):
+        for col, width in enumerate((140, 140, 110)):
             self.table_pairs.setColumnWidth(col, width)
         self.table_pairs.verticalHeader().setVisible(False)
+        self.table_pairs.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_pairs.setMaximumHeight(110)
+        self.sequences = {}
         self.table_pairs.setToolTip(tr_msg('Supply and return pipe sequence of every circuit, suggested from the connections of the energy plants '
             '(k-th supply with k-th return connection). Every pair is balanced separately. The design temperatures are used for lines '
             'without a temperature result.'))
@@ -174,7 +210,9 @@ class DynamicPipeSizingDialog(QDialog):
             return
         try:
             cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            pairs, warnings = suggestPairs(getPlantConnections(cur, self.main.config, int(self.combo_network.currentText())))
+            network = int(self.combo_network.currentText())
+            self.sequences = networkSequences(cur, self.main.config, network)
+            pairs, warnings = suggestPairs(getPlantConnections(cur, self.main.config, network))
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
             pairs, warnings = [], [tr_msg('The pairs could not be suggested: ') + traceback.format_exc().splitlines()[-1]]
@@ -188,21 +226,30 @@ class DynamicPipeSizingDialog(QDialog):
         self.filling_pairs = True
         row = self.table_pairs.rowCount()
         self.table_pairs.insertRow(row)
-        for col, value in enumerate((supply, ret, t_supply, t_return)):
+        for col, value in enumerate((supply, ret)):
+            combo = sequenceCombo(self.sequences, value)
+            combo.currentIndexChanged.connect(lambda _, c=combo: self.onSequenceChanged(c))
+            self.table_pairs.setCellWidget(row, col, combo)
+        for col, value in ((2, t_supply), (3, t_return)):
             self.table_pairs.setItem(row, col, QTableWidgetItem('' if value is None else '{:g}'.format(value)))
         self.filling_pairs = False
 
     def removeSelectedPairs(self):
-        for row in sorted({index.row() for index in self.table_pairs.selectedIndexes()}, reverse=True):
+        for row in rowsToRemove(self.table_pairs):
             self.table_pairs.removeRow(row)
 
     def onPairEdited(self, item):
-        # the design temperatures belong to the suggested connections, not to edited sequences
-        if self.filling_pairs or item.column() >= 2:
+        pass  # the temperatures are free; a changed sequence clears them (onSequenceChanged)
+
+    def onSequenceChanged(self, combo):
+        # the design temperatures belong to the suggested connections, not to another sequence
+        row = comboRow(self.table_pairs, combo)
+        self.table_pairs.setCurrentCell(row, 2)
+        if self.filling_pairs or row < 0:
             return
         self.filling_pairs = True
         for col in (2, 3):
-            self.table_pairs.item(item.row(), col).setText('')
+            self.table_pairs.item(row, col).setText('')
         self.filling_pairs = False
 
     def pairs(self):
@@ -210,12 +257,9 @@ class DynamicPipeSizingDialog(QDialog):
         result, errors = [], []
         for row in range(self.table_pairs.rowCount()):
             texts = [self.table_pairs.item(row, col).text().strip() if self.table_pairs.item(row, col) else '' for col in range(4)]
-            try:
-                supply, ret = int(texts[0]), int(texts[1])
-                if supply < 1 or ret < 1:
-                    raise ValueError
-            except ValueError:
-                errors.append(tr_msg('Row {} of the pairs: the sequences must be positive integers.').format(row + 1))
+            supply, ret = (self.table_pairs.cellWidget(row, col).currentData() for col in (0, 1))
+            if supply is None or ret is None:
+                errors.append(tr_msg('Choose the supply and the return sequence of every pair, or remove the row.'))
                 continue
             try:
                 temps = [float(t.replace(',', '.')) if t else None for t in texts[2:]]
@@ -227,11 +271,80 @@ class DynamicPipeSizingDialog(QDialog):
             errors.append(tr_msg('Please enter at least one supply/return pair.'))
         return result, errors
 
-    # ------------------------------------------------------------------ iterations
+    # ------------------------------------------------------------------ protected lines
+    def setupProtectedLines(self):
+        self.list_protectedLines = QListWidget()
+        self.list_protectedLines.setObjectName('list_protectedLines')
+        self.list_protectedLines.setMaximumHeight(90)
+        self.list_protectedLines.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
+        self.list_protectedLines.setToolTip(tr_msg('Line IDs whose pipes the sizing never changes (no pre-sizing, no enlargement, no reduction) in every '
+            'pair; their pressure loss still counts for the customers. Saved with the version at the start.'))
+        self.btn_addProtected = QPushButton('+')
+        self.btn_addProtected.setToolTip(tr_msg('Add a line ID'))
+        self.btn_addProtected.clicked.connect(lambda: self.addProtectedEntry().setSelected(True))
+        self.btn_removeProtected = QPushButton('−')
+        self.btn_removeProtected.setToolTip(tr_msg('Remove the selected line IDs'))
+        self.btn_removeProtected.clicked.connect(self.removeSelectedProtected)
+        self.btn_addSelectedProtected = QPushButton(tr_msg('Add selected lines'))
+        self.btn_addSelectedProtected.setToolTip(tr_msg('Add the lines selected on the map (layer lines)'))
+        self.btn_addSelectedProtected.clicked.connect(self.addSelectedProtected)
+        buttons = QVBoxLayout()
+        for button in (self.btn_addProtected, self.btn_removeProtected, self.btn_addSelectedProtected):
+            buttons.addWidget(button)
+        buttons.addStretch()
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.list_protectedLines)
+        layout.addLayout(buttons)
+        self.formLayout_balancing.addRow(tr_msg('Protected lines'), container)
+
+    def addProtectedEntry(self, text=''):
+        item = QListWidgetItem(str(text))
+        item.setFlags(item.flags() | qt_item_flag('ItemIsEditable'))
+        self.list_protectedLines.addItem(item)
+        return item
+
+    def removeSelectedProtected(self):
+        for item in self.list_protectedLines.selectedItems():
+            self.list_protectedLines.takeItem(self.list_protectedLines.row(item))
+
+    def protectedTexts(self):
+        return [self.list_protectedLines.item(row).text() for row in range(self.list_protectedLines.count())]
+
     @staticmethod
-    def iterationHeaders():
-        return [tr_msg('Iteration'), tr_msg('Pair'), tr_msg('Critical time'), tr_msg('Weak point (plant)'), tr_msg('dp min [bar]'), tr_msg('dp max [bar]'),
-            tr_msg('Spread [bar]'), tr_msg('Spread after sizing (est.) [bar]'), tr_msg('Quota [%]'), tr_msg('Changed lines'), tr_msg('Outcome')]
+    def linesLayer():
+        """The active layer if it is the lines layer, otherwise the project's layer lines."""
+        name = tr('@default', 'lines')
+        layer = iface.activeLayer()
+        if layer is not None and layer.name() == name:
+            return layer
+        layers = QgsProject.instance().mapLayersByName(name)
+        return layers[0] if layers else None
+
+    def addSelectedProtected(self):
+        layer = self.linesLayer()
+        features = layer.selectedFeatures() if layer is not None else []
+        if not features:
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Please select lines in the layer lines.'), level=MessageInfo)
+            return
+        existing = {text.strip() for text in self.protectedTexts()}
+        for lid in sorted(f['id'] for f in features):
+            if str(lid) not in existing:
+                self.addProtectedEntry(lid)
+                existing.add(str(lid))
+
+    def fillProtectedLines(self, config):
+        self.list_protectedLines.clear()
+        try:
+            lids = loadProtectedLines(config)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            lids = []
+        for lid in lids:
+            self.addProtectedEntry(lid)
+
+    # ------------------------------------------------------------------ iterations
 
     def loadIterationTable(self):
         """Fills the table with the iterations saved in the loaded version."""
@@ -289,6 +402,7 @@ class DynamicPipeSizingDialog(QDialog):
         self.lineEdit_versionName.setText(config['versionName'] + '_sizing')
         self.lineEdit_versionDescription.setText('Hydraulic balancing of version {}'.format(config['versionName']))
         self.fillPeriods(config)
+        self.fillProtectedLines(config)
         self.loadIterationTable()
 
     def parameters(self):
@@ -313,6 +427,7 @@ class DynamicPipeSizingDialog(QDialog):
             'show_map': self.checkBox_showMap.isChecked(),
             'periods': self.periods(),
             'reference_run': self.checkBox_referenceRun.isChecked(),
+            'protected': parseProtectedEntries(self.protectedTexts())[0],
         }
 
     def log(self, message):
@@ -326,7 +441,7 @@ class DynamicPipeSizingDialog(QDialog):
         self.btn_start.setEnabled(not running)
         self.btn_stop.setEnabled(running)
         # while running the iterations are added to the table and shown by the run itself (option)
-        for widget in (self.btn_showIterations, self.btn_reloadIterations):
+        for widget in (self.btn_showIterations, self.btn_reloadIterations, self.btn_report):
             widget.setEnabled(not running)
         for box in (self.groupBox_version, self.groupBox_network, self.groupBox_balancing, self.groupBox_sizing, self.groupBox_iteration):
             box.setEnabled(not running)
@@ -337,11 +452,17 @@ class DynamicPipeSizingDialog(QDialog):
             return
         pairs, errors = self.pairs()
         errors += periodErrors(self.periods())
+        protected, invalid = parseProtectedEntries(self.protectedTexts())
+        if invalid:
+            errors.append(tr_msg('Protected lines: not a line ID: {}').format(', '.join(invalid)))
         skipped = {}
+        foreign = []
         if not errors:
             try:
                 cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 errors, skipped = checkPairs([(s, r) for s, r, _, _ in pairs], *getNetworkSequences(cur, self.main.config, int(self.combo_network.currentText())))
+                network_lids = networkLineIds(cur, self.main.config, int(self.combo_network.currentText()))
+                foreign = [lid for lid in protected if lid not in network_lids]
             except Exception:
                 QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
                 errors = [tr_msg('The pairs could not be checked: ') + traceback.format_exc().splitlines()[-1]]
@@ -369,11 +490,21 @@ class DynamicPipeSizingDialog(QDialog):
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.textEdit_log.clear()
+        try:
+            # saved in the loaded version before a child version is created, so the copied folder carries it
+            saveProtectedLines(self.main.config, protected)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            self.log(tr_msg('The protected lines could not be saved: ') + traceback.format_exc().splitlines()[-1])
+        if foreign:
+            self.log(tr_msg('Protected lines not in network {}, not protected in this run: {}').format(
+                self.combo_network.currentText(), ', '.join(str(lid) for lid in foreign)))
         for (s, r), n in sorted(skipped.items()):
             if n:
                 self.log(tr_msg('Pair {}: {} customers without the connections {} and {} are not included.').format(pairLabel((s, r)), n, s, r))
         self.setRunning(True)
-        self.run = DynamicPipeSizingRun(self, self.main, dict(self.parameters(), skipped={pairLabel(pair): n for pair, n in skipped.items()}))
+        self.run = DynamicPipeSizingRun(self, self.main, dict(self.parameters(), skipped={pairLabel(pair): n for pair, n in skipped.items()},
+            protected=[lid for lid in protected if lid not in foreign]))
         self.run.start()
 
     def stop(self):
@@ -440,6 +571,10 @@ class DynamicPipeSizingRun(QObject):
         # iterations of a previous run (or copied from the parent version) do not belong to this run; the reference
         # run (iteration 0) simulated in this version is kept for the sizing that follows it
         deleteIterations(self.config, keep_reference=not p['reference_run'] and not p['new_version'])
+        try:
+            saveRunParameters(self.config, 'balancing', p)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         removeSizingLayers()
         self.dlg.loadIterationTable()
         if p['build_first']:
@@ -683,13 +818,18 @@ class DynamicPipeSizingRun(QObject):
         lines, catalog = res['lines'], res['catalog']
         opt = optimizePipeDiameters(res['c_lid'], lines, catalog, tol_above=p['tol_above'], tol_below=p['tol_below'],
             weighted=p['weighted'], v_max=p['v_max'], dp_spez_max=p['dp_spez_max'],
-            dp_spez_setpoint=p['dp_spez_setpoint'], presize_only=p['presize_only'])
+            dp_spez_setpoint=p['dp_spez_setpoint'], presize_only=p['presize_only'], protected=set(p.get('protected', ())))
         dps = [val[0] for val in res['c_lid'].values() if val[0] is not None]
         self.dlg.log(tr_msg('  pair {}: {} lines, {} customers').format(label, len(lines), len(res['c_lid'])))
         self.dlg.log(tr_msg('  simulated: critical time {}, weak point customer {} (plant {}), dp substations {:.0f} ... {:.0f} Pa').format(
             res['time'], res['cid_dp'], res['epid_dp'], min(dps), max(dps)))
         self.dlg.log(tr_msg('  estimated after sizing: weak point customer {}, quota {:.0%}, spread {:.0f} Pa, pre-sized {}, hydraulic balancing steps {}').format(
             opt['cid_weak'], opt['quota'], opt['spread'], len(opt['presize']), len(opt['history'])))
+        if opt['protected']:
+            self.dlg.log(tr_msg('  pair {}: {} protected lines keep their pipes').format(label, len(opt['protected'])))
+        if opt['protected_over_max']:
+            self.dlg.log(tr_msg('  Warning: pair {}: protected lines above the max. specific pressure loss: {}').format(
+                label, ', '.join(str(lid) for lid in opt['protected_over_max'])))
         n_default = sum(1 for line in lines.values() if any(pipe['temp_default'] for pipe in line['pipes'].values()))
         if n_default:
             self.dlg.log(tr_msg('  pair {}: {} lines without a temperature result, {:g} / {:g} °C used').format(label, n_default, temps[0], temps[1]))

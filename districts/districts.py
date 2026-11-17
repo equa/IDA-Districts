@@ -874,7 +874,7 @@ class Districts:
 
     def managePipeBundlesTypes(self):
         if self.conn:
-            show_TableDialog(main=self,title=tr('@default','pipe_bundle'),table='pipe_bundle_types',headers=[tr('@default','pipe_bundle_id'),tr('@default','investment_costs'),tr('@default','operating_costs'),tr('@default','description')],columns='(id,invest_costs,operation_costs,description)', openFn=show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],[tr('@default','sequence'),tr('@default','pipe_id'),tr('@default','x_coord'),tr('@default','y_coord'),tr('@default','ambient')],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[0]]) 
+            show_TableDialog(main=self,title=tr('@default','pipe_bundle'),table='pipe_bundle_types',headers=[tr('@default','pipe_bundle_id'),tr('@default','description')],columns='(id,description)', openFn=show_TableCurrentRowDialog, openFnArg=['bundle_pipes',['sequence','pipe_id','x','y','ambient'],[tr('@default','sequence'),tr('@default','pipe_id'),tr('@default','x_coord'),tr('@default','y_coord'),tr('@default','ambient')],'WHERE pipe_bundle_type_id =','ORDER BY sequence',[[1,'public','pipes','id','name'],[4,'public','pipe_ambient','id','ambient']],False,'',False,False,[0]]) 
             
     def manageMaterials(self):
         if self.conn:

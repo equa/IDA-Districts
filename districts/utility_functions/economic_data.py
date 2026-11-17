@@ -22,6 +22,9 @@ KWW_MATERIAL_PAIR = {20: 71, 25: 87, 32: 111, 40: 137, 50: 169, 65: 217, 80: 265
                      175: 560, 200: 636, 225: 712, 250: 787, 300: 937, 350: 1086}
 EXAMPLE_PIPE = {'maintenance_pct': 1.0, 'lifetime_a': 40, 'p_max_bar': 16}
 
+# columns of public.pipe_bundle_types removed by the upgrade (and skipped when resources of older projects are imported)
+BUNDLE_COST_COLUMNS = ('invest_costs', 'operation_costs')
+
 COST_GROUPS = ('electricity', 'heat', 'cold', 'maintenance', 'investment')
 SURFACES = ('paved', 'unpaved')
 
@@ -105,6 +108,16 @@ def ensurePipeCostColumns(cur):
     addMissingColumns(cur, 'pipes', PIPE_COST_COLUMNS)
 
 
+def dropBundleCostColumns(cur):
+    """Removes invest_costs and operation_costs of public.pipe_bundle_types: never used, the costs are per pipe
+    (pipes.costs) and per scenario. One ALTER TABLE and only if a column exists (see addMissingColumns)."""
+    cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pipe_bundle_types'
+                   AND column_name = ANY(%s);""", (list(BUNDLE_COST_COLUMNS),))
+    existing = [row['column_name'] for row in cur.fetchall()]
+    if existing:
+        cur.execute('ALTER TABLE public.pipe_bundle_types {};'.format(', '.join('DROP COLUMN IF EXISTS {}'.format(col) for col in existing)))  # nosec B608
+
+
 def ensureEconomicTables(cur):
     """Creates the scenario tables if missing and the scenario 'base' with example values if there is none."""
     cur.execute(ECONOMIC_TABLES_SQL)
@@ -123,6 +136,17 @@ def ensureEconomicTables(cur):
     for surface, a, b, description in BASE_TRENCH_COSTS:
         cur.execute('INSERT INTO public.trench_costs (scenario_id,surface,a_eur7m,b_eur7m_dn,description) VALUES (%s,%s,%s,%s,%s);',
                     (sid, surface, a, b, description))
+
+
+def trenchSurfaces(cur, extra=()):
+    """The surfaces with trench costs in any scenario, plus the given values (e.g. those already in use), sorted.
+    The trench costs define the surfaces; the dropdowns of the streets and the default surface offer them."""
+    cur.execute("SELECT to_regclass('public.trench_costs') IS NOT NULL AS ok;")
+    surfaces = set()
+    if cur.fetchone()['ok']:
+        cur.execute("SELECT DISTINCT surface FROM public.trench_costs WHERE surface IS NOT NULL AND surface <> '';")
+        surfaces = {row['surface'] for row in cur.fetchall()}
+    return sorted(surfaces | {value for value in extra if value})
 
 
 def loadScenario(cur, scenario_id):

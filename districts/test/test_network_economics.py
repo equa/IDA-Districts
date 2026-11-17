@@ -152,3 +152,13 @@ def test_example_values():
     assert examplePipeCosts(400) == pytest.approx((23 + 3.05 * 400) / 2, abs=0.1)
     assert {s for s, *_ in BASE_TRENCH_COSTS} == {'paved', 'unpaved'}
     assert {m for m, *_ in BASE_PRICE_CURVES} == {'heat', 'cold'}
+
+
+# ---------------------------------------------------------------- pipe bundles of older projects
+def test_import_of_bundles_without_their_costs():
+    # resources exported from a project before the removal of invest_costs / operation_costs
+    from districts.ida_resources import withoutBundleCostColumns
+    old = "INSERT INTO pipe_bundle_types (invest_costs,operation_costs,description) VALUES (NULL,12.5,'2 pipes: 1, 2; 0.8 m depth');"
+    assert withoutBundleCostColumns(old) == "INSERT INTO pipe_bundle_types (description) VALUES ('2 pipes: 1, 2; 0.8 m depth');"
+    new = "INSERT INTO pipe_bundle_types (description) VALUES ('it''s new');"
+    assert withoutBundleCostColumns(new) == new

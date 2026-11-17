@@ -4,12 +4,15 @@
 import os
 import shutil
 
+from qgis.PyQt.QtGui import QGuiApplication
 from qgis.PyQt.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QVBoxLayout,
 )
 
 from .ida_resources import show_TableDialog
-from .utility_functions.economic_data import ensureEconomicTables
+from .utility_functions.dialog import infoTextEdit
+from .price_curves_dialog import PriceCurvesDialog
+from .utility_functions.economic_data import COST_GROUPS, ensureEconomicTables, trenchSurfaces
 from .utility_functions.economics import normalizedProfile, readProfile
 from .utility_functions.translations import tr_msg
 
@@ -20,9 +23,9 @@ TABLES = {
                                          'Example values', 'Description'],
                            '(id,name,interest_pct,period_a,residual_value,default_surface,el_profile_file,pump_costs_eur7kw,pump_maintenance_pct,pump_lifetime_a,example,description)', ''),
     'price_groups': ('Prices per cost group', ['ID', 'Scenario', 'Cost group', 'Start price [€/kWh]', 'Escalation [%/a]', 'Description'],
-                     '(id,scenario_id,cost_group,start_price,escalation_pct,description)', [SCENARIO_DROPDOWN]),
+                     '(id,scenario_id,cost_group,start_price,escalation_pct,description)', [SCENARIO_DROPDOWN, [2, None, COST_GROUPS]]),
     'price_levels': ('Price levels per year', ['ID', 'Scenario', 'Cost group', 'Year', 'Factor'],
-                     '(id,scenario_id,cost_group,year,factor)', [SCENARIO_DROPDOWN]),
+                     '(id,scenario_id,cost_group,year,factor)', [SCENARIO_DROPDOWN, [2, None, COST_GROUPS]]),
     'price_curves': ('Price curves heat and cold', ['ID', 'Scenario', 'Mode', 'Supply temperature [°C]', 'Price [€/kWh]'],
                      '(id,scenario_id,mode,t_supply,price_eur7kwh)', [SCENARIO_DROPDOWN]),
     'trench_costs': ('Trench costs per surface', ['ID', 'Scenario', 'Surface', 'a [€/m]', 'b [€/m per DN]', 'Description'],
@@ -35,6 +38,12 @@ SCENARIO_COLUMNS = 'interest_pct,period_a,residual_value,default_surface,el_prof
 
 def pricesDir(config):
     return os.path.join(config['pathProjects'] + config['projectName'], 'prices')
+
+
+def defaultSurfaceDropdown(cur):
+    """the surfaces of the trench costs (and those already set) for the column default_surface"""
+    cur.execute('SELECT DISTINCT default_surface FROM public.economic_scenarios;')
+    return [5, None, tuple(trenchSurfaces(cur, [row['default_surface'] for row in cur.fetchall()]))]
 
 
 def copyScenario(cur, scenario_id, name):
@@ -67,12 +76,13 @@ class EconomicScenariosDialog(QDialog):
         self.main = main
         ensureEconomicTables(main.cur)
         self.setWindowTitle(tr_msg('Economic scenarios'))
+        screen = QGuiApplication.primaryScreen()
+        available = screen.availableGeometry() if screen else None
+        self.resize(720, min(640, available.height() - 80) if available else 640)
         layout = QVBoxLayout(self)
-        info = QLabel(tr_msg('Costs and prices of the economic evaluation. Electricity: start price × level of the year × '
-                             'hourly profile; heat and cold: price curve of the supply temperature × level of the year; '
-                             'trench: a + b × DN of the largest pipe per surface.'))
-        info.setWordWrap(True)
-        layout.addWidget(info)
+        self.text_info = infoTextEdit(['economic_scenarios_info'], 330)
+        self.text_info.setMinimumHeight(200)
+        layout.addWidget(self.text_info)
         for table, (title, _, _, _) in TABLES.items():
             button = QPushButton(tr_msg(title))
             button.clicked.connect(lambda checked=False, t=table: self.openTable(t))
@@ -105,10 +115,24 @@ class EconomicScenariosDialog(QDialog):
             self.combo_scenario.addItem(row['name'], row['id'])
 
     def openTable(self, table):
+        if table == 'price_curves':
+            # a graph edited with the mouse and a table, per scenario and mode
+            self.dlg_curves = PriceCurvesDialog(self.main, self.combo_scenario.currentData())
+            self.dlg_curves.show()
+            return
         title, headers, columns, dropdowns = TABLES[table]
+        if table == 'economic_scenarios':
+            dropdowns = [defaultSurfaceDropdown(self.main.cur)]
         show_TableDialog(main=self.main, title=tr_msg(title), table=table, headers=[tr_msg(h) for h in headers],
                          columns=columns, dropdowns=dropdowns)
-        self.main.dlg_table.finished.connect(lambda *_: self.fillScenarios())
+        self.main.dlg_table.finished.connect(lambda *_: self.refresh())
+
+    def refresh(self):
+        current = self.combo_scenario.currentData()
+        self.fillScenarios()
+        index = self.combo_scenario.findData(current)
+        if index >= 0:
+            self.combo_scenario.setCurrentIndex(index)
 
     def copy(self):
         name = self.edit_name.text().strip()

@@ -2,7 +2,7 @@
 
 from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColumns, ensurePipeTwinColumns
 from .utility_functions.debug_log import dprint
-from .utility_functions.economic_data import ensureEconomicTables, ensurePipeCostColumns
+from .utility_functions.economic_data import dropBundleCostColumns, ensureEconomicTables, ensurePipeCostColumns
 
 #upgrade versions DB table structure
 def upgradeVersionDB(cur,config):
@@ -34,5 +34,7 @@ def upgradeProjectDB(cur):
     #costs: maintenance, lifetime, p_max of the pipes and the economic scenarios
     ensurePipeCostColumns(cur)
     ensureEconomicTables(cur)
+    #costs of the pipe bundles: never used
+    dropBundleCostColumns(cur)
     
     

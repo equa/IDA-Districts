@@ -8,6 +8,7 @@ from .compat import MessageCritical, MessageWarning
 from .db import getNetworks, getPlantIds, getTemplatesInfo
 from .files import loadProjectConfig
 from .dynamic_sizing_results import removeSizingLayers
+from .economic_data import trenchSurfaces
 from .height_check import removeHeightCheckLayers
 from .zeta import removeZetaLayers
 from .reports import setupCustomerDataSheet
@@ -20,6 +21,9 @@ from qgis.PyQt.QtGui import QColor
 from itertools import cycle
 
 import traceback
+
+# the value of a ValueMap entry that stands for NULL (QgsValueMapFieldFormatter.NULL_VALUE)
+NULL_VALUE_MAP = '{2839923C-8B7D-419E-B84B-CA2FE9B80EC7}'
 from .debug_log import dprint, debug_enabled
 
 
@@ -510,9 +514,45 @@ def on_form_changed(config,plugin_dir,project_name,layer):
     writeLayersConfig(config,project_name,layersConfig)
 
 
+# fields added to the form of projects whose layersConfig.txt was written before the field existed
+FORM_FIELDS_ADDED = {'streets': {'physical_data': ['surface']}}
+
+
+def addMissingFormFields(layersConfig):
+    """Adds the fields of FORM_FIELDS_ADDED that are in no tab of the layer; returns True if one was added."""
+    added = False
+    for layer_name, tabs in FORM_FIELDS_ADDED.items():
+        if layer_name not in layersConfig:
+            continue
+        present = {name for fields in layersConfig[layer_name].values() for name in fields if not isinstance(name, list)}
+        for tab, fields in tabs.items():
+            for field in fields:
+                if field not in present:
+                    layersConfig[layer_name].setdefault(tab, []).append(field)
+                    added = True
+    return added
+
+
+def mapValueStreetSurface(cur):
+    """Dropdown of streets.surface: the surfaces of the trench costs, plus those already set on a street."""
+    layers = QgsProject.instance().mapLayersByName(tr('@default', 'streets'))
+    if not layers:
+        return
+    layer = layers[0]
+    field_index = layer.fields().indexOf('surface')
+    if field_index < 0:
+        return
+    used = [str(v) for v in layer.uniqueValues(field_index) if v is not None and str(v) not in ('', 'NULL')]
+    val_map = [{tr_msg('(none: default surface of the scenario)'): NULL_VALUE_MAP}]
+    val_map += [{tr_msg(surface): surface} for surface in trenchSurfaces(cur, used)]
+    layer.setEditorWidgetSetup(field_index, QgsEditorWidgetSetup('ValueMap', {'map': val_map}))
+
+
 def setupVersionForm(cur,plugin_dir,config):  
     """ setup form for version layers"""
     layersConfig=loadLayersConfig(config,plugin_dir,config['projectName'])
+    if layersConfig and addMissingFormFields(layersConfig):
+        writeLayersConfig(config,config['projectName'],layersConfig)
     dprint(layersConfig)
     for vlayerName in layersConfig:
         vlayer=QgsProject.instance().mapLayersByName(tr('@default',vlayerName))
@@ -541,7 +581,8 @@ def setupVersionForm(cur,plugin_dir,config):
                 fc.addTab(c)  # Add the tab to the form configuration
             
             vlayer.setEditFormConfig(fc)
-            
+    mapValueStreetSurface(cur)
+
 def versionLayersAliasNames():
     """ alias names for version layers"""
     for vlayerName in ['lines','customers','energy_plants','junctions','buildings','streets']:
@@ -671,6 +712,11 @@ def removeLayers():
     removeZetaLayers()
     # iterations of the dynamic pipe sizing (memory layers of the old version)
     removeSizingLayers()
+    # imported here: cost_optimization_layers pulls in the hydraulic balancing
+    from .cost_optimization_layers import layerInsertionAtTop, removeCostLayers
+    removeCostLayers()
+    # the layers loaded next go to the top, not next to a layer the user had selected in a group
+    layerInsertionAtTop()
     iface.mapCanvas().refresh()
 
         
@@ -710,12 +756,13 @@ def setLayersHidden(tableNames):
         layer=QgsProject.instance().mapLayersByName(tr('@default',tableName))
         if layer:
             layer=layer[0]
-            model = iface.layerTreeView().layerTreeModel()
             ltv = iface.layerTreeView()
-            root = QgsProject.instance().layerTreeRoot()
-            node = root.findLayer( layer.id())
-            index = model.node2index(node)
-            ltv.setRowHidden( index.row(), index.parent(), True)
+            node = QgsProject.instance().layerTreeRoot().findLayer(layer.id())
+            # the view shows a proxy of the layer tree model (QGIS >= 3.18): an index of the source model hides
+            # the wrong rows, inside a group even top-level rows (an empty layer panel)
+            index = ltv.node2index(node) if hasattr(ltv, 'node2index') else ltv.layerTreeModel().node2index(node)
+            if index.isValid():
+                ltv.setRowHidden(index.row(), index.parent(), True)
         
 def loadTopologyLayers(version,uri,config,username):
     #load tables without geometry and hide them in layers panel

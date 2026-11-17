@@ -960,8 +960,14 @@ def getFilteredNotInDropDownItems(cur,dropdowns):
     return dropdownItems
     
 def getDropDownItems(cur,dropdowns):
+    """{column: {key: text}} of the dropdowns [column, schema, table, key column, name column] or, with fixed values,
+    [column, None, (values)] (shown translated, saved as the value)"""
     dropdownItems={}
-    for id,version,table,column,name in dropdowns:         
+    for spec in dropdowns:
+        if len(spec)==3:
+            dropdownItems[spec[0]]={value: tr_msg(value) for value in spec[2]}
+            continue
+        id,version,table,column,name=spec
         sql='SELECT {} AS key,{} AS name FROM "{}".{};'.format(column,name,version,table) # nosec B608
         dprint(sql)
         cur.execute(sql)

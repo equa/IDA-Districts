@@ -20,6 +20,7 @@ from districts.ida_ph import loadVersion
 from districts.utility_functions.dynamic_sizing_results import PAIR_PROPERTY, SIZING_PROPERTY, iterationRows, loadIterations, removeSizingLayers
 from districts.utility_functions.files import loadNetworkSimData
 from districts.utility_functions.hydraulic_balancing import loadCLidPressure
+from districts.utility_functions.protected_lines import loadProtectedLines
 from districts.utility_functions.translations import tr, tr_msg
 
 from .conftest import wait, wait_for_process, wait_until
@@ -63,6 +64,12 @@ def test_dynamic_pipe_sizing(project, districts_plugin, errors, monkeypatch):
     dlg.rbtn_newVersion.setChecked(True)
     dlg.lineEdit_versionName.setText(new_version)
     dlg.spin_maxIter.setValue(MAX_ITER)
+    # one protected line of the network and one id of no line (logged, not protected)
+    plugin.cur.execute('SELECT min(id) AS id FROM "{}".lines WHERE network = %s;'.format(VERSION), (int(dlg.combo_network.currentText()),))  # nosec B608
+    protected = plugin.cur.fetchone()['id']
+    dlg.list_protectedLines.clear()
+    for lid in (protected, 999999):
+        dlg.addProtectedEntry(lid)
     # the confirmation question of start()
     monkeypatch.setattr(QMessageBox, "question", lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
@@ -84,6 +91,11 @@ def test_dynamic_pipe_sizing(project, districts_plugin, errors, monkeypatch):
     # the loaded base version keeps its pipes
     plugin.cur.execute('SELECT count(*) AS n FROM "{}".lines l JOIN "{}".lines b USING (id) WHERE l.pipe_bundle_type_id <> b.pipe_bundle_type_id;'.format(new_version, VERSION))  # nosec B608
     print('lines with other pipe bundles than {}: {}'.format(VERSION, plugin.cur.fetchone()['n']))
+    # the protected line keeps its pipes, the list is saved and copied to the child version
+    plugin.cur.execute('SELECT l.pipe_bundle_type_id = b.pipe_bundle_type_id AS same FROM "{}".lines l JOIN "{}".lines b USING (id) WHERE id = %s;'.format(new_version, VERSION), (protected,))  # nosec B608
+    assert plugin.cur.fetchone()['same']
+    assert loadProtectedLines(plugin.config) == [protected, 999999]
+    assert '999999' in log
     assert tr('@default', 'dynamic_pipe_sizing_info') != 'dynamic_pipe_sizing_info'
 
     # iterations: one file each and one table row per pair, shown on the map while running (option, default on)
@@ -97,6 +109,8 @@ def test_dynamic_pipe_sizing(project, districts_plugin, errors, monkeypatch):
         print('iteration {}: {}'.format(s['iteration'], iterationRows(s)))
         for pair in s['pairs']:
             assert str(pair['cid_weak']) in pair['customers'] and pair['lines']
+            if str(protected) in pair['lines']:
+                assert pair['n_protected'] == 1 and pair['lines'][str(protected)]['protected']
     labels = {'{}/{}'.format(a, b) for a, b, _, _ in pairs}
     assert set(sizingLayers()) == {(i, label) for i in range(1, n + 1) for label in labels}
     for (iteration, label), layers in sizingLayers().items():

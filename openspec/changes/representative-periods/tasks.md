@@ -1,7 +1,7 @@
 ## 1. Periods module
 
 - [x] 1.1 `utility_functions/periods.py`: resolve the project's climate SOURCE-FILE (clim: → IDA Districts climate folder), read hour and T_air (the first 8760 of the hour points), message naming an unreadable file
-- [x] 1.2 Dominant mode from the pair table / plants; anchor week (coldest or warmest), option fourth week (warmest) for combined networks
+- [x] 1.2 Dominant mode from the pair table / plants; anchor week (coldest or warmest), option fourth week (warmest) for combined networks; a tooltip says why the option is greyed out for networks that only heat or only cool
 - [x] 1.3 Weights per simulated hour (hour of day, linear split between nearest below and above, nearest otherwise), profile sums, coverage (> 1 K) with warning above 40 %
 - [x] 1.4 Coverage search: candidate weeks from every midnight, coordinate descent from the 50 % / 85 % quantile weeks, no overlap
 

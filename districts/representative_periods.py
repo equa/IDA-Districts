@@ -125,6 +125,8 @@ class PeriodsWidget(QWidget):
         cur, config = main.cur, main.config
         self.mode, combined = dominantMode(cur, config)
         self.check_warmest.setEnabled(combined)
+        self.check_warmest.setToolTip(tr_msg('Only for networks that heat and cool: the coldest week is the anchor, the warmest week adds the cooling peak. '
+                                             'A network that only heats (or only cools) has its extreme week as the anchor already.'))
         self.ready = False
         try:
             self.year = int(loadNetworkSimData(main.plugin_dir, config)['calc_time_from'][:4])
@@ -229,7 +231,7 @@ class PeriodsWidget(QWidget):
 
 
 PERIOD_DIR = 'period_{}'
-SIM_START_GAP_MS = 15000
+SIM_START_GAP_MS = 5000
 
 
 def versionDir(config):

@@ -137,7 +137,8 @@ class TestNetworkCostData:
         plugin.cur.execute("""UPDATE public.pipes SET costs = 77 WHERE id = 1;
             ALTER TABLE public.pipes DROP COLUMN maintenance_pct, DROP COLUMN lifetime_a, DROP COLUMN p_max_bar, DROP COLUMN example;
             DROP TABLE public.economic_scenarios, public.price_groups, public.price_levels, public.price_curves, public.trench_costs;
-            ALTER TABLE "{}".streets DROP COLUMN surface;""".format(plugin.config['versionName']))  # nosec B608
+            ALTER TABLE "{}".streets DROP COLUMN surface;
+            ALTER TABLE public.pipe_bundle_types ADD COLUMN invest_costs numeric, ADD COLUMN operation_costs numeric;""".format(plugin.config['versionName']))  # nosec B608
         upgradeVersionDB(plugin.cur, plugin.config)
         upgradeVersionDB(plugin.cur, plugin.config)  # a second load changes nothing
         plugin.cur.execute('SELECT costs, example, maintenance_pct FROM public.pipes WHERE id = 1;')
@@ -148,6 +149,10 @@ class TestNetworkCostData:
         plugin.cur.execute("SELECT count(*) AS n FROM information_schema.columns WHERE table_schema = %s AND table_name = 'streets' AND column_name = 'surface';",
                            (plugin.config['versionName'],))
         assert plugin.cur.fetchone()['n'] == 1
+        # the unused costs of the pipe bundles are removed
+        plugin.cur.execute("SELECT count(*) AS n FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pipe_bundle_types' "
+                           "AND column_name IN ('invest_costs', 'operation_costs');")
+        assert plugin.cur.fetchone()['n'] == 0
 
     def test_report_page_and_dialog(self, cost):
         """the Economics page of the network report and the scenario selection in its dialog"""

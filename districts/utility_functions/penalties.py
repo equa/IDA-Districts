@@ -4,7 +4,7 @@ unmet load of source-file customers per customer, relative to the reference iter
 import numpy as np
 
 from .economics import annuityFactor
-from .required_load import customerSourceFiles, readRequired, requiredAt, unmetKwh
+from .required_load import TOLERANCE, customerSourceFiles, readRequired, requiredAt, unmetKwh
 
 
 def degreeHours(troom, tset, hcmode, weights, tolerance=0.5):
@@ -31,9 +31,9 @@ def penaltyNpv(yearly, interest_pct, period):
     return yearly / factor if factor else 0.0
 
 
-def customerValues(series, hours, weights, required_entries, templates, config, submodel, tolerance=0.5):
+def customerValues(series, hours, weights, required_entries, templates, config, submodel, tolerance=0.5, unmet_tolerance=TOLERANCE):
     """{cid: (Kh, unmet kWh)} per year from the series {'troom'|'tset'|'hcmode'|'power': {cid: array}};
-    templates {cid: t_name}; required_entries of requiredLoads.json."""
+    templates {cid: t_name}; required_entries of requiredLoads.json; unmet_tolerance: share of the required load."""
     by_template = {e['template']: e for e in required_entries or []}
     values = {}
     for cid in set(series.get('troom', {})) | set(series.get('power', {})):
@@ -46,6 +46,6 @@ def customerValues(series, hours, weights, required_entries, templates, config, 
             files = customerSourceFiles(config, submodel, cid)
             if files:
                 file_hours, required = readRequired(files[0], int(entry.get('column', 2)), entry.get('unit', 'W'))
-                kwh = unmetKwh(requiredAt(file_hours, required, hours), series['power'][cid], weights, entry.get('mode', 'heating'))
+                kwh = unmetKwh(requiredAt(file_hours, required, hours), series['power'][cid], weights, entry.get('mode', 'heating'), unmet_tolerance)
         values[cid] = (kh, kwh)
     return values

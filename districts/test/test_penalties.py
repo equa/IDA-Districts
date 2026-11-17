@@ -30,6 +30,8 @@ def test_penalty_relative_to_the_reference():
 def test_unmet_load():
     w = [1.0, 1.0]
     assert unmetKwh([10000.0, 10000.0], [9000.0, 9900.0], w) == pytest.approx(1.0)  # 9.9 kW within the 2 %
+    assert unmetKwh([10000.0, 10000.0], [9000.0, 9900.0], w, tolerance=0.0) == pytest.approx(1.1)
+    assert unmetKwh([10000.0, 10000.0], [9000.0, 9900.0], w, tolerance=0.15) == pytest.approx(0.0)
     assert unmetKwh([5000.0], [-4000.0], [1.0], mode='cooling') == pytest.approx(1.0)
 
 

@@ -277,20 +277,20 @@ COPY public.pipe_ambient (id, ambient) FROM stdin;
 -- Data for Name: pipe_bundle_types; Type: TABLE DATA; Schema: public;
 --
 
-COPY public.pipe_bundle_types (id, invest_costs, operation_costs, description) FROM stdin;
-1	\N	\N	2 pipes; 1m depth; 0.5m distance
-2	\N	\N	4 pipes; 1m depth; 0.5m distance
-3	\N	\N	twin pipe Isoplus DRD-20: pipes: 29,29; 1 m depth
-4	\N	\N	twin pipe Isoplus DRD-25: pipes: 30,30; 1 m depth
-5	\N	\N	twin pipe Isoplus DRD-32: pipes: 31,31; 1 m depth
-6	\N	\N	twin pipe Isoplus DRD-40: pipes: 32,32; 1 m depth
-7	\N	\N	twin pipe Isoplus DRD-50: pipes: 33,33; 1 m depth
-8	\N	\N	twin pipe Isoplus DRD-65: pipes: 34,34; 1 m depth
-9	\N	\N	twin pipe Isoplus DRD-80: pipes: 35,35; 1 m depth
-10	\N	\N	twin pipe Isoplus DRD-100: pipes: 36,36; 1 m depth
-11	\N	\N	twin pipe Isoplus DRD-125: pipes: 37,37; 1 m depth
-12	\N	\N	twin pipe Isoplus DRD-150: pipes: 38,38; 1 m depth
-13	\N	\N	twin pipe Isoplus DRD-200: pipes: 39,39; 1 m depth
+COPY public.pipe_bundle_types (id, description) FROM stdin;
+1	2 pipes; 1m depth; 0.5m distance
+2	4 pipes; 1m depth; 0.5m distance
+3	twin pipe Isoplus DRD-20: pipes: 29,29; 1 m depth
+4	twin pipe Isoplus DRD-25: pipes: 30,30; 1 m depth
+5	twin pipe Isoplus DRD-32: pipes: 31,31; 1 m depth
+6	twin pipe Isoplus DRD-40: pipes: 32,32; 1 m depth
+7	twin pipe Isoplus DRD-50: pipes: 33,33; 1 m depth
+8	twin pipe Isoplus DRD-65: pipes: 34,34; 1 m depth
+9	twin pipe Isoplus DRD-80: pipes: 35,35; 1 m depth
+10	twin pipe Isoplus DRD-100: pipes: 36,36; 1 m depth
+11	twin pipe Isoplus DRD-125: pipes: 37,37; 1 m depth
+12	twin pipe Isoplus DRD-150: pipes: 38,38; 1 m depth
+13	twin pipe Isoplus DRD-200: pipes: 39,39; 1 m depth
 \.
 
 

@@ -122,6 +122,9 @@ def economicsRows(evaluation):
     rows+=[[tr_msg('Net present value'),_money(npv['npv'])],[tr_msg('Annuity'),_money(npv['annuity'])+'/a']]
     if evaluation['no_costs']:
         rows.append([tr_msg('Pipes in use without costs'),', '.join(evaluation['no_costs'])])
+    if evaluation.get('no_trench'):
+        default=scenario.get('default_surface') or 'paved'
+        rows.append([tr_msg('Surfaces without trench costs (valued as {})').format(tr_msg(default)),', '.join(tr_msg(s) for s in evaluation['no_trench'])])
     if evaluation['loss_check']:
         lids=sorted(evaluation['loss_check'])
         rows.append([tr_msg('Lines whose calculated heat loss deviates more than 15 % from the simulated one'),

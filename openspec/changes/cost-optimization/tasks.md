@@ -20,7 +20,13 @@
 - [x] 3.4 Iteration files (row, steps, rejected changes) in the version folder, iteration table, NPV diagram (matplotlib, stacked, model line), map layers of the changed lines; files of earlier runs removed at the start
 - [x] 3.6 Option to switch on the needed requested outputs at the start (requested outputs worker); hint about missing balancing iterations as a link to the hydraulic balancing dialog
 - [x] 3.7 Results in tabs (iterations, NPV, log); per iteration a map group (`cost_optimization_layers.py`: inner diameters, lines changed for the iteration, customers with a new deficit); saved iterations listed at the opening, selected rows shown on the map
+- [x] 3.8 Info text of the dialog; iteration groups removed when a version is loaded, new layers at the top of the layer tree, table layers hidden with the index of the layer tree view (test_cost_optimization_layers.py)
+- [x] 3.9 Spin boxes for the limits of a smaller pipe at peak flow (Pa/m, m/s) and the tolerance of the unmet load (%); 'Penalties' named comfort violations in the dialog, the NPV diagram and the info text
+- [x] 3.10 Links next to the scenario to the dialogs 'Economic scenarios' and the pipes (costs); the scenario list refreshed when the scenario dialog is closed
+- [x] 3.11 Pairs chosen with supply and return dropdowns of the network's sequences (labelled with the plant connection type and design temperature), in this dialog (rows with + / −) and in the pair table of the hydraulic balancing (`pair_widgets.py`, `networkSequences`)
+- [x] 3.12 Section 'Protected lines' in the dialog (`protected_lines_widget.py`): the list of the hydraulic balancing, checked and saved with the version at the start; the hydraulic balancing dialog scrolls its sections as this dialog
 - [x] 3.5 Protected lines of protect-lines honoured if the version has them
+- [x] 3.13 Report (D22, `iteration_report.py`): button 'Report' in this dialog and in the hydraulic balancing, run parameters saved at the start (`<feature>_run.json`), HTML with inputs, outputs per iteration, maps and the cost analysis; the iteration layers can be built without the layer tree; the NPV diagram shared by the dialog and the report
 
 ## 4. Tests
 
@@ -28,6 +34,7 @@
 - [x] 4.2 Unit tests required_load and penalties: detection defaults, interpolation, 10 vs 9 kW → 1 kWh, 9.9 kW within the tolerance, degree hours only when needed, penalty relative to the reference
 - [x] 4.3 e2e/ida test on a project from dynamic_optimization (skipped without it): run with three one-day weeks and max. 2 iterations in a child version; iteration 0 reference, rows with NPV and model error, the version's pipes of the best iteration, the parent unchanged
 - [x] 4.4 test/test_cost_optimization_annual.py (marker annual, only with DISTRICTS_TEST_ANNUAL=1; simulation_tests runs bare IDA models without QGIS): annual optimization of base1 and of the low-temperature version (skipped until the IDA sample has it), NPV of the weeks against the annual NPV reported
+- [x] 4.6 test_iteration_report.py (e2e, template heating_network, iteration files made from its lines): sections, tables, maps, cost analysis, the file in reports
 - [x] 4.5 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes (with `-m "not ida"` when IDA Districts is not installed), including test_static_mypy.py and test_messages.py
 
 ## 5. Sample handover, translations, documentation, CI

@@ -81,6 +81,10 @@ class CostModel:
     v_customer: {cid: m3/s (n)}; p_plant: plant supply pressure (n) [Pa]; settings (ground lambda), modes {seq: mode}
     t_supply: {'heat': (n), 'cold': (n)}"""
 
+    # limits of a smaller pipe at the line's peak flow, set from the dialog
+    dp_spez_max = DP_SPEZ_MAX
+    v_max = V_MAX
+
     def __init__(self, scenario, catalog, layers, lines, pairs, weights, mdot, temp, graph, customers, central=None,
                  decentral=None, v_plant=None, v_customer=None, p_plant=None, t_amb=None, t_supply=None, modes=None,
                  shape=None, lambda_soil=1.2, p_max=None):
@@ -280,7 +284,7 @@ class CostModel:
                     continue
                 peak = float(np.max(np.abs(mdot)))
                 d, k = self.catalog[pid]['d'], self.catalog[pid]['k']
-                if float(pressureLoss([peak], d, k)[0]) > DP_SPEZ_MAX or float(velocity([peak], d)[0]) > V_MAX:
+                if float(pressureLoss([peak], d, k)[0]) > self.dp_spez_max or float(velocity([peak], d)[0]) > self.v_max:
                     return 'peak'
         return None
 

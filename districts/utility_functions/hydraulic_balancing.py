@@ -215,7 +215,7 @@ def presizePipes(c_lid, lines, catalog, dp_spez_setpoint):
 
 
 def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0, dp_target=None, cid_weak=None, weighted=False, v_max=None, dp_spez_max=300.0,
-        dp_spez_setpoint=None, presize_only=False, max_iter=1000):
+        dp_spez_setpoint=None, presize_only=False, max_iter=1000, protected=()):
     """Hydraulic balancing: iterative reduction of pipe diameters until dp of all customers is within dp_target ... dp_target + tol_above
     (dp_target default: minimal dp of all customers). The mass flows are kept constant.
 
@@ -236,9 +236,11 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
     dp_spez_setpoint: optional pre-sizing [Pa/m per pipe] (see presizePipes) before the iteration; dp of the
                  customers is corrected by the changed pressure losses of the lines.
     presize_only: True -> only the pre-sizing with dp_spez_setpoint is done, no iterative balancing.
+    protected:   line ids whose pipes are never changed (no pre-sizing, no enlargement, no reduction); their pressure
+                 loss still counts for the customers.
     The line changed last is only changed again if no other line of the customer is possible.
     Returns dict {'c_lid', 'pipes', 'presize', 'history', 'converged', 'dp_target', 'cid_weak', 'spread', 'blocked',
-    'quota'} with quota = share of customers within dp_target - tol_below ... dp_target + tol_above."""
+    'quota', 'protected', 'protected_over_max'} (protected lines of the circuit, those above dp_spez_max) with quota = share of customers within dp_target - tol_below ... dp_target + tol_above."""
     dp = {cid: val[0] for cid, val in c_lid.items() if val[0] is not None}
     pipes = {lid: {seq: p['pipe_id'] for seq, p in line['pipes'].items()} for lid, line in lines.items()}
     dp_spez = {lid: lineSpecificPressureLoss(lines[lid], catalog, pipes[lid])[0] for lid in lines}
@@ -250,6 +252,8 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
             line_customers[lid][cid] = m / mdot_tot if mdot_tot else 0.0
 
     presize = []
+    protected = {lid for lid in protected if lid in lines}
+    free = {lid: line for lid, line in lines.items() if lid not in protected}
 
     def applyPresize(new_pipes, reason):
         for lid, new in new_pipes.items():
@@ -266,10 +270,10 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
             dp_spez[lid] = dp_spez_new
 
     if dp_spez_setpoint:
-        applyPresize(presizePipes(c_lid, lines, catalog, min(dp_spez_setpoint, dp_spez_max) if dp_spez_max else dp_spez_setpoint), 'setpoint')
+        applyPresize(presizePipes(c_lid, free, catalog, min(dp_spez_setpoint, dp_spez_max) if dp_spez_max else dp_spez_setpoint), 'setpoint')
     if dp_spez_max:
         # lines whose pipes exceed the maximal specific pressure loss are enlarged
-        too_small = [lid for lid in lines if max(linePipeSpecificPressureLoss(lines[lid], catalog, pipes[lid], peak=True).values(), default=0.0) > dp_spez_max]
+        too_small = [lid for lid in free if max(linePipeSpecificPressureLoss(lines[lid], catalog, pipes[lid], peak=True).values(), default=0.0) > dp_spez_max]
         presized = presizePipes(c_lid, {lid: lines[lid] for lid in too_small}, catalog, dp_spez_max)
         applyPresize({lid: new for lid, new in presized.items() if catalog[next(iter(new.values()))]['d'] > catalog[next(iter(pipes[lid].values()))]['d']}, 'dp_spez_max')
 
@@ -290,7 +294,7 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
             break
         applied = False
         for cid in sorted((c for c in dp if dp[c] - dp_target > tol_above and c not in blocked), key=dp.get, reverse=True):
-            for lid in sorted((lid for lid in c_lid[cid][1] if lid in lines and lid not in lids_weak), key=lambda lid: (lid == lid_last, dp_spez[lid])):
+            for lid in sorted((lid for lid in c_lid[cid][1] if lid in free and lid not in lids_weak), key=lambda lid: (lid == lid_last, dp_spez[lid])):
                 new = {seq: getNextSmallerPipe(pid, catalog) for seq, pid in pipes[lid].items()}
                 if None in new.values():
                     continue
@@ -319,10 +323,13 @@ def optimizePipeDiameters(c_lid, lines, catalog, tol_above=500.0, tol_below=0.0,
             break
 
     converged = max(dp.values()) - dp_target <= tol_above
+    over_max = sorted(lid for lid in protected if dp_spez_max and
+        max(linePipeSpecificPressureLoss(lines[lid], catalog, pipes[lid], peak=True).values(), default=0.0) > dp_spez_max)
     c_lid_new = {cid: [dp.get(cid), {lid: [dp_spez.get(lid, val), m] for lid, (val, m) in lids.items()}] for cid, (_, lids) in c_lid.items()}
     return {'c_lid': c_lid_new, 'pipes': pipes, 'presize': presize, 'history': history, 'converged': converged, 'dp_target': dp_target, 'cid_weak': cid_weak,
         'spread': max(dp.values()) - min(dp.values()), 'blocked': sorted(blocked),
-        'quota': sum(1 for val in dp.values() if dp_target - tol_below <= val <= dp_target + tol_above) / len(dp)}
+        'quota': sum(1 for val in dp.values() if dp_target - tol_below <= val <= dp_target + tol_above) / len(dp),
+        'protected': sorted(protected), 'protected_over_max': over_max}
 
 
 def changedPipeBundles(lines, pipes, bundles):

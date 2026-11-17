@@ -5,11 +5,13 @@ supply/return pair (circuit, see pipe_pairs.py):
     {'iteration', 'started', 'outcome', 'n_changed',
      'pairs': [{'supply', 'return', 'temps', 'time', 'cid_weak', 'epid_weak', 'dp_net_weak', 'cid_target', 'dp_target',
                 'quota', 'spread_sized', 'n_presized', 'n_balancing_steps', 'n_changed', 'n_customers_skipped',
+                'n_protected',
                 'customers': {cid: {'dp', 'dp_sized', 'dp_net', 'epid', 'time'}},
-                'lines': {lid: {'mdot', 'mdot_max', 'dp_spez', 'pipe', 'pipe_new', 'd', 'd_new', 'changed'}}}]}
+                'lines': {lid: {'mdot', 'mdot_max', 'dp_spez', 'pipe', 'pipe_new', 'd', 'd_new', 'changed', 'protected'}}}]}
     temps        ... design temperatures of supply and return (fallback for lines without a temperature result) [degC]
     pipe, pipe_new ... pipe of the supply sequence before / after the sizing
     d, d_new     ... its inner diameter before / after the sizing [mm] (missing in files of earlier runs)
+    protected, n_protected ... line whose pipes the sizing keeps / their number (missing in files of earlier runs)
 Files of earlier runs have the results of the pair 1/2 at the top level instead of 'pairs' (see loadIterations).
     dp, dp_sized ... differential pressure at the substation simulated / estimated after the sizing [Pa]
     dp_net       ... network pressure loss to the supplying plant [Pa] (the weak point has the largest one)
@@ -59,6 +61,7 @@ def pairSummary(pair, temps, res, opt, changed, n_skipped=0, reference=False, ta
     reference: reference run (iteration 0), the pipes are not changed (pipe_new = pipe)."""
     catalog, lines = res['catalog'], res['lines']
     supply = pair[0]
+    protected = set(opt.get('protected', ()))
     customers = {}
     for cid, (dp, _) in res['c_lid'].items():
         dp_net, epid = res['dvar'].get(cid, (None, None))
@@ -70,11 +73,13 @@ def pairSummary(pair, temps, res, opt, changed, n_skipped=0, reference=False, ta
         new = pipe['pipe_id'] if reference else opt['pipes'].get(lid, {}).get(supply, pipe['pipe_id'])
         line_rows[str(lid)] = {'mdot': abs(pipe['mdot']), 'mdot_max': max(abs(p.get('mdot_max', 0.0)) for p in line['pipes'].values()),
             'dp_spez': res['dp_spez'].get(lid), 'pipe': catalog[pipe['pipe_id']]['name'], 'pipe_new': catalog[new]['name'],
-            'd': mm(catalog[pipe['pipe_id']]['d']), 'd_new': mm(catalog[new]['d']), 'changed': lid in changed and not reference}
+            'd': mm(catalog[pipe['pipe_id']]['d']), 'd_new': mm(catalog[new]['d']), 'changed': lid in changed and not reference,
+            'protected': lid in protected}
     return {'supply': pair[0], 'return': pair[1], 'temps': list(temps), 'time': str(res['time']), 'cid_weak': res['cid_dp'],
         'epid_weak': res['epid_dp'], 'dp_net_weak': res['dp'], 'cid_target': opt['cid_weak'], 'dp_target': opt['dp_target'],
         'quota': opt['quota'], 'spread_sized': opt['spread'], 'n_presized': len(opt['presize']), 'n_balancing_steps': len(opt['history']),
         'n_changed': 0 if reference else len(changed), 'n_customers_skipped': n_skipped, 'target_no_flow': target_no_flow,
+        'n_protected': len(protected),
         'customers': customers, 'lines': line_rows}
 
 
@@ -117,6 +122,12 @@ def deleteIterations(config, keep_reference=False):
         for path in glob.glob(os.path.join(versionPath(config), pattern)):
             if not (keep_reference and re.match(r'dynamic_sizing_iter0[._]', os.path.basename(path))):
                 os.remove(path)
+
+
+def iterationHeaders():
+    """headers of iterationRows"""
+    return [tr_msg('Iteration'), tr_msg('Pair'), tr_msg('Critical time'), tr_msg('Weak point (plant)'), tr_msg('dp min [bar]'), tr_msg('dp max [bar]'),
+        tr_msg('Spread [bar]'), tr_msg('Spread after sizing (est.) [bar]'), tr_msg('Quota [%]'), tr_msg('Changed lines'), tr_msg('Outcome')]
 
 
 def iterationRows(summary):
@@ -182,7 +193,8 @@ def sizingGroup(iteration, label=None):
     return sub.findGroup(name) or sub.addGroup(name)
 
 
-def createLayer(name, geom_type, srid, fields, rows, iteration, label):
+def createLayer(name, geom_type, srid, fields, rows, iteration, label, collect=None):
+    """collect: a list that takes the layer instead of the project (layers of a report)"""
     uri = "{}?crs=EPSG:{}&{}".format(geom_type, srid, '&'.join('field={}:{}'.format(n, t) for n, t in fields))
     layer = QgsVectorLayer(uri, name, 'memory')
     features = []
@@ -195,6 +207,9 @@ def createLayer(name, geom_type, srid, fields, rows, iteration, label):
     layer.updateExtents()
     layer.setCustomProperty(SIZING_PROPERTY, iteration)
     layer.setCustomProperty(PAIR_PROPERTY, label)
+    if collect is not None:
+        collect.append(layer)
+        return layer
     QgsProject.instance().addMapLayer(layer, False)
     sizingGroup(iteration, label).addLayer(layer)
     return layer
@@ -335,10 +350,11 @@ def showIteration(cur, config, summary, all_summaries=None, visible=True, labels
     return layers
 
 
-def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True):
+def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True, collect=None):
     """Layers of a pair of an iteration (top to bottom: customers, diameters, new pipes, mass flow); classes and
     diameter categories from all_pairs (the same pair in all iterations).
-    new_pipes=False: without the layer of the lines with new pipes (reference run)."""
+    new_pipes=False: without the layer of the lines with new pipes (reference run).
+    collect: a list that takes the layers instead of the project, without the mass flow layer (report)."""
     dp_bounds = classBounds([bar(c['dp']) for p in all_pairs for c in p['customers'].values()])
     mdot_bounds = classBounds([line['mdot'] for p in all_pairs for line in p['lines'].values() if line['mdot'] > 0])
 
@@ -349,7 +365,7 @@ def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True):
         for cid, c in pair['customers'].items() if cid in wkt]
     customer_fields = [('id', 'integer'), ('dp_bar', 'double'), ('dp_sized_bar', 'double'), ('dp_net_bar', 'double'), ('epid', 'integer'),
         ('time', 'string'), ('weak', 'boolean')]
-    customers = createLayer(tr_msg('Customers – dp substation [bar]'), 'Point', srid(cur, config, 'customers'), customer_fields, customer_rows, iteration, label)
+    customers = createLayer(tr_msg('Customers – dp substation [bar]'), 'Point', srid(cur, config, 'customers'), customer_fields, customer_rows, iteration, label, collect)
     customers.setRenderer(customerRenderer(dp_bounds))
     setLabels(customers, "if(\"weak\", '{} ' || \"id\" || ': ' || format_number(\"dp_bar\", 3) || ' bar', '')".format(tr_msg('weak point')))
 
@@ -360,15 +376,17 @@ def showPair(cur, config, iteration, label, pair, all_pairs, new_pipes=True):
         ('pipe_new', 'string'), ('d', 'double'), ('d_new', 'double'), ('changed', 'boolean')]
     line_srid = srid(cur, config, 'lines')
     name = tr_msg('Lines – inner diameter after sizing [mm]') if new_pipes else tr_msg('Lines – inner diameter [mm]')
-    diameters = createLayer(name, 'LineString', line_srid, line_fields, line_rows, iteration, label)
+    diameters = createLayer(name, 'LineString', line_srid, line_fields, line_rows, iteration, label, collect)
     diameters.setRenderer(diameterRenderer([line.get(k) for p in all_pairs for line in p['lines'].values() for k in ('d', 'd_new')]))
     layers = [customers, diameters]
     if new_pipes:
         changed_rows = [row for row in line_rows if row['changed']]
-        changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', line_srid, line_fields, changed_rows, iteration, label)
+        changed = createLayer(tr_msg('Lines – new pipes'), 'LineString', line_srid, line_fields, changed_rows, iteration, label, collect)
         changed.setRenderer(QgsSingleSymbolRenderer(lineSymbol('#e31a1c', 3.0, opacity=0.4)))
         setLabels(changed, "\"pipe\" || ' → ' || \"pipe_new\"", '#b30000')
         layers.append(changed)
+    if collect is not None:
+        return layers
     lines = createLayer(tr_msg('Lines – design mass flow [kg/s]'), 'LineString', line_srid, line_fields, line_rows, iteration, label)
     lines.setRenderer(lineRenderer(mdot_bounds))
     sizingGroup(iteration, label).findLayer(lines.id()).setItemVisibilityChecked(False)

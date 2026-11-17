@@ -99,6 +99,13 @@ def investments(scenario, lines, trench):
     return items, sorted(no_costs), example
 
 
+def surfacesWithoutTrenchCosts(scenario, trench):
+    """Surfaces in use that have no trench costs in the scenario (their trench is valued with the default surface,
+    or with 0 if that has none either)."""
+    known = scenario.get('trench', {})
+    return sorted({surface for per in trench.values() for surface in per if surface not in known})
+
+
 def lifetimeOfLine(line):
     lifetimes = [float(p['lifetime_a']) for p in line['pipes'].values() if p['lifetime_a']]
     return max(lifetimes) if lifetimes else 0.0
@@ -180,6 +187,7 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     sc = scenario['scenario']
     trench = trenchLengths(cur, schema, sc.get('default_surface') or 'paved')
     items, no_costs, example = investments(scenario, lines, trench)
+    no_trench = surfacesWithoutTrenchCosts(scenario, trench)
     modes, conn_types = plantModes(cur, schema)
 
     # pump power per time step and the peak per pump
@@ -284,7 +292,7 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
             simulated[row['fid']] = simulated.get(row['fid'], 0.0) + float(row['q'] or 0) * weight(row['time'])
     calculated = {lid: line_t_sum.get(lid, 0.0) - line_amb.get(lid, 0.0) for lid in lines}
     result = netPresentValue(scenario, list(items.values()) + [pump_item], costs)
-    evaluation = {'scenario': scenario, 'items': items, 'pump_item': pump_item, 'pump_kw': pump_kw, 'no_costs': no_costs,
+    evaluation = {'scenario': scenario, 'items': items, 'pump_item': pump_item, 'pump_kw': pump_kw, 'no_costs': no_costs, 'no_trench': no_trench,
                   'example': example or bool(sc.get('example')), 'costs': costs, 'energy': energy, 'npv': result,
                   'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt}
     if run:
