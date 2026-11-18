@@ -67,7 +67,7 @@ PIPE_LAYERS = [(1, 1, 0.01), (2, 2, 0.08)]  # sequence, material, thickness
 PIPES = [(i + 1, 'DN{}'.format(dn), d, 0.000045, 1, '', 'DN{}'.format(dn)) for i, (dn, d) in enumerate([
     (20, 0.0217), (25, 0.0273), (32, 0.036), (40, 0.0419), (50, 0.0539), (65, 0.0697), (80, 0.0825),
     (100, 0.1071), (125, 0.1325), (150, 0.1603), (200, 0.2101), (250, 0.263), (300, 0.3127)])]
-PIPE_BUNDLE = (1, '', '', '2 pipes; 1m depth; 0.5m distance')
+PIPE_BUNDLE = (1, '2 pipes; 1m depth; 0.5m distance')  # id, description
 BUNDLE_PIPES = [(1, 1, -0.25, 1, 2), (2, 1, 0.25, 1, 2)]  # sequence, pipe, x, y, ambient (2: ground)
 # id, direction (1: supply, 2: return), mass flow as boundary, temperature, pressure, mass flow, description
 CONNECTIONS = [(1, 1, False, 70, 100000, '', 'Supply: 70 °C;100000Pa'),
