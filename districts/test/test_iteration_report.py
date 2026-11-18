@@ -128,6 +128,16 @@ class TestIterationReport:
         rows[0]['economics'] = econ
         rows[0]['split'] = {g: sum(t['value'] for t in econ['terms'] if t['group'] == g) for g in split0}
         rows[0]['npv'] = sum(rows[0]['split'].values())
+        # iteration 1 on the energy basis (plant-energy-costs): a plant buying fuel, the customers' heat pumps for the whole system
+        by_carrier = {'plant_energy': {'fuel': 8000.0}, 'customer_energy': {'electricity': 2500.0}}
+        basis = {'costs': {'yearly': by_carrier, 'info': {}, 'kwh': {'plant_energy': {'fuel': 100000.0}, 'customer_energy': {'electricity': 10000.0}},
+                           'features': [('energy_plant', 1, 'fuel', 100000.0, 8000.0), ('customer', 7, 'electricity', 10000.0, 2500.0)], 'no_price': [],
+                           'delivered': {'heat': 60000.0, 'cold': 40000.0}},
+                 'boundary': 'system', 'losses': {'heat': 1200.0, 'cold': 0.0}, 'marginal_hours': {1: 8000.0}, 'curve_hours': 760.0, 'threshold_pct': 5.0}
+        econ1 = npvRecord(dict(evaluation, npv_yearly={'pump_energy': 1500.0}, by_carrier=by_carrier, energy_basis=basis), 0.0, 0.0)
+        rows[1]['economics'] = econ1
+        rows[1]['split'] = {g: sum(t['value'] for t in econ1['terms'] if t['group'] == g) for g in list(split0) + ['plant_energy', 'customer_energy']}
+        rows[1]['npv'] = sum(rows[1]['split'].values())
         for row in rows:
             with open(iterationPath(plugin.config, row['iteration']), 'w', encoding='utf-8') as f:
                 json.dump(row, f)
@@ -139,7 +149,9 @@ class TestIterationReport:
                      'Trench: first iteration and least net present value', 'Rejected changes', 'pressure above p_max of the pipe',
                      'Lines changed for this iteration', 'Customers with a new deficit', 'a year', 'Net present value: equations',
                      'Present value factors of the scenario', 'Amounts of year 0 per iteration', 'Net present value: calculation per iteration',
-                     '2000 m; n = 40 a, t = 0', '25.0 kW', '60000 kWh/a, 0.1000 €/kWh'):
+                     '2000 m; n = 40 a, t = 0', '25.0 kW', '60000 kWh/a, 0.1000 €/kWh', 'Basis of the net present value',
+                     'Energy use and costs of year 0', 'Hours per marginal plant', 'Plant 1', '100000 kWh/a, 0.0800 €/kWh',
+                     'Energy delivered to the customers'):
             assert text in page.replace('&#x27;', '').replace("'", ''), text
         assert 'The sum of the terms differs' not in page
         assert page.count('<img src="data:image/png;base64,') >= 3  # NPV diagram, price curves, maps

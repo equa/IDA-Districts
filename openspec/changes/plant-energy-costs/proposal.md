@@ -10,7 +10,7 @@ plants and customers use; the plugin does not request it yet.
 
 - New requested output "energy use" of energy plants and customers: a list per project (`energyUse.json`, like
   `networkPumps.json`) of the components that buy energy, each with its variable and carrier (electricity, fuel,
-  purchased heat) and an optional name; detection proposes entries (`BOIL1CIRC` → `QSUP` fuel, `HP_B2B*` →
+  purchased heat, ambient: free energy from the surroundings) and an optional name; detection proposes entries (`BOIL1CIRC` → `QSUP` fuel, `HP_B2B*` →
   `P_el_total` electricity); a dialog adds, removes and changes entries; the variables are written as outputs into the
   templates; loading fills `energy_plant_s_energy` and `customer_s_energy`.
 - Economic scenarios: price groups "fuel" and "purchased heat" (start price, escalation, price levels); a setting

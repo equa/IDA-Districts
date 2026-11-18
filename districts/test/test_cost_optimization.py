@@ -103,6 +103,10 @@ class TestCostOptimization:
         # mdot_ep is switched on with the outputs: the heating or cooling mode comes from the plants' heat flows (D23)
         modes = rows[0]['economics']['modes']
         assert modes and all(m['source'] == 'plants' and m['heat_h'] > 0 for m in modes.values()), modes
+        # energy_ep is switched on as well: the boilers of the plants (BOIL1CIRC, fuel) give the NPV basis (plant-energy-costs)
+        basis = rows[0]['economics']['energy_basis']
+        assert basis and basis['kwh']['plant_energy'].get('fuel', 0) > 0, basis
+        assert rows[0]['split'].get('heat_losses', 0) == 0 and 'fuel' in basis['no_price']
         if len(rows) > 1:
             assert rows[1]['npv_model'] is not None and rows[1]['model_error'] is not None
         best = min(rows, key=lambda r: r['npv'])

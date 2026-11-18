@@ -6719,6 +6719,18 @@ li.checked::marker { content: "\2612"; }
             <source>network_pumps</source>
             <translation type="unfinished">Netzpumpen...</translation>
         </message>
+        <message>
+            <source>substation_energy_use</source>
+            <translation type="unfinished">Abnehmer Energiebezug (Energiebezugsliste), W</translation>
+        </message>
+        <message>
+            <source>plant_energy_use</source>
+            <translation type="unfinished">Anlagen Energiebezug (Energiebezugsliste), W</translation>
+        </message>
+        <message>
+            <source>energy_use_list</source>
+            <translation type="unfinished">Energiebezug...</translation>
+        </message>
     </context>
     <context>
         <name>RequestedOutputsDialog</name>
@@ -10964,6 +10976,234 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>cooling</source>
             <translation>Kühlen</translation>
+        </message>
+        <message>
+            <source>A plant running above {:g} % of its peak heat flow; steps without one are priced with the curves.</source>
+            <translation>Eine Zentrale über {:g} % ihres Spitzenwärmeflusses; Zeitschritte ohne eine solche werden mit den Kurven bewertet.</translation>
+        </message>
+        <message>
+            <source>Add an energy-using component</source>
+            <translation>Energiebeziehende Komponente hinzufügen</translation>
+        </message>
+        <message>
+            <source>Basis of the net present value</source>
+            <translation>Grundlage des Barwerts</translation>
+        </message>
+        <message>
+            <source>Carrier</source>
+            <translation>Energieträger</translation>
+        </message>
+        <message>
+            <source>Carriers in use without a price (valued with 0)</source>
+            <translation>Verwendete Energieträger ohne Preis (mit 0 bewertet)</translation>
+        </message>
+        <message>
+            <source>Carriers in use without a price (valued with 0): {}</source>
+            <translation>Verwendete Energieträger ohne Preis (mit 0 bewertet): {}</translation>
+        </message>
+        <message>
+            <source>Components that buy energy: the variable is written as an output, its energy is valued with the price of the carrier (economic scenario). Found: boilers (QSUP, fuel) and heat pumps (P_el_total, electricity); a boiler standing for waste heat is changed to purchased heat.</source>
+            <translation>Komponenten, die Energie beziehen: die Variable wird als Ausgabe geschrieben, ihre Energie mit dem Preis des Energieträgers bewertet (Wirtschaftlichkeitsszenario). Gefunden: Kessel (QSUP, Brennstoff) und Wärmepumpen (P_el_total, Strom); ein Kessel, der für Abwärme steht, wird auf zugekaufte Wärme geändert.</translation>
+        </message>
+        <message>
+            <source>Costs [€/a]</source>
+            <translation>Kosten [€/a]</translation>
+        </message>
+        <message>
+            <source>Energy [kWh/a]</source>
+            <translation>Energie [kWh/a]</translation>
+        </message>
+        <message>
+            <source>Energy use and costs of year 0</source>
+            <translation>Energiebezug und Kosten des Jahres 0</translation>
+        </message>
+        <message>
+            <source>Energy use of the plants and customers (system boundary: {}); the pipe losses are shown for information.</source>
+            <translation>Energiebezug der Zentralen und Abnehmer (Systemgrenze: {}); die Rohrverluste sind zur Information aufgeführt.</translation>
+        </message>
+        <message>
+            <source>Energy use</source>
+            <translation>Energiebezug</translation>
+        </message>
+        <message>
+            <source>Energy variable</source>
+            <translation>Energievariable</translation>
+        </message>
+        <message>
+            <source>Hours [h/a]</source>
+            <translation>Stunden [h/a]</translation>
+        </message>
+        <message>
+            <source>Hours per marginal plant</source>
+            <translation>Stunden je Grenzzentrale</translation>
+        </message>
+        <message>
+            <source>Marginal</source>
+            <translation>Grenzzentrale</translation>
+        </message>
+        <message>
+            <source>Pipe losses (information)</source>
+            <translation>Rohrverluste (Information)</translation>
+        </message>
+        <message>
+            <source>Plant or customers</source>
+            <translation>Zentrale oder Abnehmer</translation>
+        </message>
+        <message>
+            <source>Plant</source>
+            <translation>Zentrale</translation>
+        </message>
+        <message>
+            <source>Price curves: the version has no energy-use results (outputs energy_ep, energy_c); the pipe losses are priced with the curves.</source>
+            <translation>Preiskurven: die Version hat keine Ergebnisse des Energiebezugs (Ausgaben energy_ep, energy_c); die Rohrverluste werden mit den Kurven bewertet.</translation>
+        </message>
+        <message>
+            <source>The component is also in the network pump list: its power would be counted twice.</source>
+            <translation>Die Komponente steht auch in der Netzpumpenliste: ihre Leistung würde doppelt gezählt.</translation>
+        </message>
+        <message>
+            <source>energy use of the plants and customers (system boundary: {})</source>
+            <translation>Energiebezug der Zentralen und Abnehmer (Systemgrenze: {})</translation>
+        </message>
+        <message>
+            <source>information</source>
+            <translation>Information</translation>
+        </message>
+        <message>
+            <source>network operator</source>
+            <translation>Netzbetreiber</translation>
+        </message>
+        <message>
+            <source>price curves of the pipe losses (no energy-use results)</source>
+            <translation>Preiskurven der Rohrverluste (keine Ergebnisse des Energiebezugs)</translation>
+        </message>
+        <message>
+            <source>price curves</source>
+            <translation>Preiskurven</translation>
+        </message>
+        <message>
+            <source>whole system</source>
+            <translation>Gesamtsystem</translation>
+        </message>
+        <message>
+            <source>{} template {}: component {} in {} is not analysed; add it if it buys energy.</source>
+            <translation>{} Vorlage {}: Komponente {} in {} wird nicht analysiert; hinzufügen, wenn sie Energie bezieht.</translation>
+        </message>
+        <message>
+            <source>{} template {}: component {} is also a network pump; remove it from one list.</source>
+            <translation>{} Vorlage {}: Komponente {} ist auch eine Netzpumpe; aus einer Liste entfernen.</translation>
+        </message>
+        <message>
+            <source>With energy results: the energy the plants (and, for the whole system, the customers) buy replaces the priced pipe losses</source>
+            <translation>Mit Ergebnissen des Energiebezugs: die Energie, welche die Zentralen (und beim Gesamtsystem die Abnehmer) beziehen, ersetzt die bewerteten Rohrverluste</translation>
+        </message>
+        <message>
+            <source>Marginal price of a pipe loss per step and pair: the most expensive plant running above the threshold of its peak heat flow</source>
+            <translation>Grenzpreis eines Rohrverlusts je Zeitschritt und Paar: die teuerste Zentrale über der Schwelle ihres Spitzenwärmeflusses</translation>
+        </message>
+        <message>
+            <source>carrier (electricity, fuel, purchased heat), the power bought (energy-use list) and its start price; s_h only for electricity</source>
+            <translation>Energieträger (Strom, Brennstoff, zugekaufte Wärme), die bezogene Leistung (Energiebezugsliste) und ihr Startpreis; s_h nur für Strom</translation>
+        </message>
+        <message>
+            <source>fuel</source>
+            <translation>Brennstoff</translation>
+        </message>
+        <message>
+            <source>purchased heat</source>
+            <translation>zugekaufte Wärme</translation>
+        </message>
+        <message>
+            <source>plant_energy</source>
+            <translation>Energie der Zentralen</translation>
+        </message>
+        <message>
+            <source>customer_energy</source>
+            <translation>Energie der Abnehmer</translation>
+        </message>
+        <message>
+            <source>NPV energy of the plants</source>
+            <translation>Barwert Energie der Zentralen</translation>
+        </message>
+        <message>
+            <source>NPV energy of the customers</source>
+            <translation>Barwert Energie der Abnehmer</translation>
+        </message>
+        <message>
+            <source>System boundary</source>
+            <translation>Systemgrenze</translation>
+        </message>
+        <message>
+            <source>Marginal plant above [% of peak]</source>
+            <translation>Grenzzentrale ab [% der Spitze]</translation>
+        </message>
+        <message>
+            <source>automatic</source>
+            <translation>automatisch</translation>
+        </message>
+        <message>
+            <source>operator</source>
+            <translation>Netzbetreiber</translation>
+        </message>
+        <message>
+            <source>system</source>
+            <translation>Gesamtsystem</translation>
+        </message>
+        <message>
+            <source>price of fuel (boilers)</source>
+            <translation>Brennstoffpreis (Kessel)</translation>
+        </message>
+        <message>
+            <source>price of purchased heat (waste heat)</source>
+            <translation>Preis zugekaufter Wärme (Abwärme)</translation>
+        </message>
+        <message>
+            <source>ambient (free)</source>
+            <translation>Umgebung (kostenlos)</translation>
+        </message>
+        <message>
+            <source>ambient</source>
+            <translation>Umgebung</translation>
+        </message>
+        <message>
+            <source>Components that buy energy: the variable is written as an output, its energy is valued with the price of the carrier (economic scenario). Found: boilers (QSUP, fuel) and heat pumps (P_el_total, electricity); a boiler standing for waste heat is changed to purchased heat. Energy from the surroundings (borehole field, ambient air) is added with the carrier ambient (free).</source>
+            <translation>Komponenten, die Energie beziehen: die Variable wird als Ausgabe geschrieben, ihre Energie mit dem Preis des Energieträgers bewertet (Wirtschaftlichkeitsszenario). Gefunden: Kessel (QSUP, Brennstoff) und Wärmepumpen (P_el_total, Strom); ein Kessel, der für Abwärme steht, wird auf zugekaufte Wärme geändert. Energie aus der Umgebung (Erdsondenfeld, Aussenluft) wird mit dem Energieträger Umgebung (kostenlos) hinzugefügt.</translation>
+        </message>
+        <message>
+            <source>delivered heat/cold</source>
+            <translation>gelieferte Wärme/Kälte</translation>
+        </message>
+        <message>
+            <source>Energy delivered to the customers</source>
+            <translation>An die Abnehmer gelieferte Energie</translation>
+        </message>
+        <message>
+            <source>Heat [kWh/a]</source>
+            <translation>Wärme [kWh/a]</translation>
+        </message>
+        <message>
+            <source>Cold [kWh/a]</source>
+            <translation>Kälte [kWh/a]</translation>
+        </message>
+        <message>
+            <source>NPV per MWh delivered per year [€]</source>
+            <translation>Barwert je jährlich gelieferter MWh [€]</translation>
+        </message>
+        <message>
+            <source>Delivered through the entries of kind "delivered" (e.g. the heat exchanger of a substation); not bought and not in the NPV, whose energy costs already cover it.</source>
+            <translation>Geliefert über die Einträge der Art "geliefert" (z. B. der Wärmetauscher einer Übergabestation); nicht bezogen und nicht im Barwert, dessen Energiekosten sie bereits abdecken.</translation>
+        </message>
+        <message>
+            <source>Delivered to the customers per year</source>
+            <translation>An die Abnehmer geliefert pro Jahr</translation>
+        </message>
+        <message>
+            <source>NPV per MWh delivered per year</source>
+            <translation>Barwert je jährlich gelieferter MWh</translation>
+        </message>
+        <message>
+            <source>Components that buy energy: the variable is written as an output, its energy is valued with the price of the carrier (economic scenario). Found: boilers (QSUP, fuel) and heat pumps (P_el_total, electricity); a boiler standing for waste heat is changed to purchased heat. Energy from the surroundings (borehole field, ambient air) is added with the carrier ambient (free). Delivered heat/cold (e.g. the heat exchanger of a substation, heat &gt; 0, cold &lt; 0) is not bought: it is the reference of the key figures.</source>
+            <translation>Komponenten, die Energie beziehen: die Variable wird als Ausgabe geschrieben, ihre Energie mit dem Preis des Energieträgers bewertet (Wirtschaftlichkeitsszenario). Gefunden: Kessel (QSUP, Brennstoff) und Wärmepumpen (P_el_total, Strom); ein Kessel, der für Abwärme steht, wird auf zugekaufte Wärme geändert. Energie aus der Umgebung (Erdsondenfeld, Aussenluft) wird mit dem Energieträger Umgebung (kostenlos) hinzugefügt. Gelieferte Wärme/Kälte (z. B. der Wärmetauscher einer Übergabestation, Wärme &gt; 0, Kälte &lt; 0) wird nicht bezogen: sie ist die Bezugsgrösse der Kennzahlen.</translation>
         </message>
     </context>
 </TS>

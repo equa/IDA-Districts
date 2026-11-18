@@ -110,3 +110,16 @@ def test_protected_line():
     m = model()
     m.lines[2]['protected'] = True
     assert m.change(2, larger=True) == {'reason': 'protected'}
+
+
+def test_loss_change_at_the_marginal_plant_price():
+    """with energy results a loss change costs the marginal plant's price per step; a step without one keeps the curve"""
+    m = model()
+    pipes = next(c['pipes'] for c in [m.change(lid, larger=True) for lid in GRAPH] if c and 'pipes' in c)
+    lid = next(lid for lid in GRAPH if m.change(lid, larger=True) and m.change(lid, larger=True).get('pipes') == pipes)
+    d_loss = m.lossChange(lid, pipes)
+    curve = m.yearlyCosts(np.zeros(2), d_loss)['heat_losses']
+    m.loss_price = {1: np.array([0.30, np.nan]), 2: np.array([0.30, np.nan])}
+    marginal = m.yearlyCosts(np.zeros(2), m.lossChange(lid, pipes))['heat_losses']
+    # step 0 at 0.30 instead of the curve's 0.10, step 1 at the curve (both steps change the loss equally)
+    assert marginal == pytest.approx(curve * (0.30 + 0.10) / (0.10 + 0.10))

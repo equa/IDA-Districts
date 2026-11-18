@@ -25,7 +25,13 @@ EXAMPLE_PIPE = {'maintenance_pct': 1.0, 'lifetime_a': 40, 'p_max_bar': 16}
 # columns of public.pipe_bundle_types removed by the upgrade (and skipped when resources of older projects are imported)
 BUNDLE_COST_COLUMNS = ('invest_costs', 'operation_costs')
 
-COST_GROUPS = ('electricity', 'heat', 'cold', 'maintenance', 'investment')
+COST_GROUPS = ('electricity', 'heat', 'cold', 'maintenance', 'investment', 'fuel', 'purchased_heat', 'ambient')
+# the carriers of the energy-use list (plant-energy-costs D4); added to every scenario without a price
+CARRIER_GROUPS = (('fuel', 'price of fuel (boilers)'), ('purchased_heat', 'price of purchased heat (waste heat)'))
+SYSTEM_BOUNDARIES = ('operator', 'system')
+DEFAULT_MARGINAL_THRESHOLD_PCT = 5.0
+# empty system boundary: 'system' when a customer template has an electricity entry in the energy-use list
+SCENARIO_COLUMNS = {'system_boundary': 'text', 'marginal_threshold_pct': 'numeric DEFAULT 5'}
 SURFACES = ('paved', 'unpaved')
 
 ECONOMIC_TABLES_SQL = """
@@ -43,6 +49,8 @@ CREATE TABLE IF NOT EXISTS public.economic_scenarios
   pump_lifetime_a numeric,
   example boolean DEFAULT false,
   description text,
+  system_boundary text, --operator, system; empty: system if a customer template has an electricity entry (energyUse.json)
+  marginal_threshold_pct numeric DEFAULT 5, --a plant runs above this share of its peak heat flow (marginal price)
   CONSTRAINT economic_scenarios_pkey PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS public.price_groups
@@ -119,10 +127,13 @@ def dropBundleCostColumns(cur):
 
 
 def ensureEconomicTables(cur):
-    """Creates the scenario tables if missing and the scenario 'base' with example values if there is none."""
+    """Creates the scenario tables if missing and the scenario 'base' with example values if there is none; older
+    projects get the columns and the carrier groups of change plant-energy-costs."""
     cur.execute(ECONOMIC_TABLES_SQL)
+    addMissingColumns(cur, 'economic_scenarios', SCENARIO_COLUMNS)
     cur.execute('SELECT count(*) AS n FROM public.economic_scenarios;')
     if cur.fetchone()['n']:
+        ensureCarrierGroups(cur)
         return
     cols = list(BASE_SCENARIO)
     cur.execute('INSERT INTO public.economic_scenarios ({}) VALUES ({}) RETURNING id;'.format(','.join(cols), ','.join(['%s'] * len(cols))),  # nosec B608
@@ -136,6 +147,27 @@ def ensureEconomicTables(cur):
     for surface, a, b, description in BASE_TRENCH_COSTS:
         cur.execute('INSERT INTO public.trench_costs (scenario_id,surface,a_eur7m,b_eur7m_dn,description) VALUES (%s,%s,%s,%s,%s);',
                     (sid, surface, a, b, description))
+    ensureCarrierGroups(cur)
+
+
+def ensureCarrierGroups(cur):
+    """the price groups fuel and purchased heat in every scenario that lacks them, without a price (the evaluation names
+    a carrier in use without a price)"""
+    for group, description in CARRIER_GROUPS:
+        cur.execute("""INSERT INTO public.price_groups (scenario_id, cost_group, start_price, escalation_pct, description)
+            SELECT s.id, %s, NULL, NULL, %s FROM public.economic_scenarios s
+            WHERE NOT EXISTS (SELECT 1 FROM public.price_groups g WHERE g.scenario_id = s.id AND g.cost_group = %s);""",
+                    (group, description, group))
+
+
+def systemBoundary(scenario, energy_list):
+    """'operator' or 'system' of a loaded scenario: its setting, or 'system' when a customer template has an
+    electricity entry in the energy-use list (decentral heat pumps)"""
+    value = (scenario.get('scenario') or {}).get('system_boundary')
+    if value in SYSTEM_BOUNDARIES:
+        return value
+    entries = (energy_list or {}).get('entries', [])
+    return 'system' if any(e['feature'] == 'customer' and e.get('carrier') == 'electricity' and not e.get('missing') for e in entries) else 'operator'
 
 
 def trenchSurfaces(cur, extra=()):

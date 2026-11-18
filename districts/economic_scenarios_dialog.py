@@ -20,8 +20,9 @@ SCENARIO_DROPDOWN = [1, 'public', 'economic_scenarios', 'id', 'name']
 TABLES = {
     'economic_scenarios': ('Scenarios', ['ID', 'Name', 'Interest [%/a]', 'Period [a]', 'Residual value', 'Default surface',
                                          'Electricity profile file', 'Pumps [€/kW]', 'Pump maintenance [%/a]', 'Pump lifetime [a]',
-                                         'Example values', 'Description'],
-                           '(id,name,interest_pct,period_a,residual_value,default_surface,el_profile_file,pump_costs_eur7kw,pump_maintenance_pct,pump_lifetime_a,example,description)', ''),
+                                         'Example values', 'Description', 'System boundary', 'Marginal plant above [% of peak]'],
+                           '(id,name,interest_pct,period_a,residual_value,default_surface,el_profile_file,pump_costs_eur7kw,pump_maintenance_pct,pump_lifetime_a,example,description,'
+                           'system_boundary,marginal_threshold_pct)', ''),
     'price_groups': ('Prices per cost group', ['ID', 'Scenario', 'Cost group', 'Start price [€/kWh]', 'Escalation [%/a]', 'Description'],
                      '(id,scenario_id,cost_group,start_price,escalation_pct,description)', [SCENARIO_DROPDOWN, [2, None, COST_GROUPS]]),
     'price_levels': ('Price levels per year', ['ID', 'Scenario', 'Cost group', 'Year', 'Factor'],
@@ -33,7 +34,10 @@ TABLES = {
 }
 CHILD_TABLES = {'price_groups': 'cost_group,start_price,escalation_pct,description', 'price_levels': 'cost_group,year,factor',
                 'price_curves': 'mode,t_supply,price_eur7kwh', 'trench_costs': 'surface,a_eur7m,b_eur7m_dn,description'}
-SCENARIO_COLUMNS = 'interest_pct,period_a,residual_value,default_surface,el_profile_file,pump_costs_eur7kw,pump_maintenance_pct,pump_lifetime_a,example,description'
+SCENARIO_COLUMNS = ('interest_pct,period_a,residual_value,default_surface,el_profile_file,pump_costs_eur7kw,pump_maintenance_pct,pump_lifetime_a,example,description,'
+                    'system_boundary,marginal_threshold_pct')
+# 'automatic': the whole system when a customer template has an electricity entry in the energy-use list
+SYSTEM_BOUNDARY_DROPDOWN = [12, None, ('automatic', 'operator', 'system')]
 
 
 def pricesDir(config):
@@ -122,7 +126,7 @@ class EconomicScenariosDialog(QDialog):
             return
         title, headers, columns, dropdowns = TABLES[table]
         if table == 'economic_scenarios':
-            dropdowns = [defaultSurfaceDropdown(self.main.cur)]
+            dropdowns = [defaultSurfaceDropdown(self.main.cur), SYSTEM_BOUNDARY_DROPDOWN]
         show_TableDialog(main=self.main, title=tr_msg(title), table=table, headers=[tr_msg(h) for h in headers],
                          columns=columns, dropdowns=dropdowns)
         self.main.dlg_table.finished.connect(lambda *_: self.refresh())

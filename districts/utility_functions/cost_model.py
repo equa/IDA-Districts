@@ -89,7 +89,7 @@ class CostModel:
 
     def __init__(self, scenario, catalog, layers, lines, pairs, weights, mdot, temp, graph, customers, central=None,
                  decentral=None, v_plant=None, v_customer=None, p_plant=None, t_amb=None, t_supply=None, modes=None,
-                 shape=None, lambda_soil=1.2, p_max=None):
+                 shape=None, lambda_soil=1.2, p_max=None, loss_price=None):
         self.scenario, self.catalog, self.layers = scenario, catalog, layers
         self.lines, self.pairs, self.w = lines, pairs, np.asarray(weights, dtype=float)
         self.mdot, self.temp, self.graph, self.customers = mdot, temp, graph, list(customers)
@@ -104,6 +104,8 @@ class CostModel:
         self.shape = np.ones(len(self.w)) if shape is None else np.asarray(shape, dtype=float)
         self.lambda_soil = lambda_soil
         self.p_max = p_max or {}  # {pipe_id: bar}
+        # {seq: €/kWh per step} of the marginal plant (plant-energy-costs D6), NaN where the pair has none: the price curves
+        self.loss_price = loss_price or {}
         self.n = len(self.w)
         self._paths()
         self._calibrate()
@@ -213,6 +215,12 @@ class CostModel:
             heat = heatMask(self.modes, seq, self.n)
             change['heat'] += np.where(heat, delta, 0.0)
             change['cold'] += np.where(heat, 0.0, delta)
+            if seq in self.loss_price:
+                price = np.where(np.isnan(self.loss_price[seq]), np.where(heat, self.curvePrices('heat'), self.curvePrices('cold')), self.loss_price[seq])
+                change.setdefault('heat_eur', np.zeros(self.n))
+                change.setdefault('cold_eur', np.zeros(self.n))
+                change['heat_eur'] += np.where(heat, delta / 1000 * price, 0.0)
+                change['cold_eur'] += np.where(heat, 0.0, delta / 1000 * price)
         return change
 
     def investmentItems(self, lid, pipes):
@@ -232,15 +240,24 @@ class CostModel:
                           'maintenance_pct': 0.0})
         return items
 
+    def curvePrices(self, mode):
+        """price of the scenario curve per step at the mode's supply temperature [€/kWh]"""
+        if not hasattr(self, '_curve_prices'):
+            curves = self.scenario.get('curves', {})
+            self._curve_prices = {m: np.array([curvePrice(curves.get(m), t) or 0.0 for t in self.t_supply.get(m, np.zeros(self.n))])
+                                  for m in ('heat', 'cold')}
+        return self._curve_prices[mode]
+
     def yearlyCosts(self, d_power, d_loss):
-        """year-0 costs of a change of pump power and losses per step"""
+        """year-0 costs of a change of pump power and losses per step; losses at the marginal plant's price when the
+        model has it (the change of the plants' energy, plant-energy-costs D6), else at the price curves"""
         el = electricityStartPrice(self.scenario)
-        curves = self.scenario.get('curves', {})
-        heat_price = np.array([curvePrice(curves.get('heat'), t) or 0.0 for t in self.t_supply.get('heat', np.zeros(self.n))])
-        cold_price = np.array([curvePrice(curves.get('cold'), t) or 0.0 for t in self.t_supply.get('cold', np.zeros(self.n))])
-        return {'pump_energy': float(np.sum(self.w * d_power / 1000 * el * self.shape)),
-                'heat_losses': float(np.sum(self.w * d_loss['heat'] / 1000 * heat_price)),
-                'cold_losses': float(-np.sum(self.w * d_loss['cold'] / 1000 * cold_price))}
+        if 'heat_eur' in d_loss:
+            heat, cold = float(np.sum(self.w * d_loss['heat_eur'])), float(-np.sum(self.w * d_loss['cold_eur']))
+        else:
+            heat = float(np.sum(self.w * d_loss['heat'] / 1000 * self.curvePrices('heat')))
+            cold = float(-np.sum(self.w * d_loss['cold'] / 1000 * self.curvePrices('cold')))
+        return {'pump_energy': float(np.sum(self.w * d_power / 1000 * el * self.shape)), 'heat_losses': heat, 'cold_losses': cold}
 
     def change(self, lid, larger):
         """{'pipes', 'dnpv', 'split', 'reason'} of a one-size change of the line, or None without a next pipe"""

@@ -133,6 +133,24 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </layout>
             </item>
             <item>
+             <layout class="QHBoxLayout" name="layout_substation_energy_use">
+              <item>
+               <widget class="QCheckBox" name="checkBoxSubstationEnergy">
+                <property name="text">
+                 <string>substation_energy_use</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_energy_use_c">
+                <property name="text">
+                 <string>energy_use_list</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
              <widget class="QCheckBox" name="checkBoxSubstationConnTemp">
               <property name="text">
                <string>substation_connection_temperatures</string>
@@ -338,6 +356,24 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <widget class="QPushButton" name="btn_network_pumps_ep">
                 <property name="text">
                  <string>network_pumps</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="layout_plant_energy_use">
+              <item>
+               <widget class="QCheckBox" name="checkBoxPlantEnergy">
+                <property name="text">
+                 <string>plant_energy_use</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_energy_use_ep">
+                <property name="text">
+                 <string>energy_use_list</string>
                 </property>
                </widget>
               </item>

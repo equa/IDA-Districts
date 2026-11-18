@@ -35,6 +35,7 @@ IDA Districts https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/ is a si
 - Representative periods: three weeks chosen from the climate file (the coldest or warmest week and two weeks for the best coverage of the year) are simulated in parallel and weighted to the year, as a faster alternative to an annual simulation in the cost optimization
 - Electric power of the network pumps (found automatically in the plant and customer templates, editable per project in `networkPumps.json`) and room setpoints as simulation results
 - Scenario-based planning and optimization
+- Energy use of the plants and customers (boilers, heat pumps; found automatically, carrier electricity, fuel or purchased heat, editable per project in `energyUse.json`) as simulation results; with them the net present value contains the energy costs per carrier of the plants and, for the whole system, of the customers, and a pipe loss is priced with the most expensive plant running in that hour
 - Support for engineering decision-making in district development
 
 > Note: IDA Districts must be installed and properly configured for simulation features to be available.

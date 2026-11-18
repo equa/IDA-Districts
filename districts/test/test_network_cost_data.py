@@ -80,7 +80,7 @@ class TestNetworkCostData:
         assert row['n'] > 0 and row['ok'] == row['n']
         scenario = loadScenario(plugin.cur, base_id(plugin))
         assert scenario['scenario']['example'] and set(scenario['trench']) == {'paved', 'unpaved'}
-        assert set(scenario['groups']) == {'electricity', 'heat', 'cold', 'maintenance', 'investment'}
+        assert set(scenario['groups']) == {'electricity', 'heat', 'cold', 'maintenance', 'investment', 'fuel', 'purchased_heat'}
 
     def test_trench_lengths_per_surface(self, cost):
         plugin = cost.plugin
@@ -191,6 +191,54 @@ INSERT INTO "{v}"."energy_plant_s_mdot$1_1_1_2" (fid, time, "$mdot") SELECT 1, t
         plugin.cur.execute("SELECT count(*) AS n FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pipe_bundle_types' "
                            "AND column_name IN ('invest_costs', 'operation_costs');")
         assert plugin.cur.fetchone()['n'] == 0
+
+    def test_npv_from_the_plant_energy(self, cost, monkeypatch):
+        """with energy results the NPV contains the plant energy per carrier instead of the priced pipe losses; without
+        them the price curves apply (plant-energy-costs D5)"""
+        plugin = cost.plugin
+        v = plugin.config['versionName']
+        monkeypatch.setattr('districts.utility_functions.network_economics.plantConnections',
+                            lambda cur, schema: [{'conn_seq': 1, 'type': 1, 'temp': 70}, {'conn_seq': 2, 'type': 2, 'temp': 40}])
+        synthetic_results(plugin, 8760)
+        plugin.cur.execute("UPDATE public.price_groups SET start_price = 0.08 WHERE cost_group = 'fuel';")
+        srid = loadProjectConfig(plugin.config)['srid']
+        plugin.cur.execute("""
+DROP TABLE IF EXISTS "{v}".energy_plant_s_energy;
+CREATE TABLE "{v}".energy_plant_s_energy (id serial, fid integer, component text, carrier text, time timestamp, geom geometry(PointZ,{srid}), "$energy" numeric);
+INSERT INTO "{v}".energy_plant_s_energy (fid, component, carrier, time, "$energy")
+    SELECT 1, 'BOIL1CIRC', 'fuel', timestamp '2026-01-01' + h * interval '1 hour', 100000 FROM generate_series(0, 8759) h;
+""".format(v=v, srid=srid))  # nosec B608
+        try:
+            evaluation = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
+            basis = evaluation['energy_basis']
+            assert basis and basis['costs']['kwh']['plant_energy']['fuel'] == pytest.approx(876000, rel=1e-3)
+            assert evaluation['by_carrier']['plant_energy']['fuel'] == pytest.approx(876000 * 0.08, rel=1e-3)
+            split = evaluation['npv']['split']
+            assert split['plant_energy'] > 0 and split['heat_losses'] == 0 and split['cold_losses'] == 0
+            # the losses are still priced for information (curves: no plant heat flows in these results)
+            assert basis['losses']['heat'] > 0 and basis['curve_hours'] > 0
+            # the network report names the basis and the plant's energy
+            labels = [row[0] for row in economicsRows(evaluation)]
+            assert tr_msg('Basis of the net present value') in labels and any(label.startswith(tr_msg('Plant') + ' 1') for label in labels)
+        finally:
+            plugin.cur.execute('DROP TABLE IF EXISTS "{}".energy_plant_s_energy;'.format(v))  # nosec B608
+        fallback = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
+        assert fallback['energy_basis'] is None and fallback['npv']['split']['heat_losses'] > 0
+
+    def test_upgrade_adds_carrier_groups_and_boundary(self, cost):
+        """a scenario from before change plant-energy-costs gets fuel and purchased heat without a price, the columns
+        system_boundary and marginal_threshold_pct (default 5)"""
+        plugin = cost.plugin
+        plugin.cur.execute("""DELETE FROM public.price_groups WHERE cost_group IN ('fuel', 'purchased_heat');
+            ALTER TABLE public.economic_scenarios DROP COLUMN system_boundary, DROP COLUMN marginal_threshold_pct;""")
+        upgradeVersionDB(plugin.cur, plugin.config)
+        upgradeVersionDB(plugin.cur, plugin.config)
+        plugin.cur.execute("""SELECT s.id, s.system_boundary, s.marginal_threshold_pct, g.cost_group, g.start_price FROM public.economic_scenarios s
+            JOIN public.price_groups g ON g.scenario_id = s.id AND g.cost_group IN ('fuel', 'purchased_heat') ORDER BY s.id, g.cost_group;""")
+        rows = plugin.cur.fetchall()
+        scenarios = {row['id'] for row in rows}
+        assert scenarios and len(rows) == 2 * len(scenarios)
+        assert all(row['start_price'] is None and row['system_boundary'] is None and float(row['marginal_threshold_pct']) == 5 for row in rows)
 
     def test_report_page_and_dialog(self, cost):
         """the Economics page of the network report and the scenario selection in its dialog"""

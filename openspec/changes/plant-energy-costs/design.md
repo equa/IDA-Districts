@@ -23,7 +23,7 @@ like the network pump dialog.
 **Non-Goals:**
 - Development stages of a network (separate change, review point 4).
 - Estimating in the cost model how a pipe change alters the customers' energy (only the simulated evaluation sees it).
-- Free carrier names or several fuels with different prices (T3: three fixed carriers).
+- Free carrier names or several fuels with different prices (T3: fixed carriers).
 - Components inside macros of a template (`.idm` files other than the template file): warned, as for the pumps.
 
 ## Decisions
@@ -31,11 +31,15 @@ like the network pump dialog.
 **D1 – Energy-use list per project (T2).** `<project>\energyUse.json` with entries {feature (customer,
 energy_plant), template, component, type, variable, carrier, name, source (found, user)} and the removed keys, like
 `networkPumps.json` (`network_pumps.py`, `template_graph.py`). Detection by component type: `BOIL1CIRC` → `QSUP`,
-carrier fuel; `HP_B2B`, `HP_B2B_` → `P_el_total`, carrier electricity; the type table is one constant. Per project, not
+carrier fuel; `HP_B2B`, `HP_B2B_` → `P_el_total`, carrier electricity; in customer templates the heat exchanger `|hx|` → `|PhiHx|`, kind delivered
+(D8; a plant's heat exchanger is left out, its waste heat is counted through the boiler); the type table is one
+constant. Per project, not
 per version, like the pump list: it describes the project's templates. *Alternative:* columns in the template tables:
 the entries are per component, and the pump list already shows the shape.
 
-**D2 – Carriers (T3).** Fixed: `electricity`, `fuel`, `purchased_heat`. Detection proposes one; the dialog changes it
+**D2 – Carriers (T3).** Fixed: `electricity`, `fuel`, `purchased_heat`, `ambient` (added 2026-11-18: energy from the
+surroundings such as a borehole field, ambient air or solar thermal; free unless the scenario has a price group
+`ambient`, never named as unpriced, entered by hand as its components have no known variable). Detection proposes one; the dialog changes it
 (a `BOIL1CIRC` that stands for waste heat becomes purchased heat). The optional name is shown in the report only.
 
 **D3 – Outputs and tables.** Requested-output keys `energy_ep`, `energy_c`; the template writer adds the variables of
@@ -43,7 +47,9 @@ the list's entries to the output file of the template, as for `ppump` (`template
 `energy_plant_s_energy` / `customer_s_energy` (fid, component, carrier, time, "$energy" W, geom), like
 `*_s_ppump`. Components already in the pump list keep their pump output; an entry whose component is also a pump
 entry is shown with a warning in the dialog (double counting). The period run keeps the tables (`KEPT_PREFIXES`);
-the cost optimization adds both keys to its outputs.
+the cost optimization adds both keys to its outputs. The column of an entry in `EnergyUse.prn` is the alias
+`E<k>` (k-th entry of the template), not the component name: IDA cuts column names to 10 characters
+(`hx_substation` became `hx_substat` and was not found).
 
 **D4 – Scenario (T3, T4).** `price_groups` gets the groups `fuel` and `purchased_heat` (start price €/kWh, escalation,
 price levels as the other groups); electricity keeps its hourly profile. `economic_scenarios.system_boundary` text
@@ -71,6 +77,17 @@ by the user (must match the IDA control).
 **D7 – Report (T6).** The evaluation is one function: the network report's economics section and the cost
 optimization's report show a table of energy and costs per plant, customer (whole system) and carrier, the hours per
 marginal plant, and in the equations C_c,0 and the marginal price.
+
+**D8 – Delivered heat and cold (2026-11-18).** A heat exchanger that separates a low-temperature network from a
+substation and cools (or heats) it does not buy energy: the network delivers it. Its cost is in the energy of the
+plants and customers (a chiller's electricity, a borehole's free recharge, or less energy for the heat pumps that use
+the rejected heat), so pricing it would count it twice, and the pipe sizing does not change it (a shortfall is a
+comfort penalty). Entries of the kind `delivered` (a fifth value of the carrier) are therefore loaded signed (heat
+> 0, cold < 0; `sign: -1` in `energyUse.json` turns a component of the other convention), never priced, never named as
+unpriced, not used for the marginal plant, and shown in the reports as the energy delivered to the customers per year
+with the key figure NPV per MWh delivered. Detection proposes the customers' `|hx|` with `|PhiHx|` (negative while
+cooling in the low_temperature_network substation). *Alternative:* the carrier ambient with 0 € (simpler, but listed as
+energy bought).
 
 ## Risks / Trade-offs
 

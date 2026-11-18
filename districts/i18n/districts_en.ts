@@ -7048,6 +7048,18 @@ li.checked::marker { content: "\2612"; }
             <source>network_pumps</source>
             <translation type="unfinished">Network pumps...</translation>
         </message>
+        <message>
+            <source>substation_energy_use</source>
+            <translation type="unfinished">Substation energy use (energy-use list), W</translation>
+        </message>
+        <message>
+            <source>plant_energy_use</source>
+            <translation type="unfinished">Plant energy use (energy-use list), W</translation>
+        </message>
+        <message>
+            <source>energy_use_list</source>
+            <translation type="unfinished">Energy use...</translation>
+        </message>
     </context>
     <context>
         <name>RequestedOutputsDialog</name>

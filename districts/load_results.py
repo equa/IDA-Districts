@@ -16,6 +16,7 @@ from .utility_functions.files import (
 from .utility_functions.ida_components import (
     getCompClass, getCompName, getIDAListComponents, propertyListCompsIDM,
 )
+from .utility_functions.energy_use import OUTPUT_FILE as ENERGY_OUTPUT_FILE, loadEnergyList, outputColumns
 from .utility_functions.network_pumps import (
     estimateSeries, loadPumpList, markMissing, prnColumns, templateEntries, variableSeries,
 )
@@ -76,6 +77,9 @@ class WorkerLoadResults(QRunnable):
         pump_list=loadPumpList(self.config)
         if pump_list:
             markMissing(self.config,pump_list)
+        energy_list=loadEnergyList(self.config)
+        if energy_list:
+            markMissing(self.config,energy_list)
 
         #re-create table line_seg for temperature (according to the pipe distrectization) and pressure (2 segments per line), which holds the geometry of the simulated pipe segements
         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_seg_{};
@@ -117,7 +121,7 @@ CREATE TABLE IF NOT EXISTS "{}".line_seg_{}
                     c_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output]]
                     if c_outputs:
                         used_b_types=getUsedConnBundleTypes('customer',self.cur,self.config)
-                        c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power','qsup','ppump']]
+                        c_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] not in['troom','heatbalance','power','qsup','ppump','energy']]
                         c_power_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='c' and self.simulatedOutputs[output] and output.split('_')[0] in ['power']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('customer',self.cur,self.config)
@@ -172,6 +176,9 @@ CREATE TABLE "{}".customer_s_troom
                         if 'ppump' in c_outputs:
                             sql+=self.pumpTableSql('customer_s_ppump',srid)
                             tables.append('customer_s_ppump')
+                        if 'energy' in c_outputs:
+                            sql+=self.energyTableSql('customer_s_energy',srid)
+                            tables.append('customer_s_energy')
 
                         #heat balance table
                         if 'heatbalance' in c_outputs:
@@ -343,6 +350,8 @@ CREATE TABLE "{}".customer_s_ventilation
 
                             if 'ppump' in c_outputs:
                                 self.loadPumpPower(copy_buffer,'customer',dir_path,id,geom,start_datetime,pump_list)
+                            if 'energy' in c_outputs:
+                                self.loadEnergyUse(copy_buffer,'customer',dir_path,id,geom,start_datetime,energy_list)
                                 
                             if 'heatbalance' in c_outputs:
                                 fname=dir_path+'customer_'+str(id['id'])+'\\Heatbalance.prn'
@@ -370,7 +379,7 @@ CREATE TABLE "{}".customer_s_ventilation
                     ep_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output]]
                     if ep_outputs:
                         used_b_types=getUsedConnBundleTypes('energy_plant',self.cur,self.config)
-                        ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power','qsup','ppump']]
+                        ep_conn_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='ep' and self.simulatedOutputs[output] and output.split('_')[0] not in ['power','qsup','ppump','energy']]
                         conn_names= [ident for connBundleType in used_b_types for ident in getPMT2muxIdents(self.cur,connBundleType)]
                         conn_t_power_names= getUsedConnTypeIdents('energy_plant',self.cur,self.config)
                         tables=[]
@@ -407,6 +416,9 @@ CREATE TABLE "{}".energy_plant_s_power${}
                         if 'ppump' in ep_outputs:
                             sql+=self.pumpTableSql('energy_plant_s_ppump',srid)
                             tables.append('energy_plant_s_ppump')
+                        if 'energy' in ep_outputs:
+                            sql+=self.energyTableSql('energy_plant_s_energy',srid)
+                            tables.append('energy_plant_s_energy')
                         
                         dprint(sql)
                         if sql:
@@ -464,6 +476,8 @@ CREATE TABLE "{}".energy_plant_s_power${}
                                         self.copy_feature_sData(copy_buffer,file_data,id['id'],geoms.get(id['id'],''),col_var_dict,start_datetime)
                             if 'ppump' in ep_outputs:
                                 self.loadPumpPower(copy_buffer,'energy_plant',dir_path,id,geoms.get(id['id'],''),start_datetime,pump_list)
+                            if 'energy' in ep_outputs:
+                                self.loadEnergyUse(copy_buffer,'energy_plant',dir_path,id,geoms.get(id['id'],''),start_datetime,energy_list)
                             self.emitProgress(int(33+counter / len(epids) *33))
                         copy_buffer.flush()
                         #index after loading the data
@@ -907,6 +921,55 @@ CREATE TABLE "{schema}".{table}
     "$ppump" numeric,
     CONSTRAINT {table}_pkey PRIMARY KEY (id)
 );""".format(schema=self.config['versionName'],table=table,srid=srid) # nosec B608
+
+    def energyTableSql(self,table,srid):
+        """energy-use table: one row per feature, component and time step, with the carrier of the list entry"""
+        return """\nDROP TABLE IF EXISTS "{schema}".{table} CASCADE;
+CREATE TABLE "{schema}".{table}
+(
+    id serial,
+    fid integer,
+    component text,
+    carrier text,
+    time timestamp,
+    geom geometry(PointZ,{srid}),
+    "$energy" numeric,
+    CONSTRAINT {table}_pkey PRIMARY KEY (id)
+);""".format(schema=self.config['versionName'],table=table,srid=srid) # nosec B608
+
+    def loadEnergyUse(self,copy_buffer,feature_type,dir_path,feature,geom,start_datetime,energy_list):
+        """energy use of a feature: the listed variables of its template (EnergyUse.prn, column = component)"""
+        columns_of=outputColumns(energy_list,feature_type,feature['template_name'])
+        entries=[e for e,_ in columns_of]
+        if not entries:
+            return
+        feature_dir=dir_path+'{}_{}\\'.format(feature_type,feature['id'])
+        energy_file=self.readOutputFile(feature_dir+ENERGY_OUTPUT_FILE+'.prn')
+        found=[]
+        if energy_file:
+            columns,data=energy_file
+            for entry,alias in columns_of:
+                col=columns.get(alias.lower())
+                if col is None:
+                    continue
+                found.append(entry['component'])
+                # absolute: a variable signed by the flow direction; sign: delivered heat > 0, cold < 0 (energyUse.json 'sign': -1 turns it)
+                values=np.abs(data[:,col]) if entry.get('absolute') else data[:,col]*(-1 if entry.get('sign')==-1 else 1)
+                self.copy_energy_sData(copy_buffer,'{}_s_energy'.format(feature_type),data[:,0],feature['id'],geom,entry,values,start_datetime)
+        missing=[e['component'] for e in entries if e['component'] not in found]
+        if missing:
+            self.logOnce((feature_type,feature['template_name'],'energy',tuple(missing)),
+                "{} template {} (e.g. {} {}): energy use missing in '{}.prn': {}".format(
+                feature_type,feature['template_name'],feature_type,feature['id'],ENERGY_OUTPUT_FILE,', '.join(missing)))
+
+    def copy_energy_sData(self,copy_buffer,table,times,fid,geom,entry,values,start_datetime) -> None:
+        time_strings=self.timeStrings(times,start_datetime)
+        n=len(time_strings)
+        middle='|{}|"{}"|{}|'.format(fid,entry['component'].replace('"','""'),entry['carrier'])
+        suffix='|{}|'.format(geom)
+        first_id=copy_buffer.nextId(table,n)
+        copy_buffer.add(table,''.join(['{}{}{}{}{}\n'.format(row_id,middle,t,suffix,float(value))
+            for row_id,t,value in zip(range(first_id,first_id+n),time_strings,values)]))
 
     def readOutputFile(self,fname):
         """(columns, data) of an IDA output file, interpolated like the other results; None if it does not exist"""

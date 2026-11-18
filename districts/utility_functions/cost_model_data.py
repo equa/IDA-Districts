@@ -6,11 +6,14 @@ import datetime
 import numpy as np
 
 from .cost_model import RHO, CostModel, catalogWithCosts
-from .economic_data import loadScenario
+from .economic_data import DEFAULT_MARGINAL_THRESHOLD_PCT, loadScenario
 from .economics import normalizedProfile, readProfile
 from .flow_tracing import getNetworkGraph
-from .network_economics import linePipes, periodSources, plantModes, resultTables, stepModes, tableExists, timeSteps, trenchLengths
-from .network_modes import heatMask
+from .network_economics import (
+    linePipes, periodSources, plantConnections, plantModes, resultTables, stepModes, tableExists, timeSteps, trenchLengths,
+)
+from .network_energy import energySeries, marginalPrices, plantSpecificCosts
+from .network_modes import TABLE_TEMP, connectionHeatFlows, heatMask, plantPairs
 from .periods import readClimate, weights as periodWeights
 from .pipe_losses import ambientTemperature
 
@@ -157,4 +160,18 @@ def buildModel(cur, config, scenario_id, pairs, settings, profile_dir=None):
     return CostModel(scenario, catalog, layers, lines, [tuple(p) for p in pairs], w, mdot, temp, graph, customers,
                      central=central, decentral=decentral, v_plant=v_plant, v_customer=v_customer, p_plant=p_plant,
                      t_amb=t_amb, t_supply=t_supply, modes=modes, shape=shape, lambda_soil=float(settings.get('ground_lambda', 1.2)),
-                     p_max=p_max)
+                     p_max=p_max, loss_price=marginalLossPrices(cur, schema, sources, index, n, scenario, shape, modes))
+
+
+def marginalLossPrices(cur, schema, sources, index, n, scenario, shape, modes):
+    """{seq: €/kWh per step} of the marginal plant of each pair, {} without energy results (plant-energy-costs D6)"""
+    series = energySeries(cur, schema, sources, index, n)
+    if not series:
+        return {}
+    pairs = plantPairs(plantConnections(cur, schema))
+    plant_flows = connectionHeatFlows(cur, schema, resultTables(cur, schema, TABLE_TEMP), sources, index, n, per_plant=True)
+    specific = plantSpecificCosts(series, scenario, shape, plant_flows, pairs, n)
+    sc = scenario['scenario']
+    threshold = float(sc.get('marginal_threshold_pct') if sc.get('marginal_threshold_pct') is not None else DEFAULT_MARGINAL_THRESHOLD_PCT)
+    marginal = marginalPrices(pairs, plant_flows, specific, modes, threshold, n)
+    return {seq: marginal[(s, r)][0] for s, r, _ in pairs for seq in (s, r)}

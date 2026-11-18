@@ -9,8 +9,12 @@ import datetime
 import os
 import re
 
-from .economic_data import loadScenario
-from .economics import netPresentValue, normalizedProfile, readProfile, trenchCostPerMetre, yearlyEnergyCosts
+import numpy as np
+
+from .economic_data import DEFAULT_MARGINAL_THRESHOLD_PCT, loadScenario, systemBoundary
+from .economics import curvePrice, netPresentValue, normalizedProfile, readProfile, trenchCostPerMetre, yearlyEnergyCosts
+from .energy_use import loadEnergyList
+from .network_energy import energyCosts, energySeries, marginalPrices, plantSpecificCosts
 from .network_modes import (
     DEFAULT_DEADBAND_PCT, TABLE_TEMP, connectionHeatFlows, heatMask, plantPairs, segmentStarts, sequenceModes as modesOfSequences,
 )
@@ -171,6 +175,46 @@ def periodSources(cur, config):
     return ks, {h: w for _, h, w in periods['hours']}, periods
 
 
+def energyBasis(cur, config, sources, times, weights, shape, scenario, masks, seq_values, hours):
+    """None without energy results; else {'costs': energyCosts, 'boundary', 'losses': {'heat', 'cold'} € of year 0 of the
+    pipe heat flows priced with the marginal plant (the price curves where a pair has none), 'marginal_hours': {fid: h/a},
+    'curve_hours': h/a priced with the curves} (plant-energy-costs D5, D6)"""
+    schema = config['versionName']
+    n = len(times)
+    index = {t: k for k, t in enumerate(times)}
+    series = energySeries(cur, schema, sources, index, n)
+    if not series:
+        return None
+    sc = scenario['scenario']
+    boundary = systemBoundary(scenario, loadEnergyList(config))
+    costs = energyCosts(series, scenario, weights, shape, boundary)
+    pairs = plantPairs(plantConnections(cur, schema))
+    plant_flows = connectionHeatFlows(cur, schema, resultTables(cur, schema, TABLE_TEMP), sources, index, n, per_plant=True)
+    specific = plantSpecificCosts(series, scenario, shape, plant_flows, pairs, n)
+    threshold = float(sc.get('marginal_threshold_pct') if sc.get('marginal_threshold_pct') is not None else DEFAULT_MARGINAL_THRESHOLD_PCT)
+    marginal = marginalPrices(pairs, plant_flows, specific, masks, threshold, n)
+    pair_of = {seq: (s, r) for s, r, _ in pairs for seq in (s, r)}
+    curves = scenario.get('curves', {})
+    losses = {'heat': 0.0, 'cold': 0.0}
+    marginal_hours: dict = {}
+    curve_steps = set()
+    for k, seq, value in seq_values:
+        heat = bool(heatMask(masks, seq, n)[k])
+        prices, plants = marginal.get(pair_of.get(seq), (None, None))
+        price = None if prices is None or np.isnan(prices[k]) else float(prices[k])
+        if price is None:
+            curve_steps.add(k)
+            price = curvePrice(curves.get('heat' if heat else 'cold'), hours[k]['t_heat' if heat else 't_cold']) or 0.0
+        elif seq == pair_of[seq][0]:
+            marginal_hours[int(plants[k])] = marginal_hours.get(int(plants[k]), 0.0) + weights[k]
+        if heat:
+            losses['heat'] += weights[k] * value / 1000 * price
+        else:
+            losses['cold'] -= weights[k] * value / 1000 * price
+    return {'costs': costs, 'boundary': boundary, 'losses': losses, 'marginal_hours': marginal_hours,
+            'curve_hours': sum(weights[k] for k in curve_steps), 'threshold_pct': threshold}
+
+
 def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     """Economic evaluation of the loaded version. Returns {'missing': [...]} or {'short': days} without results of a
     full year or of a period run, otherwise the investment, energy, NPV and checks."""
@@ -283,6 +327,7 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
 
     hours, amb_sum = [], {}
     sequences = set(ul_t) | {s for s, _ in ul_ambient}
+    seq_values = []  # heat leaving the pipes of each sequence per step, priced with the marginal plant
     for k, time in enumerate(times):
         day = (time - year_start).total_seconds() / 86400
         w = weight(time)
@@ -297,6 +342,7 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
             value = ul_t.get(seq, {}).get(time, 0.0) - sum(v * t_amb[a] for (s, a), v in ul_ambient.items() if s == seq)
             q[mode] += value
             q_out[mode] += max(value, 0.0)
+            seq_values.append((k, seq, value))
         t_mode = {}
         for mode in ('heat', 'cold'):
             temps = [t_seq[seq][time] for seq in t_seq if time in t_seq[seq] and bool(heat_of[seq][k]) == (mode == 'heat')]
@@ -314,6 +360,11 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     years_simulated = 1 if run else max(1, round(len(times) * dt / 8760))
     costs = {key: value / years_simulated for key, value in costs.items()}
     energy = {key: value / years_simulated for key, value in energy.items()}
+    shape_steps = [h.get('shape', 1.0) for h in hours] if run else ([profile[h['hour'] % len(profile)] for h in hours] if profile else None)
+    basis = energyBasis(cur, config, sources, times, [h['weight'] / years_simulated for h in hours], shape_steps, scenario, masks,
+                        seq_values, hours)
+    # with energy results the NPV contains the energy the plants (and customers) buy instead of the priced pipe losses
+    npv_yearly = {'pump_energy': costs['pump_energy']} if basis else costs
 
     # check of the calculated losses against the simulated QAmbtotal of every line (weighted Wh)
     simulated = {}
@@ -322,10 +373,11 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
         for row in cur.fetchall():
             simulated[row['fid']] = simulated.get(row['fid'], 0.0) + float(row['q'] or 0) * weight(row['time'])
     calculated = {lid: line_t_sum.get(lid, 0.0) - line_amb.get(lid, 0.0) for lid in lines}
-    result = netPresentValue(scenario, list(items.values()) + [pump_item], costs)
+    result = netPresentValue(scenario, list(items.values()) + [pump_item], npv_yearly, basis['costs']['yearly'] if basis else None)
     evaluation = {'scenario': scenario, 'items': items, 'pump_item': pump_item, 'pump_kw': pump_kw, 'no_costs': no_costs, 'no_trench': no_trench,
                   'example': example or bool(sc.get('example')), 'costs': costs, 'energy': energy, 'npv': result,
-                  'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt, 'modes': mode_summary}
+                  'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt, 'modes': mode_summary,
+                  'npv_yearly': npv_yearly, 'by_carrier': basis['costs']['yearly'] if basis else None, 'energy_basis': basis}
     if run:
         periods = run[2]
         evaluation['periods'] = {'weeks': [w['calc_from'][:10] for w in periods['weeks']], 'coverage': periods.get('coverage'),

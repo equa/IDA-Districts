@@ -52,11 +52,13 @@ from .utility_functions.workers import WorkerLoadVersion
 
 NO_IMPROVEMENT = 2
 # mdot_ep: the heat flows of the plants give the heating or cooling mode per step (network_modes)
-OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines', 'mdot_ep')
+# energy_ep / energy_c: the energy the plants and customers buy (OpenSpec plant-energy-costs)
+OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines', 'mdot_ep', 'energy_ep', 'energy_c')
 # the checkbox of each output in the requested outputs dialog
 OUTPUT_CHECKBOXES = {'ppump_ep': 'checkBoxPlantPumpPower', 'ppump_c': 'checkBoxSubstationPumpPower', 'temp_lines': 'checkBoxTempPipe',
                      'qamb_lines': 'checkBoxQambPipe', 'temp_ep': 'checkBoxPlantConnTemp', 'troom_c': 'checkBoxSubstationTair',
-                     'power_c': 'checkBoxSubstationPower', 'mdot_lines': 'checkBoxMdotNode'}
+                     'power_c': 'checkBoxSubstationPower', 'mdot_lines': 'checkBoxMdotNode', 'mdot_ep': 'checkBoxPlantMassflow',
+                     'energy_ep': 'checkBoxPlantEnergy', 'energy_c': 'checkBoxSubstationEnergy'}
 BALANCING_LINK = 'balancing'
 
 
@@ -102,9 +104,18 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv):
     items = [dict(item, kind=key[0]) for key, item in evaluation['items'].items()]
     items.append(dict(evaluation['pump_item'], kind='pumps', power_kw=evaluation['pump_kw']))
     years = range(1, int(sc.get('period_a') or 0) + 1)
-    factors = {group: presentValueFactor(scenario, group, years) for group in ('electricity', 'heat', 'cold', 'maintenance')}
+    factors = {group: presentValueFactor(scenario, group, years) for group in ('electricity', 'heat', 'cold', 'maintenance', 'fuel', 'purchased_heat')}
     factors['penalties'] = penaltyNpv(1.0, float(sc.get('interest_pct') or 0), len(years))
-    return {'terms': npvTerms(scenario, items, evaluation['costs']), 'energy': evaluation['energy'], 'yearly_penalty': yearly_penalty,
+    basis = evaluation.get('energy_basis')
+    energy_basis = None
+    if basis:
+        # the energy the plants and customers bought, for the report (plant-energy-costs D7)
+        energy_basis = {key: basis[key] for key in ('boundary', 'losses', 'curve_hours', 'threshold_pct')}
+        energy_basis.update({'kwh': basis['costs']['kwh'], 'info': basis['costs']['info'], 'no_price': basis['costs']['no_price'],
+                             'delivered': basis['costs'].get('delivered', {}),
+                             'features': basis['costs']['features'], 'marginal_hours': {str(k): v for k, v in basis['marginal_hours'].items()}})
+    return {'terms': npvTerms(scenario, items, evaluation.get('npv_yearly', evaluation['costs']), evaluation.get('by_carrier')),
+            'energy': evaluation['energy'], 'yearly_penalty': yearly_penalty, 'energy_basis': energy_basis,
             'penalties': penalty_npv, 'factors': factors, 'interest_pct': float(sc.get('interest_pct') or 0), 'period_a': len(years),
             'residual_value': bool(sc.get('residual_value')), 'el_price': float((scenario.get('groups', {}).get('electricity') or {}).get('start_price') or 0),
             'modes': evaluation.get('modes') or {}}

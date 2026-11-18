@@ -12,7 +12,7 @@ The cost model SHALL estimate, from the kept results of a check (mass flows and 
 - **THEN** the estimated pump energy does not fall and the ΔNPV is positive
 
 ### Requirement: Heating or cooling per step
-The evaluation and the cost model SHALL decide per simulated step and supply/return pair whether the pair heats or cools from the heat its plants put into the network (c_p · Σ ṁ·T of the pair's connections), switching only outside a deadband of a share (default 5 %) of the range between the largest heating and the largest cooling flow. The losses of a pair's pipes SHALL be priced with the heat price curve in its heating steps and as a credit with the cold price curve in its cooling steps. A pair without plant results SHALL keep the mode of the plant template.
+The evaluation and the cost model SHALL decide per simulated step and supply/return pair whether the pair heats or cools from the heat its plants put into the network (c_p · Σ ṁ·T of the pair's connections), switching only outside a deadband of a share (default 5 %) of the range between the largest heating and the largest cooling flow. The losses of a pair's pipes SHALL be priced with the heat price curve in its heating steps and as a credit with the cold price curve in its cooling steps; with energy-use results, with the energy cost per kWh of the pair's marginal plant of the step (change plant-energy-costs) where it has one. A pair without plant results SHALL keep the mode of the plant template.
 
 #### Scenario: Low-temperature network
 - **WHEN** the plants put heat into the network in the first half of the year and take it out in the second

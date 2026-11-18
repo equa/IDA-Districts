@@ -7,7 +7,7 @@ residual (negative). Yearly energy costs are given for year 0 and scaled with th
 import math
 
 ENERGY_GROUPS = {'pump_energy': 'electricity', 'heat_losses': 'heat', 'cold_losses': 'cold'}
-SPLIT = ('investment', 'pump_energy', 'heat_losses', 'cold_losses', 'maintenance', 'residual')
+SPLIT = ('investment', 'pump_energy', 'heat_losses', 'cold_losses', 'maintenance', 'residual', 'plant_energy', 'customer_energy')
 PROFILE_LENGTHS = (8760, 8784)
 
 
@@ -81,9 +81,10 @@ def purchaseYears(lifetime, period):
     return [k * lifetime for k in range(int(math.ceil(period / lifetime))) if k * lifetime < period] or [0]
 
 
-def netPresentValue(scenario, investments, yearly):
+def netPresentValue(scenario, investments, yearly, by_carrier=None):
     """investments: [{'cost': €, 'lifetime': a, 'maintenance_pct': %/a}] bought in year 0 and replaced at the end of their
-    lifetime; yearly: {'pump_energy'|'heat_losses'|'cold_losses': € of year 0} (signed).
+    lifetime; yearly: {'pump_energy'|'heat_losses'|'cold_losses': € of year 0} (signed); by_carrier: {'plant_energy'|
+    'customer_energy': {carrier: € of year 0}}, each carrier with the level of its price group (plant-energy-costs D5).
     Returns {'npv', 'annuity', 'split': {group: €}, 'years': [{year: €}] undiscounted per year}."""
     sc = scenario['scenario']
     i = float(sc.get('interest_pct') or 0) / 100
@@ -113,6 +114,10 @@ def netPresentValue(scenario, investments, yearly):
         amount = float(yearly.get(group) or 0)
         for year in range(1, period + 1):
             add(group, year, amount * level(scenario, price_group, year))
+    for part, carriers in (by_carrier or {}).items():
+        for carrier, amount in carriers.items():
+            for year in range(1, period + 1):
+                add(part, year, float(amount or 0) * level(scenario, carrier, year))
     npv = sum(split.values())
     return {'npv': npv, 'annuity': npv * annuityFactor(i * 100, period), 'split': split, 'years': years}
 
@@ -123,7 +128,7 @@ def presentValueFactor(scenario, group, years):
     return sum(level(scenario, group, int(t)) / (1 + i) ** t for t in years)
 
 
-def npvTerms(scenario, investments, yearly):
+def npvTerms(scenario, investments, yearly, by_carrier=None):
     """the parts of netPresentValue as terms base x factor = value, for the report: [{'group', 'kind', 'name', 'base',
     'factor', 'value', ...}]; their sum per group is the split of netPresentValue"""
     sc = scenario['scenario']
@@ -146,8 +151,14 @@ def npvTerms(scenario, investments, yearly):
                 terms.append(dict(info, group='residual', base=cost, remaining=remaining, last=buys[-1],
                                   factor=-level(scenario, 'investment', buys[-1]) * remaining / (1 + i) ** period))
     for group, price_group in ENERGY_GROUPS.items():
+        if by_carrier is not None and group != 'pump_energy':
+            continue  # the energy of the plants replaces the priced pipe losses
         terms.append({'group': group, 'kind': price_group, 'name': price_group, 'base': float(yearly.get(group) or 0),
                       'factor': presentValueFactor(scenario, price_group, years)})
+    for part, carriers in (by_carrier or {}).items():
+        for carrier, amount in sorted(carriers.items()):
+            terms.append({'group': part, 'kind': carrier, 'name': carrier, 'base': float(amount or 0),
+                          'factor': presentValueFactor(scenario, carrier, years)})
     for term in terms:
         term['value'] = term['base'] * term['factor']
     return terms

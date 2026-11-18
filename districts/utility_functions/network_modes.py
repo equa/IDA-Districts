@@ -51,10 +51,11 @@ def deadbandModes(q, deadband_pct, fallback='heat', starts=(0,)):
     return heat
 
 
-def connectionHeatFlows(cur, schema, tables, sources, index, n):
+def connectionHeatFlows(cur, schema, tables, sources, index, n, per_plant=False):
     """{conn_seq: array (n)}: c_p * sum over the plants of mdot * T of the connection, from the result tables
-    energy_plant_s_temp$<ident> and energy_plant_s_mdot$<ident> (ident ends with the connection sequence)"""
-    flows = {}
+    energy_plant_s_temp$<ident> and energy_plant_s_mdot$<ident> (ident ends with the connection sequence);
+    per_plant: {(fid, conn_seq): array (n)} instead"""
+    flows: dict = {}
     for table in tables:
         ident = table[len(TABLE_TEMP):]
         seq = int(ident.split('_')[-1])
@@ -62,12 +63,12 @@ def connectionHeatFlows(cur, schema, tables, sources, index, n):
             cur.execute("SELECT to_regclass(%s) IS NOT NULL AS ok;", ('"{}"."{}"'.format(schema, m_source),))
             if not cur.fetchone()['ok']:
                 continue
-            cur.execute('SELECT t.time, sum(t."$temp" * m."$mdot") AS q FROM "{s}"."{t}" t JOIN "{s}"."{m}" m ON m.fid = t.fid AND m.time = t.time '
-                        'GROUP BY t.time;'.format(s=schema, t=t_source, m=m_source))  # nosec B608
-            arr = flows.setdefault(seq, np.zeros(n))
+            cur.execute('SELECT t.fid, t.time, sum(t."$temp" * m."$mdot") AS q FROM "{s}"."{t}" t JOIN "{s}"."{m}" m ON m.fid = t.fid AND m.time = t.time '
+                        'GROUP BY t.fid, t.time;'.format(s=schema, t=t_source, m=m_source))  # nosec B608
             for row in cur.fetchall():
                 k = index.get(row['time'])
                 if k is not None and row['q'] is not None:
+                    arr = flows.setdefault((row['fid'], seq) if per_plant else seq, np.zeros(n))
                     arr[k] += CP * float(row['q'])
     return flows
 

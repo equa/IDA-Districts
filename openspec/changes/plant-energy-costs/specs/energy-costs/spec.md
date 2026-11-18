@@ -1,7 +1,11 @@
 ## ADDED Requirements
 
 ### Requirement: Carrier prices and system boundary
-Every economic scenario SHALL have the price groups `fuel` and `purchased_heat` (start price €/kWh, escalation, price levels) next to `electricity`, and a system boundary 'operator' or 'system'. Electricity SHALL follow the scenario's hourly price profile, the other carriers SHALL have a flat price within the year. A new scenario SHALL default to 'system' when a customer template has an electricity entry in the energy-use list, else to 'operator'. Upgrading an old project SHALL add the groups without a price and the system boundary.
+Every economic scenario SHALL have the price groups `fuel` and `purchased_heat` (start price €/kWh, escalation, price levels) next to `electricity`, and a system boundary 'operator' or 'system'. Electricity SHALL follow the scenario's hourly price profile, the other carriers SHALL have a flat price within the year. The carrier ambient (energy from the surroundings) SHALL cost nothing unless the scenario has a price group ambient, and SHALL never be named as a carrier without a price. A new scenario SHALL default to 'system' when a customer template has an electricity entry in the energy-use list, else to 'operator'. Upgrading an old project SHALL add the groups without a price and the system boundary.
+
+#### Scenario: Free ambient energy
+- **WHEN** a borehole field's entry with carrier ambient delivered 200 MWh and the scenario has no price group ambient
+- **THEN** its 200 MWh are listed with 0 € and no carrier is named as unpriced
 
 #### Scenario: Old project
 - **WHEN** a version of a project from before this change is loaded
@@ -32,6 +36,13 @@ Per step and pair, the plants putting heat into the pair above a threshold (defa
 #### Scenario: Boiler below the threshold
 - **WHEN** the boiler runs at 3 % of its peak in that hour
 - **THEN** the heat pump's 0.06 €/kWh prices the loss
+
+### Requirement: Delivered heat and cold
+Entries of the kind delivered SHALL never be priced, never be named as unpriced and never count for the marginal plant; the evaluation SHALL sum their heat (> 0) and cold (< 0) per year, and the reports SHALL show them as the energy delivered to the customers with the NPV per MWh delivered per year.
+
+#### Scenario: Direct cooling through a substation heat exchanger
+- **WHEN** a substation's heat exchanger delivered 20 MWh of cold and the NPV is 1 M€
+- **THEN** the NPV contains no cost of the heat exchanger and the report shows 20 MWh cold delivered and 50 000 € per MWh delivered per year
 
 ### Requirement: One evaluation in all reports
 The cost optimization, its report and the network report's economics section SHALL use the same evaluation and show a table of energy and costs per plant, customer and carrier, and the hours per marginal plant.

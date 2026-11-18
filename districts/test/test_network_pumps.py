@@ -245,7 +245,8 @@ def test_output_files_are_read_by_header():
 def test_invoked_outputs_record_the_pump_power():
     from districts.utility_functions.files import featureOutputs
     requested = {'power_ep': True, 'ppump_ep': True, 'ppump_c': False, 'troom_c': True}
-    assert featureOutputs('energy_plants', requested) == {'power_ep': True, 'temp_ep': False, 'p_ep': False, 'mdot_ep': False, 'ppump_ep': True}
+    assert featureOutputs('energy_plants', requested) == {'power_ep': True, 'temp_ep': False, 'p_ep': False, 'mdot_ep': False, 'ppump_ep': True,
+                                                          'energy_ep': False}
     assert featureOutputs('customers', requested)['ppump_c'] is False and featureOutputs('customers', requested)['troom_c'] is True
 
 

@@ -22,6 +22,7 @@ from .cost_optimization_layers import iterationDiameters, iterationLayers, loadC
 from .dynamic_sizing_results import bar, iterationHeaders, iterationRows, loadIterations, outcomeText, showPair
 from .economic_data import loadScenario
 from .economics import trenchCostPerMetre
+from .energy_use import CARRIER_LABELS
 from .hydraulic_balancing import getPipeBundles
 from .network_economics import nominalDiameter, trenchLengths
 from .pipe_pairs import pairLabel
@@ -30,7 +31,7 @@ from .translations import tr, tr_msg
 RUN_FILES = {'balancing': 'dynamic_sizing_run.json', 'cost': 'cost_optimization_run.json'}
 MAX_MAPS = 10  # maps per pair; more iterations: the first, the best, the last and evenly spread ones
 MAP_WIDTH = 900
-NPV_GROUPS = ('investment', 'pump_energy', 'heat_losses', 'cold_losses', 'maintenance', 'residual', 'penalties')
+NPV_GROUPS = ('investment', 'pump_energy', 'heat_losses', 'cold_losses', 'plant_energy', 'customer_energy', 'maintenance', 'residual', 'penalties')
 
 
 # ---------------------------------------------------------------- run parameters
@@ -718,6 +719,12 @@ EQUATIONS = (
      'band = <i>x</i> · (max(<i>Φ</i>, 0) − min(<i>Φ</i>, 0))'),
     ('Sign of the heat flows: Q > 0 the pipes give heat off to the ground or air, Q < 0 they take heat up. Heating: heat given off costs, '
      'heat taken up saves. Cooling: heat taken up costs, heat given off saves (the plant rejects less heat).', ''),
+    ('With energy results: the energy the plants (and, for the whole system, the customers) buy replaces the priced pipe losses',
+     '<i>NPV</i> = Σ<sub><i>k</i></sub> (<i>I</i><sub><i>k</i></sub> + <i>M</i><sub><i>k</i></sub> + <i>R</i><sub><i>k</i></sub>) + <i>E</i><sub>pump</sub> + '
+     'Σ<sub><i>c</i></sub> <i>E</i><sub>plants,<i>c</i></sub> + Σ<sub><i>c</i></sub> <i>E</i><sub>customers,<i>c</i></sub> + <i>S</i> ; '
+     '<i>C</i><sub><i>c</i>,0</sub> = Σ<sub><i>h</i></sub> <i>w</i><sub><i>h</i></sub> · <i>P</i><sub><i>c</i>,<i>h</i></sub> · <i>p</i><sub><i>c</i></sub> · <i>s</i><sub><i>h</i></sub>'),
+    ('Marginal price of a pipe loss per step and pair: the most expensive plant running above the threshold of its peak heat flow',
+     '<i>p</i><sub>marg,<i>h</i></sub> = max<sub>plants</sub> Σ<sub><i>c</i></sub> <i>P</i><sub><i>c</i>,<i>h</i></sub> · <i>p</i><sub><i>c</i></sub> · <i>s</i><sub><i>h</i></sub> / |<i>Φ</i><sub>plant,<i>h</i></sub>|'),
     ('Yearly penalty: the comfort violations against the setpoint and the required load, of every customer',
      '<i>P</i> = Σ<sub>customers</sub> [<i>p</i><sub>Kh</sub> · <i>Kh</i> + <i>p</i><sub>kWh</sub> · <i>kWh</i>]'),
 )
@@ -736,6 +743,7 @@ SYMBOLS = (
     ('<i>U</i>′, <i>T</i><sub>amb</sub>', 'heat loss coefficient per metre of the pipe and the ground or air temperature'),
     ('<i>Kh</i>, <i>kWh</i>', 'degree hours of the load models (beyond the tolerance) and unmet load of the source-file customers per year'),
     ('<i>ṁ</i>, <i>x</i>', 'mass flow at a plant connection (leaving the plant positive) and the deadband of the run'),
+    ('<i>c</i>, <i>P</i><sub><i>c</i>,<i>h</i></sub>, <i>p</i><sub><i>c</i></sub>', 'carrier (electricity, fuel, purchased heat), the power bought (energy-use list) and its start price; s_h only for electricity'),
 )
 
 
@@ -749,8 +757,8 @@ def termItem(term):
         return tr_msg('Trench') + ' ' + tr_msg(term.get('name') or '')
     if kind == 'pumps':
         return tr_msg('Pumps')
-    if term['group'] in ('pump_energy', 'heat_losses', 'cold_losses'):
-        return tr_msg(term.get('kind') or '')
+    if term['group'] in ('pump_energy', 'heat_losses', 'cold_losses', 'plant_energy', 'customer_energy'):
+        return tr_msg(CARRIER_LABELS.get(term.get('kind'), term.get('kind') or ''))
     return term.get('name') or ''
 
 
@@ -767,10 +775,67 @@ def termDetail(term, energy):
         return 'm = {:g} %/a'.format(term.get('maintenance_pct') or 0)
     if group == 'residual':
         return 't_last = {}, {} = {:.3f}'.format(term.get('last'), tr_msg('remaining share'), term.get('remaining') or 0)
+    if group in ('plant_energy', 'customer_energy'):
+        kwh = (((energy or {}).get('energy_basis') or {}).get('kwh') or {}).get(group, {}).get(term.get('kind'), 0.0)
+        return '{} kWh/a, {:.4f} €/kWh'.format(number(kwh), term['base'] / kwh) if kwh else ''
     kwh = (energy or {}).get({'pump_energy': 'pump_kwh', 'heat_losses': 'heat_kwh', 'cold_losses': 'cold_kwh'}.get(group, ''), 0.0)
     if not kwh:
         return ''
     return '{} kWh/a, {:.4f} €/kWh'.format(number(kwh), abs(term['base'] / kwh))
+
+
+
+
+def energySections(report, saved):
+    """basis of the NPV, energy and costs per plant (customers per carrier) and the hours per marginal plant
+    (plant-energy-costs D7)"""
+    with_energy = [r for r in saved if (r['economics'].get('energy_basis') or {}).get('features') is not None]
+    if not with_energy:
+        report.section(tr_msg('Basis of the net present value'), '<p class="note">{}</p>'.format(esc(tr_msg(
+            'Price curves: the version has no energy-use results (outputs energy_ep, energy_c); the pipe losses are priced with the curves.'))), 3)
+        return
+    first = with_energy[0]['economics']['energy_basis']
+    text = tr_msg('Energy use of the plants and customers (system boundary: {}); the pipe losses are shown for information.').format(
+        tr_msg('whole system') if first.get('boundary') == 'system' else tr_msg('network operator'))
+    if first.get('no_price'):
+        text += ' ' + tr_msg('Carriers in use without a price (valued with 0): {}').format(', '.join(tr_msg(CARRIER_LABELS.get(c, c)) for c in first['no_price']))
+    report.section(tr_msg('Basis of the net present value'), '<p>{}</p>'.format(esc(text)), 3)
+    rows = []
+    for r in with_energy:
+        basis = r['economics']['energy_basis']
+        customers: dict = {}
+        for feature, fid, carrier, kwh, eur in basis['features']:
+            if feature == 'customer':
+                kwh0, eur0 = customers.get(carrier, (0.0, 0.0))
+                customers[carrier] = (kwh0 + kwh, eur0 + eur)
+            else:
+                rows.append([r['iteration'], '{} {}'.format(tr_msg('Plant'), fid), tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur)])
+        counted = basis.get('boundary') == 'system'
+        for carrier, (kwh, eur) in sorted(customers.items()):
+            label = tr_msg('Customers') + ('' if counted else ' ({})'.format(tr_msg('information')))
+            rows.append([r['iteration'], label, tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur)])
+        losses = basis.get('losses') or {}
+        rows.append([r['iteration'], tr_msg('Pipe losses (information)'), tr_msg('heating') + ' / ' + tr_msg('cooling'), '',
+                     round(losses.get('heat', 0.0) + losses.get('cold', 0.0))])
+    report.section(tr_msg('Energy use and costs of year 0'), table([tr_msg('Iteration'), tr_msg('Plant or customers'), tr_msg('Carrier'),
+                                                                     tr_msg('Energy [kWh/a]'), tr_msg('Costs [€/a]')], rows), 3)
+    delivered_rows = []
+    for r in with_energy:
+        delivered = r['economics']['energy_basis'].get('delivered') or {}
+        total = delivered.get('heat', 0.0) + delivered.get('cold', 0.0)
+        if total:
+            delivered_rows.append([r['iteration'], round(delivered.get('heat', 0.0)), round(delivered.get('cold', 0.0)), round(r['npv'] / (total / 1000), 1)])
+    if delivered_rows:
+        report.section(tr_msg('Energy delivered to the customers'), table(
+            [tr_msg('Iteration'), tr_msg('Heat [kWh/a]'), tr_msg('Cold [kWh/a]'), tr_msg('NPV per MWh delivered per year [€]')], delivered_rows) +
+            '<p class="note">{}</p>'.format(esc(tr_msg('Delivered through the entries of kind "delivered" (e.g. the heat exchanger of a substation); '
+                                                       'not bought and not in the NPV, whose energy costs already cover it.'))), 3)
+    hour_rows = [[r['iteration'], '{} {}'.format(tr_msg('Plant'), fid), round(h)] for r in with_energy
+                 for fid, h in sorted(r['economics']['energy_basis'].get('marginal_hours', {}).items(), key=lambda x: int(x[0]))]
+    hour_rows += [[r['iteration'], tr_msg('price curves'), round(r['economics']['energy_basis'].get('curve_hours', 0.0))] for r in with_energy]
+    report.section(tr_msg('Hours per marginal plant'), table([tr_msg('Iteration'), tr_msg('Marginal'), tr_msg('Hours [h/a]')], hour_rows) +
+                   '<p class="note">{}</p>'.format(esc(tr_msg('A plant running above {:g} % of its peak heat flow; steps without one are priced with the curves.').format(
+                       first.get('threshold_pct', 5.0)))), 3)
 
 
 def npvCalculation(report, rows):
@@ -835,6 +900,7 @@ def npvCalculation(report, rows):
             '<p class="note">{}</p>'.format(esc(tr_msg('Hours weighted to a year; losses of the pipes of a pair are priced with the heat price '
                                                        'in its heating hours and with the cold price in its cooling hours.'))), 3)
     report.section(tr_msg('Amounts of year 0 per iteration'), table([tr_msg('Amount')] + [tr_msg('Iteration {}').format(r['iteration']) for r in saved], amount_rows), 3)
+    energySections(report, saved)
 
     report.section(tr_msg('Net present value: calculation per iteration'), '<p class="note">{}</p>'.format(esc(tr_msg(
         'Each term is base × factor; the base is K, K · m, C_0 or P of the equations, the factor the discounted price levels. '
@@ -851,7 +917,7 @@ def npvCalculation(report, rows):
                                             factorText(econ['factors']['penalties']), round(econ.get('penalties', 0.0))]))
                 continue
             for t in group_terms:
-                table_rows.append([groupLabel(group), termItem(t), termDetail(t, econ.get('energy')), round(t['base']), factorText(t['factor']), round(t['value'])])
+                table_rows.append([groupLabel(group), termItem(t), termDetail(t, dict(econ.get('energy') or {}, energy_basis=econ.get('energy_basis'))), round(t['base']), factorText(t['factor']), round(t['value'])])
             if len(group_terms) > 1:
                 table_rows.append(TotalRow([groupLabel(group), tr_msg('Total'), '', '', '', round(sum(t['value'] for t in group_terms))]))
             elif group_terms:

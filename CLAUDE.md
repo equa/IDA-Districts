@@ -25,6 +25,13 @@ say what each git command does before you run it.
   (`utility_functions/economic_data.py`, created by `upgrade.py` at every
   version load), electricity profiles in `<project>\prices\`; the evaluation
   is `network_economics.py` (with `economics.py`, `pipe_losses.py`).
+- Energy use (change plant-energy-costs): the components of the plant and
+  customer templates that buy energy, per project in `energyUse.json`
+  (`utility_functions/energy_use.py`, dialog `energy_use_dialog.py`), written
+  as outputs `energy_ep`/`energy_c` into the templates and loaded into
+  `energy_plant_s_energy`/`customer_s_energy`. With these results the NPV
+  holds the energy costs per carrier (`network_energy.py`) instead of the
+  priced pipe losses; the marginal plant prices a pipe loss.
 - Representative periods (`representative_periods.py`, `utility_functions/periods.py`):
   a period run keeps the result tables of each week as `<table>_period<k>`
   and writes `versions/<version>/periods.json`; the economic evaluation

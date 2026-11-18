@@ -18,6 +18,7 @@ from .db import getBuildingsEra, getNetworkLength, getNetworkVolume, getNetworks
 from .files import districtsModelerTempDir, loadModellingSettings, loadProjectConfig, loadSimulatedOutputs
 from .network_economics import evaluateVersion
 from .show_on_map import renderMapPlot, showOnMapMemoryLayer
+from .energy_use import CARRIER_LABELS
 from .translations import tr, tr_msg
 
 import tempfile
@@ -92,6 +93,39 @@ def _money(value):
     return '{:,.0f} €'.format(value).replace(',',"'")
 
 
+
+
+def energyRows(basis,npv=None):
+    """rows of the energy basis (plant-energy-costs D7): the basis of the NPV, energy and costs per plant and carrier,
+    the customers per carrier, carriers without a price"""
+    if not basis:
+        return [[tr_msg('Basis of the net present value'),tr_msg('price curves of the pipe losses (no energy-use results)')]]
+    boundary=tr_msg('whole system') if basis['boundary']=='system' else tr_msg('network operator')
+    rows=[[tr_msg('Basis of the net present value'),tr_msg('energy use of the plants and customers (system boundary: {})').format(boundary)]]
+    customers={}
+    for feature,fid,carrier,kwh,eur in basis['costs']['features']:
+        if feature=='customer':
+            k0,e0=customers.get(carrier,(0.0,0.0))
+            customers[carrier]=(k0+kwh,e0+eur)
+        else:
+            rows.append(['{} {}: {}'.format(tr_msg('Plant'),fid,tr_msg(CARRIER_LABELS.get(carrier,carrier))),'{:,.0f} kWh, {}'.format(kwh,_money(eur)).replace(',',"'")])
+    for carrier,(kwh,eur) in sorted(customers.items()):
+        label='{}: {}'.format(tr_msg('Customers'),tr_msg(CARRIER_LABELS.get(carrier,carrier)))
+        if basis['boundary']!='system':
+            label+=' ({})'.format(tr_msg('information'))
+        rows.append([label,'{:,.0f} kWh, {}'.format(kwh,_money(eur)).replace(',',"'")])
+    delivered=basis['costs'].get('delivered') or {}
+    total=delivered.get('heat',0.0)+delivered.get('cold',0.0)
+    if total:
+        rows.append([tr_msg('Delivered to the customers per year'),'{:,.0f} kWh {}, {:,.0f} kWh {}'.format(
+            delivered.get('heat',0.0),tr_msg('heat'),delivered.get('cold',0.0),tr_msg('cold')).replace(',',"'")])
+        if npv is not None:
+            rows.append([tr_msg('NPV per MWh delivered per year'),_money(npv/(total/1000))])
+    if basis['costs']['no_price']:
+        rows.append([tr_msg('Carriers in use without a price (valued with 0)'),', '.join(tr_msg(CARRIER_LABELS.get(c,c)) for c in basis['costs']['no_price'])])
+    return rows
+
+
 def economicsRows(evaluation):
     """[label, value] rows of the Economics section from evaluateVersion"""
     scenario=(evaluation.get('scenario') or {}).get('scenario') or {}
@@ -112,13 +146,16 @@ def economicsRows(evaluation):
            [tr_msg('Heat losses per year'),'{:,.0f} kWh, {}'.format(energy['heat_kwh'],_money(costs['heat_losses'])).replace(',',"'")],
            [tr_msg('Cold losses per year'),'{:,.0f} kWh, {}'.format(energy['cold_kwh'],_money(costs['cold_losses'])).replace(',',"'")],
            [tr_msg('Period, interest'),'{} a, {} %'.format(scenario.get('period_a'),scenario.get('interest_pct'))]]
+    rows+=energyRows(evaluation.get('energy_basis'),npv['npv'])
     if evaluation.get('periods'):
         periods=evaluation['periods']
         rows.append([tr_msg('Representative periods'),tr_msg('weeks from {}; {:.0%} of the year more than 1 K away; run {}').format(
             ', '.join(periods['weeks']),periods.get('coverage') or 0,periods.get('run_time',''))])
     for key,label in (('investment','NPV investment and replacements'),('pump_energy','NPV pump energy'),('heat_losses','NPV heat losses'),
-                      ('cold_losses','NPV cold losses'),('maintenance','NPV maintenance'),('residual','NPV residual value')):
-        rows.append([tr_msg(label),_money(split[key])])
+                      ('cold_losses','NPV cold losses'),('plant_energy','NPV energy of the plants'),('customer_energy','NPV energy of the customers'),
+                      ('maintenance','NPV maintenance'),('residual','NPV residual value')):
+        if split.get(key) or key not in ('plant_energy','customer_energy'):
+            rows.append([tr_msg(label),_money(split.get(key,0.0))])
     rows+=[[tr_msg('Net present value'),_money(npv['npv'])],[tr_msg('Annuity'),_money(npv['annuity'])+'/a']]
     if evaluation['no_costs']:
         rows.append([tr_msg('Pipes in use without costs'),', '.join(evaluation['no_costs'])])

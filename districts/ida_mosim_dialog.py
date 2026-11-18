@@ -14,6 +14,7 @@ from .utility_functions.db import (
     getUsedNetworkSubmodels,
 )
 from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_flag
+from .energy_use_dialog import EnergyUseDialog
 from .network_pumps_dialog import NetworkPumpsDialog
 from .utility_functions.files import loadNetworkSimData
 from .utility_functions.translations import tr, tr_msg
@@ -114,6 +115,7 @@ class RequestedOutputsDialog(QDialog):
         self.config=config
         self.cur=cur
         self.pump_list_changed=False
+        self.energy_list_changed=False
 
         # Load UI
         ui_path = os.path.join(os.path.dirname(__file__), "RequestedOutputs_dialog.ui")
@@ -124,6 +126,11 @@ class RequestedOutputsDialog(QDialog):
         for button in (self.btn_network_pumps_c,self.btn_network_pumps_ep):
             button.setEnabled(config is not None and cur is not None)
             button.clicked.connect(self.showNetworkPumps)
+        self.checkBoxSubstationEnergy.setChecked(bool(requestedOutputs.get('energy_c')))
+        self.checkBoxPlantEnergy.setChecked(bool(requestedOutputs.get('energy_ep')))
+        for button in (self.btn_energy_use_c,self.btn_energy_use_ep):
+            button.setEnabled(config is not None and cur is not None)
+            button.clicked.connect(self.showEnergyUse)
 
         #------------------temporal results----------------------        
         #--Customers--  
@@ -305,6 +312,11 @@ class RequestedOutputsDialog(QDialog):
         dlg=NetworkPumpsDialog(self.config,self.cur,self)
         if dlg.exec() and dlg.changed:
             self.pump_list_changed=True
+
+    def showEnergyUse(self):
+        dlg=EnergyUseDialog(self.config,self.cur,self)
+        if dlg.exec() and dlg.changed:
+            self.energy_list_changed=True
 
     def select_all(self,check):
         tab_name = self.tabWidget.currentWidget().objectName()        
