@@ -129,3 +129,18 @@ def test_system_boundary_from_the_setting_or_the_customers_heat_pumps():
     assert systemBoundary({'scenario': {'system_boundary': 'automatic'}}, {'entries': [hp, boiler]}) == 'system'
     assert systemBoundary({'scenario': {'system_boundary': None}}, {'entries': [boiler]}) == 'operator'
     assert systemBoundary({'scenario': {'system_boundary': 'operator'}}, {'entries': [hp]}) == 'operator'
+
+
+def test_dialog_shows_only_the_feature_type_it_was_opened_for(tmp_path, monkeypatch):
+    import districts.energy_use_dialog as dialog_module
+    config, templates = project(tmp_path)
+    monkeypatch.setattr(dialog_module, 'projectTemplates', lambda cur: templates)
+    dlg = dialog_module.EnergyUseDialog(config, None, feature='energy_plant')
+    assert dlg.table.rowCount() == 1 and dlg.table.item(0, dialog_module.COLUMNS.index('component')).text() == 'BOIL1CIRC'
+    dlg.table.selectRow(0)
+    dlg.remove()
+    dlg.accept()
+    # the customer entries stay in the project's list
+    assert sorted(e['component'] for e in loadEnergyList(config)['entries']) == ['HP_B2B_substation', 'hx_cooling_substation']
+    customers = dialog_module.EnergyUseDialog(config, None, feature='customer')
+    assert customers.table.rowCount() == 2

@@ -128,9 +128,9 @@ class RequestedOutputsDialog(QDialog):
             button.clicked.connect(self.showNetworkPumps)
         self.checkBoxSubstationEnergy.setChecked(bool(requestedOutputs.get('energy_c')))
         self.checkBoxPlantEnergy.setChecked(bool(requestedOutputs.get('energy_ep')))
-        for button in (self.btn_energy_use_c,self.btn_energy_use_ep):
+        for button,feature in ((self.btn_energy_use_c,'customer'),(self.btn_energy_use_ep,'energy_plant')):
             button.setEnabled(config is not None and cur is not None)
-            button.clicked.connect(self.showEnergyUse)
+            button.clicked.connect(lambda _,feature=feature: self.showEnergyUse(feature))
 
         #------------------temporal results----------------------        
         #--Customers--  
@@ -313,8 +313,8 @@ class RequestedOutputsDialog(QDialog):
         if dlg.exec() and dlg.changed:
             self.pump_list_changed=True
 
-    def showEnergyUse(self):
-        dlg=EnergyUseDialog(self.config,self.cur,self)
+    def showEnergyUse(self,feature=None):
+        dlg=EnergyUseDialog(self.config,self.cur,self,feature)
         if dlg.exec() and dlg.changed:
             self.energy_list_changed=True
 

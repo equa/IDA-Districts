@@ -6,6 +6,7 @@
 - [x] 1.4 Loading: `energy_plant_s_energy`, `customer_s_energy` (fid, component, carrier, time, $energy, geom) in `load_results.py`; kept by the period run; switched on by the cost optimization
 - [x] 1.5 Carrier `ambient` (free energy from the surroundings; free unless priced, never named as unpriced), labels shared in `energy_use.CARRIER_LABELS`
 - [x] 1.6 Delivered heat and cold (D8): kind `delivered`, customer heat exchangers (`|hx|`, `|PhiHx|`) detected as delivered (e.g. the direct cooling of low_temperature_network), not priced, report table with the NPV per MWh delivered
+- [x] 1.7 The dialog shows only the entries of the feature type whose button opened it (customers or energy plants); the list stays one per project
 
 ## 2. Scenario
 

@@ -42,14 +42,16 @@ def warningText(feature, t_name, warning):
 
 
 class EnergyUseDialog(QDialog):
-    def __init__(self, config, cur, parent=None):
+    def __init__(self, config, cur, parent=None, feature=None):
+        """feature: 'customer' or 'energy_plant' shows only the entries of that feature type (the list stays one per project)"""
         super().__init__(parent)
         self.config = config
+        self.feature = feature
         self.templates = projectTemplates(cur)
         self.data = ensureEnergyList(config, self.templates)
         self.saved = copy.deepcopy(self.data)
         self.changed = False
-        self.setWindowTitle(tr_msg('Energy use'))
+        self.setWindowTitle(tr_msg('Energy use') + (' – ' + tr('@default', feature) if feature else ''))
         self.resize(950, 450)
 
         layout = QVBoxLayout(self)
@@ -92,10 +94,14 @@ class EnergyUseDialog(QDialog):
         self.btn_cancel.clicked.connect(self.reject)
         self.fill()
 
+    def shown(self):
+        """the entries shown in the table (rows in this order)"""
+        return [e for e in self.data['entries'] if not self.feature or e['feature'] == self.feature]
+
     def fill(self):
         conflicts = pumpConflicts(self.data, loadPumpList(self.config))
         self.table.setRowCount(0)
-        for entry in self.data['entries']:
+        for entry in self.shown():
             row = self.table.rowCount()
             self.table.insertRow(row)
             values = {'feature': tr('@default', entry['feature']), 'source': tr_msg('found') if entry['source'] == 'found' else tr_msg('added')}
@@ -114,14 +120,14 @@ class EnergyUseDialog(QDialog):
                 self.table.setItem(row, col, item)
         self.table.resizeColumnsToContents()
         lines = [tr_msg('{} template {}: component {} no longer exists.').format(tr('@default', e['feature']), e['template'], e['component'])
-                 for e in self.data['entries'] if e.get('missing')]
+                 for e in self.shown() if e.get('missing')]
         lines += [tr_msg('{} template {}: component {} is also a network pump; remove it from one list.').format(
-            tr('@default', e['feature']), e['template'], e['component']) for e in self.data['entries'] if entryKey(e) in conflicts]
+            tr('@default', e['feature']), e['template'], e['component']) for e in self.shown() if entryKey(e) in conflicts]
         self.log.setPlainText('\n'.join(lines))
 
     def readEdits(self):
         """carrier and name of every row from the table"""
-        for row, entry in enumerate(self.data['entries']):
+        for row, entry in enumerate(self.shown()):
             combo = self.table.cellWidget(row, COL_CARRIER)
             if combo is not None:
                 entry['carrier'] = combo.currentData()
@@ -142,7 +148,7 @@ class EnergyUseDialog(QDialog):
 
     def add(self):
         self.readEdits()
-        dlg = AddEnergyDialog(self.config, self.templates, self)
+        dlg = AddEnergyDialog(self.config, {f: t for f, t in self.templates.items() if not self.feature or f == self.feature}, self)
         if dlg.exec():
             entry = dlg.entry()
             if entry and entryKey(entry) not in {entryKey(e) for e in self.data['entries']}:
@@ -152,8 +158,9 @@ class EnergyUseDialog(QDialog):
 
     def remove(self):
         self.readEdits()
+        shown = self.shown()
         for row in sorted({index.row() for index in self.table.selectedIndexes()}, reverse=True):
-            self.data = removeEntry(self.data, self.data['entries'][row])
+            self.data = removeEntry(self.data, shown[row])
         self.fill()
 
     def accept(self):
