@@ -163,6 +163,8 @@ def yearlyEnergyCosts(scenario, hours, shape=None):
     curves = scenario.get('curves', {})
     costs = {'pump_energy': 0.0, 'heat_losses': 0.0, 'cold_losses': 0.0}
     energy = {'pump_kwh': 0.0, 'heat_kwh': 0.0, 'cold_kwh': 0.0}
+    # the part given off by the pipes (q_<mode>_out >= 0) and the part taken up (the rest), with the same prices
+    parts = {key: 0.0 for key in ('heat_out_kwh', 'heat_out_eur', 'cold_out_kwh', 'cold_out_eur')}
     for h in hours:
         w = h.get('weight', 1.0)
         if 'shape' in h:
@@ -174,12 +176,24 @@ def yearlyEnergyCosts(scenario, hours, shape=None):
         energy['pump_kwh'] += pump
         heat = w * h.get('q_heat', 0.0) / 1000
         energy['heat_kwh'] += heat
-        if heat:
-            costs['heat_losses'] += heat * (curvePrice(curves.get('heat'), h.get('t_heat', 0.0)) or 0.0)
+        heat_out = w * h.get('q_heat_out', max(h.get('q_heat', 0.0), 0.0)) / 1000
+        price = curvePrice(curves.get('heat'), h.get('t_heat', 0.0)) or 0.0
+        costs['heat_losses'] += heat * price
+        parts['heat_out_kwh'] += heat_out
+        parts['heat_out_eur'] += heat_out * price
         cold = w * h.get('q_cold', 0.0) / 1000
         energy['cold_kwh'] += cold
-        if cold:
-            costs['cold_losses'] -= cold * (curvePrice(curves.get('cold'), h.get('t_cold', 0.0)) or 0.0)
+        cold_out = w * h.get('q_cold_out', max(h.get('q_cold', 0.0), 0.0)) / 1000
+        price = curvePrice(curves.get('cold'), h.get('t_cold', 0.0)) or 0.0
+        costs['cold_losses'] -= cold * price
+        parts['cold_out_kwh'] += cold_out
+        parts['cold_out_eur'] -= cold_out * price
+    energy['heat_out_kwh'], energy['cold_out_kwh'] = parts['heat_out_kwh'], parts['cold_out_kwh']
+    energy['heat_in_kwh'] = energy['heat_kwh'] - parts['heat_out_kwh']
+    energy['cold_in_kwh'] = energy['cold_kwh'] - parts['cold_out_kwh']
+    energy['heat_out_eur'], energy['cold_out_eur'] = parts['heat_out_eur'], parts['cold_out_eur']
+    energy['heat_in_eur'] = costs['heat_losses'] - parts['heat_out_eur']
+    energy['cold_in_eur'] = costs['cold_losses'] - parts['cold_out_eur']
     return costs, energy
 
 

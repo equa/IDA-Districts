@@ -87,11 +87,14 @@ hourly mass flows (bidirectional networks).
 
 **D9 – Penalties (T9).** Degree hours count only when heating or cooling is needed and not reached: per hour,
 heating mode (`HCMode` 1) max(0, TSet − tol − TRoom), cooling mode (−1) max(0, TRoom − TSet − tol), otherwise 0; a
-room temperature between the heating and the cooling setpoint counts nothing. Linear, relative to the reference run
-per customer: €/Kh × max(0, Kh − Kh_ref), €/kWh × max(0, kWh_unmet − kWh_unmet,ref). The deviations that exist anyway are their own KPI.
+room temperature between the heating and the cooling setpoint counts nothing. Linear and absolute per customer:
+€/Kh × Kh + €/kWh × kWh_unmet (review 2026-11-18: relative to the reference, deficits the reference already had were
+neither penalised nor was removing them rewarded). Deficits of iteration 0 are reported in the log and the report as
+mostly hydraulic (balance first); they count in the NPV of every iteration.
 Required load of source-file customers from their source file, supplied load from `power_c`; setpoints as a new
-output. A new penalty in a check blocks further reductions of the lines made smaller in the last step (approximating "that
-customer's path").
+output. A new deficit against iteration 0 in a check stays a hard rule: it blocks further reductions of the lines made smaller
+in the last step (approximating "that customer's path"). A strict minimum room temperature rejecting every iteration
+was not taken: a reference with deficits could not start, and the cost model does not predict comfort.
 
 **D10 – Tracking (T10).** The iteration machinery of the sizing: a row per check with NPV split (invest, pump
 energy, losses, maintenance, penalties), model NPV vs simulated NPV, lines larger/smaller; map layers per
@@ -215,6 +218,11 @@ network and one meter may cover a heating and a cooling pair (hc_network), so it
 `mdot_ep` is switched on with the other outputs of the optimization (`network_modes.py`).
 *Alternatives:* modes from iteration 0 kept for the run (stable comparison, but a pipe change that shifts a plant's
 balance is not seen); one mode per pair from the annual balance (wrong for seasonal switching).
+
+**D25 – Sign of the pipe heat flows in the report.** Q is the heat leaving a pipe: given off (Q > 0) and taken up
+(Q < 0) are summed per pipe sequence and step and shown apart per mode, in kWh and € (heating: given off costs, taken up
+saves; cooling: taken up costs, given off saves). The calculation is unchanged (review 2026-11-18: negative cold losses
+read as a sign error; they are the credit of a cooling pair whose pipes give heat off).
 
 **D24 – Set the pipes of an iteration.** A button 'Set pipes' in the cost optimization and in the hydraulic balancing
 sets the pipes simulated in the selected iteration: into a new child version (default, name `<version>_it<k>`,

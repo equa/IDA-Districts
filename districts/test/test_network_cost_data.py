@@ -162,6 +162,10 @@ INSERT INTO "{v}"."energy_plant_s_mdot$1_1_1_2" (fid, time, "$mdot") SELECT 1, t
             assert both['costs']['heat_losses'] < heating_only['costs']['heat_losses']
             # losses of a cooling network are a gain for it: a credit at the cold price
             assert both['costs']['cold_losses'] < 0
+            # both pipes (70 / 40 °C) are warmer than the ground: everything is given off, nothing taken up
+            e = both['energy']
+            assert e['heat_out_kwh'] == pytest.approx(e['heat_kwh']) and e['heat_in_kwh'] == pytest.approx(0, abs=1e-6)
+            assert e['cold_out_kwh'] == pytest.approx(e['cold_kwh']) and e['cold_out_eur'] == pytest.approx(both['costs']['cold_losses'])
         finally:
             plugin.cur.execute('DROP TABLE IF EXISTS "{v}"."energy_plant_s_temp$1_1_1_2", "{v}"."energy_plant_s_mdot$1_1_1_1", '
                                '"{v}"."energy_plant_s_mdot$1_1_1_2";'.format(v=v))  # nosec B608

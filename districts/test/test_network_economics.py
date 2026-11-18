@@ -120,6 +120,10 @@ def test_ground_gain_lowers_the_cost():
     # heat entering a cooling pipe is a load
     costs, _ = yearlyEnergyCosts(sc, [{'weight': 1.0, 'q_cold': -1000.0, 't_cold': 6}])
     assert costs['cold_losses'] == pytest.approx(0.0625)
+    # a warm and a cold pipe of a low-temperature pair in one hour: given off and taken up shown apart, the net prices
+    costs, energy = yearlyEnergyCosts(sc, [{'weight': 1.0, 'q_heat': 200.0, 'q_heat_out': 1000.0, 't_heat': 70}])
+    assert energy['heat_out_kwh'] == pytest.approx(1.0) and energy['heat_in_kwh'] == pytest.approx(-0.8)
+    assert energy['heat_out_eur'] + energy['heat_in_eur'] == pytest.approx(costs['heat_losses']) == pytest.approx(0.02)
 
 
 def test_trench_costs():

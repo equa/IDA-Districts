@@ -23,15 +23,15 @@ The run SHALL start with iteration 0: the periods simulated with the pipes of th
 - **THEN** iteration 0 has the simulated NPV split and per customer Kh and kWh, and no pipe is changed
 
 ### Requirement: Penalties
-Degree hours SHALL count per hour only when heating is needed (`HCMode` 1, TRoom below TSet minus the tolerance) or cooling is needed (`HCMode` −1, TRoom above TSet plus the tolerance); a room temperature between the setpoints SHALL count nothing. The penalty of an iteration SHALL be €/Kh × max(0, Kh − Kh_ref) plus €/kWh × max(0, kWh_unmet − kWh_unmet,ref) per customer, weighted to the year, in every year of the period. The deviations of the reference SHALL be shown as their own value.
+Degree hours SHALL count per hour only when heating is needed (`HCMode` 1, TRoom below TSet minus the tolerance) or cooling is needed (`HCMode` −1, TRoom above TSet plus the tolerance); a room temperature between the setpoints SHALL count nothing. The penalty of an iteration SHALL be €/Kh × Kh plus €/kWh × kWh_unmet of every customer, weighted to the year, in every year of the period. Deficits of iteration 0 SHALL be named in the log and the report; a new deficit against iteration 0 SHALL block further reductions of the lines made smaller in the last step.
 
 #### Scenario: Warmer than the setpoint in heating mode
 - **WHEN** a room is at 23 °C with TSet 21 °C in heating mode
 - **THEN** that hour counts no degree hours
 
-#### Scenario: New deficit
+#### Scenario: Deficit of the reference
 - **WHEN** a customer had 10 Kh in the reference and 25 Kh in an iteration
-- **THEN** the penalty of that customer is the price × 15 Kh per year
+- **THEN** the penalty of that customer is the price × 10 Kh in the reference and × 25 Kh in the iteration, and the log of iteration 0 names the customer
 
 ### Requirement: Iterations, tracking and end
 Each iteration SHALL apply the step of the cost model, write the pipes into the version, simulate the periods and save a row with the simulated NPV split, the model NPV, the model error, the lines changed larger and smaller and the rejected changes, and the steps (line, pipe before and after, ΔNPV and its split, limit or guard). The dialog SHALL show, in tabs, the rows (with the customers with a new deficit), a diagram of the NPV over the iterations stacked by cost group with the model NPV as a line, and the log, updated after each iteration; as the iterations of the hydraulic balancing, every iteration SHALL get a map group with the inner diameters of its pipes, the lines changed for it (larger/smaller, pipe before → after) and the customers with a new deficit, only the last one visible, removed when a version is loaded, and the saved iterations SHALL be listed when the dialog opens and shown on the map from the selected rows. The run SHALL end when the simulated NPV has not improved for 2 iterations, a state repeats, no change improves the model NPV, or the max. iterations are reached; then the pipes of the iteration with the best simulated NPV SHALL be written into the version and, if it was not the last iteration, simulated again.

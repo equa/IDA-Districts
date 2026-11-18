@@ -663,6 +663,17 @@ def costReport(cur, config):
     report.section(tr_msg('Trench: first iteration and least net present value'), table(
         [tr_msg('Surface'), tr_msg('Length [m]'), tr_msg('Investment {} [€]').format(reference['iteration']),
          tr_msg('Investment {} [€]').format(best['iteration']), tr_msg('Difference [€]'), tr_msg('Note')], surface_rows), 3)
+    deficit_rows = [[r['iteration'], len(r.get('deficit_customers') or []), round(sum(v[0] for v in (r.get('deficits') or {}).values())),
+                     round(sum(v[1] for v in (r.get('deficits') or {}).values())), ', '.join(str(c) for c in (r.get('deficit_customers') or [])[:15]),
+                     ', '.join(str(c) for c in r.get('penalty_customers') or [])] for r in rows if 'deficit_customers' in r]
+    if deficit_rows:
+        note = ''
+        if deficit_rows[0][1]:
+            note = '<p class="note">{}</p>'.format(esc(tr_msg('Iteration {} has comfort violations already; mostly hydraulic: balance the network '
+                                                              'first. They count in the NPV of every iteration.').format(deficit_rows[0][0])))
+        report.section(tr_msg('Comfort violations per iteration'), table(
+            [tr_msg('Iteration'), tr_msg('Customers'), tr_msg('Kh/a'), tr_msg('Unmet kWh/a'), tr_msg('Customers with a deficit'),
+             tr_msg('New against iteration 0')], deficit_rows) + note, 3)
     reasons = {}
     for row in rows:
         for lid_reasons in (row.get('rejected') or {}).values():
@@ -705,8 +716,10 @@ EQUATIONS = (
     ('Mode of a supply/return pair per step: heat the plants put into the network; heating above +band, cooling below −band, the previous mode inside',
      '<i>Φ</i><sub><i>h</i></sub> = <i>c</i><sub>p</sub> · Σ<sub>plants</sub> Σ<sub>supply, return</sub> <i>ṁ</i> · <i>T</i> ; '
      'band = <i>x</i> · (max(<i>Φ</i>, 0) − min(<i>Φ</i>, 0))'),
-    ('Yearly penalty against iteration 0', '<i>P</i> = Σ<sub>customers</sub> [<i>p</i><sub>Kh</sub> · max(0, <i>Kh</i> − <i>Kh</i><sub>ref</sub>) + '
-                                           '<i>p</i><sub>kWh</sub> · max(0, <i>kWh</i> − <i>kWh</i><sub>ref</sub>)]'),
+    ('Sign of the heat flows: Q > 0 the pipes give heat off to the ground or air, Q < 0 they take heat up. Heating: heat given off costs, '
+     'heat taken up saves. Cooling: heat taken up costs, heat given off saves (the plant rejects less heat).', ''),
+    ('Yearly penalty: the comfort violations against the setpoint and the required load, of every customer',
+     '<i>P</i> = Σ<sub>customers</sub> [<i>p</i><sub>Kh</sub> · <i>Kh</i> + <i>p</i><sub>kWh</sub> · <i>kWh</i>]'),
 )
 SYMBOLS = (
     ('<i>i</i>, <i>N</i>', 'interest rate and amortization period of the scenario'),
@@ -721,7 +734,7 @@ SYMBOLS = (
     ('<i>Q</i><sub>heat,<i>h</i></sub>, <i>Q</i><sub>cold,<i>h</i></sub>', 'heat leaving the heating and the cooling pipes; a cooling pipe gaining heat gives a negative Q, so a cost'),
     ('<i>T</i><sub>heat,<i>h</i></sub>, <i>T</i><sub>cold,<i>h</i></sub>', 'mean supply temperature of the plants per mode'),
     ('<i>U</i>′, <i>T</i><sub>amb</sub>', 'heat loss coefficient per metre of the pipe and the ground or air temperature'),
-    ('<i>Kh</i>, <i>kWh</i>', 'degree hours of the load models and unmet load of the source-file customers per year; ref: iteration 0'),
+    ('<i>Kh</i>, <i>kWh</i>', 'degree hours of the load models (beyond the tolerance) and unmet load of the source-file customers per year'),
     ('<i>ṁ</i>, <i>x</i>', 'mass flow at a plant connection (leaving the plant positive) and the deadband of the run'),
 )
 
@@ -762,7 +775,7 @@ def termDetail(term, energy):
 
 def npvCalculation(report, rows):
     """the equations of the NPV and, per iteration, the terms with their numbers"""
-    body = ''.join(('<p>{}</p>'.format(esc(tr_msg(text))) if text else '') + eq(formula) for text, formula in EQUATIONS)
+    body = ''.join(('<p>{}</p>'.format(esc(tr_msg(text))) if text else '') + (eq(formula) if formula else '') for text, formula in EQUATIONS)
     body += table([tr_msg('Symbol'), tr_msg('Meaning')], [[Html(symbol), tr_msg(text)] for symbol, text in SYMBOLS])
     report.section(tr_msg('Net present value: equations'), body, 3)
     saved = [r for r in rows if r.get('economics')]
@@ -794,6 +807,20 @@ def npvCalculation(report, rows):
         ('Peak pump power [kW]', lambda e: next((t.get('power_kw', 0.0) for t in e['terms'] if t.get('kind') == 'pumps'), 0.0)),
         ('P comfort violations [€/a]', lambda e: e.get('yearly_penalty', 0.0)))
     amount_rows = [[tr_msg(label)] + [round(fn(r['economics'])) for r in saved] for label, fn in amounts]
+    flow_rows = []
+    for r in saved:
+        e = r['economics'].get('energy') or {}
+        if 'heat_out_kwh' not in e:
+            continue
+        for mode, label in (('heat', 'heating'), ('cold', 'cooling')):
+            flow_rows.append([r['iteration'], tr_msg(label), round(e[mode + '_out_kwh']), round(e[mode + '_out_eur']),
+                              round(e[mode + '_in_kwh']), round(e[mode + '_in_eur']), round(e[mode + '_kwh']), round(e[mode + '_out_eur'] + e[mode + '_in_eur'])])
+    if flow_rows:
+        report.section(tr_msg('Heat flows of the pipes per mode'), table(
+            [tr_msg('Iteration'), tr_msg('Mode'), tr_msg('Given off [kWh/a]'), tr_msg('Given off [€/a]'), tr_msg('Taken up [kWh/a]'),
+             tr_msg('Taken up [€/a]'), tr_msg('Net [kWh/a]'), tr_msg('Net [€/a]')], flow_rows) +
+            '<p class="note">{}</p>'.format(esc(tr_msg('Per pipe sequence and step: given off Q > 0, taken up Q < 0. Net heating = C_heat,0, '
+                                                       'net cooling = C_cold,0; a negative value is a saving.'))), 3)
     mode_rows = []
     for r in saved:
         for pair, m in sorted((r['economics'].get('modes') or {}).items()):

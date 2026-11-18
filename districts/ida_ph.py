@@ -1071,8 +1071,13 @@ def loadVersionLayers(config,cur,plugin_dir):
     loadProjectLayers(config['versionName'],uri,config,plugin_dir,cur,"postgres")
     view = iface.layerTreeView()
     #view.setLayerVisible(QgsProject.instance().mapLayersByName('submodels')[0], False)    
-    view.setLayerVisible(QgsProject.instance().mapLayersByName(tr('@default','streets'))[0], False)    
-    view.setLayerVisible(QgsProject.instance().mapLayersByName(tr('@default','junctions'))[0], False)    
+    # a layer that failed to load must not stop loading the rest of the version
+    for name in ('streets', 'junctions'):
+        layers = QgsProject.instance().mapLayersByName(tr('@default', name))
+        if layers:
+            view.setLayerVisible(layers[0], False)
+        else:
+            QgsMessageLog.logMessage("Layer {} of version {} not loaded".format(name, config['versionName']), "Districts", MessageWarning)
 
     
     loadBoreholesLayer(config['versionName'],uri,config,plugin_dir,cur,auth_cfg.config("username"))

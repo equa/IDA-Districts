@@ -16,13 +16,15 @@ def degreeHours(troom, tset, hcmode, weights, tolerance=0.5):
     return float(np.sum(w * (heating + cooling)))
 
 
-def penaltyCost(current, reference, price_kh, price_kwh):
-    """yearly penalty [€]: per customer price x max(0, value - reference value) for Kh and unmet kWh"""
-    total = 0.0
-    for cid, (kh, kwh) in current.items():
-        kh_ref, kwh_ref = reference.get(cid, (0.0, 0.0))
-        total += price_kh * max(0.0, kh - kh_ref) + price_kwh * max(0.0, kwh - kwh_ref)
-    return total
+def penaltyCost(current, price_kh, price_kwh):
+    """yearly penalty [€]: per customer price x Kh and unmet kWh, against the setpoint and the required load (not
+    against iteration 0: deficits of the reference count as well, and an iteration that removes them gains)"""
+    return sum(price_kh * max(0.0, kh) + price_kwh * max(0.0, kwh) for kh, kwh in current.values())
+
+
+def deficitCustomers(values):
+    """customers with degree hours or unmet load"""
+    return sorted(cid for cid, (kh, kwh) in values.items() if kh > 1e-6 or kwh > 1e-6)
 
 
 def penaltyNpv(yearly, interest_pct, period):

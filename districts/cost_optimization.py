@@ -39,7 +39,7 @@ from .utility_functions.network_economics import evaluateVersion, resultTables
 from .utility_functions.economics import npvTerms, presentValueFactor
 from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
 from .utility_functions.set_pipes import SetPipes, costIterationPipes
-from .utility_functions.penalties import customerValues, penaltyCost, penaltyNpv
+from .utility_functions.penalties import customerValues, deficitCustomers, penaltyCost, penaltyNpv
 from .utility_functions.pair_widgets import PairTable
 from .utility_functions.pipe_pairs import getPlantConnections, networkSequences, suggestPairs
 from .utility_functions.protected_lines import loadProtectedLines, networkLineIds, saveProtectedLines
@@ -763,8 +763,14 @@ class CostOptimizationRun(QObject):
             return
         if self.reference is None:
             self.reference = values
+            deficits = deficitCustomers(values)
+            if deficits:
+                self.dlg.log(tr_msg('Iteration {} has comfort violations already: {} customers ({:.0f} Kh, {:.0f} kWh unmet per year: {}). '
+                                    'Mostly hydraulic: balance the network first (hydraulic balancing). They count in the NPV of every iteration.').format(
+                    self.iteration, len(deficits), sum(values[c][0] for c in deficits), sum(values[c][1] for c in deficits),
+                    ', '.join(str(c) for c in deficits[:20]) + (' ...' if len(deficits) > 20 else '')))
         sc = evaluation['scenario']['scenario']
-        yearly_penalty = penaltyCost(values, self.reference, p['price_kh'], p['price_kwh'])
+        yearly_penalty = penaltyCost(values, p['price_kh'], p['price_kwh'])
         split = dict(evaluation['npv']['split'])
         split['penalties'] = penaltyNpv(yearly_penalty, float(sc.get('interest_pct') or 0), int(sc.get('period_a') or 0))
         npv = sum(split.values())
@@ -773,7 +779,9 @@ class CostOptimizationRun(QObject):
         row = {'iteration': self.iteration, 'npv': npv, 'split': split, 'npv_model': npv_model,
                'model_error': None if npv_model is None or not npv else (npv_model - npv) / abs(npv),
                'penalty_customers': sorted(cid for cid, v in values.items() if v[0] > self.reference.get(cid, (0, 0))[0] + 1e-6 or v[1] > self.reference.get(cid, (0, 0))[1] + 1e-6),
-               'state': state, 'economics': npvRecord(evaluation, yearly_penalty, split['penalties'])}
+               'state': state, 'economics': npvRecord(evaluation, yearly_penalty, split['penalties']),
+               'deficit_customers': deficitCustomers(values),
+               'deficits': {str(cid): [round(v[0], 1), round(v[1], 1)] for cid, v in values.items() if v[0] > 1e-6 or v[1] > 1e-6}}
         if previous:
             # a new deficit: the lines made smaller in the last step stay as they are now
             row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if row['penalty_customers']]

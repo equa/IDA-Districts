@@ -291,15 +291,19 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
             amb_sum[ambient] = amb_sum.get(ambient, 0.0) + t * w
         # each sequence counts for the mode of its pair in this step
         q = {'heat': 0.0, 'cold': 0.0}
+        q_out = {'heat': 0.0, 'cold': 0.0}  # the sequences giving heat off (> 0) and taking it up (rest), for the report
         for seq in sequences:
             mode = 'heat' if heat_of[seq][k] else 'cold'
-            q[mode] += ul_t.get(seq, {}).get(time, 0.0) - sum(value * t_amb[a] for (s, a), value in ul_ambient.items() if s == seq)
+            value = ul_t.get(seq, {}).get(time, 0.0) - sum(v * t_amb[a] for (s, a), v in ul_ambient.items() if s == seq)
+            q[mode] += value
+            q_out[mode] += max(value, 0.0)
         t_mode = {}
         for mode in ('heat', 'cold'):
             temps = [t_seq[seq][time] for seq in t_seq if time in t_seq[seq] and bool(heat_of[seq][k]) == (mode == 'heat')]
             t_mode[mode] = sum(temps) / len(temps) if temps else 0.0
         hour = {'weight': w, 'hour': hourOf(time), 'p_pump': pump_power.get(time, 0.0),
-                'q_heat': q['heat'], 'q_cold': q['cold'], 't_heat': t_mode['heat'], 't_cold': t_mode['cold']}
+                'q_heat': q['heat'], 'q_cold': q['cold'], 't_heat': t_mode['heat'], 't_cold': t_mode['cold'],
+                'q_heat_out': q_out['heat'], 'q_cold_out': q_out['cold']}
         if run:
             hour['shape'] = shapes.get(hourOf(time), 1.0)
         hours.append(hour)

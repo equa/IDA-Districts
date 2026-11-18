@@ -10881,5 +10881,89 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>mass flow at a plant connection (leaving the plant positive) and the deadband of the run</source>
             <translation>Massenstrom an einem Anschluss der Zentrale (aus der Zentrale positiv) und das Totband des Laufs</translation>
         </message>
+        <message>
+            <source>Comfort violations per iteration</source>
+            <translation>Komfortverletzungen je Iteration</translation>
+        </message>
+        <message>
+            <source>Customers with a deficit</source>
+            <translation>Abnehmer mit Defizit</translation>
+        </message>
+        <message>
+            <source>Customers</source>
+            <translation>Abnehmer</translation>
+        </message>
+        <message>
+            <source>Given off [kWh/a]</source>
+            <translation>Abgegeben [kWh/a]</translation>
+        </message>
+        <message>
+            <source>Given off [€/a]</source>
+            <translation>Abgegeben [€/a]</translation>
+        </message>
+        <message>
+            <source>Taken up [kWh/a]</source>
+            <translation>Aufgenommen [kWh/a]</translation>
+        </message>
+        <message>
+            <source>Taken up [€/a]</source>
+            <translation>Aufgenommen [€/a]</translation>
+        </message>
+        <message>
+            <source>Net [kWh/a]</source>
+            <translation>Netto [kWh/a]</translation>
+        </message>
+        <message>
+            <source>Net [€/a]</source>
+            <translation>Netto [€/a]</translation>
+        </message>
+        <message>
+            <source>Heat flows of the pipes per mode</source>
+            <translation>Wärmeflüsse der Rohre je Betriebsart</translation>
+        </message>
+        <message>
+            <source>Iteration {} has comfort violations already: {} customers ({:.0f} Kh, {:.0f} kWh unmet per year: {}). Mostly hydraulic: balance the network first (hydraulic balancing). They count in the NPV of every iteration.</source>
+            <translation>Iteration {} hat bereits Komfortverletzungen: {} Abnehmer ({:.0f} Kh, {:.0f} kWh nicht gedeckt pro Jahr: {}). Meist hydraulisch: das Netz zuerst abgleichen (hydraulischer Abgleich). Sie zählen im Barwert jeder Iteration.</translation>
+        </message>
+        <message>
+            <source>Iteration {} has comfort violations already; mostly hydraulic: balance the network first. They count in the NPV of every iteration.</source>
+            <translation>Iteration {} hat bereits Komfortverletzungen; meist hydraulisch: das Netz zuerst abgleichen. Sie zählen im Barwert jeder Iteration.</translation>
+        </message>
+        <message>
+            <source>Kh/a</source>
+            <translation>Kh/a</translation>
+        </message>
+        <message>
+            <source>Unmet kWh/a</source>
+            <translation>Nicht gedeckt kWh/a</translation>
+        </message>
+        <message>
+            <source>New against iteration 0</source>
+            <translation>Neu gegenüber Iteration 0</translation>
+        </message>
+        <message>
+            <source>Per pipe sequence and step: given off Q &gt; 0, taken up Q &lt; 0. Net heating = C_heat,0, net cooling = C_cold,0; a negative value is a saving.</source>
+            <translation>Je Rohrsequenz und Zeitschritt: abgegeben Q &gt; 0, aufgenommen Q &lt; 0. Netto Heizen = C_heat,0, netto Kühlen = C_cold,0; ein negativer Wert ist eine Einsparung.</translation>
+        </message>
+        <message>
+            <source>Sign of the heat flows: Q &gt; 0 the pipes give heat off to the ground or air, Q &lt; 0 they take heat up. Heating: heat given off costs, heat taken up saves. Cooling: heat taken up costs, heat given off saves (the plant rejects less heat).</source>
+            <translation>Vorzeichen der Wärmeflüsse: Q &gt; 0 die Rohre geben Wärme an Erdreich oder Luft ab, Q &lt; 0 sie nehmen Wärme auf. Heizen: abgegebene Wärme kostet, aufgenommene spart. Kühlen: aufgenommene Wärme kostet, abgegebene spart (die Zentrale muss weniger Wärme abführen).</translation>
+        </message>
+        <message>
+            <source>Yearly penalty: the comfort violations against the setpoint and the required load, of every customer</source>
+            <translation>Jährliche Strafkosten: die Komfortverletzungen gegenüber Sollwert und benötigter Leistung, aller Abnehmer</translation>
+        </message>
+        <message>
+            <source>degree hours of the load models (beyond the tolerance) and unmet load of the source-file customers per year</source>
+            <translation>Gradstunden der Lastmodelle (über die Toleranz hinaus) und nicht gedeckte Leistung der Abnehmer mit Quelldatei pro Jahr</translation>
+        </message>
+        <message>
+            <source>heating</source>
+            <translation>Heizen</translation>
+        </message>
+        <message>
+            <source>cooling</source>
+            <translation>Kühlen</translation>
+        </message>
     </context>
 </TS>

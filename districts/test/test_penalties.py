@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pytest
 
-from districts.utility_functions.penalties import customerValues, degreeHours, penaltyCost, penaltyNpv
+from districts.utility_functions.penalties import customerValues, deficitCustomers, degreeHours, penaltyCost, penaltyNpv
 from districts.utility_functions.required_load import (
     customerSourceFiles, ensureRequired, readRequired, requiredAt, requiredFilePath, unmetKwh,
 )
@@ -22,8 +22,10 @@ def test_degree_hours_only_when_needed():
 
 
 def test_penalty_relative_to_the_reference():
-    assert penaltyCost({1: (25.0, 0.0)}, {1: (10.0, 0.0)}, 2.0, 0.5) == pytest.approx(30.0)
-    assert penaltyCost({1: (5.0, 3.0)}, {1: (10.0, 1.0)}, 2.0, 0.5) == pytest.approx(1.0)
+    # absolute: the deficits of every customer, whatever iteration 0 had
+    assert penaltyCost({1: (25.0, 0.0)}, 2.0, 0.5) == pytest.approx(50.0)
+    assert penaltyCost({1: (5.0, 3.0), 2: (0.0, 0.0)}, 2.0, 0.5) == pytest.approx(11.5)
+    assert deficitCustomers({1: (5.0, 0.0), 2: (0.0, 0.0), 3: (0.0, 2.0)}) == [1, 3]
     assert penaltyNpv(100.0, 0.0, 40) == pytest.approx(4000.0)
 
 

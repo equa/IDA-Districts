@@ -29,6 +29,7 @@
 - [x] 3.13 Report (D22, `iteration_report.py`): button 'Report' in this dialog and in the hydraulic balancing, run parameters saved at the start (`<feature>_run.json`), HTML with inputs, outputs per iteration, maps and the cost analysis; the iteration layers can be built without the layer tree; the NPV diagram shared by the dialog and the report
 - [x] 3.14 NPV traceable in the report (D22): equations and symbols, present value factors, amounts of year 0, per iteration the terms base × factor; the terms saved in the iteration file at run time (`npvRecord`, `economics.npvTerms`); pipe and trench items with their length
 - [x] 3.15 Heating or cooling per step and pair from the plants' heat flows with a deadband (D23, `network_modes.py`): evaluation and cost model per step, `mdot_ep` among the optimization outputs, spin box 'Deadband heating/cooling' saved with the run, table 'Heating and cooling per pair' and the mode equation in the report, template mode without plant results
+- [x] 3.17 Review 2026-11-18: absolute comfort penalty with the deficits of iteration 0 in log and report, the hard rule against new deficits kept (D9); heat given off and taken up per mode in the report (D25)
 - [x] 3.16 'Set pipes' (D24, `set_pipes.py`) in the cost optimization and the hydraulic balancing: dialog child version (default) or this version, the balancing saves the simulated pipes per iteration, older balancing files by pipe name
 
 ## 4. Tests
