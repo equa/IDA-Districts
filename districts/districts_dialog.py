@@ -162,6 +162,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_pipe_constructions.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipes.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipe.png")))
         self.btn_pipes.setIconSize(QSize(btn_size, btn_size))
+        self.btn_pipe_series.setIcon(QIcon(":/images/themes/default/mActionOpenTable.svg"))
+        self.btn_pipe_series.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipe_bundle_types.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipebundle.png")))
         self.btn_pipe_bundle_types.setIconSize(QSize(btn_size, btn_size))
         self.btn_climateTemplate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.png")))  

@@ -41,7 +41,11 @@ The maximum operating pressure of a pipe SHALL be its `pipes.p_max_bar`; `pipe_s
 - **THEN** its `p_max_bar` is 10 and its series has pressure ratings
 
 ### Requirement: Series dialog
-The plugin SHALL offer a table dialog "Pipe series" that shows and edits the rows of `pipe_series`, with the system type as dropdown, and the pressure ratings of the selected series below it. The pipes dialog SHALL show and edit the minimum bend radius. Headings SHALL have German translations.
+The plugin SHALL offer a table dialog "Pipe series" that shows and edits the rows of `pipe_series`, with the system type as dropdown, and the pressure ratings of the selected series below it. Renaming a series in the dialog SHALL rename it in `pipes.series` too. The pipes dialog SHALL show and edit the minimum bend radius. Headings and the system types SHALL have German translations.
+
+#### Scenario: Rename a series used by pipes
+- **WHEN** the user renames the series "isoplus isocu" to "isoplus isocu 2016" and saves
+- **THEN** the pipes of that series have `series` "isoplus isocu 2016" and no series row "isoplus isocu" is created again on the next version load
 
 #### Scenario: Edit ratings of a series
 - **WHEN** the user selects the series "isoplus isoclima" in the dialog and changes the pressure for 50 years at 40 °C to 11.0 bar

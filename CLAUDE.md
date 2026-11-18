@@ -32,6 +32,11 @@ say what each git command does before you run it.
   `energy_plant_s_energy`/`customer_s_energy`. With these results the NPV
   holds the energy costs per carrier (`network_energy.py`) instead of the
   priced pipe losses; the marginal plant prices a pipe loss.
+- Pipe series: `public.pipe_series` (keyed by the text of `pipes.series`) and
+  `pipe_series_pressure_ratings`, created by `upgrade.py`
+  (`db.ensurePipeSeriesTables`). The flexible isoplus catalogue of the
+  templates is generated from `test/flexible_pipe_catalog.py`;
+  `test_flexible_pipe_catalog.py` checks that the template rows match it.
 - Representative periods (`representative_periods.py`, `utility_functions/periods.py`):
   a period run keeps the result tables of each week as `<table>_period<k>`
   and writes `versions/<version>/periods.json`; the economic evaluation

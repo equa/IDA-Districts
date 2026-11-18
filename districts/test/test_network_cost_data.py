@@ -75,9 +75,13 @@ class TestNetworkCostData:
 
     def test_example_values(self, cost):
         plugin = cost.plugin
-        plugin.cur.execute('SELECT count(*) AS n, count(*) FILTER (WHERE costs > 0 AND maintenance_pct = 1 AND lifetime_a = 40 AND p_max_bar = 16 AND example) AS ok FROM public.pipes;')
+        plugin.cur.execute("SELECT count(*) AS n, count(*) FILTER (WHERE costs > 0 AND maintenance_pct = 1 AND lifetime_a = 40 AND p_max_bar = 16 AND example) AS ok "
+                           "FROM public.pipes WHERE series IN ('Isoplus DRE Standard', 'Isoplus DRD Standard');")
         row = plugin.cur.fetchone()
         assert row['n'] > 0 and row['ok'] == row['n']
+        # the flexible pipes of change pipe-series-catalog have no costs
+        plugin.cur.execute("SELECT count(*) AS n FROM public.pipes WHERE name LIKE 'isoplus %' AND (costs IS NOT NULL OR example);")
+        assert plugin.cur.fetchone()['n'] == 0
         scenario = loadScenario(plugin.cur, base_id(plugin))
         assert scenario['scenario']['example'] and set(scenario['trench']) == {'paved', 'unpaved'}
         assert set(scenario['groups']) == {'electricity', 'heat', 'cold', 'maintenance', 'investment', 'fuel', 'purchased_heat'}

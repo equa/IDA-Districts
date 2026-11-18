@@ -1199,10 +1199,61 @@ def ensurePipeTwinColumns(cur):
     addMissingColumns(cur,'pipes',PIPE_TWIN_COLUMNS)
 
 def pipeTwinSelect(cur,alias='p'):
-    """Select list of the series and the twin pipe casing of the pipes; NULL for the columns the DB of the cursor does not have."""
+    """Select list of the series, the twin pipe casing and the bend radius of the pipes; NULL for the columns the DB of the
+    cursor does not have."""
     cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pipes';""")
     existing=[i['column_name'] for i in cur.fetchall()]
-    return ', '.join('{}.{}'.format(alias,col) if col in existing else 'NULL AS {}'.format(col) for col in PIPE_TWIN_COLUMNS)
+    return ', '.join('{}.{}'.format(alias,col) if col in existing else 'NULL AS {}'.format(col) for col in list(PIPE_TWIN_COLUMNS)+['min_bend_radius_m'])
+
+#product data per series (pipe statics); the same tables as in DB_projectTablesDefault.txt
+PIPE_SERIES_SYSTEM_TYPES=['rigid_single','rigid_twin','bare_plastic','flexible_plastic','flexible_metal']
+PIPE_SERIES_COLUMNS=['name','system_type','standard','t_max_continuous_c','t_max_peak_c','t_min_c','sigma_ax_max_n7mm2','safety_factor','description']
+PIPE_SERIES_TABLES_SQL="""CREATE TABLE IF NOT EXISTS public.pipe_series
+(
+  id serial,
+  name text NOT NULL UNIQUE,
+  system_type text CHECK (system_type IN ({})),
+  standard text,
+  t_max_continuous_c numeric,
+  t_max_peak_c numeric,
+  t_min_c numeric,
+  sigma_ax_max_n7mm2 numeric,
+  safety_factor numeric,
+  description text,
+  CONSTRAINT pipe_series_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS public.pipe_series_pressure_ratings
+(
+  id serial,
+  series_id integer NOT NULL,
+  years numeric,
+  temperature_c numeric,
+  pressure_bar numeric,
+  CONSTRAINT pipe_series_pressure_ratings_pkey PRIMARY KEY (id)
+);""".format(','.join("'{}'".format(t) for t in PIPE_SERIES_SYSTEM_TYPES))
+
+def ensurePipeSeriesTables(cur):
+    """Creates the series tables and pipes.min_bend_radius_m in projects created before, and a series row (empty system
+    type) for every series text of the pipes without one; no pipe is changed."""
+    ensurePipeTwinColumns(cur)
+    cur.execute("""SELECT count(*) AS n FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('pipe_series','pipe_series_pressure_ratings');""")
+    if cur.fetchone()['n']<2:
+        cur.execute(PIPE_SERIES_TABLES_SQL)
+    addMissingColumns(cur,'pipes',{'min_bend_radius_m': 'numeric'})
+    cur.execute("""INSERT INTO public.pipe_series (name) SELECT DISTINCT p.series FROM public.pipes p
+    WHERE COALESCE(p.series,'') <> '' AND NOT EXISTS (SELECT 1 FROM public.pipe_series s WHERE s.name = p.series);""")
+
+def pipeSeriesNames(cur):
+    """{id: name} of the series."""
+    cur.execute("""SELECT id, name FROM public.pipe_series;""")
+    return {row['id']: row['name'] for row in cur.fetchall()}
+
+def renamePipeSeries(cur,old_names):
+    """After the series dialog: the pipes follow a renamed series (pipes.series is the series name, not its id), otherwise
+    the next upgrade would create the old name again."""
+    for sid,name in pipeSeriesNames(cur).items():
+        if sid in old_names and old_names[sid]!=name:
+            cur.execute("""UPDATE public.pipes SET series = %s WHERE series = %s;""",(name,old_names[sid]))
 
 def materialMechanicalSelect(cur,alias='m'):
     """Select list of the mechanical properties of the materials; NULL for the columns the DB of the cursor does not have

@@ -87,7 +87,7 @@ from .update_sensors import UpdateSensors
 from .utility_functions.compat import ApplicationShortcut, MessageCritical, MessageInfo, QAction
 from .utility_functions.db import (
     MATERIAL_MECHANICAL_COLUMNS, closeIdleDistrictsConnections, connectDBPostgres, dbConnect, ensureMaterialMechanicalColumns,
-    ensurePipeTwinColumns,
+    PIPE_SERIES_SYSTEM_TYPES, ensurePipeSeriesTables, ensurePipeTwinColumns, pipeSeriesNames, renamePipeSeries,
     getClimateData, getNetworks, getUsedNetworkSubmodels,
     updateProjectNamesList,
 )
@@ -889,7 +889,21 @@ class Districts:
         if self.conn:
             ensurePipeTwinColumns(self.cur)  # projects created before do not have the series and the twin pipe casing
             ensurePipeCostColumns(self.cur)  # nor maintenance, lifetime, p_max and example
-            show_TableDialog(main=self,title=tr('@default','pipes'),table='pipes',headers=[tr('@default','id'),tr('@default','name'),tr('@default','inner_diameter'),tr('@default','absolute_roughness'),tr('@default','pipe_construction_id'),tr('@default','pipe_costs'),tr('@default','description'),tr('@default','pipe_series'),tr('@default','casing_construction_id'),tr_msg('Maintenance [%/a]'),tr_msg('Lifetime [a]'),tr_msg('p max [bar]'),tr_msg('Example values')],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id,maintenance_pct,lifetime_a,p_max_bar,example)',dropdowns=[[4,'public','pipe_constructions','id','name']]) 
+            ensurePipeSeriesTables(self.cur)  # nor the bend radius
+            show_TableDialog(main=self,title=tr('@default','pipes'),table='pipes',headers=[tr('@default','id'),tr('@default','name'),tr('@default','inner_diameter'),tr('@default','absolute_roughness'),tr('@default','pipe_construction_id'),tr('@default','pipe_costs'),tr('@default','description'),tr('@default','pipe_series'),tr('@default','casing_construction_id'),tr_msg('Maintenance [%/a]'),tr_msg('Lifetime [a]'),tr_msg('p max [bar]'),tr_msg('Example values'),tr_msg('Min. bend radius [m]')],columns='(id,name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id,maintenance_pct,lifetime_a,p_max_bar,example,min_bend_radius_m)',dropdowns=[[4,'public','pipe_constructions','id','name']])
+
+    def managePipeSeries(self):
+        if self.conn:
+            ensurePipeSeriesTables(self.cur)
+            old_names=pipeSeriesNames(self.cur)
+            show_TableDialog(main=self,title=tr_msg('Pipe series'),table='pipe_series',
+                headers=[tr('@default','id'),tr_msg('Name'),tr_msg('System type'),tr_msg('Standard'),tr_msg('T max continuous [°C]'),tr_msg('T max peak [°C]'),
+                         tr_msg('T min [°C]'),tr_msg('Allowed axial stress [N/mm²]'),tr_msg('Safety factor'),tr('@default','description')],
+                columns='(id,name,system_type,standard,t_max_continuous_c,t_max_peak_c,t_min_c,sigma_ax_max_n7mm2,safety_factor,description)',
+                dropdowns=[[2,None,('',)+tuple(PIPE_SERIES_SYSTEM_TYPES)]],
+                ok_fn=renamePipeSeries,ok_fn_arg=[self.cur,old_names],openFn=show_TableCurrentRowDialog,
+                openFnArg=['pipe_series_pressure_ratings',['years','temperature_c','pressure_bar'],[tr_msg('Operating time [a]'),tr_msg('Temperature [°C]'),tr_msg('Pressure [bar]')],
+                           'WHERE series_id =','ORDER BY years, temperature_c',[],False,'',False,False,[]])
 
     def manageEconomicScenarios(self):
         if self.conn:
@@ -1594,6 +1608,7 @@ class Districts:
             self.dlg.btn_materials.clicked.connect(lambda: self.manageMaterials())
             self.dlg.btn_pipe_constructions.clicked.connect(lambda: self.managePipeConstructions())
             self.dlg.btn_pipes.clicked.connect(lambda: self.managePipes())
+            self.dlg.btn_pipe_series.clicked.connect(lambda: self.managePipeSeries())
             self.dlg.btn_economic_scenarios.clicked.connect(lambda: self.manageEconomicScenarios())
             self.dlg.btn_manageCustomerTemplates.clicked.connect(lambda: self.manageTemplates('customer'))
             self.dlg.btn_manageEnergyPlantTemplates.clicked.connect(lambda: self.manageTemplates('energy_plant'))

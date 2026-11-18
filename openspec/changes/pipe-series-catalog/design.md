@@ -47,8 +47,10 @@ copies per series).
 **D2 – System types** (text, checked by a CHECK constraint): `rigid_single`, `rigid_twin`, `bare_plastic`,
 `flexible_plastic`, `flexible_metal`. They pick the statics path of the follow-up changes. Empty = unknown.
 
-**D3 – `pipe_series_pressure_ratings (id serial, series_id integer REFERENCES pipe_series ON DELETE CASCADE,
-years numeric, temperature_c numeric, pressure_bar numeric)`.** One row per cell of the catalogue tables (operating
+**D3 – `pipe_series_pressure_ratings (id serial, series_id integer NOT NULL, years numeric, temperature_c numeric,
+pressure_bar numeric)`**, without foreign key like `pipe_layers`: the table dialog saves `pipe_series` with
+`TRUNCATE … CASCADE`, which would empty a referencing table; the ratings of a deleted series are removed by
+`delIfNotInDBIds`. One row per cell of the catalogue tables (operating
 time × continuous temperature → allowed pressure, water, with the catalogue's safety factor). The curve follows a
 renamed series because it references the id.
 
@@ -76,6 +78,13 @@ smaller inner diameter of the series, so two pipes with the same diameter in one
 | isoplus isoclima | flexible_plastic | EN 12201-2 | 20 … 110 | 40 °C, min −40 °C | 11.6 bar (50 a, 40 °C), ratings PE 100 |
 | isoplus isoclima u | flexible_plastic | EN 12201-2 | 110 u | 40 °C, min −40 °C | as isoclima |
 
+Equal twins are one pipe row used for both sequences of their bundle, as DRD. The unequal sanitary twins
+(S-25+20 … S-63+32) need two pipe rows each, and their smaller carriers repeat diameters (20 mm in S-25+20 and
+S-32+20); their pipe rows therefore carry **no series text**: the sizing groups them by construction (one per
+carrier) and never resizes them, which would otherwise mix twins isoplus does not make. The series row "isoplus
+isopex S twin" still holds their limits and ratings. *Alternatives:* the series with the uniqueness rule relaxed
+(ambiguous sizing); the five twins left out (no domestic hot water with circulation).
+
 isowell is left out (no longer available). Safety factor 1.25 (DIN 16893 / "c = 1.25") for isopex and isoclima.
 The pressure in the column "Limit" is not a series column but the `p_max_bar` of each pipe of the series (D12).
 
@@ -89,24 +98,37 @@ override (two places that can disagree, `cost-optimization` would have to change
 **D6 – Layers of a flexible pipe.** Carrier pipe: inner diameter `da − 2s`, wall `s` of the carrier material.
 Casing wall: assumed `e = max(2 mm, 0.02·Da)` (PE-LLD, λ 0.33); the catalogue gives no casing wall and the
 EN 15632-1 table is not at hand. The wall has little effect on u (1 mm shifts u by about 1–2 %) and none on the
-statics of flexible pipes, which use `Da`; the u check of D7 (±5 %) guards it. *Alternatives:* the EN 15632-1
+statics of flexible pipes, which use `Da`; the u check of D7 guards it. *Alternatives:* the EN 15632-1
 minimum (not available); the wall fitted to u (badly conditioned: 1 % in u moves the wall by about 1 mm and hides
 errors of λ or the ground model). Foam: the
 rest, `(Da − da)/2 − casing wall`, PUR λ50 0.0221 (a material of its own; the rigid foam stays at 0.027). One
 construction per pipe, as for DRE. Twins: the carrier pipe is the construction of each pipe, the casing (foam body
 radius, casing wall) is the `casing_construction_id`, one pipe bundle per twin, as for DRD.
 
-**D7 – Twin distance fitted to u.** The catalogue gives no distance between the carrier pipes of a twin. It is
-fitted (one parameter, symmetric about the casing axis, carriers side by side) so that `pipe_resistances.py`
-reproduces the catalogue's u under the catalogue's conditions: cover 0.80 m, λ ground 1.0 W/(m·K), ground 10 °C.
-Single pipes are not fitted; their computed u is checked against the catalogue (two single pipes at 100 mm
-distance, as the catalogue assumes) with a tolerance of ±5 %; twins must meet their u after the fit. Assumed and
-fitted values are named in the pipe description ("casing wall assumed, twin distance fitted to u").
+**D7 – Twin geometry by rule, u checked, nothing fitted.** The catalogue gives no position of the carrier pipes in
+a twin. Rule: one pipe above the other with the smaller (for equal pipes: the return) at 12 o'clock, as in the
+catalogue's drawing 3.7.3, with equal clearance between the two pipes and between each pipe and the foam body
+(`g = (2·r_foam − d1 − d2) / 3`); `bundle_pipes` gets x 0 and the depths of the two centres (casing centre at
+1 m). The computed u (`pipe_resistances.py`, cover 0.80 m, λ ground 1.0 W/(m·K); single pipes with a neighbour at
+100 mm, as the catalogue assumes; per metre of one pipe, of the twin for twins) is checked against the catalogue:
+0 … +13 % for single pipes, 0 … +23 % for twins, −8 … +13 % for the isopex 12 m bars (Stg.), which are the only pipes
+below the catalogue (−4.9 … −7.1 % with λ 0.0221; their foam is probably not the flexible one, but no λ is chosen
+to make the check pass). The model is systematically above the catalogue (feasibility check
+2026-11-18: singles +3.5 … +12 %, twins with the rule +6 … +22 %; at a 2 mm gap the twins would be +0 … +3 %), as for
+DRD (0 … +9 % in `test_twin_pipe.py`); the twin geometry of the real pipe is unknown. *Alternatives:* fitting the
+twin distance to u (absorbs the model's bias, pushes the pipes together until they touch, no solution for some
+twins); an effective foam λ (~0.0205) or a λ per construction fitted to u (flexible and rigid catalogue
+inconsistent, model differences hidden in the data); a fixed 5 mm clearance (a fit in disguise). A correction of
+the model belongs to a change for all pipes. The description names the assumptions ("casing wall and twin
+geometry assumed").
 
 **D8 – Materials.** New rows: P195GH (E 211800, Re 195, α 11.3e-6, λ 55.2, cp 430, ρ 7850), Cu-DHP (E 132000,
 Re 65, α 16.8e-6, λ 305, cp 386, ρ 8940), PE-Xa (E 600, Re 17, α 1.5e-4, λ 0.38, cp 2300, ρ 938), PE 100 (E 1000,
 Re 23, α 1.8e-4, λ 0.40, cp 2350, ρ 960), PE-LLD casing (λ 0.33), PUR flexible (λ 0.0221). Values at 20 °C from
-the catalogue; Poisson's ratio stays empty where the catalogue does not give it.
+the catalogue; Poisson's ratio stays empty where the catalogue does not give it. cp and ρ of PE-LLD and of the
+flexible foam are not in the catalogue; the simulation reads them for the foam layer, so they are taken from the
+rigid PEHD (1900, 950) and PUR (130, 60) rows. The unused template material "PEX" (row 4, cp 550) becomes "PE-Xa"
+with the catalogue values.
 
 **D9 – Rigid series.** "Isoplus DRE Standard" → `rigid_single`, standard EN 253; "Isoplus DRD Standard" →
 `rigid_twin`, standard EN 15698-1. Temperatures as EN 253 sets them for bonded pipes: 120 °C continuous, 140 °C
@@ -134,15 +156,23 @@ that change's spec); the network report already warns about pipes in use without
 costs from a public source (uncertain source, ambiguous flag); costs of the rigid pipe of the nearest diameter
 (wrong data).
 
+**D14 – Static pipe sizing without twin carriers.** The static sizing (`pipe_sizing.py`) lets the user choose
+from all pipes and builds new bundles with single pipe positions (x ±0.125, depth 1 m). A carrier of a twin needs the
+geometry of its casing, so the conversion for FDpipebundle fails ("does not fit into the casing"). The list of the
+static sizing therefore has no pipe with a `casing_construction_id`. This was latent with DRD (its carriers have the
+diameters of DRE, which came first); the flexible twins have diameters of their own. Twins stay available through
+their pipe bundles and the dynamic sizing within their series.
+
 ## Risks / Trade-offs
 
 - [The catalogue is from 2015/2016; current isoplus data may differ] → the source and date are in every series
   description; a newer catalogue replaces rows without schema change.
-- [Casing wall assumed, without source] → u is checked per type (D7, ±5 %); the casing wall has little effect on
+- [Casing wall assumed, without source] → u is checked per type (D7); the casing wall has little effect on
   u (thin PE layer, λ 0.33) and none on the statics of flexible pipes, which use `Da` only; the EN 15632-1 values
   replace the assumption later without schema change.
-- [Twin fit has no solution, e.g. u unreachable within the casing] → the test fails for that type; it is then left
-  out and named in the design, not forced.
+- [Simulated losses of flexible pipes above the catalogue (singles up to +12 %, twins up to +22 %)] → stated in D7
+  and checked by the band test, so a larger deviation fails; a correction of the thermal model is a change for all
+  pipes.
 - [Unequal twins (S-50+32) in `twin_pipe.py`] → the conversion handles pipes of different radii per pipe; a test
   covers one unequal twin in the network model.
 - [Overlapping edits with `network-cost-data` in the templates and `upgrade.py`] → implement after its template
@@ -186,8 +216,9 @@ follow-up changes:
 - T8 Scope: rigid single, rigid twin, bare plastic pressure pipes (buried-pipe check ATV-DVWK-A 127 / DWA-A 127 and
   pressure rating from MRS/SDR/temperature), flexible pipes (bend radius, pressure/temperature, EN 15632).
 - T9 Flexible catalogue: isoplus chapter 3 (this change).
-- T10 Casing wall assumed (max(2 mm, 0.02·Da), instead of the EN 15632-1 minimum, which is not at hand), twin
-  distance fitted to u (this change).
+- T10 Casing wall assumed (max(2 mm, 0.02·Da), instead of the EN 15632-1 minimum, which is not at hand); twin
+  geometry by rule (one above the other, equal clearance), u only checked, nothing fitted, because the model is
+  4–22 % above the catalogue (this change, D7).
 - T11 Product data in `pipe_series` + ratings, bend radius on `pipes` (this change).
 - T12 Five changes: `pipe-series-catalog` → `statics-model` → `statics-steel-solver` ∥ `statics-plastic-flexible`
   → `statics-results`.
@@ -198,7 +229,8 @@ Open for the follow-up changes:
 - `statics-steel-solver`: validation references (FW 401 / EN 13941 hand formulas, published cases, networks with
   sisKMR results); twin pipes as one element with two carrier pipes; mapping of `line_types` to the line classes of
   the standard spectra; service life and scaling of the simulated period (weights of `representative-periods`).
-- `statics-plastic-flexible`: long-term values of PE (long-term E-modulus, MRS, temperature reduction factors);
+- `statics-plastic-flexible`: the unequal sanitary twins have no series text (D5); their product data is found
+  through their casing construction (shared with the series' pipes) or the name. Long-term values of PE (long-term E-modulus, MRS, temperature reduction factors);
   soil and traffic inputs shared with `statics_sections`; bare PE pipes of the IDA sample `low_temperature_network`
   (GEROtec, PE100-RC) need their material values there.
 - `statics-results`: utilisation map, problem spots, report form.

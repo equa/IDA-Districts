@@ -498,7 +498,7 @@ class TestWorkflow:
 
         plugin.cur.execute(drop)
         dlg = new_dialog(plugin.managePipes)
-        assert dlg.tableWidget.columnCount() == 7 + len(PIPE_TWIN_COLUMNS) + len(PIPE_COST_COLUMNS)
+        assert dlg.tableWidget.columnCount() == 7 + len(PIPE_TWIN_COLUMNS) + len(PIPE_COST_COLUMNS) + 1  # + minimum bend radius
         save_dialog(dlg, errors)
         rows = public_rows(plugin, 'pipes')
         assert [(r['name'], r['pipe_construction_id']) for r in rows] == [(r['name'], r['pipe_construction_id']) for r in before]

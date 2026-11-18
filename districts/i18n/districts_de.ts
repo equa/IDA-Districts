@@ -2237,6 +2237,10 @@
             <translation type="unfinished">Serie (Rohrdimensionierung)</translation>
         </message>
         <message>
+            <source>pipe_series_pressure_ratings</source>
+            <translation type="unfinished">Druckstufen nach Betriebsdauer und Temperatur</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="481" />
             <source>casing_construction_id</source>
             <translation type="unfinished">Doppelrohr: Konstruktion ID der gemeinsamen Hülle</translation>
@@ -5552,6 +5556,10 @@ li.checked::marker { content: "\2612"; }
         <message>
             <source>tooltip_economic_scenarios</source>
             <translation type="unfinished">Wirtschaftlichkeit: Szenarien, Preise, Grabenkosten</translation>
+        </message>
+        <message>
+            <source>tooltip_pipe_series</source>
+            <translation type="unfinished">Rohrserien: Rohrsystem, Grenzwerte, Druckstufen</translation>
         </message>
         <message>
             <source>representative_periods</source>
@@ -10892,6 +10900,74 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>mass flow at a plant connection (leaving the plant positive) and the deadband of the run</source>
             <translation>Massenstrom an einem Anschluss der Zentrale (aus der Zentrale positiv) und das Totband des Laufs</translation>
+        </message>
+        <message>
+            <source>Min. bend radius [m]</source>
+            <translation>Min. Biegeradius [m]</translation>
+        </message>
+        <message>
+            <source>Pipe series</source>
+            <translation>Rohrserien</translation>
+        </message>
+        <message>
+            <source>System type</source>
+            <translation>Rohrsystem</translation>
+        </message>
+        <message>
+            <source>Standard</source>
+            <translation>Norm</translation>
+        </message>
+        <message>
+            <source>T max continuous [°C]</source>
+            <translation>T max Dauerbetrieb [°C]</translation>
+        </message>
+        <message>
+            <source>T max peak [°C]</source>
+            <translation>T max kurzzeitig [°C]</translation>
+        </message>
+        <message>
+            <source>T min [°C]</source>
+            <translation>T min [°C]</translation>
+        </message>
+        <message>
+            <source>Allowed axial stress [N/mm²]</source>
+            <translation>Zul. Axialspannung [N/mm²]</translation>
+        </message>
+        <message>
+            <source>Safety factor</source>
+            <translation>Sicherheitsbeiwert</translation>
+        </message>
+        <message>
+            <source>Operating time [a]</source>
+            <translation>Betriebsdauer [a]</translation>
+        </message>
+        <message>
+            <source>Temperature [°C]</source>
+            <translation>Temperatur [°C]</translation>
+        </message>
+        <message>
+            <source>Pressure [bar]</source>
+            <translation>Druck [bar]</translation>
+        </message>
+        <message>
+            <source>rigid_single</source>
+            <translation>Starres Einzelrohr</translation>
+        </message>
+        <message>
+            <source>rigid_twin</source>
+            <translation>Starres Doppelrohr</translation>
+        </message>
+        <message>
+            <source>bare_plastic</source>
+            <translation>Kunststoffrohr ohne Dämmung</translation>
+        </message>
+        <message>
+            <source>flexible_plastic</source>
+            <translation>Flexibles Kunststoffrohr</translation>
+        </message>
+        <message>
+            <source>flexible_metal</source>
+            <translation>Flexibles Metallrohr</translation>
         </message>
         <message>
             <source>Comfort violations per iteration</source>

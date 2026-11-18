@@ -10,8 +10,8 @@ from pathlib import Path
 from .update_boundaries import updateTemplateBoundaryValues
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import (
-    MATERIAL_MECHANICAL_COLUMNS, PIPE_TWIN_COLUMNS, delIfNotInDBIds, ensureMaterialMechanicalColumns, ensurePipeTwinColumns, getClimateData,
-    getDropDownItems, getMaxId, getMaxTableValue, materialInsertSql, materialMechanicalSelect, pipeTwinSelect, rowCountDB, setSeqIdToMax,
+    MATERIAL_MECHANICAL_COLUMNS, PIPE_SERIES_COLUMNS, PIPE_TWIN_COLUMNS, delIfNotInDBIds, ensureMaterialMechanicalColumns, ensurePipeSeriesTables, ensurePipeTwinColumns, getClimateData,
+    getDropDownItems, getMaxId, getMaxTableValue, materialInsertSql, materialMechanicalSelect, pipeSeriesNames, pipeTwinSelect, rowCountDB, setSeqIdToMax,
 )
 from .utility_functions.economic_data import BUNDLE_COST_COLUMNS, SURFACES
 from .utility_functions.dialog import (
@@ -79,9 +79,53 @@ def pipeInsertSql(i):
     """INSERT of a pipe of the resource export; the ids of its construction and of the casing of a twin pipe are placeholders
     replaced by the ids of the imported constructions."""
     casing=i.get('casing_construction_id')
-    return "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}',{},{});".format( # nosec B608
+    bend=i.get('min_bend_radius_m')
+    return "INSERT INTO pipes (name,innerpipediameter,piperoughnessfactor,pipe_construction_id,costs,description,series,casing_construction_id,min_bend_radius_m) VALUES ('{}',{},{},$pipe_construction_id$,{},'{}',{},{},{});".format( # nosec B608
         i['pipe_name'] if i['pipe_name'] else '',i['innerpipediameter'],i['piperoughnessfactor'],i['costs'] if i['costs'] else 'NULL',i['pipe_description'] if i['pipe_description'] else '',
-        "'{}'".format(i['series'].replace("'","''")) if i.get('series') else 'NULL','NULL' if casing is None else '$casing_construction_id:{}$'.format(casing))
+        "'{}'".format(i['series'].replace("'","''")) if i.get('series') else 'NULL','NULL' if casing is None else '$casing_construction_id:{}$'.format(casing),
+        'NULL' if bend is None else bend)
+
+def _sqlValue(value):
+    if value is None:
+        return 'NULL'
+    if isinstance(value,str):
+        return "'{}'".format(value.replace("'","''"))
+    return str(value)
+
+def exportPipeSeries(cur,export_dict):
+    """The series of the exported pipes with their pressure ratings: export_dict['pipe_series'] {name: INSERT},
+    export_dict['pipe_series_pressure_ratings'] {name: [INSERT with $series_id$]} (nothing from a project without series)."""
+    export_dict.setdefault('pipe_series',{})
+    export_dict.setdefault('pipe_series_pressure_ratings',{})
+    if not export_dict['pipes']:
+        return
+    cur.execute("""SELECT count(*) AS n FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('pipe_series','pipe_series_pressure_ratings');""")
+    if cur.fetchone()['n']<2:
+        return
+    cur.execute("""SELECT s.id, {} FROM public.pipe_series s WHERE s.name IN (SELECT p.series FROM public.pipes p WHERE p.id IN ({})) ORDER BY s.id;""".format( # nosec B608
+        ','.join('s.'+col for col in PIPE_SERIES_COLUMNS),','.join(str(int(i)) for i in export_dict['pipes'])))
+    for row in cur.fetchall():
+        export_dict['pipe_series'][row['name']]="INSERT INTO pipe_series ({}) VALUES ({});".format(','.join(PIPE_SERIES_COLUMNS),','.join(_sqlValue(row[col]) for col in PIPE_SERIES_COLUMNS)) # nosec B608
+        cur.execute("""SELECT years, temperature_c, pressure_bar FROM public.pipe_series_pressure_ratings WHERE series_id = %s ORDER BY years, temperature_c;""",(row['id'],))
+        export_dict['pipe_series_pressure_ratings'][row['name']]=["INSERT INTO pipe_series_pressure_ratings (series_id,years,temperature_c,pressure_bar) VALUES ($series_id$,{},{},{});".format( # nosec B608
+            _sqlValue(r['years']),_sqlValue(r['temperature_c']),_sqlValue(r['pressure_bar'])) for r in cur.fetchall()]
+
+def pipeSeriesImportSql(cur,import_dict):
+    """SQL creating the imported series the project does not have, with their ratings; a series of the same name is kept
+    unchanged. Exports of older versions have no series."""
+    ensurePipeSeriesTables(cur)
+    # the table dialogs insert explicit ids without advancing the sequences
+    setSeqIdToMax('pipe_series_id_seq','pipe_series','id',cur)
+    setSeqIdToMax('pipe_series_pressure_ratings_id_seq','pipe_series_pressure_ratings','id',cur)
+    existing=set(pipeSeriesNames(cur).values())
+    sql=''
+    for name,insert in import_dict.get('pipe_series',{}).items():
+        if name in existing:
+            continue
+        sql+=insert
+        series_id="(SELECT id FROM public.pipe_series WHERE name = {})".format(_sqlValue(name))
+        sql+=''.join(i.replace('$series_id$',series_id) for i in import_dict.get('pipe_series_pressure_ratings',{}).get(name,[]))
+    return sql
 
 def exportCasingConstructions(cur,export_dict,rows):
     """The casing constructions of the twin pipes in rows are exported with their layers and materials."""
@@ -209,10 +253,11 @@ def importResources(dlg,main,import_all=False):
          
                 template_max_id+=1
 
+    ensureMaterialMechanicalColumns(main.cur)  # materials of a newer project have the mechanical properties
+    ensurePipeTwinColumns(main.cur)  # pipes of a newer project have the series and the twin pipe casing
+    db_import+=pipeSeriesImportSql(main.cur,import_dict)  # creates the series tables and the bend radius too
     dprint(db_import)
     if db_import:
-        ensureMaterialMechanicalColumns(main.cur)  # materials of a newer project have the mechanical properties
-        ensurePipeTwinColumns(main.cur)  # pipes of a newer project have the series and the twin pipe casing
         main.cur.execute(db_import)       
         main.dlg.statusMessage.setText(tr_msg('Resources are imported successfully!'))
         main.dlg.progress.setValue(100)
@@ -409,6 +454,7 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         missing={str(i['pipe_construction_id']) : "INSERT INTO pipe_constructions (name) VALUES ('{}');".format(i['construction_name'] if i['construction_name'] else '') for i in result if str(i['pipe_construction_id']) not in export_dict['pipe_constructions'].keys()} # nosec B608
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
         exportCasingConstructions(cur,export_dict,result)
+    exportPipeSeries(cur,export_dict)
         
     if import_fromDB:
         temp_name='resource_export'
@@ -1222,7 +1268,7 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
     
 #columns saved as NULL if the cell is empty
 NULLABLE_COLUMNS=['p','mdot','costs','maintenance_pct','lifetime_a','p_max_bar','example',
-    'start_price','escalation_pct','interest_pct','period_a','pump_costs_eur7kw','pump_maintenance_pct','pump_lifetime_a','el_profile_file','default_surface']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)
+    'start_price','escalation_pct','interest_pct','period_a','pump_costs_eur7kw','pump_maintenance_pct','pump_lifetime_a','el_profile_file','default_surface','min_bend_radius_m']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)+PIPE_SERIES_COLUMNS[1:-1]
 
 def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
     values=[]
@@ -1233,6 +1279,8 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
             value=dlg.tableWidget.cellWidget(row, col).currentData()
             if not value:
                 value=dlg.tableWidget.cellWidget(row, col).currentText()
+            if not value and columns[col].lower() in NULLABLE_COLUMNS:  # the empty entry of an optional dropdown
+                value='Null'
                 
             dprint(value)
         elif col in checkBoxes:
@@ -1243,6 +1291,10 @@ def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
             if dlg.tableWidget.item(row,col):
                 if debug_enabled(): dprint(dlg.tableWidget.item(row,col).text())
                 value=dlg.tableWidget.item(row,col).data(Qt.ItemDataRole.UserRole)
+                # a sub table shows the translated value and keeps the stored one in UserRole: an edited cell no longer
+                # shows the translation of the stored value, its text is the new value
+                if value and dlg.tableWidget.item(row,col).text()!=tr('@default',str(value)):
+                    value=None
                 if not value or col==0:
                     value=storedValue(columns[col],dlg.tableWidget.item(row,col).text())
                 dprint(value)

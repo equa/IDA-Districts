@@ -1,6 +1,6 @@
 #upgrade functions in order to use "old" projects within newer versions of the Districts Modeler
 
-from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColumns, ensurePipeTwinColumns
+from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColumns, ensurePipeSeriesTables, ensurePipeTwinColumns
 from .utility_functions.debug_log import dprint
 from .utility_functions.economic_data import dropBundleCostColumns, ensureEconomicTables, ensurePipeCostColumns
 
@@ -31,6 +31,8 @@ def upgradeProjectDB(cur):
     ensureMaterialMechanicalColumns(cur)
     #series and twin pipe casing of the pipes
     ensurePipeTwinColumns(cur)
+    #product data of the series and the bend radius of the pipes (pipe statics)
+    ensurePipeSeriesTables(cur)
     #costs: maintenance, lifetime, p_max of the pipes and the economic scenarios
     ensurePipeCostColumns(cur)
     ensureEconomicTables(cur)

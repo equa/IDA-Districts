@@ -548,6 +548,7 @@ def _register_translation_keys():
     tr("pipe_costs")
     tr("pipe_series")
     tr("casing_construction_id")
+    tr("pipe_series_pressure_ratings")
     
     #materials
     tr("thermal_conductivity_w7mkelvin")

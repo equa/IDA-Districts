@@ -380,7 +380,40 @@ CREATE TABLE public.pipes
   lifetime_a numeric, --service life, years
   p_max_bar numeric, --maximum operating pressure, bar
   example boolean DEFAULT false, --costs, maintenance, lifetime and p_max are example values
+  min_bend_radius_m numeric, --flexible pipes: minimum bend radius, m
   CONSTRAINT pipes_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipe_series------------------------------------
+--product data of a series; name = pipes.series (no foreign key: the pipe sizing and the resource import use the text)
+DROP TABLE IF EXISTS public.pipe_series CASCADE;
+CREATE TABLE public.pipe_series
+(
+  id serial,
+  name text NOT NULL UNIQUE,
+  system_type text CHECK (system_type IN ('rigid_single','rigid_twin','bare_plastic','flexible_plastic','flexible_metal')),
+  standard text,
+  t_max_continuous_c numeric,
+  t_max_peak_c numeric,
+  t_min_c numeric,
+  sigma_ax_max_n7mm2 numeric, --allowed axial stress given by the manufacturer
+  safety_factor numeric,
+  description text,
+  CONSTRAINT pipe_series_pkey PRIMARY KEY (id)
+);
+
+-------------------table public.pipe_series_pressure_ratings------------------------------------
+--allowed pressure (water) by operating time and continuous temperature, capped by pipes.p_max_bar; no foreign key:
+--the table dialog saves pipe_series with TRUNCATE ... CASCADE, the ratings of deleted series are removed by delIfNotInDBIds
+DROP TABLE IF EXISTS public.pipe_series_pressure_ratings CASCADE;
+CREATE TABLE public.pipe_series_pressure_ratings
+(
+  id serial,
+  series_id integer NOT NULL,
+  years numeric,
+  temperature_c numeric,
+  pressure_bar numeric,
+  CONSTRAINT pipe_series_pressure_ratings_pkey PRIMARY KEY (id)
 );
   
 -------------------table public.pipe_constructions------------------------------------

@@ -2255,6 +2255,10 @@
             <translation type="unfinished">Series (pipe sizing)</translation>
         </message>
         <message>
+            <source>pipe_series_pressure_ratings</source>
+            <translation type="unfinished">Pressure ratings by operating time and temperature</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="481" />
             <source>casing_construction_id</source>
             <translation type="unfinished">Twin pipe: construction ID of the shared casing</translation>
@@ -5860,6 +5864,10 @@ p, li { white-space: pre-wrap; }
             <translation type="unfinished">Economic scenarios: prices, trench costs</translation>
         </message>
         <message>
+            <source>tooltip_pipe_series</source>
+            <translation type="unfinished">Pipe series: system type, limits, pressure ratings</translation>
+        </message>
+        <message>
             <source>representative_periods</source>
             <translation type="unfinished">Periods</translation>
         </message>
@@ -7847,6 +7855,29 @@ Compare with the parent version: shows the difference of the inner pipe diameter
             <location filename="../districts_stylePipeDiameter.ui" line="119" />
             <source>cancel</source>
             <translation type="unfinished">Cancel</translation>
+        </message>
+    </context>
+    <context>
+        <name>Messages</name>
+        <message>
+            <source>rigid_single</source>
+            <translation>Rigid single pipe</translation>
+        </message>
+        <message>
+            <source>rigid_twin</source>
+            <translation>Rigid twin pipe</translation>
+        </message>
+        <message>
+            <source>bare_plastic</source>
+            <translation>Plastic pipe without insulation</translation>
+        </message>
+        <message>
+            <source>flexible_plastic</source>
+            <translation>Flexible plastic pipe</translation>
+        </message>
+        <message>
+            <source>flexible_metal</source>
+            <translation>Flexible metal pipe</translation>
         </message>
     </context>
 </TS>

@@ -27,7 +27,8 @@ from .utility_functions.debug_log import dprint, debug_enabled
 
  
 def loadPipes(config,cur,dlg):
-    sql="""SELECT id, name, innerpipediameter FROM pipes ORDER BY innerpipediameter;"""
+    # no carrier of a twin pipe: the sizing builds new bundles with single pipe positions, a twin needs its casing geometry
+    sql="""SELECT id, name, innerpipediameter FROM pipes WHERE casing_construction_id IS NULL ORDER BY innerpipediameter;"""
     cur.execute(sql)
     for pipe in cur.fetchall():
         name = str(pipe['id'])+':'+pipe['name']
