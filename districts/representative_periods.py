@@ -135,7 +135,7 @@ class PeriodsWidget(QWidget):
         self.ready = False
         try:
             self.year = int(loadNetworkSimData(main.plugin_dir, config)['calc_time_from'][:4])
-            self.climate = climateFile(config)
+            self.climate = climateFile(config, cur)
         except Exception as error:
             self.log(tr_msg('The climate file cannot be read: {}').format(error))
         self.chooseWeeks()

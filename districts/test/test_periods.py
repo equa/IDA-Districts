@@ -83,3 +83,27 @@ def test_week_dates_keep_the_start_up_in_the_year():
     assert (calc_from.day, calc_to.day, startup_from.day, startup_from.month) == (2, 9, 1, 1)
     calc_from, _, startup_from, startup_to = weekDates(2026, 100, 7, 3)
     assert (calc_from - startup_from).days == 3 and startup_to == calc_from
+
+
+class _ClimateCursor:
+    """the queries of climateFile: the version's climate table exists and holds file_name"""
+    def __init__(self, file_name):
+        self.file_name, self.rows = file_name, []
+
+    def execute(self, sql, params=None):
+        self.rows = [{'ok': True}] if 'to_regclass' in sql else [{'file_name': self.file_name}]
+
+    def fetchone(self):
+        return self.rows[0]
+
+
+def test_climate_file_of_the_loaded_version(tmp_path):
+    """the weeks are chosen on the climate of the loaded version, not on the project's climate-macro.idm, which holds
+    the climate of the version built last"""
+    from districts.utility_functions.periods import climateFile
+    macro = tmp_path / 'p' / 'climate' / 'climate'
+    macro.mkdir(parents=True)
+    (macro / 'climate-macro.idm').write_text('(SOURCE-FILE :SF "clim:ZURICH.prn")', encoding='utf-8')
+    config = {'pathProjects': str(tmp_path) + '/', 'projectName': 'p', 'versionName': 'stage3', 'pathDistricts': 'C:/IDA'}
+    assert climateFile(config, _ClimateCursor('clim:ZURICH_2050.prn')).endswith('ZURICH_2050.prn')
+    assert climateFile(config).endswith('ZURICH.prn')  # without a cursor: the project's template

@@ -18,14 +18,26 @@ PERIODS_FILE = 'periods.json'
 
 
 # ---------------------------------------------------------------- climate
-def climateFile(config):
-    """Path of the climate file of the project (SOURCE-FILE of climate-macro.idm; clim: = IDA Districts climate folder)."""
+def climateFile(config, cur=None):
+    """Path of the climate file of the loaded version (table climate of the version; clim: = IDA Districts climate
+    folder). The project's climate-macro.idm only holds the climate of the version built last, so it is the fallback
+    without a cursor or a climate row."""
+    if cur is not None:
+        cur.execute("SELECT to_regclass(%s) IS NOT NULL AS ok;", ('"{}".climate'.format(config['versionName']),))
+        if cur.fetchone()['ok']:
+            cur.execute('SELECT file_name FROM "{}".climate LIMIT 1;'.format(config['versionName']))  # nosec B608
+            row = cur.fetchone()
+            if row and row['file_name']:
+                return resolveClimatePath(config, row['file_name'])
     macro = os.path.join(config['pathProjects'] + config['projectName'], 'climate', 'climate', 'climate-macro.idm')
     with open(macro, encoding='utf-8-sig', errors='replace') as f:
         match = re.search(r':SF "([^"]+)"', f.read())
     if not match:
         raise FileNotFoundError(macro)
-    path = match.group(1).replace('\\\\', '\\')
+    return resolveClimatePath(config, match.group(1).replace('\\\\', '\\'))
+
+
+def resolveClimatePath(config, path):
     if path.lower().startswith('clim:'):
         path = os.path.join(config['pathDistricts'], 'climate', path[5:])
     return path

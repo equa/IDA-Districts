@@ -33,7 +33,8 @@ heat +0.7 %, pump −0.3 %; three coverage weeks −2.0 % / −12.2 % (cold tail
 climate folder, otherwise relative to the project) and reads hour and T_air (8760 values; 8784 accepted, day 366
 dropped). A file it cannot read stops with a message naming it.
 
-**D2 – Week choice.** Candidate weeks start at midnight of every day. Dominant mode: heating if a pair of the
+**D2 – Week choice.** The climate file is the loaded version's (table climate; versions of a project can have
+different climate files, the project's climate-macro.idm holds only the one built last). Candidate weeks start at midnight of every day. Dominant mode: heating if a pair of the
 version is a heating pair (supply above return temperature in the pair table, or the plants' modes), cooling if
 only cooling pairs; combined networks: heating, with the option "add the warmest week" (four weeks). The option is
 available for every network, as a low-temperature network heats and cools through one pair; a cooling network gets
