@@ -36,6 +36,9 @@ from .utility_functions.files import loadModellingSettings, loadRequestedOutputs
 from .utility_functions.iteration_report import npvBars, openReport, saveRunParameters
 from .utility_functions.hydraulic_balancing import createChildVersion, getOrCreatePipeBundles, getPipeBundles
 from .utility_functions.network_economics import evaluateVersion, resultTables
+from .utility_functions.economics import npvTerms, presentValueFactor
+from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
+from .utility_functions.set_pipes import SetPipes, costIterationPipes
 from .utility_functions.penalties import customerValues, penaltyCost, penaltyNpv
 from .utility_functions.pair_widgets import PairTable
 from .utility_functions.pipe_pairs import getPlantConnections, networkSequences, suggestPairs
@@ -48,7 +51,8 @@ from .utility_functions.utility import write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
 
 NO_IMPROVEMENT = 2
-OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines')
+# mdot_ep: the heat flows of the plants give the heating or cooling mode per step (network_modes)
+OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines', 'mdot_ep')
 # the checkbox of each output in the requested outputs dialog
 OUTPUT_CHECKBOXES = {'ppump_ep': 'checkBoxPlantPumpPower', 'ppump_c': 'checkBoxSubstationPumpPower', 'temp_lines': 'checkBoxTempPipe',
                      'qamb_lines': 'checkBoxQambPipe', 'temp_ep': 'checkBoxPlantConnTemp', 'troom_c': 'checkBoxSubstationTair',
@@ -89,6 +93,21 @@ def penaltyValues(cur, config, required, submodel, tolerance, unmet_tolerance):
         WHERE c.template = t.template;""".format(schema))  # nosec B608
     templates = {row['id']: row['t_name'] for row in cur.fetchall()}
     return customerValues(data, hours, w, required, templates, config, submodel, tolerance, unmet_tolerance)
+
+
+def npvRecord(evaluation, yearly_penalty, penalty_npv):
+    """the terms of the NPV of an iteration for its report, saved at run time: the scenario may change afterwards"""
+    scenario = evaluation['scenario']
+    sc = scenario['scenario']
+    items = [dict(item, kind=key[0]) for key, item in evaluation['items'].items()]
+    items.append(dict(evaluation['pump_item'], kind='pumps', power_kw=evaluation['pump_kw']))
+    years = range(1, int(sc.get('period_a') or 0) + 1)
+    factors = {group: presentValueFactor(scenario, group, years) for group in ('electricity', 'heat', 'cold', 'maintenance')}
+    factors['penalties'] = penaltyNpv(1.0, float(sc.get('interest_pct') or 0), len(years))
+    return {'terms': npvTerms(scenario, items, evaluation['costs']), 'energy': evaluation['energy'], 'yearly_penalty': yearly_penalty,
+            'penalties': penalty_npv, 'factors': factors, 'interest_pct': float(sc.get('interest_pct') or 0), 'period_a': len(years),
+            'residual_value': bool(sc.get('residual_value')), 'el_price': float((scenario.get('groups', {}).get('electricity') or {}).get('start_price') or 0),
+            'modes': evaluation.get('modes') or {}}
 
 
 def modelStep(cur, config, parms, settings, prices, no_smaller):
@@ -168,6 +187,15 @@ class CostOptimizationDialog(QDialog):
         self.spin_iter = QSpinBox()
         self.spin_iter.setRange(1, 100)
         self.spin_iter.setValue(10)
+        self.spin_deadband = QDoubleSpinBox()
+        self.spin_deadband.setRange(0, 50)
+        self.spin_deadband.setSingleStep(1)
+        self.spin_deadband.setValue(DEFAULT_DEADBAND_PCT)
+        self.spin_deadband.setSuffix(' %')
+        self.spin_deadband.setToolTip(tr_msg('Heating or cooling per hour and supply/return pair from the heat the plants put into the network '
+                                             '(results mdot_ep, temp_ep): the mode changes only outside a band of this share of the range '
+                                             'between the largest heating and the largest cooling flow. Losses are priced with the heat price '
+                                             'when heating, with the cold price when cooling.'))
         self.rbtn_new = QRadioButton(tr_msg('New child version'))
         self.rbtn_override = QRadioButton(tr_msg('Override the pipes of the loaded version'))
         self.rbtn_new.setChecked(True)
@@ -204,6 +232,7 @@ class CostOptimizationDialog(QDialog):
         form.addRow(tr_msg('Pairs'), self.pair_table)
         form.addRow(tr_msg('Smaller pipe at peak flow'), limits)
         form.addRow(tr_msg('Comfort violations'), penalties)
+        form.addRow(tr_msg('Deadband heating/cooling'), self.spin_deadband)
         form.addRow(tr_msg('Max. iterations'), self.spin_iter)
         form.addRow(tr_msg('Outputs'), self.check_outputs)
         form.addRow(tr_msg('Version'), version)
@@ -268,6 +297,10 @@ class CostOptimizationDialog(QDialog):
         self.btn_report.setToolTip(tr_msg('HTML report of the iterations of the loaded version: inputs incl. the economic scenario, iteration '
                                           'tables, maps and the cost analysis, opened in the browser.'))
         self.btn_report.clicked.connect(lambda: openReport(self, self.main.cur, self.main.config, 'cost'))
+        self.btn_setPipes = QPushButton(tr_msg('Set pipes'))
+        self.btn_setPipes.setToolTip(tr_msg('The pipes simulated in the selected iteration into a new child version or into this version; '
+                                            'nothing is simulated.'))
+        self.btn_setPipes.clicked.connect(self.setSelectedPipes)
         self.btn_showIterations.clicked.connect(self.showSelectedIterations)
         self.btn_removeLayers.clicked.connect(lambda: removeCostLayers())
         self.btn_reload.clicked.connect(self.loadIterationTable)
@@ -275,7 +308,7 @@ class CostOptimizationDialog(QDialog):
         inner = QVBoxLayout(tab_iterations)
         inner.addWidget(self.table_iterations)
         row_buttons = QHBoxLayout()
-        for button in (self.btn_showIterations, self.btn_removeLayers, self.btn_reload, self.btn_report):
+        for button in (self.btn_showIterations, self.btn_removeLayers, self.btn_reload, self.btn_report, self.btn_setPipes):
             row_buttons.addWidget(button)
         inner.addLayout(row_buttons)
         self.figure = Figure(figsize=(9, 4))
@@ -422,7 +455,7 @@ class CostOptimizationDialog(QDialog):
         self.btn_start.setEnabled(not self.process_running)
         self.btn_stop.setEnabled(self.process_running)
         # while running the run adds and shows the iterations itself
-        for button in (self.btn_showIterations, self.btn_reload):
+        for button in (self.btn_showIterations, self.btn_reload, self.btn_setPipes):
             button.setEnabled(not self.process_running)
 
     def parameters(self):
@@ -431,7 +464,7 @@ class CostOptimizationDialog(QDialog):
                 'price_kh': self.spin_price_kh.value(), 'tolerance': self.spin_tolerance.value(), 'price_kwh': self.spin_price_kwh.value(),
                 'unmet_tolerance': self.spin_tolerance_kwh.value(), 'dp_spez_max': self.spin_dp_max.value(), 'v_max': self.spin_v_max.value(),
                 'max_iter': self.spin_iter.value(), 'new_version': self.edit_version.text().strip() if self.rbtn_new.isChecked() else None,
-                'set_outputs': self.check_outputs.isChecked()}
+                'set_outputs': self.check_outputs.isChecked(), 'mode_deadband_pct': self.spin_deadband.value()}
 
     # ---------------------------------------------------------------- run
     def start(self):
@@ -488,6 +521,15 @@ class CostOptimizationDialog(QDialog):
 
     def selectedIterations(self):
         return sorted({int(self.table_iterations.item(index.row(), 0).text()) for index in self.table_iterations.selectedIndexes()})
+
+    def setSelectedPipes(self):
+        selected = self.selectedIterations()
+        if len(selected) != 1:
+            self.log(tr_msg('Select one iteration in the table.'))
+            return
+        rows = {row['iteration']: row for row in loadCostIterations(self.main.config)}
+        self.set_pipes = SetPipes(self, self.main, tr_msg('Cost optimization'), self.log, self.loadIterationTable)
+        self.set_pipes.run(selected[0], costIterationPipes(rows.get(selected[0], {})))
 
     def showSelectedIterations(self):
         selected = self.selectedIterations()
@@ -566,7 +608,7 @@ class CostOptimizationRun(QObject):
     # ---------------------------------------------------------------- start
     def start(self):
         try:
-            self.settings = loadModellingSettings(self.plugin_dir, self.config)
+            self.settings = dict(loadModellingSettings(self.plugin_dir, self.config), mode_deadband_pct=self.parms.get('mode_deadband_pct', DEFAULT_DEADBAND_PCT))
             self.prices = os.path.join(self.config['pathProjects'] + self.config['projectName'], 'prices')
             self.year, self.t_year, self.climate = self.dlg.periods.year, self.dlg.periods.t_year, self.dlg.periods.climate
             missing = missingOutputs(self.plugin_dir, self.config) if self.parms.get('set_outputs') else []
@@ -731,7 +773,7 @@ class CostOptimizationRun(QObject):
         row = {'iteration': self.iteration, 'npv': npv, 'split': split, 'npv_model': npv_model,
                'model_error': None if npv_model is None or not npv else (npv_model - npv) / abs(npv),
                'penalty_customers': sorted(cid for cid, v in values.items() if v[0] > self.reference.get(cid, (0, 0))[0] + 1e-6 or v[1] > self.reference.get(cid, (0, 0))[1] + 1e-6),
-               'state': state}
+               'state': state, 'economics': npvRecord(evaluation, yearly_penalty, split['penalties'])}
         if previous:
             # a new deficit: the lines made smaller in the last step stay as they are now
             row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if row['penalty_customers']]

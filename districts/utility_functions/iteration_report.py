@@ -79,13 +79,18 @@ def table(headers, rows, numeric=None):
     if numeric is None:
         numeric = {i for i in range(len(headers)) if all(isinstance(r[i], (int, float)) or r[i] in ('', None) for r in rows)}
     head = ''.join('<th>{}</th>'.format(esc(h)) for h in headers)
-    body = ''.join('<tr>{}</tr>'.format(''.join('<td{}>{}</td>'.format(' class="num"' if i in numeric else '', cellHtml(cell))
-                                                for i, cell in enumerate(row))) for row in rows)
+    body = ''.join('<tr{}>{}</tr>'.format(' class="total"' if isinstance(row, TotalRow) else '',
+                                          ''.join('<td{}>{}</td>'.format(' class="num"' if i in numeric else '', cellHtml(cell))
+                                                  for i, cell in enumerate(row))) for row in rows)
     return '<table><thead><tr>{}</tr></thead><tbody>{}</tbody></table>'.format(head, body)
 
 
 class Html(str):
     """a table cell that is html already"""
+
+
+class TotalRow(list):
+    """a table row shown in bold"""
 
 
 def cellHtml(cell):
@@ -156,6 +161,8 @@ tr.best td {{ background: #e3f2e1; }} .empty {{ color: #888; font-style: italic;
 .legend img {{ vertical-align: middle; margin-right: 4px; }} .legend b {{ display: block; width: 100%; margin-top: 4px; }}
 nav ol {{ padding-left: 18px; }} nav li.l3 {{ margin-left: 18px; font-size: 9pt; }}
 img {{ max-width: 100%; }} .note {{ color: #555; }}
+.eq {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 11.5pt; margin: 3px 0 3px 18px; }}
+tr.total td {{ font-weight: bold; background: #f4f4f4; }}
 @media print {{ nav {{ display: none; }} h2 {{ page-break-before: always; }} }}
 </style></head>
 <body><h1>{title}</h1><p class="subtitle">{subtitle}</p><nav><ol>{toc}</ol></nav>{body}</body></html>
@@ -447,7 +454,8 @@ COST_LABELS = (('scenario_name', 'Scenario'), ('network', 'Network'), ('submodel
                ('periods_text', 'Simulated periods'), ('price_kh', 'Price of a degree hour [€/Kh]'), ('tolerance', 'Tolerance of the room temperature [K]'),
                ('price_kwh', 'Price of unmet load [€/kWh]'), ('unmet_tolerance', 'Tolerance of unmet load [%]'),
                ('dp_spez_max', 'Max. specific pressure loss at peak flow [Pa/m]'), ('v_max', 'Max. velocity at peak flow [m/s]'),
-               ('max_iter', 'Max. number of iterations'), ('set_outputs', 'Outputs switched on'), ('protected', 'Protected lines'))
+               ('mode_deadband_pct', 'Deadband heating/cooling [%]'), ('max_iter', 'Max. number of iterations'), ('set_outputs', 'Outputs switched on'),
+               ('protected', 'Protected lines'))
 
 
 def npvBars(ax, rows):
@@ -626,6 +634,7 @@ def costReport(cur, config):
     split_rows = [[groupLabel(g)] + [round(by_iteration[k]['split'].get(g, 0.0)) for k in iterations] for g in NPV_GROUPS]
     split_rows.append([tr_msg('Net present value')] + [round(by_iteration[k]['npv']) for k in iterations])
     report.section(tr_msg('Net present value per part [€]'), table([tr_msg('Part')] + [tr_msg('Iteration {}').format(k) for k in iterations], split_rows), 3)
+    npvCalculation(report, rows)
     diff_rows = [[groupLabel(g), round(reference['split'].get(g, 0.0)), round(best['split'].get(g, 0.0)),
                   round(best['split'].get(g, 0.0) - reference['split'].get(g, 0.0))] for g in NPV_GROUPS]
     diff_rows.append([tr_msg('Net present value'), round(reference['npv']), round(best['npv']), round(best['npv'] - reference['npv'])])
@@ -663,6 +672,169 @@ def costReport(cur, config):
     if reasons:
         report.section(tr_msg('Rejected changes'), table([tr_msg('Reason'), tr_msg('Number')], sorted(([r, n] for r, n in reasons.items()), key=lambda x: -x[1])), 3)
     return report
+
+
+# ---------------------------------------------------------------- net present value: equations and numbers
+def eq(formula):
+    return '<div class="eq">{}</div>'.format(formula)
+
+
+PV = 'Σ<sub><i>t</i>=1…<i>N</i></sub> <i>L</i><sub>{g}</sub>(<i>t</i>) / (1+<i>i</i>)<sup><i>t</i></sup>'
+EQUATIONS = (
+    ('Net present value', '<i>NPV</i> = Σ<sub><i>k</i></sub> (<i>I</i><sub><i>k</i></sub> + <i>M</i><sub><i>k</i></sub> + <i>R</i><sub><i>k</i></sub>)'
+                          ' + <i>E</i><sub>pump</sub> + <i>E</i><sub>heat</sub> + <i>E</i><sub>cold</sub> + <i>S</i>'),
+    ('Investment of item k, bought in year 0 and replaced at the end of its lifetime',
+     '<i>I</i><sub><i>k</i></sub> = <i>K</i><sub><i>k</i></sub> · Σ<sub><i>t</i> ∈ {0, <i>n</i><sub><i>k</i></sub>, 2<i>n</i><sub><i>k</i></sub>, … &lt; <i>N</i>}</sub>'
+     ' <i>L</i><sub>inv</sub>(<i>t</i>) / (1+<i>i</i>)<sup><i>t</i></sup>'),
+    ('Maintenance', '<i>M</i><sub><i>k</i></sub> = <i>K</i><sub><i>k</i></sub> · <i>m</i><sub><i>k</i></sub> · ' + PV.format(g='maint')),
+    ('Residual value (negative, only if the scenario counts it)',
+     '<i>R</i><sub><i>k</i></sub> = −<i>K</i><sub><i>k</i></sub> · <i>L</i><sub>inv</sub>(<i>t</i><sub>last</sub>) · '
+     '(<i>t</i><sub>last</sub> + <i>n</i><sub><i>k</i></sub> − <i>N</i>) / <i>n</i><sub><i>k</i></sub> / (1+<i>i</i>)<sup><i>N</i></sup>'),
+    ('Energy costs of the cost group g (pump energy: electricity, heat losses: heat, cold losses: cold)',
+     '<i>E</i><sub><i>g</i></sub> = <i>C</i><sub><i>g</i>,0</sub> · ' + PV.format(g='<i>g</i>')),
+    ('Price level of a cost group (the factor of the year instead, if the price levels give one)',
+     '<i>L</i><sub><i>g</i></sub>(<i>t</i>) = (1 + <i>e</i><sub><i>g</i></sub>)<sup><i>t</i></sup>'),
+    ('Comfort violations: present value of the yearly penalty', '<i>S</i> = <i>P</i> · ((1+<i>i</i>)<sup><i>N</i></sup> − 1) / (<i>i</i> · (1+<i>i</i>)<sup><i>N</i></sup>)'),
+    ('Investment in year 0 per item', '<i>K</i><sub>pipe</sub> = Σ<sub>lines</sub> <i>c</i><sub>pipe</sub> · <i>l</i> ; '
+                                      '<i>K</i><sub>trench,<i>s</i></sub> = Σ<sub>lines</sub> (<i>a</i><sub><i>s</i></sub> + <i>b</i><sub><i>s</i></sub> · DN) · <i>l</i><sub><i>s</i></sub> ; '
+                                      '<i>K</i><sub>pumps</sub> = <i>c</i><sub>pump</sub> · Σ<sub>pumps</sub> <i>P</i><sub>peak</sub>'),
+    ('Energy costs of year 0', '<i>C</i><sub>pump,0</sub> = <i>c</i><sub>el</sub> · Σ<sub><i>h</i></sub> <i>w</i><sub><i>h</i></sub> · <i>P</i><sub>pump,<i>h</i></sub> · <i>s</i><sub><i>h</i></sub>'),
+    ('', '<i>C</i><sub>heat,0</sub> = Σ<sub><i>h</i></sub> <i>w</i><sub><i>h</i></sub> · <i>Q</i><sub>heat,<i>h</i></sub> · <i>c</i><sub>heat</sub>(<i>T</i><sub>heat,<i>h</i></sub>)'),
+    ('', '<i>C</i><sub>cold,0</sub> = −Σ<sub><i>h</i></sub> <i>w</i><sub><i>h</i></sub> · <i>Q</i><sub>cold,<i>h</i></sub> · <i>c</i><sub>cold</sub>(<i>T</i><sub>cold,<i>h</i></sub>)'),
+    ('Heat leaving the pipes of a mode', '<i>Q</i><sub><i>h</i></sub> = Σ<sub>pipes</sub> <i>U</i>′ · <i>l</i> · (<i>T</i><sub>pipe,<i>h</i></sub> − <i>T</i><sub>amb,<i>h</i></sub>)'),
+    ('Mode of a supply/return pair per step: heat the plants put into the network; heating above +band, cooling below −band, the previous mode inside',
+     '<i>Φ</i><sub><i>h</i></sub> = <i>c</i><sub>p</sub> · Σ<sub>plants</sub> Σ<sub>supply, return</sub> <i>ṁ</i> · <i>T</i> ; '
+     'band = <i>x</i> · (max(<i>Φ</i>, 0) − min(<i>Φ</i>, 0))'),
+    ('Yearly penalty against iteration 0', '<i>P</i> = Σ<sub>customers</sub> [<i>p</i><sub>Kh</sub> · max(0, <i>Kh</i> − <i>Kh</i><sub>ref</sub>) + '
+                                           '<i>p</i><sub>kWh</sub> · max(0, <i>kWh</i> − <i>kWh</i><sub>ref</sub>)]'),
+)
+SYMBOLS = (
+    ('<i>i</i>, <i>N</i>', 'interest rate and amortization period of the scenario'),
+    ('<i>k</i>', 'investment item: a pipe type, the trench of a surface, the pumps'),
+    ('<i>K</i><sub><i>k</i></sub>, <i>n</i><sub><i>k</i></sub>, <i>m</i><sub><i>k</i></sub>', 'investment in year 0, lifetime and maintenance share per year of the item'),
+    ('<i>t</i><sub>last</sub>', 'last purchase year of the item within the period'),
+    ('<i>e</i><sub><i>g</i></sub>', 'escalation of the cost group'),
+    ('<i>h</i>, <i>w</i><sub><i>h</i></sub>', 'simulated time step and its weight in hours per year (time step, times the weight of its representative week)'),
+    ('<i>s</i><sub><i>h</i></sub>', 'electricity price profile, scaled to mean 1 (1 without a profile)'),
+    ('<i>c</i><sub>el</sub>, <i>c</i><sub>heat</sub>(<i>T</i>), <i>c</i><sub>cold</sub>(<i>T</i>)', 'start price of electricity and the price curves of heat and cold over the supply temperature'),
+    ('<i>P</i><sub>pump,<i>h</i></sub>', 'pump power of the energy plants and customers (outputs ppump_ep, ppump_c)'),
+    ('<i>Q</i><sub>heat,<i>h</i></sub>, <i>Q</i><sub>cold,<i>h</i></sub>', 'heat leaving the heating and the cooling pipes; a cooling pipe gaining heat gives a negative Q, so a cost'),
+    ('<i>T</i><sub>heat,<i>h</i></sub>, <i>T</i><sub>cold,<i>h</i></sub>', 'mean supply temperature of the plants per mode'),
+    ('<i>U</i>′, <i>T</i><sub>amb</sub>', 'heat loss coefficient per metre of the pipe and the ground or air temperature'),
+    ('<i>Kh</i>, <i>kWh</i>', 'degree hours of the load models and unmet load of the source-file customers per year; ref: iteration 0'),
+    ('<i>ṁ</i>, <i>x</i>', 'mass flow at a plant connection (leaving the plant positive) and the deadband of the run'),
+)
+
+
+def factorText(value):
+    return '{:.4f}'.format(value)
+
+
+def termItem(term):
+    kind = term.get('kind')
+    if kind == 'trench':
+        return tr_msg('Trench') + ' ' + tr_msg(term.get('name') or '')
+    if kind == 'pumps':
+        return tr_msg('Pumps')
+    if term['group'] in ('pump_energy', 'heat_losses', 'cold_losses'):
+        return tr_msg(term.get('kind') or '')
+    return term.get('name') or ''
+
+
+def termDetail(term, energy):
+    group = term['group']
+    if group == 'investment':
+        text = 'n = {:g} a, t = {}'.format(term.get('lifetime') or 0, ', '.join(str(t) for t in term.get('years', [])))
+        if term.get('length'):
+            text = '{} m; '.format(number(term['length'])) + text
+        if term.get('power_kw') is not None:
+            text = '{} kW; '.format(number(term['power_kw'], 1)) + text
+        return text
+    if group == 'maintenance':
+        return 'm = {:g} %/a'.format(term.get('maintenance_pct') or 0)
+    if group == 'residual':
+        return 't_last = {}, {} = {:.3f}'.format(term.get('last'), tr_msg('remaining share'), term.get('remaining') or 0)
+    kwh = (energy or {}).get({'pump_energy': 'pump_kwh', 'heat_losses': 'heat_kwh', 'cold_losses': 'cold_kwh'}.get(group, ''), 0.0)
+    if not kwh:
+        return ''
+    return '{} kWh/a, {:.4f} €/kWh'.format(number(kwh), abs(term['base'] / kwh))
+
+
+def npvCalculation(report, rows):
+    """the equations of the NPV and, per iteration, the terms with their numbers"""
+    body = ''.join(('<p>{}</p>'.format(esc(tr_msg(text))) if text else '') + eq(formula) for text, formula in EQUATIONS)
+    body += table([tr_msg('Symbol'), tr_msg('Meaning')], [[Html(symbol), tr_msg(text)] for symbol, text in SYMBOLS])
+    report.section(tr_msg('Net present value: equations'), body, 3)
+    saved = [r for r in rows if r.get('economics')]
+    if not saved:
+        report.section(tr_msg('Net present value: calculation per iteration'), '<p class="note">{}</p>'.format(
+            esc(tr_msg('The terms of the net present value were not saved (run before this report showed them).'))), 3)
+        return
+    first = saved[0]['economics']
+    f = first['factors']
+    factor_rows = [[Html(PV.format(g=g)), tr_msg(label), factorText(f[key])] for g, label, key in (
+        ('el', 'electricity (pump energy)', 'electricity'), ('heat', 'heat (heat losses)', 'heat'), ('cold', 'cold (cold losses)', 'cold'),
+        ('maint', 'maintenance', 'maintenance'))]
+    factor_rows.append([Html('((1+<i>i</i>)<sup><i>N</i></sup> − 1) / (<i>i</i> · (1+<i>i</i>)<sup><i>N</i></sup>)'), tr_msg('comfort violations'), factorText(f['penalties'])])
+    report.section(tr_msg('Present value factors of the scenario'), '<p>i = {:g} %/a, N = {} a, {}</p>'.format(
+        first['interest_pct'], first['period_a'], esc(tr_msg('residual value counted') if first.get('residual_value') else tr_msg('no residual value'))) +
+        table([tr_msg('Factor'), tr_msg('Cost group'), tr_msg('Value')], factor_rows, numeric={2}), 3)
+
+    def kSum(econ, kind):
+        return sum(t['base'] for t in econ['terms'] if t['group'] == 'investment' and t.get('kind') == kind)
+
+    def base(econ, group):
+        return next((t['base'] for t in econ['terms'] if t['group'] == group), 0.0)
+
+    amounts = (
+        ('Pump energy [kWh/a]', lambda e: e['energy'].get('pump_kwh', 0.0)), ('C_pump,0 [€/a]', lambda e: base(e, 'pump_energy')),
+        ('Heat losses [kWh/a]', lambda e: e['energy'].get('heat_kwh', 0.0)), ('C_heat,0 [€/a]', lambda e: base(e, 'heat_losses')),
+        ('Cold losses [kWh/a]', lambda e: e['energy'].get('cold_kwh', 0.0)), ('C_cold,0 [€/a]', lambda e: base(e, 'cold_losses')),
+        ('K pipes [€]', lambda e: kSum(e, 'pipe')), ('K trench [€]', lambda e: kSum(e, 'trench')), ('K pumps [€]', lambda e: kSum(e, 'pumps')),
+        ('Peak pump power [kW]', lambda e: next((t.get('power_kw', 0.0) for t in e['terms'] if t.get('kind') == 'pumps'), 0.0)),
+        ('P comfort violations [€/a]', lambda e: e.get('yearly_penalty', 0.0)))
+    amount_rows = [[tr_msg(label)] + [round(fn(r['economics'])) for r in saved] for label, fn in amounts]
+    mode_rows = []
+    for r in saved:
+        for pair, m in sorted((r['economics'].get('modes') or {}).items()):
+            source = tr_msg('plant heat flows') if m.get('source') == 'plants' else tr_msg('plant template (no results mdot_ep)')
+            mode_rows.append([r['iteration'], pair, source, tr_msg(m.get('template') or ''), '' if m.get('heat_h') is None else round(m['heat_h']),
+                              '' if m.get('cold_h') is None else round(m['cold_h']), '' if m.get('q_max') is None else round(m['q_max'] / 1000, 1),
+                              '' if m.get('q_min') is None else round(m['q_min'] / 1000, 1), m.get('deadband_pct')])
+    if mode_rows:
+        report.section(tr_msg('Heating and cooling per pair'), table(
+            [tr_msg('Iteration'), tr_msg('Pair'), tr_msg('Mode from'), tr_msg('Template mode'), tr_msg('Heating [h/a]'), tr_msg('Cooling [h/a]'),
+             tr_msg('Max. heat into the network [kW]'), tr_msg('Min. heat into the network [kW]'), tr_msg('Deadband [%]')], mode_rows) +
+            '<p class="note">{}</p>'.format(esc(tr_msg('Hours weighted to a year; losses of the pipes of a pair are priced with the heat price '
+                                                       'in its heating hours and with the cold price in its cooling hours.'))), 3)
+    report.section(tr_msg('Amounts of year 0 per iteration'), table([tr_msg('Amount')] + [tr_msg('Iteration {}').format(r['iteration']) for r in saved], amount_rows), 3)
+
+    report.section(tr_msg('Net present value: calculation per iteration'), '<p class="note">{}</p>'.format(esc(tr_msg(
+        'Each term is base × factor; the base is K, K · m, C_0 or P of the equations, the factor the discounted price levels. '
+        'Saved at the run, with the scenario of the run.'))), 3)
+    order = {g: n for n, g in enumerate(NPV_GROUPS)}
+    for row in saved:
+        econ = row['economics']
+        terms = sorted(econ['terms'], key=lambda t: order.get(t['group'], 99))
+        table_rows: list = []
+        for group in NPV_GROUPS:
+            group_terms = [t for t in terms if t['group'] == group]
+            if group == 'penalties':
+                table_rows.append(TotalRow([groupLabel(group), '', tr_msg('P [€/a]'), round(econ.get('yearly_penalty', 0.0)),
+                                            factorText(econ['factors']['penalties']), round(econ.get('penalties', 0.0))]))
+                continue
+            for t in group_terms:
+                table_rows.append([groupLabel(group), termItem(t), termDetail(t, econ.get('energy')), round(t['base']), factorText(t['factor']), round(t['value'])])
+            if len(group_terms) > 1:
+                table_rows.append(TotalRow([groupLabel(group), tr_msg('Total'), '', '', '', round(sum(t['value'] for t in group_terms))]))
+            elif group_terms:
+                table_rows[-1] = TotalRow(table_rows[-1])
+        total = sum(t['value'] for t in terms) + econ.get('penalties', 0.0)
+        table_rows.append(TotalRow([tr_msg('Net present value'), '', '', '', '', round(total)]))
+        body = table([tr_msg('Part'), tr_msg('Item'), tr_msg('Detail'), tr_msg('Base [€]'), tr_msg('Factor'), tr_msg('Value [€]')], table_rows, numeric={3, 4, 5})
+        if abs(total - row['npv']) > max(1.0, 1e-6 * abs(row['npv'])):
+            body += '<p class="note">{}</p>'.format(esc(tr_msg('The sum of the terms differs from the net present value of the iteration ({}).').format(money(row['npv']))))
+        report.section(tr_msg('Iteration {}').format(row['iteration']) + ' – ' + money(row['npv']), body, 4)
 
 
 REASONS = {'protected': 'protected line', 'penalty': 'smaller pipe made a customer fall short before', 'no pair': 'not in a pair',

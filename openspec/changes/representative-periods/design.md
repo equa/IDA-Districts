@@ -35,7 +35,9 @@ dropped). A file it cannot read stops with a message naming it.
 
 **D2 – Week choice.** Candidate weeks start at midnight of every day. Dominant mode: heating if a pair of the
 version is a heating pair (supply above return temperature in the pair table, or the plants' modes), cooling if
-only cooling pairs; combined networks: heating, with the option "add the warmest week" (four weeks). Anchor = the
+only cooling pairs; combined networks: heating, with the option "add the warmest week" (four weeks). The option is
+available for every network, as a low-temperature network heats and cools through one pair; a cooling network gets
+"add the coldest week" instead (the opposite extreme of its anchor). Anchor = the
 week with the lowest (heating) or highest (cooling) mean T_air. The other weeks are chosen by coordinate descent
 over the candidates (start: the weeks closest to the 50 % and 85 % quantiles of T_air) minimizing the mean |ΔT| of
 D3; a few seconds with numpy. The weeks must not overlap.
@@ -63,8 +65,22 @@ and plants invoked again only when the caller asks, e.g. the first check of the 
 simulated in parallel, each in its own copy of the network model (`versions/<version>/period_<k>/network_<sub>.idm`
 and its folder, no absolute paths inside) with the week's start-up and calculation dates in its SIMULATION_DATA and
 its own process (`simulate_process.py`, own TEMP folder: idaapi2.dll holds one IDA connection per process, so
-threads in the QGIS process would switch each other's connection), started 5 s apart (IDA instances started at
-the same moment fail with a session lock); when all are done, week by week the model as IDA saved it (results and the rewritten macros the loading parses) is copied
+threads in the QGIS process would switch each other's connection), one after another: the next week starts when
+the solver of the previous one runs (line `Service subscriber connected` in `tmp/ida_log_*.txt` of the week,
+undocumented like the broker log), when that week has ended, or after at most 120 s. IDA sessions starting at the
+same moment fail with a session lock or a solver without its modules ("Unknown module type", seen at 0.3 s apart);
+a fixed gap between the process starts does not prevent it, the start of a week's process (QGIS in the child) varies
+by several seconds. The next week also needs free memory: free commit (RAM + page file, `GlobalMemoryStatusEx`)
+at least one week's need + 1 GB for QGIS and the others, unless no week runs. A week (IDA + solver) commits about
+3.4 GB, mostly a fixed solver block ("Requested by Solver 1634 MB", "used effectively" 50 MB) that low_temperature_network
+and dynamic_optimization share, so three weeks do not fit an 8 GB PC (`SUPERLU_MALLOC fails`). The solver commits it
+at once, before its start line is written: the drop of the free commit from the start of a week to its solver line is
+taken × 1.1 as the need of the next one (3.5 GB before the first measurement). Free commit, not free RAM: the solver
+touches little of its block, RAM would serialise also where the weeks fit. A week that failed is simulated again
+after the others, the failed weeks one at a time; a second failure fails the run. A week whose IDA ended without answering fails instead of hanging: the answer polling in
+`util.py` stops when the IDA process has ended, and a watchdog in `simulate_process.py` ends the process 60 s after
+IDA ended if the call into idaapi2.dll has not returned; a failed week names the last lines of the solver output
+(`SCREEN.TXT`). When all are done, week by week the model as IDA saved it (results and the rewritten macros the loading parses) is copied
 back into the version's model folder, loaded, and the tables of D6 copied with suffix `_period<k>` (loading stays sequential: it writes the same
 result tables); the copies are removed at the end. A failed week fails the run after all have finished; the outputs the evaluation needs (pump power, line and plant temperatures, line
 losses) are named in the log if they are off – switching outputs rewrites the project's templates, which stays the

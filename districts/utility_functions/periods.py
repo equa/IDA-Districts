@@ -115,8 +115,9 @@ def chooseWeeks(t_year, year, days=7, mode='heat', warmest=False):
     means = np.array([t_year[s * 24:(s + days) * 24].mean() for s in starts])
     anchor = int(starts[means.argmin() if mode == 'heat' else means.argmax()])
     weeks = [(anchor, 'anchor')]
-    if warmest and mode == 'heat':
-        weeks.append((int(starts[means.argmax()]), 'warmest'))
+    if warmest:
+        # the opposite extreme of the anchor
+        weeks.append((int(starts[means.argmax()]), 'warmest') if mode == 'heat' else (int(starts[means.argmin()]), 'coldest'))
     fixed = [s for s, _ in weeks]
 
     def overlaps(s, others):

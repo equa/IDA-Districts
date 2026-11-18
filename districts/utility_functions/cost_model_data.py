@@ -9,7 +9,8 @@ from .cost_model import RHO, CostModel, catalogWithCosts
 from .economic_data import loadScenario
 from .economics import normalizedProfile, readProfile
 from .flow_tracing import getNetworkGraph
-from .network_economics import linePipes, periodSources, plantModes, resultTables, tableExists, timeSteps, trenchLengths
+from .network_economics import linePipes, periodSources, plantModes, resultTables, stepModes, tableExists, timeSteps, trenchLengths
+from .network_modes import heatMask
 from .periods import readClimate, weights as periodWeights
 from .pipe_losses import ambientTemperature
 
@@ -120,16 +121,19 @@ def buildModel(cur, config, scenario_id, pairs, settings, profile_dir=None):
                 flow += np.abs(mdot[(lid, pairs[0][0])])
         v_customer[cid] = flow / RHO
 
-    modes, conn_types = plantModes(cur, schema)
+    _, conn_types = plantModes(cur, schema)
+    dt = (times[1] - times[0]).total_seconds() / 3600 if n > 1 else 1.0
+    modes, _ = stepModes(cur, schema, sources, times, dt, w, settings)
     t_supply, p_plant = {'heat': np.zeros(n), 'cold': np.zeros(n)}, None
     counts = {'heat': np.zeros(n), 'cold': np.zeros(n)}
     for table in resultTables(cur, schema, 'energy_plant_s_temp$'):
         conn_seq = int(table.split('_')[-1])
         if conn_types.get(conn_seq) == 1:
-            mode = modes.get(conn_seq, 'heat')
+            heat = heatMask(modes, conn_seq, n)
             for arr in series(cur, schema, sources(table), '$temp', times, index).values():
-                t_supply[mode] += arr
-                counts[mode] += arr != 0
+                for mode, mask in (('heat', heat), ('cold', ~heat)):
+                    t_supply[mode] += np.where(mask, arr, 0.0)
+                    counts[mode] += (arr != 0) & mask
     for mode in t_supply:
         t_supply[mode] = np.divide(t_supply[mode], counts[mode], out=np.zeros(n), where=counts[mode] > 0)
     for table in resultTables(cur, schema, 'energy_plant_s_p$'):

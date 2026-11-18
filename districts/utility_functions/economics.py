@@ -117,6 +117,42 @@ def netPresentValue(scenario, investments, yearly):
     return {'npv': npv, 'annuity': npv * annuityFactor(i * 100, period), 'split': split, 'years': years}
 
 
+def presentValueFactor(scenario, group, years):
+    """sum over the years of the group's price level, discounted: sum L_g(t) / (1 + i)^t"""
+    i = float(scenario['scenario'].get('interest_pct') or 0) / 100
+    return sum(level(scenario, group, int(t)) / (1 + i) ** t for t in years)
+
+
+def npvTerms(scenario, investments, yearly):
+    """the parts of netPresentValue as terms base x factor = value, for the report: [{'group', 'kind', 'name', 'base',
+    'factor', 'value', ...}]; their sum per group is the split of netPresentValue"""
+    sc = scenario['scenario']
+    i = float(sc.get('interest_pct') or 0) / 100
+    period = int(sc.get('period_a') or 0)
+    years = range(1, period + 1)
+    terms = []
+    for item in investments:
+        cost, lifetime = float(item.get('cost') or 0), float(item.get('lifetime') or 0)
+        info = {k: item[k] for k in ('kind', 'name', 'length', 'power_kw') if k in item}
+        buys = [int(t) for t in purchaseYears(lifetime, period)]
+        terms.append(dict(info, group='investment', base=cost, factor=presentValueFactor(scenario, 'investment', buys), years=buys, lifetime=lifetime))
+        maintenance_pct = float(item.get('maintenance_pct') or 0)
+        if maintenance_pct:
+            terms.append(dict(info, group='maintenance', base=cost * maintenance_pct / 100, factor=presentValueFactor(scenario, 'maintenance', years),
+                              maintenance_pct=maintenance_pct))
+        if sc.get('residual_value') and lifetime > 0:
+            remaining = (buys[-1] + lifetime - period) / lifetime
+            if remaining > 0:
+                terms.append(dict(info, group='residual', base=cost, remaining=remaining, last=buys[-1],
+                                  factor=-level(scenario, 'investment', buys[-1]) * remaining / (1 + i) ** period))
+    for group, price_group in ENERGY_GROUPS.items():
+        terms.append({'group': group, 'kind': price_group, 'name': price_group, 'base': float(yearly.get(group) or 0),
+                      'factor': presentValueFactor(scenario, price_group, years)})
+    for term in terms:
+        term['value'] = term['base'] * term['factor']
+    return terms
+
+
 def yearlyEnergyCosts(scenario, hours, shape=None):
     """Costs of year 0 of the simulated hours [{'weight', 'hour', 'p_pump' W, 'q_heat' W, 'q_cold' W,
     't_heat' °C, 't_cold' °C}]: q_heat = heat leaving the heating pipes, q_cold = heat leaving the cooling pipes

@@ -12,7 +12,44 @@ import json
 import os
 import subprocess  # nosec B404
 import sys
+import threading
+import time
 import traceback
+
+# after IDA ended, the simulation call gets this long to return before the process gives up
+IDA_ENDED_GRACE_S = 60
+SOLVER_TAIL_LINES = 12
+
+
+def solverTail(tmp):
+    """the last lines of the solver output (SCREEN.TXT in IDA's folder in the week's TEMP), the reason of an abort"""
+    lines = []
+    for path in glob.glob(os.path.join(tmp, 'idamod*', 'SCREEN.TXT')):
+        try:
+            with open(path, errors='replace') as f:
+                lines += [line.strip() for line in f if line.strip()]
+        except OSError:
+            pass
+    return lines[-SOLVER_TAIL_LINES:]
+
+
+def writeResult(result_file, ok, errors):
+    with open(result_file, 'w') as f:
+        json.dump({'ok': ok, 'errors': errors}, f)
+
+
+def watchIda(worker, result_file, tmp):
+    """an IDA that crashed or was closed leaves a call into idaapi2.dll waiting; the week then fails instead of hanging"""
+    ended_at = None
+    while True:
+        time.sleep(1)
+        util = getattr(worker, 'util', None)
+        if util is None or not util.process_ended():
+            continue
+        ended_at = ended_at or time.monotonic()
+        if time.monotonic() - ended_at >= IDA_ENDED_GRACE_S:
+            writeResult(result_file, False, ['IDA Districts (pid {}) ended without an answer'.format(util.pid)] + solverTail(tmp))
+            os._exit(1)
 
 
 def pythonCommand():
@@ -53,9 +90,9 @@ def simulateInProcess(model, work_dir, path_districts):
 def main(model, work_dir, result_file, path_districts):
     errors: list = []
     ok = False
+    tmp = os.path.join(work_dir, 'tmp')
     try:
         # before IDA is started: IDA inherits the environment of this process
-        tmp = os.path.join(work_dir, 'tmp')
         os.makedirs(tmp, exist_ok=True)
         os.environ['TEMP'] = tmp
         os.environ['TMP'] = tmp
@@ -76,16 +113,16 @@ def main(model, work_dir, result_file, path_districts):
         worker = WorkerSimulateAPI(model, plugin_dir, {'pathDistricts': os.path.join(path_districts, '')})
         worker.signals.status.connect(status.append)
         worker.signals.error.connect(errors.append)
+        threading.Thread(target=watchIda, args=(worker, result_file, tmp), daemon=True).start()
         worker.run()  # synchronously in this process
         app.processEvents()
         # compared here: the parent may translate the status text
         ok = tr_msg('Simulation finished') in status and not errors
         if not ok:
-            errors += messages
+            errors += messages + solverTail(tmp)
     except Exception:
         errors.append(traceback.format_exc())
-    with open(result_file, 'w') as f:
-        json.dump({'ok': ok, 'errors': errors}, f)
+    writeResult(result_file, ok, errors)
 
 
 if __name__ == '__main__':

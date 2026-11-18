@@ -11,6 +11,9 @@ import re
 
 from .economic_data import loadScenario
 from .economics import netPresentValue, normalizedProfile, readProfile, trenchCostPerMetre, yearlyEnergyCosts
+from .network_modes import (
+    DEFAULT_DEADBAND_PCT, TABLE_TEMP, connectionHeatFlows, heatMask, plantPairs, segmentStarts, sequenceModes as modesOfSequences,
+)
 from .periods import loadPeriods, readClimate, weights as periodWeights
 from .pipe_losses import ambientTemperature, checkLines, sequenceModes, uPrime
 
@@ -93,9 +96,11 @@ def investments(scenario, lines, trench):
             item = items.setdefault(('pipe', pipe['pipe_id']), {'cost': 0.0, 'lifetime': float(pipe['lifetime_a'] or 0),
                                                                 'maintenance_pct': float(pipe['maintenance_pct'] or 0), 'name': pipe['name']})
             item['cost'] += float(pipe['costs']) * line['length']
+            item['length'] = item.get('length', 0.0) + line['length']
         for surface, length in trench.get(lid, {}).items():
             item = items.setdefault(('trench', surface), {'cost': 0.0, 'lifetime': lifetimeOfLine(line), 'maintenance_pct': 0.0, 'name': surface})
             item['cost'] += trenchCostPerMetre(scenario, surface, dn) * length
+            item['length'] = item.get('length', 0.0) + length
     return items, sorted(no_costs), example
 
 
@@ -111,15 +116,29 @@ def lifetimeOfLine(line):
     return max(lifetimes) if lifetimes else 0.0
 
 
-def plantModes(cur, schema):
-    """({conn_seq: mode}, {conn_seq: type}) of the energy plant connections of the version."""
+def plantConnections(cur, schema):
+    """[{'conn_seq', 'type', 'temp'}] of the energy plant connections of the version"""
     cur.execute("""SELECT DISTINCT ctc.sequence AS conn_seq, c.type, c.temp
         FROM "{}".energy_plants ep, public.energy_plant_templates t, public.bundle_type_conns b,
             public.connection_type_connections ctc, public.connections c
         WHERE t.template = ep.template AND b.conn_bundle_type_id = t.conn_bundle_type
             AND ctc.connection_type_id = b.conn_type_id AND c.id = ctc.connection_id;""".format(schema))  # nosec B608
-    rows = [dict(row) for row in cur.fetchall()]
+    return [dict(row) for row in cur.fetchall()]
+
+
+def plantModes(cur, schema):
+    """({conn_seq: template mode}, {conn_seq: type}) of the energy plant connections of the version."""
+    rows = plantConnections(cur, schema)
     return sequenceModes(rows), {row['conn_seq']: row['type'] for row in rows}
+
+
+def stepModes(cur, schema, sources, times, dt, weights, settings):
+    """({seq: bool array per step (heating)}, summary per pair) from the plants' heat flows (network_modes)"""
+    connections = plantConnections(cur, schema)
+    index = {t: k for k, t in enumerate(times)}
+    flows = connectionHeatFlows(cur, schema, resultTables(cur, schema, TABLE_TEMP), sources, index, len(times))
+    return modesOfSequences(plantPairs(connections), flows, float(settings.get('mode_deadband_pct', DEFAULT_DEADBAND_PCT)),
+                            segmentStarts(times, dt), weights)
 
 
 def timeSteps(cur, schema, table):
@@ -188,7 +207,7 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     trench = trenchLengths(cur, schema, sc.get('default_surface') or 'paved')
     items, no_costs, example = investments(scenario, lines, trench)
     no_trench = surfacesWithoutTrenchCosts(scenario, trench)
-    modes, conn_types = plantModes(cur, schema)
+    _, conn_types = plantModes(cur, schema)
 
     # pump power per time step and the peak per pump
     pump_power, peaks = {}, {}
@@ -213,9 +232,9 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
         for seq, pipe in line['pipes'].items():
             u = uPrime(float(pipe['innerpipediameter'] or 0.05), pipe['layers'], float(pipe['depth'] or 1),
                        int(pipe['ambient'] or 2), float(settings.get('ground_lambda', 1.2)))
-            ul[(lid, seq)] = (u * line['length'], int(pipe['ambient'] or 2), modes.get(seq, 'heat'))
-    ul_t = {'heat': {}, 'cold': {}}
-    ul_ambient = {}
+            ul[(lid, seq)] = (u * line['length'], int(pipe['ambient'] or 2), seq)
+    ul_t = {}  # per sequence and time
+    ul_ambient = {}  # per (sequence, ambient)
     line_t_sum = {}
     for table in temp_tables:
         seq = int(table.split('$')[1])
@@ -226,30 +245,30 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
                 if not entry or row['t'] is None:
                     continue
                 value = entry[0] * float(row['t'])
-                ul_t[entry[2]][row['time']] = ul_t[entry[2]].get(row['time'], 0.0) + value
+                per_seq = ul_t.setdefault(entry[2], {})
+                per_seq[row['time']] = per_seq.get(row['time'], 0.0) + value
                 line_t_sum[row['fid']] = line_t_sum.get(row['fid'], 0.0) + value * weight(row['time'])
-    for (lid, seq), (value, ambient, mode) in ul.items():
-        ul_ambient[(mode, ambient)] = ul_ambient.get((mode, ambient), 0.0) + value
+    for (lid, seq), (value, ambient, _) in ul.items():
+        ul_ambient[(seq, ambient)] = ul_ambient.get((seq, ambient), 0.0) + value
 
-    # plant supply temperature per mode and time
-    t_supply = {'heat': {}, 'cold': {}}
-    counts = {'heat': {}, 'cold': {}}
+    # mean supply temperature of the plants per supply connection and time
+    t_parts = {}
     for table in resultTables(cur, schema, 'energy_plant_s_temp$'):
         conn_seq = int(table.split('_')[-1])
         if conn_types.get(conn_seq) != 1:
             continue
-        mode = modes.get(conn_seq, 'heat')
+        sums, counts = t_parts.setdefault(conn_seq, ({}, {}))
         for source in sources(table):
             if not tableExists(cur, schema, source):
                 continue
             cur.execute('SELECT time, avg("$temp") AS t FROM "{}"."{}" GROUP BY time;'.format(schema, source))  # nosec B608
             for row in cur.fetchall():
                 if row['t'] is not None:
-                    t_supply[mode][row['time']] = t_supply[mode].get(row['time'], 0.0) + float(row['t'])
-                    counts[mode][row['time']] = counts[mode].get(row['time'], 0) + 1
-    for mode in t_supply:
-        for time, n in counts[mode].items():
-            t_supply[mode][time] /= n
+                    sums[row['time']] = sums.get(row['time'], 0.0) + float(row['t'])
+                    counts[row['time']] = counts.get(row['time'], 0) + 1
+    t_seq = {seq: {time: total / counts[time] for time, total in sums.items()} for seq, (sums, counts) in t_parts.items()}
+    masks, mode_summary = stepModes(cur, schema, sources, times, dt, [weight(t) for t in times], settings)
+    heat_of = {seq: heatMask(masks, seq, len(times)) for seq in set(ul_t) | set(t_seq) | {s for s, _ in ul_ambient}}
 
     profile = None
     if sc.get('el_profile_file') and profile_dir:
@@ -263,16 +282,24 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
         shapes = {h: (s / w if w else 1.0) for h, (w, s) in sums.items()}
 
     hours, amb_sum = [], {}
-    for time in times:
+    sequences = set(ul_t) | {s for s, _ in ul_ambient}
+    for k, time in enumerate(times):
         day = (time - year_start).total_seconds() / 86400
         w = weight(time)
         t_amb = {ambient: ambientTemperature(ambient, day, settings) for ambient in {a for _, a in ul_ambient}}
         for ambient, t in t_amb.items():
             amb_sum[ambient] = amb_sum.get(ambient, 0.0) + t * w
-        q = {mode: ul_t[mode].get(time, 0.0) - sum(value * t_amb[ambient] for (m, ambient), value in ul_ambient.items() if m == mode)
-             for mode in ('heat', 'cold')}
+        # each sequence counts for the mode of its pair in this step
+        q = {'heat': 0.0, 'cold': 0.0}
+        for seq in sequences:
+            mode = 'heat' if heat_of[seq][k] else 'cold'
+            q[mode] += ul_t.get(seq, {}).get(time, 0.0) - sum(value * t_amb[a] for (s, a), value in ul_ambient.items() if s == seq)
+        t_mode = {}
+        for mode in ('heat', 'cold'):
+            temps = [t_seq[seq][time] for seq in t_seq if time in t_seq[seq] and bool(heat_of[seq][k]) == (mode == 'heat')]
+            t_mode[mode] = sum(temps) / len(temps) if temps else 0.0
         hour = {'weight': w, 'hour': hourOf(time), 'p_pump': pump_power.get(time, 0.0),
-                'q_heat': q['heat'], 'q_cold': q['cold'], 't_heat': t_supply['heat'].get(time, 0.0), 't_cold': t_supply['cold'].get(time, 0.0)}
+                'q_heat': q['heat'], 'q_cold': q['cold'], 't_heat': t_mode['heat'], 't_cold': t_mode['cold']}
         if run:
             hour['shape'] = shapes.get(hourOf(time), 1.0)
         hours.append(hour)
@@ -294,7 +321,7 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     result = netPresentValue(scenario, list(items.values()) + [pump_item], costs)
     evaluation = {'scenario': scenario, 'items': items, 'pump_item': pump_item, 'pump_kw': pump_kw, 'no_costs': no_costs, 'no_trench': no_trench,
                   'example': example or bool(sc.get('example')), 'costs': costs, 'energy': energy, 'npv': result,
-                  'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt}
+                  'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt, 'modes': mode_summary}
     if run:
         periods = run[2]
         evaluation['periods'] = {'weeks': [w['calc_from'][:10] for w in periods['weeks']], 'coverage': periods.get('coverage'),

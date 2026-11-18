@@ -2,10 +2,13 @@
 """The periods widget and the period run (OpenSpec change representative-periods): three weeks simulated in parallel
 (or a year), the results of each week kept as copies of the result tables (suffix
 _period<k>), the weeks and weights in versions/<version>/periods.json."""
+import ctypes
 import datetime
+import glob
 import os
 import re
 import shutil
+import time
 import traceback
 
 import psycopg2.extras
@@ -124,9 +127,12 @@ class PeriodsWidget(QWidget):
         self.t_year, self.climate, self.year = None, '', 2026
         cur, config = main.cur, main.config
         self.mode, combined = dominantMode(cur, config)
-        self.check_warmest.setEnabled(combined)
-        self.check_warmest.setToolTip(tr_msg('Only for networks that heat and cool: the coldest week is the anchor, the warmest week adds the cooling peak. '
-                                             'A network that only heats (or only cools) has its extreme week as the anchor already.'))
+        # low-temperature networks heat and cool through the same pair, so the option stays available for every network
+        if self.mode == 'cold':
+            self.check_warmest.setText(tr_msg('Add the coldest week'))
+        self.check_warmest.setToolTip(tr_msg('The extreme week of the main mode is the anchor (coldest week for heating, warmest for cooling); '
+                                             'this adds the opposite extreme week, e.g. the cooling peak of a network that heats and cools, '
+                                             'also through the same pipes as a low-temperature network.'))
         self.ready = False
         try:
             self.year = int(loadNetworkSimData(main.plugin_dir, config)['calc_time_from'][:4])
@@ -164,7 +170,7 @@ class PeriodsWidget(QWidget):
         for start_day, role in weeks:
             edit = QDateEdit(QDate(self.year, 1, 1).addDays(start_day))
             edit.setDisplayFormat('yyyy-MM-dd')
-            edit.setToolTip(tr_msg('anchor week') if role == 'anchor' else tr_msg('week for the coverage'))
+            edit.setToolTip(tr_msg('anchor week') if role == 'anchor' else tr_msg('opposite extreme week') if role in ('warmest', 'coldest') else tr_msg('week for the coverage'))
             edit.dateChanged.connect(self.updateCoverage)
             self.weeks_layout.addWidget(edit)
             self.date_edits.append(edit)
@@ -231,7 +237,52 @@ class PeriodsWidget(QWidget):
 
 
 PERIOD_DIR = 'period_{}'
-SIM_START_GAP_MS = 5000
+SIM_START_POLL_MS = 500
+# a week whose solver start is not seen (other IDA version, slow start) holds the next one back at most this long
+SIM_START_MAX_WAIT_S = 120
+# IDA writes this line into its log in the week's TEMP folder when the solver runs; undocumented, as the broker log
+SOLVER_STARTED = 'Service subscriber connected'
+
+
+# one week (IDA + solver) of low_temperature_network and dynamic_optimization: 3.4 GB committed, mostly the solver's
+# fixed block; replaced by the measured need after the first week's solver runs
+WEEK_MEMORY_MB = 3500
+WEEK_MEMORY_FACTOR = 1.1
+MIN_PLAUSIBLE_WEEK_MB = 300
+# left for QGIS and the other programs
+MEMORY_RESERVE_MB = 1000
+
+
+class _MemoryStatus(ctypes.Structure):
+    _fields_ = [('dwLength', ctypes.c_ulong), ('dwMemoryLoad', ctypes.c_ulong),
+                ('ullTotalPhys', ctypes.c_ulonglong), ('ullAvailPhys', ctypes.c_ulonglong),
+                ('ullTotalPageFile', ctypes.c_ulonglong), ('ullAvailPageFile', ctypes.c_ulonglong),
+                ('ullTotalVirtual', ctypes.c_ulonglong), ('ullAvailVirtual', ctypes.c_ulonglong),
+                ('ullAvailExtendedVirtual', ctypes.c_ulonglong)]
+
+
+def freeMemoryMB():
+    """free commit (RAM + page file) [MB], None if unknown. The solver's allocation (SUPERLU_MALLOC) fails when the
+    commit is used up; free RAM would be too strict, the solver commits far more than it touches."""
+    try:
+        status = _MemoryStatus()
+        status.dwLength = ctypes.sizeof(_MemoryStatus)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            return None
+        return status.ullAvailPageFile / 2**20
+    except Exception:
+        return None
+
+
+def solverStarted(work_dir):
+    for path in glob.glob(os.path.join(work_dir, 'tmp', 'ida_log_*.txt')):
+        try:
+            with open(path, errors='replace') as f:
+                if SOLVER_STARTED in f.read():
+                    return True
+        except OSError:
+            pass
+    return False
 
 
 def versionDir(config):
@@ -500,47 +551,109 @@ class PeriodRun(QObject):
             return
         try:
             writeSimulatedOutputs(self.config, self.requested)
-            self.failed_periods = set()
-            self.finished_sims = 0
-            self.workers, self.relays = [], []
-            path_districts = self.config['pathDistricts']
-            for k, fname in enumerate(files):
-                # each week in its own process: one IDA connection per process (simulate_process.py)
-                worker = CalcTask(lambda fname=fname: simulateInProcess(fname, os.path.dirname(fname), path_districts))
-                relay = _PeriodRelay(self, k)
-                worker.signals.done.connect(relay.done)
-                worker.signals.failed.connect(relay.failed)
-                self.workers.append(worker)
-                self.relays.append(relay)
+            self.files = files
+            self.work_dirs = [os.path.dirname(fname) for fname in files]
+            self.started_periods, self.finished_periods, self.failed_periods = set(), set(), set()
+            self.relays = []
+            self.queue = list(range(len(files)))
+            self.retry = False
+            self.week_memory, self.week_measured = WEEK_MEMORY_MB, False
             self.startNextSim()
         except Exception:
             self.onException()
 
+    def makeWorker(self, k):
+        """each week in its own process: one IDA connection per process (simulate_process.py)"""
+        fname, path_districts = self.files[k], self.config['pathDistricts']
+        worker = CalcTask(lambda: simulateInProcess(fname, os.path.dirname(fname), path_districts))
+        relay = _PeriodRelay(self, k)
+        worker.signals.done.connect(relay.done)
+        worker.signals.failed.connect(relay.failed)
+        self.relays.append(relay)
+        return worker
+
+    def running(self):
+        return self.started_periods - self.finished_periods
+
     def startNextSim(self):
-        """IDA instances started at the same moment fail to start (session lock), so one after another with a gap"""
+        """IDA sessions starting at the same moment disturb each other (session lock, a solver without its modules);
+        a fixed gap does not prevent it, the start of a week's process varies by seconds: the next week starts when
+        the solver of the previous one runs and enough memory is free for one more"""
+        if self.done or not self.queue:
+            return
+        k = self.queue.pop(0)
+        self.started_periods.add(k)
+        self.finished_periods.discard(k)
+        self.memory_before = freeMemoryMB()
+        QThreadPool.globalInstance().start(self.makeWorker(k))
+        # the retry runs one week at a time: the next starts from onPeriodResult
+        if self.queue and not self.retry:
+            self.waiting, self.wait_start = k, time.monotonic()
+            self.measured = self.timeout_logged = self.memory_logged = False
+            QTimer.singleShot(SIM_START_POLL_MS, self.waitForSolver)
+
+    def measureWeek(self, k):
+        """the solver commits its memory at once, before its start is logged: the drop of the free memory since the
+        start of week k is what one more week needs"""
+        free = freeMemoryMB()
+        if free is None or self.memory_before is None or self.memory_before - free < MIN_PLAUSIBLE_WEEK_MB:
+            return
+        used = (self.memory_before - free) * WEEK_MEMORY_FACTOR
+        self.week_memory = max(self.week_memory, used) if self.week_measured else used
+        self.week_measured = True
+
+    def waitForSolver(self):
         if self.done:
             return
-        started = sum(1 for worker in self.workers if getattr(worker, 'started', False))
-        if started >= len(self.workers):
+        k = self.waiting
+        finished = k in self.finished_periods
+        solver = finished or solverStarted(self.work_dirs[k])
+        if solver and not finished and not self.measured:
+            self.measured = True
+            self.measureWeek(k)
+        if not solver:
+            if time.monotonic() - self.wait_start < SIM_START_MAX_WAIT_S:
+                QTimer.singleShot(SIM_START_POLL_MS, self.waitForSolver)
+                return
+            if not self.timeout_logged:
+                self.timeout_logged = True
+                self.dlg.log(tr_msg('Period {}: start of the solver not seen after {} s, the next period starts').format(k + 1, SIM_START_MAX_WAIT_S))
+        free = freeMemoryMB()
+        if not self.running() or free is None or free >= self.week_memory + MEMORY_RESERVE_MB:
+            self.startNextSim()
             return
-        worker = self.workers[started]
-        worker.started = True
-        QThreadPool.globalInstance().start(worker)
-        if started + 1 < len(self.workers):
-            QTimer.singleShot(SIM_START_GAP_MS, self.startNextSim)
+        if not self.memory_logged:
+            self.memory_logged = True
+            self.dlg.log(tr_msg('Period {}: waiting for free memory ({} MB free, {} MB needed)').format(
+                self.queue[0] + 1, round(free), round(self.week_memory + MEMORY_RESERVE_MB)))
+        QTimer.singleShot(SIM_START_POLL_MS, self.waitForSolver)
 
     def onPeriodResult(self, k, result):
         if self.done or self.stage != 'simulate':
             return
+        self.finished_periods.add(k)
         if result.get('ok'):
+            self.failed_periods.discard(k)
             self.dlg.log(tr_msg('Period {}: simulated').format(k + 1))
         else:
             self.failed_periods.add(k)
             for message in result.get('errors') or [tr_msg('Simulation failed')]:
                 self.dlg.log(tr_msg('Period {}: ').format(k + 1) + message)
-        self.finished_sims += 1
-        self.dlg.update_progress(5 + 45 * self.finished_sims / len(self.workers))
-        if self.finished_sims < len(self.workers):
+        n = len(self.files)
+        self.dlg.update_progress(5 + 45 * len(self.finished_periods - self.failed_periods) / n)
+        if self.retry and self.queue:
+            self.startNextSim()
+            return
+        if self.running() or self.queue:
+            return
+        if self.failed_periods and not self.retry:
+            # mostly a lack of memory or a disturbed start: alone, the week gets the whole machine
+            self.retry = True
+            self.queue = sorted(self.failed_periods)
+            self.dlg.log(tr_msg('Simulating period {} again, one at a time ...').format(', '.join(str(j + 1) for j in self.queue)))
+            for j in self.queue:
+                shutil.rmtree(os.path.join(self.work_dirs[j], 'tmp'), ignore_errors=True)
+            self.startNextSim()
             return
         if self.failed_periods:
             self.finish(tr_msg('The simulation of period {} failed.').format(', '.join(str(k + 1) for k in sorted(self.failed_periods))), error=True)

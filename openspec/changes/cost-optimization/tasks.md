@@ -27,6 +27,9 @@
 - [x] 3.12 Section 'Protected lines' in the dialog (`protected_lines_widget.py`): the list of the hydraulic balancing, checked and saved with the version at the start; the hydraulic balancing dialog scrolls its sections as this dialog
 - [x] 3.5 Protected lines of protect-lines honoured if the version has them
 - [x] 3.13 Report (D22, `iteration_report.py`): button 'Report' in this dialog and in the hydraulic balancing, run parameters saved at the start (`<feature>_run.json`), HTML with inputs, outputs per iteration, maps and the cost analysis; the iteration layers can be built without the layer tree; the NPV diagram shared by the dialog and the report
+- [x] 3.14 NPV traceable in the report (D22): equations and symbols, present value factors, amounts of year 0, per iteration the terms base × factor; the terms saved in the iteration file at run time (`npvRecord`, `economics.npvTerms`); pipe and trench items with their length
+- [x] 3.15 Heating or cooling per step and pair from the plants' heat flows with a deadband (D23, `network_modes.py`): evaluation and cost model per step, `mdot_ep` among the optimization outputs, spin box 'Deadband heating/cooling' saved with the run, table 'Heating and cooling per pair' and the mode equation in the report, template mode without plant results
+- [x] 3.16 'Set pipes' (D24, `set_pipes.py`) in the cost optimization and the hydraulic balancing: dialog child version (default) or this version, the balancing saves the simulated pipes per iteration, older balancing files by pipe name
 
 ## 4. Tests
 
@@ -34,7 +37,7 @@
 - [x] 4.2 Unit tests required_load and penalties: detection defaults, interpolation, 10 vs 9 kW → 1 kWh, 9.9 kW within the tolerance, degree hours only when needed, penalty relative to the reference
 - [x] 4.3 e2e/ida test on a project from dynamic_optimization (skipped without it): run with three one-day weeks and max. 2 iterations in a child version; iteration 0 reference, rows with NPV and model error, the version's pipes of the best iteration, the parent unchanged
 - [x] 4.4 test/test_cost_optimization_annual.py (marker annual, only with DISTRICTS_TEST_ANNUAL=1; simulation_tests runs bare IDA models without QGIS): annual optimization of base1 and of the low-temperature version (skipped until the IDA sample has it), NPV of the weeks against the annual NPV reported
-- [x] 4.6 test_iteration_report.py (e2e, template heating_network, iteration files made from its lines): sections, tables, maps, cost analysis, the file in reports
+- [x] 4.6 test_iteration_report.py (e2e, template heating_network, iteration files made from its lines): sections, tables, maps, cost analysis, NPV equations and terms, the file in reports, 'Set pipes' into this version (bundles and by name) and into a child version; test_network_economics.py: the terms add up to the split; test_network_modes.py: pairs, deadband, weeks, summary; test_network_cost_data.py: a low-temperature year with heating and cooling halves
 - [x] 4.5 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes (with `-m "not ida"` when IDA Districts is not installed), including test_static_mypy.py and test_messages.py
 
 ## 5. Sample handover, translations, documentation, CI

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Choice of the representative weeks
-From the version's climate file (8760 hourly air temperatures; 8784 with day 366 dropped), the plugin SHALL choose three non-overlapping weeks starting at midnight: the anchor week with the lowest mean air temperature for a network with a heating pair (the highest for a network with only cooling pairs), and two weeks that minimize the mean temperature distance of the weights. With the option "add the warmest week" a combined network SHALL get the warmest week as a fourth week. A climate file that cannot be read SHALL stop the choice with a message naming the file.
+From the version's climate file (8760 hourly air temperatures; 8784 with day 366 dropped), the plugin SHALL choose three non-overlapping weeks starting at midnight: the anchor week with the lowest mean air temperature for a network with a heating pair (the highest for a network with only cooling pairs), and two weeks that minimize the mean temperature distance of the weights. With the option "add the warmest week", available for every network, a heating network SHALL get the warmest week as a fourth week and a cooling network the coldest week. A climate file that cannot be read SHALL stop the choice with a message naming the file.
 
 #### Scenario: Heating network on Bromma
 - **WHEN** the weeks are chosen for a heating network with the climate `BROMMA.PRN`
@@ -34,7 +34,7 @@ A periods widget, shown in the dialog of the cost optimization, SHALL show the y
 - **THEN** the diagram, the weeks and the coverage are hidden and only the start-up remains
 
 ### Requirement: Period run and kept results
-Starting SHALL delete the version's `_period*` tables and `periods.json`, optionally build the network model, simulate the weeks in parallel, each in its own copy of the network model with the week's start-up and calculation dates, and for each week load the results and copy the result tables of lines, energy plants and customers needed for the economics (temperatures, mass flows, pressures, losses, pump power, room temperature, power) with the suffix `_period<k>`; then it SHALL write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period, time, weight and profile sum, coverage). After the run the version's simulation dates SHALL be those before the run. With "annual simulation" one simulation of the whole year SHALL run, without copies, all weights 1.
+Starting SHALL delete the version's `_period*` tables and `periods.json`, optionally build the network model, simulate the weeks in parallel, each in its own copy of the network model with the week's start-up and calculation dates (a week SHALL start only when the solver of the previous week runs, that week has ended, or at most 120 s after the previous start, and only when the free memory holds one more week, unless no week runs; a failed week SHALL be simulated once more after the others, one at a time), and for each week load the results and copy the result tables of lines, energy plants and customers needed for the economics (temperatures, mass flows, pressures, losses, pump power, room temperature, power) with the suffix `_period<k>`; then it SHALL write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period, time, weight and profile sum, coverage). After the run the version's simulation dates SHALL be those before the run. With "annual simulation" one simulation of the whole year SHALL run, without copies, all weights 1.
 
 #### Scenario: Three weeks
 - **WHEN** the user starts a period run with three weeks
@@ -43,6 +43,22 @@ Starting SHALL delete the version's `_period*` tables and `periods.json`, option
 #### Scenario: Failed week
 - **WHEN** the simulation of one week fails
 - **THEN** the run waits for the other weeks, ends with an error naming the week, and no model copy is left
+
+#### Scenario: IDA of a week ends without an answer
+- **WHEN** the IDA Districts session of one week crashes or is closed during the simulation
+- **THEN** that week fails within about a minute instead of keeping the run waiting, and its error names the last lines of the solver output
+
+#### Scenario: Not enough memory for all weeks
+- **WHEN** a period run with three weeks starts on a computer whose free memory holds two weeks
+- **THEN** the third week starts when one of the first two has finished, and the log says it waits for free memory
+
+#### Scenario: Week failed for lack of memory
+- **WHEN** the simulation of one week fails while others run
+- **THEN** that week is simulated again alone after the others, and the run goes on when it succeeds
+
+#### Scenario: Weeks start one after another
+- **WHEN** a period run with three weeks starts
+- **THEN** the second week's IDA Districts starts only after the first week's solver runs, and the third only after the second's
 
 #### Scenario: Second run
 - **WHEN** a second period run is started in the same version

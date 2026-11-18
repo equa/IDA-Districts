@@ -23,6 +23,7 @@ from .utility_functions.db import dbConnect, getUsedNetworkSubmodels
 from .utility_functions.dialog import infoTextEdit, qt_item_flag
 from .utility_functions.files import loadNetworkSimData
 from .utility_functions.iteration_report import openReport, saveRunParameters
+from .utility_functions.set_pipes import SetPipes, balancingIterationPipes
 from .utility_functions.dynamic_sizing_results import (
     deleteIterations, iterationHeaders, iterationRows, iterationSummary, loadIterations, pairSummary, removeSizingLayers, saveIteration, showIteration,
     showIterations,
@@ -101,6 +102,11 @@ class DynamicPipeSizingDialog(QDialog):
                                           'per iteration and a map per iteration, opened in the browser.'))
         self.horizontalLayout_iterations.addWidget(self.btn_report)
         self.btn_report.clicked.connect(lambda: openReport(self, self.main.cur, self.main.config, 'balancing'))
+        self.btn_setPipes = QPushButton(tr_msg('Set pipes'))
+        self.btn_setPipes.setToolTip(tr_msg('The pipes simulated in the selected iteration into a new child version or into this version; '
+                                            'nothing is simulated.'))
+        self.horizontalLayout_iterations.addWidget(self.btn_setPipes)
+        self.btn_setPipes.clicked.connect(self.setSelectedPipes)
         self.table_iterations.itemDoubleClicked.connect(lambda item: self.showSelectedIterations())
         self.table_iterations.setColumnCount(len(iterationHeaders()))
         self.table_iterations.setHorizontalHeaderLabels(iterationHeaders())
@@ -371,6 +377,16 @@ class DynamicPipeSizingDialog(QDialog):
         rows = sorted({index.row() for index in self.table_iterations.selectedIndexes()})
         return [(int(self.table_iterations.item(row, 0).text()), self.table_iterations.item(row, 1).text()) for row in rows]
 
+    def setSelectedPipes(self):
+        iterations = sorted({k for k, _ in self.selectedIterations()})
+        if len(iterations) != 1:
+            iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Select one iteration in the table.'), level=MessageInfo)
+            return
+        summaries = {s['iteration']: s for s in loadIterations(self.main.config)}
+        cur = self.main.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        self.set_pipes = SetPipes(self, self.main, tr_msg('Hydraulic balancing'), self.log, self.loadIterationTable)
+        self.set_pipes.run(iterations[0], balancingIterationPipes(cur, summaries.get(iterations[0], {})))
+
     def showSelectedIterations(self):
         iterations = self.selectedIterations()
         if not iterations:
@@ -441,7 +457,7 @@ class DynamicPipeSizingDialog(QDialog):
         self.btn_start.setEnabled(not running)
         self.btn_stop.setEnabled(running)
         # while running the iterations are added to the table and shown by the run itself (option)
-        for widget in (self.btn_showIterations, self.btn_reloadIterations, self.btn_report):
+        for widget in (self.btn_showIterations, self.btn_reloadIterations, self.btn_report, self.btn_setPipes):
             widget.setEnabled(not running)
         for box in (self.groupBox_version, self.groupBox_network, self.groupBox_balancing, self.groupBox_sizing, self.groupBox_iteration):
             box.setEnabled(not running)
@@ -858,6 +874,11 @@ class DynamicPipeSizingRun(QObject):
                 pairs.append(pairSummary(pair, temps, res, opt, changed_pair, self.parms['skipped'].get(pairLabel(pair), 0),
                     reference=outcome == 'reference', target_no_flow=res.get('target_no_flow', False)))
             summary = iterationSummary(self.iteration, self.started, pairs, outcome, len(changed))
+            state = {}
+            for _, _, res, _ in results:
+                for lid, line in res['lines'].items():
+                    state.setdefault(str(lid), {}).update({str(seq): int(pipe['pipe_id']) for seq, pipe in line['pipes'].items()})
+            summary['state'] = state
             saveIteration(self.config, summary)
             self.dlg.addIterationRow(summary)
             if self.parms['show_map']:

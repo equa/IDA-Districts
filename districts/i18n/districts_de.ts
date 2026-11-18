@@ -9974,6 +9974,22 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <translation>{} Perioden werden parallel simuliert ...</translation>
         </message>
         <message>
+            <source>Period {}: start of the solver not seen after {} s, the next period starts</source>
+            <translation>Periode {}: Start des Solvers nach {} s nicht erkannt, die nächste Periode startet</translation>
+        </message>
+        <message>
+            <source>Period {}: waiting for free memory ({} MB free, {} MB needed)</source>
+            <translation>Periode {}: wartet auf freien Speicher ({} MB frei, {} MB benötigt)</translation>
+        </message>
+        <message>
+            <source>Simulating period {} again, one at a time ...</source>
+            <translation>Periode {} wird nochmals simuliert, eine nach der anderen ...</translation>
+        </message>
+        <message>
+            <source>IDA Districts (pid {}) ended without an answer</source>
+            <translation>IDA Districts (PID {}) wurde ohne Antwort beendet</translation>
+        </message>
+        <message>
             <source>The requested outputs differ from the invoked ones: please build the network model with the features invoked again.</source>
             <translation>Die angeforderten Ausgaben weichen von den eingebundenen ab: bitte das Netzmodell mit erneut eingebundenen Features erstellen.</translation>
         </message>
@@ -10500,6 +10516,370 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>specific pressure loss or velocity at peak flow above the limit</source>
             <translation>spezifischer Druckverlust oder Geschwindigkeit bei Spitzendurchfluss über dem Grenzwert</translation>
+        </message>
+        <message>
+            <source>Net present value: equations</source>
+            <translation>Barwert: Gleichungen</translation>
+        </message>
+        <message>
+            <source>Net present value: calculation per iteration</source>
+            <translation>Barwert: Berechnung je Iteration</translation>
+        </message>
+        <message>
+            <source>Present value factors of the scenario</source>
+            <translation>Barwertfaktoren des Szenarios</translation>
+        </message>
+        <message>
+            <source>Amounts of year 0 per iteration</source>
+            <translation>Beträge des Jahres 0 je Iteration</translation>
+        </message>
+        <message>
+            <source>The terms of the net present value were not saved (run before this report showed them).</source>
+            <translation>Die Terme des Barwerts wurden nicht gespeichert (Lauf, bevor der Bericht sie zeigte).</translation>
+        </message>
+        <message>
+            <source>Each term is base × factor; the base is K, K · m, C_0 or P of the equations, the factor the discounted price levels. Saved at the run, with the scenario of the run.</source>
+            <translation>Jeder Term ist Basis × Faktor; die Basis ist K, K · m, C_0 oder P der Gleichungen, der Faktor die abgezinsten Preisniveaus. Beim Lauf gespeichert, mit dem Szenario des Laufs.</translation>
+        </message>
+        <message>
+            <source>The sum of the terms differs from the net present value of the iteration ({}).</source>
+            <translation>Die Summe der Terme weicht vom Barwert der Iteration ab ({}).</translation>
+        </message>
+        <message>
+            <source>Symbol</source>
+            <translation>Symbol</translation>
+        </message>
+        <message>
+            <source>Meaning</source>
+            <translation>Bedeutung</translation>
+        </message>
+        <message>
+            <source>Amount</source>
+            <translation>Betrag</translation>
+        </message>
+        <message>
+            <source>Detail</source>
+            <translation>Detail</translation>
+        </message>
+        <message>
+            <source>Base [€]</source>
+            <translation>Basis [€]</translation>
+        </message>
+        <message>
+            <source>Value [€]</source>
+            <translation>Wert [€]</translation>
+        </message>
+        <message>
+            <source>P [€/a]</source>
+            <translation>P [€/a]</translation>
+        </message>
+        <message>
+            <source>remaining share</source>
+            <translation>Restanteil</translation>
+        </message>
+        <message>
+            <source>residual value counted</source>
+            <translation>Restwert berücksichtigt</translation>
+        </message>
+        <message>
+            <source>no residual value</source>
+            <translation>kein Restwert</translation>
+        </message>
+        <message>
+            <source>electricity (pump energy)</source>
+            <translation>Strom (Pumpenenergie)</translation>
+        </message>
+        <message>
+            <source>heat (heat losses)</source>
+            <translation>Wärme (Wärmeverluste)</translation>
+        </message>
+        <message>
+            <source>cold (cold losses)</source>
+            <translation>Kälte (Kälteverluste)</translation>
+        </message>
+        <message>
+            <source>Pumps</source>
+            <translation>Pumpen</translation>
+        </message>
+        <message>
+            <source>Pump energy [kWh/a]</source>
+            <translation>Pumpenenergie [kWh/a]</translation>
+        </message>
+        <message>
+            <source>C_pump,0 [€/a]</source>
+            <translation>C_pump,0 [€/a]</translation>
+        </message>
+        <message>
+            <source>Heat losses [kWh/a]</source>
+            <translation>Wärmeverluste [kWh/a]</translation>
+        </message>
+        <message>
+            <source>C_heat,0 [€/a]</source>
+            <translation>C_heat,0 [€/a]</translation>
+        </message>
+        <message>
+            <source>Cold losses [kWh/a]</source>
+            <translation>Kälteverluste [kWh/a]</translation>
+        </message>
+        <message>
+            <source>C_cold,0 [€/a]</source>
+            <translation>C_cold,0 [€/a]</translation>
+        </message>
+        <message>
+            <source>K pipes [€]</source>
+            <translation>K Rohre [€]</translation>
+        </message>
+        <message>
+            <source>K trench [€]</source>
+            <translation>K Graben [€]</translation>
+        </message>
+        <message>
+            <source>K pumps [€]</source>
+            <translation>K Pumpen [€]</translation>
+        </message>
+        <message>
+            <source>Peak pump power [kW]</source>
+            <translation>Spitzenleistung der Pumpen [kW]</translation>
+        </message>
+        <message>
+            <source>P comfort violations [€/a]</source>
+            <translation>P Komfortverletzungen [€/a]</translation>
+        </message>
+        <message>
+            <source>Investment of item k, bought in year 0 and replaced at the end of its lifetime</source>
+            <translation>Investition des Postens k, im Jahr 0 gekauft und am Ende seiner Lebensdauer ersetzt</translation>
+        </message>
+        <message>
+            <source>Maintenance</source>
+            <translation>Instandhaltung</translation>
+        </message>
+        <message>
+            <source>Residual value (negative, only if the scenario counts it)</source>
+            <translation>Restwert (negativ, nur wenn das Szenario ihn berücksichtigt)</translation>
+        </message>
+        <message>
+            <source>Energy costs of the cost group g (pump energy: electricity, heat losses: heat, cold losses: cold)</source>
+            <translation>Energiekosten der Kostengruppe g (Pumpenenergie: Strom, Wärmeverluste: Wärme, Kälteverluste: Kälte)</translation>
+        </message>
+        <message>
+            <source>Price level of a cost group (the factor of the year instead, if the price levels give one)</source>
+            <translation>Preisniveau einer Kostengruppe (stattdessen der Faktor des Jahres, wenn die Preisniveaus einen angeben)</translation>
+        </message>
+        <message>
+            <source>Comfort violations: present value of the yearly penalty</source>
+            <translation>Komfortverletzungen: Barwert der jährlichen Strafkosten</translation>
+        </message>
+        <message>
+            <source>Investment in year 0 per item</source>
+            <translation>Investition im Jahr 0 je Posten</translation>
+        </message>
+        <message>
+            <source>Energy costs of year 0</source>
+            <translation>Energiekosten des Jahres 0</translation>
+        </message>
+        <message>
+            <source>Heat leaving the pipes of a mode</source>
+            <translation>Wärmeabgabe der Rohre einer Betriebsart</translation>
+        </message>
+        <message>
+            <source>Yearly penalty against iteration 0</source>
+            <translation>Jährliche Strafkosten gegenüber Iteration 0</translation>
+        </message>
+        <message>
+            <source>interest rate and amortization period of the scenario</source>
+            <translation>Zinssatz und Betrachtungszeitraum des Szenarios</translation>
+        </message>
+        <message>
+            <source>investment item: a pipe type, the trench of a surface, the pumps</source>
+            <translation>Investitionsposten: ein Rohrtyp, der Graben einer Oberfläche, die Pumpen</translation>
+        </message>
+        <message>
+            <source>investment in year 0, lifetime and maintenance share per year of the item</source>
+            <translation>Investition im Jahr 0, Lebensdauer und jährlicher Instandhaltungsanteil des Postens</translation>
+        </message>
+        <message>
+            <source>last purchase year of the item within the period</source>
+            <translation>letztes Kaufjahr des Postens im Betrachtungszeitraum</translation>
+        </message>
+        <message>
+            <source>escalation of the cost group</source>
+            <translation>Teuerung der Kostengruppe</translation>
+        </message>
+        <message>
+            <source>simulated time step and its weight in hours per year (time step, times the weight of its representative week)</source>
+            <translation>simulierter Zeitschritt und sein Gewicht in Stunden pro Jahr (Zeitschritt mal Gewicht seiner repräsentativen Woche)</translation>
+        </message>
+        <message>
+            <source>electricity price profile, scaled to mean 1 (1 without a profile)</source>
+            <translation>Strompreisprofil, auf Mittelwert 1 skaliert (1 ohne Profil)</translation>
+        </message>
+        <message>
+            <source>start price of electricity and the price curves of heat and cold over the supply temperature</source>
+            <translation>Startpreis Strom und die Preiskurven von Wärme und Kälte über der Vorlauftemperatur</translation>
+        </message>
+        <message>
+            <source>pump power of the energy plants and customers (outputs ppump_ep, ppump_c)</source>
+            <translation>Pumpenleistung der Energiezentralen und Abnehmer (Ausgaben ppump_ep, ppump_c)</translation>
+        </message>
+        <message>
+            <source>heat leaving the heating and the cooling pipes; a cooling pipe gaining heat gives a negative Q, so a cost</source>
+            <translation>Wärmeabgabe der Heiz- und der Kälterohre; ein Kälterohr, das Wärme aufnimmt, ergibt ein negatives Q, also Kosten</translation>
+        </message>
+        <message>
+            <source>mean supply temperature of the plants per mode</source>
+            <translation>mittlere Vorlauftemperatur der Zentralen je Betriebsart</translation>
+        </message>
+        <message>
+            <source>heat loss coefficient per metre of the pipe and the ground or air temperature</source>
+            <translation>Wärmeverlustkoeffizient je Meter des Rohrs und die Erdreich- oder Lufttemperatur</translation>
+        </message>
+        <message>
+            <source>degree hours of the load models and unmet load of the source-file customers per year; ref: iteration 0</source>
+            <translation>Gradstunden der Lastmodelle und nicht gedeckte Leistung der Abnehmer mit Quelldatei pro Jahr; ref: Iteration 0</translation>
+        </message>
+        <message>
+            <source>Add the coldest week</source>
+            <translation>Kälteste Woche hinzufügen</translation>
+        </message>
+        <message>
+            <source>Cooling [h/a]</source>
+            <translation>Kühlen [h/a]</translation>
+        </message>
+        <message>
+            <source>Heating [h/a]</source>
+            <translation>Heizen [h/a]</translation>
+        </message>
+        <message>
+            <source>Creating the child version {} of {} with the pipes of iteration {} ...</source>
+            <translation>Erstelle die Kindversion {} von {} mit den Rohren der Iteration {} ...</translation>
+        </message>
+        <message>
+            <source>Deadband [%]</source>
+            <translation>Totband [%]</translation>
+        </message>
+        <message>
+            <source>Deadband heating/cooling</source>
+            <translation>Totband Heizen/Kühlen</translation>
+        </message>
+        <message>
+            <source>Deadband heating/cooling [%]</source>
+            <translation>Totband Heizen/Kühlen [%]</translation>
+        </message>
+        <message>
+            <source>Heating and cooling per pair</source>
+            <translation>Heizen und Kühlen je Paar</translation>
+        </message>
+        <message>
+            <source>Heating or cooling per hour and supply/return pair from the heat the plants put into the network (results mdot_ep, temp_ep): the mode changes only outside a band of this share of the range between the largest heating and the largest cooling flow. Losses are priced with the heat price when heating, with the cold price when cooling.</source>
+            <translation>Heizen oder Kühlen je Stunde und Vor-/Rücklauf-Paar aus der Wärme, welche die Zentralen ins Netz geben (Ergebnisse mdot_ep, temp_ep): die Betriebsart wechselt nur ausserhalb eines Bands mit diesem Anteil der Spanne zwischen dem grössten Heiz- und dem grössten Kühlfluss. Verluste werden beim Heizen mit dem Wärmepreis, beim Kühlen mit dem Kältepreis bewertet.</translation>
+        </message>
+        <message>
+            <source>Hours weighted to a year; losses of the pipes of a pair are priced with the heat price in its heating hours and with the cold price in its cooling hours.</source>
+            <translation>Stunden auf ein Jahr gewichtet; Verluste der Rohre eines Paars werden in seinen Heizstunden mit dem Wärmepreis und in seinen Kühlstunden mit dem Kältepreis bewertet.</translation>
+        </message>
+        <message>
+            <source>Into a new child version</source>
+            <translation>In eine neue Kindversion</translation>
+        </message>
+        <message>
+            <source>Into this version ({})</source>
+            <translation>In diese Version ({})</translation>
+        </message>
+        <message>
+            <source>Invalid version name "{}" (only a-z, 0-9 and _)</source>
+            <translation>Ungültiger Versionsname "{}" (nur a-z, 0-9 und _)</translation>
+        </message>
+        <message>
+            <source>Iteration {} has no saved pipes (run before this was saved).</source>
+            <translation>Iteration {} hat keine gespeicherten Rohre (Lauf, bevor diese gespeichert wurden).</translation>
+        </message>
+        <message>
+            <source>Iteration {} saved only the supply pipe of each pair; it is set for both pipes of the pair.</source>
+            <translation>Iteration {} speicherte nur das Vorlaufrohr jedes Paars; es wird für beide Rohre des Paars gesetzt.</translation>
+        </message>
+        <message>
+            <source>Max. heat into the network [kW]</source>
+            <translation>Max. Wärme ins Netz [kW]</translation>
+        </message>
+        <message>
+            <source>Min. heat into the network [kW]</source>
+            <translation>Min. Wärme ins Netz [kW]</translation>
+        </message>
+        <message>
+            <source>Mode from</source>
+            <translation>Betriebsart aus</translation>
+        </message>
+        <message>
+            <source>Template mode</source>
+            <translation>Betriebsart der Vorlage</translation>
+        </message>
+        <message>
+            <source>Overwrite the pipes of version {} with those of iteration {}?</source>
+            <translation>Die Rohre der Version {} mit denen der Iteration {} überschreiben?</translation>
+        </message>
+        <message>
+            <source>Select one iteration in the table.</source>
+            <translation>Eine Iteration in der Tabelle auswählen.</translation>
+        </message>
+        <message>
+            <source>Set pipes</source>
+            <translation>Rohre setzen</translation>
+        </message>
+        <message>
+            <source>Set the pipes of iteration {}</source>
+            <translation>Rohre der Iteration {} setzen</translation>
+        </message>
+        <message>
+            <source>The child version could not be created: </source>
+            <translation>Die Kindversion konnte nicht erstellt werden: </translation>
+        </message>
+        <message>
+            <source>The child version could not be loaded: </source>
+            <translation>Die Kindversion konnte nicht geladen werden: </translation>
+        </message>
+        <message>
+            <source>The current pipes of the version are overwritten; its results do not match the pipes until it is simulated again.</source>
+            <translation>Die aktuellen Rohre der Version werden überschrieben; ihre Ergebnisse passen nicht zu den Rohren, bis sie erneut simuliert wird.</translation>
+        </message>
+        <message>
+            <source>The extreme week of the main mode is the anchor (coldest week for heating, warmest for cooling); this adds the opposite extreme week, e.g. the cooling peak of a network that heats and cools, also through the same pipes as a low-temperature network.</source>
+            <translation>Die Extremwoche der Hauptbetriebsart ist der Anker (kälteste Woche beim Heizen, wärmste beim Kühlen); dies fügt die gegenteilige Extremwoche hinzu, z. B. die Kühlspitze eines Netzes, das heizt und kühlt, auch über dieselben Rohre wie ein Niedertemperaturnetz.</translation>
+        </message>
+        <message>
+            <source>The pipes could not be set: </source>
+            <translation>Die Rohre konnten nicht gesetzt werden: </translation>
+        </message>
+        <message>
+            <source>The pipes simulated in iteration {} are set on the lines; nothing is simulated.</source>
+            <translation>Die in Iteration {} simulierten Rohre werden auf die Leitungen gesetzt; es wird nichts simuliert.</translation>
+        </message>
+        <message>
+            <source>The pipes simulated in the selected iteration into a new child version or into this version; nothing is simulated.</source>
+            <translation>Die in der ausgewählten Iteration simulierten Rohre in eine neue Kindversion oder in diese Version; es wird nichts simuliert.</translation>
+        </message>
+        <message>
+            <source>opposite extreme week</source>
+            <translation>gegenteilige Extremwoche</translation>
+        </message>
+        <message>
+            <source>plant heat flows</source>
+            <translation>Wärmeflüsse der Zentralen</translation>
+        </message>
+        <message>
+            <source>plant template (no results mdot_ep)</source>
+            <translation>Vorlage der Zentrale (keine Ergebnisse mdot_ep)</translation>
+        </message>
+        <message>
+            <source>{} lines of version {} have the pipes of iteration {}{}; simulate the version for results that match them.</source>
+            <translation>{} Leitungen der Version {} haben die Rohre der Iteration {}{}; die Version simulieren für passende Ergebnisse.</translation>
+        </message>
+        <message>
+            <source>Mode of a supply/return pair per step: heat the plants put into the network; heating above +band, cooling below −band, the previous mode inside</source>
+            <translation>Betriebsart eines Vor-/Rücklauf-Paars je Zeitschritt: Wärme, welche die Zentralen ins Netz geben; Heizen über +Band, Kühlen unter −Band, dazwischen die bisherige Betriebsart</translation>
+        </message>
+        <message>
+            <source>mass flow at a plant connection (leaving the plant positive) and the deadband of the run</source>
+            <translation>Massenstrom an einem Anschluss der Zentrale (aus der Zentrale positiv) und das Totband des Laufs</translation>
         </message>
     </context>
 </TS>

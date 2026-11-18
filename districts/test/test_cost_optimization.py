@@ -100,6 +100,9 @@ class TestCostOptimization:
                 **{k: r[k] for k in ('iteration', 'npv')}, split={k: round(v) for k, v in r['split'].items()}))
         assert rows and rows[0]['iteration'] == 0 and rows[0]['npv_model'] is None
         assert all('split' in r and 'penalties' in r['split'] for r in rows)
+        # mdot_ep is switched on with the outputs: the heating or cooling mode comes from the plants' heat flows (D23)
+        modes = rows[0]['economics']['modes']
+        assert modes and all(m['source'] == 'plants' and m['heat_h'] > 0 for m in modes.values()), modes
         if len(rows) > 1:
             assert rows[1]['npv_model'] is not None and rows[1]['model_error'] is not None
         best = min(rows, key=lambda r: r['npv'])

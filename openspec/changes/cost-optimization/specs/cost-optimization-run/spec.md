@@ -52,9 +52,24 @@ with the inputs, the outputs per iteration with maps and, for the cost optimizat
 - **WHEN** the version has iterations of a cost optimization and the user presses 'Report'
 - **THEN** an HTML file in `versions/<version>/reports` opens with the run parameters, the scenario, the pipes and trenches, the iteration table, the NPV diagram, a map per iteration and the cost analysis against iteration 0
 
+#### Scenario: Traceable net present value
+- **WHEN** the report of a cost optimization is written
+- **THEN** its cost analysis shows the equations of the NPV and, per iteration, every term as base × factor whose sum is the NPV of the iteration
+
 #### Scenario: No iterations
 - **WHEN** the loaded version has no iterations
 - **THEN** a message says so and no file is written
+
+### Requirement: Set the pipes of an iteration
+The cost optimization and the hydraulic balancing SHALL set the pipes simulated in a selected iteration into a new child version (default) or, after a confirmation, into the loaded version, without simulating.
+
+#### Scenario: Child version
+- **WHEN** the user selects iteration 3 and confirms 'Set pipes' with a new child version
+- **THEN** the child version is created and loaded with the pipes of iteration 3, without the iteration files of the parent, and the parent keeps its pipes
+
+#### Scenario: This version
+- **WHEN** the user chooses the loaded version and confirms the overwrite
+- **THEN** its lines get the pipes of the iteration and the log says that the version must be simulated again
 
 ### Requirement: Protected lines
 Lines protected by the dynamic pipe sizing (change protect-lines), if the version has any, SHALL never be changed.

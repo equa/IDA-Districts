@@ -244,20 +244,27 @@ class Util_api:
       while poll_result is not None and not poll_result:
         time.sleep(time_interval)
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
-        try:
-            poll_result2 = json.loads(doc_str.value.decode("utf-8"))
+        reply = doc_str.value.decode("utf-8")
+        # an empty reply: no answer yet
+        if reply.strip():
+          try:
+            poll_result2 = json.loads(reply)
             dprint(poll_result2)
             if isinstance(poll_result2, list):
               if debug_enabled(): dprint(poll_result2[0]['value'])
               poll_result = poll_result2[0]['value']
             else:
               return ""
-        except Exception:
+          except Exception:
             QgsMessageLog.logMessage(
                 traceback.format_exc(),
                 "Districts",
                 MessageCritical
             )
+        # an IDA that ended never answers: the caller would wait forever
+        if poll_result is not None and not poll_result and self.process_ended():
+          QgsMessageLog.logMessage(tr_msg('IDA Districts (pid {}) ended without an answer').format(self.pid), "Districts", MessageCritical)
+          return ""
       return poll_result2[1]['value']
 
     def call_ida_api_function (self,fun, *args):
@@ -300,10 +307,15 @@ class Util_api:
       while poll_result is not None and not poll_result:
         time.sleep(time_interval)
         poll_res = self.ida_lib.pollForQueuedResults(doc_str, len(doc_str))
-        poll_result2 = json.loads(doc_str.value.decode("utf-8"))
-        if isinstance(poll_result2, list):
-          poll_result = poll_result2[0]['value']
-        else:
+        reply = doc_str.value.decode("utf-8")
+        if reply.strip():
+          poll_result2 = json.loads(reply)
+          if isinstance(poll_result2, list):
+            poll_result = poll_result2[0]['value']
+          else:
+            return ""
+        if poll_result is not None and not poll_result and self.process_ended():
+          QgsMessageLog.logMessage(tr_msg('IDA Districts (pid {}) ended without an answer').format(self.pid), "Districts", MessageCritical)
           return ""
       return json.dumps(poll_result2[1])
 

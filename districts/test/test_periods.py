@@ -53,6 +53,9 @@ def test_warmest_week_and_cooling(bromma):
     assert [role for _, role in weeks] == ['anchor', 'warmest', 'coverage', 'coverage']
     means = [bromma[s * 24:(s + 7) * 24].mean() for s in range(359)]
     assert chooseWeeks(bromma, 2026, mode='cold')[0] == (int(np.argmax(means)), 'anchor')
+    # a cooling network adds the opposite extreme: the coldest week
+    cooling = chooseWeeks(bromma, 2026, mode='cold', warmest=True)
+    assert cooling[1] == (int(np.argmin(means)), 'coldest') and len(cooling) == 4
 
 
 def test_linear_split_between_two_simulated_hours():

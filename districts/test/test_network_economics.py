@@ -9,7 +9,7 @@ from districts.utility_functions.economic_data import (
     BASE_PRICE_CURVES, BASE_TRENCH_COSTS, KWW_MATERIAL_PAIR, examplePipeCosts,
 )
 from districts.utility_functions.economics import (
-    annuityFactor, curvePrice, level, netPresentValue, normalizedProfile, purchaseYears, readProfile,
+    annuityFactor, curvePrice, level, netPresentValue, normalizedProfile, npvTerms, purchaseYears, readProfile,
     trenchCostPerMetre, yearlyEnergyCosts,
 )
 from districts.utility_functions.pipe_losses import (
@@ -95,6 +95,22 @@ def test_discounting_and_annuity():
     assert result['npv'] == pytest.approx(sum(1000 / 1.03 ** t for t in range(1, 21)))
     assert annuityFactor(3.0, 20) == pytest.approx(0.03 * 1.03 ** 20 / (1.03 ** 20 - 1))
     assert result['annuity'] == pytest.approx(1000.0)
+
+
+def test_npv_terms_add_up_to_the_split():
+    """the report's terms base x factor give the parts of netPresentValue, with interest, escalation, a level table and residual value"""
+    sc = scenario(interest=2.5, period=30, escalation=1.5, levels={'electricity': {1: 1.2, 2: 1.1}})
+    items = [{'kind': 'pipe', 'name': 'DN 50', 'cost': 80000.0, 'lifetime': 40, 'maintenance_pct': 1.0, 'length': 400.0},
+             {'kind': 'trench', 'name': 'paved', 'cost': 120000.0, 'lifetime': 40, 'maintenance_pct': 0.0, 'length': 200.0},
+             {'kind': 'pumps', 'name': 'pumps', 'cost': 3000.0, 'lifetime': 15, 'maintenance_pct': 2.5, 'power_kw': 30.0}]
+    yearly = {'pump_energy': 700.0, 'heat_losses': 4000.0, 'cold_losses': -50.0}
+    split = netPresentValue(sc, items, yearly)['split']
+    terms = npvTerms(sc, items, yearly)
+    for group, value in split.items():
+        assert sum(t['value'] for t in terms if t['group'] == group) == pytest.approx(value), group
+    assert all(t['value'] == pytest.approx(t['base'] * t['factor']) for t in terms)
+    pumps = [t for t in terms if t.get('kind') == 'pumps' and t['group'] == 'investment'][0]
+    assert pumps['years'] == [0, 15] and pumps['power_kw'] == 30.0
 
 
 def test_ground_gain_lowers_the_cost():

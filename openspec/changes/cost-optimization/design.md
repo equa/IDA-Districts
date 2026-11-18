@@ -193,8 +193,36 @@ NPV against iteration 0, initial investment per iteration, pipes and trench of b
 The maps are rendered from the same layers as the iteration groups, built without entering the layer tree, so a
 report leaves the user's layers alone; at most 10 maps per pair (first, best, last and evenly spread). A run saves
 its settings in `versions/<version>/<feature>_run.json`, because the dialog may have changed until the report is
-written; runs from before have no parameter table.
+written; runs from before have no parameter table. To make the NPV traceable, the cost analysis shows its equations
+with a symbol table, the present value factors of the scenario, the amounts of year 0 per iteration (energy, its costs,
+investment per kind, peak pump power, yearly penalty) and per iteration every term as base × factor = value. A run
+saves these terms in the iteration file (`economics`, from `economics.npvTerms`, whose sums per group equal the split of
+`netPresentValue`), because the scenario may be edited before the report; files from before show a note.
 *Alternative:* a QGIS print layout as the network report (PDF): fixed pages, harder for long tables.
+
+**D23 – Heating or cooling per step from the plants.** A low-temperature network heats and cools through the same
+pair, so a mode fixed per pair from the plant template prices its losses wrongly in part of the year. The mode is set
+per simulated step and pair from the heat the plants put into the network, Φ = c_p · Σ ṁ·T over the pair's supply and
+return connections of all plants (outputs `mdot_ep`, `temp_ep`; the supply ṁ leaves the plant positive), with a
+deadband: heating above +x·(max(Φ,0) − min(Φ,0)), cooling below −band, the previous mode inside; each run of
+consecutive steps (a week of a period run) starts with the mode of its first step outside the band. Default x = 5 %,
+a spin box of the cost optimization saved with the run; the network report uses 5 %. Each iteration uses the modes of
+its own simulation (Q1 a), in the evaluation (`network_economics`) and in the cost model (`lossChange`, supply
+temperature per mode). Losses of a pipe are a heat cost in its pair's heating steps and a cold credit in its cooling
+steps (gains a cold cost). A pair without plant results keeps the template mode; the report shows the hours per mode,
+the source and the band per pair. The plant power output `power_ep` was not used: it is negative for heat into the
+network and one meter may cover a heating and a cooling pair (hc_network), so it cannot give a mode per pair.
+`mdot_ep` is switched on with the other outputs of the optimization (`network_modes.py`).
+*Alternatives:* modes from iteration 0 kept for the run (stable comparison, but a pipe change that shifts a plant's
+balance is not seen); one mode per pair from the annual balance (wrong for seasonal switching).
+
+**D24 – Set the pipes of an iteration.** A button 'Set pipes' in the cost optimization and in the hydraulic balancing
+sets the pipes simulated in the selected iteration: into a new child version (default, name `<version>_it<k>`,
+created and loaded in the background, without the run files of the parent) or into the loaded version after a
+confirmation; nothing is simulated, the log says so. The cost optimization uses the saved state {line: bundle}; the
+hydraulic balancing now saves the simulated pipes {line: {sequence: pipe}} per iteration and sets them with the bundle
+lookup of the balancing (`getOrCreatePipeBundles`, missing bundles created). Older balancing files have only the
+supply pipe name per pair and line; that pipe is then set for both pipes of the pair, with a note (`set_pipes.py`).
 
 ## Risks / Trade-offs
 

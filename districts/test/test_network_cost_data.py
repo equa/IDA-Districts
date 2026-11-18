@@ -132,6 +132,40 @@ class TestNetworkCostData:
         # the simulated 1 kW per line does not match the calculated loss
         assert 1 in evaluation['loss_check']
 
+    def test_heating_and_cooling_from_the_plants(self, cost, monkeypatch):
+        """a low-temperature year: the plant puts heat into the network in the first half, takes it out in the second;
+        the same pipe losses are a heat cost in the heating hours and a cold credit in the cooling hours (D23)"""
+        plugin = cost.plugin
+        # the template has no energy plant: one with the supply 1 and the return 2
+        monkeypatch.setattr('districts.utility_functions.network_economics.plantConnections',
+                            lambda cur, schema: [{'conn_seq': 1, 'type': 1, 'temp': 70}, {'conn_seq': 2, 'type': 2, 'temp': 40}])
+        v = plugin.config['versionName']
+        synthetic_results(plugin, 8760)
+        heating_only = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
+        assert heating_only['modes']['1/2']['source'] == 'template' and heating_only['costs']['cold_losses'] == 0
+        srid = loadProjectConfig(plugin.config)['srid']
+        plugin.cur.execute("""
+CREATE TABLE "{v}"."energy_plant_s_temp$1_1_1_2" (LIKE "{v}"."energy_plant_s_temp$1_1_1_1" INCLUDING ALL);
+INSERT INTO "{v}"."energy_plant_s_temp$1_1_1_2" (fid, time, "$temp")
+    SELECT 1, timestamp '2026-01-01' + h * interval '1 hour', CASE WHEN h < 4380 THEN 40 ELSE 90 END FROM generate_series(0, 8759) h;
+CREATE TABLE "{v}"."energy_plant_s_mdot$1_1_1_1" (id serial, fid integer, time timestamp, geom geometry(PointZ,{srid}), "$mdot" numeric);
+INSERT INTO "{v}"."energy_plant_s_mdot$1_1_1_1" (fid, time, "$mdot") SELECT 1, timestamp '2026-01-01' + h * interval '1 hour', 1 FROM generate_series(0, 8759) h;
+CREATE TABLE "{v}"."energy_plant_s_mdot$1_1_1_2" (LIKE "{v}"."energy_plant_s_mdot$1_1_1_1" INCLUDING ALL);
+INSERT INTO "{v}"."energy_plant_s_mdot$1_1_1_2" (fid, time, "$mdot") SELECT 1, timestamp '2026-01-01' + h * interval '1 hour', -1 FROM generate_series(0, 8759) h;
+""".format(v=v, srid=srid))  # nosec B608
+        try:
+            both = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
+            modes = both['modes']['1/2']
+            assert modes['source'] == 'plants'
+            assert modes['heat_h'] == pytest.approx(4380, abs=2) and modes['cold_h'] == pytest.approx(4380, abs=2)
+            assert both['energy']['heat_kwh'] == pytest.approx(heating_only['energy']['heat_kwh'] / 2, rel=0.2)
+            assert both['costs']['heat_losses'] < heating_only['costs']['heat_losses']
+            # losses of a cooling network are a gain for it: a credit at the cold price
+            assert both['costs']['cold_losses'] < 0
+        finally:
+            plugin.cur.execute('DROP TABLE IF EXISTS "{v}"."energy_plant_s_temp$1_1_1_2", "{v}"."energy_plant_s_mdot$1_1_1_1", '
+                               '"{v}"."energy_plant_s_mdot$1_1_1_2";'.format(v=v))  # nosec B608
+
     def test_upgrade_of_an_old_project(self, cost):
         plugin = cost.plugin
         plugin.cur.execute("""UPDATE public.pipes SET costs = 77 WHERE id = 1;

@@ -11,7 +11,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from districts.cost_optimization import npvRecord
 from districts.utility_functions.cost_optimization_layers import iterationPath
+from districts.utility_functions.economic_data import loadScenario
 from districts.utility_functions.dynamic_sizing_results import saveIteration
 from districts.utility_functions.economic_data import ensureEconomicTables
 from districts.utility_functions.hydraulic_balancing import getPipeBundles, getPipeCatalog
@@ -19,6 +21,11 @@ from districts.utility_functions.iteration_report import (
     balancingReport, costReport, loadRunParameters, mapIterations, saveRunParameters, writeReport,
 )
 
+from districts.utility_functions.cost_optimization_layers import loadCostIterations
+from districts.utility_functions.dynamic_sizing_results import loadIterations
+from districts.utility_functions.set_pipes import SetPipes, applyPipes, balancingIterationPipes, costIterationPipes
+
+from .conftest import wait_until
 from .test_workflow import HEATING, create_project, delete_project, project_name_for
 
 pytestmark = [pytest.mark.e2e]
@@ -110,6 +117,17 @@ class TestIterationReport:
                 {'iteration': 1, 'npv': sum(split1.values()), 'split': split1, 'npv_model': sum(split1.values()) + 3000, 'model_error': 0.005,
                  'penalty_customers': customers[:2], 'outcome': 'no improvement', 'steps': [], 'rejected': {},
                  'state': {str(lid): changed.get(lid, bid) for lid, bid in lines.items()}}]
+        # iteration 0 with the terms of its NPV as a run saves them, iteration 1 without them (a run before)
+        evaluation = {'scenario': loadScenario(plugin.cur, scenario), 'pump_kw': 25.0,
+                      'items': {('pipe', 1): {'name': 'DN 50', 'cost': 400000.0, 'lifetime': 40.0, 'maintenance_pct': 1.0, 'length': 2000.0},
+                                ('trench', 'paved'): {'name': 'paved', 'cost': 100000.0, 'lifetime': 40.0, 'maintenance_pct': 0.0, 'length': 1000.0}},
+                      'pump_item': {'name': 'pumps', 'cost': 2500.0, 'lifetime': 15.0, 'maintenance_pct': 2.5},
+                      'costs': {'pump_energy': 1500.0, 'heat_losses': 6000.0, 'cold_losses': 0.0},
+                      'energy': {'pump_kwh': 7500.0, 'heat_kwh': 60000.0, 'cold_kwh': 0.0}}
+        econ = npvRecord(evaluation, 0.0, 0.0)
+        rows[0]['economics'] = econ
+        rows[0]['split'] = {g: sum(t['value'] for t in econ['terms'] if t['group'] == g) for g in split0}
+        rows[0]['npv'] = sum(rows[0]['split'].values())
         for row in rows:
             with open(iterationPath(plugin.config, row['iteration']), 'w', encoding='utf-8') as f:
                 json.dump(row, f)
@@ -119,11 +137,48 @@ class TestIterationReport:
         for text in ('Economic scenario', 'Prices per cost group', 'Price curves heat and cold', 'Trench costs per surface', 'Pipes in use',
                      'Cost analysis', 'Investment per iteration [€]', 'Pipes: first iteration and least net present value',
                      'Trench: first iteration and least net present value', 'Rejected changes', 'pressure above p_max of the pipe',
-                     'Lines changed for this iteration', 'Customers with a new deficit', 'a year'):
-            assert text in page, text
+                     'Lines changed for this iteration', 'Customers with a new deficit', 'a year', 'Net present value: equations',
+                     'Present value factors of the scenario', 'Amounts of year 0 per iteration', 'Net present value: calculation per iteration',
+                     '2000 m; n = 40 a, t = 0', '25.0 kW', '60000 kWh/a, 0.1000 €/kWh'):
+            assert text in page.replace('&#x27;', '').replace("'", ''), text
+        assert 'The sum of the terms differs' not in page
         assert page.count('<img src="data:image/png;base64,') >= 3  # NPV diagram, price curves, maps
         path = writeReport(plugin.cur, plugin.config, 'cost')
         assert os.path.exists(path) and os.path.dirname(path).endswith('reports')
+
+    def test_set_pipes(self, rep):
+        """'Set pipes' (D24): the pipes simulated in an iteration into this version, by bundles (cost optimization) or by
+        the pipe names of an older balancing file, and into a child version without the run files of the parent"""
+        plugin = rep.plugin
+        v = plugin.config['versionName']
+        before, _ = lines_and_customers(plugin)
+        cost_rows = {row['iteration']: row for row in loadCostIterations(plugin.config)}
+        target = costIterationPipes(cost_rows[1])
+        n, _ = applyPipes(plugin.cur, v, target)
+        after, _ = lines_and_customers(plugin)
+        assert n == sum(1 for lid, bid in target['bundles'].items() if before.get(lid) != bid) > 0
+        assert all(after[lid] == bid for lid, bid in target['bundles'].items())
+        assert applyPipes(plugin.cur, v, target)[0] == 0
+
+        # iteration 1 of the balancing simulated the original pipes; its file has no state, only the supply pipe names
+        summary = {s['iteration']: s for s in loadIterations(plugin.config)}[1]
+        target = balancingIterationPipes(plugin.cur, summary)
+        assert target['by_name']
+        applyPipes(plugin.cur, v, target)
+        bundles = getPipeBundles(plugin.cur)
+        restored, _ = lines_and_customers(plugin)
+        assert all(bundles[restored[lid]] == bundles[bid] for lid, bid in before.items())
+
+        log = []
+        set_pipes = SetPipes(plugin.dlg, plugin, 'Cost optimization', log.append)
+        set_pipes.run(1, costIterationPipes(cost_rows[1]), ask=False)
+        wait_until(lambda: plugin.config['versionName'] == v + '_it1' and any('have the pipes of iteration 1' in m for m in log), 180,
+                   lambda: 'child version: ' + ' | '.join(log))
+        child, _ = lines_and_customers(plugin)
+        assert all(child[lid] == bid for lid, bid in costIterationPipes(cost_rows[1])['bundles'].items())
+        assert not loadCostIterations(plugin.config) and not loadIterations(plugin.config)
+        plugin.cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines;'.format(v))  # nosec B608
+        assert {row['id']: row['bid'] for row in plugin.cur.fetchall()} == restored  # the parent keeps its pipes
 
 
 def test_map_iterations():

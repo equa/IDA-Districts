@@ -1,7 +1,7 @@
 ## 1. Periods module
 
 - [x] 1.1 `utility_functions/periods.py`: resolve the project's climate SOURCE-FILE (clim: → IDA Districts climate folder), read hour and T_air (the first 8760 of the hour points), message naming an unreadable file
-- [x] 1.2 Dominant mode from the pair table / plants; anchor week (coldest or warmest), option fourth week (warmest) for combined networks; a tooltip says why the option is greyed out for networks that only heat or only cool
+- [x] 1.2 Dominant mode from the pair table / plants; anchor week (coldest or warmest), option fourth week (warmest) for every network, the coldest for a cooling network (low-temperature networks heat and cool through one pair)
 - [x] 1.3 Weights per simulated hour (hour of day, linear split between nearest below and above, nearest otherwise), profile sums, coverage (> 1 K) with warning above 40 %
 - [x] 1.4 Coverage search: candidate weeks from every midnight, coordinate descent from the 50 % / 85 % quantile weeks, no overlap
 
@@ -10,6 +10,8 @@
 - [x] 2.1 Class `PeriodRun` (QObject, signals as DynamicPipeSizingRun): delete `_period*` and periods.json, optional build (re-invoke only when asked), the weeks simulated in parallel in model copies `period_<k>` with their own dates, then per week copy the saved model with its results back, load, copy tables with suffix `_period<k>`; copies removed at the end
 - [x] 2.2 Name the outputs the kept tables need if they are off; restore the version's simulation dates after the run; annual option without copies, weights 1
 - [x] 2.3 Write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period/hour/weight, coverage, annual flag; profile sums at evaluation)
+- [x] 2.4 Weeks started one after another, each when the solver of the previous one runs (IDA log in the week's TEMP folder, at most 120 s); a week whose IDA ended fails instead of hanging (answer polling in util.py, watchdog in simulate_process.py), its error with the last lines of SCREEN.TXT
+- [x] 2.5 Next week only with free commit for one more week (+1 GB), the need measured from the first week's solver start (3.5 GB before); failed weeks simulated again one at a time after the others
 
 ## 3. Periods widget
 
@@ -25,6 +27,7 @@
 - [x] 5.1 Unit tests periods.py on BROMMA.PRN (skipped without IDA Districts): anchor coldest, weights sum 8760, linear split (5 °C between 4 and 8 °C → 0.75/0.25), proxies heat and cube within 2 %, coverage warning above 40 %, unreadable file message
 - [x] 5.2 Unit tests dominant mode and fourth week; no overlap of weeks
 - [x] 5.3 e2e/ida test on a project from `dynamic_optimization` (skipped without it): period run with three 1-day weeks and 1-day start-up, `_period1..3` tables, periods.json, simulation dates restored, second run leaves no tables of the first; report Economics from the periods
+- [x] 5.5 Unit tests test_parallel_weeks.py: next week released by the solver line, by the end of the week or after the max. wait; polling ends when IDA ended; solver tail; watchdog; waiting for free memory, measured need, retry of a failed week alone
 - [x] 5.4 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes (with `-m "not ida"` when IDA Districts is not installed), including test_static_mypy.py and test_messages.py
 
 ## 6. Translations, documentation, CI

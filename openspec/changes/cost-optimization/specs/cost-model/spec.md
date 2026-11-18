@@ -11,6 +11,17 @@ The cost model SHALL estimate, from the kept results of a check (mass flows and 
 - **WHEN** a line that is on no critical path in any simulated hour gets the next larger pipe
 - **THEN** the estimated pump energy does not fall and the ΔNPV is positive
 
+### Requirement: Heating or cooling per step
+The evaluation and the cost model SHALL decide per simulated step and supply/return pair whether the pair heats or cools from the heat its plants put into the network (c_p · Σ ṁ·T of the pair's connections), switching only outside a deadband of a share (default 5 %) of the range between the largest heating and the largest cooling flow. The losses of a pair's pipes SHALL be priced with the heat price curve in its heating steps and as a credit with the cold price curve in its cooling steps. A pair without plant results SHALL keep the mode of the plant template.
+
+#### Scenario: Low-temperature network
+- **WHEN** the plants put heat into the network in the first half of the year and take it out in the second
+- **THEN** the pipe losses of the first half are heat losses and those of the second half a credit of cold losses
+
+#### Scenario: Inside the deadband
+- **WHEN** the heat flow of a pair changes sign but stays inside the deadband
+- **THEN** the pair keeps its previous mode
+
 ### Requirement: Pump head of central and decentral pumps
 For a central pump the model SHALL take the head per hour as the largest pressure drop over the supply paths of the customers it supplies plus the smallest substation pressure difference; for a decentral pump (a network pump of a customer) the head SHALL be the pressure drop over the customer's own path, the direction from the signed mass flows of the hour. The pump power SHALL be V̇ × head / η_eff, η_eff of each pump calibrated from its simulated power in the check.
 

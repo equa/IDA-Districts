@@ -15,6 +15,7 @@ from collections import defaultdict
 import numpy as np
 
 from .economics import curvePrice, electricityStartPrice, level, netPresentValue
+from .network_modes import heatMask
 from .pipe_losses import uPrime
 
 RHO = 990.0  # kg/m3, water at network temperatures (the model compares sizes, not absolute heads)
@@ -78,7 +79,8 @@ class CostModel:
     lines: {lid: {'length', 'pipes': {seq: pipe_id}, 'surface': {surface: m}, 'protected': bool}}
     pairs: [(s, r)]; mdot[(lid, seq)], temp[(lid, seq)]: arrays (n); graph {lid: (start, end)}
     central: simulated central pump power (n) or None; decentral: {cid: power (n)}; v_plant[pair]: m3/s (n)
-    v_customer: {cid: m3/s (n)}; p_plant: plant supply pressure (n) [Pa]; settings (ground lambda), modes {seq: mode}
+    v_customer: {cid: m3/s (n)}; p_plant: plant supply pressure (n) [Pa]; settings (ground lambda),
+    modes {seq: 'heat'|'cold' or bool array per step (heating), network_modes}
     t_supply: {'heat': (n), 'cold': (n)}"""
 
     # limits of a smaller pipe at the line's peak flow, set from the dialog
@@ -207,7 +209,10 @@ class CostModel:
             depth = line.get('depth', {}).get(seq, 1.0)
             u = [uPrime(self.catalog[p]['d'], self.layers.get(self.catalog[p]['construction'], []), depth, ambient, self.lambda_soil) for p in (old, new)]
             t_amb = self.t_amb.get(ambient, np.full(self.n, 10.0))
-            change[self.modes.get(seq, 'heat')] += (u[1] - u[0]) * line['length'] * (self.temp[(lid, seq)] - t_amb)
+            delta = (u[1] - u[0]) * line['length'] * (self.temp[(lid, seq)] - t_amb)
+            heat = heatMask(self.modes, seq, self.n)
+            change['heat'] += np.where(heat, delta, 0.0)
+            change['cold'] += np.where(heat, 0.0, delta)
         return change
 
     def investmentItems(self, lid, pipes):
