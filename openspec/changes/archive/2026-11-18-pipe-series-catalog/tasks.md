@@ -37,4 +37,4 @@
 
 - [x] 5.1 tr / tr_msg with German translations for the series dialog, its headings, the system types and the bend radius; translations de/en compiled
 - [x] 5.2 README.md and CLAUDE.md: tables `pipe_series` / `pipe_series_pressure_ratings`, the flexible catalogue in the templates and its source
-- [ ] 5.3 `npx openspec validate --all`, commit the artifacts with the code (explicit paths), `git pull --rebase`, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 5.3 `npx openspec validate --all`, commit the artifacts with the code (explicit paths), `git pull --rebase`, push to dev and watch the plugin-tests run until both QGIS jobs pass
