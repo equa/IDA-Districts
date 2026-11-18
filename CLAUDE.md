@@ -32,6 +32,12 @@ say what each git command does before you run it.
   `energy_plant_s_energy`/`customer_s_energy`. With these results the NPV
   holds the energy costs per carrier (`network_energy.py`) instead of the
   priced pipe losses; the marginal plant prices a pipe loss.
+- Stages (change network-stages): the cost optimization's table 'Stages'
+  (`utility_functions/stage_table.py`) lists child versions with their start
+  year; `network_stages.py` checks the chain and sums the NPV by stage years
+  (`economics.stagedNetPresentValue`); the run simulates every stage per
+  iteration (`config['versionName']` switched per stage) and
+  `cost_model.stagedStep` sizes a line for all stages it exists in.
 - Pipe series: `public.pipe_series` (keyed by the text of `pipes.series`) and
   `pipe_series_pressure_ratings`, created by `upgrade.py`
   (`db.ensurePipeSeriesTables`). The flexible isoplus catalogue of the

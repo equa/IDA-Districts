@@ -86,6 +86,10 @@ class CostModel:
     # limits of a smaller pipe at the line's peak flow, set from the dialog
     dp_spez_max = DP_SPEZ_MAX
     v_max = V_MAX
+    # a stage of a network built in stages (network-stages D2): the investment of a line counts from the start year of
+    # the first stage containing it, the operating costs of this stage in its years (None: the whole period)
+    start_year = 0
+    operating = None
 
     def __init__(self, scenario, catalog, layers, lines, pairs, weights, mdot, temp, graph, customers, central=None,
                  decentral=None, v_plant=None, v_customer=None, p_plant=None, t_amb=None, t_supply=None, modes=None,
@@ -259,8 +263,9 @@ class CostModel:
             cold = float(-np.sum(self.w * d_loss['cold'] / 1000 * self.curvePrices('cold')))
         return {'pump_energy': float(np.sum(self.w * d_power / 1000 * el * self.shape)), 'heat_losses': heat, 'cold_losses': cold}
 
-    def change(self, lid, larger):
-        """{'pipes', 'dnpv', 'split', 'reason'} of a one-size change of the line, or None without a next pipe"""
+    def change(self, lid, larger, invest=True):
+        """{'pipes', 'dnpv', 'split', 'reason'} of a one-size change of the line, or None without a next pipe;
+        invest: count the investment change (in the first stage containing the line only)"""
         line = self.lines[lid]
         if line.get('protected'):
             return {'reason': 'protected'}
@@ -287,8 +292,10 @@ class CostModel:
             return {'pipes': changed, 'reason': reason}
         d_loss = self.lossChange(lid, changed)
         yearly = self.yearlyCosts(d_power, d_loss)
-        old = netPresentValue(self.scenario, self.investmentItems(lid, line['pipes']), {})
-        result = netPresentValue(self.scenario, self.investmentItems(lid, new), yearly)
+        items_old = [dict(item, start=self.start_year) for item in self.investmentItems(lid, line['pipes'])] if invest else []
+        items_new = [dict(item, start=self.start_year) for item in self.investmentItems(lid, new)] if invest else []
+        old = netPresentValue(self.scenario, items_old, {}, operating=self.operating)
+        result = netPresentValue(self.scenario, items_new, yearly, operating=self.operating)
         split = {key: result['split'][key] - old['split'][key] for key in result['split']}
         return {'pipes': changed, 'dnpv': sum(split.values()), 'split': split, 'reason': None,
                 'yearly': yearly}
@@ -327,6 +334,43 @@ class CostModel:
             if options:
                 chosen[lid] = min(options, key=lambda o: o['dnpv'])
         return chosen, rejected
+
+
+def stagedStep(models):
+    """step over the stages of a network (network-stages D2): models = the cost models of the stages in order. The ΔNPV
+    of a line's change is its investment in the first stage containing it plus the operating costs of every stage
+    containing it; a limit (peak flow, p_max) in any stage rejects the change. One model: model.step()."""
+    if len(models) == 1:
+        return models[0].step()
+    chosen, rejected = {}, {}
+    for lid in sorted(set().union(*[set(m.lines) for m in models])):
+        stages = [m for m in models if lid in m.lines]
+        options: list = []
+        for larger in (True, False):
+            total: 'float | None' = 0.0
+            split: dict = {}
+            pipes, reason = None, None
+            for k, model in enumerate(stages):
+                option = model.change(lid, larger, invest=k == 0)
+                if option is None:
+                    total = None
+                    break
+                if option.get('reason'):
+                    reason = option['reason']
+                    break
+                total = (total or 0.0) + option['dnpv']
+                pipes = option['pipes']
+                for key, value in option['split'].items():
+                    split[key] = split.get(key, 0.0) + value
+            if total is None:
+                continue
+            if reason:
+                rejected.setdefault(lid, []).append(reason)
+            elif total < 0:
+                options.append({'pipes': pipes, 'dnpv': total, 'split': split, 'reason': None})
+        if options:
+            chosen[lid] = min(options, key=lambda o: float(o['dnpv']))
+    return chosen, rejected
 
 
 def catalogWithCosts(rows):

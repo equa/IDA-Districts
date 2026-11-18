@@ -81,10 +81,12 @@ def purchaseYears(lifetime, period):
     return [k * lifetime for k in range(int(math.ceil(period / lifetime))) if k * lifetime < period] or [0]
 
 
-def netPresentValue(scenario, investments, yearly, by_carrier=None):
+def netPresentValue(scenario, investments, yearly, by_carrier=None, operating=None):
     """investments: [{'cost': €, 'lifetime': a, 'maintenance_pct': %/a}] bought in year 0 and replaced at the end of their
     lifetime; yearly: {'pump_energy'|'heat_losses'|'cold_losses': € of year 0} (signed); by_carrier: {'plant_energy'|
     'customer_energy': {carrier: € of year 0}}, each carrier with the level of its price group (plant-energy-costs D5).
+    An item with 'start' is bought in that year (a later stage of the network, network-stages D3); operating = (first,
+    last): the years of the yearly costs, default 1 to the period.
     Returns {'npv', 'annuity', 'split': {group: €}, 'years': [{year: €}] undiscounted per year}."""
     sc = scenario['scenario']
     i = float(sc.get('interest_pct') or 0) / 100
@@ -97,13 +99,17 @@ def netPresentValue(scenario, investments, yearly, by_carrier=None):
         split[group] += amount / (1 + i) ** year
         years[year] += amount
 
+    op_first, op_last = operating or (1, period)
     for item in investments:
         cost, lifetime = float(item.get('cost') or 0), float(item.get('lifetime') or 0)
-        buys = purchaseYears(lifetime, period)
+        start = int(item.get('start') or 0)
+        if start >= period:
+            continue
+        buys = [start + y for y in purchaseYears(lifetime, period - start)]
         for year in buys:
             add('investment', int(year), cost * level(scenario, 'investment', int(year)))
         maintenance = cost * float(item.get('maintenance_pct') or 0) / 100
-        for year in range(1, period + 1):
+        for year in range(start + 1, period + 1):
             add('maintenance', year, maintenance * level(scenario, 'maintenance', year))
         if residual and lifetime > 0:
             last = int(buys[-1])
@@ -112,11 +118,11 @@ def netPresentValue(scenario, investments, yearly, by_carrier=None):
                 add('residual', period, -cost * level(scenario, 'investment', last) * remaining)
     for group, price_group in ENERGY_GROUPS.items():
         amount = float(yearly.get(group) or 0)
-        for year in range(1, period + 1):
+        for year in range(op_first, op_last + 1):
             add(group, year, amount * level(scenario, price_group, year))
     for part, carriers in (by_carrier or {}).items():
         for carrier, amount in carriers.items():
-            for year in range(1, period + 1):
+            for year in range(op_first, op_last + 1):
                 add(part, year, float(amount or 0) * level(scenario, carrier, year))
     npv = sum(split.values())
     return {'npv': npv, 'annuity': npv * annuityFactor(i * 100, period), 'split': split, 'years': years}
@@ -162,6 +168,37 @@ def npvTerms(scenario, investments, yearly, by_carrier=None):
     for term in terms:
         term['value'] = term['base'] * term['factor']
     return terms
+
+
+def stageYears(starts, period):
+    """[(first, last)] operating years of each stage: from its start year + 1 to the next stage's start (the last stage
+    to the end of the period); stage 1 starts in year 0"""
+    ends = list(starts[1:]) + [period]
+    return [(start + 1, min(end, period)) for start, end in zip(starts, ends)]
+
+
+def stagedNetPresentValue(scenario, stages):
+    """NPV of a network built in stages (network-stages D3): stages = [{'start': year, 'investments': [items new in the
+    stage], 'yearly', 'by_carrier'}] in order. The operating costs of a stage count in its years (stageYears), its new
+    items from its start year. Returns netPresentValue's dict, summed, and 'stages': [the dict of each stage]."""
+    sc = scenario['scenario']
+    period = int(sc.get('period_a') or 0)
+    i = float(sc.get('interest_pct') or 0) / 100
+    ranges = stageYears([s['start'] for s in stages], period)
+    results = []
+    for stage, operating in zip(stages, ranges):
+        items = [dict(item, start=stage['start']) for item in stage.get('investments', [])]
+        results.append(netPresentValue(scenario, items, stage.get('yearly') or {}, stage.get('by_carrier'), operating))
+    split = {key: sum(r['split'][key] for r in results) for key in SPLIT}
+    years = [sum(r['years'][t] for r in results) for t in range(period + 1)]
+    npv = sum(split.values())
+    return {'npv': npv, 'annuity': npv * annuityFactor(i * 100, period), 'split': split, 'years': years, 'stages': results}
+
+
+def rangeFactor(interest_pct, first, last):
+    """present value of 1 € per year in the years first to last"""
+    i = interest_pct / 100
+    return sum(1 / (1 + i) ** t for t in range(first, last + 1))
 
 
 def yearlyEnergyCosts(scenario, hours, shape=None):

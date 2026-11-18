@@ -115,7 +115,10 @@ class SetPipes(QObject):
         super().__init__(owner)
         self.owner, self.main, self.feature, self.log, self.done = owner, main, feature, log, done
 
-    def run(self, iteration, target, ask=True):
+    def run(self, iteration, target, ask=True, stages=None):
+        """stages: the other stage versions of a network built in stages (network-stages D4): they get the pipes as well,
+        into themselves or into a child version each"""
+        self.stages = [v for v in (stages or []) if v != self.main.config['versionName']]
         if not target:
             QMessageBox.information(self.owner, self.feature, tr_msg('Iteration {} has no saved pipes (run before this was saved).').format(iteration))
             return
@@ -131,6 +134,8 @@ class SetPipes(QObject):
                 return
             try:
                 n, new_ids = applyPipes(self.main.cur, self.main.config['versionName'], target)
+                for version in self.stages:
+                    applyPipes(self.main.cur, version, target)
             except Exception:
                 QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
                 self.log(tr_msg('The pipes could not be set: ') + traceback.format_exc().splitlines()[-1])
@@ -144,7 +149,14 @@ class SetPipes(QObject):
         self.name, self.iteration = name, iteration
         self.log(tr_msg('Creating the child version {} of {} with the pipes of iteration {} ...').format(name, self.main.config['versionName'], iteration))
         config, plugin_dir, feature = dict(self.main.config), self.main.plugin_dir, self.feature
-        startTask(self, config, lambda cur: createVersionWithIteration(cur, config, plugin_dir, name, iteration, feature, target),
+        stages = list(self.stages)
+
+        def create(cur):
+            # the other stages first: their child versions are not loaded
+            for version in stages:
+                createVersionWithIteration(cur, dict(config, versionName=version), plugin_dir, '{}_it{}'.format(version, iteration), iteration, feature, target)
+            return createVersionWithIteration(cur, config, plugin_dir, name, iteration, feature, target)
+        startTask(self, config, create,
                   self.onCreated, lambda message: self.log(tr_msg('The child version could not be created: ') + message))
 
     def finished(self, iteration, n, new_ids, version):

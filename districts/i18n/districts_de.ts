@@ -11281,5 +11281,73 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Components that buy energy: the variable is written as an output, its energy is valued with the price of the carrier (economic scenario). Found: boilers (QSUP, fuel) and heat pumps (P_el_total, electricity); a boiler standing for waste heat is changed to purchased heat. Energy from the surroundings (borehole field, ambient air) is added with the carrier ambient (free). Delivered heat/cold (e.g. the heat exchanger of a substation, heat &gt; 0, cold &lt; 0) is not bought: it is the reference of the key figures.</source>
             <translation>Komponenten, die Energie beziehen: die Variable wird als Ausgabe geschrieben, ihre Energie mit dem Preis des Energieträgers bewertet (Wirtschaftlichkeitsszenario). Gefunden: Kessel (QSUP, Brennstoff) und Wärmepumpen (P_el_total, Strom); ein Kessel, der für Abwärme steht, wird auf zugekaufte Wärme geändert. Energie aus der Umgebung (Erdsondenfeld, Aussenluft) wird mit dem Energieträger Umgebung (kostenlos) hinzugefügt. Gelieferte Wärme/Kälte (z. B. der Wärmetauscher einer Übergabestation, Wärme &gt; 0, Kälte &lt; 0) wird nicht bezogen: sie ist die Bezugsgrösse der Kennzahlen.</translation>
         </message>
+        <message>
+            <source>A network built in stages: the loaded version is stage 1 (year 0), each further stage a child version with more customers, plants and lines, from its start year. The pipes of a line are sized for all stages it exists in. One row: this version only.</source>
+            <translation>Ein in Etappen gebautes Netz: die geladene Version ist Etappe 1 (Jahr 0), jede weitere Etappe eine Kindversion mit mehr Abnehmern, Zentralen und Leitungen, ab ihrem Startjahr. Die Rohre einer Leitung werden für alle Etappen bemessen, in denen sie vorkommt. Eine Zeile: nur diese Version.</translation>
+        </message>
+        <message>
+            <source>Add a stage</source>
+            <translation>Etappe hinzufügen</translation>
+        </message>
+        <message>
+            <source>Iteration {}: NPV of the stages {} €</source>
+            <translation>Iteration {}: Barwert der Etappen {} €</translation>
+        </message>
+        <message>
+            <source>Iteration {}: simulating the periods of stage {} ({}) ...</source>
+            <translation>Iteration {}: simuliere die Zeiträume der Etappe {} ({}) ...</translation>
+        </message>
+        <message>
+            <source>Net present value per stage [€]</source>
+            <translation>Barwert je Etappe [€]</translation>
+        </message>
+        <message>
+            <source>Stage version</source>
+            <translation>Version der Etappe</translation>
+        </message>
+        <message>
+            <source>Stage {}</source>
+            <translation>Etappe {}</translation>
+        </message>
+        <message>
+            <source>Stage</source>
+            <translation>Etappe</translation>
+        </message>
+        <message>
+            <source>Stages</source>
+            <translation>Etappen</translation>
+        </message>
+        <message>
+            <source>Start year [a]</source>
+            <translation>Startjahr [a]</translation>
+        </message>
+        <message>
+            <source>Version of the run</source>
+            <translation>Version des Laufs</translation>
+        </message>
+        <message>
+            <source>The pipes of a line are sized for all stages it exists in; the operating costs of a stage count in its years, an investment from the start of the stage it first appears in.</source>
+            <translation>Die Rohre einer Leitung werden für alle Etappen bemessen, in denen sie vorkommt; die Betriebskosten einer Etappe zählen in ihren Jahren, eine Investition ab dem Start der Etappe, in der sie zuerst vorkommt.</translation>
+        </message>
+        <message>
+            <source>No stage.</source>
+            <translation>Keine Etappe.</translation>
+        </message>
+        <message>
+            <source>The first stage ({}) has to start in year 0.</source>
+            <translation>Die erste Etappe ({}) muss im Jahr 0 beginnen.</translation>
+        </message>
+        <message>
+            <source>The start years have to increase (stage {}).</source>
+            <translation>Die Startjahre müssen zunehmen (Etappe {}).</translation>
+        </message>
+        <message>
+            <source>Stage {} is not a child version of the previous stage.</source>
+            <translation>Etappe {} ist keine Kindversion der vorherigen Etappe.</translation>
+        </message>
+        <message>
+            <source>Lines of the previous stage missing or moved in stage {}.</source>
+            <translation>Leitungen der vorherigen Etappe fehlen oder sind verschoben in Etappe {}.</translation>
+        </message>
     </context>
 </TS>

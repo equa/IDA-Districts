@@ -629,6 +629,8 @@ def costReport(cur, config):
         title = tr_msg('Iteration {}').format(k) + (' – ' + row['outcome'] if row.get('outcome') else '')
         report.section(title, body or '<p class="empty">{}</p>'.format(esc(tr_msg('no change'))), 3)
 
+    stageSections(report, rows, parms)
+
     # cost analysis
     report.section(tr_msg('Cost analysis'))
     iterations = [r['iteration'] for r in rows]
@@ -836,6 +838,22 @@ def energySections(report, saved):
     report.section(tr_msg('Hours per marginal plant'), table([tr_msg('Iteration'), tr_msg('Marginal'), tr_msg('Hours [h/a]')], hour_rows) +
                    '<p class="note">{}</p>'.format(esc(tr_msg('A plant running above {:g} % of its peak heat flow; steps without one are priced with the curves.').format(
                        first.get('threshold_pct', 5.0)))), 3)
+
+
+def stageSections(report, rows, parms):
+    """the stages of a network built in stages (network-stages D6): versions and years, the NPV per stage and iteration"""
+    staged = [r for r in rows if r.get('stages')]
+    if not staged:
+        return
+    first = staged[0]['stages']
+    inputs = parms.get('stages') or []
+    stage_rows = [[k, s['version'], (inputs[k - 1]['version'] if k - 1 < len(inputs) else ''), s['start']] for k, s in enumerate(first, 1)]
+    report.section(tr_msg('Stages'), table([tr_msg('Stage'), tr_msg('Version of the run'), tr_msg('Stage version'), tr_msg('Start year [a]')], stage_rows) +
+                   '<p class="note">{}</p>'.format(esc(tr_msg('The pipes of a line are sized for all stages it exists in; the operating costs of a '
+                                                              'stage count in its years, an investment from the start of the stage it first appears in.'))), 3)
+    npv_rows = [[r['iteration']] + [round(s['npv']) for s in r['stages']] + [round(r['npv'])] for r in staged]
+    report.section(tr_msg('Net present value per stage [€]'), table(
+        [tr_msg('Iteration')] + [tr_msg('Stage {}').format(k) for k in range(1, len(first) + 1)] + [tr_msg('Total')], npv_rows), 3)
 
 
 def npvCalculation(report, rows):

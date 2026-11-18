@@ -33,12 +33,17 @@ from .utility_functions.db import getUsedNetworkSubmodels
 from .utility_functions.dialog import infoTextEdit
 from .utility_functions.dynamic_sizing_results import loadIterations
 from .utility_functions.files import loadModellingSettings, loadRequestedOutputs
-from .utility_functions.iteration_report import npvBars, openReport, saveRunParameters
+from .utility_functions.iteration_report import loadRunParameters, npvBars, openReport, saveRunParameters
 from .utility_functions.hydraulic_balancing import createChildVersion, getOrCreatePipeBundles, getPipeBundles
 from .utility_functions.network_economics import evaluateVersion, resultTables
-from .utility_functions.economics import npvTerms, presentValueFactor
+from .utility_functions.economics import npvTerms, presentValueFactor, stageYears
 from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
+from .utility_functions.cost_model import stagedStep
+from .utility_functions.economic_data import loadScenario
+from .utility_functions.network_stages import stageProblems, stagesNpv
+from .utility_functions.periods import climateFile, readClimate
 from .utility_functions.set_pipes import SetPipes, costIterationPipes
+from .utility_functions.stage_table import StageTable, problemText
 from .utility_functions.penalties import customerValues, deficitCustomers, penaltyCost, penaltyNpv
 from .utility_functions.pair_widgets import PairTable
 from .utility_functions.pipe_pairs import getPlantConnections, networkSequences, suggestPairs
@@ -121,17 +126,27 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv):
             'modes': evaluation.get('modes') or {}}
 
 
-def modelStep(cur, config, parms, settings, prices, no_smaller):
+def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None):
     """the cost model of the checked iteration, its step and the new pipes written into the version (worker thread):
-    {'steps', 'rejected', 'state', 'n_changed'}, or None without a model"""
-    model = buildModel(cur, config, parms['scenario'], parms['pairs'], settings, profile_dir=prices)
-    if model is None:
-        return None
-    model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
-    for lid in no_smaller:
-        if lid in model.lines:
-            model.lines[lid]['no_smaller'] = True
-    chosen, rejected = model.step()
+    {'steps', 'rejected', 'state', 'n_changed'}, or None without a model. stages: [{'version', 'start'}] of a network
+    built in stages (network-stages D2, D4): a model per stage, the step over all, written into every stage containing
+    the line; the state is the last stage's (it holds every line)."""
+    stages = stages or [{'version': config['versionName'], 'start': 0}]
+    period = int((loadScenario(cur, parms['scenario']) or {'scenario': {}})['scenario'].get('period_a') or 0)
+    ranges = stageYears([int(s['start']) for s in stages], period) if len(stages) > 1 else [None]
+    models = []
+    for stage, operating in zip(stages, ranges):
+        model = buildModel(cur, dict(config, versionName=stage['version']), parms['scenario'], parms['pairs'], settings, profile_dir=prices)
+        if model is None:
+            return None
+        model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
+        model.start_year, model.operating = int(stage['start']), operating
+        for lid in no_smaller:
+            if lid in model.lines:
+                model.lines[lid]['no_smaller'] = True
+        models.append(model)
+    model = models[-1]
+    chosen, rejected = stagedStep(models)
     steps = []
     for lid, c in sorted(chosen.items()):
         before = {seq: model.lines[lid]['pipes'][seq] for seq in c['pipes']}
@@ -141,13 +156,15 @@ def modelStep(cur, config, parms, settings, prices, no_smaller):
     result = {'steps': steps, 'rejected': rejected, 'state': None, 'n_changed': 0}
     if not chosen:
         return result
-    schema = config['versionName']
+    schema = stages[-1]['version']
     current = lineState(cur, schema)
     bundles = getPipeBundles(cur)
     pipes = {lid: {**bundles.get(current[lid], {}), **c['pipes']} for lid, c in chosen.items()}
     new_bundles, _ = getOrCreatePipeBundles(cur, {lid: current[lid] for lid in chosen}, pipes)
-    for lid, bid in new_bundles.items():
-        cur.execute('UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;'.format(schema), (bid, lid))  # nosec B608
+    for stage in stages:
+        # a line keeps the same pipes in every stage containing it
+        psycopg2.extras.execute_values(cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(  # nosec B608
+            stage['version']), sorted(new_bundles.items()))
     result['state'] = tuple(sorted(lineState(cur, schema).items()))
     result['n_changed'] = len(new_bundles)
     return result
@@ -284,6 +301,16 @@ class CostOptimizationDialog(QDialog):
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         self.box_protected = self.section(tr_msg('Protected lines'), self.protected_lines, collapsed=not self.protected_lines.texts())
         layout.addWidget(self.box_protected)
+        try:
+            main.cur.execute('SELECT name FROM public.versionhandling ORDER BY id;')
+            versions = [row['name'] for row in main.cur.fetchall()]
+        except Exception:
+            versions = [config['versionName']]
+        self.stage_table = StageTable(versions, config['versionName'], tr_msg(
+            'A network built in stages: the loaded version is stage 1 (year 0), each further stage a child version with more customers, '
+            'plants and lines, from its start year. The pipes of a line are sized for all stages it exists in. One row: this version only.'))
+        self.box_stages = self.section(tr_msg('Stages'), self.stage_table, collapsed=True)
+        layout.addWidget(self.box_stages)
         self.table_required = QTableWidget(0, 4)
         self.table_required.setHorizontalHeaderLabels([tr_msg('Template'), tr_msg('Column'), tr_msg('Unit'), tr_msg('Mode')])
         self.table_required.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
@@ -475,7 +502,8 @@ class CostOptimizationDialog(QDialog):
                 'price_kh': self.spin_price_kh.value(), 'tolerance': self.spin_tolerance.value(), 'price_kwh': self.spin_price_kwh.value(),
                 'unmet_tolerance': self.spin_tolerance_kwh.value(), 'dp_spez_max': self.spin_dp_max.value(), 'v_max': self.spin_v_max.value(),
                 'max_iter': self.spin_iter.value(), 'new_version': self.edit_version.text().strip() if self.rbtn_new.isChecked() else None,
-                'set_outputs': self.check_outputs.isChecked(), 'mode_deadband_pct': self.spin_deadband.value()}
+                'set_outputs': self.check_outputs.isChecked(), 'mode_deadband_pct': self.spin_deadband.value(),
+                'stages': self.stage_table.stages()}
 
     # ---------------------------------------------------------------- run
     def start(self):
@@ -491,6 +519,12 @@ class CostOptimizationDialog(QDialog):
             return
         if not self.saveProtected(p):
             return
+        if len(p['stages']) > 1:
+            problems = stageProblems(self.main.cur, p['stages'])
+            if problems:
+                for problem in problems:
+                    self.log(problemText(problem))
+                return
         saveRequired(self.main.config, self.requiredEntries())
         self.process_running = True
         self.updateEnabled()
@@ -540,7 +574,8 @@ class CostOptimizationDialog(QDialog):
             return
         rows = {row['iteration']: row for row in loadCostIterations(self.main.config)}
         self.set_pipes = SetPipes(self, self.main, tr_msg('Cost optimization'), self.log, self.loadIterationTable)
-        self.set_pipes.run(selected[0], costIterationPipes(rows.get(selected[0], {})))
+        stages = loadRunParameters(self.main.config, 'cost').get('stage_versions') or []
+        self.set_pipes.run(selected[0], costIterationPipes(rows.get(selected[0], {})), stages=stages)
 
     def showSelectedIterations(self):
         selected = self.selectedIterations()
@@ -607,10 +642,21 @@ class CostOptimizationRun(QObject):
         self.done = False
         self.stop_requested = False
         self.final_check = False
+        # a network built in stages (network-stages): the stage versions the run works on, filled at the start
+        self.stages = parms.get('stages') if len(parms.get('stages') or []) > 1 else []
+        self.stage_versions: list = []
+        self.stage_climates: dict = {}
+        self.stage_references: list = []
 
     @property
     def config(self):
         return self.main.config
+
+    def stageList(self):
+        """[{'version', 'start'}] of the versions the run works on (the result versions), None without stages"""
+        if not self.stages:
+            return None
+        return [{'version': v, 'start': int(s['start'])} for v, s in zip(self.stage_versions, self.stages)]
 
     @property
     def cur(self):
@@ -667,10 +713,32 @@ class CostOptimizationRun(QObject):
     def afterOutputs(self):
         if self.stopCheck():
             return
+        if self.stages:
+            self.stage_versions = [s['version'] for s in self.stages]
+            if self.parms['new_version']:
+                loaded, name = self.config['versionName'], self.parms['new_version']
+                suffix = name[len(loaded):] if name.startswith(loaded) and len(name) > len(loaded) else '_co'
+                self.stage_versions = [name] + [s['version'] + suffix for s in self.stages[1:]]
+                self.createStageVersion(1)
+                return
         if self.parms['new_version']:
             self.createVersion()
         else:
             self.begin()
+
+    def createStageVersion(self, k):
+        """the child versions of the later stages, one after another; then the child of stage 1, which is loaded"""
+        if self.stopCheck():
+            return
+        if k >= len(self.stages):
+            self.createVersion()
+            return
+        base, name = self.stages[k]['version'], self.stage_versions[k]
+        self.dlg.log(tr_msg('Creating the child version {} of {} ...').format(name, base))
+        config, plugin_dir = dict(self.config, versionName=base), self.plugin_dir
+        description = 'Cost optimization of version {} (stage {})'.format(base, k + 1)
+        startTask(self, self.config, lambda cur: createChildVersion(cur, config, plugin_dir, name, description),
+                  lambda _: self.createStageVersion(k + 1), self.onTaskFailed)
 
     def createVersion(self):
         name = self.parms['new_version']
@@ -708,7 +776,7 @@ class CostOptimizationRun(QObject):
     def begin(self):
         deleteIterationFiles(self.config)
         try:
-            saveRunParameters(self.config, 'cost', dict(self.parms, protected=loadProtectedLines(self.config)))
+            saveRunParameters(self.config, 'cost', dict(self.parms, protected=loadProtectedLines(self.config), stage_versions=self.stage_versions))
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         removeCostLayers()
@@ -721,12 +789,45 @@ class CostOptimizationRun(QObject):
     def check(self, build):
         if self.stopCheck():
             return
+        if self.stages:
+            self.checkStage(0, build)
+            return
         self.dlg.log(tr_msg('Iteration {}: simulating the periods ...').format(self.iteration))
         parms = {'network': self.parms['network'], 'submodel': self.parms['submodel'], 'build_first': build,
                  # the first run invokes the customers and plants again, so their outputs match the requested ones
                  'reinvoke': self.iteration == 0 and not self.final_check, **self.periods}
         self.period_run = PeriodRun(_CheckDialog(self.dlg, self.year, self.t_year, self.climate), self.main, parms, on_finished=self.onChecked)
         self.period_run.start()
+
+    def checkStage(self, k, build):
+        """the periods of stage k with its version and its climate (network-stages D4, D5); the loaded version (stage 1)
+        is set again after the last stage"""
+        if self.stopCheck():
+            return
+        version = self.stage_versions[k]
+        self.dlg.log(tr_msg('Iteration {}: simulating the periods of stage {} ({}) ...').format(self.iteration, k + 1, version))
+        try:
+            if version not in self.stage_climates:
+                climate = climateFile(dict(self.config, versionName=version), self.cur)
+                self.stage_climates[version] = (climate, readClimate(climate))
+            climate, t_year = self.stage_climates[version]
+            self.main.config['versionName'] = version
+        except Exception:
+            self.main.config['versionName'] = self.stage_versions[0]
+            self.onException()
+            return
+        parms = {'network': self.parms['network'], 'submodel': self.parms['submodel'], 'build_first': build,
+                 'reinvoke': self.iteration == 0 and not self.final_check, **self.periods}
+        self.period_run = PeriodRun(_CheckDialog(self.dlg, self.year, t_year, climate), self.main, parms,
+                                    on_finished=lambda ok: self.onStageChecked(k, build, ok))
+        self.period_run.start()
+
+    def onStageChecked(self, k, build, ok):
+        if not ok or k + 1 >= len(self.stages):
+            self.main.config['versionName'] = self.stage_versions[0]
+            self.onChecked(ok)
+            return
+        self.checkStage(k + 1, build)
 
     def onChecked(self, ok):
         if self.done:
@@ -756,6 +857,20 @@ class CostOptimizationRun(QObject):
                 return evaluation, None, None
             return evaluation, penaltyValues(cur, config, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100), lineState(cur, config['versionName'])
 
+        stages = self.stageList()
+        if stages:
+            def staged(cur):
+                evaluations, values = [], []
+                for stage in stages:
+                    cfg = dict(config, versionName=stage['version'])
+                    evaluation = evaluateVersion(cur, cfg, p['scenario'], settings, profile_dir=prices)
+                    if 'npv' not in evaluation:
+                        return evaluation, None, None
+                    evaluations.append(evaluation)
+                    values.append(penaltyValues(cur, cfg, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100))
+                return evaluations, values, lineState(cur, stages[-1]['version'])
+            startTask(self, self.config, staged, self.onEvaluated, self.onTaskFailed)
+            return
         startTask(self, self.config, work, self.onEvaluated, self.onTaskFailed)
 
     @pyqtSlot(object)
@@ -763,9 +878,38 @@ class CostOptimizationRun(QObject):
         if self.done:
             return
         try:
-            self.evaluated(*result)
+            if self.stages and isinstance(result[0], list):
+                self.evaluatedStages(*result)
+            else:
+                self.evaluated(*result)
         except Exception:
             self.onException()
+
+    def evaluatedStages(self, evaluations, values, state):
+        """the NPV of all stages (network-stages D3): stagesNpv over the stage versions, the penalty of each stage in its
+        years; a new deficit in any stage blocks the lines made smaller in the last step"""
+        p = self.parms
+        if not self.stage_references:
+            self.stage_references = values
+        yearly = [penaltyCost(v, p['price_kh'], p['price_kwh']) for v in values]
+        result = stagesNpv(evaluations[0]['scenario'], self.stageList(), evaluations, yearly)
+        new_deficits = sorted({cid for v, ref in zip(values, self.stage_references) for cid, (kh, kwh) in v.items()
+                               if kh > ref.get(cid, (0, 0))[0] + 1e-6 or kwh > ref.get(cid, (0, 0))[1] + 1e-6})
+        previous = self.rows[-1] if self.rows else None
+        npv_model = previous.get('npv_next') if previous else None
+        npv = result['npv']
+        row = {'iteration': self.iteration, 'npv': npv, 'split': result['split'], 'npv_model': npv_model,
+               'model_error': None if npv_model is None or not npv else (npv_model - npv) / abs(npv),
+               'penalty_customers': new_deficits, 'state': state, 'economics': None,
+               'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split']}
+                          for s, r in zip(self.stageList(), result['stages'])]}
+        if previous:
+            row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if new_deficits]
+            self.no_smaller.update(row['penalty_reverted'])
+        self.dlg.log(tr_msg('Iteration {}: NPV of the stages {} €').format(self.iteration, ', '.join(
+            '{:,.0f}'.format(r['npv']).replace(',', "'") for r in result['stages'])))
+        self.rows.append(row)
+        self.nextStep(row)
 
     def evaluated(self, evaluation, values, state):
         p = self.parms
@@ -813,8 +957,8 @@ class CostOptimizationRun(QObject):
             self.saveRow(row, [], {})
             return self.end(tr_msg('No improvement of the simulated NPV for {} iterations.').format(NO_IMPROVEMENT))
         self.dlg.log(tr_msg('Iteration {}: cost model and step ...').format(self.iteration))
-        config, settings, prices, no_smaller = dict(self.config), self.settings, self.prices, set(self.no_smaller)
-        startTask(self, self.config, lambda cur: modelStep(cur, config, p, settings, prices, no_smaller), self.onStep, self.onTaskFailed)
+        config, settings, prices, no_smaller, stages = dict(self.config), self.settings, self.prices, set(self.no_smaller), self.stageList()
+        startTask(self, self.config, lambda cur: modelStep(cur, config, p, settings, prices, no_smaller, stages), self.onStep, self.onTaskFailed)
 
     @pyqtSlot(object)
     def onStep(self, result):
@@ -873,11 +1017,14 @@ class CostOptimizationRun(QObject):
         self.dlg.log(message)
         self.dlg.markBest(best['iteration'])
         schema = self.config['versionName']
-        if best['state']:
-            # one statement: a row per line would block the dialog on large networks
-            psycopg2.extras.execute_values(self.cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(schema),  # nosec B608
-                                           [(int(lid), bid) for lid, bid in best['state'].items()])
-        if best is self.rows[-1] and lineState(self.cur, schema) == best['state']:
+        # every stage gets the pipes of the best iteration (a line has the same pipes in all stages containing it)
+        for version in self.stage_versions or [schema]:
+            if best['state']:
+                # one statement: a row per line would block the dialog on large networks
+                psycopg2.extras.execute_values(self.cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(version),  # nosec B608
+                                               [(int(lid), bid) for lid, bid in best['state'].items()])
+        last = (self.stage_versions or [schema])[-1]
+        if best is self.rows[-1] and lineState(self.cur, last) == best['state']:
             self.finish(tr_msg('Finished: iteration {} has the least NPV ({:,.0f} €).').format(best['iteration'], best['npv']).replace(',', "'"))
             return
         self.dlg.log(tr_msg('The pipes of iteration {} are restored and simulated again.').format(best['iteration']))
