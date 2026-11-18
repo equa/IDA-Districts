@@ -3,6 +3,8 @@
 representative-periods, D5). No IDA Districts: fake timers, workers, IDA logs and API answers."""
 import json
 import os
+import sys
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -265,3 +267,26 @@ def test_watchdog_ends_the_week_when_ida_ended(tmp_path, monkeypatch):
 def test_free_memory_is_read():
     free = rp.freeMemoryMB()
     assert free is not None and free > 0
+
+
+# the week's process: sys.argv = [-c, simulate_process.py, model, work_dir, result_file, path]
+HANGING = 'import time; time.sleep(120)'
+STARTING = ("import os, sys, time, json; d = sys.argv[3]; os.makedirs(os.path.join(d, 'tmp'), exist_ok=True); "
+            "open(os.path.join(d, 'tmp', 'ida_log_1.txt'), 'w').write('Service subscriber connected'); time.sleep(6); "
+            "json.dump({'ok': True, 'errors': []}, open(sys.argv[4], 'w'))")
+
+
+def test_week_without_solver_start_is_stopped(tmp_path, monkeypatch):
+    """an IDA that hangs at its start (alive, no solver) is stopped after the timeout and the week fails"""
+    monkeypatch.setattr(simulate_process, 'pythonCommand', lambda: [sys.executable, '-c', HANGING])
+    monkeypatch.setattr(simulate_process, 'POLL_S', 0.2)
+    t0 = time.monotonic()
+    result = simulate_process.simulateInProcess('model.idm', str(tmp_path / 'week'), 'C:/IDA', start_timeout=2)
+    assert time.monotonic() - t0 < 30
+    assert not result['ok'] and 'did not start the solver within 2 s' in result['errors'][0]
+
+
+def test_week_with_solver_start_runs_beyond_the_timeout(tmp_path, monkeypatch):
+    monkeypatch.setattr(simulate_process, 'pythonCommand', lambda: [sys.executable, '-c', STARTING])
+    monkeypatch.setattr(simulate_process, 'POLL_S', 0.2)
+    assert simulate_process.simulateInProcess('model.idm', str(tmp_path / 'week'), 'C:/IDA', start_timeout=3) == {'ok': True, 'errors': []}

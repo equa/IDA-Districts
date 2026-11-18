@@ -19,6 +19,29 @@ import traceback
 # after IDA ended, the simulation call gets this long to return before the process gives up
 IDA_ENDED_GRACE_S = 60
 SOLVER_TAIL_LINES = 12
+# IDA writes this line into its log in the week's TEMP folder when the solver runs; undocumented, as the broker log
+SOLVER_STARTED = 'Service subscriber connected'
+# an IDA that hangs at its start stays alive without an answer (seen when another IDA started at the same moment);
+# the week is stopped after this long without a solver and fails, the period run simulates it again
+SOLVER_START_TIMEOUT_S = 600
+POLL_S = 2
+
+
+def solverStarted(work_dir):
+    for path in glob.glob(os.path.join(work_dir, 'tmp', 'ida_log_*.txt')):
+        try:
+            with open(path, errors='replace') as f:
+                if SOLVER_STARTED in f.read():
+                    return True
+        except OSError:
+            pass
+    return False
+
+
+def killTree(pid):
+    """the week's process with its children (IDA Districts is started by it)"""
+    subprocess.run(['taskkill', '/T', '/F', '/PID', str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,  # nosec B603 B607
+                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
 
 
 def solverTail(tmp):
@@ -69,8 +92,9 @@ def pythonCommand():
     raise RuntimeError('QGIS Python (python-qgis.bat) not found next to {}'.format(sys.executable))
 
 
-def simulateInProcess(model, work_dir, path_districts):
-    """blocks until the child process ends; returns {'ok': bool, 'errors': [...]}"""
+def simulateInProcess(model, work_dir, path_districts, start_timeout=SOLVER_START_TIMEOUT_S):
+    """blocks until the child process ends; returns {'ok': bool, 'errors': [...]}; a week whose solver has not started
+    after start_timeout seconds is stopped and fails"""
     os.makedirs(work_dir, exist_ok=True)
     result_file = os.path.join(work_dir, 'result.json')
     log_file = os.path.join(work_dir, 'runner.log')
@@ -79,7 +103,15 @@ def simulateInProcess(model, work_dir, path_districts):
     cmd = pythonCommand() + [os.path.abspath(__file__), model, work_dir, result_file, path_districts]
     flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
     with open(log_file, 'w') as log:
-        process = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, creationflags=flags)  # nosec B603
+        process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, creationflags=flags)  # nosec B603
+        start, started = time.monotonic(), False
+        while process.poll() is None:
+            time.sleep(POLL_S)
+            started = started or solverStarted(work_dir)
+            if not started and time.monotonic() - start > start_timeout:
+                killTree(process.pid)
+                process.wait()
+                return {'ok': False, 'errors': ['IDA Districts did not start the solver within {} s, stopped'.format(start_timeout)]}
     if not os.path.exists(result_file):
         with open(log_file, errors='replace') as log:
             return {'ok': False, 'errors': ['simulation process failed (exit code {}): {}'.format(process.returncode, log.read()[-2000:])]}

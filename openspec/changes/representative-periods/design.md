@@ -80,7 +80,10 @@ touches little of its block, RAM would serialise also where the weeks fit. A wee
 after the others, the failed weeks one at a time; a second failure fails the run. A week whose IDA ended without answering fails instead of hanging: the answer polling in
 `util.py` stops when the IDA process has ended, and a watchdog in `simulate_process.py` ends the process 60 s after
 IDA ended if the call into idaapi2.dll has not returned; a failed week names the last lines of the solver output
-(`SCREEN.TXT`). When all are done, week by week the model as IDA saved it (results and the rewritten macros the loading parses) is copied
+(`SCREEN.TXT`). An IDA that hangs at its start stays alive without an answer (CI, 2026-11-18: an IDA started in
+the user's QGIS 23 s before a week's IDA; the week's IDA wrote no log for 39 min): a week whose solver has not
+started after 600 s is stopped with its process tree (`taskkill /T`) and fails, so the retry above simulates it again.
+When all are done, week by week the model as IDA saved it (results and the rewritten macros the loading parses) is copied
 back into the version's model folder, loaded, and the tables of D6 copied with suffix `_period<k>` (loading stays sequential: it writes the same
 result tables); the copies are removed at the end. A failed week fails the run after all have finished; the outputs the evaluation needs (pump power, line and plant temperatures, line
 losses) are named in the log if they are off – switching outputs rewrites the project's templates, which stays the

@@ -12,6 +12,7 @@
 - [x] 2.3 Write `versions/<version>/periods.json` (run time, climate file, weeks with role, per simulated hour period/hour/weight, coverage, annual flag; profile sums at evaluation)
 - [x] 2.4 Weeks started one after another, each when the solver of the previous one runs (IDA log in the week's TEMP folder, at most 120 s); a week whose IDA ended fails instead of hanging (answer polling in util.py, watchdog in simulate_process.py), its error with the last lines of SCREEN.TXT
 - [x] 2.5 Next week only with free commit for one more week (+1 GB), the need measured from the first week's solver start (3.5 GB before); failed weeks simulated again one at a time after the others
+- [x] 2.6 A week whose solver has not started after 600 s is stopped with its process tree and fails, so it is simulated again (`simulateInProcess`); unit tests with a hanging and a starting fake week
 
 ## 3. Periods widget
 

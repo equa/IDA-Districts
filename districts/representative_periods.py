@@ -4,7 +4,6 @@
 _period<k>), the weeks and weights in versions/<version>/periods.json."""
 import ctypes
 import datetime
-import glob
 import os
 import re
 import shutil
@@ -27,7 +26,7 @@ from .ida_mosim_dialog import RunNetworkModelDialog
 from .ida_rv import loadResults
 from .ida_rv_dialog import LoadResultsDialog
 from .invoke_network import WorkerBuildNetworkModel
-from .simulate_process import simulateInProcess
+from .simulate_process import simulateInProcess, solverStarted
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbConnect
 from .utility_functions.files import (
@@ -240,8 +239,6 @@ PERIOD_DIR = 'period_{}'
 SIM_START_POLL_MS = 500
 # a week whose solver start is not seen (other IDA version, slow start) holds the next one back at most this long
 SIM_START_MAX_WAIT_S = 120
-# IDA writes this line into its log in the week's TEMP folder when the solver runs; undocumented, as the broker log
-SOLVER_STARTED = 'Service subscriber connected'
 
 
 # one week (IDA + solver) of low_temperature_network and dynamic_optimization: 3.4 GB committed, mostly the solver's
@@ -272,17 +269,6 @@ def freeMemoryMB():
         return status.ullAvailPageFile / 2**20
     except Exception:
         return None
-
-
-def solverStarted(work_dir):
-    for path in glob.glob(os.path.join(work_dir, 'tmp', 'ida_log_*.txt')):
-        try:
-            with open(path, errors='replace') as f:
-                if SOLVER_STARTED in f.read():
-                    return True
-        except OSError:
-            pass
-    return False
 
 
 def versionDir(config):
