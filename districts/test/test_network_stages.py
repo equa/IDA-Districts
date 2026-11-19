@@ -55,10 +55,11 @@ def test_coupled_step_equals_one_model_for_identical_stages():
     first, second = model(), model()
     first.operating, second.operating, second.start_year = (1, 10), (11, 40), 10
     staged, _ = stagedStep([first, second])
-    assert set(staged) == set(single)
+    # the step is keyed by the line groups (root: stage 1, line ID)
+    assert set(staged) == {(0, lid) for lid in single}
     for lid in single:
-        assert staged[lid]['dnpv'] == pytest.approx(single[lid]['dnpv'])
-        assert staged[lid]['pipes'] == single[lid]['pipes']
+        assert staged[(0, lid)]['dnpv'] == pytest.approx(single[lid]['dnpv'])
+        assert staged[(0, lid)]['pipes'] == single[lid]['pipes']
 
 
 def test_a_limit_in_a_later_stage_rejects_the_change():
@@ -86,6 +87,18 @@ def test_npv_of_two_stage_versions():
     assert result['split']['pump_energy'] == pytest.approx(1000 * rangeFactor(3.0, 1, 10) + 1500 * rangeFactor(3.0, 11, 40))
     assert result['split']['penalties'] == pytest.approx(200 * rangeFactor(3.0, 11, 40))
     assert result['npv'] == pytest.approx(sum(result['split'].values()))
+
+
+def test_lines_new_in_stage_2_are_their_own_groups():
+    """a stage 2 whose lines lie on no stage-1 line: each is its own group, its investment from year 10"""
+    from districts.utility_functions.cost_model import stagedStep
+    from .test_cost_model import model
+    first, second = model(), model()
+    first.operating, second.operating, second.start_year = (1, 10), (11, 40), 10
+    second.root = {lid: (1, lid) for lid in second.lines}
+    chosen, _ = stagedStep([first, second])
+    assert all(root[0] in (0, 1) for root in chosen)
+    assert any(root[0] == 1 for root in chosen) or not chosen
 
 
 # ---------------------------------------------------------------- e2e: stage check and report on a project
@@ -125,10 +138,50 @@ class TestStages:
         problems = stageProblems(cur, stages)
         assert problems and problems[0][0] == 'lines' and str(lid) in problems[0][1]
 
+    def test_lines_split_and_renumbered_by_a_pipe_laying(self, staged):
+        """a pipe laying in stage 2 splits a line and gives another a new ID: matched by geometry (network-stages D7);
+        the segments inherit the pipes of the stage-1 line; a write into stage 1 is not copied by ID into stage 2 (D8)"""
+        from districts.utility_functions.network_stages import inheritPipes, stageProblems, stageRoots, writeBundles
+        cur = staged.plugin.cur
+        s1, s2 = staged.stage1, staged.stage2
+        cur.execute('UPDATE "{b}".lines n SET geom = o.geom FROM "{a}".lines o WHERE o.id = n.id;'.format(a=s1, b=s2))  # nosec B608
+        cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines ORDER BY ST_Length(geom) DESC LIMIT 2;'.format(s1))  # nosec B608
+        split_line, renumbered = [row['id'] for row in cur.fetchall()]
+        cur.execute('SELECT COALESCE(max(id), 0) + 1000 AS id FROM "{}".lines;'.format(s2))  # nosec B608
+        new_id = cur.fetchone()['id']
+        cur.execute("""INSERT INTO "{b}".lines (id, geom, pipe_bundle_type_id)
+            SELECT %s, ST_LineSubstring(geom, 0.5, 1), NULL FROM "{b}".lines WHERE id = %s;
+            UPDATE "{b}".lines SET geom = ST_LineSubstring(geom, 0, 0.5), pipe_bundle_type_id = NULL WHERE id = %s;
+            UPDATE "{b}".lines SET id = %s WHERE id = %s;""".format(b=s2), (new_id, split_line, split_line, new_id + 1, renumbered))  # nosec B608
+        stages = [{'version': s1, 'start': 0}, {'version': s2, 'start': 10}]
+        assert stageProblems(cur, stages) == []
+        roots = stageRoots(cur, [s1, s2])
+        assert roots[1][new_id] == (0, split_line) and roots[1][split_line] == (0, split_line) and roots[1][new_id + 1] == (0, renumbered)
+        assert inheritPipes(cur, [s1, s2], roots) >= 2
+        cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines WHERE id IN (%s, %s);'.format(s2), (split_line, new_id))  # nosec B608
+        cur.execute('SELECT pipe_bundle_type_id AS bid FROM "{}".lines WHERE id = %s;'.format(s1), (split_line,))  # nosec B608
+        root_bid = cur.fetchone()['bid']
+        cur.execute('SELECT pipe_bundle_type_id AS bid FROM "{}".lines WHERE id IN (%s, %s);'.format(s2), (split_line, new_id))  # nosec B608
+        assert {row['bid'] for row in cur.fetchall()} == {root_bid}
+        # stage 1 is the loaded version with the triggers of the version handling: the write stays in stage 1
+        cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines WHERE id = %s;'.format(s2), (split_line,))  # nosec B608
+        before = cur.fetchone()['bid']
+        cur.execute('SELECT id FROM public.pipe_bundle_types WHERE id <> %s ORDER BY id LIMIT 1;', (root_bid,))
+        other = cur.fetchone()['id']
+        writeBundles(cur, s1, {split_line: other})
+        cur.execute('SELECT pipe_bundle_type_id AS bid FROM "{}".lines WHERE id = %s;'.format(s2), (split_line,))  # nosec B608
+        assert cur.fetchone()['bid'] == before
+        cur.execute('SELECT count(*) AS n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace '
+                    "WHERE n.nspname = %s AND c.relname = 'lines' AND t.tgname = 'column_update_trigger' AND t.tgenabled = 'D';", (s1,))
+        assert cur.fetchone()['n'] == 0  # enabled again
+
     def test_start_refused_visibly(self, staged):
         """a refused start opens the log with the reason (it was written into the collapsed results before)"""
         from .conftest import wait_until
         plugin = staged.plugin
+        # a stage-1 line moved in stage 2: the stage check refuses the start
+        plugin.cur.execute('UPDATE "{b}".lines SET geom = ST_Translate(geom, 5, 0) WHERE id = (SELECT min(id) FROM "{a}".lines);'.format(  # nosec B608
+            a=staged.stage1, b=staged.stage2))
         plugin.showCostOptimization()
         dlg = plugin.dlg_costOptimization
         wait_until(lambda: dlg.periods.ready, 120, 'choosing the weeks')

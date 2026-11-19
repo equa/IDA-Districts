@@ -14,6 +14,7 @@ from qgis.PyQt.QtWidgets import (
 
 from .compat import MessageCritical
 from .hydraulic_balancing import createChildVersion, getOrCreatePipeBundles, getPipeCatalog
+from .network_stages import writeBundles
 from .translations import tr_msg
 from .utility import sanitize_pg_identifier
 
@@ -116,9 +117,9 @@ class SetPipes(QObject):
         self.owner, self.main, self.feature, self.log, self.done = owner, main, feature, log, done
 
     def run(self, iteration, target, ask=True, stages=None):
-        """stages: the other stage versions of a network built in stages (network-stages D4): they get the pipes as well,
-        into themselves or into a child version each"""
-        self.stages = [v for v in (stages or []) if v != self.main.config['versionName']]
+        """stages: [(version, target)] of the other stages of a network built in stages (network-stages D4, D7): each gets
+        its own pipes (the line IDs differ), into itself or into a child version, the version handling trigger off"""
+        self.stages = [(v, t) for v, t in (stages or []) if v != self.main.config['versionName']]
         if not target:
             QMessageBox.information(self.owner, self.feature, tr_msg('Iteration {} has no saved pipes (run before this was saved).').format(iteration))
             return
@@ -134,8 +135,8 @@ class SetPipes(QObject):
                 return
             try:
                 n, new_ids = applyPipes(self.main.cur, self.main.config['versionName'], target)
-                for version in self.stages:
-                    applyPipes(self.main.cur, version, target)
+                for version, stage_target in self.stages:
+                    writeBundles(self.main.cur, version, stage_target['bundles'])
             except Exception:
                 QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
                 self.log(tr_msg('The pipes could not be set: ') + traceback.format_exc().splitlines()[-1])
@@ -153,8 +154,8 @@ class SetPipes(QObject):
 
         def create(cur):
             # the other stages first: their child versions are not loaded
-            for version in stages:
-                createVersionWithIteration(cur, dict(config, versionName=version), plugin_dir, '{}_it{}'.format(version, iteration), iteration, feature, target)
+            for version, stage_target in stages:
+                createVersionWithIteration(cur, dict(config, versionName=version), plugin_dir, '{}_it{}'.format(version, iteration), iteration, feature, stage_target)
             return createVersionWithIteration(cur, config, plugin_dir, name, iteration, feature, target)
         startTask(self, config, create,
                   self.onCreated, lambda message: self.log(tr_msg('The child version could not be created: ') + message))

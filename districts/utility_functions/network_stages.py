@@ -1,8 +1,15 @@
 # coding=utf-8
 """A network built in stages (OpenSpec change network-stages): the stage table of the cost optimization, its check and
 the NPV of the stages from the evaluation of each stage version."""
+import psycopg2.extras
+
 from .db import getParentVersion
 from .economics import rangeFactor, stageYears, stagedNetPresentValue
+
+# a line of a later stage lies on a line of the previous stage when this share of its length is within the tolerance
+# (the pipe laying of an extension rewrites the lines: new IDs, split where new customers connect; network-stages D7)
+MATCH_TOLERANCE_M = 0.5
+MATCH_SHARE = 0.99
 
 
 def isDescendant(cur, version, ancestor):
@@ -32,12 +39,82 @@ def stageProblems(cur, stages):
         if not isDescendant(cur, after['version'], before['version']):
             problems.append(('not_descendant', '{} / {}'.format(after['version'], before['version'])))
             continue
-        cur.execute("""SELECT a.id FROM "{b}".lines a LEFT JOIN "{a}".lines n ON n.id = a.id
-            WHERE n.id IS NULL OR NOT ST_Equals(a.geom, n.geom) ORDER BY a.id;""".format(b=before['version'], a=after['version']))  # nosec B608
-        missing = [row['id'] for row in cur.fetchall()]
+        missing = uncoveredLines(cur, before['version'], after['version'])
         if missing:
             problems.append(('lines', '{}: {}'.format(after['version'], ', '.join(str(lid) for lid in missing[:20]) + (' ...' if len(missing) > 20 else ''))))
     return problems
+
+
+def lineMatches(cur, before, after):
+    """{lid of after: lid of before} for the lines of version 'after' lying on a line of version 'before'"""
+    # a short line (e.g. 0.2 m at a junction) lies within the buffer of several lines: among those covering it, the
+    # closest by Hausdorff distance (0 for an unchanged line, the parent for a segment of a split line)
+    cur.execute("""SELECT DISTINCT ON (n.id) n.id AS lid, p.id AS parent,
+            ST_Length(ST_Intersection(n.geom, ST_Buffer(p.geom, %(tol)s))) / NULLIF(ST_Length(n.geom), 0) AS share
+        FROM "{a}".lines n JOIN "{b}".lines p ON ST_DWithin(n.geom, p.geom, %(tol)s)
+        ORDER BY n.id, ST_Length(ST_Intersection(n.geom, ST_Buffer(p.geom, %(tol)s))) >= %(share)s * ST_Length(n.geom) DESC,
+            ST_HausdorffDistance(n.geom, p.geom);""".format(a=after, b=before), {'tol': MATCH_TOLERANCE_M, 'share': MATCH_SHARE})  # nosec B608
+    return {row['lid']: row['parent'] for row in cur.fetchall() if row['share'] is not None and row['share'] >= MATCH_SHARE}
+
+
+def uncoveredLines(cur, before, after):
+    """lines of 'before' whose length the lines of 'after' lying on them do not cover (removed or moved)"""
+    matches = lineMatches(cur, before, after)
+    cur.execute('SELECT id, ST_Length(geom) AS length FROM "{}".lines;'.format(after))  # nosec B608
+    lengths = {row['id']: float(row['length'] or 0) for row in cur.fetchall()}
+    covered: dict = {}
+    for lid, parent in matches.items():
+        covered[parent] = covered.get(parent, 0.0) + lengths.get(lid, 0.0)
+    cur.execute('SELECT id, ST_Length(geom) AS length FROM "{}".lines ORDER BY id;'.format(before))  # nosec B608
+    return [row['id'] for row in cur.fetchall() if covered.get(row['id'], 0.0) < MATCH_SHARE * float(row['length'] or 0)]
+
+
+def stageRoots(cur, versions):
+    """[{lid: root}] per stage version: root = (index of the stage the line first appears in, its id there); a line of a
+    later stage lying on a line of the previous stage has that line's root"""
+    cur.execute('SELECT id FROM "{}".lines;'.format(versions[0]))  # nosec B608
+    roots = [{row['id']: (0, row['id']) for row in cur.fetchall()}]
+    for k in range(1, len(versions)):
+        matches = lineMatches(cur, versions[k - 1], versions[k])
+        cur.execute('SELECT id FROM "{}".lines;'.format(versions[k]))  # nosec B608
+        roots.append({row['id']: roots[k - 1].get(matches[row['id']], (k, row['id'])) if row['id'] in matches else (k, row['id'])
+                      for row in cur.fetchall()})
+    return roots
+
+
+def writeBundles(cur, version, bundles):
+    """pipe bundles {lid: bid} into the lines of a version, with the update trigger of the version handling disabled:
+    it would copy the bundle by ID into the descendants, where the same ID may be another line (network-stages D8)"""
+    if not bundles:
+        return
+    cur.execute("""SELECT t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = %s AND c.relname = 'lines' AND t.tgname = 'column_update_trigger' AND t.tgenabled <> 'D';""", (version,))
+    active = cur.fetchone() is not None
+    if active:
+        cur.execute('ALTER TABLE "{}".lines DISABLE TRIGGER column_update_trigger;'.format(version))  # nosec B608
+    try:
+        psycopg2.extras.execute_values(cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(version),  # nosec B608
+                                       sorted((int(lid), bid) for lid, bid in bundles.items()))
+    finally:
+        if active:
+            cur.execute('ALTER TABLE "{}".lines ENABLE TRIGGER column_update_trigger;'.format(version))  # nosec B608
+
+
+def inheritPipes(cur, versions, roots):
+    """the lines of later stages get the pipe bundle of their root (the pipe laying may have given them others);
+    returns the number of lines changed"""
+    states = []
+    for version in versions:
+        cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines;'.format(version))  # nosec B608
+        states.append({row['id']: row['bid'] for row in cur.fetchall()})
+    changed = 0
+    for k in range(1, len(versions)):
+        new = {lid: states[root[0]][root[1]] for lid, root in roots[k].items()
+               if root[0] < k and states[root[0]].get(root[1]) is not None and states[k].get(lid) != states[root[0]][root[1]]}
+        writeBundles(cur, versions[k], new)
+        states[k].update(new)
+        changed += len(new)
+    return changed
 
 
 def newItems(items, previous):

@@ -49,6 +49,22 @@ computed from its climate and saved in its `periods.json`; a stage above the cov
 **D6 – Report.** The report lists the stages (versions, years, climates), the NPV per stage and in total, and the terms
 with their years.
 
+**D7 – Lines matched by geometry (2026-11-19).** The pipe laying of a network extension in a child version rewrites
+all its lines (`TRUNCATE` and insert): lines get new IDs and are split where new customers connect, so matching by ID
+fails for the normal workflow. Each line of a later stage is assigned to the line of the previous stage it lies on
+(its length covered to 99 % within 0.5 m), back to the stage the line first appears in (its root). The stage check
+requires every line of a stage to be covered by lines of the next stage. At the start of a run the segments get the
+pipes of their root; a step changes a root and all its segments, the ΔNPV summed over them; the state of each stage is
+saved per iteration (the IDs differ) and restores it.
+
+**D8 – Version handling triggers (2026-11-19).** The loaded version's tables have the triggers of the version
+handling (`SQL_scripts.txt`): inserts, updates, deletes and truncates are copied by ID into all its descendants
+(`get_version_hierarchy`). In the override mode stage 1 is loaded and stage 2 is its descendant, so a pipe written into a
+stage-1 line would be copied into the stage-2 line of the same ID, which after a pipe laying may be another line. The
+run writes the pipes of each stage explicitly, with the trigger `column_update_trigger` of the written table disabled
+during the write (copies made with pg_dump may carry the triggers as well). Re-laying stage 1 after stage 2 exists
+truncates stage 2's lines (version handling as before); the stage check reports it.
+
 ## Risks / Trade-offs
 
 - [Run time grows with the stages] → the weeks are shared; the parallel weeks run per stage; the annual option stays

@@ -31,3 +31,11 @@
 - [x] 6.2 README.md and CLAUDE.md: stages of the cost optimization; the requirements of cost-optimization adjusted in that change
 - [x] 6.3 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes on 3.44 and 4.2 (with `-m "not ida"` without IDA Districts), including test_static_mypy.py and test_messages.py
 - [x] 6.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass
+
+## 7. Lines matched by geometry and the version handling (D7, D8)
+
+- [x] 7.1 Matching of the lines of consecutive stages by geometry (99 % within 0.5 m), roots over all stages; the stage check by coverage instead of IDs
+- [x] 7.2 At the start the segments of later stages get the pipes of their root
+- [x] 7.3 Step over roots (all segments, ΔNPV summed); writes per stage version with the update trigger of the version handling disabled; state per stage saved, restored at the end and by 'Set pipes'
+- [x] 7.4 Tests: matching and coverage (unit, synthetic geometries), a stage 2 with split and renumbered lines (e2e), the trigger disabled during the writes
+- [ ] 7.5 Local validation and CI

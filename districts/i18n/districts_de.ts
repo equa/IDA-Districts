@@ -11533,5 +11533,9 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>The stages could not be checked: </source>
             <translation>Die Etappen konnten nicht geprüft werden: </translation>
         </message>
+        <message>
+            <source>{} lines of the later stages got the pipes of the same line in the earlier stage.</source>
+            <translation>{} Leitungen der späteren Etappen erhielten die Rohre derselben Leitung der früheren Etappe.</translation>
+        </message>
     </context>
 </TS>

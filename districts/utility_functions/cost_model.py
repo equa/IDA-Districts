@@ -337,21 +337,29 @@ class CostModel:
 
 
 def stagedStep(models):
-    """step over the stages of a network (network-stages D2): models = the cost models of the stages in order. The ΔNPV
-    of a line's change is its investment in the first stage containing it plus the operating costs of every stage
-    containing it; a limit (peak flow, p_max) in any stage rejects the change. One model: model.step()."""
+    """step over the stages of a network (network-stages D2, D7): models = the cost models of the stages in order, each
+    with model.root = {lid: (stage, lid)} of the line it continues (default: the same ID in stage 1). A group is a root
+    with all its segments in the stages; the ΔNPV of its change is the root's investment in its first stage plus the
+    operating costs of every segment; a limit of any segment rejects the change. Returns ({root: change}, {root:
+    reasons}); one model: model.step() by line."""
     if len(models) == 1:
         return models[0].step()
+    groups: dict = {}
+    for k, model in enumerate(models):
+        roots = getattr(model, 'root', None) or {}
+        for lid in model.lines:
+            groups.setdefault(roots.get(lid, (0, lid)), []).append((k, model, lid))
     chosen, rejected = {}, {}
-    for lid in sorted(set().union(*[set(m.lines) for m in models])):
-        stages = [m for m in models if lid in m.lines]
+    for root in sorted(groups):
+        parts = groups[root]
         options: list = []
         for larger in (True, False):
             total: 'float | None' = 0.0
             split: dict = {}
             pipes, reason = None, None
-            for k, model in enumerate(stages):
-                option = model.change(lid, larger, invest=k == 0)
+            for k, model, lid in parts:
+                # the investment once: the root line in the stage it first appears in
+                option = model.change(lid, larger, invest=(k, lid) == root or (root not in [(p[0], p[2]) for p in parts] and (k, lid) == (parts[0][0], parts[0][2])))
                 if option is None:
                     total = None
                     break
@@ -365,11 +373,11 @@ def stagedStep(models):
             if total is None:
                 continue
             if reason:
-                rejected.setdefault(lid, []).append(reason)
+                rejected.setdefault(root, []).append(reason)
             elif total < 0:
                 options.append({'pipes': pipes, 'dnpv': total, 'split': split, 'reason': None})
         if options:
-            chosen[lid] = min(options, key=lambda o: float(o['dnpv']))
+            chosen[root] = min(options, key=lambda o: float(o['dnpv']))
     return chosen, rejected
 
 

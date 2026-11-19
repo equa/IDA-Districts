@@ -40,7 +40,7 @@ from .utility_functions.economics import npvTerms, presentValueFactor, stageYear
 from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
 from .utility_functions.cost_model import stagedStep
 from .utility_functions.economic_data import loadScenario
-from .utility_functions.network_stages import stageProblems, stagesNpv
+from .utility_functions.network_stages import inheritPipes, stageProblems, stageRoots, stagesNpv, writeBundles
 from .utility_functions.periods import climateFile, readClimate
 from .utility_functions.set_pipes import SetPipes, costIterationPipes
 from .utility_functions.stage_table import StageTable, problemText
@@ -132,6 +132,8 @@ def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None):
     built in stages (network-stages D2, D4): a model per stage, the step over all, written into every stage containing
     the line; the state is the last stage's (it holds every line)."""
     stages = stages or [{'version': config['versionName'], 'start': 0}]
+    if len(stages) > 1:
+        return modelStepStages(cur, config, parms, settings, prices, no_smaller, stages)
     period = int((loadScenario(cur, parms['scenario']) or {'scenario': {}})['scenario'].get('period_a') or 0)
     ranges = stageYears([int(s['start']) for s in stages], period) if len(stages) > 1 else [None]
     models = []
@@ -167,6 +169,53 @@ def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None):
             stage['version']), sorted(new_bundles.items()))
     result['state'] = tuple(sorted(lineState(cur, schema).items()))
     result['n_changed'] = len(new_bundles)
+    return result
+
+
+def modelStepStages(cur, config, parms, settings, prices, no_smaller, stages):
+    """the step of a network built in stages (network-stages D2, D7, D8): a model per stage with the roots of its lines,
+    the step over the line groups, the new pipes written into the root and all its segments of every stage (the update
+    trigger of the version handling disabled); the state and the state of each stage"""
+    versions = [s['version'] for s in stages]
+    roots = stageRoots(cur, versions)
+    period = int((loadScenario(cur, parms['scenario']) or {'scenario': {}})['scenario'].get('period_a') or 0)
+    models = []
+    for k, (stage, operating) in enumerate(zip(stages, stageYears([int(s['start']) for s in stages], period))):
+        model = buildModel(cur, dict(config, versionName=stage['version']), parms['scenario'], parms['pairs'], settings, profile_dir=prices)
+        if model is None:
+            return None
+        model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
+        model.start_year, model.operating, model.root = int(stage['start']), operating, roots[k]
+        for lid in model.lines:
+            # no_smaller holds the roots' line IDs of the stage they first appear in (stage 1: the loaded version)
+            if roots[k][lid][1] in no_smaller and roots[k][lid][0] == 0:
+                model.lines[lid]['no_smaller'] = True
+        models.append(model)
+    chosen, rejected = stagedStep(models)
+    steps = []
+    for root, c in sorted(chosen.items()):
+        line = models[root[0]].lines[root[1]]
+        before = {seq: line['pipes'][seq] for seq in c['pipes']}
+        seq, pid = next(iter(c['pipes'].items()))
+        steps.append({'line': root[1], 'stage': root[0] + 1, 'before': before, 'after': c['pipes'], 'dnpv': c['dnpv'], 'split': c['split'],
+                      'larger': models[0].catalog[pid]['d'] > models[0].catalog[before[seq]]['d']})
+    result: dict = {'steps': steps, 'rejected': {root[1] if root[0] == 0 else '{}:{}'.format(root[0] + 1, root[1]): reasons for root, reasons in rejected.items()},
+              'state': None, 'n_changed': 0}
+    if not chosen:
+        return result
+    bundles = getPipeBundles(cur)
+    stage_states = {}
+    for k, version in enumerate(versions):
+        current = lineState(cur, version)
+        lids = [lid for lid, root in roots[k].items() if root in chosen]
+        pipes = {lid: {**bundles.get(current[lid], {}), **chosen[roots[k][lid]]['pipes']} for lid in lids}
+        new_bundles, _ = getOrCreatePipeBundles(cur, {lid: current[lid] for lid in lids}, pipes)
+        writeBundles(cur, version, new_bundles)
+        bundles = getPipeBundles(cur)
+        result['n_changed'] += len(new_bundles)
+        stage_states[version] = lineState(cur, version)
+    result['stage_states'] = stage_states
+    result['state'] = tuple((version, tuple(sorted(state.items()))) for version, state in stage_states.items())
     return result
 
 
@@ -590,8 +639,12 @@ class CostOptimizationDialog(QDialog):
             return
         rows = {row['iteration']: row for row in loadCostIterations(self.main.config)}
         self.set_pipes = SetPipes(self, self.main, tr_msg('Cost optimization'), self.log, self.loadIterationTable)
-        stages = loadRunParameters(self.main.config, 'cost').get('stage_versions') or []
-        self.set_pipes.run(selected[0], costIterationPipes(rows.get(selected[0], {})), stages=stages)
+        row = rows.get(selected[0], {})
+        stage_states = row.get('stage_states') or {}
+        loaded = self.main.config['versionName']
+        target = {'bundles': {int(lid): bid for lid, bid in stage_states[loaded].items()}} if loaded in stage_states else costIterationPipes(row)
+        stages = [(version, {'bundles': {int(lid): bid for lid, bid in state.items()}}) for version, state in stage_states.items() if version != loaded]
+        self.set_pipes.run(selected[0], target, stages=stages)
 
     def showSelectedIterations(self):
         selected = self.selectedIterations()
@@ -796,6 +849,14 @@ class CostOptimizationRun(QObject):
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
         removeCostLayers()
+        if self.stages:
+            try:
+                n = inheritPipes(self.cur, self.stage_versions, stageRoots(self.cur, self.stage_versions))
+                if n:
+                    self.dlg.log(tr_msg('{} lines of the later stages got the pipes of the same line in the earlier stage.').format(n))
+            except Exception:
+                self.onException()
+                return
         self.periods = self.parms['periods']
         if not self.periods['annual']:
             self.dlg.log(tr_msg('Weeks from {}').format(', '.join(str(d[0].date()) for d in self.periods['periods'])))
@@ -884,7 +945,7 @@ class CostOptimizationRun(QObject):
                         return evaluation, None, None
                     evaluations.append(evaluation)
                     values.append(penaltyValues(cur, cfg, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100))
-                return evaluations, values, lineState(cur, stages[-1]['version'])
+                return evaluations, values, {s['version']: lineState(cur, s['version']) for s in stages}
             startTask(self, self.config, staged, self.onEvaluated, self.onTaskFailed)
             return
         startTask(self, self.config, work, self.onEvaluated, self.onTaskFailed)
@@ -901,7 +962,7 @@ class CostOptimizationRun(QObject):
         except Exception:
             self.onException()
 
-    def evaluatedStages(self, evaluations, values, state):
+    def evaluatedStages(self, evaluations, values, states):
         """the NPV of all stages (network-stages D3): stagesNpv over the stage versions, the penalty of each stage in its
         years; a new deficit in any stage blocks the lines made smaller in the last step"""
         p = self.parms
@@ -916,7 +977,9 @@ class CostOptimizationRun(QObject):
         npv = result['npv']
         row = {'iteration': self.iteration, 'npv': npv, 'split': result['split'], 'npv_model': npv_model,
                'model_error': None if npv_model is None or not npv else (npv_model - npv) / abs(npv),
-               'penalty_customers': new_deficits, 'state': state, 'economics': None,
+               'penalty_customers': new_deficits, 'state': states[self.stage_versions[-1]], 'economics': None,
+               # the line IDs differ between the stages (pipe laying of the extension): the pipes of each stage
+               'stage_states': {version: {str(lid): bid for lid, bid in state.items()} for version, state in states.items()},
                'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split'],
                            'climate': (self.stage_climates.get(s['version']) or ('',))[0]}
                           for s, r in zip(self.stageList(), result['stages'])]}
@@ -1034,14 +1097,17 @@ class CostOptimizationRun(QObject):
         self.dlg.log(message)
         self.dlg.markBest(best['iteration'])
         schema = self.config['versionName']
-        # every stage gets the pipes of the best iteration (a line has the same pipes in all stages containing it)
-        for version in self.stage_versions or [schema]:
-            if best['state']:
-                # one statement: a row per line would block the dialog on large networks
-                psycopg2.extras.execute_values(self.cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(version),  # nosec B608
-                                               [(int(lid), bid) for lid, bid in best['state'].items()])
+        if self.stages:
+            # every stage from its own state (the line IDs differ); the version handling trigger off
+            for version in self.stage_versions:
+                writeBundles(self.cur, version, {int(lid): bid for lid, bid in best['stage_states'][version].items()})
+        elif best['state']:
+            # one statement: a row per line would block the dialog on large networks
+            psycopg2.extras.execute_values(self.cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(schema),  # nosec B608
+                                           [(int(lid), bid) for lid, bid in best['state'].items()])
         last = (self.stage_versions or [schema])[-1]
-        if best is self.rows[-1] and lineState(self.cur, last) == best['state']:
+        expected = {int(lid): bid for lid, bid in best['stage_states'][last].items()} if self.stages else best['state']
+        if best is self.rows[-1] and lineState(self.cur, last) == expected:
             self.finish(tr_msg('Finished: iteration {} has the least NPV ({:,.0f} €).').format(best['iteration'], best['npv']).replace(',', "'"))
             return
         self.dlg.log(tr_msg('The pipes of iteration {} are restored and simulated again.').format(best['iteration']))
