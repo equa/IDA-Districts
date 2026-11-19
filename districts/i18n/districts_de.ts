@@ -11349,5 +11349,25 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Lines of the previous stage missing or moved in stage {}.</source>
             <translation>Leitungen der vorherigen Etappe fehlen oder sind verschoben in Etappe {}.</translation>
         </message>
+        <message>
+            <source>Operating years</source>
+            <translation>Betriebsjahre</translation>
+        </message>
+        <message>
+            <source>Climate file</source>
+            <translation>Klimadatei</translation>
+        </message>
+        <message>
+            <source>Maps, pipe and trench lengths: the last stage, which holds every line.</source>
+            <translation>Karten, Rohr- und Grabenlängen: die letzte Etappe, die alle Leitungen enthält.</translation>
+        </message>
+        <message>
+            <source>Net present value per stage and part, iteration {} [€]</source>
+            <translation>Barwert je Etappe und Anteil, Iteration {} [€]</translation>
+        </message>
+        <message>
+            <source>Investments of a stage: the items new in it, from its start year (replacements and residual value from there); operating costs and penalties: in its operating years.</source>
+            <translation>Investitionen einer Etappe: die in ihr neuen Posten, ab ihrem Startjahr (Ersatz und Restwert ab dort); Betriebskosten und Strafkosten: in ihren Betriebsjahren.</translation>
+        </message>
     </context>
 </TS>

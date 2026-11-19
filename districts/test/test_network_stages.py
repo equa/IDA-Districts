@@ -127,12 +127,16 @@ class TestStages:
 
     def test_report_of_the_stages(self, staged):
         from districts.utility_functions.iteration_report import Report, stageSections
-        rows = [{'iteration': k, 'npv': 1000.0 - k, 'stages': [{'version': staged.stage1, 'start': 0, 'npv': 400.0, 'split': {}},
-                                                            {'version': staged.stage2, 'start': 10, 'npv': 600.0 - k, 'split': {}}]} for k in (0, 1)]
+        rows = [{'iteration': k, 'npv': 1000.0 - k,
+                 'stages': [{'version': staged.stage1, 'start': 0, 'npv': 400.0, 'split': {'investment': 300.0, 'pump_energy': 100.0}, 'climate': 'C:/clim/ZURICH.prn'},
+                            {'version': staged.stage2, 'start': 10, 'npv': 600.0 - k, 'split': {'investment': 500.0, 'pump_energy': 100.0 - k},
+                             'climate': 'C:/clim/ZURICH_2050.prn'}]} for k in (0, 1)]
         report = Report('t', 's')
         stageSections(report, rows, {'stages': [{'version': staged.stage1, 'start': 0}, {'version': staged.stage2, 'start': 10}]})
         page = report.html()
         assert 'Net present value per stage [€]' in page and staged.stage2 in page
+        # operating years, climate file per stage, the parts per stage of the iteration with the least NPV
+        assert '11–' in page and 'ZURICH_2050.prn' in page and 'Net present value per stage and part, iteration 1' in page
 
 
 # ---------------------------------------------------------------- ida: a run over two stages
@@ -200,3 +204,16 @@ class TestStagedRun:
         # both stages carry the pipes of the best iteration; the stage versions themselves are unchanged
         assert bundles(plugin, staged_run.stage1 + '_co') == bundles(plugin, staged_run.stage2 + '_co')
         assert os.path.exists(iterationPath(plugin.config, 1))
+
+
+def test_add_stage_button():
+    """'Add a stage' twice: the rows follow the loaded version, each 10 years after the previous one"""
+    from districts.utility_functions.stage_table import StageTable
+    table = StageTable(['base1', 'base1_s2', 'base1_s3'], 'base1', 'info')
+    table.btn_add.click()
+    table.btn_add.click()
+    assert [s['start'] for s in table.stages()] == [0, 10, 20]
+    assert table.stages()[0]['version'] == 'base1'
+    table.table.selectRow(2)
+    table.removeRows()
+    assert len(table.stages()) == 2

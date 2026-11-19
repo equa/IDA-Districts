@@ -901,7 +901,8 @@ class CostOptimizationRun(QObject):
         row = {'iteration': self.iteration, 'npv': npv, 'split': result['split'], 'npv_model': npv_model,
                'model_error': None if npv_model is None or not npv else (npv_model - npv) / abs(npv),
                'penalty_customers': new_deficits, 'state': state, 'economics': None,
-               'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split']}
+               'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split'],
+                           'climate': (self.stage_climates.get(s['version']) or ('',))[0]}
                           for s, r in zip(self.stageList(), result['stages'])]}
         if previous:
             row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if new_deficits]

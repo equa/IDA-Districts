@@ -527,7 +527,8 @@ def costReport(cur, config):
     if not rows:
         raise ValueError(tr_msg('The loaded version has no iterations.'))
     parms = loadRunParameters(config, 'cost')
-    schema = config['versionName']
+    # a network built in stages: the last stage holds every line (lengths, trenches, maps)
+    schema = (parms.get('stage_versions') or [config['versionName']])[-1] if len(parms.get('stage_versions') or []) > 1 else config['versionName']
     scenario_id = parms.get('scenario')
     if scenario_id is None:
         cur.execute('SELECT id FROM public.economic_scenarios ORDER BY id LIMIT 1;')
@@ -847,13 +848,26 @@ def stageSections(report, rows, parms):
         return
     first = staged[0]['stages']
     inputs = parms.get('stages') or []
-    stage_rows = [[k, s['version'], (inputs[k - 1]['version'] if k - 1 < len(inputs) else ''), s['start']] for k, s in enumerate(first, 1)]
-    report.section(tr_msg('Stages'), table([tr_msg('Stage'), tr_msg('Version of the run'), tr_msg('Stage version'), tr_msg('Start year [a]')], stage_rows) +
+    ends = [s['start'] for s in first[1:]] + [None]
+    stage_rows = [[k, s['version'], (inputs[k - 1]['version'] if k - 1 < len(inputs) else ''), s['start'],
+                   '{}–{}'.format(s['start'] + 1, end) if end is not None else '{}–'.format(s['start'] + 1), os.path.basename(s.get('climate') or '')]
+                  for k, (s, end) in enumerate(zip(first, ends), 1)]
+    report.section(tr_msg('Stages'), table([tr_msg('Stage'), tr_msg('Version of the run'), tr_msg('Stage version'), tr_msg('Start year [a]'),
+                                            tr_msg('Operating years'), tr_msg('Climate file')], stage_rows) +
+                   '<p class="note">{}</p>'.format(esc(tr_msg('Maps, pipe and trench lengths: the last stage, which holds every line.'))) +
                    '<p class="note">{}</p>'.format(esc(tr_msg('The pipes of a line are sized for all stages it exists in; the operating costs of a '
                                                               'stage count in its years, an investment from the start of the stage it first appears in.'))), 3)
     npv_rows = [[r['iteration']] + [round(s['npv']) for s in r['stages']] + [round(r['npv'])] for r in staged]
     report.section(tr_msg('Net present value per stage [€]'), table(
         [tr_msg('Iteration')] + [tr_msg('Stage {}').format(k) for k in range(1, len(first) + 1)] + [tr_msg('Total')], npv_rows), 3)
+    best = min(staged, key=lambda r: r['npv'])
+    part_rows = [[groupLabel(g)] + [round(s['split'].get(g, 0.0)) for s in best['stages']] + [round(sum(s['split'].get(g, 0.0) for s in best['stages']))]
+                 for g in NPV_GROUPS if any(s['split'].get(g) for s in best['stages'])]
+    part_rows.append([tr_msg('Net present value')] + [round(s['npv']) for s in best['stages']] + [round(best['npv'])])
+    report.section(tr_msg('Net present value per stage and part, iteration {} [€]').format(best['iteration']), table(
+        [tr_msg('Part')] + [tr_msg('Stage {}').format(k) for k in range(1, len(first) + 1)] + [tr_msg('Total')], part_rows) +
+        '<p class="note">{}</p>'.format(esc(tr_msg('Investments of a stage: the items new in it, from its start year (replacements and residual value '
+                                                   'from there); operating costs and penalties: in its operating years.'))), 3)
 
 
 def npvCalculation(report, rows):

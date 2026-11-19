@@ -45,6 +45,10 @@ class StageTable(QWidget):
         self.addRow(loaded, 0)
 
     def addRow(self, version=None, start=None):
+        # the default start from the rows before the new one: the new row has no widgets yet
+        existing = self.stages()
+        if start is None:
+            start = existing[-1]['start'] + 10 if existing else 0
         row = self.table.rowCount()
         self.table.insertRow(row)
         combo = QComboBox()
@@ -53,7 +57,7 @@ class StageTable(QWidget):
             combo.setCurrentIndex(self.versions.index(version))
         spin = QSpinBox()
         spin.setRange(0, 200)
-        spin.setValue(start if start is not None else (self.stages()[-2]['start'] + 10 if row else 0))
+        spin.setValue(start)
         # stage 1 is the loaded version and starts in year 0
         combo.setEnabled(row > 0)
         spin.setEnabled(row > 0)

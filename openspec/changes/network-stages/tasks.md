@@ -17,7 +17,7 @@
 
 ## 4. Report
 
-- [x] 4.1 Stages (versions of the run, stage versions, start years) and the NPV per stage and iteration (the climate files and the NPV terms per stage are not yet shown; staged iterations save no NPV terms)
+- [x] 4.1 Stages (versions of the run, stage versions, start and operating years, climate files), the NPV per stage and iteration, the NPV per stage and part of the iteration with the least NPV; maps, pipe and trench lengths of the last stage (staged iterations save no single NPV terms)
 
 ## 5. Tests
 
