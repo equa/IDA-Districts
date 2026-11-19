@@ -1,6 +1,7 @@
 #upgrade functions in order to use "old" projects within newer versions of the Districts Modeler
 
 from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColumns, ensurePipeSeriesTables, ensurePipeTwinColumns
+from .ai.access import ensureAiSettingsTable
 from .utility_functions.debug_log import dprint
 from .utility_functions.economic_data import dropBundleCostColumns, ensureEconomicTables, ensurePipeCostColumns
 from .utility_functions.statics_db import ensureStaticsParameters, ensureStaticsTables
@@ -43,5 +44,7 @@ def upgradeProjectDB(cur):
     ensureEconomicTables(cur)
     #costs of the pipe bundles: never used
     dropBundleCostColumns(cur)
+    #permission of the AI assistant (off until allowed)
+    ensureAiSettingsTable(cur)
     
     

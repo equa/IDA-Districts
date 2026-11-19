@@ -8107,5 +8107,165 @@ Compare with the parent version: shows the difference of the inner pipe diameter
             <source>Then switch on Plugins → Districts Modeler → AI connection (MCP) in every QGIS session. Everything a tool returns is sent to Anthropic.</source>
             <translation>Then switch on Plugins → Districts Modeler → AI connection (MCP) in every QGIS session. Everything a tool returns is sent to Anthropic.</translation>
         </message>
+        <message>
+            <source>When the AI assistant is allowed, everything a tool returns is sent to Anthropic (Claude API) as part of the conversation: only what the tool returns, never the database credentials. Allowing it decides for everyone working on this project. Check whether your contracts and data protection rules allow it.</source>
+            <translation>When the AI assistant is allowed, everything a tool returns is sent to Anthropic (Claude API) as part of the conversation: only what the tool returns, never the database credentials. Allowing it decides for everyone working on this project. Check whether your contracts and data protection rules allow it.</translation>
+        </message>
+        <message>
+            <source>Allow the AI assistant in this project</source>
+            <translation>Allow the AI assistant in this project</translation>
+        </message>
+        <message>
+            <source>Permission ...</source>
+            <translation>Permission ...</translation>
+        </message>
+        <message>
+            <source>Install AI support</source>
+            <translation>Install AI support</translation>
+        </message>
+        <message>
+            <source>Ask about the loaded project, e.g. "Check the loaded version" (Ctrl+Enter sends)</source>
+            <translation>Ask about the loaded project, e.g. "Check the loaded version" (Ctrl+Enter sends)</translation>
+        </message>
+        <message>
+            <source>AI assistant</source>
+            <translation>AI assistant</translation>
+        </message>
+        <message>
+            <source>Export conversation</source>
+            <translation>Export conversation</translation>
+        </message>
+        <message>
+            <source>Tools and the data they send (uncheck to switch a tool off):</source>
+            <translation>Tools and the data they send (uncheck to switch a tool off):</translation>
+        </message>
+        <message>
+            <source>Model</source>
+            <translation>Model</translation>
+        </message>
+        <message>
+            <source>Effort</source>
+            <translation>Effort</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Send</translation>
+        </message>
+        <message>
+            <source>New conversation</source>
+            <translation>New conversation</translation>
+        </message>
+        <message>
+            <source>Export ...</source>
+            <translation>Export ...</translation>
+        </message>
+        <message>
+            <source>no project</source>
+            <translation>no project</translation>
+        </message>
+        <message>
+            <source>Installed.</source>
+            <translation>Installed.</translation>
+        </message>
+        <message>
+            <source>AI assistant in project {}</source>
+            <translation>AI assistant in project {}</translation>
+        </message>
+        <message>
+            <source>The AI assistant needs the Python package anthropic. Install it with:</source>
+            <translation>The AI assistant needs the Python package anthropic. Install it with:</translation>
+        </message>
+        <message>
+            <source>SDK {}</source>
+            <translation>SDK {}</translation>
+        </message>
+        <message>
+            <source>key: {}</source>
+            <translation>key: {}</translation>
+        </message>
+        <message>
+            <source>AI assistant not allowed in this project</source>
+            <translation>AI assistant not allowed in this project</translation>
+        </message>
+        <message>
+            <source>this answer {:.2f} USD · session {:.2f} of {:.2f} USD (estimated, prices of {})</source>
+            <translation>this answer {:.2f} USD · session {:.2f} of {:.2f} USD (estimated, prices of {})</translation>
+        </message>
+        <message>
+            <source>The estimated cost of this session reached {:.2f} USD (limit {:.2f} USD). Continue, which raises the limit by {:.2f} USD?</source>
+            <translation>The estimated cost of this session reached {:.2f} USD (limit {:.2f} USD). Continue, which raises the limit by {:.2f} USD?</translation>
+        </message>
+        <message>
+            <source>working ...</source>
+            <translation>working ...</translation>
+        </message>
+        <message>
+            <source>Installed; restart QGIS to use the AI assistant.</source>
+            <translation>Installed; restart QGIS to use the AI assistant.</translation>
+        </message>
+        <message>
+            <source>not installed</source>
+            <translation>not installed</translation>
+        </message>
+        <message>
+            <source>allowed in this project</source>
+            <translation>allowed in this project</translation>
+        </message>
+        <message>
+            <source>Another model cannot continue this conversation. Start a new conversation with {}?</source>
+            <translation>Another model cannot continue this conversation. Start a new conversation with {}?</translation>
+        </message>
+        <message>
+            <source>You</source>
+            <translation>You</translation>
+        </message>
+        <message>
+            <source>QGIS settings</source>
+            <translation>QGIS settings</translation>
+        </message>
+        <message>
+            <source>environment</source>
+            <translation>environment</translation>
+        </message>
+        <message>
+            <source>ant login profile</source>
+            <translation>ant login profile</translation>
+        </message>
+        <message>
+            <source>The installation failed (exit code {}). Run the command above by hand, or use the MCP connection.</source>
+            <translation>The installation failed (exit code {}). Run the command above by hand, or use the MCP connection.</translation>
+        </message>
+        <message>
+            <source>, switched off: {}</source>
+            <translation>, switched off: {}</translation>
+        </message>
+        <message>
+            <source>Remove the stored key</source>
+            <translation>Remove the stored key</translation>
+        </message>
+        <message>
+            <source>Anthropic API key of the AI assistant tab, stored encrypted in the QGIS authentication database. Without it the assistant uses ANTHROPIC_API_KEY. The Claude API is billed per use, separately from a Claude subscription.</source>
+            <translation>Anthropic API key of the AI assistant tab, stored encrypted in the QGIS authentication database. Without it the assistant uses ANTHROPIC_API_KEY. The Claude API is billed per use, separately from a Claude subscription.</translation>
+        </message>
+        <message>
+            <source>API key</source>
+            <translation>API key</translation>
+        </message>
+        <message>
+            <source>stored (enter a new key to replace it)</source>
+            <translation>stored (enter a new key to replace it)</translation>
+        </message>
+        <message>
+            <source>sk-ant-...</source>
+            <translation>sk-ant-...</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Stop</translation>
+        </message>
+        <message>
+            <source>none</source>
+            <translation>none</translation>
+        </message>
     </context>
 </TS>

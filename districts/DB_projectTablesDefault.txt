@@ -7,6 +7,18 @@ CREATE TABLE IF NOT EXISTS public.db_info
     CONSTRAINT db_info_pkey PRIMARY KEY (id)
 );
 
+-------------------table public.ai_settings------------------------------------
+--permission of the AI assistant in this project (OpenSpec ai-chat-panel D3), one row
+DROP TABLE IF EXISTS public.ai_settings CASCADE;
+CREATE TABLE IF NOT EXISTS public.ai_settings
+(
+    id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    allowed boolean NOT NULL DEFAULT false,
+    disabled_tools text[] NOT NULL DEFAULT '{}',
+    changed_by text,
+    changed_at timestamp
+);
+
 -------------------table public.supervisory_ctrl;------------------------------------
 DROP TABLE IF EXISTS public.supervisory_ctrl CASCADE;
 CREATE TABLE IF NOT EXISTS public.supervisory_ctrl

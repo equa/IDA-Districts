@@ -44,4 +44,4 @@
 
 - [x] 8.1 `model_checks.checkVersions` (findings merged over the versions) and `findingLine`; the dialog checks the stage versions at the start, refuses on errors, logs warnings and infos
 - [x] 8.2 Tests: merging, version prefix, skipped rules, messages (unit); a mapping failing in both stages and one failing only for a stage-2 customer, the start refused naming stage 2 (e2e)
-- [ ] 8.3 CI
+- [x] 8.3 CI (run 44528358176 green)

@@ -62,3 +62,10 @@ The plugin SHALL offer "MCP configuration ...", a dialog with the paths of this 
 #### Scenario: Claude Code not installed
 - **WHEN** the `claude` command is not on the PATH
 - **THEN** the dialog says so and names the installation command and Claude Desktop as the alternative
+
+### Requirement: Project permission
+The bridge SHALL run a tool only when the project allows it (OpenSpec change ai-chat-panel, `public.ai_settings`): in a project that does not allow the AI assistant every tool except `search_help` and `read_help_page` SHALL answer with an error saying so, and in an allowed project a switched-off tool SHALL answer that it is switched off.
+
+#### Scenario: Project not allowed
+- **WHEN** an MCP client calls `run_checks` in a project whose AI assistant is not allowed
+- **THEN** the answer is an error naming the project and the tab AI assistant, and no check runs

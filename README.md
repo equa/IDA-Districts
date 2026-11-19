@@ -65,6 +65,16 @@ and read the IDA Districts wiki. No tool changes data or starts a simulation.
    127.0.0.1 only, with a token renewed at every start (`districts_mcp.json` in the QGIS profile folder).
 3. Ask the assistant, e.g. "check the loaded version" or "compare base1 with base1_sizing".
 
+**AI assistant tab.** The same tools are available in the Districts Modeler itself: tab **AI assistant** (seventh tab,
+detachable). It calls the Claude API through the `anthropic` Python package, which the tab installs on request
+("Install AI support", `pip install --user` with the QGIS Python). The Anthropic API key goes into the Districts
+Modeler settings (stored encrypted in the QGIS authentication database; without it `ANTHROPIC_API_KEY` is used); the
+Claude API is billed per use, separately from a Claude subscription. The tab works only in projects where the AI
+assistant is allowed (button "Permission ...", stored in the project database for everyone, with tools that can be
+switched off, e.g. the map image); the MCP connection follows the same permission. Model (Claude Opus 5.5 by default,
+Sonnet 5.5, Haiku 5.5) and effort can be chosen; the tab shows the estimated cost per answer and session and asks before
+continuing above a limit per session (2 USD). "Export" writes a conversation as HTML; otherwise it ends with QGIS.
+
 The server (`districts/mcp/server.py`) runs with the Python of QGIS and needs no further installation; the wiki needs
 internet access, the other tools do not.
 

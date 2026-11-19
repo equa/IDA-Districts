@@ -137,6 +137,9 @@ class TestAiConnection:
 
     def test_tools_leave_the_version_unchanged(self, ai):
         plugin = ai.plugin
+        # the tools run only in a project that allows the AI assistant (OpenSpec ai-chat-panel D3)
+        from districts.ai.access import saveAiSettings
+        saveAiSettings(plugin.cur, True, [])
         ctx = mcp_tools.ToolContext(plugin)
         before = version_rows(plugin)
         calls = {'project_state': {}, 'layers': {}, 'result_tables': {}, 'run_log': {}, 'run_checks': {},

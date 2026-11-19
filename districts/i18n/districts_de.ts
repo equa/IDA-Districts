@@ -11725,5 +11725,157 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Then switch on Plugins → Districts Modeler → AI connection (MCP) in every QGIS session. Everything a tool returns is sent to Anthropic.</source>
             <translation>Danach in jeder QGIS-Sitzung Erweiterungen → Districts Modeler → KI-Verbindung (MCP) einschalten. Alles, was ein Werkzeug zurückgibt, wird an Anthropic gesendet.</translation>
         </message>
+        <message>
+            <source>When the AI assistant is allowed, everything a tool returns is sent to Anthropic (Claude API) as part of the conversation: only what the tool returns, never the database credentials. Allowing it decides for everyone working on this project. Check whether your contracts and data protection rules allow it.</source>
+            <translation>Ist der KI-Assistent erlaubt, wird alles, was ein Werkzeug zurückgibt, als Teil des Gesprächs an Anthropic (Claude API) gesendet: nur was das Werkzeug zurückgibt, nie die Datenbank-Zugangsdaten. Die Erlaubnis gilt für alle, die an diesem Projekt arbeiten. Prüfen Sie, ob Ihre Verträge und Datenschutzregeln es erlauben.</translation>
+        </message>
+        <message>
+            <source>Allow the AI assistant in this project</source>
+            <translation>KI-Assistent in diesem Projekt erlauben</translation>
+        </message>
+        <message>
+            <source>Permission ...</source>
+            <translation>Erlaubnis ...</translation>
+        </message>
+        <message>
+            <source>Install AI support</source>
+            <translation>KI-Unterstützung installieren</translation>
+        </message>
+        <message>
+            <source>Ask about the loaded project, e.g. "Check the loaded version" (Ctrl+Enter sends)</source>
+            <translation>Fragen zum geladenen Projekt, z. B. "Prüfe die geladene Version" (Ctrl+Enter sendet)</translation>
+        </message>
+        <message>
+            <source>AI assistant</source>
+            <translation>KI-Assistent</translation>
+        </message>
+        <message>
+            <source>Export conversation</source>
+            <translation>Gespräch exportieren</translation>
+        </message>
+        <message>
+            <source>Tools and the data they send (uncheck to switch a tool off):</source>
+            <translation>Werkzeuge und die Daten, die sie senden (abwählen schaltet ein Werkzeug aus):</translation>
+        </message>
+        <message>
+            <source>Model</source>
+            <translation>Modell</translation>
+        </message>
+        <message>
+            <source>Effort</source>
+            <translation>Aufwand</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Senden</translation>
+        </message>
+        <message>
+            <source>New conversation</source>
+            <translation>Neues Gespräch</translation>
+        </message>
+        <message>
+            <source>Export ...</source>
+            <translation>Exportieren ...</translation>
+        </message>
+        <message>
+            <source>no project</source>
+            <translation>kein Projekt</translation>
+        </message>
+        <message>
+            <source>Installed.</source>
+            <translation>Installiert.</translation>
+        </message>
+        <message>
+            <source>AI assistant in project {}</source>
+            <translation>KI-Assistent im Projekt {}</translation>
+        </message>
+        <message>
+            <source>The AI assistant needs the Python package anthropic. Install it with:</source>
+            <translation>Der KI-Assistent braucht das Python-Paket anthropic. Installieren mit:</translation>
+        </message>
+        <message>
+            <source>SDK {}</source>
+            <translation>SDK {}</translation>
+        </message>
+        <message>
+            <source>key: {}</source>
+            <translation>Schlüssel: {}</translation>
+        </message>
+        <message>
+            <source>AI assistant not allowed in this project</source>
+            <translation>KI-Assistent in diesem Projekt nicht erlaubt</translation>
+        </message>
+        <message>
+            <source>this answer {:.2f} USD · session {:.2f} of {:.2f} USD (estimated, prices of {})</source>
+            <translation>diese Antwort {:.2f} USD · Sitzung {:.2f} von {:.2f} USD (geschätzt, Preise vom {})</translation>
+        </message>
+        <message>
+            <source>The estimated cost of this session reached {:.2f} USD (limit {:.2f} USD). Continue, which raises the limit by {:.2f} USD?</source>
+            <translation>Die geschätzten Kosten dieser Sitzung erreichen {:.2f} USD (Grenze {:.2f} USD). Weiter, womit die Grenze um {:.2f} USD steigt?</translation>
+        </message>
+        <message>
+            <source>working ...</source>
+            <translation>arbeitet ...</translation>
+        </message>
+        <message>
+            <source>Installed; restart QGIS to use the AI assistant.</source>
+            <translation>Installiert; QGIS neu starten, um den KI-Assistenten zu verwenden.</translation>
+        </message>
+        <message>
+            <source>not installed</source>
+            <translation>nicht installiert</translation>
+        </message>
+        <message>
+            <source>allowed in this project</source>
+            <translation>in diesem Projekt erlaubt</translation>
+        </message>
+        <message>
+            <source>Another model cannot continue this conversation. Start a new conversation with {}?</source>
+            <translation>Ein anderes Modell kann dieses Gespräch nicht fortsetzen. Neues Gespräch mit {} beginnen?</translation>
+        </message>
+        <message>
+            <source>You</source>
+            <translation>Sie</translation>
+        </message>
+        <message>
+            <source>QGIS settings</source>
+            <translation>QGIS-Einstellungen</translation>
+        </message>
+        <message>
+            <source>environment</source>
+            <translation>Umgebung</translation>
+        </message>
+        <message>
+            <source>ant login profile</source>
+            <translation>ant-Anmeldeprofil</translation>
+        </message>
+        <message>
+            <source>The installation failed (exit code {}). Run the command above by hand, or use the MCP connection.</source>
+            <translation>Die Installation ist fehlgeschlagen (Exit-Code {}). Den Befehl oben von Hand ausführen oder die MCP-Verbindung verwenden.</translation>
+        </message>
+        <message>
+            <source>, switched off: {}</source>
+            <translation>, ausgeschaltet: {}</translation>
+        </message>
+        <message>
+            <source>Remove the stored key</source>
+            <translation>Gespeicherten Schlüssel entfernen</translation>
+        </message>
+        <message>
+            <source>Anthropic API key of the AI assistant tab, stored encrypted in the QGIS authentication database. Without it the assistant uses ANTHROPIC_API_KEY. The Claude API is billed per use, separately from a Claude subscription.</source>
+            <translation>Anthropic-API-Schlüssel des Tabs KI-Assistent, verschlüsselt in der QGIS-Authentifizierungsdatenbank gespeichert. Ohne ihn verwendet der Assistent ANTHROPIC_API_KEY. Die Claude API wird nach Nutzung abgerechnet, getrennt von einem Claude-Abonnement.</translation>
+        </message>
+        <message>
+            <source>API key</source>
+            <translation>API-Schlüssel</translation>
+        </message>
+        <message>
+            <source>stored (enter a new key to replace it)</source>
+            <translation>gespeichert (neuen Schlüssel eingeben, um ihn zu ersetzen)</translation>
+        </message>
+        <message>
+            <source>sk-ant-...</source>
+            <translation>sk-ant-...</translation>
+        </message>
     </context>
 </TS>

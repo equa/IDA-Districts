@@ -70,6 +70,10 @@ class FloatingTabDialog(QtWidgets.QDialog):
 
 
 class DistrictsSettingsDialog(QtWidgets.QDialog):
+    def addAiKeyBox(self, config):
+        layout = self.layout()
+        layout.insertWidget(max(0, layout.count() - 1), aiKeyBox(self, config))
+
     def __init__(self,main):
         super().__init__()
 
@@ -99,11 +103,32 @@ class DistrictsSettingsDialog(QtWidgets.QDialog):
         self.btn_fileChoserPostgresqlPath.clicked.connect(lambda: main.folderDialog(self, self.lineEdit_pathPostgresql.text(),self.lineEdit_pathPostgresql))
         self.btn_fileChoserProjectPath.clicked.connect(lambda: main.folderDialog(self, self.lineEdit_pathProjects.text(),self.lineEdit_pathProjects))
         
+        self.addAiKeyBox(config)
         self.auth_dict=getAuthNames()
         self.comboBox_AuthId.addItems(self.auth_dict)
         auth_name=[i for i in config["auth_id"] if i==config["auth_id"]]
         if auth_name:
             self.comboBox_AuthId.setCurrentText(auth_name)   
+
+def aiKeyBox(dialog, config):
+    """group 'AI assistant' of the settings dialog: the Anthropic API key, stored in the QGIS authentication database"""
+    from .ai.access import storedApiKey
+    box = QtWidgets.QGroupBox(tr_msg('AI assistant'))
+    layout = QtWidgets.QFormLayout(box)
+    dialog.lineEdit_aiKey = QtWidgets.QLineEdit()
+    dialog.lineEdit_aiKey.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+    stored = bool(storedApiKey(config))
+    dialog.lineEdit_aiKey.setPlaceholderText(tr_msg('stored (enter a new key to replace it)') if stored else tr_msg('sk-ant-...'))
+    dialog.checkBox_aiKeyRemove = QtWidgets.QCheckBox(tr_msg('Remove the stored key'))
+    dialog.checkBox_aiKeyRemove.setEnabled(stored)
+    note = QtWidgets.QLabel(tr_msg('Anthropic API key of the AI assistant tab, stored encrypted in the QGIS authentication database. '
+                                   'Without it the assistant uses ANTHROPIC_API_KEY. The Claude API is billed per use, separately from a Claude subscription.'))
+    note.setWordWrap(True)
+    layout.addRow(tr_msg('API key'), dialog.lineEdit_aiKey)
+    layout.addRow('', dialog.checkBox_aiKeyRemove)
+    layout.addRow(note)
+    return box
+
 
 class CloseSignals(QObject):
     close=pyqtSignal(bool)

@@ -67,6 +67,12 @@ say what each git command does before you run it.
   standard library only, never imported by the plugin; `tools_snapshot.json` must equal the registry, see
   `test_mcp_server.py`). Rules: `utility_functions/model_checks.py`; key figures shared with the network report:
   `utility_functions/version_kpis.py`. Marker `online` reads the public wiki.
+- AI assistant tab (change ai-chat-panel): `districts/ai/` (`access.py`: SDK, API key in the QGIS authentication
+  database `ai_auth_id`, per-project permission in `public.ai_settings` created by `upgrade.py`; `conversation.py`:
+  manual tool loop over `client.beta.messages.stream`, tools run in the main thread; `costs.py`: price table with its
+  date; `chat_widget.py`, `export.py`). Tools refuse in projects that do not allow the assistant (also through the
+  MCP bridge). Tests use a fake backend or a mock transport, never the API (`test_ai_chat.py`, `test_ai_tab.py`,
+  `test_ai_e2e.py`); the `anthropic` package is in the user site of the QGIS Python.
 
 ## Build and test
 

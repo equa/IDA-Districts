@@ -106,3 +106,11 @@ def test_default_sql_files_match_the_code():
         project = f.read().replace('\r\n', '\n')
     assert statics_db.STATICS_PARAMETERS_SQL.replace('\r\n', '\n') in project
     assert all("VALUES ('{}', {}".format(key, value) in project for key, (value, _, _) in sm.PARAMETER_DEFAULTS.items())
+
+
+def test_network_build_not_shadowed():
+    """districts.py imports two functions named buildModel; the network dialog must get the network one."""
+    from districts import districts as plugin, ida_mosim
+    from districts.utility_functions import statics_db
+    assert plugin.buildModel is ida_mosim.buildModel
+    assert plugin.buildStaticsModelTables is statics_db.buildModel

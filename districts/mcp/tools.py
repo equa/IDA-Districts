@@ -70,6 +70,11 @@ class ToolContext:
             conn.rollback()
             conn.close()
 
+    def aiSettings(self):
+        from ..ai.access import loadAiSettings
+        with self.cursor(dict(copy.deepcopy(self.plugin.config), versionName='')) as cur:
+            return loadAiSettings(cur)
+
     def jobRunning(self):
         return bool(getattr(self.plugin, 'process_running', False)) or QThreadPool.globalInstance().activeThreadCount() > 0
 
@@ -81,8 +86,29 @@ def listTools():
 def callTool(ctx, name, args):
     for t in TOOLS:
         if t['name'] == name:
+            checkPermission(ctx, name)
             return t['handler'](ctx, args or {})
     raise ToolError('unknown tool {}'.format(name))
+
+
+def checkPermission(ctx, name):
+    """the project's permission (public.ai_settings, OpenSpec ai-chat-panel D3) for the chat and the MCP bridge alike;
+    without a selected project the tool reports that itself"""
+    from ..ai.access import toolAllowed
+    if not ctx.plugin.config.get('projectName'):
+        return
+    settings = ctx.aiSettings()
+    if not toolAllowed(settings, name):
+        if not settings['allowed']:
+            raise ToolError('the AI assistant is not allowed in project {} (Districts Modeler, tab AI assistant)'.format(ctx.plugin.config['projectName']))
+        raise ToolError('the tool {} is switched off in project {}'.format(name, ctx.plugin.config['projectName']))
+
+
+def allowedTools(ctx):
+    """the tool definitions the project allows"""
+    from ..ai.access import toolAllowed
+    settings = ctx.aiSettings()
+    return [t for t in listTools() if toolAllowed(settings, t['name'])]
 
 
 # ---------------- state ----------------

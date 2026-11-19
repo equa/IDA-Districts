@@ -23,6 +23,13 @@ The PC needs, like for running the tests manually:
   & "C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat" -m pip install --user pytest==9.2.0 pytest-qgis==5.0.2
   ```
 
+- the `anthropic` SDK for the tests of the AI assistant tab (they never call the API; without the SDK the tests that
+  use it are skipped), installed the same way:
+
+  ```powershell
+  & "C:\Program Files\QGIS 4.2.3\apps\Python312\python.exe" -m pip install --user --upgrade anthropic
+  ```
+
 ## 2. Test DB server
 
 The tests use the PostgreSQL server of the PC (`localhost:5432`, the same as for running the tests manually).

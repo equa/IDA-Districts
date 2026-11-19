@@ -216,6 +216,8 @@ def load_plugin_settings():
         "host": settings.value("host", "localhost"),
         "port": settings.value("port", "5432"),
         "auth_id": settings.value("auth_id", ""),
+        # API key of the AI assistant in the QGIS authentication database (OpenSpec ai-chat-panel D2)
+        "ai_auth_id": settings.value("ai_auth_id", ""),
         #project
         "projectName": settings.value("projectName",""),
         "versionName": settings.value("versionName",""),        

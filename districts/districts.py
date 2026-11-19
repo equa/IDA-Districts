@@ -104,7 +104,8 @@ from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer
 from .economic_scenarios_dialog import EconomicScenariosDialog
 from .cost_optimization import CostOptimizationDialog
 from .utility_functions.economic_data import ensurePipeCostColumns
-from .utility_functions.statics_db import buildModel, ensureStaticsParameters, formatReport
+# aliased: ida_mosim.buildModel (network model) is imported above under the plain name
+from .utility_functions.statics_db import buildModel as buildStaticsModelTables, ensureStaticsParameters, formatReport
 from .utility_functions.statics_layers import loadStaticsLayers
 from .utility_functions.reports import fillScenarioCombo, networkReport
 from .utility_functions.show_on_map import dropResultVisTables
@@ -424,6 +425,17 @@ class Districts:
         elif bridge is not None:
             bridge.stop()
             self.iface.messageBar().pushMessage(tr_msg('AI connection'), tr_msg('switched off.'), level=MessageInfo)
+
+    def addAiTab(self):
+        """tab 'AI assistant' (OpenSpec ai-chat-panel): created with the dialog, so a conversation lasts for the QGIS session"""
+        try:
+            from .ai.chat_widget import AiAssistantTab
+            self.ai_tab = AiAssistantTab(self)
+            self.ai_tab.setObjectName('tab_ai_assistant')
+            self.dlg.tabWidget.addTab(self.ai_tab, tr_msg('AI assistant'))
+        except Exception:
+            # the plugin works without the assistant
+            QgsMessageLog.logMessage(traceback.format_exc(), "Districts", MessageCritical)
 
     def showMcpConfiguration(self):
         from .mcp.config_dialog import McpConfigDialog
@@ -838,6 +850,16 @@ class Districts:
             url = "https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/Districts_GS/"
         webbrowser.open(url)
 
+    def saveAiKey(self, dlg, settings):
+        """the API key of the settings dialog into the QGIS authentication database; an empty field keeps the stored key"""
+        from .ai.access import storeApiKey
+        key = dlg.lineEdit_aiKey.text().strip()
+        if not key and not dlg.checkBox_aiKeyRemove.isChecked():
+            return
+        auth_id = storeApiKey(self.config, '' if dlg.checkBox_aiKeyRemove.isChecked() else key)
+        settings.setValue("ai_auth_id", auth_id)
+        self.config['ai_auth_id'] = auth_id
+
     def showDistrictsSettings(self):
         """Show districts settings"""
         
@@ -968,7 +990,7 @@ class Districts:
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
             return
         try:
-            report=buildModel(self.cur,self.config['versionName'])
+            report=buildStaticsModelTables(self.cur,self.config['versionName'])
         except Exception as e:
             QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
             self.iface.messageBar().pushMessage(tr_msg("Error"), tr_msg('Building the statics model failed: {}').format(e), level=MessageCritical)
@@ -1092,6 +1114,7 @@ class Districts:
             checkIDADistrictsInstallation(self.config)
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
+        self.saveAiKey(dlg, settings)
         settings.setValue("debug", dlg.checkBox_debug.isChecked())
         settings.setValue("debug_console", dlg.checkBox_debug_console.isChecked())
         settings.setValue("autosave", dlg.groupBox_autosave.isChecked())
@@ -1637,6 +1660,7 @@ class Districts:
         if self.first_start:
             self.first_start = False
             self.dlg = DistrictsDialog(self.plugin_dir)
+            self.addAiTab()
             
             #general
             self.dlg.btn_settings.clicked.connect(self.showDistrictsSettings)
