@@ -43,6 +43,14 @@ say what each git command does before you run it.
   (`db.ensurePipeSeriesTables`). The flexible isoplus catalogue of the
   templates is generated from `test/flexible_pipe_catalog.py`;
   `test_flexible_pipe_catalog.py` checks that the template rows match it.
+- Statics model (change statics-model): `utility_functions/statics_model.py`
+  (bend rules, pure functions), `statics_db.py` (version tables
+  `statics_model_*`, overrides `statics_points`/`statics_sections`, build,
+  fingerprint, `modelState`), `statics_layers.py` (layer group);
+  parameters in `public.statics_parameters`. Tables created by `upgrade.py`;
+  the SQL in `statics_db` must equal `DB_versionTablesDefault.txt`
+  (`test_statics_model.py` checks it). Code that uses the model refuses one
+  that is not current.
 - Representative periods (`representative_periods.py`, `utility_functions/periods.py`):
   a period run keeps the result tables of each week as `<table>_period<k>`
   and writes `versions/<version>/periods.json`; the economic evaluation

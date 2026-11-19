@@ -878,6 +878,26 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </widget>
               </item>
               <item>
+               <widget class="QPushButton" name="btn_statics_parameters">
+                <property name="toolTip">
+                 <string>tooltip_statics_parameters</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_statics_model">
+                <property name="toolTip">
+                 <string>tooltip_statics_model</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QPushButton" name="btn_pipe_bundle_types">
                 <property name="toolTip">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_pipes_bundles&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>

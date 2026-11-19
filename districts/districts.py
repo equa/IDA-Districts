@@ -104,6 +104,8 @@ from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer
 from .economic_scenarios_dialog import EconomicScenariosDialog
 from .cost_optimization import CostOptimizationDialog
 from .utility_functions.economic_data import ensurePipeCostColumns
+from .utility_functions.statics_db import buildModel, ensureStaticsParameters, formatReport
+from .utility_functions.statics_layers import loadStaticsLayers
 from .utility_functions.reports import fillScenarioCombo, networkReport
 from .utility_functions.show_on_map import dropResultVisTables
 from .utility_functions.topology import getLayerAttributesName
@@ -905,6 +907,39 @@ class Districts:
                 openFnArg=['pipe_series_pressure_ratings',['years','temperature_c','pressure_bar'],[tr_msg('Operating time [a]'),tr_msg('Temperature [°C]'),tr_msg('Pressure [bar]')],
                            'WHERE series_id =','ORDER BY years, temperature_c',[],False,'',False,False,[]])
 
+    def manageStaticsParameters(self):
+        if self.conn:
+            ensureStaticsParameters(self.cur)
+            show_TableDialog(main=self,title=tr_msg('Statics parameters'),table='public.statics_parameters',
+                headers=[tr('@default','id'),tr_msg('Parameter'),tr_msg('Value'),tr_msg('Unit'),tr('@default','description')],
+                columns='(id,key,value,unit,description)',dropdowns=[],deactivated=[0,1,3,4])
+        else:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
+
+    def buildStaticsModel(self):
+        """Builds the statics model of the loaded version, loads its layer group and shows the report."""
+        if not self.conn:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
+            return
+        if not self.config['versionName']:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
+            return
+        try:
+            report=buildModel(self.cur,self.config['versionName'])
+        except Exception as e:
+            QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
+            self.iface.messageBar().pushMessage(tr_msg("Error"), tr_msg('Building the statics model failed: {}').format(e), level=MessageCritical)
+            return
+        loadStaticsLayers(self.config)
+        summary,details=formatReport(report)
+        #not modal: the user checks the report against the map
+        self.dlg_staticsReport=QMessageBox(self.dlg)
+        self.dlg_staticsReport.setWindowTitle(tr_msg('Statics model'))
+        self.dlg_staticsReport.setText(summary)
+        self.dlg_staticsReport.setDetailedText(details)
+        self.dlg_staticsReport.setModal(False)
+        self.dlg_staticsReport.show()
+
     def manageEconomicScenarios(self):
         if self.conn:
             self.dlg_economicScenarios=EconomicScenariosDialog(self)
@@ -1609,6 +1644,8 @@ class Districts:
             self.dlg.btn_pipe_constructions.clicked.connect(lambda: self.managePipeConstructions())
             self.dlg.btn_pipes.clicked.connect(lambda: self.managePipes())
             self.dlg.btn_pipe_series.clicked.connect(lambda: self.managePipeSeries())
+            self.dlg.btn_statics_parameters.clicked.connect(lambda: self.manageStaticsParameters())
+            self.dlg.btn_statics_model.clicked.connect(lambda: self.buildStaticsModel())
             self.dlg.btn_economic_scenarios.clicked.connect(lambda: self.manageEconomicScenarios())
             self.dlg.btn_manageCustomerTemplates.clicked.connect(lambda: self.manageTemplates('customer'))
             self.dlg.btn_manageEnergyPlantTemplates.clicked.connect(lambda: self.manageTemplates('energy_plant'))

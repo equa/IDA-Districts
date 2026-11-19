@@ -549,6 +549,15 @@ def _register_translation_keys():
     tr("pipe_series")
     tr("casing_construction_id")
     tr("pipe_series_pressure_ratings")
+    tr("statics_model")
+    tr("statics_model_nodes")
+    tr("statics_model_pipes")
+    tr("statics_points")
+    tr("statics_sections")
+    tr("bend_class_none")
+    tr("bend_class_kink")
+    tr("bend_class_bend")
+    tr("bend_class_elastic")
     
     #materials
     tr("thermal_conductivity_w7mkelvin")

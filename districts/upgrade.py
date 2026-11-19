@@ -3,6 +3,7 @@
 from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColumns, ensurePipeSeriesTables, ensurePipeTwinColumns
 from .utility_functions.debug_log import dprint
 from .utility_functions.economic_data import dropBundleCostColumns, ensureEconomicTables, ensurePipeCostColumns
+from .utility_functions.statics_db import ensureStaticsParameters, ensureStaticsTables
 
 #upgrade versions DB table structure
 def upgradeVersionDB(cur,config):
@@ -22,6 +23,8 @@ def upgradeVersionDB(cur,config):
     #surface class of the streets (trench cost curves of the economic scenarios)
     if getDBColumnInfo(cur,config['versionName'],'streets') and 'surface' not in getDBColumnInfo(cur,config['versionName'],'streets'):
         cur.execute("""ALTER TABLE "{}".streets ADD COLUMN surface text;""".format(config['versionName'])) # nosec B608
+    #statics model and its overrides (pipe statics)
+    ensureStaticsTables(cur,config['versionName'])
     upgradeProjectDB(cur)
     dprint('--upgrade finished--')
 
@@ -33,6 +36,8 @@ def upgradeProjectDB(cur):
     ensurePipeTwinColumns(cur)
     #product data of the series and the bend radius of the pipes (pipe statics)
     ensurePipeSeriesTables(cur)
+    #parameters of the statics model
+    ensureStaticsParameters(cur)
     #costs: maintenance, lifetime, p_max of the pipes and the economic scenarios
     ensurePipeCostColumns(cur)
     ensureEconomicTables(cur)

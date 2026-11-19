@@ -2259,6 +2259,42 @@
             <translation type="unfinished">Pressure ratings by operating time and temperature</translation>
         </message>
         <message>
+            <source>statics_model</source>
+            <translation type="unfinished">Statics model</translation>
+        </message>
+        <message>
+            <source>statics_model_nodes</source>
+            <translation type="unfinished">Statics: nodes</translation>
+        </message>
+        <message>
+            <source>statics_model_pipes</source>
+            <translation type="unfinished">Statics: pipes</translation>
+        </message>
+        <message>
+            <source>statics_points</source>
+            <translation type="unfinished">Statics: point overrides</translation>
+        </message>
+        <message>
+            <source>statics_sections</source>
+            <translation type="unfinished">Statics: section overrides</translation>
+        </message>
+        <message>
+            <source>bend_class_none</source>
+            <translation type="unfinished">No bend</translation>
+        </message>
+        <message>
+            <source>bend_class_kink</source>
+            <translation type="unfinished">Small-angle kink</translation>
+        </message>
+        <message>
+            <source>bend_class_bend</source>
+            <translation type="unfinished">Prefabricated bend</translation>
+        </message>
+        <message>
+            <source>bend_class_elastic</source>
+            <translation type="unfinished">Elastic bend</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="481" />
             <source>casing_construction_id</source>
             <translation type="unfinished">Twin pipe: construction ID of the shared casing</translation>
@@ -5866,6 +5902,14 @@ p, li { white-space: pre-wrap; }
         <message>
             <source>tooltip_pipe_series</source>
             <translation type="unfinished">Pipe series: system type, limits, pressure ratings</translation>
+        </message>
+        <message>
+            <source>tooltip_statics_parameters</source>
+            <translation type="unfinished">Statics parameters: bend rules, merging, snap tolerance of the overrides</translation>
+        </message>
+        <message>
+            <source>tooltip_statics_model</source>
+            <translation type="unfinished">Build the statics model: bends, pipes, cover and overrides of the loaded version</translation>
         </message>
         <message>
             <source>representative_periods</source>

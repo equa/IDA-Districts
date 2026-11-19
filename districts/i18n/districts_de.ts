@@ -2241,6 +2241,42 @@
             <translation type="unfinished">Druckstufen nach Betriebsdauer und Temperatur</translation>
         </message>
         <message>
+            <source>statics_model</source>
+            <translation type="unfinished">Statikmodell</translation>
+        </message>
+        <message>
+            <source>statics_model_nodes</source>
+            <translation type="unfinished">Statik: Knoten</translation>
+        </message>
+        <message>
+            <source>statics_model_pipes</source>
+            <translation type="unfinished">Statik: Rohre</translation>
+        </message>
+        <message>
+            <source>statics_points</source>
+            <translation type="unfinished">Statik: Punktvorgaben</translation>
+        </message>
+        <message>
+            <source>statics_sections</source>
+            <translation type="unfinished">Statik: Abschnittsvorgaben</translation>
+        </message>
+        <message>
+            <source>bend_class_none</source>
+            <translation type="unfinished">Kein Bogen</translation>
+        </message>
+        <message>
+            <source>bend_class_kink</source>
+            <translation type="unfinished">Kleinwinkelknick</translation>
+        </message>
+        <message>
+            <source>bend_class_bend</source>
+            <translation type="unfinished">Fertigbogen</translation>
+        </message>
+        <message>
+            <source>bend_class_elastic</source>
+            <translation type="unfinished">Elastischer Bogen</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="481" />
             <source>casing_construction_id</source>
             <translation type="unfinished">Doppelrohr: Konstruktion ID der gemeinsamen Hülle</translation>
@@ -5560,6 +5596,14 @@ li.checked::marker { content: "\2612"; }
         <message>
             <source>tooltip_pipe_series</source>
             <translation type="unfinished">Rohrserien: Rohrsystem, Grenzwerte, Druckstufen</translation>
+        </message>
+        <message>
+            <source>tooltip_statics_parameters</source>
+            <translation type="unfinished">Statikparameter: Bogenregeln, Zusammenfassung, Fangtoleranz der Vorgaben</translation>
+        </message>
+        <message>
+            <source>tooltip_statics_model</source>
+            <translation type="unfinished">Statikmodell erstellen: Bögen, Rohre, Überdeckung und Vorgaben der geladenen Version</translation>
         </message>
         <message>
             <source>representative_periods</source>
@@ -11368,6 +11412,102 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>Investments of a stage: the items new in it, from its start year (replacements and residual value from there); operating costs and penalties: in its operating years.</source>
             <translation>Investitionen einer Etappe: die in ihr neuen Posten, ab ihrem Startjahr (Ersatz und Restwert ab dort); Betriebskosten und Strafkosten: in ihren Betriebsjahren.</translation>
+        </message>
+        <message>
+            <source>Statics parameters</source>
+            <translation>Statikparameter</translation>
+        </message>
+        <message>
+            <source>Building the statics model failed: {}</source>
+            <translation>Das Statikmodell konnte nicht erstellt werden: {}</translation>
+        </message>
+        <message>
+            <source>Statics model</source>
+            <translation>Statikmodell</translation>
+        </message>
+        <message>
+            <source>Statics model built: {} lines, {} nodes ({}), {} sections, {} pipe rows.</source>
+            <translation>Statikmodell erstellt: {} Leitungen, {} Knoten ({}), {} Abschnitte, {} Rohrzeilen.</translation>
+        </message>
+        <message>
+            <source>{} findings, see the details.</source>
+            <translation>{} Befunde, siehe Details.</translation>
+        </message>
+        <message>
+            <source>Parameters</source>
+            <translation>Parameter</translation>
+        </message>
+        <message>
+            <source>Skipped lines</source>
+            <translation>Übersprungene Leitungen</translation>
+        </message>
+        <message>
+            <source>line {}: {}</source>
+            <translation>Leitung {}: {}</translation>
+        </message>
+        <message>
+            <source>Negative cover</source>
+            <translation>Negative Überdeckung</translation>
+        </message>
+        <message>
+            <source>line {}, pipes {}: {:.3f} m</source>
+            <translation>Leitung {}, Rohre {}: {:.3f} m</translation>
+        </message>
+        <message>
+            <source>Runs of small kinks not merged (radius below the elastic limit)</source>
+            <translation>Nicht zusammengefasste Kleinwinkelknicke (Radius unter der elastischen Grenze)</translation>
+        </message>
+        <message>
+            <source>line {}, vertices {}: radius {:.1f} m</source>
+            <translation>Leitung {}, Stützpunkte {}: Radius {:.1f} m</translation>
+        </message>
+        <message>
+            <source>Bends below the minimum bend radius</source>
+            <translation>Bögen unter dem minimalen Biegeradius</translation>
+        </message>
+        <message>
+            <source>line {}, pipes {}, node {}: radius {:.2f} m &lt; {:.2f} m</source>
+            <translation>Leitung {}, Rohre {}, Knoten {}: Radius {:.2f} m &lt; {:.2f} m</translation>
+        </message>
+        <message>
+            <source>Pipes without series (treated as rigid)</source>
+            <translation>Rohre ohne Serie (als starr behandelt)</translation>
+        </message>
+        <message>
+            <source>Point overrides applied</source>
+            <translation>Angewendete Punktvorgaben</translation>
+        </message>
+        <message>
+            <source>Point overrides ambiguous (not applied)</source>
+            <translation>Mehrdeutige Punktvorgaben (nicht angewendet)</translation>
+        </message>
+        <message>
+            <source>Point overrides without a match</source>
+            <translation>Punktvorgaben ohne Treffer</translation>
+        </message>
+        <message>
+            <source>Section overrides applied</source>
+            <translation>Angewendete Abschnittsvorgaben</translation>
+        </message>
+        <message>
+            <source>Section overrides without a match</source>
+            <translation>Abschnittsvorgaben ohne Treffer</translation>
+        </message>
+        <message>
+            <source>no bend</source>
+            <translation>kein Bogen</translation>
+        </message>
+        <message>
+            <source>small-angle kink</source>
+            <translation>Kleinwinkelknick</translation>
+        </message>
+        <message>
+            <source>prefabricated bend</source>
+            <translation>Fertigbogen</translation>
+        </message>
+        <message>
+            <source>elastic bend</source>
+            <translation>elastischer Bogen</translation>
         </message>
     </context>
 </TS>

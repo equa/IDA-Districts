@@ -416,6 +416,24 @@ CREATE TABLE public.pipe_series_pressure_ratings
   CONSTRAINT pipe_series_pressure_ratings_pkey PRIMARY KEY (id)
 );
   
+-------------------table public.statics_parameters------------------------------------
+--parameters of the statics model; missing keys are added with their default at every version load (upgrade.py)
+CREATE TABLE IF NOT EXISTS public.statics_parameters
+(
+  id serial,
+  key text NOT NULL UNIQUE,
+  value numeric NOT NULL,
+  unit text,
+  description text,
+  CONSTRAINT statics_parameters_pkey PRIMARY KEY (id)
+);
+INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('bend_ignore_deg', 1.0, 'deg', 'angle below which a vertex is no bend');
+INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('kink_max_deg', 5.0, 'deg', 'rigid pipes: largest angle of a small-angle kink');
+INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('bend_radius_factor', 1.5, '-', 'rigid pipes: radius of a prefabricated bend / steel outer diameter');
+INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('elastic_radius_factor', 1000.0, '-', 'rigid pipes: smallest radius of an elastic bend / steel outer diameter');
+INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('merge_distance_m', 5.0, 'm', 'largest spacing of the vertices of a run merged into an elastic bend');
+INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('snap_tolerance_m', 0.5, 'm', 'distance within which an override matches a model node or section');
+
 -------------------table public.pipe_constructions------------------------------------
 DROP TABLE IF EXISTS public.pipe_constructions CASCADE;  
 CREATE TABLE public.pipe_constructions

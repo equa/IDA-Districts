@@ -255,3 +255,97 @@ CREATE TABLE IF NOT EXISTS "$versionName$".invoked_sf
     vars text[],
     CONSTRAINT invoked_sf_pkey PRIMARY KEY (id)
 );
+
+-------------------statics model (change statics-model): generated model, build record and overrides------------------------------------
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_nodes
+(
+  id serial,
+  geom geometry(PointZ,$srid$),
+  line_ids integer[],
+  vertex_index integer,
+  kind text,
+  junction_id integer,
+  junction_type text,
+  angle_deg numeric,
+  bend_class text,
+  radius_m numeric,
+  bend_id integer,
+  source text,
+  override_id integer,
+  override_kind text,
+  CONSTRAINT statics_model_nodes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_sections
+(
+  id serial,
+  geom geometry(LineStringZ,$srid$),
+  line_id integer,
+  node_from integer,
+  node_to integer,
+  length_m numeric,
+  line_type integer,
+  override_id integer,
+  cover_m numeric,
+  soil_unit_weight_kn_m3 numeric,
+  friction_angle_deg numeric,
+  friction_coefficient numeric,
+  groundwater_depth_m numeric,
+  traffic_load_kn_m2 numeric,
+  laying_temperature_c numeric,
+  laying_method text,
+  CONSTRAINT statics_model_sections_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_pipes
+(
+  id serial,
+  geom geometry(LineStringZ,$srid$),
+  section_id integer,
+  line_id integer,
+  sequences integer[],
+  pipe_ids integer[],
+  twin boolean,
+  system_type text,
+  series_id integer,
+  d_inner_m numeric[],
+  d_outer_m numeric[],
+  wall_m numeric[],
+  casing_d_m numeric,
+  cover_m numeric,
+  x_m numeric,
+  y_m numeric,
+  min_bend_radius_m numeric,
+  CONSTRAINT statics_model_pipes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_build
+(
+  id serial,
+  built_at timestamp without time zone DEFAULT now(),
+  fingerprint text,
+  report jsonb,
+  CONSTRAINT statics_model_build_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_points
+(
+  id serial,
+  geom geometry(Point,$srid$),
+  kind text CHECK (kind IN ('fixed_point','compensator','one_time_compensator','valve','bend')),
+  bend_class text CHECK (bend_class IN ('none','kink','bend','elastic')),
+  radius_m numeric CHECK (radius_m > 0),
+  note text,
+  CONSTRAINT statics_points_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_sections
+(
+  id serial,
+  geom geometry(LineString,$srid$),
+  cover_m numeric,
+  soil_unit_weight_kn_m3 numeric CHECK (soil_unit_weight_kn_m3 > 0),
+  friction_angle_deg numeric CHECK (friction_angle_deg >= 0),
+  friction_coefficient numeric CHECK (friction_coefficient >= 0),
+  groundwater_depth_m numeric,
+  traffic_load_kn_m2 numeric CHECK (traffic_load_kn_m2 >= 0),
+  laying_temperature_c numeric,
+  laying_method text,
+  note text,
+  CONSTRAINT statics_sections_pkey PRIMARY KEY (id)
+);
