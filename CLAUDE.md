@@ -74,7 +74,9 @@ say what each git command does before you run it.
   findings in `test/mypy_baseline.txt`; `test_messages.py` checks that every
   `tr_msg` text has a German translation.
 - CI: `.github/workflows/plugin-tests.yml` runs on every push to `dev`, on a
-  self-hosted Windows runner (`.github/RUNNER_SETUP.md`). Never write a DB
+  self-hosted Windows runner (`.github/RUNNER_SETUP.md`). A push tests only
+  QGIS 4.2; QGIS 3.44 runs only on a manual run (`gh workflow run
+  plugin-tests --ref dev`), which `main` needs before a merge. Never write a DB
   credential into a file, a commit or a command line you print.
 
 ## Changes (OpenSpec)

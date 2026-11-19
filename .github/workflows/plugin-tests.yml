@@ -36,12 +36,10 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 1  # one IDA Districts / one test DB at a time
+      # QGIS 3.44 runs only on a manual run, to save time on every push to dev; main still requires
+      # its check, so run the workflow manually on dev before a pull request to main
       matrix:
-        include:
-          - qgis: '4.2'
-            python: 'C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat'
-          - qgis: '3.44'
-            python: 'C:\Program Files\QGIS 3.44.15\bin\python-qgis-ltr.bat'
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[{"qgis":"4.2","python":"C:\\Program Files\\QGIS 4.2.3\\bin\\python-qgis.bat"},{"qgis":"3.44","python":"C:\\Program Files\\QGIS 3.44.15\\bin\\python-qgis-ltr.bat"}]' || '[{"qgis":"4.2","python":"C:\\Program Files\\QGIS 4.2.3\\bin\\python-qgis.bat"}]') }}
     env:
       DISTRICTS_TEST_DB_HOST: ${{ vars.DISTRICTS_TEST_DB_HOST || 'localhost' }}
       DISTRICTS_TEST_DB_PORT: ${{ vars.DISTRICTS_TEST_DB_PORT || '5432' }}

@@ -1,7 +1,7 @@
 # Automatic plugin tests (dev → main)
 
 The workflow `.github/workflows/plugin-tests.yml` runs the pytest suite of the Districts Modeler plugin
-(`districts/test`) for every push to `dev`, once with QGIS 4.2 and once with QGIS 3.44.
+(`districts/test`) with QGIS 4.2 for every push to `dev`; a manual run also tests QGIS 3.44.
 The checks belong to the pushed commit, so a pull request `dev` → `main` shows the result of the latest
 `dev` commit; GitHub only allows the merge when both checks are green (branch protection, step 5).
 
@@ -74,9 +74,11 @@ both checks are green. Pushing directly to main is blocked.
 
 ## Running it
 
-- **Push to dev:** both QGIS versions, all templates incl. IDA simulation (~5 min each). A newer push to dev
-  cancels a running test. Push the final state to dev and wait for the green checks before merging into main.
-- **Manually** (Actions → plugin-tests → Run workflow, any branch):
+- **Push to dev:** QGIS 4.2 only, all templates incl. IDA simulation (~5 min). A newer push to dev
+  cancels a running test.
+- **Before merging into main:** run the workflow manually on `dev` (Actions → plugin-tests → Run workflow);
+  only a manual run tests QGIS 3.44, and main requires both checks.
+- **Manually** (Actions → plugin-tests → Run workflow, any branch): both QGIS versions;
   - `with_simulation` off: only the steps without IDA (`-m "not ida"`)
   - `simulation_tests` on: afterwards also the simulation test suite `districts/simulation_tests` (takes long)
 - The JUnit reports are attached to each run (artifacts `test-report-qgis-*`).
