@@ -126,6 +126,79 @@ def test_rule_ids_and_scopes():
         mc.runChecks(None, {'versionName': 'v'}, scope='everything')
 
 
+def test_pump_and_energy_lists(tmp_path):
+    ctx = FakeContext()
+    ctx.config = {'versionName': 'v', 'pathProjects': str(tmp_path) + '\\', 'projectName': 'p'}
+    (tmp_path / 'p').mkdir()
+    found = {f['rule']: f['severity'] for f in mc.ruleLists(ctx)}
+    assert found == {'pump_list': 'warning', 'energy_use_list': 'info'}
+    (tmp_path / 'p' / 'networkPumps.json').write_text('{"entries": [{"component": "PUMP2"}]}', encoding='utf-8')
+    assert {f['rule'] for f in mc.ruleLists(ctx)} == {'energy_use_list'}
+
+
+def test_cost_outputs_need_the_plugin_folder():
+    assert mc.ruleCostOutputs(FakeContext()) == []
+
+
+def mapping_finding(mapping_id, count):
+    return mc.finding('mapping_expressions', 'error', 'Mapping {}: fails for {} features'.format(mapping_id, count), 'customers',
+                      values={'mapping_id': mapping_id, 'count': count})
+
+
+def fake_run_checks(per_version):
+    def run(cur, config, scope='all', thresholds=None, plugin_dir=None):
+        version = config['versionName']
+        found, rules, errors = per_version[version]
+        return {'version': version, 'scope': scope, 'findings': [dict(f) for f in found], 'rules_run': rules,
+                'rules_skipped': {}, 'errors': errors}
+    return run
+
+
+def test_checks_over_the_stage_versions(monkeypatch):
+    """a finding equal in every stage once with all versions, one of a single stage with its version; skipped rules
+    neither as finding nor as run; rule errors per version"""
+    pumps = mc.finding('pump_list', 'warning', 'No network pump list')
+    pairs = mc.finding('cost_pairs', 'error', 'Network 1: no pair')
+    monkeypatch.setattr(mc, 'runChecks', fake_run_checks({
+        's1': ([mapping_finding(7, 2), pumps, pairs], ['mapping_expressions', 'pump_list', 'cost_pairs'], {}),
+        's2': ([mapping_finding(7, 2), mapping_finding(8, 1), pumps], ['mapping_expressions', 'pump_list', 'cost_pairs'],
+               {'climate_file': 'OSError: no such file', 'cost_pairs': 'KeyError: 1'}),
+    }))
+    result = mc.checkVersions(None, {'versionName': 's1'}, ['s1', 's2'], skip={'cost_pairs'})
+    assert [(f['rule'], f['values'].get('mapping_id'), f['versions']) for f in result['findings']] == [
+        ('mapping_expressions', 7, ['s1', 's2']), ('mapping_expressions', 8, ['s2']), ('pump_list', None, ['s1', 's2'])]
+    assert result['rules_run'] == ['mapping_expressions', 'pump_list']
+    assert result['errors'] == {'s2': {'climate_file': 'OSError: no such file'}}
+    lines = [mc.findingLine(f, result['versions']) for f in result['findings']]
+    assert lines == ['Mapping 7: fails for 2 features', 's2: Mapping 8: fails for 1 features', 'No network pump list']
+
+
+def test_the_same_mapping_with_other_values_per_stage(monkeypatch):
+    """stage 2 has more customers: the counts differ, so each stage keeps its own finding"""
+    monkeypatch.setattr(mc, 'runChecks', fake_run_checks({'s1': ([mapping_finding(7, 2)], [], {}), 's2': ([mapping_finding(7, 5)], [], {})}))
+    result = mc.checkVersions(None, {'versionName': 's1'}, ['s1', 's2'])
+    assert [(f['values']['count'], f['versions']) for f in result['findings']] == [(2, ['s1']), (5, ['s2'])]
+
+
+def test_one_version_has_no_prefix(monkeypatch):
+    monkeypatch.setattr(mc, 'runChecks', fake_run_checks({'s1': ([mapping_finding(7, 2)], [], {})}))
+    result = mc.checkVersions(None, {'versionName': 's1'}, ['s1'])
+    assert mc.findingLine(result['findings'][0], result['versions']) == 'Mapping 7: fails for 2 features'
+
+
+def test_start_of_the_cost_optimization_on_the_input_data():
+    """errors refuse the start, warnings and infos are logged; pairs and scenario are checked by the dialog, the outputs
+    only when the run does not switch them on"""
+    from districts.cost_optimization import inputDataMessages, skippedRules
+    assert skippedRules({'set_outputs': True}) == {'cost_pairs', 'economic_scenario', 'cost_outputs'}
+    assert 'cost_outputs' not in skippedRules({'set_outputs': False})
+    found = [dict(mapping_finding(8, 1), versions=['s2']), dict(mc.finding('pump_list', 'warning', 'No pump list'), versions=['s1', 's2']),
+             dict(mc.finding('pipe_costs_missing', 'info', 'Example costs'), versions=['s1', 's2'])]
+    errors, notes = inputDataMessages({'versions': ['s1', 's2'], 'findings': found, 'errors': {'s2': {'climate_file': 'OSError: x'}}})
+    assert errors == ['s2: Mapping 8: fails for 1 features']
+    assert notes == ['No pump list', 'Check climate_file of version s2 failed: OSError: x', 'Example costs']
+
+
 def test_load_steps():
     steps = mc.loadSteps({1: series([100.0, 5.0, 50.0]), 2: series([0.0, 0.0])})
     assert steps[1] == {T0, T0 + datetime.timedelta(hours=2)} and steps[2] == set()

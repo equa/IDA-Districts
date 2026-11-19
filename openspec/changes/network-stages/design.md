@@ -65,6 +65,16 @@ run writes the pipes of each stage explicitly, with the trigger `column_update_t
 during the write (copies made with pg_dump may carry the triggers as well). Re-laying stage 1 after stage 2 exists
 truncates stage 2's lines (version handling as before); the stage check reports it.
 
+**D9 – Input data of every stage version (2026-11-19, at the user's request).** Every stage version is built and
+simulated in each iteration, so a fault in its data costs the whole run: a mapping expression that fails for a feature
+does not stop the build, the unevaluated text goes into the model. At the start, after the stage check, the dialog
+runs the model checks of scope `cost_optimization` (change ai-mcp-connection, D11) over the versions of the stage
+table (`model_checks.checkVersions`). A finding equal in several versions (project files, public tables) is given once
+with its versions; a log line names the versions unless the finding holds for all. An error refuses the start, warnings
+and infos go to the log of the run. Left out: the pairs and the scenario (the dialog checks them) and the outputs when
+the run switches them on. A check that fails itself is logged and does not block the run.
+*Alternative:* only the loaded version; a stage-2 fault would show only in the build of iteration 0 after stage 1.
+
 ## Risks / Trade-offs
 
 - [Run time grows with the stages] → the weeks are shared; the parallel weeks run per stage; the annual option stays

@@ -26,7 +26,7 @@
     {"step": "sizing", "title": "Pipe sizing", "done_when": "sizing",
      "wiki": ["IDA_Districts.Districts_GS.Districts_Modeler_GS.Sizing_network.WebHome"], "rules": ["pipe_data_missing"]},
     {"step": "settings_outputs", "title": "Modelling settings and requested outputs", "done_when": "outputs",
-     "wiki": ["IDA_Districts.Districts_GS.Districts_Modeler_GS.General_modeling_settings.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Requested_outputs.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Parameter_mapping.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Sensor_signals.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Supervisory_control.WebHome"], "rules": ["outputs_missing"]},
+     "wiki": ["IDA_Districts.Districts_GS.Districts_Modeler_GS.General_modeling_settings.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Requested_outputs.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Parameter_mapping.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Sensor_signals.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Supervisory_control.WebHome"], "rules": ["outputs_missing", "mapping_expressions"]},
     {"step": "energy_use", "title": "Energy use of plants and customers", "done_when": "energy_use", "optional": true, "wiki": "missing", "rules": ["energy_use_detection"]},
     {"step": "network_pumps", "title": "Network pumps", "done_when": "network_pumps", "optional": true, "wiki": "missing", "rules": ["pump_detection"]},
     {"step": "build_model", "title": "Build the network model", "done_when": "build",
@@ -36,9 +36,10 @@
     {"step": "results", "title": "Load and analyse results", "done_when": "results",
      "wiki": ["IDA_Districts.Districts_GS.Districts_Modeler_GS.Load_results.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Show_data_on_map.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Network_Report.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Path_report.WebHome", "IDA_Districts.Districts_GS.Districts_Modeler_GS.Analyze_Results.WebHome", "IDA_Districts.Districts_help.Districts_Modeler_help.Districts_Results-Visualization.WebHome"],
      "rules": ["comfort_deficit", "delta_t_low", "substation_dp_low", "supply_temp_low", "pipe_pressure_limit", "line_velocity_high", "line_dp_spec_high", "plant_never_runs", "plant_power_high", "outputs_missing"]},
-    {"step": "economics", "title": "Economic scenarios and network economics", "done_when": "economics", "optional": true, "wiki": "missing", "rules": []},
+    {"step": "economics", "title": "Economic scenarios and network economics", "done_when": "economics", "optional": true, "wiki": "missing", "rules": ["economic_scenario", "pipe_costs_missing"]},
     {"step": "dynamic_sizing", "title": "Dynamic pipe sizing", "done_when": "dynamic_sizing", "optional": true, "wiki": "missing", "rules": ["line_velocity_high", "line_dp_spec_high", "substation_dp_low"]},
-    {"step": "representative_periods", "title": "Representative periods", "done_when": "periods", "optional": true, "wiki": "missing", "rules": []},
-    {"step": "cost_optimization", "title": "Cost optimization", "done_when": "cost_optimization", "optional": true, "wiki": "missing", "rules": ["comfort_deficit"]}
+    {"step": "representative_periods", "title": "Representative periods", "done_when": "periods", "optional": true, "wiki": "missing", "rules": ["climate_file"]},
+    {"step": "cost_optimization", "title": "Cost optimization", "done_when": "cost_optimization", "optional": true, "wiki": "missing",
+     "rules": ["comfort_deficit", "mapping_expressions", "cost_outputs", "economic_scenario", "pipe_costs_missing", "cost_pairs", "required_load_missing", "climate_file", "pump_list", "energy_use_list"]}
   ]
 }

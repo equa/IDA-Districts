@@ -11609,5 +11609,81 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>switched on (127.0.0.1:{}); the AI tools only read.</source>
             <translation>eingeschaltet (127.0.0.1:{}); die KI-Werkzeuge lesen nur.</translation>
         </message>
+        <message>
+            <source>Climate file of the version not readable ({}): the representative periods cannot be chosen.</source>
+            <translation>Klimadatei der Version nicht lesbar ({}): die repräsentativen Perioden können nicht gewählt werden.</translation>
+        </message>
+        <message>
+            <source>Customer template {} reads a source file but has no required-load column: its unmet load is not counted.</source>
+            <translation>Abnehmer-Vorlage {} liest eine Quelldatei, hat aber keine Spalte der benötigten Leistung: ihre nicht gedeckte Leistung wird nicht gezählt.</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({} of {}): the expression fails for {} features, e.g. id {}: {}</source>
+            <translation>Zuordnung {} ({} von {}): der Ausdruck schlägt für {} Objekte fehl, z. B. ID {}: {}</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({} of {}): unknown fields {} in {}.</source>
+            <translation>Zuordnung {} ({} von {}): unbekannte Felder {} in {}.</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({} of {}): {} features have an empty field in {}, e.g. id {}.</source>
+            <translation>Zuordnung {} ({} von {}): {} Objekte haben ein leeres Feld in {}, z. B. ID {}.</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({}): macro, model or parameter name missing; the mapping is ignored.</source>
+            <translation>Zuordnung {} ({}): Makro-, Modell- oder Parametername fehlt; die Zuordnung wird ignoriert.</translation>
+        </message>
+        <message>
+            <source>Network {}: no supply/return pair from the connections of the energy plants; choose the pairs by hand.</source>
+            <translation>Netz {}: kein Vor-/Rücklaufpaar aus den Anschlüssen der Energiezentralen; die Paare von Hand wählen.</translation>
+        </message>
+        <message>
+            <source>No economic scenario: the cost optimization needs one (Economic scenarios).</source>
+            <translation>Kein Wirtschaftlichkeitsszenario: die Kostenoptimierung braucht eines (Wirtschaftlichkeitsszenarien).</translation>
+        </message>
+        <message>
+            <source>No energy-use list (energyUse.json): the losses are priced with the price curves instead of the energy costs.</source>
+            <translation>Keine Energiebezugsliste (energyUse.json): die Verluste werden mit den Preiskurven statt mit den Energiekosten bewertet.</translation>
+        </message>
+        <message>
+            <source>No network pump list (networkPumps.json): the pump energy and investment are missing in the NPV.</source>
+            <translation>Keine Netzpumpenliste (networkPumps.json): Pumpenenergie und -investition fehlen im Barwert.</translation>
+        </message>
+        <message>
+            <source>Pipes in use with example costs: {}.</source>
+            <translation>Verwendete Rohre mit Beispielkosten: {}.</translation>
+        </message>
+        <message>
+            <source>Pipes in use without costs: {}.</source>
+            <translation>Verwendete Rohre ohne Kosten: {}.</translation>
+        </message>
+        <message>
+            <source>Requested outputs the cost optimization needs are off: {} (switched on at the start if the option is set).</source>
+            <translation>Ausgaben, welche die Kostenoptimierung braucht, sind aus: {} (beim Start eingeschaltet, wenn die Option gesetzt ist).</translation>
+        </message>
+        <message>
+            <source>Series {}: fewer than two pipes with costs, the optimization cannot change their size.</source>
+            <translation>Serie {}: weniger als zwei Rohre mit Kosten, die Optimierung kann ihre Grösse nicht ändern.</translation>
+        </message>
+        <message>
+            <source>Check {} of version {} failed: {}</source>
+            <translation>Prüfung {} der Version {} fehlgeschlagen: {}</translation>
+        </message>
+        <message>
+            <source>The input data of the versions has errors, the run does not start:</source>
+            <translation>Die Eingabedaten der Versionen haben Fehler, der Lauf startet nicht:</translation>
+        </message>
+        <message>
+            <source>Check of the input data:</source>
+            <translation>Prüfung der Eingabedaten:</translation>
+        </message>
+        <message>
+            <source>The input data could not be checked: </source>
+            <translation>Die Eingabedaten konnten nicht geprüft werden: </translation>
+        </message>
+        <message>
+            <source>simulated NPV</source>
+            <translation>simulierter Barwert</translation>
+        </message>
     </context>
 </TS>

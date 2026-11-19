@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Stage table
-The cost optimization dialog SHALL have a table of stages with a version and a start year per row, stage 1 starting in year 0 and the start years increasing. Before a run the plugin SHALL check that each stage is a descendant of the previous one and that every line of a stage exists with the same ID and geometry in the later stages, and SHALL refuse to start with a message naming each problem. A table with one row SHALL run as the optimization of a single version.
+The cost optimization dialog SHALL have a table of stages with a version and a start year per row, stage 1 starting in year 0 and the start years increasing. Before a run the plugin SHALL check that each stage is a descendant of the previous one and that every line of a stage exists with the same ID and geometry in the later stages, and SHALL refuse to start with a message naming each problem. Before a run the plugin SHALL also check the input data of every stage version as the model checks of scope `cost_optimization` do, SHALL refuse to start on an error, naming the versions it occurs in, and SHALL log the warnings. A table with one row SHALL run as the optimization of a single version.
 
 #### Scenario: Valid chain
 - **WHEN** the table holds base1 (year 0), its child base1_s2 (year 10) and base1_s2's child base1_s3 (year 20), each keeping the lines of the previous one
@@ -10,6 +10,10 @@ The cost optimization dialog SHALL have a table of stages with a version and a s
 #### Scenario: Missing line
 - **WHEN** a line of base1 does not exist in base1_s2
 - **THEN** the run does not start and the message names the line and the stage
+
+#### Scenario: Input data of a later stage
+- **WHEN** a mapping expression fails for a customer that only base1_s2 has
+- **THEN** the run does not start and the log names base1_s2 and the mapping, before any simulation
 
 ### Requirement: Coupled sizing over the stages
 The cost model SHALL be built per stage. The NPV change of a pipe change of a line SHALL be its investment change, discounted to the start year of the first stage containing the line, plus the change of the operating costs of every stage containing the line valued with that stage's years. The peak-flow and pressure limits SHALL use the maximum over the stages, and a protected line SHALL be protected in all stages.

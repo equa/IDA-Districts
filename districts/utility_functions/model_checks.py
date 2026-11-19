@@ -12,7 +12,7 @@ from .network_economics import resultTables, tableExists
 from .translations import tr_msg
 
 SEVERITIES = ('error', 'warning', 'info')
-SCOPES = ('qgis', 'templates', 'results')
+SCOPES = ('qgis', 'templates', 'results', 'cost_optimization')
 # D7 (decided 2026-11-19): defaults only where they hold for every network type
 DEFAULTS = {'delta_t_heating_k': 15.0, 'delta_t_cooling_k': 4.0, 'substation_dp_min_bar': 0.5,
             'v_max_m_s': 3.0, 'dp_spec_max_pa_m': 300.0}
@@ -34,9 +34,10 @@ def threshold(value, unit, source):
 class CheckContext:
     """cursor, config of the checked version, thresholds {key: value} given by the caller and cached result series"""
 
-    def __init__(self, cur, config, thresholds=None):
+    def __init__(self, cur, config, thresholds=None, plugin_dir=None):
         self.cur = cur
         self.config = config
+        self.plugin_dir = plugin_dir
         self.schema = config['versionName']
         self.thresholds = {k: v for k, v in (thresholds or {}).items() if v is not None}
         self._cache = {}
@@ -330,6 +331,163 @@ def rulePlants(ctx):
     return out
 
 
+# ---------------- cost optimization ----------------
+MAPPING_TYPES = {1: 'customers', 2: 'energy_plants'}
+MAX_EXAMPLES = 5
+
+
+def ruleMappingExpressions(ctx):
+    """every mapping expression evaluated for every customer / energy plant as the model build does (invoke.py):
+    a failure stops the build of the feature's model in every iteration"""
+    import re
+    from .invoke import substituteFields
+    from .utility import safe_eval
+    if not tableExists(ctx.cur, 'public', 'model_parms'):
+        return []
+    ctx.cur.execute('SELECT * FROM public.model_parms ORDER BY id;')
+    parms = ctx.cur.fetchall()
+    out = []
+    features = {}
+    for parm in parms:
+        table = MAPPING_TYPES.get(parm['type'])
+        expression = parm['mapping_expression'] or ''
+        if table is None:
+            continue
+        if parm['mapping_direction'] in ('<-->', '-->') and not (parm['macro_name'] and parm['model_name'] and parm['parm_name']):
+            out.append(finding('mapping_expressions', 'warning', tr_msg('Mapping {} ({}): macro, model or parameter name missing; the mapping is ignored.').format(
+                parm['id'], expression), table, component=parm['parm_name'], values={'mapping_id': parm['id']}))
+            continue
+        if table not in features:
+            ctx.cur.execute('SELECT * FROM "{}"."{}" ORDER BY id;'.format(ctx.schema, table))  # nosec B608
+            features[table] = [dict(r) for r in ctx.cur.fetchall()]
+        columns = set(features[table][0]) if features[table] else set()
+        unknown = sorted(set(re.findall(r'"([^"]+)"', expression)) - columns)
+        if unknown and features[table]:
+            out.append(finding('mapping_expressions', 'error', tr_msg('Mapping {} ({} of {}): unknown fields {} in {}.').format(
+                parm['id'], parm['parm_name'], parm['model_name'], ', '.join(unknown), expression), table, component=parm['parm_name'],
+                values={'mapping_id': parm['id'], 'expression': expression, 'unknown_fields': unknown}))
+            continue
+        failed, empty = [], []
+        for fields in features[table]:
+            used = [f for f in re.findall(r'"([^"]+)"', expression) if f in fields]
+            if any(fields[f] is None for f in used):
+                empty.append(fields['id'])
+            try:
+                safe_eval(substituteFields(expression, fields))
+            except Exception as e:
+                failed.append((fields['id'], substituteFields(expression, fields), '{}: {}'.format(type(e).__name__, e)))
+        if failed:
+            out.append(finding('mapping_expressions', 'error', tr_msg('Mapping {} ({} of {}): the expression fails for {} features, e.g. id {}: {}').format(
+                parm['id'], parm['parm_name'], parm['model_name'], len(failed), failed[0][0], failed[0][1]), table, component=parm['parm_name'],
+                values={'mapping_id': parm['id'], 'expression': expression, 'count': len(failed),
+                        'examples': [{'id': i, 'evaluated': text, 'error': err} for i, text, err in failed[:MAX_EXAMPLES]]}))
+        elif empty:
+            out.append(finding('mapping_expressions', 'warning', tr_msg('Mapping {} ({} of {}): {} features have an empty field in {}, e.g. id {}.').format(
+                parm['id'], parm['parm_name'], parm['model_name'], len(empty), expression, empty[0]), table, component=parm['parm_name'],
+                values={'mapping_id': parm['id'], 'expression': expression, 'count': len(empty), 'ids': empty[:MAX_IDS]}))
+    return out
+
+
+def ruleCostOutputs(ctx):
+    if not ctx.plugin_dir:
+        return []
+    from ..cost_optimization import missingOutputs
+    missing = missingOutputs(ctx.plugin_dir, ctx.config)
+    if not missing:
+        return []
+    return [finding('cost_outputs', 'warning', tr_msg('Requested outputs the cost optimization needs are off: {} (switched on at the start if the option is set).').format(
+        ', '.join(missing)), values={'outputs': missing})]
+
+
+def ruleCostData(ctx):
+    out = []
+    ctx.cur.execute('SELECT id, name FROM public.economic_scenarios ORDER BY id;')
+    scenarios = ctx.cur.fetchall()
+    if not scenarios:
+        out.append(finding('economic_scenario', 'error', tr_msg('No economic scenario: the cost optimization needs one (Economic scenarios).')))
+    ctx.cur.execute("""SELECT DISTINCT p.id, p.name, p.series, p.costs, p.example, p.lifetime_a FROM "{}".lines l
+        JOIN public.bundle_pipes bp ON bp.pipe_bundle_type_id = l.pipe_bundle_type_id JOIN public.pipes p ON p.id = bp.pipe_id
+        ORDER BY p.id;""".format(ctx.schema))  # nosec B608
+    used = ctx.cur.fetchall()
+    no_costs = [r['name'] for r in used if r['costs'] is None]
+    if no_costs:
+        out.append(finding('pipe_costs_missing', 'error', tr_msg('Pipes in use without costs: {}.').format(', '.join(no_costs[:MAX_IDS])),
+                           values={'pipes': no_costs}))
+    examples = [r['name'] for r in used if r['example']]
+    if examples:
+        out.append(finding('pipe_costs_missing', 'info', tr_msg('Pipes in use with example costs: {}.').format(', '.join(examples[:MAX_IDS])),
+                           values={'pipes': examples}))
+    ctx.cur.execute('SELECT series, count(*) AS n FROM public.pipes WHERE costs IS NOT NULL AND innerpipediameter > 0 AND series IS NOT NULL GROUP BY series;')
+    priced = {r['series']: r['n'] for r in ctx.cur.fetchall()}
+    for series in sorted({r['series'] for r in used if r['series']}):
+        if priced.get(series, 0) < 2:
+            out.append(finding('pipe_costs_missing', 'warning', tr_msg('Series {}: fewer than two pipes with costs, the optimization cannot change their size.').format(series),
+                               component=series, values={'series': series, 'pipes_with_costs': priced.get(series, 0)}))
+    return out
+
+
+def rulePairs(ctx):
+    from .pipe_pairs import getPlantConnections, suggestPairs
+    out = []
+    for network in ctx.networks():
+        pairs, warnings = suggestPairs(getPlantConnections(ctx.cur, ctx.config, network))
+        if not pairs:
+            out.append(finding('cost_pairs', 'error', tr_msg('Network {}: no supply/return pair from the connections of the energy plants; choose the pairs by hand.').format(network),
+                               values={'network': network}))
+        for warning in warnings:
+            out.append(finding('cost_pairs', 'warning', tr_msg('Network {}: {}').format(network, warning), values={'network': network}))
+    return out
+
+
+def ruleRequiredLoads(ctx):
+    from .db import getTemplateNames
+    from .required_load import loadRequired, templateHasSourceFile
+    ctx.cur.execute('SELECT DISTINCT t.template::text || \'_\' || t.template_name AS t_name FROM "{}".customers c '
+                    'JOIN public.customer_templates t ON t.template = c.template;'.format(ctx.schema))  # nosec B608
+    in_use = {r['t_name'] for r in ctx.cur.fetchall()}
+    entries = {e['template'] for e in (loadRequired(ctx.config) or [])}
+    out = []
+    for t_name in sorted(in_use & set(getTemplateNames(ctx.cur, 'customer', seperator='_'))):
+        if templateHasSourceFile(ctx.config, t_name) and t_name not in entries:
+            out.append(finding('required_load_missing', 'warning', tr_msg('Customer template {} reads a source file but has no required-load column: its unmet load is not counted.').format(t_name),
+                               'customers', component=t_name, values={'template': t_name}))
+    return out
+
+
+def ruleClimate(ctx):
+    from .periods import climateFile
+    path, error = None, None
+    try:
+        path = climateFile(ctx.config, ctx.cur)
+        if not os.path.exists(path):
+            error = 'file not found: ' + path
+    except Exception as e:
+        error = str(e)
+    if error:
+        return [finding('climate_file', 'error', tr_msg('Climate file of the version not readable ({}): the representative periods cannot be chosen.').format(error),
+                        values={'path': path})]
+    return []
+
+
+def ruleLists(ctx):
+    out = []
+    root = ctx.config['pathProjects'] + ctx.config['projectName']
+    for name, rule, severity, text in (
+            ('networkPumps.json', 'pump_list', 'warning', tr_msg('No network pump list (networkPumps.json): the pump energy and investment are missing in the NPV.')),
+            ('energyUse.json', 'energy_use_list', 'info', tr_msg('No energy-use list (energyUse.json): the losses are priced with the price curves instead of the energy costs.'))):
+        path = os.path.join(root, name)
+        entries = []
+        if os.path.exists(path):
+            try:
+                with open(path, encoding='utf-8') as f:
+                    entries = json.load(f).get('entries') or []
+            except (OSError, ValueError):
+                entries = []
+        if not entries:
+            out.append(finding(rule, severity, text, values={'file': name}))
+    return out
+
+
 # rule id(s) -> (scope, workflow step, function)
 RULES = [
     (('topology', 'unconnected_features'), 'qgis', 'topology', ruleTopology),
@@ -344,17 +502,25 @@ RULES = [
     (('pipe_pressure_limit',), 'results', 'results', rulePipePressure),
     (('line_velocity_high', 'line_dp_spec_high'), 'results', 'results', ruleLineHydraulics),
     (('plant_never_runs', 'plant_power_high'), 'results', 'results', rulePlants),
+    (('mapping_expressions',), 'cost_optimization', 'settings_outputs', ruleMappingExpressions),
+    (('cost_outputs',), 'cost_optimization', 'cost_optimization', ruleCostOutputs),
+    (('economic_scenario', 'pipe_costs_missing'), 'cost_optimization', 'economics', ruleCostData),
+    (('cost_pairs',), 'cost_optimization', 'cost_optimization', rulePairs),
+    (('required_load_missing',), 'cost_optimization', 'cost_optimization', ruleRequiredLoads),
+    (('climate_file',), 'cost_optimization', 'representative_periods', ruleClimate),
+    (('pump_list', 'energy_use_list'), 'cost_optimization', 'cost_optimization', ruleLists),
 ]
 RULE_IDS = sorted({rule for ids, _, _, _ in RULES for rule in ids} | {'outputs_missing'})
 SKIPPED = {'plant_power_high': 'no nominal power of the energy plants in the project'}
 
 
-def runChecks(cur, config, scope='all', thresholds=None):
+def runChecks(cur, config, scope='all', thresholds=None, plugin_dir=None):
     """{'findings': [...], 'rules_run': [...], 'rules_skipped': {rule: reason}, 'errors': {rule: text}} of the version
-    config['versionName']; scope 'all' or one of SCOPES; thresholds overrides DEFAULTS (source 'argument')."""
+    config['versionName']; scope 'all' or one of SCOPES; thresholds overrides DEFAULTS (source 'argument');
+    plugin_dir: for the requested outputs (rule cost_outputs is skipped without it)."""
     if scope != 'all' and scope not in SCOPES:
         raise ValueError('scope must be all, ' + ', '.join(SCOPES))
-    ctx = CheckContext(cur, config, thresholds)
+    ctx = CheckContext(cur, config, thresholds, plugin_dir)
     has_results = resultsPresent(ctx)
     findings, run, skipped, errors = [], [], dict(SKIPPED), {}
     for ids, rule_scope, _, function in RULES:
@@ -377,3 +543,30 @@ def runChecks(cur, config, scope='all', thresholds=None):
     findings.sort(key=lambda f: (order[f['severity']], f['rule'], str(f['feature_id'])))
     return {'version': config['versionName'], 'scope': scope, 'findings': findings, 'rules_run': run,
             'rules_skipped': skipped, 'errors': errors}
+
+
+def checkVersions(cur, config, versions, scope='cost_optimization', plugin_dir=None, skip=()):
+    """runChecks over several versions (the stages of the cost optimization: each is built and simulated in every
+    iteration). Each finding gets 'versions'; a finding equal in several versions (project data, public tables) is
+    given once. skip: rule ids left out. {'versions', 'scope', 'findings', 'rules_run', 'errors': {version: {rule: text}}}"""
+    merged, run, errors = {}, [], {}
+    for version in versions:
+        result = runChecks(cur, dict(config, versionName=version), scope, plugin_dir=plugin_dir)
+        for f in result['findings']:
+            if f['rule'] in skip:
+                continue
+            key = json.dumps(f, sort_keys=True, default=str)
+            merged.setdefault(key, dict(f, versions=[]))['versions'].append(version)
+        run += [r for r in result['rules_run'] if r not in run and r not in skip]
+        if result['errors']:
+            errors[version] = {r: e for r, e in result['errors'].items() if r not in skip}
+    order = {s: k for k, s in enumerate(SEVERITIES)}
+    findings = sorted(merged.values(), key=lambda f: (order[f['severity']], f['rule'], str(f['feature_id']), f['versions']))
+    return {'versions': list(versions), 'scope': scope, 'findings': findings, 'rules_run': run,
+            'errors': {v: e for v, e in errors.items() if e}}
+
+
+def findingLine(f, all_versions):
+    """one line for a log: the versions named unless the finding holds for all of them"""
+    prefix = '' if len(all_versions) < 2 or f['versions'] == list(all_versions) else '{}: '.format(', '.join(f['versions']))
+    return prefix + f['text']

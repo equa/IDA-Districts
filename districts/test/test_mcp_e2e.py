@@ -91,6 +91,32 @@ class TestAiConnection:
         assert any(f['rule'] == 'heights' and f['values']['issue'] == 'z_missing' for f in result['findings'])
         assert not result['errors']
 
+    def test_cost_optimization_data(self, ai):
+        plugin = ai.plugin
+        cur = plugin.cur
+        rows = {}
+        for key, expression, direction, macro in (('valid', '"id" * 2', '-->', ':FEATURE'), ('unknown', '"no_such_field" + 1', '-->', ':FEATURE'),
+                                                  ('fails', '"id" / 0', '-->', ':FEATURE'), ('incomplete', '"id"', '-->', '')):
+            cur.execute("INSERT INTO public.model_parms (type, parm_name, model_name, mapping_expression, macro_name, mapping_direction) "
+                        "VALUES (1, 'P_' || %s, 'MODEL', %s, %s, %s) RETURNING id;", (key, expression, macro, direction))
+            rows[key] = cur.fetchone()['id']
+        try:
+            result = runChecks(cur, plugin.config, 'cost_optimization', plugin_dir=plugin.plugin_dir)
+        finally:
+            cur.execute('DELETE FROM public.model_parms WHERE id = ANY(%s);', (list(rows.values()),))
+        assert not result['errors'], result['errors']
+        mapping = {f['values']['mapping_id']: f for f in result['findings'] if f['rule'] == 'mapping_expressions'}
+        assert rows['valid'] not in mapping
+        assert mapping[rows['unknown']]['severity'] == 'error' and mapping[rows['unknown']]['values']['unknown_fields'] == ['no_such_field']
+        failing = mapping[rows['fails']]
+        assert failing['severity'] == 'error' and failing['values']['count'] == 2 and failing['values']['examples'][0]['error'].startswith('ZeroDivisionError')
+        assert mapping[rows['incomplete']]['severity'] == 'warning'
+        rules = {f['rule'] for f in result['findings']}
+        # no energy plant in the version: no pair can be suggested
+        assert 'cost_pairs' in rules
+        assert set(result['rules_run']) >= {'mapping_expressions', 'cost_outputs', 'economic_scenario', 'pipe_costs_missing', 'cost_pairs',
+                                            'required_load_missing', 'climate_file', 'pump_list', 'energy_use_list'}
+
     def test_results_rules_without_results(self, ai):
         plugin = ai.plugin
         result = runChecks(plugin.cur, plugin.config, 'results')

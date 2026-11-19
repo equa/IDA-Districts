@@ -50,7 +50,9 @@ IDA Districts https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/ is a si
 An AI assistant such as Claude Desktop or Claude Code can work with the open Districts Modeler through the Model Context
 Protocol (MCP). Its tools only read: they show the state of the project and version, layers, features and a map image,
 run model checks (topology, heights, pipe data, template detection, IDA run errors, substations ΔT and Δp, line
-velocity and pressure loss, plants that never run), give the key figures of a version as in the network report
+velocity and pressure loss, plants that never run, and the data a cost optimization needs: mapping expressions
+evaluated for every customer and plant, pipe costs, economic scenario, supply/return pairs, required loads, climate
+file, pump and energy-use lists), give the key figures of a version as in the network report
 (heat, losses, pump energy, energy and costs per carrier, NPV) and compare two versions, report the workflow state
 and read the IDA Districts wiki. No tool changes data or starts a simulation.
 

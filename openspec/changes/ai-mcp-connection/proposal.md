@@ -22,6 +22,8 @@ the AI arbitrary code execution next to the database credentials. Decision sessi
     errors, comfort deficits.
   - About ten new rules on pipe data, substations, lines and plants. Thresholds come from the project, otherwise from
     documented defaults.
+  - The data the cost optimization needs (scope `cost_optimization`): mapping expressions evaluated per feature,
+    outputs, scenario and pipe costs, pairs, required loads, climate file, pump and energy-use lists.
 - **Guidance**: `workflow_state(version)` reports each workflow step as done, missing or stale. `search_help` and
   `read_help_page` read the public XWiki `IDA_Districts` live. A map in the plugin links each step to its wiki pages
   and check rules. Steps without a wiki page yet are marked `missing`.

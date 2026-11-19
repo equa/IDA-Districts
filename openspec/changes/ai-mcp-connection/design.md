@@ -146,6 +146,23 @@ network report's figures) and from `network_economics.evaluateVersion`. The repo
 `compare_versions(a, b)` returns both sets of figures and their differences, with a note when the results bases
 differ. Without results, the result figures are `null` with a reason, and the network figures are still given.
 
+**D11 – Data the cost optimization needs (added 2026-11-19 at the user's request).** `run_checks` gets the scope
+`cost_optimization`, rules that tell before a run of hours whether it can start and what its NPV will miss:
+- `mapping_expressions` (error/warning): every row of `public.model_parms` evaluated for every customer or energy
+  plant exactly as the model build does (`invoke.substituteFields` + `safe_eval`, the substitution moved out of
+  `invokeOneFeature` so both share it): unknown fields, an expression that fails (with examples), empty fields, rows
+  with a direction but without macro, model or parameter name (the build ignores them).
+- `cost_outputs` (warning): `cost_optimization.missingOutputs`.
+- `economic_scenario` (error), `pipe_costs_missing`: pipes in use without costs (error), with example costs (info), a
+  series in use with fewer than two priced pipes (warning: the size cannot change).
+- `cost_pairs`: no supply/return pair from the plant connections (error), the warnings of `suggestPairs`.
+- `required_load_missing` (warning): a customer template in use with a source file but no `requiredLoads.json` entry.
+- `climate_file` (error): the climate file of the version for the representative periods.
+- `pump_list` (warning), `energy_use_list` (info): `networkPumps.json` / `energyUse.json` without entries.
+
+Error means the run cannot start or fails; warning means it runs with a gap in the NPV. *Alternative:* the same checks
+in the dialog's start; possible later, the rules return data for it.
+
 **D10 – Developer setting for code execution.** Not part of this change. If it is ever added, it is a separate tool
 behind a setting that is off by default and never listed otherwise.
 

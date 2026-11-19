@@ -7995,5 +7995,77 @@ Compare with the parent version: shows the difference of the inner pipe diameter
             <source>switched on (127.0.0.1:{}); the AI tools only read.</source>
             <translation>switched on (127.0.0.1:{}); the AI tools only read.</translation>
         </message>
+        <message>
+            <source>Climate file of the version not readable ({}): the representative periods cannot be chosen.</source>
+            <translation>Climate file of the version not readable ({}): the representative periods cannot be chosen.</translation>
+        </message>
+        <message>
+            <source>Customer template {} reads a source file but has no required-load column: its unmet load is not counted.</source>
+            <translation>Customer template {} reads a source file but has no required-load column: its unmet load is not counted.</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({} of {}): the expression fails for {} features, e.g. id {}: {}</source>
+            <translation>Mapping {} ({} of {}): the expression fails for {} features, e.g. id {}: {}</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({} of {}): unknown fields {} in {}.</source>
+            <translation>Mapping {} ({} of {}): unknown fields {} in {}.</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({} of {}): {} features have an empty field in {}, e.g. id {}.</source>
+            <translation>Mapping {} ({} of {}): {} features have an empty field in {}, e.g. id {}.</translation>
+        </message>
+        <message>
+            <source>Mapping {} ({}): macro, model or parameter name missing; the mapping is ignored.</source>
+            <translation>Mapping {} ({}): macro, model or parameter name missing; the mapping is ignored.</translation>
+        </message>
+        <message>
+            <source>Network {}: no supply/return pair from the connections of the energy plants; choose the pairs by hand.</source>
+            <translation>Network {}: no supply/return pair from the connections of the energy plants; choose the pairs by hand.</translation>
+        </message>
+        <message>
+            <source>No economic scenario: the cost optimization needs one (Economic scenarios).</source>
+            <translation>No economic scenario: the cost optimization needs one (Economic scenarios).</translation>
+        </message>
+        <message>
+            <source>No energy-use list (energyUse.json): the losses are priced with the price curves instead of the energy costs.</source>
+            <translation>No energy-use list (energyUse.json): the losses are priced with the price curves instead of the energy costs.</translation>
+        </message>
+        <message>
+            <source>No network pump list (networkPumps.json): the pump energy and investment are missing in the NPV.</source>
+            <translation>No network pump list (networkPumps.json): the pump energy and investment are missing in the NPV.</translation>
+        </message>
+        <message>
+            <source>Pipes in use with example costs: {}.</source>
+            <translation>Pipes in use with example costs: {}.</translation>
+        </message>
+        <message>
+            <source>Pipes in use without costs: {}.</source>
+            <translation>Pipes in use without costs: {}.</translation>
+        </message>
+        <message>
+            <source>Requested outputs the cost optimization needs are off: {} (switched on at the start if the option is set).</source>
+            <translation>Requested outputs the cost optimization needs are off: {} (switched on at the start if the option is set).</translation>
+        </message>
+        <message>
+            <source>Series {}: fewer than two pipes with costs, the optimization cannot change their size.</source>
+            <translation>Series {}: fewer than two pipes with costs, the optimization cannot change their size.</translation>
+        </message>
+        <message>
+            <source>Check {} of version {} failed: {}</source>
+            <translation>Check {} of version {} failed: {}</translation>
+        </message>
+        <message>
+            <source>The input data of the versions has errors, the run does not start:</source>
+            <translation>The input data of the versions has errors, the run does not start:</translation>
+        </message>
+        <message>
+            <source>Check of the input data:</source>
+            <translation>Check of the input data:</translation>
+        </message>
+        <message>
+            <source>The input data could not be checked: </source>
+            <translation>The input data could not be checked: </translation>
+        </message>
     </context>
 </TS>

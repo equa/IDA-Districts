@@ -40,6 +40,7 @@ from .utility_functions.economics import npvTerms, presentValueFactor, stageYear
 from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
 from .utility_functions.cost_model import stagedStep
 from .utility_functions.economic_data import loadScenario
+from .utility_functions.model_checks import SEVERITIES, checkVersions, findingLine
 from .utility_functions.network_stages import inheritPipes, stageProblems, stageRoots, stagesNpv, writeBundles
 from .utility_functions.periods import climateFile, readClimate
 from .utility_functions.set_pipes import SetPipes, costIterationPipes
@@ -70,6 +71,25 @@ BALANCING_LINK = 'balancing'
 def missingOutputs(plugin_dir, config):
     outputs = loadRequestedOutputs(plugin_dir, config) or {}
     return [key for key in OPTIMIZATION_OUTPUTS if not outputs.get(key)]
+
+
+def skippedRules(parms):
+    """rules of the input check the dialog does itself (pairs, scenario) or the run fixes (outputs switched on)"""
+    skip = {'cost_pairs', 'economic_scenario'}
+    if parms.get('set_outputs'):
+        skip.add('cost_outputs')
+    return skip
+
+
+def inputDataMessages(result):
+    """(errors, warnings and infos) as log lines of checkVersions"""
+    lines = {severity: [] for severity in SEVERITIES}
+    for f in result['findings']:
+        lines[f['severity']].append(findingLine(f, result['versions']))
+    for version, errors in result['errors'].items():
+        for rule, text in errors.items():
+            lines['warning'].append(tr_msg('Check {} of version {} failed: {}').format(rule, version, text))
+    return lines['error'], lines['warning'] + lines['info']
 
 
 def deleteIterationFiles(config):
@@ -591,6 +611,10 @@ class CostOptimizationDialog(QDialog):
                 self.refuse([problemText(problem) for problem in problems])
                 return
         saveRequired(self.main.config, self.requiredEntries())
+        errors, notes = self.checkInputData(p)
+        if errors:
+            self.refuse([tr_msg('The input data of the versions has errors, the run does not start:')] + errors + notes)
+            return
         self.process_running = True
         self.updateEnabled()
         self.table_iterations.setRowCount(0)
@@ -599,10 +623,26 @@ class CostOptimizationDialog(QDialog):
         for box in (self.box_settings, self.box_periods, self.box_required):
             box.setCollapsed(True)
         self.box_results.setCollapsed(False)
+        if notes:
+            self.log(tr_msg('Check of the input data:'))
+            for note in notes:
+                self.log('  ' + note)
         self.log(tr_msg('Starting ...'))
         self.run = CostOptimizationRun(self, self.main, p)
         # the start (child version, first simulation) blocks for a moment: first let the dialog show the greyed button
         QTimer.singleShot(50, self.run.start)
+
+    def checkInputData(self, p):
+        """(errors, notes) of the model checks over every stage version: each is built and simulated in every
+        iteration, so a failing mapping expression is found before the hours of simulation"""
+        versions = [s['version'] for s in p['stages']] or [self.main.config['versionName']]
+        try:
+            result = checkVersions(self.main.cur, self.main.config, versions, plugin_dir=self.main.plugin_dir, skip=skippedRules(p))
+        except Exception:
+            # a failing check must not block a run that may well work
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            return [], [tr_msg('The input data could not be checked: ') + traceback.format_exc().splitlines()[-1]]
+        return inputDataMessages(result)
 
     def stop(self):
         if self.run:

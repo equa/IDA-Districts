@@ -55,6 +55,21 @@ At a customer's load hours (heat flow above 10 % of its peak), the rules SHALL r
 - **WHEN** neither the template nor the customer holds a required supply temperature
 - **THEN** `supply_temp_low` returns one info finding and no warning
 
+### Requirement: Cost optimization data
+With scope `cost_optimization`, `run_checks` SHALL report: every mapping expression of `public.model_parms` that names an unknown field or fails to evaluate for a customer or energy plant, evaluated as the model build does (error, with the count and examples), that meets an empty field (warning), or that has a direction but no macro, model or parameter name (warning); requested outputs the optimization needs that are off (warning); no economic scenario (error); pipes in use without costs (error) or with example costs (info); a series in use with fewer than two priced pipes (warning); a network without a supply/return pair from the plant connections (error); a customer template in use with a source file and no required-load entry (warning); an unreadable climate file of the version (error); an empty network pump list (warning) or energy-use list (info).
+
+#### Scenario: Failing mapping expression
+- **WHEN** the mapping expression `"id" / 0` is defined for customers and the version has two customers
+- **THEN** a `mapping_expressions` error names the mapping, the count 2 and an example with its ZeroDivisionError
+
+#### Scenario: Unknown field
+- **WHEN** a mapping expression names `"no_such_field"`, which the customers do not have
+- **THEN** a `mapping_expressions` error lists `no_such_field`
+
+#### Scenario: No pair
+- **WHEN** a network has no energy plant with supply and return connections
+- **THEN** `cost_pairs` reports an error for the network
+
 ### Requirement: Plant rules
 The rules SHALL report a plant whose power exceeds its nominal power (`plant_power_high`, warning; skipped without nominal power) and a plant whose power never exceeds 1 % of the peak over the results (`plant_never_runs`, warning).
 

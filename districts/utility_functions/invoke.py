@@ -227,6 +227,12 @@ def setFeatureParm(dlg,conn,config,plugin_dir):
 
         closeDialog(dlg)
    
+def substituteFields(expression,fields):
+    """mapping expression with "field" replaced by the feature's value (as the model build evaluates it; the model checks use it too)"""
+    for field in fields:
+        expression=expression.replace('"'+field+'"',str(fields[field]))
+    return expression
+
 def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunResults=False,parallize=False,signals=False):
     """Invoke the selected feature. Copy the files from the templates to ida_mosim\\invoked_"feature"s
         If dlg is not given the id is the idx"""    
@@ -326,9 +332,7 @@ def invokeOneFeature(dlg,idx,cur,config,type,invoked,parmRun=False,saveParmRunRe
             dprint(fields)
             
             for parm in parms:
-                mapping_expression=parm['mapping_expression']
-                for field in fields:
-                    mapping_expression=mapping_expression.replace('"'+field+'"',str(fields[field]))
+                mapping_expression=substituteFields(parm['mapping_expression'],fields)
                 dprint(mapping_expression)
                 try:
                     mapping_expression=safe_eval(mapping_expression)

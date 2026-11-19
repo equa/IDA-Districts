@@ -1,5 +1,8 @@
 # coding=utf-8
-"""Network built in stages (OpenSpec change network-stages): NPV by stage years."""
+"""Network built in stages (OpenSpec change network-stages): NPV by stage years; e2e the stage check, the input check
+of every stage version and the report."""
+import contextlib
+
 import pytest
 
 from districts.utility_functions.economics import netPresentValue, rangeFactor, stageYears, stagedNetPresentValue
@@ -102,6 +105,28 @@ def test_lines_new_in_stage_2_are_their_own_groups():
 
 
 # ---------------------------------------------------------------- e2e: stage check and report on a project
+@contextlib.contextmanager
+def stage2_mappings(cur, stage2, expressions):
+    """customer mapping expressions {key: expression} in public.model_parms and submodel 0 for the first customer of
+    stage 2 only (an expression dividing by "submodel" fails there); removed and restored afterwards: ({key: id}, cid)"""
+    ids = {}
+    cur.execute('SELECT id, submodel FROM "{}".customers ORDER BY id LIMIT 1;'.format(stage2))  # nosec B608
+    customer = cur.fetchone()
+    assert customer, 'stage 2 has no customer'
+    try:
+        for key, expression in expressions.items():
+            # explicit id as the mapping dialog writes it: the rows of the project template are inserted with ids, the serial lags behind
+            cur.execute("INSERT INTO public.model_parms (id, type, parm_name, model_name, mapping_expression, macro_name, mapping_direction) "
+                        "SELECT COALESCE(max(id), 0) + 1, 1, 'P_' || %s, 'MODEL', %s, ':FEATURE', '-->' FROM public.model_parms RETURNING id;",
+                        (key, expression))
+            ids[key] = cur.fetchone()['id']
+        cur.execute('UPDATE "{}".customers SET submodel = 0 WHERE id = %s;'.format(stage2), (customer['id'],))  # nosec B608
+        yield ids, customer['id']
+    finally:
+        cur.execute('UPDATE "{}".customers SET submodel = %s WHERE id = %s;'.format(stage2), (customer['submodel'], customer['id']))  # nosec B608
+        cur.execute('DELETE FROM public.model_parms WHERE id = ANY(%s);', (list(ids.values()),))
+
+
 @pytest.fixture(scope='class')
 def staged(request, districts_plugin, errors):
     from types import SimpleNamespace
@@ -174,6 +199,54 @@ class TestStages:
         cur.execute('SELECT count(*) AS n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace '
                     "WHERE n.nspname = %s AND c.relname = 'lines' AND t.tgname = 'column_update_trigger' AND t.tgenabled = 'D';", (s1,))
         assert cur.fetchone()['n'] == 0  # enabled again
+
+    def test_input_data_of_all_stages(self, staged):
+        """the input check of the cost optimization over both stage versions: a mapping expression failing in both is
+        one finding with both versions; one failing only for a customer of stage 2 names stage 2 only"""
+        from collections import defaultdict
+        from districts.cost_optimization import inputDataMessages, skippedRules
+        from districts.utility_functions.model_checks import checkVersions
+        plugin = staged.plugin
+        cur = plugin.cur
+        s1, s2 = staged.stage1, staged.stage2
+        with stage2_mappings(cur, s2, {'both': '"id" / 0', 'stage2': '100 / "submodel"', 'valid': '"id" * 2'}) as (ids, cid):
+            result = checkVersions(cur, plugin.config, [s1, s2], plugin_dir=plugin.plugin_dir, skip=skippedRules({'set_outputs': True}))
+        assert not result['errors'], result['errors']
+        mapping = defaultdict(list)
+        for f in result['findings']:
+            if f['rule'] == 'mapping_expressions':
+                mapping[f['values']['mapping_id']].append(f)
+        assert ids['valid'] not in mapping
+        assert [f['versions'] for f in mapping[ids['both']]] == [[s1, s2]]
+        [only] = mapping[ids['stage2']]
+        assert only['versions'] == [s2] and only['severity'] == 'error' and only['values']['count'] == 1
+        assert only['values']['examples'][0]['id'] == cid and only['values']['examples'][0]['error'].startswith('ZeroDivisionError')
+        assert {'cost_pairs', 'economic_scenario', 'cost_outputs'}.isdisjoint(f['rule'] for f in result['findings'])
+        assert {'cost_pairs', 'economic_scenario', 'cost_outputs'}.isdisjoint(result['rules_run'])
+        assert 'mapping_expressions' in result['rules_run']
+        errors, _ = inputDataMessages(result)
+        assert any(line.startswith('{}: Mapping {} '.format(s2, ids['stage2'])) for line in errors)
+        assert any(line.startswith('Mapping {} '.format(ids['both'])) for line in errors)
+
+    def test_start_refused_by_the_input_data_of_stage_2(self, staged):
+        """a mapping expression failing only for a customer of stage 2: the start is refused before any simulation, the
+        log names stage 2"""
+        from .conftest import wait_until
+        plugin = staged.plugin
+        s2 = staged.stage2
+        with stage2_mappings(plugin.cur, s2, {'stage2': '100 / "submodel"'}) as (ids, _):
+            plugin.showCostOptimization()
+            dlg = plugin.dlg_costOptimization
+            try:
+                wait_until(lambda: dlg.periods.ready, 120, 'choosing the weeks')
+                dlg.stage_table.addRow(s2, 10)
+                dlg.start()
+                log = dlg.log_edit.toPlainText()
+                assert not dlg.process_running
+            finally:
+                dlg.close()
+        assert 'The input data of the versions has errors, the run does not start:' in log, log
+        assert any(line.startswith('{}: Mapping {} '.format(s2, ids['stage2'])) for line in log.splitlines()), log
 
     def test_start_refused_visibly(self, staged):
         """a refused start opens the log with the reason (it was written into the collapsed results before)"""

@@ -328,8 +328,9 @@ def templateComponentsTool(ctx, args):
 
 # ---------------- checks, guidance, figures ----------------
 @tool('run_checks', 'Model checks of a version: findings {rule, severity, feature, values with threshold and source, text} for the QGIS '
-      'model, the IDA templates and the results. Thresholds can be given (else the documented defaults).',
-      dict(VERSION, scope={'type': 'string', 'enum': ['all', 'qgis', 'templates', 'results']},
+      'model, the IDA templates, the results and the data the cost optimization needs (scope cost_optimization: mapping expressions, '
+      'costs, pairs, required loads, climate file, pump and energy-use lists). Thresholds can be given (else the documented defaults).',
+      dict(VERSION, scope={'type': 'string', 'enum': ['all', 'qgis', 'templates', 'results', 'cost_optimization']},
            thresholds={'type': 'object', 'description': 'delta_t_heating_k, delta_t_cooling_k, substation_dp_min_bar, v_max_m_s, dp_spec_max_pa_m'}))
 def runChecksTool(ctx, args):
     from ..utility_functions.model_checks import DEFAULTS, runChecks
@@ -339,7 +340,7 @@ def runChecksTool(ctx, args):
     if unknown:
         raise ToolError('unknown thresholds {}; known: {}'.format(', '.join(unknown), ', '.join(DEFAULTS)))
     with ctx.cursor(config) as cur:
-        result = runChecks(cur, config, args.get('scope') or 'all', thresholds)
+        result = runChecks(cur, config, args.get('scope') or 'all', thresholds, ctx.plugin.plugin_dir)
     result['job_running'] = ctx.jobRunning()
     return result
 

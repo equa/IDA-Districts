@@ -38,4 +38,10 @@
 - [x] 7.2 At the start the segments of later stages get the pipes of their root
 - [x] 7.3 Step over roots (all segments, ΔNPV summed); writes per stage version with the update trigger of the version handling disabled; state per stage saved, restored at the end and by 'Set pipes'
 - [x] 7.4 Tests: matching and coverage (unit, synthetic geometries), a stage 2 with split and renumbered lines (e2e), the trigger disabled during the writes
-- [ ] 7.5 Local validation and CI
+- [x] 7.5 Local validation and CI
+
+## 8. Input data of every stage version (D9)
+
+- [x] 8.1 `model_checks.checkVersions` (findings merged over the versions) and `findingLine`; the dialog checks the stage versions at the start, refuses on errors, logs warnings and infos
+- [x] 8.2 Tests: merging, version prefix, skipped rules, messages (unit); a mapping failing in both stages and one failing only for a stage-2 customer, the start refused naming stage 2 (e2e)
+- [ ] 8.3 CI

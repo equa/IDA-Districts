@@ -19,6 +19,8 @@
 - [x] 3.5 New rules (D7): `delta_t_low`, `substation_dp_low`, `supply_temp_low` (project value only, else info) at load hours (> 10 % of peak), `plant_power_high`, `plant_never_runs`
 - [x] 3.6 Register `run_checks` as a tool
 
+- [x] 3.7 Scope `cost_optimization` (D11): mapping expressions (substitution shared with `invoke.invokeOneFeature`), outputs, scenario and pipe costs, pairs, required loads, climate file, pump and energy-use lists; map and tool snapshot updated
+
 ## 4. Guidance
 
 - [x] 4.1 `districts/mcp/wiki_map.json`: workflow steps with wiki pages (from the 65 pages of `IDA_Districts`), `missing` for cost optimization, representative periods, economics, energy use, network pumps, pipe series, dynamic sizing; rule ids; done conditions
@@ -34,7 +36,7 @@
 
 - [x] 6.1 Protocol test without QGIS: JSON-RPC lines to `server.py` (initialize, tools/list via a fake bridge, isError without `districts_mcp.json`, ping after an error)
 - [x] 6.2 Bridge test (pytest-qgis): on/off and file, wrong token refused, failing tool answered, `list_tools` without code execution, every tool leaves a test version unchanged (e2e)
-- [x] 6.3 Rule tests (e2e): each rule on a broken test version (synthetic result tables), `outputs_missing`, thresholds from setting and default, standstill hours ignored, supply-temperature info without value
+- [x] 6.3 Rule tests (e2e, incl. the cost optimization data with seeded mapping expressions): each rule on a broken test version (synthetic result tables), `outputs_missing`, thresholds from setting and default, standstill hours ignored, supply-temperature info without value
 - [x] 6.4 Unchanged reports and checks: height-check layers, energy-use/pump dialogs and the network report figures equal before and after the extraction; `version_kpis` equals the report (e2e)
 - [x] 6.5 Guidance tests: map rule ids exist, `workflow_state` on new/partial/stale versions (e2e), offline error with a failing URL; online test of the map pages marked so it can be skipped without network
 
