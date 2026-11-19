@@ -5,6 +5,8 @@
 - [x] 1.3 `districts/mcp/server.py`: stdlib-only JSON-RPC 2.0 over stdio (initialize with version negotiation, initialized, ping, tools/list, tools/call, resources/list, resources/read), reads `districts_mcp.json` per connection, `isError` hint when QGIS/bridge is absent, image content for PNG (D4)
 - [x] 1.4 `districts.py`: menu action to switch the AI connection on/off (off at start), "Copy MCP configuration" with the paths of the QGIS Python and `server.py`; QGIS 3.44 and 4.2 (enums via `compat.py`)
 
+- [x] 1.5 Dialog "MCP configuration ..." (`mcp/config_dialog.py`): Claude Code command and Claude Desktop JSON with this computer's paths, `python.exe` instead of `python-qgis.bat`, `claude` found or how to install it
+
 ## 2. Read-only tools
 
 - [x] 2.1 State tools: `project_state`, `layers`, `features` (filter, fields, limit, cut note), `render_map` (extent or layer, size, PNG)

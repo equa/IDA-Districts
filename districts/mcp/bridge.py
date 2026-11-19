@@ -6,6 +6,8 @@ import hmac
 import json
 import os
 import secrets
+import shutil
+import sys
 import traceback
 
 from qgis.core import QgsApplication, QgsMessageLog
@@ -129,9 +131,40 @@ def pluginVersion():
     return None
 
 
-def mcpConfiguration(server_path=None, state_file=None):
-    """{'mcpServers': {'districts': {command, args}}} for an MCP client: the QGIS Python runs server.py"""
+def serverPath():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.py')
+
+
+def mcpPython():
+    """the QGIS Python interpreter itself: server.py needs only the standard library, and MCP clients cannot reliably
+    start the python-qgis.bat launcher (a .bat needs a shell, and its output would mix into the protocol)"""
+    for path in (os.path.join(sys.base_prefix, 'python.exe'), os.path.join(sys.base_prefix, 'bin', 'python3'), sys.executable):
+        if os.path.isfile(path) and os.path.basename(path).lower().startswith('python'):
+            return path
     from ..simulate_process import pythonCommand
-    server_path = server_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.py')
-    command = pythonCommand()
-    return {'mcpServers': {'districts': {'command': command[0], 'args': command[1:] + [server_path, '--state', state_file or stateFilePath()]}}}
+    return pythonCommand()[0]
+
+
+def mcpConfiguration(server_path=None, state_file=None):
+    """{'mcpServers': {'districts': {command, args}}} for Claude Desktop (claude_desktop_config.json)"""
+    return {'mcpServers': {'districts': {'command': mcpPython(), 'args': [server_path or serverPath(), '--state', state_file or stateFilePath()]}}}
+
+
+def claudeCodeCommand(server_path=None, state_file=None):
+    """the command registering the server in Claude Code for every folder of the user"""
+    entry = mcpConfiguration(server_path, state_file)['mcpServers']['districts']
+    return 'claude mcp add districts --scope user -- "{}" "{}" --state "{}"'.format(entry['command'], *[entry['args'][i] for i in (0, 2)])
+
+
+def claudeCli():
+    """path of the claude command (Claude Code), None when it is not on the PATH"""
+    return shutil.which('claude')
+
+
+def claudeDesktopConfig():
+    """path of Claude Desktop's configuration file (it may not exist yet)"""
+    if sys.platform == 'win32':
+        return os.path.join(os.environ.get('APPDATA', ''), 'Claude', 'claude_desktop_config.json')
+    if sys.platform == 'darwin':
+        return os.path.expanduser('~/Library/Application Support/Claude/claude_desktop_config.json')
+    return os.path.expanduser('~/.config/Claude/claude_desktop_config.json')

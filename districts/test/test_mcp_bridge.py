@@ -117,10 +117,43 @@ def test_every_tool_has_a_description_and_schema():
 
 def test_mcp_configuration_names_existing_files(tmp_path):
     config = mcpConfiguration(state_file=str(tmp_path / 'districts_mcp.json'))['mcpServers']['districts']
-    assert os.path.exists(config['command'])
-    server = [a for a in config['args'] if a.endswith('server.py')][0]
-    assert os.path.exists(server)
-    assert config['args'][-2:] == ['--state', str(tmp_path / 'districts_mcp.json')]
+    # the interpreter itself, not the python-qgis.bat launcher (MCP clients cannot reliably start a .bat)
+    assert os.path.isfile(config['command']) and os.path.basename(config['command']).lower().startswith('python')
+    assert not config['command'].lower().endswith('.bat')
+    assert os.path.exists(config['args'][0]) and config['args'][0].endswith('server.py')
+    assert config['args'][1:] == ['--state', str(tmp_path / 'districts_mcp.json')]
+
+
+def test_configured_command_starts_the_server(tmp_path):
+    import subprocess  # nosec B404
+    config = mcpConfiguration(state_file=str(tmp_path / 'none.json'))['mcpServers']['districts']
+    request = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18'}}) + '\n'
+    proc = subprocess.run([config['command']] + config['args'], input=request, capture_output=True, text=True, timeout=60)  # nosec B603
+    assert json.loads(proc.stdout.splitlines()[0])['result']['serverInfo']['name'] == 'districts-modeler'
+
+
+def test_claude_code_command_with_the_paths_of_this_computer(tmp_path):
+    from districts.mcp.bridge import claudeCodeCommand
+    state = str(tmp_path / 'districts_mcp.json')
+    entry = mcpConfiguration(state_file=state)['mcpServers']['districts']
+    assert claudeCodeCommand(state_file=state) == 'claude mcp add districts --scope user -- "{}" "{}" --state "{}"'.format(
+        entry['command'], entry['args'][0], state)
+
+
+@pytest.mark.parametrize('cli', [None, r'C:\Users\x\.local\bin\claude.exe'])
+def test_configuration_dialog_says_whether_claude_is_found(monkeypatch, cli):
+    from districts.mcp import config_dialog
+    monkeypatch.setattr(config_dialog, 'claudeCli', lambda: cli)
+    dlg = config_dialog.McpConfigDialog()
+    try:
+        assert dlg.edit_code.toPlainText().startswith('claude mcp add districts --scope user -- ')
+        assert json.loads(dlg.edit_desktop.toPlainText())['mcpServers']['districts']['args'][0].endswith('server.py')
+        if cli:
+            assert cli in dlg.label_cli.text()
+        else:
+            assert config_dialog.CLAUDE_CODE_INSTALL in dlg.label_cli.text()
+    finally:
+        dlg.close()
 
 
 def test_menu_actions_off_at_start(iface):

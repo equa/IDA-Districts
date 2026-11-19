@@ -52,9 +52,13 @@ All tools SHALL be registered in one list with name, description, JSON input sch
 - **WHEN** QGIS restarts and the bridge is switched on again with a new port and token
 - **THEN** the next tool call of the running server reaches the new bridge without a change to the client configuration
 
-### Requirement: Copy MCP configuration
-The plugin SHALL offer "Copy MCP configuration", which puts a JSON snippet for an MCP client on the clipboard: the server name, the command with the full path of the QGIS `python-qgis.bat` (or the platform's QGIS Python) and the full path of `server.py` as argument.
+### Requirement: MCP configuration
+The plugin SHALL offer "MCP configuration ...", a dialog with the paths of this computer: the command registering the server in Claude Code (`claude mcp add districts --scope user -- <python> <server.py> --state <state file>`) and the JSON entry for Claude Desktop, each with a copy button, and whether the `claude` command is found (otherwise how to install it). The command SHALL be the QGIS Python interpreter itself (`python.exe`), not the `python-qgis.bat` launcher, which MCP clients cannot reliably start.
 
-#### Scenario: Snippet
-- **WHEN** the user chooses "Copy MCP configuration"
-- **THEN** the clipboard holds valid JSON whose command file and argument file exist
+#### Scenario: Configured command starts the server
+- **WHEN** the configured command and arguments are started and receive `initialize`
+- **THEN** the server answers with its name
+
+#### Scenario: Claude Code not installed
+- **WHEN** the `claude` command is not on the PATH
+- **THEN** the dialog says so and names the installation command and Claude Desktop as the alternative

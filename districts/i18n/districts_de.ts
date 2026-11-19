@@ -11685,5 +11685,45 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>simulated NPV</source>
             <translation>simulierter Barwert</translation>
         </message>
+        <message>
+            <source>MCP configuration ...</source>
+            <translation>MCP-Konfiguration ...</translation>
+        </message>
+        <message>
+            <source>MCP configuration</source>
+            <translation>MCP-Konfiguration</translation>
+        </message>
+        <message>
+            <source>Claude Code: run this command once in a terminal (PowerShell)</source>
+            <translation>Claude Code: diesen Befehl einmal in einem Terminal (PowerShell) ausführen</translation>
+        </message>
+        <message>
+            <source>The claude command is found: {}</source>
+            <translation>Der Befehl claude ist vorhanden: {}</translation>
+        </message>
+        <message>
+            <source>The claude command is not found on this computer. Install Claude Code ({}), open a new terminal, then run the command; or use Claude Desktop below.</source>
+            <translation>Der Befehl claude ist auf diesem Computer nicht vorhanden. Claude Code installieren ({}), ein neues Terminal öffnen und dann den Befehl ausführen; oder unten Claude Desktop verwenden.</translation>
+        </message>
+        <message>
+            <source>Copy command</source>
+            <translation>Befehl kopieren</translation>
+        </message>
+        <message>
+            <source>Claude Desktop: Settings → Developer → Edit Config, add the entry "districts" under "mcpServers", then quit Claude Desktop completely and start it again</source>
+            <translation>Claude Desktop: Einstellungen → Entwickler → Konfiguration bearbeiten, den Eintrag "districts" unter "mcpServers" einfügen, dann Claude Desktop ganz beenden und neu starten</translation>
+        </message>
+        <message>
+            <source>Configuration file: {}</source>
+            <translation>Konfigurationsdatei: {}</translation>
+        </message>
+        <message>
+            <source>Copy JSON</source>
+            <translation>JSON kopieren</translation>
+        </message>
+        <message>
+            <source>Then switch on Plugins → Districts Modeler → AI connection (MCP) in every QGIS session. Everything a tool returns is sent to Anthropic.</source>
+            <translation>Danach in jeder QGIS-Sitzung Erweiterungen → Districts Modeler → KI-Verbindung (MCP) einschalten. Alles, was ein Werkzeug zurückgibt, wird an Anthropic gesendet.</translation>
+        </message>
     </context>
 </TS>

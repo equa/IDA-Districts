@@ -404,8 +404,8 @@ class Districts:
         self.action_ai.setCheckable(True)
         self.add_action(
             self.icon_path,
-            text=tr_msg('Copy MCP configuration'),
-            callback=self.copyMcpConfiguration,
+            text=tr_msg('MCP configuration ...'),
+            callback=self.showMcpConfiguration,
             add_to_toolbar=False,
             parent=self.iface.mainWindow())
 
@@ -425,13 +425,11 @@ class Districts:
             bridge.stop()
             self.iface.messageBar().pushMessage(tr_msg('AI connection'), tr_msg('switched off.'), level=MessageInfo)
 
-    def copyMcpConfiguration(self):
-        import json
-        from qgis.PyQt.QtWidgets import QApplication
-        from .mcp.bridge import mcpConfiguration
+    def showMcpConfiguration(self):
+        from .mcp.config_dialog import McpConfigDialog
         try:
-            QApplication.clipboard().setText(json.dumps(mcpConfiguration(), indent=2))
-            self.iface.messageBar().pushMessage(tr_msg('AI connection'), tr_msg('MCP configuration copied: add it to the configuration of your MCP client.'), level=MessageInfo)
+            self.dlg_mcpConfig = McpConfigDialog(self.iface.mainWindow())
+            self.dlg_mcpConfig.show()
         except Exception as e:
             self.iface.messageBar().pushMessage(tr_msg('AI connection'), str(e), level=MessageCritical)
 

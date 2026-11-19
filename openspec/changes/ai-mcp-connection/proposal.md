@@ -14,7 +14,7 @@ the AI arbitrary code execution next to the database credentials. Decision sessi
   cross it.
 - An **MCP server** (`districts/mcp/server.py`), written with the Python standard library only and started with QGIS's
   Python (`python-qgis.bat`). It speaks MCP over stdio to an external client (Claude Desktop, Claude Code) and forwards
-  tool calls to the bridge. The plugin gets a button "Copy MCP configuration".
+  tool calls to the bridge. The plugin gets a dialog "MCP configuration ..." with the Claude Code command and the Claude Desktop entry.
 - **Read-only tools**: project and version state, layers and features, a rendered map image, the raw result tables and
   IDA run logs. No tool changes data or starts a job.
 - **Model checks**: `run_checks(version, scope)` returns findings {rule, severity, feature/component, values, text}.
@@ -34,7 +34,7 @@ the AI arbitrary code execution next to the database credentials. Decision sessi
 
 ### New Capabilities
 - `ai-bridge`: switching the bridge on, the socket protocol, the token and port file, the tool registry, the MCP
-  server process (initialize, tools, resources) and the "Copy MCP configuration" button.
+  server process (initialize, tools, resources) and the dialog "MCP configuration ...".
 - `model-checks`: `run_checks` and its rules, finding format, severities, thresholds and their defaults.
 - `ai-guidance`: `workflow_state`, the step → wiki page → rule map, `search_help` and `read_help_page`.
 - `version-kpis`: `version_kpis` and `compare_versions`, the figures and their results basis.
@@ -46,7 +46,7 @@ the AI arbitrary code execution next to the database credentials. Decision sessi
 ## Impact
 
 - New: `districts/mcp/` (bridge, tool registry, tools, stand-alone server, wiki map) and a check module with the rules.
-- Changed: `districts.py` (bridge switch, "Copy MCP configuration" button), `utility_functions/height_check.py`,
+- Changed: `districts.py` (bridge switch, "MCP configuration ..." dialog), `utility_functions/height_check.py`,
   `topology.py`, `energy_use.py` and `network_pumps.py` (checks also return data), `utility_functions/reports.py` and
   `network_economics.py` (figures as shared functions), translations, tests, README.md and CLAUDE.md.
 - External: read access to `https://equa.cloud.xwiki.com` (public, no account). The MCP client is configured by the

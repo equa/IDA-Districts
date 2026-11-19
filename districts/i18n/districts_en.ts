@@ -8067,5 +8067,45 @@ Compare with the parent version: shows the difference of the inner pipe diameter
             <source>The input data could not be checked: </source>
             <translation>The input data could not be checked: </translation>
         </message>
+        <message>
+            <source>MCP configuration ...</source>
+            <translation>MCP configuration ...</translation>
+        </message>
+        <message>
+            <source>MCP configuration</source>
+            <translation>MCP configuration</translation>
+        </message>
+        <message>
+            <source>Claude Code: run this command once in a terminal (PowerShell)</source>
+            <translation>Claude Code: run this command once in a terminal (PowerShell)</translation>
+        </message>
+        <message>
+            <source>The claude command is found: {}</source>
+            <translation>The claude command is found: {}</translation>
+        </message>
+        <message>
+            <source>The claude command is not found on this computer. Install Claude Code ({}), open a new terminal, then run the command; or use Claude Desktop below.</source>
+            <translation>The claude command is not found on this computer. Install Claude Code ({}), open a new terminal, then run the command; or use Claude Desktop below.</translation>
+        </message>
+        <message>
+            <source>Copy command</source>
+            <translation>Copy command</translation>
+        </message>
+        <message>
+            <source>Claude Desktop: Settings → Developer → Edit Config, add the entry "districts" under "mcpServers", then quit Claude Desktop completely and start it again</source>
+            <translation>Claude Desktop: Settings → Developer → Edit Config, add the entry "districts" under "mcpServers", then quit Claude Desktop completely and start it again</translation>
+        </message>
+        <message>
+            <source>Configuration file: {}</source>
+            <translation>Configuration file: {}</translation>
+        </message>
+        <message>
+            <source>Copy JSON</source>
+            <translation>Copy JSON</translation>
+        </message>
+        <message>
+            <source>Then switch on Plugins → Districts Modeler → AI connection (MCP) in every QGIS session. Everything a tool returns is sent to Anthropic.</source>
+            <translation>Then switch on Plugins → Districts Modeler → AI connection (MCP) in every QGIS session. Everything a tool returns is sent to Anthropic.</translation>
+        </message>
     </context>
 </TS>

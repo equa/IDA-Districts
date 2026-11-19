@@ -65,8 +65,10 @@ Images (the map) are returned as MCP image content (base64 PNG). Clients list th
 before QGIS runs: without a bridge, `tools/list` answers with `mcp/tools_snapshot.json`, a copy of the registry that a
 test keeps equal to `tools.py` (decided while applying, 2026-11-19). When QGIS or the bridge is not running, the tool
 call returns `isError` with a hint ("start QGIS and switch on the Districts AI connection"). The server never crashes.
-"Copy MCP configuration" puts a JSON snippet for the client on the clipboard (command `python-qgis.bat` with its full
-path, argument the server path). *Alternative:* the official `mcp` SDK via `uv` (an install and a download for every
+"MCP configuration ..." (first "Copy MCP configuration") shows the Claude Code command and the Claude Desktop JSON with
+the paths of the computer and whether `claude` is installed. The command is the QGIS `python.exe`, not
+`python-qgis.bat`: MCP clients start a `.bat` only through a shell, and its output could mix into the protocol (found
+2026-11-19 on a second computer: wrong user paths, no `claude` command). *Alternative:* the official `mcp` SDK via `uv` (an install and a download for every
 user); HTTP served directly from QGIS (Claude Desktop needs an extra bridge, and the connection drops when QGIS
 restarts).
 
