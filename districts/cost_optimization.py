@@ -13,7 +13,7 @@ import psycopg2.extras
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from qgis.PyQt.QtCore import QObject, Qt, QThreadPool, QTimer, pyqtSlot
+from qgis.PyQt.QtCore import QObject, QSize, Qt, QThreadPool, QTimer, pyqtSlot
 from qgis.PyQt.QtGui import QColor, QGuiApplication
 from qgis.PyQt.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
@@ -419,7 +419,7 @@ class CostOptimizationDialog(QDialog):
             row_buttons.addWidget(button)
         inner.addLayout(row_buttons)
         self.figure = Figure(figsize=(9, 4))
-        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas = _Canvas(self.figure)
         self.canvas.setMinimumHeight(250)
         results = QTabWidget()
         self.results_tabs = results
@@ -721,6 +721,16 @@ class CostOptimizationDialog(QDialog):
         npvBars(self.figure.add_subplot(111), rows)
         self.figure.tight_layout()
         self.canvas.draw()
+
+
+class _Canvas(FigureCanvasQTAgg):
+    # matplotlib's hint is the canvas's current size: in the scroll area it then only grows (each layout pass
+    # keeps what it got, a DPI change scales it up)
+    def sizeHint(self):
+        return QSize(600, 300)
+
+    def minimumSizeHint(self):
+        return QSize(200, 250)
 
 
 class _CheckDialog:

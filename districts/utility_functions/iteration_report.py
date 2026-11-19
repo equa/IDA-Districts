@@ -470,6 +470,10 @@ def npvBars(ax, rows):
         ax.bar(x, values, bottom=base, label=groupLabel(group))
         bottom_pos = [bp + max(v, 0) for v, bp in zip(values, bottom_pos)]
         bottom_neg = [bn + min(v, 0) for v, bn in zip(values, bottom_neg)]
+    # negative parts (residual value) hang below zero, so the top of a bar is not the NPV: the net sum is marked
+    ax.hlines([row.get('npv', 0.0) for row in rows], [k - 0.4 for k in x], [k + 0.4 for k in x], colors='k', linewidths=2,
+              label=tr_msg('simulated NPV'))
+    # the cost model's forecast made in the iteration before: off the mark by the model error
     model = [(row['iteration'], row['npv_model']) for row in rows if row.get('npv_model') is not None]
     if model:
         ax.plot([m[0] for m in model], [m[1] for m in model], 'k--o', label=tr_msg('model'))
