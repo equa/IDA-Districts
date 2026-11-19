@@ -53,6 +53,8 @@ def fetch_points(cur, plant_id,config):
                mir
     FROM "{}".boreholes
     WHERE plant_id = {}
+      -- a row added in the attribute table has no point; ST_X/ST_Y give NULL
+      AND geom IS NOT NULL AND NOT ST_IsEmpty(geom)
     ORDER BY id;""".format(config['versionName'],plant_id) # nosec B608
     cur.execute(sql)
     rows = cur.fetchall()
