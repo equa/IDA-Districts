@@ -5,6 +5,7 @@ import psycopg2
 import re
 from qgis.PyQt.QtWidgets import QComboBox, QMessageBox, QTableWidgetItem
 from qgis.utils import iface
+from .boreholes import checkBoreholes
 from .cosim import writeCosimMacroIdc, writeCosimMacroIdm
 from .utility_functions.compat import ItemIsEditable, MessageCritical, MessageInfo, MessageWarning
 from .utility_functions.db import (
@@ -352,6 +353,7 @@ def buildModel(dlg,main):
         exclude_features=checkTopologyBeforeBuild(main,networks)
         if exclude_features is None:
             return
+        warnBoreholes(main)
         main.worker_invokeNetwork = WorkerBuildNetworkModel(main=main,config=main.config,plugin_dir=main.plugin_dir,dlg=dlg,networks=networks,submodels=submodels,
             exclude_features=exclude_features)
         main.worker_invokeNetwork.signals.error.connect(show_error_message)
@@ -361,6 +363,21 @@ def buildModel(dlg,main):
         startWorkers([main.worker_invokeNetwork],dlg.btn_buildNetworkModel)
     else:
         iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("Please select one or more submodels and one or more networks!"), level=MessageInfo)
+
+def warnBoreholes(main):
+    """Warn about boreholes the borehole fields leave out; the build goes on."""
+    if not main.cur:
+        return
+    try:
+        warnings=checkBoreholes(main.cur,main.config['versionName'])
+    except Exception:
+        #the check must not prevent the build (e.g. older version schema)
+        QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageWarning)
+        return
+    for text in warnings:
+        QgsMessageLog.logMessage(text,"Districts",MessageWarning)
+    if warnings:
+        iface.messageBar().pushMessage(tr_msg("Warning"),'\n'.join(warnings),level=MessageWarning)
 
 def checkTopologyBeforeBuild(main,networks):
     """Check the network topology of the networks before building the model. If it is not valid

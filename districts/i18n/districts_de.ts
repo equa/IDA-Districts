@@ -11510,6 +11510,18 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <translation>elastischer Bogen</translation>
         </message>
         <message>
+            <source>Boreholes without a point (layer boreholes), not part of a borehole field: ID {}</source>
+            <translation>Erdsonden ohne Punkt (Layer Erdsonden), nicht Teil eines Erdsondenfelds: ID {}</translation>
+        </message>
+        <message>
+            <source>Boreholes without plant_id (layer boreholes), not part of a borehole field: ID {}</source>
+            <translation>Erdsonden ohne plant_id (Layer Erdsonden), nicht Teil eines Erdsondenfelds: ID {}</translation>
+        </message>
+        <message>
+            <source>Boreholes whose plant_id is no energy plant (layer boreholes), not part of a borehole field: ID {}</source>
+            <translation>Erdsonden, deren plant_id keine Energiezentrale ist (Layer Erdsonden), nicht Teil eines Erdsondenfelds: ID {}</translation>
+        </message>
+        <message>
             <source>(more in the log)</source>
             <translation>(mehr im Protokoll)</translation>
         </message>

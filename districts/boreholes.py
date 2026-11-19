@@ -18,6 +18,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2.extras
 import numpy as np
 from .utility_functions.debug_log import dprint
+from .utility_functions.translations import tr_msg
 
 
 # ---------------------------
@@ -59,6 +60,29 @@ def fetch_points(cur, plant_id,config):
     cur.execute(sql)
     rows = cur.fetchall()
     return rows
+
+
+def checkBoreholes(cur, schema):
+    """Boreholes the borehole fields leave out, as warning lines (empty: none).
+    getTransformedBoreholeInfo reads only rows with a point and the plant's id."""
+    sql = """SELECT b.id,
+       CASE WHEN b.geom IS NULL OR ST_IsEmpty(b.geom) THEN 'point'
+            WHEN b.plant_id IS NULL THEN 'plant_id'
+            ELSE 'plant' END AS problem
+    FROM "{0}".boreholes b
+    WHERE b.geom IS NULL OR ST_IsEmpty(b.geom) OR b.plant_id IS NULL
+       OR NOT EXISTS (SELECT 1 FROM "{0}".energy_plants ep WHERE ep.id = b.plant_id)
+    ORDER BY b.id;""".format(schema) # nosec B608
+    cur.execute(sql)
+    ids = {}
+    for row in cur.fetchall():
+        ids.setdefault(row['problem'], []).append(str(row['id']))
+    texts = {
+        'point': tr_msg("Boreholes without a point (layer boreholes), not part of a borehole field: ID {}"),
+        'plant_id': tr_msg("Boreholes without plant_id (layer boreholes), not part of a borehole field: ID {}"),
+        'plant': tr_msg("Boreholes whose plant_id is no energy plant (layer boreholes), not part of a borehole field: ID {}"),
+    }
+    return [texts[problem].format(', '.join(ids[problem])) for problem in texts if problem in ids]
 
 
 # ---------------------------

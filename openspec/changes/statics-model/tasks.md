@@ -35,4 +35,4 @@
 
 - [x] 6.1 README.md and CLAUDE.md: statics model, its tables, parameters and modules
 - [x] 6.2 Local validation: from `districts/` the QGIS Python runs `-m pytest -m "not ida"` and it passes, including `test_static_mypy.py` and `test_messages.py` (only while no CI job runs on this PC)
-- [ ] 6.3 `npx openspec validate --all`; commit the change's artifacts with the code, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 6.3 `npx openspec validate --all`; commit the change's artifacts with the code, push to dev and watch the plugin-tests run until both QGIS jobs pass
