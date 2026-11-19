@@ -60,6 +60,13 @@ say what each git command does before you run it.
   `versions/<version>/cost_optimization_iter<k>.json`, required-load columns
   in `<project>\requiredLoads.json`. `test_cost_optimization_annual.py` runs
   only with `DISTRICTS_TEST_ANNUAL=1` (hours).
+- AI connection (change ai-mcp-connection): `districts/mcp/` holds the bridge in QGIS (`bridge.py`, opt-in
+  menu action, `districts_mcp.json` with port and token in the QGIS profile), the read-only tool registry
+  (`tools.py`, each tool on a rolled-back transaction), the guidance (`guidance.py`, `wiki_map.json`: workflow
+  step → wiki pages of the XWiki space IDA_Districts → rules) and the stand-alone MCP server (`server.py`,
+  standard library only, never imported by the plugin; `tools_snapshot.json` must equal the registry, see
+  `test_mcp_server.py`). Rules: `utility_functions/model_checks.py`; key figures shared with the network report:
+  `utility_functions/version_kpis.py`. Marker `online` reads the public wiki.
 
 ## Build and test
 

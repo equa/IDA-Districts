@@ -45,6 +45,27 @@ IDA Districts https://equa.cloud.xwiki.com/xwiki/bin/view/IDA_Districts/ is a si
 
 ---
 
+## 🤖 AI connection (MCP)
+
+An AI assistant such as Claude Desktop or Claude Code can work with the open Districts Modeler through the Model Context
+Protocol (MCP). Its tools only read: they show the state of the project and version, layers, features and a map image,
+run model checks (topology, heights, pipe data, template detection, IDA run errors, substations ΔT and Δp, line
+velocity and pressure loss, plants that never run), give the key figures of a version as in the network report
+(heat, losses, pump energy, energy and costs per carrier, NPV) and compare two versions, report the workflow state
+and read the IDA Districts wiki. No tool changes data or starts a simulation.
+
+1. In QGIS, menu **Plugins → Districts Modeler → Copy MCP configuration**, and add the copied entry to the
+   configuration of your MCP client (Claude Desktop: `claude_desktop_config.json`, entry `mcpServers`; Claude Code:
+   `claude mcp add-json districts '<the object under "districts">'`).
+2. Switch on **Plugins → Districts Modeler → AI connection (MCP)** (off at every QGIS start). The connection listens on
+   127.0.0.1 only, with a token renewed at every start (`districts_mcp.json` in the QGIS profile folder).
+3. Ask the assistant, e.g. "check the loaded version" or "compare base1 with base1_sizing".
+
+The server (`districts/mcp/server.py`) runs with the Python of QGIS and needs no further installation; the wiki needs
+internet access, the other tools do not.
+
+---
+
 ## 📦 Installation
 
 ### From QGIS Plugin Manager (recommended)

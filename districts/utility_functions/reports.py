@@ -14,9 +14,10 @@ from qgis.core import (
 
 from qgis.utils import iface
 from .compat import MessageCritical
-from .db import getBuildingsEra, getNetworkLength, getNetworkVolume, getNetworks, getPipeInfo
+from .db import getNetworks, getPipeInfo
 from .files import districtsModelerTempDir, loadModellingSettings, loadProjectConfig, loadSimulatedOutputs
 from .network_economics import evaluateVersion
+from .version_kpis import networkKpis
 from .show_on_map import renderMapPlot, showOnMapMemoryLayer
 from .energy_use import CARRIER_LABELS
 from .translations import tr, tr_msg
@@ -473,51 +474,9 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
             dprint('------------kpi table--------------')
 
             # --- 1. prepare data ---
-            sql="""SELECT * FROM "{}".kpi_{};""".format(config['versionName'],network) # nosec B608
             try:
-                cur.execute(sql)
-                kpi_table=cur.fetchone()
-            
-                kpis=[{i:float(kpi_table[i])} for i in kpi_table if kpi_table[i] is not None and i!='id']
+                kpis=networkKpis(cur,config,network,loadSimulatedOutputs(config),network_extent.width()*network_extent.height())
                 dprint(kpis)
-                simulatedOutputs=loadSimulatedOutputs(config)
-                if simulatedOutputs['qsup_heat_spec_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
-                    value = float(kpi_table['qsup_heat_c'])/getBuildingsEra(cur,config)
-                    kpis.append({'qsup_heat_spec_c':value})
-                if simulatedOutputs['qsup_cold_spec_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
-                    value = float(kpi_table['qsup_cold_c'])/getBuildingsEra(cur,config)
-                    kpis.append({'qsup_cold_spec_c':value})
-                if simulatedOutputs['qsup_spec_c_kpi'] and kpi_table['qsup_c'] is not None:
-                    value = float(kpi_table['qsup_c'])/getBuildingsEra(cur,config)
-                    kpis.append({'qsup_spec_c':value})
-
-                if simulatedOutputs['qsup_heat_density_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
-                    value = float(kpi_table['qsup_heat_c'])/network_extent.width()/network_extent.height()
-                    kpis.append({'qsup_heat_density_c':value})
-                if simulatedOutputs['qsup_cold_density_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
-                    value = float(kpi_table['qsup_cold_c'])/network_extent.width()/network_extent.height()
-                    kpis.append({'qsup_cold_density_c':value})
-                if simulatedOutputs['qsup_density_c_kpi'] and kpi_table['qsup_c'] is not None:
-                    value = float(kpi_table['qsup_c'])/network_extent.width()/network_extent.height()
-                    kpis.append({'qsup_density_c':value})
-
-                if simulatedOutputs['qsup_heat_linedensity_c_kpi'] and kpi_table['qsup_heat_c'] is not None:
-                    value = float(kpi_table['qsup_heat_c'])/getNetworkLength(cur,config)
-                    kpis.append({'qsup_heat_linedensity_c':value})
-                if simulatedOutputs['qsup_cold_linedensity_c_kpi'] and kpi_table['qsup_cold_c'] is not None:
-                    value = float(kpi_table['qsup_cold_c'])/getNetworkLength(cur,config)
-                    kpis.append({'qsup_cold_linedensity_c':value})
-                if simulatedOutputs['qsup_linedensity_c_kpi'] and kpi_table['qsup_c'] is not None:
-                    value = float(kpi_table['qsup_c'])/getNetworkLength(cur,config)
-                    kpis.append({'qsup_linedensity_c':value})
-
-                if simulatedOutputs['eff_width']:
-                    value = network_extent.width()*network_extent.height()/getNetworkLength(cur,config)
-                    kpis.append({'eff_width':value})
-                
-                if simulatedOutputs['volume_kpi']:
-                    value = getNetworkVolume(cur,config)
-                    kpis.append({'volume':value})
 
                 num_entries = len(kpis)
 

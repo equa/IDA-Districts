@@ -7923,5 +7923,77 @@ Compare with the parent version: shows the difference of the inner pipe diameter
             <source>flexible_metal</source>
             <translation>Flexible metal pipe</translation>
         </message>
+        <message>
+            <source>Customer {}: mean temperature difference {:.1f} K below {:.1f} K ({}).</source>
+            <translation>Customer {}: mean temperature difference {:.1f} K below {:.1f} K ({}).</translation>
+        </message>
+        <message>
+            <source>Customer {}: pressure difference {:.2f} bar below {:.2f} bar.</source>
+            <translation>Customer {}: pressure difference {:.2f} bar below {:.2f} bar.</translation>
+        </message>
+        <message>
+            <source>Customer {}: room temperature misses the setpoint ({:.0f} Kh).</source>
+            <translation>Customer {}: room temperature misses the setpoint ({:.0f} Kh).</translation>
+        </message>
+        <message>
+            <source>Energy plant {} never runs (peak {:.1f} kW).</source>
+            <translation>Energy plant {} never runs (peak {:.1f} kW).</translation>
+        </message>
+        <message>
+            <source>Height check: {} ({} features)</source>
+            <translation>Height check: {} ({} features)</translation>
+        </message>
+        <message>
+            <source>IDA run error: {}</source>
+            <translation>IDA run error: {}</translation>
+        </message>
+        <message>
+            <source>Line {}: pipe data missing ({}).</source>
+            <translation>Line {}: pipe data missing ({}).</translation>
+        </message>
+        <message>
+            <source>Line {}: pressure loss {:.0f} Pa/m above {:.0f} Pa/m.</source>
+            <translation>Line {}: pressure loss {:.0f} Pa/m above {:.0f} Pa/m.</translation>
+        </message>
+        <message>
+            <source>Line {}: pressure {:.1f} bar above the rating {:.1f} bar of {}.</source>
+            <translation>Line {}: pressure {:.1f} bar above the rating {:.1f} bar of {}.</translation>
+        </message>
+        <message>
+            <source>Line {}: velocity {:.2f} m/s above {:.2f} m/s.</source>
+            <translation>Line {}: velocity {:.2f} m/s above {:.2f} m/s.</translation>
+        </message>
+        <message>
+            <source>No required supply temperature in the project: the supply temperature of the customers is not checked.</source>
+            <translation>No required supply temperature in the project: the supply temperature of the customers is not checked.</translation>
+        </message>
+        <message>
+            <source>Rule {}: switch on the outputs {} and simulate again.</source>
+            <translation>Rule {}: switch on the outputs {} and simulate again.</translation>
+        </message>
+        <message>
+            <source>AI connection</source>
+            <translation>AI connection</translation>
+        </message>
+        <message>
+            <source>AI connection (MCP)</source>
+            <translation>AI connection (MCP)</translation>
+        </message>
+        <message>
+            <source>Copy MCP configuration</source>
+            <translation>Copy MCP configuration</translation>
+        </message>
+        <message>
+            <source>MCP configuration copied: add it to the configuration of your MCP client.</source>
+            <translation>MCP configuration copied: add it to the configuration of your MCP client.</translation>
+        </message>
+        <message>
+            <source>switched off.</source>
+            <translation>switched off.</translation>
+        </message>
+        <message>
+            <source>switched on (127.0.0.1:{}); the AI tools only read.</source>
+            <translation>switched on (127.0.0.1:{}); the AI tools only read.</translation>
+        </message>
     </context>
 </TS>

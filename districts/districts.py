@@ -393,9 +393,54 @@ class Districts:
             text=self.tr(u'Districts Modeler'),
             callback=self.run,
             parent=self.iface.mainWindow())
+        # AI connection (OpenSpec ai-mcp-connection): off at every start, the user switches it on
+        self.ai_bridge = None
+        self.action_ai = self.add_action(
+            self.icon_path,
+            text=tr_msg('AI connection (MCP)'),
+            callback=self.toggleAiConnection,
+            add_to_toolbar=False,
+            parent=self.iface.mainWindow())
+        self.action_ai.setCheckable(True)
+        self.add_action(
+            self.icon_path,
+            text=tr_msg('Copy MCP configuration'),
+            callback=self.copyMcpConfiguration,
+            add_to_toolbar=False,
+            parent=self.iface.mainWindow())
+
+    def toggleAiConnection(self, checked):
+        from .mcp.bridge import Bridge
+        bridge = self.ai_bridge
+        if checked:
+            try:
+                if bridge is None:
+                    bridge = self.ai_bridge = Bridge(self)
+                port = bridge.start()
+                self.iface.messageBar().pushMessage(tr_msg('AI connection'), tr_msg('switched on (127.0.0.1:{}); the AI tools only read.').format(port), level=MessageInfo)
+            except Exception as e:
+                self.action_ai.setChecked(False)
+                self.iface.messageBar().pushMessage(tr_msg('AI connection'), str(e), level=MessageCritical)
+        elif bridge is not None:
+            bridge.stop()
+            self.iface.messageBar().pushMessage(tr_msg('AI connection'), tr_msg('switched off.'), level=MessageInfo)
+
+    def copyMcpConfiguration(self):
+        import json
+        from qgis.PyQt.QtWidgets import QApplication
+        from .mcp.bridge import mcpConfiguration
+        try:
+            QApplication.clipboard().setText(json.dumps(mcpConfiguration(), indent=2))
+            self.iface.messageBar().pushMessage(tr_msg('AI connection'), tr_msg('MCP configuration copied: add it to the configuration of your MCP client.'), level=MessageInfo)
+        except Exception as e:
+            self.iface.messageBar().pushMessage(tr_msg('AI connection'), str(e), level=MessageCritical)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        bridge = getattr(self, 'ai_bridge', None)
+        if bridge is not None:
+            bridge.stop()
+            self.ai_bridge = None
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&Districts Modeler'),

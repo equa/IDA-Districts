@@ -1,0 +1,297 @@
+[
+ {
+  "name": "project_state",
+  "description": "State of the Districts Modeler: project, versions, loaded version, templates, networks, feature counts and whether a job (simulation, sizing, optimization) is running.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "layers",
+  "description": "Layers of the QGIS project: name, id, type, feature count, visibility, CRS.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "required": []
+  }
+ },
+ {
+  "name": "features",
+  "description": "Features of a vector layer: attributes and a geometry summary, optionally filtered with a QGIS expression.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "layer": {
+     "type": "string",
+     "description": "layer name or id"
+    },
+    "filter": {
+     "type": "string",
+     "description": "QGIS expression, e.g. \"id\" IN (3, 7)"
+    },
+    "fields": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "limit": {
+     "type": "integer",
+     "description": "at most 1000 (default 100)"
+    },
+    "geometry": {
+     "type": "boolean",
+     "description": "include the geometry as WKT (default false: centroid only)"
+    }
+   },
+   "required": [
+    "layer"
+   ]
+  }
+ },
+ {
+  "name": "render_map",
+  "description": "Image (PNG) of the map with the visible layers, of a layer's extent or a given extent.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "layer": {
+     "type": "string",
+     "description": "zoom to this layer (name or id)"
+    },
+    "extent": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "description": "[xmin, ymin, xmax, ymax] in the project CRS"
+    },
+    "width": {
+     "type": "integer"
+    },
+    "height": {
+     "type": "integer"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "result_tables",
+  "description": "Result tables of a version (customers, energy plants, lines, KPIs), the simulated time range, the results basis (full year, representative periods) and whether a job is running (results may be incomplete).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "result_series",
+  "description": "Values of a result table: per feature min/max/mean (summary), daily min/max/mean (day) or the raw time steps (raw, limited). Tables: see result_tables.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    },
+    "table": {
+     "type": "string"
+    },
+    "feature_ids": {
+     "type": "array",
+     "items": {
+      "type": "integer"
+     }
+    },
+    "time_from": {
+     "type": "string",
+     "description": "yyyy-mm-dd hh:mm:ss"
+    },
+    "time_to": {
+     "type": "string"
+    },
+    "aggregation": {
+     "type": "string",
+     "enum": [
+      "summary",
+      "day",
+      "raw"
+     ]
+    },
+    "limit": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "table"
+   ]
+  }
+ },
+ {
+  "name": "run_log",
+  "description": "Errors of the IDA runs of a version (result.json) and the end of the newest runner.log.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "template_components",
+  "description": "Components of a customer or energy plant template (IDA .idm): component, type and variables.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "feature": {
+     "type": "string",
+     "enum": [
+      "customer",
+      "energy_plant"
+     ]
+    },
+    "template": {
+     "type": "string",
+     "description": "template name <number>_<name>"
+    }
+   },
+   "required": [
+    "feature",
+    "template"
+   ]
+  }
+ },
+ {
+  "name": "run_checks",
+  "description": "Model checks of a version: findings {rule, severity, feature, values with threshold and source, text} for the QGIS model, the IDA templates and the results. Thresholds can be given (else the documented defaults).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    },
+    "scope": {
+     "type": "string",
+     "enum": [
+      "all",
+      "qgis",
+      "templates",
+      "results"
+     ]
+    },
+    "thresholds": {
+     "type": "object",
+     "description": "delta_t_heating_k, delta_t_cooling_k, substation_dp_min_bar, v_max_m_s, dp_spec_max_pa_m"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "workflow_state",
+  "description": "Workflow steps of a version in order, each done, missing or stale with the reason, its wiki pages and check rules.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "search_help",
+  "description": "Search the IDA Districts wiki (XWiki space IDA_Districts): titles, page names, URLs.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer"
+    }
+   },
+   "required": [
+    "query"
+   ]
+  }
+ },
+ {
+  "name": "read_help_page",
+  "description": "Read a page of the IDA Districts wiki: title, URL and content (xwiki/2.1).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "page": {
+     "type": "string",
+     "description": "full page name, e.g. IDA_Districts.Districts_GS.Districts_Modeler_GS.Sizing_network.WebHome"
+    }
+   },
+   "required": [
+    "page"
+   ]
+  }
+ },
+ {
+  "name": "version_kpis",
+  "description": "Key figures of a version, the same as in the network report: heat delivered, peak load, length, linear heat density, losses, pump energy, energy and costs per plant and carrier, NPV, NPV per MWh delivered, results basis.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "version": {
+     "type": "string",
+     "description": "version name (default: the loaded version)"
+    },
+    "scenario_id": {
+     "type": "integer",
+     "description": "economic scenario id (default: the first)"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "compare_versions",
+  "description": "Key figures of two versions and their differences (b - a), with a note when the results bases differ.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "a": {
+     "type": "string"
+    },
+    "b": {
+     "type": "string"
+    },
+    "scenario_id": {
+     "type": "integer",
+     "description": "economic scenario id (default: the first)"
+    }
+   },
+   "required": [
+    "a",
+    "b"
+   ]
+  }
+ }
+]

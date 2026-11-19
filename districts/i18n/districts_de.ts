@@ -11537,5 +11537,77 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>{} lines of the later stages got the pipes of the same line in the earlier stage.</source>
             <translation>{} Leitungen der späteren Etappen erhielten die Rohre derselben Leitung der früheren Etappe.</translation>
         </message>
+        <message>
+            <source>Customer {}: mean temperature difference {:.1f} K below {:.1f} K ({}).</source>
+            <translation>Abnehmer {}: mittlere Temperaturdifferenz {:.1f} K unter {:.1f} K ({}).</translation>
+        </message>
+        <message>
+            <source>Customer {}: pressure difference {:.2f} bar below {:.2f} bar.</source>
+            <translation>Abnehmer {}: Druckdifferenz {:.2f} bar unter {:.2f} bar.</translation>
+        </message>
+        <message>
+            <source>Customer {}: room temperature misses the setpoint ({:.0f} Kh).</source>
+            <translation>Abnehmer {}: Raumtemperatur verfehlt den Sollwert ({:.0f} Kh).</translation>
+        </message>
+        <message>
+            <source>Energy plant {} never runs (peak {:.1f} kW).</source>
+            <translation>Energiezentrale {} läuft nie (Spitze {:.1f} kW).</translation>
+        </message>
+        <message>
+            <source>Height check: {} ({} features)</source>
+            <translation>Höhenprüfung: {} ({} Objekte)</translation>
+        </message>
+        <message>
+            <source>IDA run error: {}</source>
+            <translation>Fehler der IDA-Simulation: {}</translation>
+        </message>
+        <message>
+            <source>Line {}: pipe data missing ({}).</source>
+            <translation>Trasse {}: Rohrdaten fehlen ({}).</translation>
+        </message>
+        <message>
+            <source>Line {}: pressure loss {:.0f} Pa/m above {:.0f} Pa/m.</source>
+            <translation>Trasse {}: Druckverlust {:.0f} Pa/m über {:.0f} Pa/m.</translation>
+        </message>
+        <message>
+            <source>Line {}: pressure {:.1f} bar above the rating {:.1f} bar of {}.</source>
+            <translation>Trasse {}: Druck {:.1f} bar über dem Nenndruck {:.1f} bar von {}.</translation>
+        </message>
+        <message>
+            <source>Line {}: velocity {:.2f} m/s above {:.2f} m/s.</source>
+            <translation>Trasse {}: Geschwindigkeit {:.2f} m/s über {:.2f} m/s.</translation>
+        </message>
+        <message>
+            <source>No required supply temperature in the project: the supply temperature of the customers is not checked.</source>
+            <translation>Keine benötigte Vorlauftemperatur im Projekt: die Vorlauftemperatur der Abnehmer wird nicht geprüft.</translation>
+        </message>
+        <message>
+            <source>Rule {}: switch on the outputs {} and simulate again.</source>
+            <translation>Regel {}: die Ausgaben {} einschalten und erneut simulieren.</translation>
+        </message>
+        <message>
+            <source>AI connection</source>
+            <translation>KI-Verbindung</translation>
+        </message>
+        <message>
+            <source>AI connection (MCP)</source>
+            <translation>KI-Verbindung (MCP)</translation>
+        </message>
+        <message>
+            <source>Copy MCP configuration</source>
+            <translation>MCP-Konfiguration kopieren</translation>
+        </message>
+        <message>
+            <source>MCP configuration copied: add it to the configuration of your MCP client.</source>
+            <translation>MCP-Konfiguration kopiert: in die Konfiguration Ihres MCP-Clients einfügen.</translation>
+        </message>
+        <message>
+            <source>switched off.</source>
+            <translation>ausgeschaltet.</translation>
+        </message>
+        <message>
+            <source>switched on (127.0.0.1:{}); the AI tools only read.</source>
+            <translation>eingeschaltet (127.0.0.1:{}); die KI-Werkzeuge lesen nur.</translation>
+        </message>
     </context>
 </TS>

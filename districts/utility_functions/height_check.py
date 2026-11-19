@@ -299,10 +299,8 @@ def issueRenderer(geometry_type, issues):
     return QgsCategorizedSymbolRenderer('issue', categories)
 
 
-def heightConsistency(cur, schema, layer_names, dz_tolerance=0.1, max_slope_pct=20.0, zero_is_missing=True):
-    """Marks missing heights, height differences between connected features and jumps/steep segments along the lines.
-    Returns {issue: count}."""
-    removeHeightCheckLayers(MODE_CONSISTENCY)
+def heightConsistencyRows(cur, schema, layer_names, dz_tolerance=0.1, max_slope_pct=20.0, zero_is_missing=True):
+    """(point rows, line rows) of the consistency check, without layers (also used by the model checks)"""
     has_lines = tableExists(cur, schema, 'lines')
     point_rows, line_rows = [], []
     if has_lines:
@@ -321,6 +319,14 @@ def heightConsistency(cur, schema, layer_names, dz_tolerance=0.1, max_slope_pct=
     finally:
         if has_lines:
             cur.execute("DROP TABLE IF EXISTS {};".format(CHECK_LINES))
+    return point_rows, line_rows
+
+
+def heightConsistency(cur, schema, layer_names, dz_tolerance=0.1, max_slope_pct=20.0, zero_is_missing=True):
+    """Marks missing heights, height differences between connected features and jumps/steep segments along the lines.
+    Returns {issue: count}."""
+    removeHeightCheckLayers(MODE_CONSISTENCY)
+    point_rows, line_rows = heightConsistencyRows(cur, schema, layer_names, dz_tolerance, max_slope_pct, zero_is_missing)
 
     counts = {}
     for r in point_rows + line_rows:
