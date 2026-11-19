@@ -25,7 +25,7 @@ from qgis.gui import QgsCollapsibleGroupBox
 from qgis.utils import iface
 
 from .representative_periods import NEEDED_OUTPUTS, PeriodRun, PeriodsWidget, startTask
-from .utility_functions.compat import MessageCritical, MessageInfo
+from .utility_functions.compat import MessageCritical, MessageInfo, MessageWarning
 from .utility_functions.cost_model import DP_SPEZ_MAX, V_MAX
 from .utility_functions.cost_model_data import buildModel, checkSources, series
 from .utility_functions.cost_optimization_layers import iterationPath, loadCostIterations, removeCostLayers, showCostIterations
@@ -353,6 +353,7 @@ class CostOptimizationDialog(QDialog):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(250)
         results = QTabWidget()
+        self.results_tabs = results
         results.addTab(tab_iterations, tr_msg('Iterations'))
         results.addTab(self.canvas, tr_msg('Net present value'))
         results.addTab(self.log_edit, tr_msg('Log'))
@@ -401,6 +402,16 @@ class CostOptimizationDialog(QDialog):
 
     def log(self, message):
         self.log_edit.append(message)
+
+    def refuse(self, messages):
+        """why the run does not start: in the log (the results open on it) and the first message in the message bar"""
+        self.box_results.setCollapsed(False)
+        self.results_tabs.setCurrentWidget(self.log_edit)
+        for message in messages:
+            self.log(message)
+        if messages:
+            iface.messageBar().pushMessage(tr_msg('Cost optimization'), messages[0] + (' ' + tr_msg('(more in the log)') if len(messages) > 1 else ''),
+                                           level=MessageWarning)
 
     def update_progress(self, value):
         self.progress.setValue(int(value))
@@ -508,22 +519,27 @@ class CostOptimizationDialog(QDialog):
     # ---------------------------------------------------------------- run
     def start(self):
         if not self.periods.ready and not self.periods.check_annual.isChecked():
-            self.log(tr_msg('The weeks are still being chosen; start again in a moment.'))
+            self.refuse([tr_msg('The weeks are still being chosen; start again in a moment.')])
             return
         p = self.parameters()
         if self.pair_table.incomplete():
-            self.log(tr_msg('Choose the supply and the return sequence of every pair, or remove the row.'))
+            self.refuse([tr_msg('Choose the supply and the return sequence of every pair, or remove the row.')])
             return
         if p['scenario'] is None or not p['pairs'] or not p['submodel']:
-            self.log(tr_msg('Choose a scenario, a submodel and at least one pair.'))
+            self.refuse([tr_msg('Choose a scenario, a submodel and at least one pair.')])
             return
         if not self.saveProtected(p):
+            self.refuse([tr_msg('The protected lines could not be saved (see the log).')])
             return
         if len(p['stages']) > 1:
-            problems = stageProblems(self.main.cur, p['stages'])
+            try:
+                problems = stageProblems(self.main.cur, p['stages'])
+            except Exception:
+                QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+                self.refuse([tr_msg('The stages could not be checked: ') + traceback.format_exc().splitlines()[-1]])
+                return
             if problems:
-                for problem in problems:
-                    self.log(problemText(problem))
+                self.refuse([problemText(problem) for problem in problems])
                 return
         saveRequired(self.main.config, self.requiredEntries())
         self.process_running = True

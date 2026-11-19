@@ -125,6 +125,19 @@ class TestStages:
         problems = stageProblems(cur, stages)
         assert problems and problems[0][0] == 'lines' and str(lid) in problems[0][1]
 
+    def test_start_refused_visibly(self, staged):
+        """a refused start opens the log with the reason (it was written into the collapsed results before)"""
+        from .conftest import wait_until
+        plugin = staged.plugin
+        plugin.showCostOptimization()
+        dlg = plugin.dlg_costOptimization
+        wait_until(lambda: dlg.periods.ready, 120, 'choosing the weeks')
+        dlg.stage_table.addRow(staged.stage2, 10)
+        dlg.start()
+        assert not dlg.process_running and not dlg.box_results.isCollapsed()
+        assert dlg.results_tabs.currentWidget() is dlg.log_edit and dlg.log_edit.toPlainText().strip()
+        dlg.close()
+
     def test_report_of_the_stages(self, staged):
         from districts.utility_functions.iteration_report import Report, stageSections
         rows = [{'iteration': k, 'npv': 1000.0 - k,

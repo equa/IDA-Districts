@@ -30,4 +30,4 @@
 - [x] 6.1 tr_msg texts with German translations, de/en compiled
 - [x] 6.2 README.md and CLAUDE.md: stages of the cost optimization; the requirements of cost-optimization adjusted in that change
 - [x] 6.3 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes on 3.44 and 4.2 (with `-m "not ida"` without IDA Districts), including test_static_mypy.py and test_messages.py
-- [ ] 6.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 6.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass

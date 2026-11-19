@@ -11509,5 +11509,17 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>elastic bend</source>
             <translation>elastischer Bogen</translation>
         </message>
+        <message>
+            <source>(more in the log)</source>
+            <translation>(mehr im Protokoll)</translation>
+        </message>
+        <message>
+            <source>The protected lines could not be saved (see the log).</source>
+            <translation>Die geschützten Leitungen konnten nicht gespeichert werden (siehe Protokoll).</translation>
+        </message>
+        <message>
+            <source>The stages could not be checked: </source>
+            <translation>Die Etappen konnten nicht geprüft werden: </translation>
+        </message>
     </context>
 </TS>
