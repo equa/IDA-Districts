@@ -68,7 +68,11 @@ call returns `isError` with a hint ("start QGIS and switch on the Districts AI c
 "MCP configuration ..." (first "Copy MCP configuration") shows the Claude Code command and the Claude Desktop JSON with
 the paths of the computer and whether `claude` is installed. The command is the QGIS `python.exe`, not
 `python-qgis.bat`: MCP clients start a `.bat` only through a shell, and its output could mix into the protocol (found
-2026-11-19 on a second computer: wrong user paths, no `claude` command). *Alternative:* the official `mcp` SDK via `uv` (an install and a download for every
+2026-11-19 on a second computer: wrong user paths, no `claude` command). Claude Desktop runs its own copy of Claude
+Code without a `claude` command; its Code tab and the VS Code extension read `.mcp.json` in the folder they open, so the
+dialog writes that file into a chosen folder (keeping other entries; `.mcp.json` is in `.gitignore`, its paths belong to
+one computer), and a `claude.exe` installed in `~/.local/bin` but not on the terminal's PATH is called with its full
+path (2026-11-20, found on the second computer). *Alternative:* the official `mcp` SDK via `uv` (an install and a download for every
 user); HTTP served directly from QGIS (Claude Desktop needs an extra bridge, and the connection drops when QGIS
 restarts).
 

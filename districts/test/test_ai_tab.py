@@ -112,3 +112,10 @@ def test_permission_dialog_lists_the_data_of_each_tool():
     names = {dlg.list_tools.item(k).text().split(' – ')[0] for k in range(dlg.list_tools.count())}
     assert 'render_map' in names and 'search_help' not in names
     assert dlg.disabledTools() == ['render_map'] and dlg.check_allowed.isChecked()
+
+
+def test_no_key_text_is_the_translatable_copy():
+    from districts.ai.conversation import NO_KEY_TEXT
+    from qgis.PyQt.QtCore import QCoreApplication
+    assert QCoreApplication.translate('Messages', NO_KEY_TEXT) == chat_widget.noKeyText()
+    assert 'platform.claude.com' in NO_KEY_TEXT and 'MCP configuration' in NO_KEY_TEXT

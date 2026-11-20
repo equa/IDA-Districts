@@ -53,15 +53,23 @@ All tools SHALL be registered in one list with name, description, JSON input sch
 - **THEN** the next tool call of the running server reaches the new bridge without a change to the client configuration
 
 ### Requirement: MCP configuration
-The plugin SHALL offer "MCP configuration ...", a dialog with the paths of this computer: the command registering the server in Claude Code (`claude mcp add districts --scope user -- <python> <server.py> --state <state file>`) and the JSON entry for Claude Desktop, each with a copy button, and whether the `claude` command is found (otherwise how to install it). The command SHALL be the QGIS Python interpreter itself (`python.exe`), not the `python-qgis.bat` launcher, which MCP clients cannot reliably start.
+The plugin SHALL offer "MCP configuration ...", a dialog with the paths of this computer: the command registering the server in Claude Code (`claude mcp add districts --scope user -- <python> <server.py> --state <state file>`) and the JSON entry for the Chat tab of Claude Desktop, each with a copy button, a button writing the entry into `.mcp.json` of a chosen folder for the Code tab of Claude Desktop and the VS Code extension (other entries of the file kept, an invalid file not overwritten), and whether the `claude` command is found (installed but not on the PATH: the command calls it with its full path; not installed: Claude Desktop needs no command, and how to install it). The command SHALL be the QGIS Python interpreter itself (`python.exe`), not the `python-qgis.bat` launcher, which MCP clients cannot reliably start.
 
 #### Scenario: Configured command starts the server
 - **WHEN** the configured command and arguments are started and receive `initialize`
 - **THEN** the server answers with its name
 
 #### Scenario: Claude Code not installed
-- **WHEN** the `claude` command is not on the PATH
-- **THEN** the dialog says so and names the installation command and Claude Desktop as the alternative
+- **WHEN** no `claude` command is installed
+- **THEN** the dialog says that Claude Desktop (also its Code tab) and the VS Code extension do not need it, and names the installation command
+
+#### Scenario: Installed but not on the PATH
+- **WHEN** `claude.exe` is in `~/.local/bin` but not on the PATH
+- **THEN** the command starts with `& "<full path>" mcp add districts`
+
+#### Scenario: .mcp.json with another server
+- **WHEN** the chosen folder has a `.mcp.json` with another server
+- **THEN** the file afterwards has both servers, `districts` with the paths of this computer
 
 ### Requirement: Project permission
 The bridge SHALL run a tool only when the project allows it (OpenSpec change ai-chat-panel, `public.ai_settings`): in a project that does not allow the AI assistant every tool except `search_help` and `read_help_page` SHALL answer with an error saying so, and in an allowed project a switched-off tool SHALL answer that it is switched off.

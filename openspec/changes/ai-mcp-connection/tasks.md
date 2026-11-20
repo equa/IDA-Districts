@@ -6,6 +6,7 @@
 - [x] 1.4 `districts.py`: menu action to switch the AI connection on/off (off at start), "Copy MCP configuration" with the paths of the QGIS Python and `server.py`; QGIS 3.44 and 4.2 (enums via `compat.py`)
 
 - [x] 1.5 Dialog "MCP configuration ..." (`mcp/config_dialog.py`): Claude Code command and Claude Desktop JSON with this computer's paths, `python.exe` instead of `python-qgis.bat`, `claude` found or how to install it
+- [x] 1.6 Dialog: `.mcp.json` written into a chosen folder (Code tab of Claude Desktop, VS Code extension; other entries kept), `claude.exe` off the PATH called with its full path, `.mcp.json` in `.gitignore`
 
 ## 2. Read-only tools
 
@@ -47,4 +48,4 @@
 - [x] 7.1 tr_msg texts of the findings, the menu action and the button with German translations, de/en compiled
 - [x] 7.2 README.md (AI connection: switch on, Copy MCP configuration, client setup, tools, read-only) and CLAUDE.md (`districts/mcp/`, `model_checks.py`, `wiki_map.json`, `districts_mcp.json`)
 - [x] 7.3 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes on 3.44 and 4.2 (with `-m "not ida"` without IDA Districts), including test_static_mypy.py and test_messages.py
-- [ ] 7.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 7.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass (runs 44523300096, 44550398140 green)

@@ -13,8 +13,9 @@ FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 FALLBACK_MODELS = ('claude-opus-5-5', 'claude-sonnet-5-5')
 EFFORTS = ('low', 'medium', 'high')
 DEFAULT_EFFORT = 'medium'
-NO_KEY_TEXT = ('No API key: enter one in the Districts Modeler settings, or set ANTHROPIC_API_KEY. The Claude API is billed per use, '
-               'separately from a Claude subscription.')
+NO_KEY_TEXT = ('No API key found: enter a key from an Anthropic Console account (platform.claude.com) in the Districts Modeler settings, group AI assistant. '
+               'A Claude subscription (Pro, Max, Team) does not include the API: with a subscription, use the MCP connection instead '
+               '(Plugins → Districts Modeler → MCP configuration ...).')
 
 # fixed (no date, no project name): the prompt cache covers tools + system across questions and conversations
 SYSTEM_PROMPT = """You are the AI assistant of the Districts Modeler, a QGIS plugin for district heating and cooling \

@@ -11694,24 +11694,12 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <translation>MCP-Konfiguration</translation>
         </message>
         <message>
-            <source>Claude Code: run this command once in a terminal (PowerShell)</source>
-            <translation>Claude Code: diesen Befehl einmal in einem Terminal (PowerShell) ausführen</translation>
-        </message>
-        <message>
             <source>The claude command is found: {}</source>
             <translation>Der Befehl claude ist vorhanden: {}</translation>
         </message>
         <message>
-            <source>The claude command is not found on this computer. Install Claude Code ({}), open a new terminal, then run the command; or use Claude Desktop below.</source>
-            <translation>Der Befehl claude ist auf diesem Computer nicht vorhanden. Claude Code installieren ({}), ein neues Terminal öffnen und dann den Befehl ausführen; oder unten Claude Desktop verwenden.</translation>
-        </message>
-        <message>
             <source>Copy command</source>
             <translation>Befehl kopieren</translation>
-        </message>
-        <message>
-            <source>Claude Desktop: Settings → Developer → Edit Config, add the entry "districts" under "mcpServers", then quit Claude Desktop completely and start it again</source>
-            <translation>Claude Desktop: Einstellungen → Entwickler → Konfiguration bearbeiten, den Eintrag "districts" unter "mcpServers" einfügen, dann Claude Desktop ganz beenden und neu starten</translation>
         </message>
         <message>
             <source>Configuration file: {}</source>
@@ -11862,10 +11850,6 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <translation>Gespeicherten Schlüssel entfernen</translation>
         </message>
         <message>
-            <source>Anthropic API key of the AI assistant tab, stored encrypted in the QGIS authentication database. Without it the assistant uses ANTHROPIC_API_KEY. The Claude API is billed per use, separately from a Claude subscription.</source>
-            <translation>Anthropic-API-Schlüssel des Tabs KI-Assistent, verschlüsselt in der QGIS-Authentifizierungsdatenbank gespeichert. Ohne ihn verwendet der Assistent ANTHROPIC_API_KEY. Die Claude API wird nach Nutzung abgerechnet, getrennt von einem Claude-Abonnement.</translation>
-        </message>
-        <message>
             <source>API key</source>
             <translation>API-Schlüssel</translation>
         </message>
@@ -11876,6 +11860,54 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>sk-ant-...</source>
             <translation>sk-ant-...</translation>
+        </message>
+        <message>
+            <source>API key from an Anthropic Console account (platform.claude.com, billed per use) for the tab AI assistant, stored encrypted in the QGIS authentication database. If the field is empty, the tab uses the environment variable ANTHROPIC_API_KEY, if this computer has one. A Claude subscription (Pro, Max, Team) has no API key: with a subscription, use the MCP connection instead (Plugins → Districts Modeler → MCP configuration ...).</source>
+            <translation>API-Schlüssel eines Anthropic-Console-Kontos (platform.claude.com, nach Nutzung abgerechnet) für den Tab KI-Assistent, verschlüsselt in der QGIS-Authentifizierungsdatenbank gespeichert. Ist das Feld leer, verwendet der Tab die Umgebungsvariable ANTHROPIC_API_KEY, falls dieser Computer eine hat. Ein Claude-Abonnement (Pro, Max, Team) hat keinen API-Schlüssel: mit einem Abonnement stattdessen die MCP-Verbindung verwenden (Erweiterungen → Districts Modeler → MCP-Konfiguration ...).</translation>
+        </message>
+        <message>
+            <source>No API key found: enter a key from an Anthropic Console account (platform.claude.com) in the Districts Modeler settings, group AI assistant. A Claude subscription (Pro, Max, Team) does not include the API: with a subscription, use the MCP connection instead (Plugins → Districts Modeler → MCP configuration ...).</source>
+            <translation>Kein API-Schlüssel gefunden: einen Schlüssel eines Anthropic-Console-Kontos (platform.claude.com) in den Einstellungen des Districts Modeler, Gruppe KI-Assistent, eingeben. Ein Claude-Abonnement (Pro, Max, Team) enthält die API nicht: mit einem Abonnement stattdessen die MCP-Verbindung verwenden (Erweiterungen → Districts Modeler → MCP-Konfiguration ...).</translation>
+        </message>
+        <message>
+            <source>Claude Code (command line): run this command once in a terminal (PowerShell)</source>
+            <translation>Claude Code (Befehlszeile): diesen Befehl einmal in einem Terminal (PowerShell) ausführen</translation>
+        </message>
+        <message>
+            <source>Claude Code is installed ({}) but not on the PATH of a terminal opened before the installation: the command calls it with its full path.</source>
+            <translation>Claude Code ist installiert ({}), aber nicht im PATH eines Terminals, das vor der Installation geöffnet wurde: der Befehl ruft es mit dem vollen Pfad auf.</translation>
+        </message>
+        <message>
+            <source>The claude command is not installed. Claude Desktop (also its Code tab) and the VS Code extension do not need it: use the sections below. To install the command line: {} (then open a new terminal).</source>
+            <translation>Der Befehl claude ist nicht installiert. Claude Desktop (auch sein Code-Tab) und die VS-Code-Erweiterung brauchen ihn nicht: die Abschnitte unten verwenden. Zum Installieren der Befehlszeile: {} (danach ein neues Terminal öffnen).</translation>
+        </message>
+        <message>
+            <source>Claude Desktop, Chat tab: Settings → Developer → Edit Config, add the entry "districts" under "mcpServers", then quit Claude Desktop completely and start it again</source>
+            <translation>Claude Desktop, Chat-Tab: Einstellungen → Entwickler → Konfiguration bearbeiten, den Eintrag "districts" unter "mcpServers" einfügen, dann Claude Desktop ganz beenden und neu starten</translation>
+        </message>
+        <message>
+            <source>Claude Desktop, Code tab, and the VS Code extension: a file .mcp.json in the folder you open there</source>
+            <translation>Claude Desktop, Code-Tab, und die VS-Code-Erweiterung: eine Datei .mcp.json im Ordner, den Sie dort öffnen</translation>
+        </message>
+        <message>
+            <source>Writes the entry "districts" into .mcp.json of the chosen folder (other entries are kept). Claude Code asks once whether to use the servers of that folder. The file holds paths of this computer: do not commit it to a repository.</source>
+            <translation>Schreibt den Eintrag "districts" in .mcp.json des gewählten Ordners (andere Einträge bleiben). Claude Code fragt einmal, ob die Server dieses Ordners verwendet werden sollen. Die Datei enthält Pfade dieses Computers: nicht in ein Repository einchecken.</translation>
+        </message>
+        <message>
+            <source>Write .mcp.json ...</source>
+            <translation>.mcp.json schreiben ...</translation>
+        </message>
+        <message>
+            <source>Folder you open in Claude Code</source>
+            <translation>Ordner, den Sie in Claude Code öffnen</translation>
+        </message>
+        <message>
+            <source>.mcp.json was not written: {}</source>
+            <translation>.mcp.json wurde nicht geschrieben: {}</translation>
+        </message>
+        <message>
+            <source>Written: {}. Open this folder in Claude Code and allow the server districts.</source>
+            <translation>Geschrieben: {}. Diesen Ordner in Claude Code öffnen und den Server districts erlauben.</translation>
         </message>
     </context>
 </TS>

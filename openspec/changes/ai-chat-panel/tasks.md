@@ -28,4 +28,4 @@
 - [x] 5.1 tr_msg texts with German translations, de/en compiled
 - [x] 5.2 README.md (AI assistant tab, key, permission, costs), CLAUDE.md (`districts/ai/`, `public.ai_settings`), `.github/RUNNER_SETUP.md` (the runner installs `anthropic`)
 - [x] 5.3 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes on 3.44 and 4.2 (with `-m "not ida"` without IDA Districts), including test_static_mypy.py and test_messages.py
-- [ ] 5.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 5.4 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass (run 44550398140, attempt 3 green; attempt 1 failed on the shared PC, attempt 2 lost its runner)

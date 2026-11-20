@@ -140,18 +140,70 @@ def test_claude_code_command_with_the_paths_of_this_computer(tmp_path):
         entry['command'], entry['args'][0], state)
 
 
-@pytest.mark.parametrize('cli', [None, r'C:\Users\x\.local\bin\claude.exe'])
+CLI = r'C:\Users\x\.local\bin\claude.exe'
+
+
+@pytest.mark.parametrize('cli', [None, (CLI, True), (CLI, False)])
 def test_configuration_dialog_says_whether_claude_is_found(monkeypatch, cli):
     from districts.mcp import config_dialog
     monkeypatch.setattr(config_dialog, 'claudeCli', lambda: cli)
     dlg = config_dialog.McpConfigDialog()
     try:
-        assert dlg.edit_code.toPlainText().startswith('claude mcp add districts --scope user -- ')
+        command = dlg.edit_code.toPlainText()
         assert json.loads(dlg.edit_desktop.toPlainText())['mcpServers']['districts']['args'][0].endswith('server.py')
-        if cli:
-            assert cli in dlg.label_cli.text()
+        if cli is None:
+            assert command.startswith('claude mcp add districts --scope user -- ')
+            assert config_dialog.CLAUDE_CODE_INSTALL in dlg.label_cli.text() and 'Code tab' in dlg.label_cli.text()
+        elif cli[1]:
+            assert command.startswith('claude mcp add') and CLI in dlg.label_cli.text()
         else:
-            assert config_dialog.CLAUDE_CODE_INSTALL in dlg.label_cli.text()
+            # installed but not on the PATH of the terminal: the command calls it with its full path
+            assert command.startswith('& "{}" mcp add districts --scope user -- '.format(CLI)) and CLI in dlg.label_cli.text()
+    finally:
+        dlg.close()
+
+
+def test_claude_found_off_the_path(monkeypatch, tmp_path):
+    from districts.mcp import bridge
+    monkeypatch.setattr(bridge.shutil, 'which', lambda name: None)
+    real = bridge.os.path.expanduser
+    monkeypatch.setattr(bridge.os.path, 'expanduser', lambda p: str(tmp_path) if p == '~' else real(p))
+    assert bridge.claudeCli() is None
+    exe = tmp_path / '.local' / 'bin' / ('claude.exe' if bridge.sys.platform == 'win32' else 'claude')
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b'')
+    assert bridge.claudeCli() == (str(exe), False)
+
+
+def test_write_mcp_json_keeps_other_servers(tmp_path):
+    from districts.mcp.bridge import writeMcpJson
+    path = tmp_path / '.mcp.json'
+    path.write_text(json.dumps({'mcpServers': {'other': {'command': 'x'}}, 'note': 1}), encoding='utf-8')
+    assert writeMcpJson(str(tmp_path), state_file='s.json') == str(path)
+    data = json.loads(path.read_text(encoding='utf-8'))
+    assert data['mcpServers']['other'] == {'command': 'x'} and data['note'] == 1
+    assert data['mcpServers']['districts']['args'][1:] == ['--state', 's.json']
+    writeMcpJson(str(tmp_path), state_file='t.json')  # replaced, not added twice
+    assert json.loads(path.read_text(encoding='utf-8'))['mcpServers']['districts']['args'][-1] == 't.json'
+
+
+def test_write_mcp_json_new_and_invalid(tmp_path, monkeypatch):
+    from districts.mcp import config_dialog
+    from districts.mcp.bridge import writeMcpJson
+    with open(writeMcpJson(str(tmp_path)), encoding='utf-8') as f:
+        assert set(json.load(f)['mcpServers']) == {'districts'}
+    broken = tmp_path / 'b'
+    broken.mkdir()
+    (broken / '.mcp.json').write_text('{not json', encoding='utf-8')
+    with pytest.raises(ValueError):
+        writeMcpJson(str(broken))
+    assert (broken / '.mcp.json').read_text(encoding='utf-8') == '{not json'
+    # the dialog reports it instead of raising
+    shown = []
+    monkeypatch.setattr(config_dialog.QMessageBox, 'warning', lambda *a: shown.append(a[2]))
+    dlg = config_dialog.McpConfigDialog()
+    try:
+        assert dlg.writeTo(str(broken)) is None and shown and 'not written' in shown[0]
     finally:
         dlg.close()
 

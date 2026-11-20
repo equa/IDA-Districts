@@ -38,6 +38,13 @@ TOOL_DATA = {
 }
 
 
+def noKeyText():
+    # the same text as conversation.NO_KEY_TEXT (no Qt there), as a literal so that it is translated
+    return tr_msg('No API key found: enter a key from an Anthropic Console account (platform.claude.com) in the Districts Modeler settings, group AI assistant. '
+                  'A Claude subscription (Pro, Max, Team) does not include the API: with a subscription, use the MCP connection instead '
+                  '(Plugins → Districts Modeler → MCP configuration ...).')
+
+
 class Worker(QThread):
     """one question; the signals cross to the main thread, the worker waits on an event for tool results and answers"""
     text = pyqtSignal(str)
@@ -290,7 +297,7 @@ class AiAssistantTab(QWidget):
             return
         source, _ = access.keySource(self.plugin.config)
         if self.backend_factory is None and source is None:
-            self.addNote(tr_msg(NO_KEY_TEXT))
+            self.addNote(noKeyText())
             return
         try:
             tools = allowedTools(ToolContext(self.plugin))
@@ -313,7 +320,7 @@ class AiAssistantTab(QWidget):
         self.worker.cost.connect(lambda costs: self.showCost())
         self.worker.toolRequest.connect(self.onToolRequest)
         self.worker.askContinue.connect(self.onAskContinue)
-        self.worker.failed.connect(self.addNote)
+        self.worker.failed.connect(lambda text: self.addNote(noKeyText() if text == NO_KEY_TEXT else text))
         self.worker.finished.connect(self.onFinished)
         self.render()
         self.worker.start()

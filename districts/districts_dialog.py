@@ -121,8 +121,9 @@ def aiKeyBox(dialog, config):
     dialog.lineEdit_aiKey.setPlaceholderText(tr_msg('stored (enter a new key to replace it)') if stored else tr_msg('sk-ant-...'))
     dialog.checkBox_aiKeyRemove = QtWidgets.QCheckBox(tr_msg('Remove the stored key'))
     dialog.checkBox_aiKeyRemove.setEnabled(stored)
-    note = QtWidgets.QLabel(tr_msg('Anthropic API key of the AI assistant tab, stored encrypted in the QGIS authentication database. '
-                                   'Without it the assistant uses ANTHROPIC_API_KEY. The Claude API is billed per use, separately from a Claude subscription.'))
+    note = QtWidgets.QLabel(tr_msg('API key from an Anthropic Console account (platform.claude.com, billed per use) for the tab AI assistant, stored encrypted in the QGIS authentication database. '
+                                   'If the field is empty, the tab uses the environment variable ANTHROPIC_API_KEY, if this computer has one. '
+                                   'A Claude subscription (Pro, Max, Team) has no API key: with a subscription, use the MCP connection instead (Plugins → Districts Modeler → MCP configuration ...).'))
     note.setWordWrap(True)
     layout.addRow(tr_msg('API key'), dialog.lineEdit_aiKey)
     layout.addRow('', dialog.checkBox_aiKeyRemove)

@@ -150,15 +150,44 @@ def mcpConfiguration(server_path=None, state_file=None):
     return {'mcpServers': {'districts': {'command': mcpPython(), 'args': [server_path or serverPath(), '--state', state_file or stateFilePath()]}}}
 
 
-def claudeCodeCommand(server_path=None, state_file=None):
-    """the command registering the server in Claude Code for every folder of the user"""
+def claudeCodeCommand(server_path=None, state_file=None, cli=None):
+    """the command registering the server in Claude Code for every folder of the user; cli = (path, on_path) of
+    claudeCli(): a claude.exe that is installed but not on the PATH is called with its full path (PowerShell)"""
     entry = mcpConfiguration(server_path, state_file)['mcpServers']['districts']
-    return 'claude mcp add districts --scope user -- "{}" "{}" --state "{}"'.format(entry['command'], *[entry['args'][i] for i in (0, 2)])
+    program = '& "{}"'.format(cli[0]) if cli and not cli[1] else 'claude'
+    return '{} mcp add districts --scope user -- "{}" "{}" --state "{}"'.format(program, entry['command'], *[entry['args'][i] for i in (0, 2)])
 
 
 def claudeCli():
-    """path of the claude command (Claude Code), None when it is not on the PATH"""
-    return shutil.which('claude')
+    """(path, on_path) of the claude command (Claude Code CLI), None when it is not installed. The installer puts it
+    into ~/.local/bin, which a terminal opened before the installation does not have on its PATH. Claude Desktop runs
+    its own copy of Claude Code and has no claude command."""
+    found = shutil.which('claude')
+    if found:
+        return found, True
+    path = os.path.join(os.path.expanduser('~'), '.local', 'bin', 'claude.exe' if sys.platform == 'win32' else 'claude')
+    return (path, False) if os.path.isfile(path) else None
+
+
+def writeMcpJson(folder, server_path=None, state_file=None):
+    """the entry districts in <folder>/.mcp.json, read by Claude Code in that folder (also the Code tab of Claude Desktop
+    and the VS Code extension, which have no claude command); other servers of the file are kept, a file that is not
+    valid JSON is not overwritten (ValueError). Returns the path."""
+    path = os.path.join(folder, '.mcp.json')
+    data = {}
+    if os.path.exists(path):
+        with open(path, encoding='utf-8') as f:
+            text = f.read()
+        if text.strip():
+            data = json.loads(text)
+            if not isinstance(data, dict):
+                raise ValueError('{} is not a JSON object'.format(path))
+    servers = data.setdefault('mcpServers', {})
+    servers['districts'] = mcpConfiguration(server_path, state_file)['mcpServers']['districts']
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+        f.write('\n')
+    return path
 
 
 def claudeDesktopConfig():

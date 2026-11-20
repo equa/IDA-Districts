@@ -7,3 +7,6 @@ qgis_weather_time_profile
 
 # Node (OpenSpec CLI)
 node_modules/
+
+# MCP client configuration with the paths of one computer (written by the dialog "MCP configuration ...")
+.mcp.json

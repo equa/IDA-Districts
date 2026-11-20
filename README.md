@@ -58,8 +58,10 @@ and read the IDA Districts wiki. No tool changes data or starts a simulation.
 
 1. In QGIS, menu **Plugins → Districts Modeler → MCP configuration ...**: the dialog shows, with the paths of this
    computer, the command for Claude Code (`claude mcp add districts --scope user -- ...`, run once in a terminal; the
-   dialog says whether the `claude` command is installed) and the entry for Claude Desktop (Settings → Developer →
-   Edit Config, under `mcpServers`), each with a copy button. The server is started with the Python of QGIS
+   dialog says whether the `claude` command is installed), the entry for the Chat tab of Claude Desktop (Settings →
+   Developer → Edit Config, under `mcpServers`), each with a copy button, and "Write .mcp.json ..." for the Code tab of
+   Claude Desktop and the VS Code extension (they have no `claude` command and read `.mcp.json` in the folder they
+   open; the file holds paths of one computer and is not committed). The server is started with the Python of QGIS
    (`python.exe`), not with `python-qgis.bat`.
 2. Switch on **Plugins → Districts Modeler → AI connection (MCP)** (off at every QGIS start). The connection listens on
    127.0.0.1 only, with a token renewed at every start (`districts_mcp.json` in the QGIS profile folder).
