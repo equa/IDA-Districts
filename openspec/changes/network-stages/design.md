@@ -99,6 +99,18 @@ ID; a copy by geometry would change it for all projects.
 *Alternative:* each run version a child of its own stage version (as before); the tree hides that the versions belong
 together and a run from the result versions is refused.
 
+**D12 – Report of a run over stages traceable (2026-11-23, review of the report).** A run over stages saved no NPV
+terms (`economics` None), so its report lacked the calculation per iteration, the energy basis and the investment
+split, and claimed the terms 'were not saved'. Each stage of an iteration now carries `npvRecord` of its own inputs
+(`stagesNpv` returns them: the items new in the stage with their start year, its operating years), and the report
+shows the calculation per iteration and stage; the terms of a stage add up to its NPV. `npvTerms` takes the start year
+and the operating years and gives each investment the present value of its first purchase and of its replacements.
+Further: the equations with the start year s_k and the operating years a…b; the stage table with the investment year
+and a note on the discounting; the parts of every stage and iteration with its share; changed lines grouped by stage
+with counts; with energy-use results the pipe losses marked 'in plant energy' instead of 0 €; an investment table
+(first purchase, replacements, residual value per pipes, trench, pumps); notes on nominal rates, the model error, the
+unmet energy, the limits as constraints and the signs; the statistics of the electricity price profile.
+
 ## Risks / Trade-offs
 
 - [Run time grows with the stages] → the weeks are shared; the parallel weeks run per stage; the annual option stays

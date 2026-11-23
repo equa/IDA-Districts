@@ -36,7 +36,7 @@ from .utility_functions.files import loadModellingSettings, loadRequestedOutputs
 from .utility_functions.iteration_report import ITERATION_HEADERS, iterationTableRows, loadRunParameters, npvBars, openReport, saveRunParameters
 from .utility_functions.hydraulic_balancing import createChildVersion, getOrCreatePipeBundles, getPipeBundles
 from .utility_functions.network_economics import evaluateVersion, resultTables
-from .utility_functions.economics import npvTerms, presentValueFactor, stageYears
+from .utility_functions.economics import npvTerms, presentValueFactor, rangeFactor, stageYears
 from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
 from .utility_functions.cost_model import stagedStep
 from .utility_functions.economic_data import loadScenario
@@ -126,15 +126,22 @@ def penaltyValues(cur, config, required, submodel, tolerance, unmet_tolerance):
     return customerValues(data, hours, w, required, templates, config, submodel, tolerance, unmet_tolerance)
 
 
-def npvRecord(evaluation, yearly_penalty, penalty_npv):
-    """the terms of the NPV of an iteration for its report, saved at run time: the scenario may change afterwards"""
+def npvRecord(evaluation, yearly_penalty, penalty_npv, stage=None):
+    """the terms of the NPV of an iteration for its report, saved at run time: the scenario may change afterwards.
+    stage: one of stagesNpv's 'inputs' (a run over stages): its new items from its start year, its operating years."""
     scenario = evaluation['scenario']
     sc = scenario['scenario']
-    items = [dict(item, kind=key[0]) for key, item in evaluation['items'].items()]
-    items.append(dict(evaluation['pump_item'], kind='pumps', power_kw=evaluation['pump_kw']))
-    years = range(1, int(sc.get('period_a') or 0) + 1)
+    period = int(sc.get('period_a') or 0)
+    if stage is None:
+        items = [dict(item, kind=key[0]) for key, item in evaluation['items'].items()]
+        items.append(dict(evaluation['pump_item'], kind='pumps', power_kw=evaluation['pump_kw']))
+        operating = (1, period)
+    else:
+        items, operating = stage['investments'], tuple(stage['operating'])
+    years = range(operating[0], operating[1] + 1)
     factors = {group: presentValueFactor(scenario, group, years) for group in ('electricity', 'heat', 'cold', 'maintenance', 'fuel', 'purchased_heat')}
-    factors['penalties'] = penaltyNpv(1.0, float(sc.get('interest_pct') or 0), len(years))
+    factors['penalties'] = (rangeFactor(float(sc.get('interest_pct') or 0), *operating) if stage is not None
+                            else penaltyNpv(1.0, float(sc.get('interest_pct') or 0), len(years)))
     basis = evaluation.get('energy_basis')
     energy_basis = None
     if basis:
@@ -143,9 +150,9 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv):
         energy_basis.update({'kwh': basis['costs']['kwh'], 'info': basis['costs']['info'], 'no_price': basis['costs']['no_price'],
                              'delivered': basis['costs'].get('delivered', {}),
                              'features': basis['costs']['features'], 'marginal_hours': {str(k): v for k, v in basis['marginal_hours'].items()}})
-    return {'terms': npvTerms(scenario, items, evaluation.get('npv_yearly', evaluation['costs']), evaluation.get('by_carrier')),
-            'energy': evaluation['energy'], 'yearly_penalty': yearly_penalty, 'energy_basis': energy_basis,
-            'penalties': penalty_npv, 'factors': factors, 'interest_pct': float(sc.get('interest_pct') or 0), 'period_a': len(years),
+    return {'terms': npvTerms(scenario, items, evaluation.get('npv_yearly', evaluation['costs']), evaluation.get('by_carrier'), operating),
+            'energy': evaluation['energy'], 'yearly_penalty': yearly_penalty, 'energy_basis': energy_basis, 'operating': list(operating),
+            'penalties': penalty_npv, 'factors': factors, 'interest_pct': float(sc.get('interest_pct') or 0), 'period_a': period,
             'residual_value': bool(sc.get('residual_value')), 'el_price': float((scenario.get('groups', {}).get('electricity') or {}).get('start_price') or 0),
             'modes': evaluation.get('modes') or {}}
 
@@ -1055,8 +1062,10 @@ class CostOptimizationRun(QObject):
                # the line IDs differ between the stages (pipe laying of the extension): the pipes of each stage
                'stage_states': {version: {str(lid): bid for lid, bid in state.items()} for version, state in states.items()},
                'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split'],
-                           'climate': (self.stage_climates.get(s['version']) or ('',))[0]}
-                          for s, r in zip(self.stageList(), result['stages'])]}
+                           'climate': (self.stage_climates.get(s['version']) or ('',))[0],
+                           # the terms of the stage for the report, as npvRecord of a single version
+                           'economics': npvRecord(evaluation, penalty, r['split']['penalties'], stage=inputs)}
+                          for s, r, evaluation, penalty, inputs in zip(self.stageList(), result['stages'], evaluations, yearly, result['inputs'])]}
         if previous:
             row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if new_deficits]
             self.no_smaller.update(row['penalty_reverted'])

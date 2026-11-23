@@ -60,3 +60,11 @@
 - [x] 10.3 `stageLinks` after the run: lines with an ID of another or longer line, lines under another ID; log, run parameters, report
 - [x] 10.4 Tests: triggers off/on with an update kept in stage 1, the link, the split and the renumbered line (e2e); the chain and the triggers after a run (ida)
 - [x] 10.5 CI (run 45165190643 green)
+
+## 11. Report of a run over stages traceable (D12)
+
+- [x] 11.1 NPV terms per stage saved (`npvRecord` with the stage inputs of `stagesNpv`); `npvTerms` with start year, operating years, first purchase and replacements
+- [x] 11.2 Report: calculation, energy basis and factors per stage; investment table; parts per stage and iteration; changed lines per stage; losses in plant energy
+- [x] 11.3 Report: equations with s_k and a…b, investment year, notes (nominal, model error, unmet energy, limits, signs), electricity profile
+- [x] 11.4 Tests: the terms of each stage add up to its NPV, pumps from the stage start with replacement and residual value; the report sections of a staged run
+- [ ] 11.5 CI

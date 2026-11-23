@@ -92,6 +92,57 @@ def test_npv_of_two_stage_versions():
     assert result['npv'] == pytest.approx(sum(result['split'].values()))
 
 
+def test_report_terms_of_each_stage_add_up_to_its_npv():
+    """the terms saved per stage for the report (npvRecord with stagesNpv's inputs): their sum and the penalty are the
+    stage's NPV; the first purchase in the stage's start year, replacements and residual value of its pumps"""
+    from districts.cost_optimization import npvRecord
+    from districts.utility_functions.network_stages import stagesNpv
+    sc = scenario(residual=True)
+    evaluations = [dict(evaluation(100000.0, 10.0, 1000.0), scenario=sc, energy={}), dict(evaluation(150000.0, 15.0, 1500.0), scenario=sc, energy={})]
+    for e in evaluations:
+        e['pump_item']['lifetime'] = 20
+    stages = [{'version': 'base1', 'start': 0}, {'version': 'base1_s2', 'start': 10}]
+    result = stagesNpv(sc, stages, evaluations, [0.0, 200.0])
+    for part, e, penalty, inputs in zip(result['stages'], evaluations, [0.0, 200.0], result['inputs']):
+        record = npvRecord(e, penalty, part['split']['penalties'], stage=inputs)
+        assert sum(t['value'] for t in record['terms']) + record['penalties'] == pytest.approx(part['npv'])
+        assert record['factors']['penalties'] == pytest.approx(rangeFactor(3.0, *inputs['operating']))
+    stage2 = npvRecord(evaluations[1], 200.0, result['stages'][1]['split']['penalties'], stage=result['inputs'][1])
+    pumps = next(t for t in stage2['terms'] if t['group'] == 'investment' and t['kind'] == 'pumps')
+    # 500 € of pumps bought in year 10, replaced in 30; 10 of 20 years left at year 40
+    assert pumps['years'] == [10, 30] and pumps['power_kw'] == pytest.approx(5.0)
+    assert pumps['first_value'] == pytest.approx(500 / 1.03 ** 10) and pumps['replacement_value'] == pytest.approx(500 / 1.03 ** 30)
+    residual = next(t for t in stage2['terms'] if t['group'] == 'residual' and t['kind'] == 'pumps')
+    assert residual['value'] == pytest.approx(-500 * 10 / 20 / 1.03 ** 40)
+
+
+def test_report_of_a_staged_run_shows_the_terms_per_stage():
+    """the report of a run over stages: the calculation per iteration and stage (not 'not saved'), the investment table
+    with first purchase, replacements and residual value, the parts per stage and the stage timing"""
+    from districts.cost_optimization import npvRecord
+    from districts.utility_functions.iteration_report import Report, investmentSections, npvCalculation, stageSections
+    from districts.utility_functions.network_stages import stagesNpv
+    sc = scenario(residual=True)
+    stages = [{'version': 'base1', 'start': 0}, {'version': 'base1_s2', 'start': 10}]
+    rows = []
+    for k, cost in enumerate((150000.0, 140000.0)):
+        evaluations = [dict(evaluation(100000.0, 10.0, 1000.0), scenario=sc, energy={}), dict(evaluation(cost, 15.0, 1500.0), scenario=sc, energy={})]
+        result = stagesNpv(sc, stages, evaluations, [0.0, 200.0])
+        rows.append({'iteration': k, 'npv': result['npv'], 'split': result['split'], 'economics': None,
+                     'stages': [{'version': s['version'], 'start': s['start'], 'npv': part['npv'], 'split': part['split'], 'climate': '',
+                                 'economics': npvRecord(e, p, part['split']['penalties'], stage=inputs)}
+                                for s, part, e, p, inputs in zip(stages, result['stages'], evaluations, [0.0, 200.0], result['inputs'])]})
+    report = Report('t', 's')
+    npvCalculation(report, rows)
+    investmentSections(report, rows)
+    stageSections(report, rows, {'stages': stages})
+    page = report.html()
+    assert 'were not saved' not in page
+    assert 'Iteration 1 / stage 2' in page and 'Investment, replacements and residual value' in page
+    assert 'Net present value per stage and part [€]' in page and 'Investment year [a]' in page
+    assert 'operating years' in page and '11…40' in page
+
+
 def test_lines_new_in_stage_2_are_their_own_groups():
     """a stage 2 whose lines lie on no stage-1 line: each is its own group, its investment from year 10"""
     from districts.utility_functions.cost_model import stagedStep

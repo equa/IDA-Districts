@@ -71,3 +71,10 @@ A run over stages that creates new versions SHALL make each stage's new version 
 #### Scenario: A split line
 - **WHEN** the run has ended and a line of base1_costopt is split in ext_costopt
 - **THEN** the triggers of the loaded version are on again and the log names the segment with the old ID and the one with a new ID
+
+### Requirement: Traceable report of a run over stages
+The report of a run over stages SHALL show the terms of the net present value per iteration and stage, adding up to the stage's net present value, with the investment year and operating years of each stage, and the investment split into first purchase, replacements and residual value.
+
+#### Scenario: Pumps of stage 2
+- **WHEN** stage 2 starts in year 10 and adds pumps with a lifetime of 20 years in a period of 40 years
+- **THEN** the report shows their first purchase in year 10, a replacement in year 30 and a residual value of half their cost, discounted

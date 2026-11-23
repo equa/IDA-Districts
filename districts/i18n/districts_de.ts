@@ -11961,5 +11961,149 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>A later change of a line in the parent version is copied into the child by ID: into the first column's lines although they are other or shorter lines, not into the second column's.</source>
             <translation>Eine spätere Änderung einer Leitung in der Elternversion wird per ID in die Kindversion kopiert: in die Leitungen der ersten Spalte, obwohl es andere oder kürzere Leitungen sind, nicht in die der zweiten Spalte.</translation>
         </message>
+        <message>
+            <source>NPV model: the cost model's forecast, made in the iteration before, of the NPV after its step; model error = (NPV model − NPV simulated) / |NPV simulated|. The step counts stand in the row of the iteration the step leads to.</source>
+            <translation>Barwert Modell: die Prognose des Kostenmodells, in der Iteration davor erstellt, für den Barwert nach seinem Schritt; Modellfehler = (Barwert Modell − Barwert simuliert) / |Barwert simuliert|. Die Zahlen eines Schritts stehen in der Zeile der Iteration, zu der er führt.</translation>
+        </message>
+        <message>
+            <source>A stage starting in year s invests in year s (discounted with 1/(1+i)^s) and operates from year s+1 (operating costs of year t discounted with 1/(1+i)^t) until the start of the next stage.</source>
+            <translation>Eine Etappe mit Startjahr s investiert im Jahr s (abgezinst mit 1/(1+i)^s) und ist ab dem Jahr s+1 in Betrieb (Betriebskosten des Jahres t abgezinst mit 1/(1+i)^t) bis zum Start der nächsten Etappe.</translation>
+        </message>
+        <message>
+            <source>Electricity price profile</source>
+            <translation>Strompreisprofil</translation>
+        </message>
+        <message>
+            <source>Electricity price: mean / minimum / maximum [€/kWh]</source>
+            <translation>Strompreis: Mittel / Minimum / Maximum [€/kWh]</translation>
+        </message>
+        <message>
+            <source>Energy</source>
+            <translation>Energie</translation>
+        </message>
+        <message>
+            <source>First purchase</source>
+            <translation>Erstbeschaffung</translation>
+        </message>
+        <message>
+            <source>Investment with the replacements (present values); energy: pump energy and the energy of the plants and customers, or the priced pipe losses.</source>
+            <translation>Investition mit den Ersatzinvestitionen (Barwerte); Energie: Pumpenenergie und die Energie der Energiezentralen und Abnehmer, oder die bewerteten Rohrverluste.</translation>
+        </message>
+        <message>
+            <source>Investment year [a]</source>
+            <translation>Investitionsjahr [a]</translation>
+        </message>
+        <message>
+            <source>Investment</source>
+            <translation>Investition</translation>
+        </message>
+        <message>
+            <source>Investment, replacements and residual value [€]</source>
+            <translation>Investition, Ersatzinvestitionen und Restwert [€]</translation>
+        </message>
+        <message>
+            <source>Mean of the file</source>
+            <translation>Mittelwert der Datei</translation>
+        </message>
+        <message>
+            <source>Minimum / maximum of the file</source>
+            <translation>Minimum / Maximum der Datei</translation>
+        </message>
+        <message>
+            <source>Net present value per stage and part [€]</source>
+            <translation>Barwert pro Etappe und Anteil [€]</translation>
+        </message>
+        <message>
+            <source>Pipes and trench of all lines in prices of year 0, not discounted; the pumps, the replacements and the residual value follow as present values in the next table.</source>
+            <translation>Rohre und Graben aller Leitungen in Preisen des Jahres 0, nicht abgezinst; die Pumpen, die Ersatzinvestitionen und der Restwert folgen als Barwerte in der nächsten Tabelle.</translation>
+        </message>
+        <message>
+            <source>Present values: the first purchase in year 0 or in the start year of the stage the item is new in, the replacements at the end of each lifetime, the residual value at the end of the period (negative). Investment + residual value of the NPV parts.</source>
+            <translation>Barwerte: die Erstbeschaffung im Jahr 0 oder im Startjahr der Etappe, in der der Posten neu ist, die Ersatzinvestitionen am Ende jeder Lebensdauer, der Restwert am Ende des Betrachtungszeitraums (negativ). Investition + Restwert der Barwertanteile.</translation>
+        </message>
+        <message>
+            <source>Profile file</source>
+            <translation>Profildatei</translation>
+        </message>
+        <message>
+            <source>Replacements</source>
+            <translation>Ersatzinvestitionen</translation>
+        </message>
+        <message>
+            <source>Scaled: minimum / maximum (mean 1)</source>
+            <translation>Skaliert: Minimum / Maximum (Mittel 1)</translation>
+        </message>
+        <message>
+            <source>Share [%]</source>
+            <translation>Anteil [%]</translation>
+        </message>
+        <message>
+            <source>The profile is scaled to mean 1, so the mean price of a year is the start price; an hour costs the start price times its profile value.</source>
+            <translation>Das Profil ist auf den Mittelwert 1 skaliert, der mittlere Preis eines Jahres ist also der Startpreis; eine Stunde kostet den Startpreis mal ihren Profilwert.</translation>
+        </message>
+        <message>
+            <source>Total: {} changes, {} larger, {} smaller</source>
+            <translation>Total: {} Änderungen, {} grösser, {} kleiner</translation>
+        </message>
+        <message>
+            <source>With energy-use results the energy the plants buy is in the NPV; it covers the pipe losses, which are therefore not priced on their own (their value for information: Energy use and costs of year 0).</source>
+            <translation>Mit Ergebnissen zum Energiebezug ist die von den Energiezentralen bezogene Energie im Barwert; sie deckt die Rohrverluste, die deshalb nicht separat bewertet werden (ihr Wert zur Information: Energiebezug und Kosten des Jahres 0).</translation>
+        </message>
+        <message>
+            <source>in plant energy</source>
+            <translation>in Energie der Zentralen</translation>
+        </message>
+        <message>
+            <source>not readable or not 8760/8784 values</source>
+            <translation>nicht lesbar oder nicht 8760/8784 Werte</translation>
+        </message>
+        <message>
+            <source>operating years</source>
+            <translation>Betriebsjahre</translation>
+        </message>
+        <message>
+            <source>{} larger, {} smaller</source>
+            <translation>{} grösser, {} kleiner</translation>
+        </message>
+        <message>
+            <source>Investment of item k, bought in year s_k and replaced at the end of its lifetime</source>
+            <translation>Investition des Postens k, im Jahr s_k gekauft und am Ende seiner Lebensdauer ersetzt</translation>
+        </message>
+        <message>
+            <source>Comfort violations: present value of the yearly penalty (for a = 1, b = N equal to ((1+i)^N − 1) / (i · (1+i)^N))</source>
+            <translation>Komfortverletzungen: Barwert der jährlichen Strafkosten (für a = 1, b = N gleich ((1+i)^N − 1) / (i · (1+i)^N))</translation>
+        </message>
+        <message>
+            <source>Unmet energy of a source-file customer per year: the power deficit of the steps where it exceeds the tolerance share of the required power</source>
+            <translation>Nicht gedeckte Energie eines Abnehmers mit Quelldatei pro Jahr: das Leistungsdefizit der Zeitschritte, in denen es den Toleranzanteil der geforderten Leistung übersteigt</translation>
+        </message>
+        <message>
+            <source>degree hours of the load models beyond the tolerance [K·h per year] and unmet energy of the source-file customers [kWh per year]</source>
+            <translation>Gradstunden der Lastmodelle über die Toleranz hinaus [K·h pro Jahr] und nicht gedeckte Energie der Abnehmer mit Quelldatei [kWh pro Jahr]</translation>
+        </message>
+        <message>
+            <source>year the item is bought first: 0, or the start year of the stage it is new in</source>
+            <translation>Jahr der Erstbeschaffung des Postens: 0, oder das Startjahr der Etappe, in der er neu ist</translation>
+        </message>
+        <message>
+            <source>operating years: 1…N, or those of the stage (its start year + 1 until the start of the next stage)</source>
+            <translation>Betriebsjahre: 1…N, oder die der Etappe (ihr Startjahr + 1 bis zum Start der nächsten Etappe)</translation>
+        </message>
+        <message>
+            <source>required power of the source file and power supplied by the simulation [W]</source>
+            <translation>geforderte Leistung der Quelldatei und von der Simulation gelieferte Leistung [W]</translation>
+        </message>
+        <message>
+            <source>Interest rate and escalation are nominal: the price of year t is the start price times the price level of year t, discounted with the nominal interest rate.</source>
+            <translation>Zinssatz und Preissteigerung sind nominal: der Preis des Jahres t ist der Startpreis mal das Preisniveau des Jahres t, abgezinst mit dem nominalen Zinssatz.</translation>
+        </message>
+        <message>
+            <source>The limits of the specific pressure loss and the velocity are constraints, not costs: a smaller pipe is rejected when the line's peak flow of all simulated steps (heating and cooling, every representative week and every stage) exceeds one of them. The NPV decides among the allowed pipes.</source>
+            <translation>Die Grenzwerte des spezifischen Druckverlusts und der Geschwindigkeit sind Nebenbedingungen, keine Kosten: ein kleineres Rohr wird verworfen, wenn der Spitzendurchfluss der Leitung über alle simulierten Zeitschritte (Heizen und Kühlen, jede repräsentative Woche und jede Etappe) einen davon überschreitet. Unter den zulässigen Rohren entscheidet der Barwert.</translation>
+        </message>
+        <message>
+            <source>Example of the signs: a cooling pipe at 8 °C in ground at 12 °C takes heat up (Q &lt; 0), which costs; a heating pipe at 60 °C gives heat off (Q &gt; 0), which costs; a cooling pipe giving heat off (Q &gt; 0) lowers the costs (negative value).</source>
+            <translation>Beispiel der Vorzeichen: ein Kälterohr mit 8 °C im Erdreich mit 12 °C nimmt Wärme auf (Q &lt; 0), das kostet; ein Wärmerohr mit 60 °C gibt Wärme ab (Q &gt; 0), das kostet; ein Kälterohr, das Wärme abgibt (Q &gt; 0), senkt die Kosten (negativer Wert).</translation>
+        </message>
     </context>
 </TS>

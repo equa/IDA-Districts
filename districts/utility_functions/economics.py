@@ -134,23 +134,31 @@ def presentValueFactor(scenario, group, years):
     return sum(level(scenario, group, int(t)) / (1 + i) ** t for t in years)
 
 
-def npvTerms(scenario, investments, yearly, by_carrier=None):
+def npvTerms(scenario, investments, yearly, by_carrier=None, operating=None):
     """the parts of netPresentValue as terms base x factor = value, for the report: [{'group', 'kind', 'name', 'base',
-    'factor', 'value', ...}]; their sum per group is the split of netPresentValue"""
+    'factor', 'value', ...}]; their sum per group is the split of netPresentValue with the same arguments (an item's
+    'start', the operating years). An investment term carries the present value of its first purchase and of its
+    replacements."""
     sc = scenario['scenario']
     i = float(sc.get('interest_pct') or 0) / 100
     period = int(sc.get('period_a') or 0)
-    years = range(1, period + 1)
+    op_first, op_last = operating or (1, period)
+    years = range(op_first, op_last + 1)
     terms = []
     for item in investments:
         cost, lifetime = float(item.get('cost') or 0), float(item.get('lifetime') or 0)
+        start = int(item.get('start') or 0)
+        if start >= period:
+            continue
         info = {k: item[k] for k in ('kind', 'name', 'length', 'power_kw') if k in item}
-        buys = [int(t) for t in purchaseYears(lifetime, period)]
-        terms.append(dict(info, group='investment', base=cost, factor=presentValueFactor(scenario, 'investment', buys), years=buys, lifetime=lifetime))
+        buys = [start + int(t) for t in purchaseYears(lifetime, period - start)]
+        first = cost * presentValueFactor(scenario, 'investment', buys[:1])
+        terms.append(dict(info, group='investment', base=cost, factor=presentValueFactor(scenario, 'investment', buys), years=buys, lifetime=lifetime,
+                          start=start, first_value=first, replacement_value=cost * presentValueFactor(scenario, 'investment', buys[1:])))
         maintenance_pct = float(item.get('maintenance_pct') or 0)
         if maintenance_pct:
-            terms.append(dict(info, group='maintenance', base=cost * maintenance_pct / 100, factor=presentValueFactor(scenario, 'maintenance', years),
-                              maintenance_pct=maintenance_pct))
+            terms.append(dict(info, group='maintenance', base=cost * maintenance_pct / 100,
+                              factor=presentValueFactor(scenario, 'maintenance', range(start + 1, period + 1)), maintenance_pct=maintenance_pct))
         if sc.get('residual_value') and lifetime > 0:
             remaining = (buys[-1] + lifetime - period) / lifetime
             if remaining > 0:

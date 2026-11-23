@@ -159,14 +159,15 @@ def newItems(items, previous):
     for key, item in items.items():
         cost = float(item.get('cost') or 0) - float((previous or {}).get(key, {}).get('cost') or 0)
         if cost > 1e-6:
-            result.append(dict(item, cost=cost))
+            result.append(dict(item, cost=cost, kind=key[0]))
     return result
 
 
 def stagesNpv(scenario, stages, evaluations, yearly_penalties):
     """NPV of the stages from the evaluation of each stage version (network-stages D3): the items new in a stage from its
     start year, the pump increase of a stage at its start, the operating costs and the yearly penalty in its years.
-    Returns stagedNetPresentValue's dict with the part 'penalties' added to the split and to each stage."""
+    Returns stagedNetPresentValue's dict with the part 'penalties' added to the split and to each stage, and 'inputs':
+    per stage its investments (with 'start'), yearly costs and operating years."""
     sc = scenario['scenario']
     period = int(sc.get('period_a') or 0)
     interest = float(sc.get('interest_pct') or 0)
@@ -178,12 +179,15 @@ def stagesNpv(scenario, stages, evaluations, yearly_penalties):
         pump = evaluation['pump_item']
         if evaluation['pump_kw'] > peak_kw:
             share = (evaluation['pump_kw'] - peak_kw) / evaluation['pump_kw'] if evaluation['pump_kw'] else 0.0
-            investments.append(dict(pump, cost=float(pump.get('cost') or 0) * share))
+            investments.append(dict(pump, cost=float(pump.get('cost') or 0) * share, kind='pumps', power_kw=evaluation['pump_kw'] - peak_kw))
             peak_kw = evaluation['pump_kw']
         staged.append({'start': int(stage['start']), 'investments': investments, 'yearly': evaluation.get('npv_yearly', evaluation['costs']),
                        'by_carrier': evaluation.get('by_carrier')})
     result = stagedNetPresentValue(scenario, staged)
     ranges = stageYears([int(s['start']) for s in stages], period)
+    # the report's terms of each stage (npvRecord) from the same inputs
+    result['inputs'] = [dict(stage, investments=[dict(item, start=stage['start']) for item in stage['investments']], operating=years)
+                        for stage, years in zip(staged, ranges)]
     penalties = [penalty * rangeFactor(interest, first, last) for penalty, (first, last) in zip(yearly_penalties, ranges)]
     result['split']['penalties'] = sum(penalties)
     for part, value in zip(result['stages'], penalties):
