@@ -52,3 +52,11 @@
 - [x] 9.2 Table of the iterations (dialog and report): the step counts in the row of the iteration they lead to, the outcome in the last row
 - [x] 9.3 Tests: the map of each stage with a split line (e2e), the table rows (unit)
 - [ ] 9.4 CI
+
+## 10. The versions of a run in one chain (D11)
+
+- [x] 10.1 `linkStages`: each run version a child of the previous stage's run version
+- [x] 10.2 `versionTriggers`: the triggers of the loaded version off during a run over stages, on again at its end, stop or failure
+- [x] 10.3 `stageLinks` after the run: lines with an ID of another or longer line, lines under another ID; log, run parameters, report
+- [x] 10.4 Tests: triggers off/on with an update kept in stage 1, the link, the split and the renumbered line (e2e); the chain and the triggers after a run (ida)
+- [ ] 10.5 CI

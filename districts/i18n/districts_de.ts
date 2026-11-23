@@ -11925,5 +11925,41 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>stage {}</source>
             <translation>Etappe {}</translation>
         </message>
+        <message>
+            <source>Version tree: {}</source>
+            <translation>Versionsbaum: {}</translation>
+        </message>
+        <message>
+            <source>{}: {} lines have the ID of another or a longer line of {} (split); a change of that line in {} is copied into them by ID: {}</source>
+            <translation>{}: {} Leitungen haben die ID einer anderen oder längeren Leitung von {} (geteilt); eine Änderung dieser Leitung in {} wird per ID in sie kopiert: {}</translation>
+        </message>
+        <message>
+            <source>{}: {} lines lie on a line of {} under another ID; a change of that line in {} does not reach them: {}</source>
+            <translation>{}: {} Leitungen liegen unter einer anderen ID auf einer Leitung von {}; eine Änderung dieser Leitung in {} erreicht sie nicht: {}</translation>
+        </message>
+        <message>
+            <source>The version handling of {} could not be switched on again; load the version again.</source>
+            <translation>Die Versionsverwaltung von {} konnte nicht wieder eingeschaltet werden; die Version neu laden.</translation>
+        </message>
+        <message>
+            <source>Lines the version handling copies by ID</source>
+            <translation>Leitungen, die die Versionsverwaltung per ID kopiert</translation>
+        </message>
+        <message>
+            <source>Parent</source>
+            <translation>Elternversion</translation>
+        </message>
+        <message>
+            <source>ID of another or a longer line (split)</source>
+            <translation>ID einer anderen oder längeren Leitung (geteilt)</translation>
+        </message>
+        <message>
+            <source>On a line of the parent under another ID</source>
+            <translation>Auf einer Leitung der Elternversion unter anderer ID</translation>
+        </message>
+        <message>
+            <source>A later change of a line in the parent version is copied into the child by ID: into the first column's lines although they are other or shorter lines, not into the second column's.</source>
+            <translation>Eine spätere Änderung einer Leitung in der Elternversion wird per ID in die Kindversion kopiert: in die Leitungen der ersten Spalte, obwohl es andere oder kürzere Leitungen sind, nicht in die der zweiten Spalte.</translation>
+        </message>
     </context>
 </TS>

@@ -885,6 +885,13 @@ def stageSections(report, rows, parms):
                    '<p class="note">{}</p>'.format(esc(tr_msg('Maps, pipe and trench lengths: the last stage, which holds every line.'))) +
                    '<p class="note">{}</p>'.format(esc(tr_msg('The pipes of a line are sized for all stages it exists in; the operating costs of a '
                                                               'stage count in its years, an investment from the start of the stage it first appears in.'))), 3)
+    links = parms.get('stage_links') or []
+    if any(link['other'] or link['not_reached'] for link in links):
+        link_rows = [[link['after'], link['before'], ', '.join(str(i) for i in link['other']), ', '.join(str(i) for i in link['not_reached'])] for link in links]
+        report.section(tr_msg('Lines the version handling copies by ID'), table(
+            [tr_msg('Version'), tr_msg('Parent'), tr_msg('ID of another or a longer line (split)'), tr_msg('On a line of the parent under another ID')], link_rows) +
+            '<p class="note">{}</p>'.format(esc(tr_msg('A later change of a line in the parent version is copied into the child by ID: into the first '
+                                                       'column\'s lines although they are other or shorter lines, not into the second column\'s.'))), 3)
     npv_rows = [[r['iteration']] + [round(s['npv']) for s in r['stages']] + [round(r['npv'])] for r in staged]
     report.section(tr_msg('Net present value per stage [€]'), table(
         [tr_msg('Iteration')] + [tr_msg('Stage {}').format(k) for k in range(1, len(first) + 1)] + [tr_msg('Total')], npv_rows), 3)

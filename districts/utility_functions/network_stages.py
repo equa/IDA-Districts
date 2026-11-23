@@ -100,6 +100,41 @@ def writeBundles(cur, version, bundles):
             cur.execute('ALTER TABLE "{}".lines ENABLE TRIGGER column_update_trigger;'.format(version))  # nosec B608
 
 
+VERSION_TRIGGERS = ('my_insert_trigger', 'my_delete_trigger', 'my_truncate_trigger', 'column_update_trigger')
+
+
+def versionTriggers(cur, version, enable):
+    """switches the version handling triggers of every table of a version (only the loaded version has them); returns
+    the number of triggers switched. The run over stages writes into each stage itself (network-stages D11)."""
+    cur.execute("""SELECT c.relname AS tab, t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = %s AND t.tgname = ANY(%s) AND (t.tgenabled = 'D') = %s;""", (version, list(VERSION_TRIGGERS), bool(enable)))
+    rows = cur.fetchall()
+    for row in rows:
+        # one statement each: the event trigger restrict_column_alterations fails on a query with several
+        cur.execute('ALTER TABLE "{}"."{}" {} TRIGGER {};'.format(version, row['tab'], 'ENABLE' if enable else 'DISABLE', row['tgname']))  # nosec B608
+    return len(rows)
+
+
+def linkStages(cur, versions):
+    """each stage version a child of the one before in public.versionhandling (network-stages D11): the versions of a
+    run belong together; each was copied from its own stage version, so it holds that stage's network"""
+    for before, after in zip(versions, versions[1:]):
+        cur.execute("""UPDATE public.versionhandling SET id_base = (SELECT id FROM public.versionhandling WHERE name = %s)
+            WHERE name = %s;""", (before, after))
+
+
+def stageLinks(cur, before, after):
+    """lines of 'after' that the version handling, which copies a change of 'before' by ID, would treat wrongly:
+    {'other': [IDs of a line of 'before' on another or a shorter line (split)], 'not_reached': [lines lying on a line of
+    'before' under another ID]}"""
+    matches = lineMatches(cur, before, after)
+    cur.execute("""SELECT n.id FROM "{a}".lines n JOIN "{b}".lines p ON p.id = n.id
+        WHERE ST_HausdorffDistance(n.geom, p.geom) > %s ORDER BY n.id;""".format(a=after, b=before), (MATCH_TOLERANCE_M,))  # nosec B608
+    other = [row['id'] for row in cur.fetchall()]
+    return {'other': other, 'not_reached': sorted(lid for lid, parent in matches.items() if parent != lid)}
+
+
 def inheritPipes(cur, versions, roots):
     """the lines of later stages get the pipe bundle of their root (the pipe laying may have given them others);
     returns the number of lines changed"""

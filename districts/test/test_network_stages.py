@@ -244,6 +244,46 @@ class TestStages:
             removeCostLayers()
         assert QgsProject.instance().layerTreeRoot().findGroup('Cost optimization') is None
 
+    def test_version_handling_between_stages(self, staged):
+        """network-stages D11: the triggers of the loaded stage off and on again; the stage versions linked into one
+        chain; the lines the version handling would copy wrongly by ID (the split and the renumbered line)"""
+        from districts.utility_functions.db import getParentVersion
+        from districts.utility_functions.hydraulic_balancing import createChildVersion
+        from districts.utility_functions.network_stages import VERSION_TRIGGERS, isDescendant, linkStages, stageLinks, versionTriggers
+        plugin = staged.plugin
+        cur = plugin.cur
+        s1, s2 = staged.stage1, staged.stage2
+        split_line, new_id = staged.split
+
+        def disabled():
+            cur.execute("""SELECT count(*) FILTER (WHERE t.tgenabled = 'D') AS off, count(*) AS n FROM pg_trigger t
+                JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = %s AND t.tgname = ANY(%s);""", (s1, list(VERSION_TRIGGERS)))
+            row = cur.fetchone()
+            return row['off'], row['n']
+        cur.execute('SELECT p.id FROM "{a}".lines p JOIN "{b}".lines n ON n.id = p.id AND ST_Equals(n.geom, p.geom) ORDER BY p.id LIMIT 1;'.format(a=s1, b=s2))  # nosec B608
+        same = cur.fetchone()['id']
+        cur.execute('SELECT id FROM public.pipe_bundle_types ORDER BY id DESC LIMIT 1;')
+        bid = cur.fetchone()['id']
+        cur.execute('SELECT pipe_bundle_type_id AS bid FROM "{}".lines WHERE id = %s;'.format(s2), (same,))  # nosec B608
+        before = cur.fetchone()['bid']
+        assert versionTriggers(cur, s1, False) > 0 and disabled()[0] == disabled()[1]
+        try:
+            cur.execute('UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;'.format(s1), (bid, same))  # nosec B608
+            cur.execute('SELECT pipe_bundle_type_id AS bid FROM "{}".lines WHERE id = %s;'.format(s2), (same,))  # nosec B608
+            assert cur.fetchone()['bid'] == before  # stays in stage 1
+        finally:
+            versionTriggers(cur, s1, True)
+        assert disabled()[0] == 0 and versionTriggers(cur, s1, True) == 0
+        s3 = s1 + '_s3'
+        createChildVersion(cur, plugin.config, plugin.plugin_dir, s3, 'stage 3')
+        assert getParentVersion(cur, s3) == s1
+        linkStages(cur, [s2, s3])
+        assert getParentVersion(cur, s3) == s2 and isDescendant(cur, s3, s1)
+        links = stageLinks(cur, s1, s2)
+        assert split_line in links['other'] and same not in links['other']
+        assert {new_id, new_id + 1} <= set(links['not_reached']) and split_line not in links['not_reached']
+
     def test_input_data_of_all_stages(self, staged):
         """the input check of the cost optimization over both stage versions: a mapping expression failing in both is
         one finding with both versions; one failing only for a customer of stage 2 names stage 2 only"""
@@ -387,6 +427,13 @@ class TestStagedRun:
         # both stages carry the pipes of the best iteration; the stage versions themselves are unchanged
         assert bundles(plugin, staged_run.stage1 + '_co') == bundles(plugin, staged_run.stage2 + '_co')
         assert os.path.exists(iterationPath(plugin.config, 1))
+        # D11: the versions of the run in one chain, the version handling of the loaded stage on again, the ID check saved
+        from districts.utility_functions.db import getParentVersion
+        from districts.utility_functions.iteration_report import loadRunParameters
+        from districts.utility_functions.network_stages import versionTriggers
+        assert getParentVersion(plugin.cur, staged_run.stage2 + '_co') == staged_run.stage1 + '_co'
+        assert versionTriggers(plugin.cur, staged_run.stage1 + '_co', True) == 0
+        assert [link['after'] for link in loadRunParameters(plugin.config, 'cost')['stage_links']] == [staged_run.stage2 + '_co']
 
 
 def test_add_stage_button():

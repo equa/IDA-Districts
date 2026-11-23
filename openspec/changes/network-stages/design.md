@@ -85,6 +85,20 @@ each stage's own); older iteration files show all of them in the last stage. The
 The table of the iterations shows the counts of a step (larger, smaller, rejected) in the row of the iteration it
 leads to, as the map's 'changed for this iteration' (iteration 0 has none); the outcome only in the last row.
 
+**D11 – The versions of a run in one chain (2026-11-23, at the user's request).** The versions a run creates belong
+together: each stage's version is still copied from its own stage version (it holds that stage's network), then
+linked in `public.versionhandling` as a child of the previous stage's version (`linkStages`), so the tree reads
+`base1 → base1_costopt → ext_costopt` and a later run over the result versions passes the stage check. Only the loaded
+version carries the triggers of the version handling; during a run over stages all of them are switched off
+(`versionTriggers`, insert, update, delete and truncate on every table), so every write stays in its stage, and switched
+on again when the run ends, is stopped or fails (a version load re-creates them as well). Then the lines the version
+handling would treat wrongly by ID are listed in the log and the report (`stageLinks`): a line with the ID of another or
+a longer line of the previous stage (split: a later change of that line is copied into one segment) and a line lying on
+a line of the previous stage under another ID (a later change does not reach it). The version handling itself stays by
+ID; a copy by geometry would change it for all projects.
+*Alternative:* each run version a child of its own stage version (as before); the tree hides that the versions belong
+together and a run from the result versions is refused.
+
 ## Risks / Trade-offs
 
 - [Run time grows with the stages] → the weeks are shared; the parallel weeks run per stage; the annual option stays

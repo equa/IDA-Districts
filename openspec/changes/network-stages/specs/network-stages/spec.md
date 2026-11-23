@@ -60,3 +60,14 @@ Showing an iteration of a run over stages on the map SHALL give each stage versi
 #### Scenario: The first iteration
 - **WHEN** the table of the iterations is shown
 - **THEN** iteration 0 has no larger, smaller or rejected counts and iteration 1 has those of the step from iteration 0
+
+### Requirement: The versions of a run in one chain
+A run over stages that creates new versions SHALL make each stage's new version a child of the previous stage's new version, keep the version handling from copying between the stages during the run, switch it on again at the end, and list the lines the version handling would copy wrongly by ID.
+
+#### Scenario: Two stages with new versions
+- **WHEN** a run over the stages base1 and ext creates base1_costopt and ext_costopt
+- **THEN** ext_costopt is a child of base1_costopt and holds the network of ext
+
+#### Scenario: A split line
+- **WHEN** the run has ended and a line of base1_costopt is split in ext_costopt
+- **THEN** the triggers of the loaded version are on again and the log names the segment with the old ID and the one with a new ID

@@ -41,7 +41,7 @@ from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
 from .utility_functions.cost_model import stagedStep
 from .utility_functions.economic_data import loadScenario
 from .utility_functions.model_checks import SEVERITIES, checkVersions, findingLine
-from .utility_functions.network_stages import inheritPipes, stageProblems, stageRoots, stagesNpv, writeBundles
+from .utility_functions.network_stages import inheritPipes, linkStages, stageLinks, stageProblems, stageRoots, stagesNpv, versionTriggers, writeBundles
 from .utility_functions.periods import climateFile, readClimate
 from .utility_functions.set_pipes import SetPipes, costIterationPipes
 from .utility_functions.stage_table import StageTable, problemText
@@ -71,6 +71,10 @@ BALANCING_LINK = 'balancing'
 def missingOutputs(plugin_dir, config):
     outputs = loadRequestedOutputs(plugin_dir, config) or {}
     return [key for key in OPTIMIZATION_OUTPUTS if not outputs.get(key)]
+
+
+def idList(ids, n=20):
+    return ', '.join(str(i) for i in ids[:n]) + (' ...' if len(ids) > n else '')
 
 
 def skippedRules(parms):
@@ -764,6 +768,7 @@ class CostOptimizationRun(QObject):
         # a network built in stages (network-stages): the stage versions the run works on, filled at the start
         self.stages = parms.get('stages') if len(parms.get('stages') or []) > 1 else []
         self.stage_versions: list = []
+        self.triggers_off = None
         self.stage_climates: dict = {}
         self.stage_references: list = []
 
@@ -901,6 +906,12 @@ class CostOptimizationRun(QObject):
         removeCostLayers()
         if self.stages:
             try:
+                # each stage is written by itself; switched on again by finish (a version load re-creates them as well)
+                self.triggers_off = self.config['versionName']
+                versionTriggers(self.cur, self.triggers_off, False)
+                if self.parms['new_version']:
+                    linkStages(self.cur, self.stage_versions)
+                    self.dlg.log(tr_msg('Version tree: {}').format(' → '.join(self.stage_versions)))
                 n = inheritPipes(self.cur, self.stage_versions, stageRoots(self.cur, self.stage_versions))
                 if n:
                     self.dlg.log(tr_msg('{} lines of the later stages got the pipes of the same line in the earlier stage.').format(n))
@@ -1178,11 +1189,39 @@ class CostOptimizationRun(QObject):
         if self.done:
             return
         self.done = True
+        self.restoreVersionHandling()
         self.dlg.log(message)
         self.dlg.update_progress(0 if error else 100)
         iface.messageBar().pushMessage(tr_msg('Error') if error else tr_msg('Info'), tr_msg('Cost optimization: ') + message,
                                        level=MessageCritical if error else MessageInfo)
         self.dlg.finished()
+
+    def restoreVersionHandling(self):
+        """the triggers on again, then the lines the version handling would copy wrongly by ID between the stages
+        (network-stages D11): in the log and in the run parameters for the report"""
+        if not self.triggers_off:
+            return
+        try:
+            versionTriggers(self.cur, self.triggers_off, True)
+            self.triggers_off = None
+            links = []
+            for before, after in zip(self.stage_versions, self.stage_versions[1:]):
+                found = stageLinks(self.cur, before, after)
+                links.append(dict(found, before=before, after=after))
+                if found['other']:
+                    self.dlg.log(tr_msg('{}: {} lines have the ID of another or a longer line of {} (split); a change of that line in {} is '
+                                        'copied into them by ID: {}').format(after, len(found['other']), before, before, idList(found['other'])))
+                if found['not_reached']:
+                    self.dlg.log(tr_msg('{}: {} lines lie on a line of {} under another ID; a change of that line in {} does not reach '
+                                        'them: {}').format(after, len(found['not_reached']), before, before, idList(found['not_reached'])))
+            # the run parameters lie in stage 1, the loaded version (config switches to a stage while it is checked)
+            config = dict(self.config, versionName=self.stage_versions[0])
+            parms = loadRunParameters(config, 'cost')
+            if parms:
+                saveRunParameters(config, 'cost', dict(parms, stage_links=links))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            self.dlg.log(tr_msg('The version handling of {} could not be switched on again; load the version again.').format(self.triggers_off or ''))
 
     def onException(self):
         QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
