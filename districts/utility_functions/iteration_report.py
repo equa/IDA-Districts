@@ -557,6 +557,10 @@ def costReport(cur, config):
         found = cur.fetchone()
         scenario_id = found['id'] if found else None
     scenario = loadScenario(cur, scenario_id) if scenario_id is not None else None
+    if scenario is not None and parms.get('overrides'):
+        # a run of the sensitivity analysis: the scenario with the variant's values (cost-sensitivity D2)
+        from .sensitivity import applyOverrides
+        scenario = applyOverrides(scenario, parms['overrides'])
     if scenario is None:
         raise ValueError(tr_msg('The economic scenario of the run does not exist anymore.'))
     sc = scenario['scenario']
@@ -738,7 +742,60 @@ def costReport(cur, config):
                 reasons[text] = reasons.get(text, 0) + 1
     if reasons:
         report.section(tr_msg('Rejected changes'), table([tr_msg('Reason'), tr_msg('Number')], sorted(([r, n] for r, n in reasons.items()), key=lambda x: -x[1])), 3)
+    from .sensitivity import loadAnalysis
+    sensitivitySection(report, loadAnalysis(config), catalog)
     return report
+
+
+def sensitivitySection(report, analysis, catalog):
+    """the sensitivity analysis of the version (cost-sensitivity D7): plots, the variants and the lines that flip"""
+    from .sensitivity import DESIGN_LABELS, flips
+    from .sensitivity_plots import parallelCoordinates, resultAxes, tornadoChart
+    done = [v for v in (analysis or {}).get('variants', []) if v.get('result')]
+    if not done:
+        return
+    report.section(tr_msg('Sensitivity analysis'))
+    labels = analysis.get('labels') or {}
+    keys = list(analysis['bounds'])
+    basis = analysis.get('basis') or {}
+    mode = tr_msg('estimate: the best iteration of the last run valued with each variant and one step of the cost model') if analysis['mode'] == 'estimate'         else tr_msg('a cost optimization per variant, into its own child versions')
+    intro = [[tr_msg('Design'), tr_msg(DESIGN_LABELS.get(analysis['design'], analysis['design']))], [tr_msg('Each variant'), mode], [tr_msg('Variants done'), '{} / {}'.format(len(done), len(analysis['variants']))],
+             [tr_msg('Seed'), analysis.get('seed') if analysis['design'] == 'sample' else ''], [tr_msg('Started'), analysis.get('started', '')]]
+    if basis.get('iteration') is not None:
+        intro.append([tr_msg('Basis'), tr_msg('iteration {}, NPV {}').format(basis['iteration'], money(basis['npv']))])
+    bound_rows = [[labels.get(k, k), b[0], b[1], b[2]] for k, b in analysis['bounds'].items()]
+    report.section(tr_msg('Inputs of the sensitivity analysis'), table([tr_msg('Item'), tr_msg('Value')], intro) +
+                   table([tr_msg('Parameter'), tr_msg('Base'), '−', '+'], bound_rows, numeric={1, 2, 3}), 3)
+    if len(done) > 1:
+        fig = Figure(figsize=(9, 4))
+        parallelCoordinates(fig.add_subplot(111), analysis)
+        fig.tight_layout()
+        report.section(tr_msg('Parallel coordinates'), figureTag(fig, tr_msg('Parallel coordinates')) + '<p class="note">{}</p>'.format(esc(tr_msg(
+            'A line per variant over the varied parameters and the results, each axis from its smallest to its largest value; the base in black, '
+            'the others coloured by the NPV.'))), 3)
+        fig = Figure(figsize=(8, 0.5 + 0.45 * len(keys)))
+        tornadoChart(fig.add_subplot(111), analysis)
+        fig.tight_layout()
+        title = tr_msg('Tornado chart') if analysis['design'] == 'one_at_a_time' else tr_msg('Rank correlations with the NPV')
+        report.section(title, figureTag(fig, title) + '<p class="note">{}</p>'.format(esc(tr_msg(
+            'The limits of a smaller pipe do not change the NPV of a design, only which pipes the step may make smaller: their effect shows in the NPV '
+            'after the step (estimate) or of the run (full).'))), 3)
+    rows = []
+    for v in done:
+        axes = resultAxes(v)
+        result = v['result']
+        rows.append([v['name']] + [round(v['values'][k], 4) for k in keys] + [round(result.get('npv', 0.0)), round(axes['npv']), round(axes['investment']),
+                                                                             round(axes['operating']), int(axes['changed'])])
+    report.section(tr_msg('Variants'), table([tr_msg('Variant')] + [labels.get(k, k) for k in keys] +
+                                             [tr_msg('NPV of the basis design [€]'), tr_msg('NPV after the step or of the run [€]'), tr_msg('Investment [€]'),
+                                              tr_msg('Operating costs [€]'), tr_msg('Changed lines')], rows), 3)
+
+    def names(ids):
+        return ', '.join(str(catalog.get(int(i), {}).get('name', i)) for i in ids)
+    flip_rows = [[line, version, names(entry['before']), '; '.join('{}: {}'.format(name, names(after)) for name, after in entry['after'].items())]
+                 for (version, line), entry in sorted(flips(analysis).items())]
+    report.section(tr_msg('Lines whose pipe changes'), table([tr_msg('Line'), tr_msg('Version'), tr_msg('Pipe in the base'), tr_msg('Changed in')], flip_rows)
+                   if flip_rows else '<p class="empty">{}</p>'.format(esc(tr_msg('No variant changes a pipe: the sizing is robust in the ranges given.'))), 3)
 
 
 # ---------------------------------------------------------------- net present value: equations and numbers

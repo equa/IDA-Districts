@@ -67,4 +67,4 @@
 - [x] 11.2 Report: calculation, energy basis and factors per stage; investment table; parts per stage and iteration; changed lines per stage; losses in plant energy
 - [x] 11.3 Report: equations with s_k and a…b, investment year, notes (nominal, model error, unmet energy, limits, signs), electricity profile
 - [x] 11.4 Tests: the terms of each stage add up to its NPV, pumps from the stage start with replacement and residual value; the report sections of a staged run
-- [ ] 11.5 CI
+- [x] 11.5 CI (run 45179943764 green)

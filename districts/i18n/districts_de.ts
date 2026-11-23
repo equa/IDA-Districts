@@ -12105,5 +12105,377 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Example of the signs: a cooling pipe at 8 °C in ground at 12 °C takes heat up (Q &lt; 0), which costs; a heating pipe at 60 °C gives heat off (Q &gt; 0), which costs; a cooling pipe giving heat off (Q &gt; 0) lowers the costs (negative value).</source>
             <translation>Beispiel der Vorzeichen: ein Kälterohr mit 8 °C im Erdreich mit 12 °C nimmt Wärme auf (Q &lt; 0), das kostet; ein Wärmerohr mit 60 °C gibt Wärme ab (Q &gt; 0), das kostet; ein Kälterohr, das Wärme abgibt (Q &gt; 0), senkt die Kosten (negativer Wert).</translation>
         </message>
+        <message>
+            <source>  {}: NPV {} €, after the step {} €, {} lines changed</source>
+            <translation>  {}: Barwert {} €, nach dem Schritt {} €, {} Leitungen geändert</translation>
+        </message>
+        <message>
+            <source>+ value</source>
+            <translation>+ Wert</translation>
+        </message>
+        <message>
+            <source>− value</source>
+            <translation>− Wert</translation>
+        </message>
+        <message>
+            <source>25–50 % of the variants</source>
+            <translation>25–50 % der Varianten</translation>
+        </message>
+        <message>
+            <source>up to 25 % of the variants</source>
+            <translation>bis 25 % der Varianten</translation>
+        </message>
+        <message>
+            <source>more than 50 % of the variants</source>
+            <translation>mehr als 50 % der Varianten</translation>
+        </message>
+        <message>
+            <source>no variant changes the pipe</source>
+            <translation>keine Variante ändert das Rohr</translation>
+        </message>
+        <message>
+            <source>A line per variant over the varied parameters and the results, each axis from its smallest to its largest value; the base in black, the others coloured by the NPV.</source>
+            <translation>Eine Linie pro Variante über die variierten Parameter und die Ergebnisse, jede Achse von ihrem kleinsten zu ihrem grössten Wert; die Basis schwarz, die anderen nach dem Barwert eingefärbt.</translation>
+        </message>
+        <message>
+            <source>Base</source>
+            <translation>Basis</translation>
+        </message>
+        <message>
+            <source>base</source>
+            <translation>Basis</translation>
+        </message>
+        <message>
+            <source>Basis</source>
+            <translation>Grundlage</translation>
+        </message>
+        <message>
+            <source>Basis: iteration {} of the last run, NPV {} €</source>
+            <translation>Grundlage: Iteration {} des letzten Laufs, Barwert {} €</translation>
+        </message>
+        <message>
+            <source>Changed in</source>
+            <translation>Geändert in</translation>
+        </message>
+        <message>
+            <source>Click for a larger view</source>
+            <translation>Klicken für eine grössere Ansicht</translation>
+        </message>
+        <message>
+            <source>Design</source>
+            <translation>Variantenplan</translation>
+        </message>
+        <message>
+            <source>Each variant</source>
+            <translation>Jede Variante</translation>
+        </message>
+        <message>
+            <source>Escalation {}</source>
+            <translation>Preissteigerung {}</translation>
+        </message>
+        <message>
+            <source>Estimate: the best iteration of the last run valued with each variant and one step of the cost model, seconds per variant. Full: a cost optimization per variant into new child versions, as long as a run each.</source>
+            <translation>Schätzung: die beste Iteration des letzten Laufs mit jeder Variante bewertet und ein Schritt des Kostenmodells, Sekunden pro Variante. Vollständig: eine Kostenoptimierung pro Variante in neue Kindversionen, je so lange wie ein Lauf.</translation>
+        </message>
+        <message>
+            <source>Give a number as − and + value of every varied parameter.</source>
+            <translation>Für jeden variierten Parameter eine Zahl als − und + Wert angeben.</translation>
+        </message>
+        <message>
+            <source>How the NPV and the pipes of the last run depend on uncertain inputs. Mark the parameters to vary and give their − and + values (absolute, or relative in % of the base). The scenario stays unchanged.</source>
+            <translation>Wie Barwert und Rohre des letzten Laufs von unsicheren Eingaben abhängen. Die zu variierenden Parameter markieren und ihre − und + Werte angeben (absolut, oder relativ in % der Basis). Das Szenario bleibt unverändert.</translation>
+        </message>
+        <message>
+            <source>Inputs of the sensitivity analysis</source>
+            <translation>Eingaben der Sensitivitätsanalyse</translation>
+        </message>
+        <message>
+            <source>Interest rate</source>
+            <translation>Zinssatz</translation>
+        </message>
+        <message>
+            <source>Investment [€]</source>
+            <translation>Investition [€]</translation>
+        </message>
+        <message>
+            <source>Lines whose pipe changes</source>
+            <translation>Leitungen, deren Rohr sich ändert</translation>
+        </message>
+        <message>
+            <source>Lines – share of variants changing the pipe</source>
+            <translation>Leitungen – Anteil der Varianten, die das Rohr ändern</translation>
+        </message>
+        <message>
+            <source>Mark at least one parameter to vary.</source>
+            <translation>Mindestens einen Parameter zum Variieren markieren.</translation>
+        </message>
+        <message>
+            <source>NPV [€]</source>
+            <translation>Barwert [€]</translation>
+        </message>
+        <message>
+            <source>NPV after the step or of the run [€]</source>
+            <translation>Barwert nach dem Schritt oder des Laufs [€]</translation>
+        </message>
+        <message>
+            <source>NPV of the basis design [€]</source>
+            <translation>Barwert der Grundlage [€]</translation>
+        </message>
+        <message>
+            <source>No parameter marked to vary.</source>
+            <translation>Kein Parameter zum Variieren markiert.</translation>
+        </message>
+        <message>
+            <source>No sensitivity analysis in this version yet.</source>
+            <translation>Noch keine Sensitivitätsanalyse in dieser Version.</translation>
+        </message>
+        <message>
+            <source>No variant changes a pipe: the sizing is robust in the ranges given.</source>
+            <translation>Keine Variante ändert ein Rohr: die Dimensionierung ist in den angegebenen Bereichen robust.</translation>
+        </message>
+        <message>
+            <source>Number of variants of the sample (the base is added)</source>
+            <translation>Anzahl Varianten der Stichprobe (die Basis kommt dazu)</translation>
+        </message>
+        <message>
+            <source>Operating costs [€]</source>
+            <translation>Betriebskosten [€]</translation>
+        </message>
+        <message>
+            <source>Parallel coordinates</source>
+            <translation>Parallele Koordinaten</translation>
+        </message>
+        <message>
+            <source>Parameters from the scenario</source>
+            <translation>Parameter aus dem Szenario</translation>
+        </message>
+        <message>
+            <source>Period</source>
+            <translation>Betrachtungszeitraum</translation>
+        </message>
+        <message>
+            <source>Pipe in the base</source>
+            <translation>Rohr in der Basis</translation>
+        </message>
+        <message>
+            <source>Price curve {} (factor)</source>
+            <translation>Preiskurve {} (Faktor)</translation>
+        </message>
+        <message>
+            <source>Rank correlations with the NPV</source>
+            <translation>Rangkorrelationen mit dem Barwert</translation>
+        </message>
+        <message>
+            <source>rank correlation with the NPV</source>
+            <translation>Rangkorrelation mit dem Barwert</translation>
+        </message>
+        <message>
+            <source>Sample size</source>
+            <translation>Stichprobengrösse</translation>
+        </message>
+        <message>
+            <source>Seed of the sample: the same seed gives the same variants</source>
+            <translation>Startwert der Stichprobe: derselbe Startwert ergibt dieselben Varianten</translation>
+        </message>
+        <message>
+            <source>Seed</source>
+            <translation>Startwert</translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis</source>
+            <translation>Sensitivitätsanalyse</translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis: </source>
+            <translation>Sensitivitätsanalyse: </translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis: error in variant {}: {}</source>
+            <translation>Sensitivitätsanalyse: Fehler in Variante {}: {}</translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis: {} of {} variants done.</source>
+            <translation>Sensitivitätsanalyse: {} von {} Varianten fertig.</translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis: {} variants</source>
+            <translation>Sensitivitätsanalyse: {} Varianten</translation>
+        </message>
+        <message>
+            <source>Sensitivity – robustness</source>
+            <translation>Sensitivität – Robustheit</translation>
+        </message>
+        <message>
+            <source>Sensitivity</source>
+            <translation>Sensitivität</translation>
+        </message>
+        <message>
+            <source>Show the robustness on the map</source>
+            <translation>Robustheit auf der Karte zeigen</translation>
+        </message>
+        <message>
+            <source>Start price {}</source>
+            <translation>Startpreis {}</translation>
+        </message>
+        <message>
+            <source>Start sensitivity analysis</source>
+            <translation>Sensitivitätsanalyse starten</translation>
+        </message>
+        <message>
+            <source>The base values from the chosen scenario and the settings above</source>
+            <translation>Die Basiswerte aus dem gewählten Szenario und den Einstellungen oben</translation>
+        </message>
+        <message>
+            <source>The limits of a smaller pipe do not change the NPV of a design, only which pipes the step may make smaller: their effect shows in the NPV after the step (estimate) or of the run (full).</source>
+            <translation>Die Grenzwerte eines kleineren Rohrs ändern den Barwert einer Auslegung nicht, nur welche Rohre der Schritt verkleinern darf: ihre Wirkung zeigt sich im Barwert nach dem Schritt (Schätzung) oder des Laufs (vollständig).</translation>
+        </message>
+        <message>
+            <source>The loaded version has no cost optimization run.</source>
+            <translation>Die geladene Version hat keinen Lauf der Kostenoptimierung.</translation>
+        </message>
+        <message>
+            <source>The pipes of version {} differ from the best iteration {} of the run: set its pipes again or run the optimization again.</source>
+            <translation>Die Rohre der Version {} weichen von der besten Iteration {} des Laufs ab: ihre Rohre neu setzen oder die Optimierung neu laufen lassen.</translation>
+        </message>
+        <message>
+            <source>The results of version {} cannot be evaluated: {}</source>
+            <translation>Die Ergebnisse der Version {} können nicht ausgewertet werden: {}</translation>
+        </message>
+        <message>
+            <source>The robustness could not be shown: </source>
+            <translation>Die Robustheit konnte nicht gezeigt werden: </translation>
+        </message>
+        <message>
+            <source>The variant could not be started; the analysis stops.</source>
+            <translation>Die Variante konnte nicht gestartet werden; die Analyse endet.</translation>
+        </message>
+        <message>
+            <source>The version {} of the run does not exist anymore.</source>
+            <translation>Die Version {} des Laufs existiert nicht mehr.</translation>
+        </message>
+        <message>
+            <source>Tornado chart</source>
+            <translation>Tornado-Diagramm</translation>
+        </message>
+        <message>
+            <source>Variant {} ({} of {}) into version {}</source>
+            <translation>Variante {} ({} von {}) in Version {}</translation>
+        </message>
+        <message>
+            <source>Variant</source>
+            <translation>Variante</translation>
+        </message>
+        <message>
+            <source>Variants done</source>
+            <translation>Varianten fertig</translation>
+        </message>
+        <message>
+            <source>Variants</source>
+            <translation>Varianten</translation>
+        </message>
+        <message>
+            <source>Vary</source>
+            <translation>Variieren</translation>
+        </message>
+        <message>
+            <source>a cost optimization per variant, into its own child versions</source>
+            <translation>eine Kostenoptimierung pro Variante, in eigene Kindversionen</translation>
+        </message>
+        <message>
+            <source>absolute</source>
+            <translation>absolut</translation>
+        </message>
+        <message>
+            <source>estimate: the best iteration of the last run valued with each variant and one step of the cost model</source>
+            <translation>Schätzung: die beste Iteration des letzten Laufs mit jeder Variante bewertet und ein Schritt des Kostenmodells</translation>
+        </message>
+        <message>
+            <source>iteration {}, NPV {}</source>
+            <translation>Iteration {}, Barwert {}</translation>
+        </message>
+        <message>
+            <source>relative [%]</source>
+            <translation>relativ [%]</translation>
+        </message>
+        <message>
+            <source>{:.0f} min</source>
+            <translation>{:.0f} min</translation>
+        </message>
+        <message>
+            <source>{:.0f} s</source>
+            <translation>{:.0f} s</translation>
+        </message>
+        <message>
+            <source>{:.1f} h</source>
+            <translation>{:.1f} h</translation>
+        </message>
+        <message>
+            <source>{} of {} variants, {} ({}), started {}</source>
+            <translation>{} von {} Varianten, {} ({}), gestartet {}</translation>
+        </message>
+        <message>
+            <source>{} variants take about {}. Start?</source>
+            <translation>{} Varianten dauern etwa {}. Starten?</translation>
+        </message>
+        <message>
+            <source>{} variants</source>
+            <translation>{} Varianten</translation>
+        </message>
+        <message>
+            <source>{} variants, about {}</source>
+            <translation>{} Varianten, etwa {}</translation>
+        </message>
+        <message>
+            <source>One at a time</source>
+            <translation>Einzeln</translation>
+        </message>
+        <message>
+            <source>All combinations</source>
+            <translation>Alle Kombinationen</translation>
+        </message>
+        <message>
+            <source>Latin-hypercube sample</source>
+            <translation>Latin-Hypercube-Stichprobe</translation>
+        </message>
+        <message>
+            <source>Estimate (no simulation)</source>
+            <translation>Schätzung (ohne Simulation)</translation>
+        </message>
+        <message>
+            <source>Full optimization per variant</source>
+            <translation>Vollständige Optimierung pro Variante</translation>
+        </message>
+        <message>
+            <source>Pipe costs (factor)</source>
+            <translation>Rohrkosten (Faktor)</translation>
+        </message>
+        <message>
+            <source>Trench costs (factor)</source>
+            <translation>Grabenkosten (Faktor)</translation>
+        </message>
+        <message>
+            <source>Pump costs (factor)</source>
+            <translation>Pumpenkosten (Faktor)</translation>
+        </message>
+        <message>
+            <source>Penalty per degree hour</source>
+            <translation>Strafkosten pro Gradstunde</translation>
+        </message>
+        <message>
+            <source>Penalty per unmet kWh</source>
+            <translation>Strafkosten pro nicht gedeckter kWh</translation>
+        </message>
+        <message>
+            <source>Limit specific pressure loss</source>
+            <translation>Grenzwert spezifischer Druckverlust</translation>
+        </message>
+        <message>
+            <source>Limit velocity</source>
+            <translation>Grenzwert Geschwindigkeit</translation>
+        </message>
+        <message>
+            <source>purchased_heat</source>
+            <translation>bezogene Wärme</translation>
+        </message>
     </context>
 </TS>

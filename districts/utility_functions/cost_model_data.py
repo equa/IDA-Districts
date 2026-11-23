@@ -71,7 +71,7 @@ def buildModel(cur, config, scenario_id, pairs, settings, profile_dir=None):
     sources, times, w, hours, run = check
     n = len(times)
     index = {t: k for k, t in enumerate(times)}
-    scenario = loadScenario(cur, scenario_id)
+    scenario = scenario_id if isinstance(scenario_id, dict) else loadScenario(cur, scenario_id)
     sc = scenario['scenario']
     cur.execute('SELECT * FROM public.pipes WHERE innerpipediameter > 0;')
     rows = [dict(r) for r in cur.fetchall()]

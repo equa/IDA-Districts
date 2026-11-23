@@ -231,9 +231,10 @@ class CostModel:
         """investment items of the line with pipes {seq: pipe_id} (pipes and trench by the largest DN)"""
         line = self.lines[lid]
         items = []
+        factor = float((self.scenario.get('cost_factors') or {}).get('pipe', 1.0))
         for seq, pid in pipes.items():
             p = self.catalog[pid]
-            items.append({'cost': float(p.get('costs') or 0) * line['length'], 'lifetime': float(p.get('lifetime_a') or 0),
+            items.append({'cost': float(p.get('costs') or 0) * factor * line['length'], 'lifetime': float(p.get('lifetime_a') or 0),
                           'maintenance_pct': float(p.get('maintenance_pct') or 0)})
         dn = max(self.catalog[pid].get('dn', 0) for pid in pipes.values())
         trench = self.scenario.get('trench', {})

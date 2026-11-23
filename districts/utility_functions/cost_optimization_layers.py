@@ -213,6 +213,66 @@ def iterationLayers(cur, schema, k, rows, catalog, diameters, all_d, collect=Non
     return group_layers
 
 
+ROBUSTNESS_CLASSES = (('stable', 0.0, 0.0, '#bdbdbd', 1.0), ('rare', 0.0, 0.25, '#fdae61', 2.5), ('often', 0.25, 0.5, '#f46d43', 3.0),
+                      ('mostly', 0.5, 1.0, '#a50026', 3.5))
+
+
+def robustnessClass(share):
+    for name, low, high, _, _ in ROBUSTNESS_CLASSES:
+        if share <= high and (share > low or high == 0.0):
+            return name
+    return ROBUSTNESS_CLASSES[-1][0]
+
+
+def showRobustness(cur, analysis):
+    """map layers of the sensitivity analysis (cost-sensitivity D7): the lines of each base version coloured by the
+    share of the variants that change their pipe; a sub group per stage version"""
+    from .sensitivity import robustness
+    root = QgsProject.instance().layerTreeRoot()
+    name = tr_msg('Sensitivity – robustness')
+    old = root.findGroup(name)
+    if old is not None:
+        for node in old.findLayers():
+            QgsProject.instance().removeMapLayer(node.layerId())
+        root.removeChildNode(old)
+    group = root.insertGroup(0, name)
+    shares = robustness(analysis)
+    versions = (analysis.get('basis') or {}).get('versions') or [analysis['version']]
+    labels = {'stable': tr_msg('no variant changes the pipe'), 'rare': tr_msg('up to 25 % of the variants'),
+              'often': tr_msg('25–50 % of the variants'), 'mostly': tr_msg('more than 50 % of the variants')}
+    layers = []
+    for version in versions:
+        cur.execute('SELECT id, ST_AsText(geom) AS wkt, ST_SRID(geom) AS srid FROM "{}".lines;'.format(version))  # nosec B608
+        rows = cur.fetchall()
+        if not rows:
+            continue
+        line_rows = [{'id': r['id'], 'share': round(shares.get((version, r['id']), 0.0), 3), 'class': robustnessClass(shares.get((version, r['id']), 0.0)),
+                      'wkt': r['wkt']} for r in rows]
+        fields = [('id', 'integer'), ('share', 'double'), ('class', 'string')]
+        uri = 'LineString?crs=EPSG:{}&{}'.format(rows[0]['srid'], '&'.join('field={}:{}'.format(n, t) for n, t in fields))
+        layer = QgsVectorLayer(uri, tr_msg('Lines – share of variants changing the pipe') + (' – ' + version if len(versions) > 1 else ''), 'memory')
+        features = []
+        for row in line_rows:
+            feature = QgsFeature(layer.fields())
+            feature.setGeometry(QgsGeometry.fromWkt(row['wkt']))
+            feature.setAttributes([row.get(n) for n, _ in fields])
+            features.append(feature)
+        layer.dataProvider().addFeatures(features)
+        layer.updateExtents()
+        layer.setRenderer(QgsCategorizedSymbolRenderer('class', [QgsRendererCategory(c, lineSymbol(color, width), labels[c])
+                                                                 for c, _, _, color, width in ROBUSTNESS_CLASSES]))
+        setLabels(layer, "if(\"share\" > 0, format_number(\"share\" * 100, 0) || ' %', '')", '#a50026')
+        QgsProject.instance().addMapLayer(layer, False)
+        (group.addGroup(version) if len(versions) > 1 else group).addLayer(layer)
+        layers.append(layer)
+    if len(versions) > 1:
+        # the stages lie on top of each other: the last one (the whole network) shown
+        for child in group.children():
+            child.setItemVisibilityChecked(child.name() == versions[-1])
+    layerInsertionAtTop()
+    return layers
+
+
 def showCostIterations(cur, config, selected, rows):
     """layers of the selected iterations; rows = all iteration rows (diameter categories). Only the last selected
     iteration is visible (switch in the layer tree to compare)."""

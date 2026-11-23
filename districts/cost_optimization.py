@@ -43,6 +43,7 @@ from .utility_functions.economic_data import loadScenario
 from .utility_functions.model_checks import SEVERITIES, checkVersions, findingLine
 from .utility_functions.network_stages import inheritPipes, linkStages, stageLinks, stageProblems, stageRoots, stagesNpv, versionTriggers, writeBundles
 from .utility_functions.periods import climateFile, readClimate
+from .utility_functions.sensitivity import applyOverrides
 from .utility_functions.set_pipes import SetPipes, costIterationPipes
 from .utility_functions.stage_table import StageTable, problemText
 from .utility_functions.penalties import customerValues, deficitCustomers, penaltyCost, penaltyNpv
@@ -157,19 +158,25 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv, stage=None):
             'modes': evaluation.get('modes') or {}}
 
 
-def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None):
+def runScenario(cur, parms):
+    """the scenario of a run with the overrides of a sensitivity variant (cost-sensitivity D2); the stored one stays"""
+    return applyOverrides(loadScenario(cur, parms['scenario']), parms.get('overrides'))
+
+
+def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None, write=True):
     """the cost model of the checked iteration, its step and the new pipes written into the version (worker thread):
     {'steps', 'rejected', 'state', 'n_changed'}, or None without a model. stages: [{'version', 'start'}] of a network
     built in stages (network-stages D2, D4): a model per stage, the step over all, written into every stage containing
-    the line; the state is the last stage's (it holds every line)."""
+    the line; the state is the last stage's (it holds every line). write=False: the step only (sensitivity estimate)."""
     stages = stages or [{'version': config['versionName'], 'start': 0}]
     if len(stages) > 1:
-        return modelStepStages(cur, config, parms, settings, prices, no_smaller, stages)
-    period = int((loadScenario(cur, parms['scenario']) or {'scenario': {}})['scenario'].get('period_a') or 0)
+        return modelStepStages(cur, config, parms, settings, prices, no_smaller, stages, write)
+    scenario = runScenario(cur, parms)
+    period = int((scenario or {'scenario': {}})['scenario'].get('period_a') or 0)
     ranges = stageYears([int(s['start']) for s in stages], period) if len(stages) > 1 else [None]
     models = []
     for stage, operating in zip(stages, ranges):
-        model = buildModel(cur, dict(config, versionName=stage['version']), parms['scenario'], parms['pairs'], settings, profile_dir=prices)
+        model = buildModel(cur, dict(config, versionName=stage['version']), scenario, parms['pairs'], settings, profile_dir=prices)
         if model is None:
             return None
         model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
@@ -187,7 +194,7 @@ def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None):
         steps.append({'line': lid, 'before': before, 'after': c['pipes'], 'dnpv': c['dnpv'], 'split': c['split'],
                       'larger': model.catalog[pid]['d'] > model.catalog[before[seq]]['d']})
     result = {'steps': steps, 'rejected': rejected, 'state': None, 'n_changed': 0}
-    if not chosen:
+    if not chosen or not write:
         return result
     schema = stages[-1]['version']
     current = lineState(cur, schema)
@@ -203,16 +210,17 @@ def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None):
     return result
 
 
-def modelStepStages(cur, config, parms, settings, prices, no_smaller, stages):
+def modelStepStages(cur, config, parms, settings, prices, no_smaller, stages, write=True):
     """the step of a network built in stages (network-stages D2, D7, D8): a model per stage with the roots of its lines,
     the step over the line groups, the new pipes written into the root and all its segments of every stage (the update
     trigger of the version handling disabled); the state and the state of each stage"""
     versions = [s['version'] for s in stages]
     roots = stageRoots(cur, versions)
-    period = int((loadScenario(cur, parms['scenario']) or {'scenario': {}})['scenario'].get('period_a') or 0)
+    scenario = runScenario(cur, parms)
+    period = int((scenario or {'scenario': {}})['scenario'].get('period_a') or 0)
     models = []
     for k, (stage, operating) in enumerate(zip(stages, stageYears([int(s['start']) for s in stages], period))):
-        model = buildModel(cur, dict(config, versionName=stage['version']), parms['scenario'], parms['pairs'], settings, profile_dir=prices)
+        model = buildModel(cur, dict(config, versionName=stage['version']), scenario, parms['pairs'], settings, profile_dir=prices)
         if model is None:
             return None
         model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
@@ -232,7 +240,7 @@ def modelStepStages(cur, config, parms, settings, prices, no_smaller, stages):
                       'larger': models[0].catalog[pid]['d'] > models[0].catalog[before[seq]]['d']})
     result: dict = {'steps': steps, 'rejected': {root[1] if root[0] == 0 else '{}:{}'.format(root[0] + 1, root[1]): reasons for root, reasons in rejected.items()},
               'state': None, 'n_changed': 0}
-    if not chosen:
+    if not chosen or not write:
         return result
     bundles = getPipeBundles(cur)
     stage_states = {}
@@ -397,6 +405,11 @@ class CostOptimizationDialog(QDialog):
         self.table_required.setMaximumHeight(120)
         self.box_required = self.section(tr_msg('Required load of source-file customers (column of the source file)'), self.table_required, collapsed=True)
         layout.addWidget(self.box_required)
+        from .sensitivity_widget import SensitivityResults, SensitivityWidget
+        self.sensitivity = SensitivityWidget(self)
+        self.box_sensitivity = self.section(tr_msg('Sensitivity'), self.sensitivity, collapsed=True)
+        layout.addWidget(self.box_sensitivity)
+        self.combo_scenario.currentIndexChanged.connect(lambda _: self.sensitivity.fill())
         self.table_iterations = QTableWidget(0, 9)
         self.table_iterations.setHorizontalHeaderLabels([tr_msg(h) for h in ITERATION_HEADERS])
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
@@ -434,6 +447,8 @@ class CostOptimizationDialog(QDialog):
         self.results_tabs = results
         results.addTab(tab_iterations, tr_msg('Iterations'))
         results.addTab(self.canvas, tr_msg('Net present value'))
+        self.sensitivity_results = SensitivityResults(self)
+        results.addTab(self.sensitivity_results, tr_msg('Sensitivity'))
         results.addTab(self.log_edit, tr_msg('Log'))
         results.setMinimumHeight(330)
         self.tabs_results = results
@@ -581,6 +596,8 @@ class CostOptimizationDialog(QDialog):
         self.periods.setRunning(self.process_running)
         self.btn_start.setEnabled(not self.process_running)
         self.btn_stop.setEnabled(self.process_running)
+        if hasattr(self, 'sensitivity'):
+            self.sensitivity.btn_start.setEnabled(not self.process_running)
         # while running the run adds and shows the iterations itself
         for button in (self.btn_showIterations, self.btn_reload, self.btn_setPipes):
             button.setEnabled(not self.process_running)
@@ -595,39 +612,42 @@ class CostOptimizationDialog(QDialog):
                 'stages': self.stage_table.stages()}
 
     # ---------------------------------------------------------------- run
-    def start(self):
+    def start(self, p=None, sensitivity=False):
+        """a run with the dialog's settings, or with p (a variant of the sensitivity analysis, which keeps its log);
+        False when refused"""
         if not self.periods.ready and not self.periods.check_annual.isChecked():
             self.refuse([tr_msg('The weeks are still being chosen; start again in a moment.')])
-            return
-        p = self.parameters()
+            return False
+        p = p or self.parameters()
         if self.pair_table.incomplete():
             self.refuse([tr_msg('Choose the supply and the return sequence of every pair, or remove the row.')])
-            return
+            return False
         if p['scenario'] is None or not p['pairs'] or not p['submodel']:
             self.refuse([tr_msg('Choose a scenario, a submodel and at least one pair.')])
-            return
+            return False
         if not self.saveProtected(p):
             self.refuse([tr_msg('The protected lines could not be saved (see the log).')])
-            return
+            return False
         if len(p['stages']) > 1:
             try:
                 problems = stageProblems(self.main.cur, p['stages'])
             except Exception:
                 QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
                 self.refuse([tr_msg('The stages could not be checked: ') + traceback.format_exc().splitlines()[-1]])
-                return
+                return False
             if problems:
                 self.refuse([problemText(problem) for problem in problems])
-                return
+                return False
         saveRequired(self.main.config, self.requiredEntries())
         errors, notes = self.checkInputData(p)
         if errors:
             self.refuse([tr_msg('The input data of the versions has errors, the run does not start:')] + errors + notes)
-            return
+            return False
         self.process_running = True
         self.updateEnabled()
         self.table_iterations.setRowCount(0)
-        self.log_edit.clear()
+        if not sensitivity:
+            self.log_edit.clear()
         # during the run the results need the room
         for box in (self.box_settings, self.box_periods, self.box_required):
             box.setCollapsed(True)
@@ -640,6 +660,7 @@ class CostOptimizationDialog(QDialog):
         self.run = CostOptimizationRun(self, self.main, p)
         # the start (child version, first simulation) blocks for a moment: first let the dialog show the greyed button
         QTimer.singleShot(50, self.run.start)
+        return True
 
     def checkInputData(self, p):
         """(errors, notes) of the model checks over every stage version: each is built and simulated in every
@@ -654,6 +675,10 @@ class CostOptimizationDialog(QDialog):
         return inputDataMessages(result)
 
     def stop(self):
+        sensitivity = self.sensitivity.run
+        if sensitivity and sensitivity.active:
+            # the variants end after the current one (cost-sensitivity D5)
+            sensitivity.stop_requested = True
         if self.run:
             self.run.stop_requested = True
             self.log(tr_msg('Stopping after the current step ...'))
@@ -662,6 +687,9 @@ class CostOptimizationDialog(QDialog):
         self.process_running = False
         self.updateEnabled()
         self.updateHints()
+        sensitivity = self.sensitivity.run
+        if sensitivity and sensitivity.active and sensitivity.analysis['mode'] == 'full':
+            sensitivity.onRunFinished()
 
     def loadIterationTable(self):
         """the iterations saved in the loaded version"""
@@ -1008,7 +1036,7 @@ class CostOptimizationRun(QObject):
         config, p, settings, prices, required = dict(self.config), dict(self.parms), self.settings, self.prices, self.dlg.requiredEntries()
 
         def work(cur):
-            evaluation = evaluateVersion(cur, config, p['scenario'], settings, profile_dir=prices)
+            evaluation = evaluateVersion(cur, config, runScenario(cur, p), settings, profile_dir=prices)
             if 'npv' not in evaluation:
                 return evaluation, None, None
             return evaluation, penaltyValues(cur, config, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100), lineState(cur, config['versionName'])
@@ -1019,7 +1047,7 @@ class CostOptimizationRun(QObject):
                 evaluations, values = [], []
                 for stage in stages:
                     cfg = dict(config, versionName=stage['version'])
-                    evaluation = evaluateVersion(cur, cfg, p['scenario'], settings, profile_dir=prices)
+                    evaluation = evaluateVersion(cur, cfg, runScenario(cur, p), settings, profile_dir=prices)
                     if 'npv' not in evaluation:
                         return evaluation, None, None
                     evaluations.append(evaluation)

@@ -2,6 +2,7 @@
 """Network built in stages (OpenSpec change network-stages): NPV by stage years; e2e the stage check, the input check
 of every stage version and the report."""
 import contextlib
+import os
 
 import pytest
 
@@ -412,6 +413,37 @@ class TestStages:
         # operating years, climate file per stage, the parts per stage of the iteration with the least NPV
         assert '11–' in page and 'ZURICH_2050.prn' in page and 'Net present value per stage and part, iteration 1' in page
 
+    def test_sensitivity_section_and_basis_refused(self, staged):
+        """cost-sensitivity: the section lists the parameters of the scenario; the estimate refuses without a run and
+        when a stage's pipes differ from the best iteration (D4)"""
+        from districts.cost_optimization import lineState
+        from districts.utility_functions.sensitivity import estimateBasis
+        from .conftest import wait_until
+        plugin = staged.plugin
+        cur = plugin.cur
+        s1, s2 = staged.stage1, staged.stage2
+        plugin.showCostOptimization()
+        dlg = plugin.dlg_costOptimization
+        try:
+            wait_until(lambda: dlg.periods.ready, 120, 'choosing the weeks')
+            keys = [r['key'] for r in dlg.sensitivity.rows(all_rows=True)]
+            assert {'interest_pct', 'period_a', 'price:electricity', 'factor:pipe', 'dp_spez_max', 'v_max'} <= set(keys)
+            assert dlg.sensitivity.label_count.text() == 'No parameter marked to vary.'
+        finally:
+            dlg.close()
+        with pytest.raises(ValueError, match='no cost optimization run'):
+            estimateBasis(cur, [], {})
+        states = {v: {str(lid): bid for lid, bid in lineState(cur, v).items()} for v in (s1, s2)}
+        rows = [{'iteration': 0, 'npv': 10.0, 'stage_states': states}]
+        parms = {'stage_versions': [s1, s2], 'stages': [{'version': s1, 'start': 0}, {'version': s2, 'start': 10}]}
+        basis = estimateBasis(cur, rows, parms)
+        assert basis['versions'] == [s1, s2] and basis['stages'][1] == {'version': s2, 'start': 10}
+        lid, bid = next(iter(lineState(cur, s2).items()))
+        cur.execute('SELECT id FROM public.pipe_bundle_types WHERE id <> %s ORDER BY id LIMIT 1;', (bid,))
+        cur.execute('UPDATE "{}".lines SET pipe_bundle_type_id = %s WHERE id = %s;'.format(s2), (cur.fetchone()['id'], lid))  # nosec B608
+        with pytest.raises(ValueError, match='differ from the best iteration'):
+            estimateBasis(cur, rows, parms)
+
 
 # ---------------------------------------------------------------- ida: a run over two stages
 @pytest.fixture(scope='class')
@@ -488,6 +520,97 @@ class TestStagedRun:
         assert item is not None and item.parent() is not None and item.parent().text() == staged_run.stage1 + '_co'  # the tree shows the link
         assert versionTriggers(plugin.cur, staged_run.stage1 + '_co', True) == 0
         assert [link['after'] for link in loadRunParameters(plugin.config, 'cost')['stage_links']] == [staged_run.stage2 + '_co']
+
+    def test_sensitivity_estimate(self, staged_run, errors):
+        """cost-sensitivity D4: the interest varied ±50 % one at a time on the best iteration of the run over both stages:
+        the base variant reproduces the best NPV, a higher interest gives a lower NPV, the scenario stays unchanged; the
+        result file, the tab, the robustness layers per stage and the report section"""
+        from qgis.core import QgsProject
+        from qgis.PyQt.QtCore import Qt
+        from districts.utility_functions.cost_optimization_layers import loadCostIterations
+        from districts.utility_functions.economic_data import loadScenario
+        from districts.utility_functions.iteration_report import writeReport
+        from districts.utility_functions.sensitivity import loadAnalysis
+        from .conftest import wait_until
+        from .test_dynamic_optimization import TIMEOUT
+        plugin = staged_run.plugin
+        dlg = plugin.dlg_costOptimization
+        scenario_id = dlg.combo_scenario.currentData()
+        interest = loadScenario(plugin.cur, scenario_id)['scenario']['interest_pct']
+        widget = dlg.sensitivity
+        widget.fill()
+        row = next(k for k in range(widget.table.rowCount()) if widget.table.item(k, 0).data(Qt.ItemDataRole.UserRole) == 'interest_pct')
+        widget.table.item(row, 0).setCheckState(Qt.CheckState.Checked)
+        widget.table.item(row, 5).setText('-50')
+        widget.table.item(row, 6).setText('50')
+        assert widget.label_count.text().startswith('3 variants')
+        widget.startAnalysis()
+        wait_until(lambda: not dlg.process_running, TIMEOUT, lambda: 'still running:\n' + dlg.log_edit.toPlainText()[-3000:])
+        errors.check()
+        analysis = loadAnalysis(plugin.config)
+        log = dlg.log_edit.toPlainText()
+        assert analysis and all(v.get('result') for v in analysis['variants']), log
+        by_name = {v['name']: v['result'] for v in analysis['variants']}
+        best = min(loadCostIterations(plugin.config), key=lambda r: r['npv'])
+        assert by_name['base']['npv'] == pytest.approx(best['npv'], rel=1e-6)
+        assert by_name['interest_pct +']['npv'] < by_name['base']['npv'] < by_name['interest_pct -']['npv']
+        assert loadScenario(plugin.cur, scenario_id)['scenario']['interest_pct'] == interest
+        assert dlg.sensitivity_results.table_variants.rowCount() == 3
+        dlg.sensitivity_results.showMap()
+        group = QgsProject.instance().layerTreeRoot().findGroup('Sensitivity – robustness')
+        assert group is not None and [child.name() for child in group.children()] == analysis['basis']['versions']
+        with open(writeReport(plugin.cur, plugin.config, 'cost'), encoding='utf-8') as f:
+            page = f.read()
+        assert 'Sensitivity analysis' in page and 'Tornado chart' in page
+
+    @pytest.mark.skipif(not os.environ.get('DISTRICTS_TEST_SENSITIVITY_FULL'), reason='three cost optimizations (about 20 min): DISTRICTS_TEST_SENSITIVITY_FULL=1')
+    def test_sensitivity_full_optimization(self, staged_run, errors, monkeypatch):
+        """cost-sensitivity D5: the interest varied one at a time with a cost optimization per variant (one iteration
+        each, the loaded version alone): a child version per variant, the base version loaded again at the end, the
+        scenario unchanged"""
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtWidgets import QMessageBox
+        from districts.utility_functions.economic_data import loadScenario
+        from districts.utility_functions.sensitivity import loadAnalysis
+        from .conftest import wait, wait_until
+        from .test_dynamic_optimization import TIMEOUT
+        plugin = staged_run.plugin
+        base = plugin.config['versionName']
+        monkeypatch.setattr(QMessageBox, 'question', lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
+        plugin.dlg_costOptimization.close()
+        plugin.showCostOptimization()
+        dlg = plugin.dlg_costOptimization
+        periods = dlg.periods
+        wait_until(lambda: periods.ready, 120, 'choosing the weeks')
+        periods.spin_days.setValue(1)
+        periods.spin_startup.setValue(1)
+        periods.chooseWeeks()
+        wait_until(lambda: periods.ready, 120, 'choosing the weeks')
+        dlg.spin_iter.setValue(1)
+        scenario_id = dlg.combo_scenario.currentData()
+        interest = loadScenario(plugin.cur, scenario_id)['scenario']['interest_pct']
+        widget = dlg.sensitivity
+        widget.fill()
+        widget.combo_mode.setCurrentIndex(widget.combo_mode.findData('full'))
+        row = next(k for k in range(widget.table.rowCount()) if widget.table.item(k, 0).data(Qt.ItemDataRole.UserRole) == 'interest_pct')
+        widget.table.item(row, 0).setCheckState(Qt.CheckState.Checked)
+        widget.startAnalysis()
+        wait_until(lambda: widget.run is not None and not widget.run.active and not dlg.process_running, 3 * TIMEOUT,
+                   lambda: 'still running:\n' + dlg.log_edit.toPlainText()[-3000:])
+        wait(500)
+        errors.check()
+        log = dlg.log_edit.toPlainText()
+        print('\n' + log)
+        assert plugin.config['versionName'] == base, log
+        analysis = loadAnalysis(plugin.config)
+        assert [v['version'] for v in analysis['variants']] == ['{}_s{}'.format(base, k) for k in range(3)]
+        assert all(v.get('result') for v in analysis['variants']), log
+        plugin.cur.execute('SELECT count(*) AS n FROM public.versionhandling WHERE name = ANY(%s);', ([v['version'] for v in analysis['variants']],))
+        assert plugin.cur.fetchone()['n'] == 3
+        by_name = {v['name']: v['result'] for v in analysis['variants']}
+        assert by_name['interest_pct +']['npv'] < by_name['interest_pct -']['npv']
+        assert loadScenario(plugin.cur, scenario_id)['scenario']['interest_pct'] == interest
+        dlg.close()
 
 
 def test_add_stage_button():

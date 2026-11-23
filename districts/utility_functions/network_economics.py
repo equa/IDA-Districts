@@ -90,6 +90,7 @@ def trenchLengths(cur, schema, default_surface):
 def investments(scenario, lines, trench):
     """Investment items (pipes per pipe type, trench per line, without pumps), pipes in use without costs, example flag."""
     items, no_costs, example = {}, set(), False
+    factor = float((scenario.get('cost_factors') or {}).get('pipe', 1.0))
     for lid, line in lines.items():
         dn = max([nominalDiameter(p) for p in line['pipes'].values()] or [0])
         for pipe in line['pipes'].values():
@@ -99,7 +100,7 @@ def investments(scenario, lines, trench):
             example = example or bool(pipe['example'])
             item = items.setdefault(('pipe', pipe['pipe_id']), {'cost': 0.0, 'lifetime': float(pipe['lifetime_a'] or 0),
                                                                 'maintenance_pct': float(pipe['maintenance_pct'] or 0), 'name': pipe['name']})
-            item['cost'] += float(pipe['costs']) * line['length']
+            item['cost'] += float(pipe['costs']) * factor * line['length']
             item['length'] = item.get('length', 0.0) + line['length']
         for surface, length in trench.get(lid, {}).items():
             item = items.setdefault(('trench', surface), {'cost': 0.0, 'lifetime': lifetimeOfLine(line), 'maintenance_pct': 0.0, 'name': surface})
@@ -219,7 +220,8 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     """Economic evaluation of the loaded version. Returns {'missing': [...]} or {'short': days} without results of a
     full year or of a period run, otherwise the investment, energy, NPV and checks."""
     schema = config['versionName']
-    scenario = loadScenario(cur, scenario_id)
+    # a scenario given as data: a variant of the sensitivity analysis (cost-sensitivity D2)
+    scenario = scenario_id if isinstance(scenario_id, dict) else loadScenario(cur, scenario_id)
     missing = missingResults(cur, schema)
     if missing:
         return {'scenario': scenario, 'missing': missing}
