@@ -432,6 +432,9 @@ class TestStagedRun:
         from districts.utility_functions.iteration_report import loadRunParameters
         from districts.utility_functions.network_stages import versionTriggers
         assert getParentVersion(plugin.cur, staged_run.stage2 + '_co') == staged_run.stage1 + '_co'
+        from districts.ida_ph import get_item_by_text
+        item = get_item_by_text(staged_run.stage2 + '_co', plugin)
+        assert item is not None and item.parent() is not None and item.parent().text() == staged_run.stage1 + '_co'  # the tree shows the link
         assert versionTriggers(plugin.cur, staged_run.stage1 + '_co', True) == 0
         assert [link['after'] for link in loadRunParameters(plugin.config, 'cost')['stage_links']] == [staged_run.stage2 + '_co']
 

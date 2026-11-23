@@ -870,15 +870,24 @@ class CostOptimizationRun(QObject):
         config, plugin_dir, description = dict(self.config), self.plugin_dir, 'Cost optimization of version {}'.format(self.config['versionName'])
         startTask(self, self.config, lambda cur: createChildVersion(cur, config, plugin_dir, name, description), self.onVersionCreated, self.onTaskFailed)
 
+    def refreshVersionTree(self):
+        """the version tree of the main dialog from public.versionhandling, expanded, the loaded version marked"""
+        from .ida_ph import get_item_by_text, getVersionData, highlight_item, importData
+        importData(self.main.model, getVersionData(self.cur))
+        self.main.dlg.treeViewVersions.expandAll()
+        item = get_item_by_text(self.main.config['versionName'], self.main)
+        if item:
+            highlight_item(item, self.main.model.invisibleRootItem())
+        self.main.dlg.treeViewVersions.viewport().update()
+
     @pyqtSlot(object)
     def onVersionCreated(self, _):
-        from .ida_ph import getVersionData, importData
         if self.done:
             return
         name = self.parms['new_version']
         try:
-            importData(self.main.model, getVersionData(self.cur))
             self.main.config['versionName'] = name
+            self.refreshVersionTree()
             write_plugin_settings(self.main.config)
             from .ida_ph import loadVersionLayers
             loadVersionLayers(self.config, self.cur, self.plugin_dir)
@@ -911,6 +920,8 @@ class CostOptimizationRun(QObject):
                 versionTriggers(self.cur, self.triggers_off, False)
                 if self.parms['new_version']:
                     linkStages(self.cur, self.stage_versions)
+                    # the tree was filled when the versions were created, before the link
+                    self.refreshVersionTree()
                     self.dlg.log(tr_msg('Version tree: {}').format(' → '.join(self.stage_versions)))
                 n = inheritPipes(self.cur, self.stage_versions, stageRoots(self.cur, self.stage_versions))
                 if n:

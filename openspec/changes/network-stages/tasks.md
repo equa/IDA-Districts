@@ -51,7 +51,7 @@
 - [x] 9.1 Map and report: a sub group per stage version with its lines, pipes, changed segments (by root) and new deficits (`stage_penalty`)
 - [x] 9.2 Table of the iterations (dialog and report): the step counts in the row of the iteration they lead to, the outcome in the last row
 - [x] 9.3 Tests: the map of each stage with a split line (e2e), the table rows (unit)
-- [ ] 9.4 CI
+- [x] 9.4 CI (run 45161101678 green)
 
 ## 10. The versions of a run in one chain (D11)
 
@@ -59,4 +59,4 @@
 - [x] 10.2 `versionTriggers`: the triggers of the loaded version off during a run over stages, on again at its end, stop or failure
 - [x] 10.3 `stageLinks` after the run: lines with an ID of another or longer line, lines under another ID; log, run parameters, report
 - [x] 10.4 Tests: triggers off/on with an update kept in stage 1, the link, the split and the renumbered line (e2e); the chain and the triggers after a run (ida)
-- [ ] 10.5 CI
+- [x] 10.5 CI (run 45165190643 green)
