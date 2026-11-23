@@ -45,3 +45,10 @@
 - [x] 8.1 `model_checks.checkVersions` (findings merged over the versions) and `findingLine`; the dialog checks the stage versions at the start, refuses on errors, logs warnings and infos
 - [x] 8.2 Tests: merging, version prefix, skipped rules, messages (unit); a mapping failing in both stages and one failing only for a stage-2 customer, the start refused naming stage 2 (e2e)
 - [x] 8.3 CI (run 44528358176 green)
+
+## 9. Results per stage on the map and the step into an iteration in the table (D10)
+
+- [x] 9.1 Map and report: a sub group per stage version with its lines, pipes, changed segments (by root) and new deficits (`stage_penalty`)
+- [x] 9.2 Table of the iterations (dialog and report): the step counts in the row of the iteration they lead to, the outcome in the last row
+- [x] 9.3 Tests: the map of each stage with a split line (e2e), the table rows (unit)
+- [ ] 9.4 CI

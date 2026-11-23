@@ -49,3 +49,14 @@ The report SHALL list the stages with version, years and climate file, the NPV p
 #### Scenario: Report of a staged run
 - **WHEN** the report of a run with three stages is written
 - **THEN** it shows the three stages, their NPV and the total
+
+### Requirement: Results of each stage on the map
+Showing an iteration of a run over stages on the map SHALL give each stage version its own layers with its own lines and pipes, mark a change on every segment of the changed line group and show the customers with a new deficit in the stage they occur in. The table of the iterations SHALL show the counts of a step in the row of the iteration the step leads to.
+
+#### Scenario: A line split in stage 2
+- **WHEN** an iteration whose step made a stage-1 line larger is shown and stage 2 has that line split in two
+- **THEN** the stage-1 layers mark the line and the stage-2 layers mark both segments
+
+#### Scenario: The first iteration
+- **WHEN** the table of the iterations is shown
+- **THEN** iteration 0 has no larger, smaller or rejected counts and iteration 1 has those of the step from iteration 0

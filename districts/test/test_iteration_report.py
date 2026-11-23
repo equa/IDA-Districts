@@ -193,6 +193,21 @@ class TestIterationReport:
         assert {row['id']: row['bid'] for row in plugin.cur.fetchall()} == restored  # the parent keeps its pipes
 
 
+def test_iteration_table_shows_the_step_into_an_iteration():
+    """the counts of a step in the row of the iteration it leads to; iteration 0 has none; the outcome only in the
+    last row"""
+    from districts.utility_functions.iteration_report import iterationTableRows
+    from districts.utility_functions.translations import tr_msg
+    rows = [{'iteration': 0, 'n_larger': 2, 'n_smaller': 24, 'n_rejected': 2, 'outcome': tr_msg('changed')},
+            {'iteration': 1, 'n_larger': 1, 'n_smaller': 0, 'n_rejected': 26, 'outcome': tr_msg('changed')},
+            {'iteration': 2, 'outcome': tr_msg('max. iterations')}]
+    table = iterationTableRows(rows)
+    assert [steps for _, steps, _ in table] == [['', '', ''], [2, 24, 2], [1, 0, 26]]
+    assert [outcome for _, _, outcome in table] == ['', '', tr_msg('max. iterations')]
+    # during a run the newest row has made its step: nothing to say yet
+    assert iterationTableRows(rows[:2])[-1][2] == ''
+
+
 def test_map_iterations():
     assert mapIterations([0, 1, 2]) == [0, 1, 2]
     chosen = mapIterations(list(range(30)), best=17)

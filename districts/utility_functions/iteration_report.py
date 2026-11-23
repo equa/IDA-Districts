@@ -18,7 +18,7 @@ from qgis.core import Qgis, QgsMapRendererParallelJob, QgsMapSettings, QgsProjec
 from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QSize
 from qgis.PyQt.QtGui import QColor
 
-from .cost_optimization_layers import iterationDiameters, iterationLayers, loadCostIterations
+from .cost_optimization_layers import iterationDiameters, iterationLayers, loadCostIterations, stageViews
 from .dynamic_sizing_results import bar, iterationHeaders, iterationRows, loadIterations, outcomeText, showPair
 from .economic_data import loadScenario
 from .economics import trenchCostPerMetre
@@ -486,6 +486,24 @@ def npvBars(ax, rows):
     ax.legend(fontsize=7, loc='upper left', bbox_to_anchor=(1.01, 1.0))
 
 
+ITERATION_HEADERS = ('Iteration', 'NPV simulated', 'NPV model', 'Model error', 'larger (step to here)', 'smaller (step to here)',
+                     'rejected (step to here)', 'Customers with deficit', 'Outcome')
+
+
+def iterationTableRows(rows):
+    """[(row, [larger, smaller, rejected], outcome)] for the table of the iterations: the counts of a step in the row of
+    the iteration it leads to (as the map's 'changed for this iteration'); the outcome only in the last row, why the
+    run ended ('changed' of the rows before is the step shown in the next row)"""
+    by_iteration = {row['iteration']: row for row in rows}
+    result = []
+    for n, row in enumerate(rows):
+        before = by_iteration.get(row['iteration'] - 1) or {}
+        steps = [before.get('n_larger', ''), before.get('n_smaller', ''), before.get('n_rejected', '')]
+        outcome = row.get('outcome', '') if n == len(rows) - 1 and row.get('outcome') != tr_msg('changed') else ''
+        result.append((row, steps, outcome))
+    return result
+
+
 def groupLabel(group):
     if group == 'penalties':
         return tr_msg('comfort violations')
@@ -590,10 +608,9 @@ def costReport(cur, config):
     # outputs
     report.section(tr_msg('Outputs'))
     iteration_rows = [[r['iteration'], round(r['npv']), None if r.get('npv_model') is None else round(r['npv_model']),
-                       '' if r.get('model_error') is None else '{:.1%}'.format(r['model_error']), r.get('n_larger', ''), r.get('n_smaller', ''),
-                       r.get('n_rejected', ''), len(r.get('penalty_customers') or []), r.get('outcome', '')] for r in rows]
-    report.section(tr_msg('Iterations'), table([tr_msg('Iteration'), tr_msg('NPV simulated'), tr_msg('NPV model'), tr_msg('Model error'), tr_msg('larger'),
-                                                tr_msg('smaller'), tr_msg('rejected'), tr_msg('Customers with deficit'), tr_msg('Outcome')], iteration_rows) +
+                       '' if r.get('model_error') is None else '{:.1%}'.format(r['model_error'])] + steps + [len(r.get('penalty_customers') or []), outcome]
+                      for r, steps, outcome in iterationTableRows(rows)]
+    report.section(tr_msg('Iterations'), table([tr_msg(h) for h in ITERATION_HEADERS], iteration_rows) +
                    '<p class="note">{}</p>'.format(esc(tr_msg('Iteration {} has the least net present value.').format(best['iteration']))), 3)
     fig = Figure(figsize=(8, 3.6))
     npvBars(fig.add_subplot(111), rows)
@@ -612,20 +629,27 @@ def costReport(cur, config):
                                      key_text=lambda k: '{}, DN {}'.format(tr_msg(k[0]), k[1])), 3)
     catalog, diameters, all_d = iterationDiameters(cur, rows)
     by_iteration = {row['iteration']: row for row in rows}
+    roots_cache: dict = {}
     for row in rows:
         k = row['iteration']
         body = ''
         if k in mapIterations([r['iteration'] for r in rows], best['iteration']):
-            layers = []
-            iterationLayers(cur, schema, k, rows, catalog, diameters, all_d, collect=layers)
-            body += mapHtml(layers, tr_msg('Iteration {}').format(k))
+            for view in stageViews(cur, schema, row, roots_cache):
+                layers = []
+                iterationLayers(cur, schema, k, rows, catalog, diameters, all_d, collect=layers, view=view)
+                title = tr_msg('Iteration {}').format(k) + (' – ' + view[0] if view[0] else '')
+                if view[0]:
+                    body += '<h4>{}</h4>'.format(esc(tr_msg('Stage {}').format(view[0])))
+                body += mapHtml(layers, title)
         steps = (by_iteration.get(k - 1) or {}).get('steps') or []
         if steps:
             step_rows = []
             for step in sorted(steps, key=lambda s: int(s['line'])):
                 before = [catalog.get(int(pid), {}).get('name', pid) for _, pid in sorted(step['before'].items())]
                 after = [catalog.get(int(pid), {}).get('name', pid) for _, pid in sorted(step['after'].items())]
-                step_rows.append([int(step['line']), ', '.join(str(b) for b in before), ', '.join(str(a) for a in after),
+                # a run over stages: the line in the stage it first appears in
+                line = '{} ({})'.format(int(step['line']), tr_msg('stage {}').format(step['stage'])) if step.get('stage') else int(step['line'])
+                step_rows.append([line, ', '.join(str(b) for b in before), ', '.join(str(a) for a in after),
                                   tr_msg('larger') if step.get('larger') else tr_msg('smaller'), round(step.get('dnpv') or 0)])
             body += '<h4>{}</h4>'.format(esc(tr_msg('Lines changed for this iteration')))
             body += table([tr_msg('Line'), tr_msg('Pipes before'), tr_msg('Pipes after'), tr_msg('Change'), tr_msg('NPV change estimated [€]')], step_rows)

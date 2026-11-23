@@ -33,7 +33,7 @@ from .utility_functions.db import getUsedNetworkSubmodels
 from .utility_functions.dialog import infoTextEdit
 from .utility_functions.dynamic_sizing_results import loadIterations
 from .utility_functions.files import loadModellingSettings, loadRequestedOutputs
-from .utility_functions.iteration_report import loadRunParameters, npvBars, openReport, saveRunParameters
+from .utility_functions.iteration_report import ITERATION_HEADERS, iterationTableRows, loadRunParameters, npvBars, openReport, saveRunParameters
 from .utility_functions.hydraulic_balancing import createChildVersion, getOrCreatePipeBundles, getPipeBundles
 from .utility_functions.network_economics import evaluateVersion, resultTables
 from .utility_functions.economics import npvTerms, presentValueFactor, stageYears
@@ -387,9 +387,7 @@ class CostOptimizationDialog(QDialog):
         self.box_required = self.section(tr_msg('Required load of source-file customers (column of the source file)'), self.table_required, collapsed=True)
         layout.addWidget(self.box_required)
         self.table_iterations = QTableWidget(0, 9)
-        self.table_iterations.setHorizontalHeaderLabels([tr_msg('Iteration'), tr_msg('NPV simulated'), tr_msg('NPV model'), tr_msg('Model error'),
-                                                         tr_msg('larger'), tr_msg('smaller'), tr_msg('rejected'), tr_msg('Customers with deficit'),
-                                                         tr_msg('Outcome')])
+        self.table_iterations.setHorizontalHeaderLabels([tr_msg(h) for h in ITERATION_HEADERS])
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table_iterations.verticalHeader().setVisible(False)
         self.table_iterations.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -662,8 +660,7 @@ class CostOptimizationDialog(QDialog):
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
             rows = []
-        for row in rows:
-            self.addRow(row)
+        self.showRows(rows)
         if rows:
             self.plot(rows)
             self.markBest(min(rows, key=lambda r: r['npv'])['iteration'])
@@ -699,14 +696,17 @@ class CostOptimizationDialog(QDialog):
             iface.messageBar().pushMessage(tr_msg('Error'), tr_msg('The iterations could not be shown: ') + traceback.format_exc().splitlines()[-1],
                                            level=MessageCritical)
 
-    def addRow(self, row):
-        r = self.table_iterations.rowCount()
-        self.table_iterations.insertRow(r)
-        values = [row['iteration'], '{:,.0f}'.format(row['npv']).replace(',', "'"), '' if row.get('npv_model') is None else '{:,.0f}'.format(row['npv_model']).replace(',', "'"),
-                  '' if row.get('model_error') is None else '{:.1%}'.format(row['model_error']), row.get('n_larger', ''), row.get('n_smaller', ''),
-                  row.get('n_rejected', ''), len(row.get('penalty_customers') or []), row.get('outcome', '')]
-        for col, value in enumerate(values):
-            self.table_iterations.setItem(r, col, QTableWidgetItem(str(value)))
+    def showRows(self, rows):
+        """the whole table: a row shows the step of the row before it (iterationTableRows)"""
+        self.table_iterations.setRowCount(0)
+        for row, steps, outcome in iterationTableRows(rows):
+            r = self.table_iterations.rowCount()
+            self.table_iterations.insertRow(r)
+            values = [row['iteration'], '{:,.0f}'.format(row['npv']).replace(',', "'"),
+                      '' if row.get('npv_model') is None else '{:,.0f}'.format(row['npv_model']).replace(',', "'"),
+                      '' if row.get('model_error') is None else '{:.1%}'.format(row['model_error'])] + steps + [len(row.get('penalty_customers') or []), outcome]
+            for col, value in enumerate(values):
+                self.table_iterations.setItem(r, col, QTableWidgetItem(str(value)))
 
     def markBest(self, iteration):
         for r in range(self.table_iterations.rowCount()):
@@ -1020,14 +1020,16 @@ class CostOptimizationRun(QObject):
             self.stage_references = values
         yearly = [penaltyCost(v, p['price_kh'], p['price_kwh']) for v in values]
         result = stagesNpv(evaluations[0]['scenario'], self.stageList(), evaluations, yearly)
-        new_deficits = sorted({cid for v, ref in zip(values, self.stage_references) for cid, (kh, kwh) in v.items()
-                               if kh > ref.get(cid, (0, 0))[0] + 1e-6 or kwh > ref.get(cid, (0, 0))[1] + 1e-6})
+        # per stage: the customer IDs of the stages are their own (the map shows each stage's)
+        stage_penalty = {s['version']: sorted(cid for cid, (kh, kwh) in v.items() if kh > ref.get(cid, (0, 0))[0] + 1e-6 or kwh > ref.get(cid, (0, 0))[1] + 1e-6)
+                         for s, v, ref in zip(self.stageList(), values, self.stage_references)}
+        new_deficits = sorted({cid for cids in stage_penalty.values() for cid in cids})
         previous = self.rows[-1] if self.rows else None
         npv_model = previous.get('npv_next') if previous else None
         npv = result['npv']
         row = {'iteration': self.iteration, 'npv': npv, 'split': result['split'], 'npv_model': npv_model,
                'model_error': None if npv_model is None or not npv else (npv_model - npv) / abs(npv),
-               'penalty_customers': new_deficits, 'state': states[self.stage_versions[-1]], 'economics': None,
+               'penalty_customers': new_deficits, 'stage_penalty': stage_penalty, 'state': states[self.stage_versions[-1]], 'economics': None,
                # the line IDs differ between the stages (pipe laying of the extension): the pipes of each stage
                'stage_states': {version: {str(lid): bid for lid, bid in state.items()} for version, state in states.items()},
                'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split'],
@@ -1130,7 +1132,7 @@ class CostOptimizationRun(QObject):
         data.update({'steps': steps, 'rejected': {str(lid): reasons for lid, reasons in rejected.items()}, 'state': {str(k): v for k, v in row['state'].items()}})
         with open(iterationPath(self.config, row['iteration']), 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=1, default=str)
-        self.dlg.addRow(row)
+        self.dlg.showRows(self.rows)
         self.dlg.plot(self.rows)
         self.dlg.update_progress(min(99, (row['iteration'] + 1) / (self.parms['max_iter'] + 1) * 100))
         try:

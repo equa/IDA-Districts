@@ -11909,5 +11909,21 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Written: {}. Open this folder in Claude Code and allow the server districts.</source>
             <translation>Geschrieben: {}. Diesen Ordner in Claude Code öffnen und den Server districts erlauben.</translation>
         </message>
+        <message>
+            <source>larger (step to here)</source>
+            <translation>grösser (Schritt hierher)</translation>
+        </message>
+        <message>
+            <source>smaller (step to here)</source>
+            <translation>kleiner (Schritt hierher)</translation>
+        </message>
+        <message>
+            <source>rejected (step to here)</source>
+            <translation>verworfen (Schritt hierher)</translation>
+        </message>
+        <message>
+            <source>stage {}</source>
+            <translation>Etappe {}</translation>
+        </message>
     </context>
 </TS>

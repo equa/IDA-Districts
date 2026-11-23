@@ -127,6 +127,12 @@ def stage2_mappings(cur, stage2, expressions):
         cur.execute('DELETE FROM public.model_parms WHERE id = ANY(%s);', (list(ids.values()),))
 
 
+def getPipeBundlesOf(cur, bid):
+    """the pipe ids of a bundle"""
+    from districts.utility_functions.hydraulic_balancing import getPipeBundles
+    return list((getPipeBundles(cur).get(bid) or {}).values())
+
+
 @pytest.fixture(scope='class')
 def staged(request, districts_plugin, errors):
     from types import SimpleNamespace
@@ -199,6 +205,44 @@ class TestStages:
         cur.execute('SELECT count(*) AS n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace '
                     "WHERE n.nspname = %s AND c.relname = 'lines' AND t.tgname = 'column_update_trigger' AND t.tgenabled = 'D';", (s1,))
         assert cur.fetchone()['n'] == 0  # enabled again
+        staged.split = (split_line, new_id)
+
+    def test_map_of_each_stage(self, staged):
+        """'Show on map' of a run over stages: a group per stage version with its own lines and pipes; the step on the
+        stage-1 line shows on both segments of the split in stage 2; the new deficit in the stage it occurs in"""
+        from qgis.core import QgsProject
+        from districts.cost_optimization import lineState
+        from districts.utility_functions.cost_optimization_layers import costGroup, removeCostLayers, showCostIterations
+        plugin = staged.plugin
+        cur = plugin.cur
+        s1, s2 = staged.stage1, staged.stage2
+        split_line, new_id = staged.split
+        states = {v: {str(lid): bid for lid, bid in lineState(cur, v).items()} for v in (s1, s2)}
+        cur.execute('SELECT min(id) AS id FROM "{}".customers;'.format(s2))  # nosec B608
+        cid = cur.fetchone()['id']
+        pid = next(iter(getPipeBundlesOf(cur, states[s1][str(split_line)])))
+        rows = [{'iteration': 0, 'npv': 2.0, 'split': {}, 'state': states[s2], 'stage_states': states, 'stage_penalty': {s1: [], s2: []},
+                 'steps': [{'line': split_line, 'stage': 1, 'larger': True, 'before': {'1': pid}, 'after': {'1': pid}, 'dnpv': -1.0}]},
+                {'iteration': 1, 'npv': 1.0, 'split': {}, 'state': states[s2], 'stage_states': states, 'stage_penalty': {s1: [], s2: [cid]}}]
+        try:
+            showCostIterations(cur, plugin.config, [1], rows)
+            group = costGroup(1)
+            assert [child.name() for child in group.children()] == [s1, s2]
+            assert [child.isVisible() for child in group.children()] == [False, True]
+
+            def layer(stage, name):
+                found = [n.layer() for n in group.findGroup(stage).findLayers() if n.layer().name() == name]
+                return found[0] if found else None
+            changed = 'Lines – changed for this iteration'
+            assert {f['id'] for f in layer(s1, changed).getFeatures()} == {split_line}
+            assert {f['id'] for f in layer(s2, changed).getFeatures()} == {split_line, new_id}
+            assert layer(s1, 'Customers – new deficit (penalty)') is None
+            assert {f['id'] for f in layer(s2, 'Customers – new deficit (penalty)').getFeatures()} == {cid}
+            cur.execute('SELECT count(*) AS n FROM "{}".lines;'.format(s2))  # nosec B608
+            assert layer(s2, 'Lines – inner diameter [mm]').featureCount() == cur.fetchone()['n']
+        finally:
+            removeCostLayers()
+        assert QgsProject.instance().layerTreeRoot().findGroup('Cost optimization') is None
 
     def test_input_data_of_all_stages(self, staged):
         """the input check of the cost optimization over both stage versions: a mapping expression failing in both is

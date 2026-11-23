@@ -75,6 +75,16 @@ and infos go to the log of the run. Left out: the pairs and the scenario (the di
 the run switches them on. A check that fails itself is logged and does not block the run.
 *Alternative:* only the loaded version; a stage-2 fault would show only in the build of iteration 0 after stage 1.
 
+**D10 – Results per stage on the map and in the table (2026-11-23, at the user's request).** 'Show on map' drew the
+lines of the loaded version with the pipes of the last stage, matched by ID, so a stage-2 line split or renumbered got
+the wrong pipes and the stage-2 network was not visible. An iteration of a run over stages now has a sub group per stage
+version with its own lines and pipes (`stage_states`); the last stage is visible, the others are switched on in the
+layer tree. A step names the root of a line group (stage, line), so it is marked on every segment of the group through
+the line matching (`stageRoots`). The new comfort deficits are kept per stage (`stage_penalty`, the customer IDs are
+each stage's own); older iteration files show all of them in the last stage. The report has the same maps per stage.
+The table of the iterations shows the counts of a step (larger, smaller, rejected) in the row of the iteration it
+leads to, as the map's 'changed for this iteration' (iteration 0 has none); the outcome only in the last row.
+
 ## Risks / Trade-offs
 
 - [Run time grows with the stages] → the weeks are shared; the parallel weeks run per stage; the annual option stays
