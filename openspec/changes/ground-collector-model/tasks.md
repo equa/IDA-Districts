@@ -41,5 +41,5 @@
 ## 8. Documentation and validation
 
 - [x] 8.1 README.md and CLAUDE.md: the ground collector modules, the contract, the validation cases and the generator script
-- [ ] 8.2 Local validation: from `districts/` the QGIS Python runs `-m pytest -m "not ida"` and it passes, including `test_static_mypy.py` (new modules clean) and `test_messages.py`
-- [ ] 8.3 `npx openspec validate --all`; commit the change's artifacts with the code, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass
+- [x] 8.2 Local validation: from `districts/` the QGIS Python runs `-m pytest -m "not ida"` and it passes, including `test_static_mypy.py` (new modules clean) and `test_messages.py` (528 passed; 2 AI-tab tests failed only from a pydantic-core mismatch in this PC's QGIS 4.2.0 Python, green on the runner)
+- [x] 8.3 `npx openspec validate --all`; commit the change's artifacts with the code, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass (validate: 21 passed, 0 failed; fd44687 run #49 green on QGIS 4.2)
