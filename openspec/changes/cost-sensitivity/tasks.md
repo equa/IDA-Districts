@@ -32,4 +32,12 @@
 - [x] 5.4 Translations: tr_msg with German texts, de compiled
 - [x] 5.5 Docs: README.md and CLAUDE.md (sensitivity.json, the new modules)
 - [x] 5.6 Local validation from districts/: `-m pytest` passes (with `-m "not ida"` when IDA is not installed), including test_static_mypy.py and test_messages.py
-- [ ] 5.7 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 5.7 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass (run 45195917375 green)
+
+## 6. Interactive parallel coordinates (D9)
+
+- [x] 6.1 Selection: click on a line or a table row, the line red, the flip rows of the variant highlighted
+- [x] 6.2 Filter rectangles by dragging along an axis, the variants outside light and greyed, removed by a double click or the reset
+- [x] 6.3 Plots and tables one above the other with titles; the enlarged view sharing selection and filter
+- [x] 6.4 Tests: click, drag and double click on the plot (unit), table selection and filter in the dialog (ida)
+- [ ] 6.5 CI

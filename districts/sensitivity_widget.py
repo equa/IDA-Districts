@@ -7,11 +7,14 @@ import glob
 import os
 import traceback
 
+import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from matplotlib.patches import Rectangle
 from qgis.PyQt.QtCore import QObject, QSize, Qt, pyqtSlot
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
-    QAbstractItemView, QComboBox, QDialog, QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QSpinBox, QTableWidget,
+    QAbstractItemView, QComboBox, QDialog, QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QSpinBox, QSplitter, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QWidget,
 )
 from qgis.core import QgsMessageLog
@@ -25,7 +28,7 @@ from .utility_functions.sensitivity import (
     CONFIRM_SECONDS, DESIGN_LABELS, DESIGNS, MODE_LABELS, ESTIMATE_SECONDS_PER_STAGE, MODES, designVariants, estimateBasis, estimateVariant, flips, loadAnalysis,
     parameterRows, saveAnalysis, variantCount, variantParameters, variedBounds,
 )
-from .utility_functions.sensitivity_plots import money, parallelCoordinates, resultAxes, tornadoChart
+from .utility_functions.sensitivity_plots import money, parallelCoordinates, parallelData, passesBrushes, resultAxes, tornadoChart
 from .utility_functions.translations import tr_msg
 
 DEFAULT_RELATIVE = 20.0
@@ -195,67 +198,236 @@ class SensitivityWidget(QWidget):
         self.run.start()
 
 
+class ParallelPlot(QWidget):
+    """the interactive parallel coordinates: a click on a line selects its variant, a drag along an axis draws a filter
+    rectangle (the variants outside are drawn light), a double click on an axis removes its rectangle. state =
+    {'selected': name, 'brushes': {column: (low, high)}} is shared with the enlarged view."""
+
+    def __init__(self, state, on_select, on_filter, size=(9, 3.6)):
+        super().__init__()
+        self.state, self.on_select, self.on_filter = state, on_select, on_filter
+        self.analysis = None
+        self.figure = Figure(figsize=size)
+        self.canvas = _Canvas(self.figure)
+        self.canvas.setToolTip(tr_msg('Click a line to select its variant; drag along an axis to filter; double-click an axis to remove its filter'))
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.canvas)
+        self.ax = None
+        self.press = None
+        self.drag = None
+        self.canvas.mpl_connect('button_press_event', self.onPress)
+        self.canvas.mpl_connect('motion_notify_event', self.onMotion)
+        self.canvas.mpl_connect('button_release_event', self.onRelease)
+
+    def setAnalysis(self, analysis):
+        self.analysis = analysis
+        self.redraw()
+
+    def redraw(self):
+        self.figure.clear()
+        self.ax = None
+        if self.analysis and sum(1 for v in self.analysis['variants'] if v.get('result')) > 1:
+            self.ax = self.figure.add_subplot(111)
+            parallelCoordinates(self.ax, self.analysis, self.state.get('selected'), self.state['brushes'])
+            self.figure.tight_layout()
+        self.canvas.draw()
+
+    def column(self, x):
+        names, _, _ = parallelData(self.analysis)
+        return min(max(int(round(x)), 0), len(names) - 1)
+
+    def onPress(self, event):
+        if self.ax is None or event.inaxes is not self.ax or event.button != 1 or event.xdata is None:
+            return
+        column = self.column(event.xdata)
+        if event.dblclick:
+            self.press = None
+            if column in self.state['brushes']:
+                del self.state['brushes'][column]
+                self.redraw()
+                self.on_filter()
+            return
+        self.press = (event.xdata, event.ydata, column)
+
+    def onMotion(self, event):
+        if self.press is None or event.inaxes is not self.ax or event.ydata is None:
+            return
+        _, y0, column = self.press
+        if abs(event.ydata - y0) < 0.02:
+            return
+        if self.drag is None:
+            self.drag = Rectangle((column - 0.12, y0), 0.24, 0, facecolor='#2171b5', alpha=0.25, edgecolor='#2171b5', zorder=8)
+            self.ax.add_patch(self.drag)
+        self.drag.set_y(min(y0, event.ydata))
+        self.drag.set_height(abs(event.ydata - y0))
+        self.canvas.draw_idle()
+
+    def onRelease(self, event):
+        if self.press is None:
+            return
+        x0, y0, column = self.press
+        self.press = None
+        if self.drag is not None:
+            low, high = self.drag.get_y(), self.drag.get_y() + self.drag.get_height()
+            self.drag = None
+            self.state['brushes'][column] = (max(0.0, low), min(1.0, high))
+            self.redraw()
+            self.on_filter()
+            return
+        name = self.nearest(x0, y0)
+        if name is not None:
+            self.on_select(name)
+
+    def nearest(self, x, y):
+        """the variant whose line passes closest to (x, y), within a twentieth of the height; light ones count too"""
+        _, _, scaled = parallelData(self.analysis)
+        best, distance = None, 0.05
+        for name, values in scaled.items():
+            d = abs(float(np.interp(x, range(len(values)), values)) - y)
+            if d < distance:
+                best, distance = name, d
+        return best
+
+    def passing(self):
+        _, _, scaled = parallelData(self.analysis)
+        return [name for name, values in scaled.items() if passesBrushes(values, self.state['brushes'])]
+
+
 class SensitivityResults(QWidget):
-    """the tab 'Sensitivity': plots, the variants and the lines that flip, the robustness on the map"""
+    """the tab 'Sensitivity': the interactive parallel coordinates and the tornado chart, the variants and the lines
+    that flip one above the other, the robustness on the map"""
 
     def __init__(self, dlg):
         super().__init__()
         self.dlg = dlg
         self.analysis = None
+        self.state: dict = {'selected': None, 'brushes': {}}
+        self.views = []
         layout = QVBoxLayout(self)
-        self.figure = Figure(figsize=(9, 3.6))
-        self.canvas = _Canvas(self.figure)
-        self.canvas.setToolTip(tr_msg('Click for a larger view'))
-        self.canvas.mpl_connect('button_press_event', lambda _: self.enlarge())
-        layout.addWidget(self.canvas, 2)
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        plots = QWidget()
+        row = QHBoxLayout(plots)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.parallel = ParallelPlot(self.state, self.select, self.filtered)
+        self.views.append(self.parallel)
+        self.tornado_figure = Figure(figsize=(4, 3.6))
+        self.tornado_canvas = _Canvas(self.tornado_figure)
+        row.addWidget(self.parallel, 3)
+        row.addWidget(self.tornado_canvas, 2)
+        splitter.addWidget(plots)
         self.table_variants = _table()
+        self.table_variants.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_variants.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table_variants.itemSelectionChanged.connect(self.onTableSelection)
+        splitter.addWidget(_titled(tr_msg('Variants: the varied values and the results; select a row to highlight its line'), self.table_variants))
         self.table_flips = _table()
-        tables = QHBoxLayout()
-        tables.addWidget(self.table_variants, 3)
-        tables.addWidget(self.table_flips, 2)
-        layout.addLayout(tables, 1)
+        splitter.addWidget(_titled(tr_msg('Lines whose pipe changes: the pipe in the base and the pipe of each variant that changes it; '
+                                          'the rows of the selected variant highlighted'), self.table_flips))
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+        splitter.setStretchFactor(2, 2)
+        layout.addWidget(splitter, 1)
         row = QHBoxLayout()
         self.label = QLabel()
+        self.label_filter = QLabel()
+        self.btn_reset = QPushButton(tr_msg('Reset the filter'))
+        self.btn_reset.clicked.connect(self.resetFilter)
+        self.btn_large = QPushButton(tr_msg('Larger view'))
+        self.btn_large.clicked.connect(self.enlarge)
         self.btn_map = QPushButton(tr_msg('Show the robustness on the map'))
         self.btn_map.clicked.connect(self.showMap)
         row.addWidget(self.label, 1)
-        row.addWidget(self.btn_map)
+        row.addWidget(self.label_filter)
+        for button in (self.btn_reset, self.btn_large, self.btn_map):
+            row.addWidget(button)
         layout.addLayout(row)
         self.show(loadSaved(dlg.main.config))
 
     def show(self, analysis):
         self.analysis = analysis
-        self.figure.clear()
+        self.state['selected'] = None
+        self.state['brushes'].clear()
+        self.tornado_figure.clear()
         self.table_variants.setRowCount(0)
         self.table_flips.setRowCount(0)
         done = [v for v in (analysis or {}).get('variants', []) if v.get('result')]
-        self.btn_map.setEnabled(bool(done))
+        for button in (self.btn_map, self.btn_large, self.btn_reset):
+            button.setEnabled(bool(done))
+        self.parallel.setAnalysis(analysis if done else None)
         if not done:
             self.label.setText(tr_msg('No sensitivity analysis in this version yet.'))
-            self.canvas.draw()
+            self.label_filter.setText('')
+            self.tornado_canvas.draw()
             return
         self.label.setText(tr_msg('{} of {} variants, {} ({}), started {}').format(
             len(done), len(analysis['variants']), tr_msg(DESIGN_LABELS.get(analysis['design'], analysis['design'])),
             tr_msg(MODE_LABELS.get(analysis['mode'], analysis['mode'])), analysis.get('started', '')))
         if len(done) > 1:
-            parallelCoordinates(self.figure.add_subplot(121), analysis)
-            tornadoChart(self.figure.add_subplot(122), analysis)
-            self.figure.tight_layout()
-        self.canvas.draw()
+            tornadoChart(self.tornado_figure.add_subplot(111), analysis)
+            self.tornado_figure.tight_layout()
+        self.tornado_canvas.draw()
         fillVariantTable(self.table_variants, analysis)
         fillFlipTable(self.table_flips, analysis, self.dlg.main.cur)
+        self.filtered()
+
+    # ---------------------------------------------------------------- selection and filter
+    def select(self, name):
+        """a variant selected in a plot or the table: its line red, its table row selected, its flips highlighted"""
+        self.state['selected'] = name
+        self.table_variants.blockSignals(True)
+        self.table_variants.clearSelection()
+        for k in range(self.table_variants.rowCount()):
+            if self.table_variants.item(k, 0).text() == name:
+                self.table_variants.selectRow(k)
+                self.table_variants.scrollToItem(self.table_variants.item(k, 0))
+        self.table_variants.blockSignals(False)
+        for k in range(self.table_flips.rowCount()):
+            names = self.table_flips.item(k, 0).data(Qt.ItemDataRole.UserRole) or []
+            for col in range(self.table_flips.columnCount()):
+                self.table_flips.item(k, col).setBackground(QColor('#fde0dd') if name in names else QColor(0, 0, 0, 0))
+        for view in self.views:
+            view.redraw()
+
+    def onTableSelection(self):
+        rows = {index.row() for index in self.table_variants.selectedIndexes()}
+        if rows:
+            self.select(self.table_variants.item(min(rows), 0).text())
+
+    def filtered(self):
+        """the variants inside the filter rectangles: the others greyed in the table"""
+        if not self.parallel.analysis:
+            return
+        inside = set(self.parallel.passing())
+        for k in range(self.table_variants.rowCount()):
+            color = QColor('#000000') if self.table_variants.item(k, 0).text() in inside else QColor('#aaaaaa')
+            for col in range(self.table_variants.columnCount()):
+                self.table_variants.item(k, col).setForeground(color)
+        total = self.table_variants.rowCount()
+        self.label_filter.setText(tr_msg('{} of {} variants in the filter').format(len(inside), total) if self.state['brushes'] else '')
+        for view in self.views:
+            if view is not self.parallel:
+                view.redraw()
+
+    def resetFilter(self):
+        self.state['brushes'].clear()
+        for view in self.views:
+            view.redraw()
+        self.filtered()
 
     def enlarge(self):
         if not self.analysis:
             return
         dialog = QDialog(self)
         dialog.setWindowTitle(tr_msg('Sensitivity analysis'))
-        figure = Figure(figsize=(12, 6))
-        parallelCoordinates(figure.add_subplot(111), self.analysis)
-        figure.tight_layout()
-        QVBoxLayout(dialog).addWidget(FigureCanvasQTAgg(figure))
+        view = ParallelPlot(self.state, self.select, self.filtered, size=(12, 6))
+        QVBoxLayout(dialog).addWidget(view)
+        view.setAnalysis(self.analysis)
+        self.views.append(view)
         dialog.resize(1200, 650)
         dialog.exec()
+        self.views.remove(view)
+        self.parallel.redraw()
 
     def showMap(self):
         from qgis.utils import iface
@@ -496,6 +668,7 @@ def fillFlipTable(table, analysis, cur):
         table.insertRow(k)
         for col, value in enumerate([str(line), version, names(entry['before']), '; '.join(changed)]):
             table.setItem(k, col, QTableWidgetItem(value))
+        table.item(k, 0).setData(Qt.ItemDataRole.UserRole, list(entry['after']))
     table.resizeColumnsToContents()
 
 
@@ -526,6 +699,17 @@ def durationText(seconds):
     if seconds < 5400:
         return tr_msg('{:.0f} min').format(seconds / 60)
     return tr_msg('{:.1f} h').format(seconds / 3600)
+
+
+def _titled(title, widget):
+    box = QWidget()
+    layout = QVBoxLayout(box)
+    layout.setContentsMargins(0, 4, 0, 0)
+    label = QLabel(title)
+    label.setWordWrap(True)
+    layout.addWidget(label)
+    layout.addWidget(widget)
+    return box
 
 
 def _table():

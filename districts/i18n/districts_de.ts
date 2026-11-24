@@ -12477,5 +12477,29 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>purchased_heat</source>
             <translation>bezogene Wärme</translation>
         </message>
+        <message>
+            <source>Click a line to select its variant; drag along an axis to filter; double-click an axis to remove its filter</source>
+            <translation>Eine Linie anklicken wählt ihre Variante; entlang einer Achse ziehen filtert; Doppelklick auf eine Achse entfernt ihren Filter</translation>
+        </message>
+        <message>
+            <source>Larger view</source>
+            <translation>Grössere Ansicht</translation>
+        </message>
+        <message>
+            <source>Lines whose pipe changes: the pipe in the base and the pipe of each variant that changes it; the rows of the selected variant highlighted</source>
+            <translation>Leitungen, deren Rohr sich ändert: das Rohr in der Basis und das Rohr jeder Variante, die es ändert; die Zeilen der gewählten Variante hervorgehoben</translation>
+        </message>
+        <message>
+            <source>Reset the filter</source>
+            <translation>Filter zurücksetzen</translation>
+        </message>
+        <message>
+            <source>Variants: the varied values and the results; select a row to highlight its line</source>
+            <translation>Varianten: die variierten Werte und die Ergebnisse; eine Zeile wählen hebt ihre Linie hervor</translation>
+        </message>
+        <message>
+            <source>{} of {} variants in the filter</source>
+            <translation>{} von {} Varianten im Filter</translation>
+        </message>
     </context>
 </TS>

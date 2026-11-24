@@ -555,7 +555,16 @@ class TestStagedRun:
         assert by_name['base']['npv'] == pytest.approx(best['npv'], rel=1e-6)
         assert by_name['interest_pct +']['npv'] < by_name['base']['npv'] < by_name['interest_pct -']['npv']
         assert loadScenario(plugin.cur, scenario_id)['scenario']['interest_pct'] == interest
-        assert dlg.sensitivity_results.table_variants.rowCount() == 3
+        results = dlg.sensitivity_results
+        assert results.table_variants.rowCount() == 3
+        # selecting a variant in the table selects it in the plot; a filter greys the variants outside
+        results.table_variants.selectRow(2)
+        assert results.state['selected'] == results.table_variants.item(2, 0).text()
+        results.state['brushes'][0] = (0.9, 1.0)
+        results.filtered()
+        assert results.label_filter.text() == '1 of 3 variants in the filter'
+        results.resetFilter()
+        assert results.label_filter.text() == ''
         dlg.sensitivity_results.showMap()
         group = QgsProject.instance().layerTreeRoot().findGroup('Sensitivity – robustness')
         assert group is not None and [child.name() for child in group.children()] == analysis['basis']['versions']

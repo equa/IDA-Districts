@@ -79,6 +79,14 @@ and after. A new analysis replaces it (the full runs keep their versions).
 change which lines the step may make smaller, in a full optimization the whole path. The report says so next to the
 tornado chart. *Consequence:* a limit row shows no NPV swing for the base design, only in the NPV after the step.
 
+**D9 – Interactive parallel coordinates (2026-11-24, at the user's request).** In the tab 'Sensitivity' a click on a
+line selects its variant (drawn red, its row selected in the variant table, the rows of the lines it changes
+highlighted in the flip table); a row selected in the table selects its line. A drag along an axis draws a filter
+rectangle; the variants outside every rectangle are drawn light and greyed in the table, the count is shown; a double
+click on an axis removes its rectangle, 'Reset the filter' all. The enlarged view shares the selection and the filter.
+The plots, the variant table and the flip table stand one above the other in a splitter, each table with a title that
+says what it holds. The report keeps the static plots.
+
 ## Risks / Trade-offs
 
 - [The estimate is one cost-model step, not a new optimum] → It is the same step the optimization takes; the table

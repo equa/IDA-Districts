@@ -116,3 +116,34 @@ def test_base_variant_changing_a_line():
     result['variants'][0]['result']['changes'] = [{'version': 'v', 'line': 114, 'before': [5], 'after': [6], 'larger': True}]
     assert flips(result)[('v', 114)] == {'before': [5], 'after': {'base': [6], 'interest_pct +': [4]}}
     assert robustness(result) == {('v', 114): pytest.approx(0.25)}
+
+
+def test_parallel_plot_selects_and_filters():
+    """the interactive parallel coordinates: a click near a line selects its variant, a drag along an axis sets a
+    filter rectangle (the variants outside light), a double click on that axis removes it"""
+    from types import SimpleNamespace
+    from districts.sensitivity_widget import ParallelPlot
+    from districts.utility_functions.sensitivity_plots import parallelData
+    result = analysis()
+    for v in result['variants']:
+        v['result']['split_after'] = {'investment': 1000.0, 'pump_energy': v['result']['npv_after'] - 1000.0}
+    selected, filtered = [], []
+    state: dict = {'selected': None, 'brushes': {}}
+    plot = ParallelPlot(state, selected.append, lambda: filtered.append(True))
+    plot.setAnalysis(result)
+    _, _, scaled = parallelData(result)
+
+    def event(x, y, dblclick=False):
+        return SimpleNamespace(inaxes=plot.ax, button=1, xdata=x, ydata=y, dblclick=dblclick)
+    # a click on the interest axis at the value of 'interest_pct +' (the highest interest: 1.0)
+    plot.onPress(event(0.0, scaled['interest_pct +'][0]))
+    plot.onRelease(event(0.0, scaled['interest_pct +'][0]))
+    assert selected == ['interest_pct +']
+    # a drag on the interest axis over the upper half keeps the variants with interest 3 % and 4.5 %
+    plot.onPress(event(0.0, 0.45))
+    plot.onMotion(event(0.0, 1.0))
+    plot.onRelease(event(0.0, 1.0))
+    assert set(state['brushes']) == {0} and filtered
+    assert set(plot.passing()) == {'base', 'interest_pct +', 'price:electricity -', 'price:electricity +'}
+    plot.onPress(event(0.0, 0.7, dblclick=True))
+    assert state['brushes'] == {} and len(plot.passing()) == 5
