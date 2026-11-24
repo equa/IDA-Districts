@@ -102,7 +102,12 @@ def energyRows(basis,npv=None):
     if not basis:
         return [[tr_msg('Basis of the net present value'),tr_msg('price curves of the pipe losses (no energy-use results)')]]
     boundary=tr_msg('whole system') if basis['boundary']=='system' else tr_msg('network operator')
-    rows=[[tr_msg('Basis of the net present value'),tr_msg('energy use of the plants and customers (system boundary: {})').format(boundary)]]
+    if basis.get('fallback'):
+        # a counted carrier without a price: the pipe losses are priced with the curves (cost-sensitivity D10)
+        rows=[[tr_msg('Basis of the net present value'),tr_msg('price curves of the pipe losses: no price for {} in the scenario; the energy use below for information').format(
+            ', '.join(tr_msg(CARRIER_LABELS.get(c,c)) for c in basis['fallback']))]]
+    else:
+        rows=[[tr_msg('Basis of the net present value'),tr_msg('energy use of the plants and customers (system boundary: {})').format(boundary)]]
     customers={}
     for feature,fid,carrier,kwh,eur in basis['costs']['features']:
         if feature=='customer':

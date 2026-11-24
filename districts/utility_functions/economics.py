@@ -154,7 +154,9 @@ def npvTerms(scenario, investments, yearly, by_carrier=None, operating=None):
         buys = [start + int(t) for t in purchaseYears(lifetime, period - start)]
         first = cost * presentValueFactor(scenario, 'investment', buys[:1])
         terms.append(dict(info, group='investment', base=cost, factor=presentValueFactor(scenario, 'investment', buys), years=buys, lifetime=lifetime,
-                          start=start, first_value=first, replacement_value=cost * presentValueFactor(scenario, 'investment', buys[1:])))
+                          start=start, first_value=first, replacement_value=cost * presentValueFactor(scenario, 'investment', buys[1:]),
+                          # per purchase: year, price in that year, present value (the report's purchase table)
+                          purchases=[(t, cost * level(scenario, 'investment', t), cost * presentValueFactor(scenario, 'investment', [t])) for t in buys]))
         maintenance_pct = float(item.get('maintenance_pct') or 0)
         if maintenance_pct:
             terms.append(dict(info, group='maintenance', base=cost * maintenance_pct / 100,

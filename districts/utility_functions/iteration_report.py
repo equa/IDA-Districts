@@ -486,7 +486,7 @@ def npvBars(ax, rows):
     ax.legend(fontsize=7, loc='upper left', bbox_to_anchor=(1.01, 1.0))
 
 
-ITERATION_HEADERS = ('Iteration', 'NPV simulated', 'NPV model', 'Model error', 'larger (step to here)', 'smaller (step to here)',
+ITERATION_HEADERS = ('Iteration', 'NPV simulated', 'NPV model', 'Model error', 'Model error [€]', 'larger (step to here)', 'smaller (step to here)',
                      'rejected (step to here)', 'Customers with deficit', 'Outcome')
 
 
@@ -617,7 +617,8 @@ def costReport(cur, config):
     # outputs
     report.section(tr_msg('Outputs'))
     iteration_rows = [[r['iteration'], round(r['npv']), None if r.get('npv_model') is None else round(r['npv_model']),
-                       '' if r.get('model_error') is None else '{:.1%}'.format(r['model_error'])] + steps + [len(r.get('penalty_customers') or []), outcome]
+                       '' if r.get('model_error') is None else '{:.1%}'.format(r['model_error']),
+                       None if r.get('npv_model') is None else round(r['npv_model'] - r['npv'])] + steps + [len(r.get('penalty_customers') or []), outcome]
                       for r, steps, outcome in iterationTableRows(rows)]
     report.section(tr_msg('Iterations'), table([tr_msg(h) for h in ITERATION_HEADERS], iteration_rows) +
                    '<p class="note">{}</p>'.format(esc(tr_msg('Iteration {} has the least net present value.').format(best['iteration']))) +
@@ -685,13 +686,11 @@ def costReport(cur, config):
     # cost analysis
     report.section(tr_msg('Cost analysis'))
     iterations = [r['iteration'] for r in rows]
-    in_plants = lossesInPlantEnergy(rows)
+    in_plants = partStatus(rows)
     split_rows = [[groupLabel(g)] + [partValue(by_iteration[k]['split'], g, in_plants) for k in iterations] for g in NPV_GROUPS]
     split_rows.append([tr_msg('Net present value')] + [round(by_iteration[k]['npv']) for k in iterations])
     report.section(tr_msg('Net present value per part [€]'), table([tr_msg('Part')] + [tr_msg('Iteration {}').format(k) for k in iterations], split_rows) +
-                   ('<p class="note">{}</p>'.format(esc(tr_msg('With energy-use results the energy the plants buy is in the NPV; it covers the pipe losses, '
-                                                               'which are therefore not priced on their own (their value for information: Energy use and costs of year 0).')))
-                    if in_plants else ''), 3)
+                   ''.join('<p class="note">{}: {}</p>'.format(esc(groupLabel(g)), esc(text)) for g, text in in_plants.items()), 3)
     npvCalculation(report, rows)
     diff_rows = [[groupLabel(g), partValue(reference['split'], g, in_plants), partValue(best['split'], g, in_plants),
                   partValue({g: best['split'].get(g, 0.0) - reference['split'].get(g, 0.0)}, g, in_plants)] for g in NPV_GROUPS]
@@ -732,7 +731,8 @@ def costReport(cur, config):
             note = '<p class="note">{}</p>'.format(esc(tr_msg('Iteration {} has comfort violations already; mostly hydraulic: balance the network '
                                                               'first. They count in the NPV of every iteration.').format(deficit_rows[0][0])))
         report.section(tr_msg('Comfort violations per iteration'), table(
-            [tr_msg('Iteration'), tr_msg('Customers'), tr_msg('Kh/a'), tr_msg('Unmet kWh/a'), tr_msg('Customers with a deficit'),
+            [tr_msg('Iteration'), tr_msg('Customers'), tr_msg('Degree hours beyond the tolerance [K·h/a]'),
+             tr_msg('Unmet energy [kWh/a] (customers with a source file only)'), tr_msg('Customers with a deficit'),
              tr_msg('New against iteration 0')], deficit_rows) + note, 3)
     reasons = {}
     for row in rows:
@@ -743,18 +743,26 @@ def costReport(cur, config):
     if reasons:
         report.section(tr_msg('Rejected changes'), table([tr_msg('Reason'), tr_msg('Number')], sorted(([r, n] for r, n in reasons.items()), key=lambda x: -x[1])), 3)
     from .sensitivity import loadAnalysis
-    sensitivitySection(report, loadAnalysis(config), catalog)
+    sensitivitySection(report, loadAnalysis(config), catalog, rows)
     return report
 
 
-def sensitivitySection(report, analysis, catalog):
+def sensitivitySection(report, analysis, catalog, rows=()):
     """the sensitivity analysis of the version (cost-sensitivity D7): plots, the variants and the lines that flip"""
-    from .sensitivity import DESIGN_LABELS, flips
+    from .sensitivity import DESIGN_LABELS, baseStep, baseStepText, differences, flipColumns, flips, pipeText
     from .sensitivity_plots import parallelCoordinates, resultAxes, tornadoChart
     done = [v for v in (analysis or {}).get('variants', []) if v.get('result')]
     if not done:
         return
-    report.section(tr_msg('Sensitivity analysis'))
+    if analysis['mode'] == 'estimate':
+        report.section(tr_msg('Sensitivity analysis – model-based estimate'), '<p>{}</p>'.format(esc(tr_msg(
+            'The sensitivity analysis values the best design of the run under changed conditions. For each variant the cost model makes one '
+            'optimization step; there is no new dynamic simulation and no complete optimization. The results estimate the sensitivity and are '
+            'not the same as results optimized anew.'))))
+    else:
+        report.section(tr_msg('Sensitivity analysis – full optimization per variant'), '<p>{}</p>'.format(esc(tr_msg(
+            'For each variant a complete cost optimization with simulations was run into its own child versions; the results are the best '
+            'iterations of these runs.'))))
     labels = analysis.get('labels') or {}
     keys = list(analysis['bounds'])
     basis = analysis.get('basis') or {}
@@ -780,22 +788,39 @@ def sensitivitySection(report, analysis, catalog):
         report.section(title, figureTag(fig, title) + '<p class="note">{}</p>'.format(esc(tr_msg(
             'The limits of a smaller pipe do not change the NPV of a design, only which pipes the step may make smaller: their effect shows in the NPV '
             'after the step (estimate) or of the run (full).'))), 3)
-    rows = []
+    variant_rows = []
+    different = differences(analysis)
     for v in done:
         axes = resultAxes(v)
         result = v['result']
-        rows.append([v['name']] + [round(v['values'][k], 4) for k in keys] + [round(result.get('npv', 0.0)), round(axes['npv']), round(axes['investment']),
-                                                                             round(axes['operating']), int(axes['changed'])])
-    report.section(tr_msg('Variants'), table([tr_msg('Variant')] + [labels.get(k, k) for k in keys] +
-                                             [tr_msg('NPV of the basis design [€]'), tr_msg('NPV after the step or of the run [€]'), tr_msg('Investment [€]'),
-                                              tr_msg('Operating costs [€]'), tr_msg('Changed lines')], rows), 3)
+        step = round(result['npv_after'] - result['npv']) if 'npv_after' in result else ''
+        variant_rows.append([v['name']] + [round(v['values'][k], 4) for k in keys] + [round(result.get('npv', 0.0)), round(axes['npv']), step,
+                                                                             round(axes['investment']), round(axes['operating']), int(axes['changed']),
+                                                                             different.get(v['name'], 0)])
+    headers = [tr_msg('Variant')] + [labels.get(k, k) for k in keys] + [
+        tr_msg('NPV of the basis design [€]'), tr_msg('NPV after the step or of the run [€]'), tr_msg('NPV change by the step [€]'), tr_msg('Investment [€]'),
+        tr_msg('Operating costs [€]'), tr_msg('Lines changed by the step'), tr_msg('Lines different from the base')]
+    note = '<p class="note">{}</p>'.format(esc(tr_msg('The NPV after the step is a forecast of the cost model, not the NPV of a design optimized anew.')))         if analysis['mode'] == 'estimate' else ''
+    report.section(tr_msg('Variants'), table(headers, variant_rows) + note, 3)
 
-    def names(ids):
-        return ', '.join(str(catalog.get(int(i), {}).get('name', i)) for i in ids)
-    flip_rows = [[line, version, names(entry['before']), '; '.join('{}: {}'.format(name, names(after)) for name, after in entry['after'].items())]
+    columns = flipColumns(analysis)
+    flip_rows = [[line, version, pipeText(entry['before'], catalog), pipeText(entry['base'], catalog, entry['before']) if entry['base'] is not None else '']
+                 + [pipeText(entry['after'][name], catalog, entry['before']) if name in entry['after'] else '' for name in columns]
                  for (version, line), entry in sorted(flips(analysis).items())]
-    report.section(tr_msg('Lines whose pipe changes'), table([tr_msg('Line'), tr_msg('Version'), tr_msg('Pipe in the base'), tr_msg('Changed in')], flip_rows)
-                   if flip_rows else '<p class="empty">{}</p>'.format(esc(tr_msg('No variant changes a pipe: the sizing is robust in the ranges given.'))), 3)
+    step = baseStepText(baseStep(analysis, rows))
+    notes = '<p class="note">{}</p>'.format(esc(flipNote(analysis))) + ('<p class="note">{}</p>'.format(esc(step)) if step else '')
+    report.section(tr_msg('Lines whose pipe changes'), notes + (
+        table([tr_msg('Line'), tr_msg('Version'), tr_msg('Pipe of the run'), tr_msg('base')] + columns, flip_rows) if flip_rows else
+        '<p class="empty">{}</p>'.format(esc(tr_msg('No variant ends with other pipes than the base variant: the sizing is robust in the ranges given.')))), 3)
+
+
+def flipNote(analysis):
+    """where the changed pipes come from: the cost model's step (estimate) or the simulated runs (full)"""
+    if analysis.get('mode') == 'full':
+        return tr_msg("The pipes of the best iteration of each variant's cost optimization (simulated), where they differ from the base. "
+                      "↑ larger, ↓ smaller; an empty cell: the variant keeps the base pipe.")
+    return tr_msg("The step the cost model makes with the variant's values from the simulated results of the best iteration, without a new "
+                  "simulation: the pipes it would change next. ↑ larger, ↓ smaller; an empty cell: the variant keeps the base pipe.")
 
 
 # ---------------------------------------------------------------- net present value: equations and numbers
@@ -921,8 +946,12 @@ def energySections(report, saved):
             'Price curves: the version has no energy-use results (outputs energy_ep, energy_c); the pipe losses are priced with the curves.'))), 3)
         return
     first = with_energy[0]['economics']['energy_basis']
-    text = tr_msg('Energy use of the plants and customers (system boundary: {}); the pipe losses are shown for information.').format(
-        tr_msg('whole system') if first.get('boundary') == 'system' else tr_msg('network operator'))
+    if first.get('fallback'):
+        text = tr_msg('Price curves: the scenario has no price for {}, so the bought energy would count as free; the pipe losses are priced with the '
+                      'curves, the energy use is shown for information.').format(', '.join(tr_msg(CARRIER_LABELS.get(c, c)) for c in first['fallback']))
+    else:
+        text = tr_msg('Energy use of the plants and customers (system boundary: {}); the pipe losses are shown for information.').format(
+            tr_msg('whole system') if first.get('boundary') == 'system' else tr_msg('network operator'))
     if first.get('no_price'):
         text += ' ' + tr_msg('Carriers in use without a price (valued with 0): {}').format(', '.join(tr_msg(CARRIER_LABELS.get(c, c)) for c in first['no_price']))
     report.section(tr_msg('Basis of the net present value'), '<p>{}</p>'.format(esc(text)), 3)
@@ -1004,7 +1033,9 @@ def stageSections(report, rows, parms):
         [tr_msg('Iteration'), tr_msg('Stage'), tr_msg('Investment'), tr_msg('Maintenance'), tr_msg('Energy'), tr_msg('Residual value'),
          tr_msg('Comfort violations'), tr_msg('Net present value'), tr_msg('Share [%]')], detail_rows) +
         '<p class="note">{}</p>'.format(esc(tr_msg('Investment with the replacements (present values); energy: pump energy and the energy of the plants '
-                                                   'and customers, or the priced pipe losses.'))), 3)
+                                                   'and customers, or the priced pipe losses.'))) +
+        '<p class="note">{}</p>'.format(esc(tr_msg('Values rounded to 1 €; every total is the rounded sum of the unrounded values, so the rounded parts may '
+                                                   'differ from it by 1 €.'))), 3)
     best = min(staged, key=lambda r: r['npv'])
     part_rows = [[groupLabel(g)] + [round(s['split'].get(g, 0.0)) for s in best['stages']] + [round(sum(s['split'].get(g, 0.0) for s in best['stages']))]
                  for g in NPV_GROUPS if any(s['split'].get(g) for s in best['stages'])]
@@ -1029,15 +1060,47 @@ def economicsViews(rows):
     return views
 
 
-def lossesInPlantEnergy(rows):
-    """the NPV holds the energy the plants buy instead of the priced pipe losses (plant-energy-costs D5)"""
-    return all(not r['split'].get('heat_losses') and not r['split'].get('cold_losses') for r in rows) and \
-        any(r['split'].get('plant_energy') for r in rows)
+def partStatus(rows):
+    """{group: why it is 0 € in every iteration} for the energy parts, so a 0 € says whether the part is not available,
+    not counted or really 0 (review of the report, 2026-11-24): {group: text}"""
+    zero = {g for g in ('heat_losses', 'cold_losses', 'plant_energy', 'customer_energy') if all(not r['split'].get(g) for r in rows)}
+    if not zero:
+        return {}
+    bases = [v['economics'].get('energy_basis') for v in economicsViews(rows)]
+    status = {}
+    if not bases:
+        # a run before the terms were saved: the basis is unknown
+        for g in zero:
+            status[g] = tr_msg('0 €; the basis of this part was not saved with this run (run the optimization again for it)')
+        return status
+    basis = next((b for b in bases if b), None)
+    if basis is None:
+        for g in zero & {'plant_energy', 'customer_energy'}:
+            status[g] = tr_msg('not available: no energy-use results (outputs energy_ep, energy_c); the pipe losses are priced with the curves')
+        for g in zero & {'heat_losses', 'cold_losses'}:
+            status[g] = tr_msg('really 0 €: no losses of this mode, or no price curve')
+        return status
+    carriers = ', '.join(tr_msg(CARRIER_LABELS.get(c, c)) for c in (basis.get('fallback') or basis.get('no_price') or []))
+    if basis.get('fallback'):
+        for g in zero & {'plant_energy', 'customer_energy'}:
+            status[g] = tr_msg('not counted: no price for {} in the scenario; the pipe losses are priced with the curves instead').format(carriers)
+        for g in zero & {'heat_losses', 'cold_losses'}:
+            status[g] = tr_msg('really 0 €: no losses of this mode, or no price curve')
+        return status
+    for g in zero & {'heat_losses', 'cold_losses'}:
+        status[g] = tr_msg('in plant energy: the energy the plants buy covers the pipe losses')
+    if basis.get('no_price'):
+        for g in zero & {'plant_energy'}:
+            status[g] = tr_msg('0 €: no price for {} in the scenario (run before the fallback to the price curves)').format(carriers)
+    if basis.get('boundary') != 'system':
+        for g in zero & {'customer_energy'}:
+            status[g] = tr_msg('not counted: system boundary network operator')
+    return status
 
 
-def partValue(split, group, in_plants):
-    if in_plants and group in ('heat_losses', 'cold_losses'):
-        return tr_msg('in plant energy')
+def partValue(split, group, status):
+    if group in status:
+        return tr_msg('see note')
     return round(split.get(group, 0.0))
 
 
@@ -1061,12 +1124,42 @@ def investmentSections(report, rows):
                 continue
             table_rows.append([r['iteration'], tr_msg(label), round(first), round(replacements), round(residual), round(first + replacements + residual)])
         table_rows.append(TotalRow([r['iteration'], tr_msg('Total'), round(totals[0]), round(totals[1]), round(totals[2]), round(sum(totals))]))
+    purchaseSection(report, rows)
     if table_rows:
         report.section(tr_msg('Investment, replacements and residual value [€]'), table(
             [tr_msg('Iteration'), tr_msg('Item'), tr_msg('First purchase'), tr_msg('Replacements'), tr_msg('Residual value'), tr_msg('Total')], table_rows) +
             '<p class="note">{}</p>'.format(esc(tr_msg('Present values: the first purchase in year 0 or in the start year of the stage the item is new in, '
                                                        'the replacements at the end of each lifetime, the residual value at the end of the period (negative). '
                                                        'Investment + residual value of the NPV parts.'))), 3)
+
+
+def purchaseSection(report, rows):
+    """the purchases of the iteration with the least NPV per item kind and year, and the residual values: each
+    replacement visible with its price and present value (review of the report, 2026-11-24)"""
+    best = min(rows, key=lambda r: r['npv'])
+    views = economicsViews([best])
+    if not any(t.get('purchases') for v in views for t in v['economics']['terms']):
+        return
+    kinds = {'pipe': tr_msg('Pipes'), 'trench': tr_msg('Trench'), 'pumps': tr_msg('Pumps')}
+    per: dict = {}
+    for v in views:
+        for t in v['economics']['terms']:
+            kind = kinds.get(t.get('kind'), t.get('kind') or '')
+            if t['group'] == 'investment':
+                for year, price, pv in t.get('purchases') or []:
+                    what = tr_msg('purchase') if int(year) == int(t.get('start') or 0) else tr_msg('replacement')
+                    n0, p0, v0 = per.get((kind, int(year), what), (0, 0.0, 0.0))
+                    per[(kind, int(year), what)] = (n0 + 1, p0 + price, v0 + pv)
+            elif t['group'] == 'residual':
+                key = (kind, int(v['economics']['period_a']), tr_msg('residual value'))
+                n0, p0, v0 = per.get(key, (0, 0.0, 0.0))
+                per[key] = (n0 + 1, p0, v0 + t['value'])
+    table_rows = [[kind, year, what, n, round(price) if what != tr_msg('residual value') else '', round(pv)]
+                  for (kind, year, what), (n, price, pv) in sorted(per.items(), key=lambda x: (x[0][0], x[0][1]))]
+    report.section(tr_msg('Purchases and residual values, iteration {} [€]').format(best['iteration']), table(
+        [tr_msg('Item'), tr_msg('Year'), tr_msg('Kind'), tr_msg('Items'), tr_msg('Price in that year'), tr_msg('Present value')], table_rows) +
+        '<p class="note">{}</p>'.format(esc(tr_msg('Every purchase of an item: the first in year 0 or in the start year of its stage, a replacement at the end '
+                                                   'of each lifetime; the residual value at the end of the period with the share of the lifetime left.'))), 3)
 
 
 def profileRows(config, sc, scenario):

@@ -44,6 +44,19 @@ def carrierPrice(scenario, carrier):
     return float(value)
 
 
+def unpricedCarriers(scenario, yearly):
+    """the carriers counted in the NPV (yearly {part: {carrier: €}}) whose price group has no price"""
+    return sorted({carrier for carriers in (yearly or {}).values() for carrier in carriers if carrierPrice(scenario, carrier) is None})
+
+
+def unpricedListCarriers(scenario, energy_list, boundary):
+    """the carriers of the energy-use list (plants; customers for the whole system) without a price in the scenario:
+    their energy would count as free (the start check of the cost optimization warns)"""
+    entries = [e for e in (energy_list or {}).get('entries', []) if not e.get('missing') and e.get('carrier') not in (DELIVERED,)]
+    counted = [e for e in entries if e['feature'] != 'customer' or boundary == 'system']
+    return sorted({e['carrier'] for e in counted if carrierPrice(scenario, e['carrier']) is None})
+
+
 def stepPrices(scenario, carrier, shape, n):
     """price per step [€/kWh]: electricity with the hourly profile (shape), the other carriers flat; zeros without a price"""
     price = carrierPrice(scenario, carrier)

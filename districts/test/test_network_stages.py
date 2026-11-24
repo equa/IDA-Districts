@@ -142,6 +142,15 @@ def test_report_of_a_staged_run_shows_the_terms_per_stage():
     assert 'Iteration 1 / stage 2' in page and 'Investment, replacements and residual value' in page
     assert 'Net present value per stage and part [€]' in page and 'Investment year [a]' in page
     assert 'operating years' in page and '11…40' in page
+    # the report's review of 2026-11-24: why an energy part is 0 €, and every purchase with its year
+    from districts.utility_functions.iteration_report import partStatus, purchaseSection
+    status = partStatus(rows)
+    assert set(status) == {'heat_losses', 'cold_losses', 'plant_energy', 'customer_energy'}
+    assert status['plant_energy'].startswith('not available') and status['heat_losses'].startswith('really 0')
+    report = Report('t', 's')
+    purchaseSection(report, rows)
+    page = report.html()
+    assert 'Purchases and residual values, iteration 1' in page and '>purchase<' in page and 'residual value' in page
 
 
 def test_lines_new_in_stage_2_are_their_own_groups():

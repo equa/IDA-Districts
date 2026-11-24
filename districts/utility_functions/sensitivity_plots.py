@@ -3,7 +3,7 @@
 (rank correlations for combinations and samples), drawn on matplotlib axes for the dialog and the report."""
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from .sensitivity import correlations, resultNpv, tornado
 from .translations import tr_msg
@@ -117,7 +117,10 @@ def tornadoChart(ax, analysis):
         ax.set_yticks(range(len(rows)))
         ax.set_yticklabels([labels.get(key, key) for key, _, _ in rows], fontsize=7)
         ax.set_xlabel(tr_msg('NPV [€]'))
+        # the number of ticks from the axis length (more in an undocked window), slanted: the NPV values are long numbers
+        ax.xaxis.set_major_locator(MaxNLocator(nbins='auto', min_n_ticks=3))
         ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: money(value)))
+        ax.tick_params(axis='x', labelsize=7, labelrotation=25)
         ax.legend(fontsize=7, loc='lower right')
         return
     ranked = list(reversed(correlations(analysis)))

@@ -148,6 +148,7 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv, stage=None):
     if basis:
         # the energy the plants and customers bought, for the report (plant-energy-costs D7)
         energy_basis = {key: basis[key] for key in ('boundary', 'losses', 'curve_hours', 'threshold_pct')}
+        energy_basis['fallback'] = basis.get('fallback') or []
         energy_basis.update({'kwh': basis['costs']['kwh'], 'info': basis['costs']['info'], 'no_price': basis['costs']['no_price'],
                              'delivered': basis['costs'].get('delivered', {}),
                              'features': basis['costs']['features'], 'marginal_hours': {str(k): v for k, v in basis['marginal_hours'].items()}})
@@ -410,7 +411,7 @@ class CostOptimizationDialog(QDialog):
         self.box_sensitivity = self.section(tr_msg('Sensitivity'), self.sensitivity, collapsed=True)
         layout.addWidget(self.box_sensitivity)
         self.combo_scenario.currentIndexChanged.connect(lambda _: self.sensitivity.fill())
-        self.table_iterations = QTableWidget(0, 9)
+        self.table_iterations = QTableWidget(0, len(ITERATION_HEADERS))
         self.table_iterations.setHorizontalHeaderLabels([tr_msg(h) for h in ITERATION_HEADERS])
         self.table_iterations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table_iterations.verticalHeader().setVisible(False)
@@ -675,7 +676,26 @@ class CostOptimizationDialog(QDialog):
             # a failing check must not block a run that may well work
             QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
             return [], [tr_msg('The input data could not be checked: ') + traceback.format_exc().splitlines()[-1]]
-        return inputDataMessages(result)
+        errors, notes = inputDataMessages(result)
+        return errors, notes + self.carrierPriceNotes(p)
+
+    def carrierPriceNotes(self, p):
+        """a carrier of the energy-use list without a price in the run's scenario: its energy would count as free, so the
+        evaluation prices the pipe losses with the curves instead (cost-sensitivity D10)"""
+        from .utility_functions.economic_data import systemBoundary
+        from .utility_functions.energy_use import loadEnergyList
+        from .utility_functions.network_energy import unpricedListCarriers
+        try:
+            scenario = runScenario(self.main.cur, p)
+            energy_list = loadEnergyList(self.main.config)
+            missing = unpricedListCarriers(scenario, energy_list, systemBoundary(scenario, energy_list))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            return []
+        if not missing:
+            return []
+        return [tr_msg('Warning: the scenario has no price for {}, which the plants (or customers) buy: the pipe losses are priced with the price '
+                       'curves instead of the bought energy. Enter the price in the economic scenario.').format(', '.join(missing))]
 
     def stop(self):
         sensitivity = self.sensitivity.run
@@ -746,7 +766,9 @@ class CostOptimizationDialog(QDialog):
             self.table_iterations.insertRow(r)
             values = [row['iteration'], '{:,.0f}'.format(row['npv']).replace(',', "'"),
                       '' if row.get('npv_model') is None else '{:,.0f}'.format(row['npv_model']).replace(',', "'"),
-                      '' if row.get('model_error') is None else '{:.1%}'.format(row['model_error'])] + steps + [len(row.get('penalty_customers') or []), outcome]
+                      '' if row.get('model_error') is None else '{:.1%}'.format(row['model_error']),
+                      '' if row.get('npv_model') is None else '{:,.0f}'.format(row['npv_model'] - row['npv']).replace(',', "'")] + steps + [
+                len(row.get('penalty_customers') or []), outcome]
             for col, value in enumerate(values):
                 self.table_iterations.setItem(r, col, QTableWidgetItem(str(value)))
 

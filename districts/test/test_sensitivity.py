@@ -102,7 +102,7 @@ def analysis():
 def test_tornado_flips_and_robustness():
     result = analysis()
     assert tornado(result) == [('interest_pct', 118.0, 85.0), ('price:electricity', 98.0, 104.0)]
-    assert flips(result) == {('v', 114): {'before': [5], 'after': {'interest_pct +': [4]}}}
+    assert flips(result) == {('v', 114): {'before': [5], 'base': None, 'after': {'interest_pct +': [4]}}}
     assert robustness(result) == {('v', 114): pytest.approx(0.25)}
     ranked = correlations(result)
     assert ranked[0][0] == 'interest_pct' and ranked[0][1] < 0
@@ -110,12 +110,24 @@ def test_tornado_flips_and_robustness():
 
 
 def test_base_variant_changing_a_line():
-    """the estimate's base variant makes a step too (a run stopped by its iteration limit): its change is listed like the
-    others, and the robustness counts only the varied variants"""
+    """the base variant's own step is the reference: a line every variant changes the same way is no flip; a variant
+    keeping the run's pipe where the base changes it is one"""
+    from districts.utility_functions.sensitivity import baseStep, baseStepText
     result = analysis()
-    result['variants'][0]['result']['changes'] = [{'version': 'v', 'line': 114, 'before': [5], 'after': [6], 'larger': True}]
-    assert flips(result)[('v', 114)] == {'before': [5], 'after': {'base': [6], 'interest_pct +': [4]}}
-    assert robustness(result) == {('v', 114): pytest.approx(0.25)}
+    change = {'version': 'v', 'line': 117, 'before': [6], 'after': [7], 'larger': True}
+    for v in result['variants']:
+        v['result']['changes'] = [dict(change)]
+    assert flips(result) == {} and robustness(result) == {}
+    result['variants'][1]['result']['changes'] = []
+    assert flips(result) == {('v', 117): {'before': [6], 'base': [7], 'after': {'interest_pct -': [6]}}}
+    assert robustness(result) == {('v', 117): pytest.approx(0.25)}
+    # the run simulated the same step after its best iteration and found it worse
+    result.update(mode='estimate', basis={'iteration': 1})
+    rows = [{'iteration': 1, 'npv': 1181627.0, 'npv_next': 1179058.0, 'steps': [{'line': 117, 'larger': True}]}, {'iteration': 2, 'npv': 1184226.0}]
+    info = baseStep(result, rows)
+    assert info['tested'] and info['iteration'] == 2 and info['npv_diff'] == pytest.approx(2599.0) and info['model_diff'] == pytest.approx(-2569.0)
+    assert "+2'599" in baseStepText(info) and '117 larger' in baseStepText(info)
+    assert baseStep(dict(result, mode='full'), rows) is None
 
 
 def test_parallel_plot_selects_and_filters():
@@ -162,3 +174,24 @@ def test_parallel_plot_without_warnings():
             parallelCoordinates(figure.add_subplot(111), result, selected, brushes)
             figure.subplots_adjust(left=0.04, right=0.9, top=0.9, bottom=0.3)
             figure.canvas.draw() if figure.canvas else None
+
+
+def test_flip_matrix_columns_and_pipe_texts():
+    """one column per variant changing a line; a bundle of equal pipes named once, with ↑ / ↓ against the base"""
+    from districts.utility_functions.sensitivity import flipColumns, pipeText
+    assert flipColumns(analysis()) == ['interest_pct +']
+    catalog = {4: {'name': 'DN 40', 'd': 0.04}, 5: {'name': 'DN 50', 'd': 0.05}, 6: {'name': 'DN 65', 'd': 0.065}}
+    assert pipeText([5, 5], catalog) == 'DN 50'
+    assert pipeText([4, 4], catalog, [5, 5]) == 'DN 40 ↓' and pipeText([6], catalog, [5]) == 'DN 65 ↑'
+
+
+def test_plot_undocks_and_docks():
+    """a plot moves into a window of its own and back when that window closes"""
+    from qgis.PyQt.QtWidgets import QLabel
+    from districts.sensitivity_widget import Detachable
+    content = QLabel('plot')
+    box = Detachable('Tornado chart', content)
+    box.undock()
+    assert box.window_ is not None and content.parent() is box.window_ and box.button.text() == 'Dock'
+    box.window_.close()
+    assert box.window_ is None and content.parent() is box and box.button.text() == 'Undock'

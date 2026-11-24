@@ -269,26 +269,103 @@ def correlations(analysis):
 
 
 def flips(analysis):
-    """{(version, line): {'before': pipes of the basis, 'after': {variant name: pipes}}} of the lines a variant
-    changes (the base variant too: its step shows a run that stopped before the cost model found no change)"""
+    """{(version, line): {'before': pipes of the basis, 'base': pipes after the base variant's step or None, 'after':
+    {variant name: pipes}}} of the lines where a variant ends with other pipes than the base variant. The base variant's
+    own step is the reference, not a sensitivity: a line it changes the same way in every variant (e.g. a step the run
+    already simulated and found worse, the cost model's error) is not listed."""
+    done = [v for v in analysis['variants'] if v.get('result')]
+    changes = {v['name']: {(c['version'], int(c['line'])): c for c in v['result'].get('changes', [])} for v in done}
+    base = changes.get('base', {})
     result: dict = {}
-    for v in analysis['variants']:
-        for c in (v.get('result') or {}).get('changes', []):
-            entry = result.setdefault((c['version'], int(c['line'])), {'before': c['before'], 'after': {}})
-            entry['after'][v['name']] = c['after']
+    for key in sorted({key for per in changes.values() for key in per}):
+        before = next(per[key]['before'] for per in changes.values() if key in per)
+        reference = sorted(base[key]['after']) if key in base else sorted(before)
+        after = {}
+        for v in done:
+            if v['name'] == 'base':
+                continue
+            final = changes[v['name']][key]['after'] if key in changes[v['name']] else before
+            if sorted(final) != reference:
+                after[v['name']] = final
+        if after:
+            result[key] = {'before': before, 'base': base[key]['after'] if key in base else None, 'after': after}
     return result
 
 
+def flipColumns(analysis):
+    """the variants that change at least one line, in their order: the columns of the flip table"""
+    changing = {name for entry in flips(analysis).values() for name in entry['after']}
+    return [v['name'] for v in analysis['variants'] if v['name'] in changing]
+
+
+def pipeText(ids, catalog, before=None):
+    """the pipes of a line as one text (a bundle of equal pipes once), with ↑ or ↓ against the pipes before"""
+    names = []
+    for i in ids:
+        name = str(catalog.get(int(i), {}).get('name', i))
+        if name not in names:
+            names.append(name)
+    text = ', '.join(names)
+    if before:
+        d_new = max((float(catalog.get(int(i), {}).get('d') or 0) for i in ids), default=0.0)
+        d_old = max((float(catalog.get(int(i), {}).get('d') or 0) for i in before), default=0.0)
+        text += ' ↑' if d_new > d_old else ' ↓' if d_new < d_old else ''
+    return text
+
+
+def differences(analysis):
+    """{variant name: number of lines ending with other pipes than the base variant}"""
+    counts: dict = {}
+    for entry in flips(analysis).values():
+        for name in entry['after']:
+            counts[name] = counts.get(name, 0) + 1
+    return counts
+
+
 def robustness(analysis):
-    """{(version, line): share of the variants (without the base) changing the line's pipe}"""
+    """{(version, line): share of the variants (without the base) ending with other pipes than the base variant}"""
     done = [v for v in analysis['variants'] if v.get('result') and v['name'] != 'base']
     if not done:
         return {}
-    counts: dict = {}
-    for v in done:
-        for key in {(c['version'], int(c['line'])) for c in v['result'].get('changes', [])}:
-            counts[key] = counts.get(key, 0) + 1
-    return {key: n / len(done) for key, n in counts.items()}
+    return {key: len(entry['after']) / len(done) for key, entry in flips(analysis).items()}
+
+
+def baseStep(analysis, rows):
+    """the base variant's own step of an estimate, against the run: {'lines': [(line, larger)], 'tested': the run
+    simulated this step after its best iteration, 'iteration', 'npv_diff' simulated, 'model_diff' expected} or None"""
+    if analysis.get('mode') != 'estimate':
+        return None
+    base = next((v for v in analysis['variants'] if v['name'] == 'base' and v.get('result')), None)
+    lines = sorted({(int(c['line']), bool(c['larger'])) for c in (base or {}).get('result', {}).get('changes', [])})
+    if not lines:
+        return None
+    basis = analysis.get('basis') or {}
+    by_iteration = {r['iteration']: r for r in rows}
+    best, after = by_iteration.get(basis.get('iteration')), by_iteration.get((basis.get('iteration') or 0) + 1)
+    info = {'lines': lines, 'tested': False}
+    if best and after:
+        run_lines = sorted({(int(s['line']), bool(s.get('larger'))) for s in best.get('steps') or []})
+        info.update(tested=run_lines == lines, iteration=after['iteration'], npv_diff=after['npv'] - best['npv'],
+                    model_diff=(best['npv_next'] - best['npv']) if best.get('npv_next') is not None else None)
+    return info
+
+
+def signedMoney(value):
+    return ('+' if value >= 0 else '−') + '{:,.0f}'.format(abs(value)).replace(',', "'")
+
+
+def baseStepText(info):
+    if not info:
+        return ''
+    lines = ', '.join('{} {}'.format(line, tr_msg('larger') if larger else tr_msg('smaller')) for line, larger in info['lines'])
+    text = tr_msg("The base variant's own step (the cost model with the run's values): {}.").format(lines)
+    if info.get('tested'):
+        text += ' ' + tr_msg('The run simulated this step as iteration {}: NPV {} € against the {} € the cost model expected, so it was '
+                             'not kept. It is the reference of the variants, not a sensitivity.').format(
+            info['iteration'], signedMoney(info['npv_diff']), signedMoney(info['model_diff'] or 0.0))
+    else:
+        text += ' ' + tr_msg('It is the reference of the variants, not a sensitivity: the run stopped before the cost model found no change.')
+    return text
 
 
 # ---------------------------------------------------------------- result file (design D6)

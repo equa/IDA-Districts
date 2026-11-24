@@ -201,7 +201,7 @@ class SensitivityWidget(QWidget):
 class ParallelPlot(QWidget):
     """the interactive parallel coordinates: a click on a line selects its variant, a drag along an axis draws a filter
     rectangle (the variants outside are drawn light), a double click on an axis removes its rectangle. state =
-    {'selected': name, 'brushes': {column: (low, high)}} is shared with the enlarged view."""
+    {'selected': name, 'brushes': {column: (low, high)}} is the tab's."""
 
     def __init__(self, state, on_select, on_filter, size=(9, 3.6)):
         super().__init__()
@@ -304,7 +304,6 @@ class SensitivityResults(QWidget):
         self.dlg = dlg
         self.analysis = None
         self.state: dict = {'selected': None, 'brushes': {}}
-        self.views = []
         layout = QVBoxLayout(self)
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.setChildrenCollapsible(False)
@@ -312,20 +311,19 @@ class SensitivityResults(QWidget):
         row = QHBoxLayout(plots)
         row.setContentsMargins(0, 0, 0, 0)
         self.parallel = ParallelPlot(self.state, self.select, self.filtered)
-        self.views.append(self.parallel)
         self.tornado_figure = Figure(figsize=(4, 3.6))
         self.tornado_canvas = _Canvas(self.tornado_figure)
-        row.addWidget(self.parallel, 3)
-        row.addWidget(self.tornado_canvas, 2)
+        row.addWidget(Detachable(tr_msg('Parallel coordinates'), self.parallel), 3)
+        row.addWidget(Detachable(tr_msg('Tornado chart'), self.tornado_canvas), 2)
         splitter.addWidget(plots)
         self.table_variants = _table()
         self.table_variants.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_variants.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table_variants.itemSelectionChanged.connect(self.onTableSelection)
-        splitter.addWidget(_titled(tr_msg('Variants: the varied values and the results; select a row to highlight its line'), self.table_variants))
+        splitter.addWidget(_titled(tr_msg('Variants: the varied values and the results; select a row to highlight its line'), self.table_variants)[0])
         self.table_flips = _table()
-        splitter.addWidget(_titled(tr_msg('Lines whose pipe changes: the pipe in the base and the pipe of each variant that changes it; '
-                                          'the rows of the selected variant highlighted'), self.table_flips))
+        box, self.label_flips = _titled('', self.table_flips)
+        splitter.addWidget(box)
         # minimum heights: the tab sits in the results section of a scroll area, which grows instead of squeezing them
         plots.setMinimumHeight(280)
         self.table_variants.setMinimumHeight(180)
@@ -339,13 +337,11 @@ class SensitivityResults(QWidget):
         self.label_filter = QLabel()
         self.btn_reset = QPushButton(tr_msg('Reset the filter'))
         self.btn_reset.clicked.connect(self.resetFilter)
-        self.btn_large = QPushButton(tr_msg('Larger view'))
-        self.btn_large.clicked.connect(self.enlarge)
         self.btn_map = QPushButton(tr_msg('Show the robustness on the map'))
         self.btn_map.clicked.connect(self.showMap)
         row.addWidget(self.label, 1)
         row.addWidget(self.label_filter)
-        for button in (self.btn_reset, self.btn_large, self.btn_map):
+        for button in (self.btn_reset, self.btn_map):
             row.addWidget(button)
         layout.addLayout(row)
         self.show(loadSaved(dlg.main.config))
@@ -358,11 +354,12 @@ class SensitivityResults(QWidget):
         self.table_variants.setRowCount(0)
         self.table_flips.setRowCount(0)
         done = [v for v in (analysis or {}).get('variants', []) if v.get('result')]
-        for button in (self.btn_map, self.btn_large, self.btn_reset):
+        for button in (self.btn_map, self.btn_reset):
             button.setEnabled(bool(done))
         self.parallel.setAnalysis(analysis if done else None)
         if not done:
             self.label.setText(tr_msg('No sensitivity analysis in this version yet.'))
+            self.label_flips.setText('')
             self.label_filter.setText('')
             self.tornado_canvas.draw()
             return
@@ -375,6 +372,15 @@ class SensitivityResults(QWidget):
         self.tornado_canvas.draw()
         fillVariantTable(self.table_variants, analysis)
         fillFlipTable(self.table_flips, analysis, self.dlg.main.cur)
+        from .utility_functions.iteration_report import flipNote
+        from .utility_functions.sensitivity import baseStep, baseStepText
+        try:
+            step = baseStepText(baseStep(analysis, loadCostIterations(dict(self.dlg.main.config, versionName=analysis.get('version') or self.dlg.main.config['versionName']))))
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            step = ''
+        self.label_flips.setText(tr_msg('Lines where a variant ends with other pipes than the base variant, one column per such variant (the rows '
+                                        'of the selected variant highlighted).') + ' ' + flipNote(analysis) + (' ' + step if step else ''))
         self.filtered()
 
     # ---------------------------------------------------------------- selection and filter
@@ -392,8 +398,7 @@ class SensitivityResults(QWidget):
             names = self.table_flips.item(k, 0).data(Qt.ItemDataRole.UserRole) or []
             for col in range(self.table_flips.columnCount()):
                 self.table_flips.item(k, col).setBackground(QColor('#fde0dd') if name in names else QColor(0, 0, 0, 0))
-        for view in self.views:
-            view.redraw()
+        self.parallel.redraw()
 
     def onTableSelection(self):
         rows = {index.row() for index in self.table_variants.selectedIndexes()}
@@ -411,29 +416,11 @@ class SensitivityResults(QWidget):
                 self.table_variants.item(k, col).setForeground(color)
         total = self.table_variants.rowCount()
         self.label_filter.setText(tr_msg('{} of {} variants in the filter').format(len(inside), total) if self.state['brushes'] else '')
-        for view in self.views:
-            if view is not self.parallel:
-                view.redraw()
 
     def resetFilter(self):
         self.state['brushes'].clear()
-        for view in self.views:
-            view.redraw()
-        self.filtered()
-
-    def enlarge(self):
-        if not self.analysis:
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle(tr_msg('Sensitivity analysis'))
-        view = ParallelPlot(self.state, self.select, self.filtered, size=(12, 6))
-        QVBoxLayout(dialog).addWidget(view)
-        view.setAnalysis(self.analysis)
-        self.views.append(view)
-        dialog.resize(1200, 650)
-        dialog.exec()
-        self.views.remove(view)
         self.parallel.redraw()
+        self.filtered()
 
     def showMap(self):
         from qgis.utils import iface
@@ -643,16 +630,21 @@ def fullResult(cur, config, version, basis):
 def fillVariantTable(table, analysis):
     keys = list(analysis['bounds'])
     labels = analysis.get('labels') or {}
-    headers = [tr_msg('Variant')] + [labels.get(k, k) for k in keys] + [tr_msg('NPV [€]'), tr_msg('Investment [€]'), tr_msg('Operating costs [€]'),
-                                                                        tr_msg('Changed lines')]
+    from .utility_functions.sensitivity import differences
+    different = differences(analysis)
+    headers = [tr_msg('Variant')] + [labels.get(k, k) for k in keys] + [tr_msg('NPV [€]'), tr_msg('NPV change by the step [€]'), tr_msg('Investment [€]'),
+                                                                        tr_msg('Operating costs [€]'), tr_msg('Lines changed by the step'),
+                                                                        tr_msg('Lines different from the base')]
     table.setColumnCount(len(headers))
     table.setHorizontalHeaderLabels(headers)
     for v in analysis['variants']:
         if not v.get('result'):
             continue
         axes = resultAxes(v)
-        values = [v['name']] + ['{:.4g}'.format(v['values'][k]) for k in keys] + [money(axes['npv']), money(axes['investment']), money(axes['operating']),
-                                                                                 str(int(axes['changed']))]
+        result = v['result']
+        step = money(result['npv_after'] - result['npv']) if 'npv_after' in result else ''
+        values = [v['name']] + ['{:.4g}'.format(v['values'][k]) for k in keys] + [money(axes['npv']), step, money(axes['investment']), money(axes['operating']),
+                                                                                 str(int(axes['changed'])), str(different.get(v['name'], 0))]
         k = table.rowCount()
         table.insertRow(k)
         for col, value in enumerate(values):
@@ -661,18 +653,23 @@ def fillVariantTable(table, analysis):
 
 
 def fillFlipTable(table, analysis, cur):
+    """one row per line a variant changes: the pipe in the base and, per variant changing a line, its new pipe with ↑ or ↓"""
     from .utility_functions.hydraulic_balancing import getPipeCatalog
+    from .utility_functions.sensitivity import flipColumns, pipeText
     catalog = getPipeCatalog(cur)
-
-    def names(ids):
-        return ', '.join(str(catalog.get(int(i), {}).get('name', i)) for i in ids)
-    table.setColumnCount(4)
-    table.setHorizontalHeaderLabels([tr_msg('Line'), tr_msg('Version'), tr_msg('Pipe in the base'), tr_msg('Changed in')])
-    for (version, line), entry in sorted(flips(analysis).items()):
-        changed = ['{}: {}'.format(name, names(after)) for name, after in entry['after'].items()]
+    columns = flipColumns(analysis)
+    entries = sorted(flips(analysis).items())
+    versions = {version for (version, _), _ in entries}
+    headers = [tr_msg('Line')] + ([tr_msg('Version')] if len(versions) > 1 else []) + [tr_msg('Pipe of the run'), tr_msg('base')] + columns
+    table.setColumnCount(len(headers))
+    table.setHorizontalHeaderLabels(headers)
+    for (version, line), entry in entries:
+        values = [str(line)] + ([version] if len(versions) > 1 else []) + [pipeText(entry['before'], catalog)]
+        values.append(pipeText(entry['base'], catalog, entry['before']) if entry['base'] is not None else '')
+        values += [pipeText(entry['after'][name], catalog, entry['before']) if name in entry['after'] else '' for name in columns]
         k = table.rowCount()
         table.insertRow(k)
-        for col, value in enumerate([str(line), version, names(entry['before']), '; '.join(changed)]):
+        for col, value in enumerate(values):
             table.setItem(k, col, QTableWidgetItem(value))
         table.item(k, 0).setData(Qt.ItemDataRole.UserRole, list(entry['after']))
     table.resizeColumnsToContents()
@@ -708,6 +705,7 @@ def durationText(seconds):
 
 
 def _titled(title, widget):
+    """(the widget under a wrapped title, the title label)"""
     box = QWidget()
     layout = QVBoxLayout(box)
     layout.setContentsMargins(0, 4, 0, 0)
@@ -715,7 +713,56 @@ def _titled(title, widget):
     label.setWordWrap(True)
     layout.addWidget(label)
     layout.addWidget(widget)
-    return box
+    return box, label
+
+
+class Detachable(QWidget):
+    """a plot that can be undocked into a window of its own (moved, resized, maximized) and docked back by the button
+    or by closing that window; the same widget moves, so its interaction stays"""
+
+    def __init__(self, title, content):
+        super().__init__()
+        self.title, self.content, self.window_ = title, content, None
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        header = QHBoxLayout()
+        header.addWidget(QLabel('<b>{}</b>'.format(title)))
+        header.addStretch()
+        self.button = QPushButton(tr_msg('Undock'))
+        self.button.setToolTip(tr_msg('Show the plot in a window of its own; closing it docks the plot again'))
+        self.button.clicked.connect(self.toggle)
+        header.addWidget(self.button)
+        layout.addLayout(header)
+        self.placeholder = QLabel(tr_msg('Shown in its own window.'))
+        self.placeholder.hide()
+        layout.addWidget(self.placeholder)
+        layout.addWidget(content, 1)
+
+    def toggle(self):
+        if self.window_ is not None:
+            self.window_.close()
+        else:
+            self.undock()
+
+    def undock(self):
+        window = QDialog(self)
+        window.setWindowTitle(self.title)
+        window.setWindowFlags(Qt.WindowType.Window)
+        QVBoxLayout(window).addWidget(self.content)
+        window.finished.connect(lambda _: self.dock())
+        window.resize(1000, 600)
+        self.window_ = window
+        self.placeholder.show()
+        self.button.setText(tr_msg('Dock'))
+        window.show()
+
+    def dock(self):
+        if self.window_ is None:
+            return
+        self.layout().addWidget(self.content, 1)
+        self.placeholder.hide()
+        self.button.setText(tr_msg('Undock'))
+        self.window_ = None
 
 
 def _table():

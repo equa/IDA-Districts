@@ -40,4 +40,18 @@
 - [x] 6.2 Filter rectangles by dragging along an axis, the variants outside light and greyed, removed by a double click or the reset
 - [x] 6.3 Plots and tables one above the other with titles; the enlarged view sharing selection and filter
 - [x] 6.4 Tests: click, drag and double click on the plot (unit), table selection and filter in the dialog (ida)
-- [ ] 6.5 CI
+- [x] 6.5 CI (run 45348436228 green)
+- [x] 6.6 Plots undockable into a window of their own (docked back by the button or closing the window)
+- [x] 6.7 Flip table as a matrix (a column per changing variant, ↑ / ↓), its source named in the title and the report
+- [x] 6.8 Tornado chart: NPV ticks by the axis length, slanted
+- [x] 6.10 Flips and robustness against the base variant's step; the base step named apart with the run's simulated and expected NPV change
+- [ ] 6.9 CI
+
+## 7. Second review of the report (D10)
+
+- [x] 7.1 Fallback to the price curves when a counted carrier has no price (evaluation and cost model); start warning; named in both reports
+- [x] 7.2 Example prices for fuel and purchased heat in the base scenario of new projects
+- [x] 7.3 Cost analysis: the reason of a 0 € energy part; purchases per item and year with residual values; rounding note; model error in €; comfort units
+- [x] 7.4 Sensitivity section titled by its method; NPV change by the step and lines different from the base per variant
+- [x] 7.5 Tests: the fallback (e2e), unpriced carriers, example prices, part status and purchases
+- [ ] 7.6 CI

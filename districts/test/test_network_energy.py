@@ -79,3 +79,16 @@ def test_delivered_energy_is_neither_bought_nor_priced():
     # a plant entry of kind delivered does not make the plant marginal
     specific = plantSpecificCosts({('energy_plant', 2, 'delivered'): np.array([5000.0])}, scenario(), None, {}, [], 1)
     assert specific == {}
+
+
+def test_unpriced_carriers_of_the_npv_and_of_the_list():
+    """a carrier counted in the NPV or listed for the plants without a price (cost-sensitivity D10); a free carrier
+    (ambient) and the customers of the network operator's boundary do not count"""
+    from districts.utility_functions.network_energy import unpricedCarriers, unpricedListCarriers
+    scenario = {'scenario': {}, 'groups': {'electricity': {'start_price': 0.25}, 'fuel': {'start_price': None}}}
+    assert unpricedCarriers(scenario, {'plant_energy': {'fuel': 0.0, 'electricity': 10.0, 'ambient': 0.0}}) == ['fuel']
+    assert unpricedCarriers(scenario, None) == []
+    entries = [{'feature': 'energy_plant', 'carrier': 'fuel'}, {'feature': 'customer', 'carrier': 'purchased_heat'},
+               {'feature': 'customer', 'carrier': 'delivered'}]
+    assert unpricedListCarriers(scenario, {'entries': entries}, 'operator') == ['fuel']
+    assert unpricedListCarriers(scenario, {'entries': entries}, 'system') == ['fuel', 'purchased_heat']

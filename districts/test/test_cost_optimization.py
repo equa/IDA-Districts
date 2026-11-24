@@ -106,7 +106,9 @@ class TestCostOptimization:
         # energy_ep is switched on as well: the boilers of the plants (BOIL1CIRC, fuel) give the NPV basis (plant-energy-costs)
         basis = rows[0]['economics']['energy_basis']
         assert basis and basis['kwh']['plant_energy'].get('fuel', 0) > 0, basis
-        assert rows[0]['split'].get('heat_losses', 0) == 0 and 'fuel' in basis['no_price']
+        # the base scenario has an example fuel price (cost-sensitivity D10): the bought fuel is in the NPV, the losses in it
+        assert rows[0]['split'].get('heat_losses', 0) == 0 and rows[0]['split'].get('plant_energy', 0) > 0
+        assert not basis['no_price'] and not basis.get('fallback')
         if len(rows) > 1:
             assert rows[1]['npv_model'] is not None and rows[1]['model_error'] is not None
         best = min(rows, key=lambda r: r['npv'])

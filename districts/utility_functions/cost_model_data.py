@@ -12,7 +12,8 @@ from .flow_tracing import getNetworkGraph
 from .network_economics import (
     linePipes, periodSources, plantConnections, plantModes, resultTables, stepModes, tableExists, timeSteps, trenchLengths,
 )
-from .network_energy import energySeries, marginalPrices, plantSpecificCosts
+from .energy_use import DELIVERED
+from .network_energy import carrierPrice, energySeries, marginalPrices, plantSpecificCosts
 from .network_modes import TABLE_TEMP, connectionHeatFlows, heatMask, plantPairs
 from .periods import readClimate, weights as periodWeights
 from .pipe_losses import ambientTemperature
@@ -167,6 +168,9 @@ def marginalLossPrices(cur, schema, sources, index, n, scenario, shape, modes):
     """{seq: €/kWh per step} of the marginal plant of each pair, {} without energy results (plant-energy-costs D6)"""
     series = energySeries(cur, schema, sources, index, n)
     if not series:
+        return {}
+    # a plant carrier without a price makes the marginal price 0: the losses priced with the curves instead (D10)
+    if any(carrierPrice(scenario, carrier) is None for (feature, _, carrier) in series if feature != 'customer' and carrier != DELIVERED):
         return {}
     pairs = plantPairs(plantConnections(cur, schema))
     plant_flows = connectionHeatFlows(cur, schema, resultTables(cur, schema, TABLE_TEMP), sources, index, n, per_plant=True)

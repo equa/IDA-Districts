@@ -96,9 +96,13 @@ CREATE TABLE IF NOT EXISTS public.trench_costs
 BASE_SCENARIO = {'name': 'base', 'interest_pct': 3.0, 'period_a': 40, 'residual_value': True, 'default_surface': 'paved',
                  'el_profile_file': '', 'pump_costs_eur7kw': 100, 'pump_maintenance_pct': 2.5, 'pump_lifetime_a': 15,
                  'example': True, 'description': EXAMPLE_SOURCE}
+# a carrier the energy-use list detects needs a price, or its energy counts as free (the evaluation falls back to
+# priced pipe losses then, cost-sensitivity D10): fuel and purchased heat with example prices too
 BASE_PRICE_GROUPS = [('electricity', 0.25, 2.0, 'example: 0.25 €/kWh, +2 %/a'), ('heat', None, 2.0, 'price curve heat'),
                      ('cold', None, 2.0, 'price curve cold'), ('maintenance', None, 2.0, 'escalation of maintenance'),
-                     ('investment', None, 2.0, 'escalation of replacements')]
+                     ('investment', None, 2.0, 'escalation of replacements'),
+                     ('fuel', 0.10, 2.0, 'example: 0.10 €/kWh fuel (natural gas incl. CO2 price) for boilers, +2 %/a'),
+                     ('purchased_heat', 0.04, 2.0, 'example: 0.04 €/kWh purchased heat (waste heat), +2 %/a')]
 # electricity 0.25 €/kWh / SPF of a large air-source heat pump (KWW 2026); cold: chiller EER 4
 BASE_PRICE_CURVES = [('heat', 70, 0.10), ('heat', 95, 0.139), ('cold', 6, 0.0625)]
 BASE_TRENCH_COSTS = [('paved', 155, 9.4, 'KWW 2026 Tab 36, civil works minimum, paved'),

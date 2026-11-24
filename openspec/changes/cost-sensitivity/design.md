@@ -85,7 +85,28 @@ highlighted in the flip table); a row selected in the table selects its line. A 
 rectangle; the variants outside every rectangle are drawn light and greyed in the table, the count is shown; a double
 click on an axis removes its rectangle, 'Reset the filter' all. The enlarged view shares the selection and the filter.
 The plots, the variant table and the flip table stand one above the other in a splitter, each table with a title that
-says what it holds. The report keeps the static plots.
+says what it holds. The report keeps the static plots. Each plot can be undocked into a window of its own (resized,
+maximized) and docked back by its button or by closing that window; this replaces a separate enlarged view. The flip
+table is a matrix: a row per line a variant changes, the base pipe, a column per variant changing a line with its new
+pipe and ↑ / ↓; its title names the source (the cost model's step from the simulated best iteration, or the simulated
+runs). The tornado chart chooses its number of NPV ticks from the axis length, slanted.
+The flips and the robustness are measured against the base variant, not against the run's pipes (2026-11-24): the base
+variant's own step (the cost model with the run's values) is the reference. A step the run already simulated after its
+best iteration and found worse (the cost model's error, e.g. one line made larger in every variant) would otherwise
+show as a change in every variant. The base step is named apart, with the simulated and the expected NPV change when
+the run tested it.
+
+**D10 – Second review of the report (2026-11-24).** A run on a project whose plants buy fuel, with no fuel price in
+the scenario, valued the bought energy with 0 € and, because that energy replaces the priced pipe losses
+(plant-energy-costs D5), left the losses out of the NPV and the cost model (marginal price 0): about 12 k€/a in the
+example. Now a carrier counted in the NPV without a price makes the evaluation price the pipe losses with the curves
+(`energy_basis['fallback']`, `by_carrier` None) and the cost model use the curves (no marginal prices); the start check
+of the dialog warns, the reports name it. The base scenario of a new project gets example prices for fuel (0.10 €/kWh)
+and purchased heat (0.04 €/kWh); existing scenarios keep theirs (the warning names a missing one). The cost analysis
+says why an energy part is 0 € (not available, not counted, in plant energy, no price, really 0, or the basis not
+saved). Further: the purchases per item and year with the residual values, a note on rounding, the model error in €,
+the units of the comfort violations, the sensitivity section titled as model-based estimate or full optimization with
+its method, and per variant the NPV change by the step and the lines different from the base.
 
 ## Risks / Trade-offs
 

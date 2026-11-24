@@ -85,6 +85,8 @@ class TestNetworkCostData:
         scenario = loadScenario(plugin.cur, base_id(plugin))
         assert scenario['scenario']['example'] and set(scenario['trench']) == {'paved', 'unpaved'}
         assert set(scenario['groups']) == {'electricity', 'heat', 'cold', 'maintenance', 'investment', 'fuel', 'purchased_heat'}
+        # every carrier the energy-use list detects has an example price (cost-sensitivity D10)
+        assert float(scenario['groups']['fuel']['start_price']) == 0.10 and float(scenario['groups']['purchased_heat']['start_price']) == 0.04
 
     def test_trench_lengths_per_surface(self, cost):
         plugin = cost.plugin
@@ -224,7 +226,14 @@ INSERT INTO "{v}".energy_plant_s_energy (fid, component, carrier, time, "$energy
             # the network report names the basis and the plant's energy
             labels = [row[0] for row in economicsRows(evaluation)]
             assert tr_msg('Basis of the net present value') in labels and any(label.startswith(tr_msg('Plant') + ' 1') for label in labels)
+            # no fuel price: the bought energy would be free, so the losses are priced with the curves (cost-sensitivity D10)
+            plugin.cur.execute("UPDATE public.price_groups SET start_price = NULL WHERE cost_group = 'fuel';")
+            unpriced = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
+            assert unpriced['energy_basis']['fallback'] == ['fuel'] and unpriced['by_carrier'] is None
+            assert unpriced['npv']['split']['heat_losses'] > 0 and unpriced['npv']['split']['plant_energy'] == 0
+            assert any('no price for' in str(row[1]) for row in economicsRows(unpriced))
         finally:
+            plugin.cur.execute("UPDATE public.price_groups SET start_price = 0.10 WHERE cost_group = 'fuel';")
             plugin.cur.execute('DROP TABLE IF EXISTS "{}".energy_plant_s_energy;'.format(v))  # nosec B608
         fallback = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
         assert fallback['energy_basis'] is None and fallback['npv']['split']['heat_losses'] > 0

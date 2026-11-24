@@ -49,3 +49,10 @@ The analysis SHALL save its inputs and results in `sensitivity.json` of the vers
 #### Scenario: One line flips at high interest
 - **WHEN** at the + interest the step makes line 114 smaller and no other variant changes it
 - **THEN** the flip table lists line 114 with its base pipe and the smaller pipe at + interest, and the map layer shows line 114 with the share 1 / number of variants
+
+### Requirement: Carrier without a price
+When the plants (or, for the whole system, the customers) buy a carrier that has no price in the scenario, the evaluation SHALL price the pipe losses with the price curves instead of counting the bought energy as free, the start of the cost optimization SHALL warn, and the reports SHALL name the reason.
+
+#### Scenario: Boilers without a fuel price
+- **WHEN** the plants buy fuel and the scenario has no fuel price
+- **THEN** the NPV contains the pipe losses priced with the curves, the plant energy is shown for information and the start log names fuel

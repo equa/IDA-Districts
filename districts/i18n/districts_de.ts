@@ -12501,5 +12501,181 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>{} of {} variants in the filter</source>
             <translation>{} von {} Varianten im Filter</translation>
         </message>
+        <message>
+            <source>Undock</source>
+            <translation>Abdocken</translation>
+        </message>
+        <message>
+            <source>Dock</source>
+            <translation>Andocken</translation>
+        </message>
+        <message>
+            <source>Show the plot in a window of its own; closing it docks the plot again</source>
+            <translation>Das Diagramm in einem eigenen Fenster zeigen; das Schliessen dockt es wieder an</translation>
+        </message>
+        <message>
+            <source>Shown in its own window.</source>
+            <translation>In einem eigenen Fenster gezeigt.</translation>
+        </message>
+        <message>
+            <source>Lines whose pipe a variant changes, one column per such variant (the rows of the selected variant highlighted).</source>
+            <translation>Leitungen, deren Rohr eine Variante ändert, eine Spalte pro solcher Variante (die Zeilen der gewählten Variante hervorgehoben).</translation>
+        </message>
+        <message>
+            <source>The pipes of the best iteration of each variant's cost optimization (simulated), where they differ from the base. ↑ larger, ↓ smaller; an empty cell: the variant keeps the base pipe.</source>
+            <translation>Die Rohre der besten Iteration der Kostenoptimierung jeder Variante (simuliert), wo sie von der Basis abweichen. ↑ grösser, ↓ kleiner; eine leere Zelle: die Variante behält das Rohr der Basis.</translation>
+        </message>
+        <message>
+            <source>The step the cost model makes with the variant's values from the simulated results of the best iteration, without a new simulation: the pipes it would change next. ↑ larger, ↓ smaller; an empty cell: the variant keeps the base pipe.</source>
+            <translation>Der Schritt, den das Kostenmodell mit den Werten der Variante aus den simulierten Ergebnissen der besten Iteration macht, ohne neue Simulation: die Rohre, die es als Nächstes ändern würde. ↑ grösser, ↓ kleiner; eine leere Zelle: die Variante behält das Rohr der Basis.</translation>
+        </message>
+        <message>
+            <source>The base variant's own step (the cost model with the run's values): {}.</source>
+            <translation>Der eigene Schritt der Basisvariante (das Kostenmodell mit den Werten des Laufs): {}.</translation>
+        </message>
+        <message>
+            <source>The run simulated this step as iteration {}: NPV {} € against the {} € the cost model expected, so it was not kept. It is the reference of the variants, not a sensitivity.</source>
+            <translation>Der Lauf hat diesen Schritt als Iteration {} simuliert: Barwert {} € gegenüber den vom Kostenmodell erwarteten {} €, deshalb wurde er nicht übernommen. Er ist die Referenz der Varianten, keine Sensitivität.</translation>
+        </message>
+        <message>
+            <source>It is the reference of the variants, not a sensitivity: the run stopped before the cost model found no change.</source>
+            <translation>Er ist die Referenz der Varianten, keine Sensitivität: der Lauf endete, bevor das Kostenmodell keine Änderung mehr fand.</translation>
+        </message>
+        <message>
+            <source>Pipe of the run</source>
+            <translation>Rohr des Laufs</translation>
+        </message>
+        <message>
+            <source>Lines where a variant ends with other pipes than the base variant, one column per such variant (the rows of the selected variant highlighted).</source>
+            <translation>Leitungen, bei denen eine Variante mit anderen Rohren endet als die Basisvariante, eine Spalte pro solcher Variante (die Zeilen der gewählten Variante hervorgehoben).</translation>
+        </message>
+        <message>
+            <source>No variant ends with other pipes than the base variant: the sizing is robust in the ranges given.</source>
+            <translation>Keine Variante endet mit anderen Rohren als die Basisvariante: die Dimensionierung ist in den angegebenen Bereichen robust.</translation>
+        </message>
+        <message>
+            <source>0 €: no price for {} in the scenario (run before the fallback to the price curves)</source>
+            <translation>0 €: kein Preis für {} im Szenario (Lauf vor dem Rückgriff auf die Preiskurven)</translation>
+        </message>
+        <message>
+            <source>0 €; the basis of this part was not saved with this run (run the optimization again for it)</source>
+            <translation>0 €; die Grundlage dieses Anteils wurde mit diesem Lauf nicht gespeichert (die Optimierung dafür neu laufen lassen)</translation>
+        </message>
+        <message>
+            <source>Degree hours beyond the tolerance [K·h/a]</source>
+            <translation>Gradstunden über der Toleranz [K·h/a]</translation>
+        </message>
+        <message>
+            <source>Every purchase of an item: the first in year 0 or in the start year of its stage, a replacement at the end of each lifetime; the residual value at the end of the period with the share of the lifetime left.</source>
+            <translation>Jede Beschaffung eines Postens: die erste im Jahr 0 oder im Startjahr seiner Etappe, eine Ersatzinvestition am Ende jeder Nutzungsdauer; der Restwert am Ende des Betrachtungszeitraums mit dem verbleibenden Anteil der Nutzungsdauer.</translation>
+        </message>
+        <message>
+            <source>For each variant a complete cost optimization with simulations was run into its own child versions; the results are the best iterations of these runs.</source>
+            <translation>Für jede Variante lief eine vollständige Kostenoptimierung mit Simulationen in eigene Kindversionen; die Ergebnisse sind die besten Iterationen dieser Läufe.</translation>
+        </message>
+        <message>
+            <source>Items</source>
+            <translation>Posten</translation>
+        </message>
+        <message>
+            <source>Lines changed by the step</source>
+            <translation>Vom Schritt geänderte Leitungen</translation>
+        </message>
+        <message>
+            <source>Lines different from the base</source>
+            <translation>Leitungen anders als die Basis</translation>
+        </message>
+        <message>
+            <source>NPV change by the step [€]</source>
+            <translation>Barwertänderung durch den Schritt [€]</translation>
+        </message>
+        <message>
+            <source>Present value</source>
+            <translation>Barwert</translation>
+        </message>
+        <message>
+            <source>Price curves: the scenario has no price for {}, so the bought energy would count as free; the pipe losses are priced with the curves, the energy use is shown for information.</source>
+            <translation>Preiskurven: das Szenario hat keinen Preis für {}, die bezogene Energie wäre also gratis; die Rohrverluste werden mit den Kurven bewertet, der Energiebezug wird zur Information gezeigt.</translation>
+        </message>
+        <message>
+            <source>Price in that year</source>
+            <translation>Preis in diesem Jahr</translation>
+        </message>
+        <message>
+            <source>Purchases and residual values, iteration {} [€]</source>
+            <translation>Beschaffungen und Restwerte, Iteration {} [€]</translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis – full optimization per variant</source>
+            <translation>Sensitivitätsanalyse – vollständige Optimierung pro Variante</translation>
+        </message>
+        <message>
+            <source>Sensitivity analysis – model-based estimate</source>
+            <translation>Sensitivitätsanalyse – modellbasierte Schätzung</translation>
+        </message>
+        <message>
+            <source>The NPV after the step is a forecast of the cost model, not the NPV of a design optimized anew.</source>
+            <translation>Der Barwert nach dem Schritt ist eine Prognose des Kostenmodells, nicht der Barwert einer neu optimierten Auslegung.</translation>
+        </message>
+        <message>
+            <source>The sensitivity analysis values the best design of the run under changed conditions. For each variant the cost model makes one optimization step; there is no new dynamic simulation and no complete optimization. The results estimate the sensitivity and are not the same as results optimized anew.</source>
+            <translation>Die Sensitivitätsanalyse bewertet die beste Auslegung des Laufs unter veränderten Randbedingungen. Für jede Variante macht das Kostenmodell einen Optimierungsschritt; es erfolgen keine erneute dynamische Simulation und keine vollständige Optimierung. Die Ergebnisse schätzen die Sensitivität ab und sind nicht mit neu optimierten Ergebnissen gleichzusetzen.</translation>
+        </message>
+        <message>
+            <source>Unmet energy [kWh/a] (customers with a source file only)</source>
+            <translation>Nicht gedeckte Energie [kWh/a] (nur Abnehmer mit Quelldatei)</translation>
+        </message>
+        <message>
+            <source>Values rounded to 1 €; every total is the rounded sum of the unrounded values, so the rounded parts may differ from it by 1 €.</source>
+            <translation>Werte auf 1 € gerundet; jedes Total ist die gerundete Summe der ungerundeten Werte, die gerundeten Anteile können davon um 1 € abweichen.</translation>
+        </message>
+        <message>
+            <source>Warning: the scenario has no price for {}, which the plants (or customers) buy: the pipe losses are priced with the price curves instead of the bought energy. Enter the price in the economic scenario.</source>
+            <translation>Warnung: das Szenario hat keinen Preis für {}, das die Energiezentralen (oder Abnehmer) beziehen: die Rohrverluste werden mit den Preiskurven statt mit der bezogenen Energie bewertet. Den Preis im Wirtschaftlichkeitsszenario eingeben.</translation>
+        </message>
+        <message>
+            <source>in plant energy: the energy the plants buy covers the pipe losses</source>
+            <translation>in der Energie der Zentralen: die von den Zentralen bezogene Energie deckt die Rohrverluste</translation>
+        </message>
+        <message>
+            <source>not available: no energy-use results (outputs energy_ep, energy_c); the pipe losses are priced with the curves</source>
+            <translation>nicht vorhanden: keine Ergebnisse zum Energiebezug (Outputs energy_ep, energy_c); die Rohrverluste werden mit den Kurven bewertet</translation>
+        </message>
+        <message>
+            <source>not counted: no price for {} in the scenario; the pipe losses are priced with the curves instead</source>
+            <translation>nicht berücksichtigt: kein Preis für {} im Szenario; die Rohrverluste werden stattdessen mit den Kurven bewertet</translation>
+        </message>
+        <message>
+            <source>not counted: system boundary network operator</source>
+            <translation>nicht berücksichtigt: Systemgrenze Netzbetreiber</translation>
+        </message>
+        <message>
+            <source>price curves of the pipe losses: no price for {} in the scenario; the energy use below for information</source>
+            <translation>Preiskurven der Rohrverluste: kein Preis für {} im Szenario; der Energiebezug unten zur Information</translation>
+        </message>
+        <message>
+            <source>purchase</source>
+            <translation>Beschaffung</translation>
+        </message>
+        <message>
+            <source>really 0 €: no losses of this mode, or no price curve</source>
+            <translation>tatsächlich 0 €: keine Verluste in dieser Betriebsart, oder keine Preiskurve</translation>
+        </message>
+        <message>
+            <source>replacement</source>
+            <translation>Ersatz</translation>
+        </message>
+        <message>
+            <source>residual value</source>
+            <translation>Restwert</translation>
+        </message>
+        <message>
+            <source>see note</source>
+            <translation>siehe Hinweis</translation>
+        </message>
+        <message>
+            <source>Model error [€]</source>
+            <translation>Modellfehler [€]</translation>
+        </message>
     </context>
 </TS>

@@ -14,7 +14,7 @@ import numpy as np
 from .economic_data import DEFAULT_MARGINAL_THRESHOLD_PCT, loadScenario, systemBoundary
 from .economics import curvePrice, netPresentValue, normalizedProfile, readProfile, trenchCostPerMetre, yearlyEnergyCosts
 from .energy_use import loadEnergyList
-from .network_energy import energyCosts, energySeries, marginalPrices, plantSpecificCosts
+from .network_energy import energyCosts, energySeries, marginalPrices, plantSpecificCosts, unpricedCarriers
 from .network_modes import (
     DEFAULT_DEADBAND_PCT, TABLE_TEMP, connectionHeatFlows, heatMask, plantPairs, segmentStarts, sequenceModes as modesOfSequences,
 )
@@ -365,8 +365,13 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     shape_steps = [h.get('shape', 1.0) for h in hours] if run else ([profile[h['hour'] % len(profile)] for h in hours] if profile else None)
     basis = energyBasis(cur, config, sources, times, [h['weight'] / years_simulated for h in hours], shape_steps, scenario, masks,
                         seq_values, hours)
-    # with energy results the NPV contains the energy the plants (and customers) buy instead of the priced pipe losses
-    npv_yearly = {'pump_energy': costs['pump_energy']} if basis else costs
+    # with energy results the NPV contains the energy the plants (and customers) buy instead of the priced pipe losses;
+    # a carrier counted there without a price would make that energy, and with it the losses, free: then the pipe
+    # losses are priced with the curves again (cost-sensitivity D10)
+    if basis:
+        basis['fallback'] = unpricedCarriers(scenario, basis['costs']['yearly'])
+    use_energy = bool(basis) and not basis['fallback']
+    npv_yearly = {'pump_energy': costs['pump_energy']} if use_energy else costs
 
     # check of the calculated losses against the simulated QAmbtotal of every line (weighted Wh)
     simulated = {}
@@ -375,11 +380,12 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
         for row in cur.fetchall():
             simulated[row['fid']] = simulated.get(row['fid'], 0.0) + float(row['q'] or 0) * weight(row['time'])
     calculated = {lid: line_t_sum.get(lid, 0.0) - line_amb.get(lid, 0.0) for lid in lines}
-    result = netPresentValue(scenario, list(items.values()) + [pump_item], npv_yearly, basis['costs']['yearly'] if basis else None)
+    by_carrier = basis['costs']['yearly'] if use_energy else None
+    result = netPresentValue(scenario, list(items.values()) + [pump_item], npv_yearly, by_carrier)
     evaluation = {'scenario': scenario, 'items': items, 'pump_item': pump_item, 'pump_kw': pump_kw, 'no_costs': no_costs, 'no_trench': no_trench,
                   'example': example or bool(sc.get('example')), 'costs': costs, 'energy': energy, 'npv': result,
                   'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt, 'modes': mode_summary,
-                  'npv_yearly': npv_yearly, 'by_carrier': basis['costs']['yearly'] if basis else None, 'energy_basis': basis}
+                  'npv_yearly': npv_yearly, 'by_carrier': by_carrier, 'energy_basis': basis}
     if run:
         periods = run[2]
         evaluation['periods'] = {'weeks': [w['calc_from'][:10] for w in periods['weeks']], 'coverage': periods.get('coverage'),
