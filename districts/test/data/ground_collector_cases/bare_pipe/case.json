@@ -1,0 +1,114 @@
+{
+ "contract_version": 1,
+ "fit": {
+  "accepted": true,
+  "errors": {
+   "outside": 0.026363739586386707,
+   "wall": 0.04432682374236186
+  },
+  "fingerprint": "344da5e2837ecc07b72f55cdf41d95d0",
+  "steady_error": 0.0003541550430169955
+ },
+ "fit_version": 5,
+ "freezing": false,
+ "geometry": {
+  "local_spacing_m": 0.09318874957641479,
+  "loop_length_per_m": 1.0,
+  "pipe_d_inner_m": 0.09,
+  "pipe_d_outer_m": 0.11,
+  "pipe_lambda_w7mk": 0.4,
+  "pipe_resolved": true,
+  "preset": "bare_pipe",
+  "preset_inputs": [
+   [
+    "depth_m",
+    1.0
+   ],
+   [
+    "spacing_m",
+    20.0
+   ]
+  ],
+  "source_depth_m": 1.0,
+  "source_height_m": 0.09318874957641479,
+  "source_width_m": 0.09318874957641479,
+  "spacing_m": 20.0
+ },
+ "name": "bare_pipe",
+ "parameters": {
+  "TDeep": 8.275,
+  "TFreezeSoil": 0.0,
+  "albedo": 0.25,
+  "cFar": 52776500.100930326,
+  "cFar2": 123584234.24590291,
+  "cLoc": 39595.81979819263,
+  "cNear": 261862.91118194905,
+  "cTop": 11464294.422066625,
+  "cTop2": 2421478.2115064114,
+  "dLayer": 0.05,
+  "epsilon": 0.95,
+  "freezeRange": 1.0,
+  "hConv": 10.0,
+  "lambdaFrozenRatio": 1.0,
+  "rFd": 0.3773296507490268,
+  "rFf": 0.0658201326893067,
+  "rLn": 0.09177408822031033,
+  "rLoc": 0.008070444273235618,
+  "rNf": 1.6024940420793086,
+  "rSt": 0.028769832596329672,
+  "rTf": 0.028344311767601025,
+  "rTn": 0.13704156132126888,
+  "rTt": 0.18021144558145402,
+  "rhoCLayer": 2200000.0,
+  "rhoCSoil": 2200000.0,
+  "spacing": 20.0,
+  "waterContent": 0.0
+ },
+ "preset": "bare_pipe",
+ "preset_inputs": {
+  "depth_m": 1.0,
+  "spacing_m": 20.0
+ },
+ "run_in_years": 2,
+ "site": {
+  "lat": 56.73,
+  "long": -16.3,
+  "long_timezone": -15,
+  "name": "Kalmar (KALMAR.PRN, IDA 5.2)"
+ },
+ "soil": {
+  "amplitude_surface_k": 9.0,
+  "depth_deep_m": 15.0,
+  "freeze_range_k": 1.0,
+  "geothermal_gradient_k7m": 0.025,
+  "lambda_frozen_ratio": 1.0,
+  "lambda_w7mk": 1.5,
+  "phase_day": 30.0,
+  "rho_c_j7m3k": 2200000.0,
+  "t_freeze_c": 0.0,
+  "t_mean_surface_c": 7.9,
+  "water_content": 0.0
+ },
+ "start": {
+  "TStartFar": 5.522738692325779,
+  "TStartFar2": 10.599372971625554,
+  "TStartLoc": 0.06347011494418185,
+  "TStartNear": 0.7849163743251262,
+  "TStartSurface": -8.919013072426715,
+  "TStartTop": 1.0419384924038952,
+  "TStartTop2": 1.4188121858965874
+ },
+ "surface": {
+  "albedo": 0.25,
+  "d_layer_m": 0.05,
+  "epsilon": 0.95,
+  "h_conv_w7m2k": 10.0,
+  "rho_c_j7m3k": 2200000.0
+ },
+ "units": {
+  "IGlob": "W/m2",
+  "T": "degC",
+  "ice": "fraction",
+  "q_wall": "W per m of trench, positive = from the pipe into the ground"
+ }
+}

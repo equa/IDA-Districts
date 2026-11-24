@@ -43,6 +43,18 @@ say what each git command does before you run it.
   (`db.ensurePipeSeriesTables`). The flexible isoplus catalogue of the
   templates is generated from `test/flexible_pipe_catalog.py`;
   `test_flexible_pipe_catalog.py` checks that the template rows match it.
+- Ground collectors (change ground-collector-model; change 2
+  ground-collector-routes brings them into the routes): pure functions in
+  `utility_functions/` without QGIS or DB: `ground_collector_contract.py`
+  (Modelica parameter contract, `CONTRACT_VERSION`),
+  `ground_collector_geometry.py` (generic geometry, presets),
+  `ground_climate.py` (sky and sun as IDA's `climate.nmf`),
+  `ground_reference.py` (2D reference, its linear system and frequency
+  response), `ground_rc.py` (six-node frequency fit `FIT_VERSION`, ground
+  model, start state). A change of the model or the
+  fit needs new validation cases: `python -m
+  districts.test.make_ground_collector_cases` (needs KALMAR.PRN of IDA 5.2,
+  about 15 minutes); `test_ground_collector_cases.py` fails otherwise.
 - Statics model (change statics-model): `utility_functions/statics_model.py`
   (bend rules, pure functions), `statics_db.py` (version tables
   `statics_model_*`, overrides `statics_points`/`statics_sections`, build,
