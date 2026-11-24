@@ -147,3 +147,18 @@ def test_parallel_plot_selects_and_filters():
     assert set(plot.passing()) == {'base', 'interest_pct +', 'price:electricity -', 'price:electricity +'}
     plot.onPress(event(0.0, 0.7, dblclick=True))
     assert state['brushes'] == {} and len(plot.passing()) == 5
+
+
+def test_parallel_plot_without_warnings():
+    """selecting the base or filtering it out draws no matplotlib warning (legend, layout)"""
+    import warnings
+    from matplotlib.figure import Figure
+    from districts.utility_functions.sensitivity_plots import parallelCoordinates
+    result = analysis()
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        for selected, brushes in (('base', {}), (None, {0: (0.9, 1.0)}), ('interest_pct +', {0: (0.9, 1.0)})):
+            figure = Figure(figsize=(9, 3.6))
+            parallelCoordinates(figure.add_subplot(111), result, selected, brushes)
+            figure.subplots_adjust(left=0.04, right=0.9, top=0.9, bottom=0.3)
+            figure.canvas.draw() if figure.canvas else None

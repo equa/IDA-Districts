@@ -451,6 +451,9 @@ class CostOptimizationDialog(QDialog):
         results.addTab(self.sensitivity_results, tr_msg('Sensitivity'))
         results.addTab(self.log_edit, tr_msg('Log'))
         results.setMinimumHeight(330)
+        # the sensitivity tab holds two plots and two tables: the section grows (the dialog scrolls) instead of squeezing them
+        results.currentChanged.connect(lambda _: results.setMinimumHeight(
+            max(330, self.sensitivity_results.minimumSizeHint().height() + 40) if results.currentWidget() is self.sensitivity_results else 330))
         self.tabs_results = results
         # opened when a run starts; before, the settings and periods have the room
         self.box_results = self.section(tr_msg('Results'), results, collapsed=True)

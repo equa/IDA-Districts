@@ -230,7 +230,8 @@ class ParallelPlot(QWidget):
         if self.analysis and sum(1 for v in self.analysis['variants'] if v.get('result')) > 1:
             self.ax = self.figure.add_subplot(111)
             parallelCoordinates(self.ax, self.analysis, self.state.get('selected'), self.state['brushes'])
-            self.figure.tight_layout()
+            # fixed margins: tight_layout gives up (with a warning) when the canvas is low for the rotated axis names
+            self.figure.subplots_adjust(left=0.04, right=0.9, top=0.9, bottom=0.3)
         self.canvas.draw()
 
     def column(self, x):
@@ -306,6 +307,7 @@ class SensitivityResults(QWidget):
         self.views = []
         layout = QVBoxLayout(self)
         splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.setChildrenCollapsible(False)
         plots = QWidget()
         row = QHBoxLayout(plots)
         row.setContentsMargins(0, 0, 0, 0)
@@ -324,6 +326,10 @@ class SensitivityResults(QWidget):
         self.table_flips = _table()
         splitter.addWidget(_titled(tr_msg('Lines whose pipe changes: the pipe in the base and the pipe of each variant that changes it; '
                                           'the rows of the selected variant highlighted'), self.table_flips))
+        # minimum heights: the tab sits in the results section of a scroll area, which grows instead of squeezing them
+        plots.setMinimumHeight(280)
+        self.table_variants.setMinimumHeight(180)
+        self.table_flips.setMinimumHeight(180)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         splitter.setStretchFactor(2, 2)
@@ -365,7 +371,7 @@ class SensitivityResults(QWidget):
             tr_msg(MODE_LABELS.get(analysis['mode'], analysis['mode'])), analysis.get('started', '')))
         if len(done) > 1:
             tornadoChart(self.tornado_figure.add_subplot(111), analysis)
-            self.tornado_figure.tight_layout()
+            self.tornado_figure.subplots_adjust(left=0.38, right=0.97, top=0.95, bottom=0.2)
         self.tornado_canvas.draw()
         fillVariantTable(self.table_variants, analysis)
         fillFlipTable(self.table_flips, analysis, self.dlg.main.cur)

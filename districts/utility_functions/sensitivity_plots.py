@@ -1,6 +1,7 @@
 # coding=utf-8
 """Plots of the sensitivity analysis (OpenSpec change cost-sensitivity D7): parallel coordinates and the tornado chart
 (rank correlations for combinations and samples), drawn on matplotlib axes for the dialog and the report."""
+from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import FuncFormatter
 
@@ -64,7 +65,7 @@ def parallelCoordinates(ax, analysis, selected=None, brushes=None):
         elif not inside:
             style = {'color': '#cccccc', 'linewidth': 0.8, 'alpha': 0.35, 'zorder': 1}
         elif name == 'base':
-            style = {'color': 'k', 'linewidth': 2.2, 'alpha': 1.0, 'zorder': 5, 'label': tr_msg('base')}
+            style = {'color': 'k', 'linewidth': 2.2, 'alpha': 1.0, 'zorder': 5}
         else:
             style = {'color': cmap(y[npv_column]), 'linewidth': 1.0, 'alpha': 0.85, 'zorder': 3}
         lines[name] = ax.plot(x, y, **style)[0]
@@ -81,8 +82,12 @@ def parallelCoordinates(ax, analysis, selected=None, brushes=None):
     ax.set_xlim(-0.3, len(names) - 0.7)
     for side in ('top', 'right', 'left'):
         ax.spines[side].set_visible(False)
-    if 'base' in scaled_values:
-        ax.legend(fontsize=7, loc='upper left', bbox_to_anchor=(1.0, 1.0))
+    # a legend of its own entries: a selected or filtered base carries none
+    entries = [Line2D([], [], color='k', linewidth=2.2, label=tr_msg('base'))] if 'base' in scaled_values else []
+    if selected in scaled_values:
+        entries.append(Line2D([], [], color='#e31a1c', linewidth=3.0, label=selected))
+    if entries:
+        ax.legend(handles=entries, fontsize=7, loc='upper left', bbox_to_anchor=(1.0, 1.0))
     return lines
 
 

@@ -429,6 +429,11 @@ class TestStages:
             keys = [r['key'] for r in dlg.sensitivity.rows(all_rows=True)]
             assert {'interest_pct', 'period_a', 'price:electricity', 'factor:pipe', 'dp_spez_max', 'v_max'} <= set(keys)
             assert dlg.sensitivity.label_count.text() == 'No parameter marked to vary.'
+            # the sensitivity tab makes the results section high enough for its plots and both tables
+            dlg.results_tabs.setCurrentWidget(dlg.sensitivity_results)
+            assert dlg.results_tabs.minimumHeight() >= 280 + 2 * 180
+            dlg.results_tabs.setCurrentWidget(dlg.log_edit)
+            assert dlg.results_tabs.minimumHeight() == 330
         finally:
             dlg.close()
         with pytest.raises(ValueError, match='no cost optimization run'):
