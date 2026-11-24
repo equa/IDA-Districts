@@ -695,8 +695,12 @@ def costReport(cur, config):
     diff_rows = [[groupLabel(g), partValue(reference['split'], g, in_plants), partValue(best['split'], g, in_plants),
                   partValue({g: best['split'].get(g, 0.0) - reference['split'].get(g, 0.0)}, g, in_plants)] for g in NPV_GROUPS]
     diff_rows.append([tr_msg('Net present value'), round(reference['npv']), round(best['npv']), round(best['npv'] - reference['npv'])])
+    diff_rows += networkPartRows(reference, best)
     headers = [tr_msg('Part'), tr_msg('Iteration {}').format(reference['iteration']), tr_msg('Iteration {}').format(best['iteration']), tr_msg('Difference')]
-    report.section(tr_msg('Least net present value against the first iteration [€]'), table(headers, diff_rows), 3)
+    note = '<p class="note">{}</p>'.format(esc(tr_msg(
+        'Network part: the net present value without the energy the plants and customers buy (investment, maintenance, residual value, pumps, '
+        'comfort violations). The bought energy also covers the pipe losses, so their change is not in the network part.')))
+    report.section(tr_msg('Least net present value against the first iteration [€]'), table(headers, diff_rows) + note, 3)
     inv_rows = [[k, round(sum(c for _, c in invest[k][0].values())), round(sum(c for _, c in invest[k][1].values())),
                  round(sum(c for _, c in invest[k][0].values()) + sum(c for _, c in invest[k][1].values()))] for k in iterations]
     report.section(tr_msg('Investment per iteration [€]'), table([tr_msg('Iteration'), tr_msg('Pipes'), tr_msg('Trench'), tr_msg('Total')], inv_rows) +
@@ -795,11 +799,11 @@ def sensitivitySection(report, analysis, catalog, rows=()):
         result = v['result']
         step = round(result['npv_after'] - result['npv']) if 'npv_after' in result else ''
         variant_rows.append([v['name']] + [round(v['values'][k], 4) for k in keys] + [round(result.get('npv', 0.0)), round(axes['npv']), step,
-                                                                             round(axes['investment']), round(axes['operating']), int(axes['changed']),
+                                                                             round(axes['investment']), round(axes['operating']), round(axes['penalties']), int(axes['changed']),
                                                                              different.get(v['name'], 0)])
     headers = [tr_msg('Variant')] + [labels.get(k, k) for k in keys] + [
         tr_msg('NPV of the basis design [€]'), tr_msg('NPV after the step or of the run [€]'), tr_msg('NPV change by the step [€]'), tr_msg('Investment [€]'),
-        tr_msg('Operating costs [€]'), tr_msg('Lines changed by the step'), tr_msg('Lines different from the base')]
+        tr_msg('Operating costs [€]'), tr_msg('Comfort penalties [€]'), tr_msg('Lines changed by the step'), tr_msg('Lines different from the base')]
     note = '<p class="note">{}</p>'.format(esc(tr_msg('The NPV after the step is a forecast of the cost model, not the NPV of a design optimized anew.')))         if analysis['mode'] == 'estimate' else ''
     report.section(tr_msg('Variants'), table(headers, variant_rows) + note, 3)
 
@@ -958,22 +962,31 @@ def energySections(report, saved):
     rows = []
     for r in with_energy:
         basis = r['economics']['energy_basis']
+        plant_heat = basis.get('plant_heat') or {}
         customers: dict = {}
         for feature, fid, carrier, kwh, eur in basis['features']:
             if feature == 'customer':
                 kwh0, eur0 = customers.get(carrier, (0.0, 0.0))
                 customers[carrier] = (kwh0 + kwh, eur0 + eur)
             else:
-                rows.append([r['label'], '{} {}'.format(tr_msg('Plant'), fid), tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur)])
+                heat = plant_heat.get(str(fid))
+                rows.append([r['label'], '{} {}'.format(tr_msg('Plant'), fid), tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur),
+                             '' if heat is None else round(heat), '{:.2f}'.format(heat / kwh) if heat and kwh else ''])
         counted = basis.get('boundary') == 'system'
         for carrier, (kwh, eur) in sorted(customers.items()):
             label = tr_msg('Customers') + ('' if counted else ' ({})'.format(tr_msg('information')))
-            rows.append([r['label'], label, tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur)])
+            rows.append([r['label'], label, tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur), '', ''])
         losses = basis.get('losses') or {}
         rows.append([r['label'], tr_msg('Pipe losses (information)'), tr_msg('heating') + ' / ' + tr_msg('cooling'), '',
-                     round(losses.get('heat', 0.0) + losses.get('cold', 0.0))])
+                     round(losses.get('heat', 0.0) + losses.get('cold', 0.0)), '', ''])
     report.section(tr_msg('Energy use and costs of year 0'), table([tr_msg('Iteration'), tr_msg('Plant or customers'), tr_msg('Carrier'),
-                                                                     tr_msg('Energy [kWh/a]'), tr_msg('Costs [€/a]')], rows), 3)
+                                                                     tr_msg('Energy [kWh/a]'), tr_msg('Costs [€/a]'), tr_msg('Heat into the network [kWh/a]'),
+                                                                     tr_msg('Heat / energy bought')], rows) +
+                   '<p class="note">{}</p>'.format(esc(tr_msg(
+                       'Energy: what the component buys, e.g. the fuel input of a boiler or the electricity of a heat pump. Heat into the network: what the '
+                       'plant exchanges with the network (heating and cooling). Their ratio is the efficiency of a boiler or the COP of a heat pump; '
+                       'the heat into the network covers the heat delivered to the customers and the pipe losses. A plant with several carriers shows '
+                       'the ratio per carrier.'))), 3)
     delivered_rows = []
     for r in with_energy:
         delivered = r['economics']['energy_basis'].get('delivered') or {}
@@ -1098,6 +1111,22 @@ def partStatus(rows):
     return status
 
 
+def networkPartRows(reference, best):
+    """the change in % of the NPV and of its network part (review of the report v3: a small relative saving of the
+    NPV hides the saving of the network costs when the bought energy dominates)"""
+    def network(entry):
+        return entry['npv'] - sum(entry['split'].get(g, 0.0) for g in ('plant_energy', 'customer_energy'))
+
+    def pct(before, after):
+        return '{:+.2f} %'.format(100 * (after - before) / before) if before else ''
+    rows = [[tr_msg('Net present value: change [%]'), '', '', pct(reference['npv'], best['npv'])]]
+    if network(reference) != reference['npv'] or network(best) != best['npv']:
+        before, after = network(reference), network(best)
+        rows += [[tr_msg('Network part'), round(before), round(after), round(after - before)],
+                 [tr_msg('Network part: change [%]'), '', '', pct(before, after)]]
+    return rows
+
+
 def partValue(split, group, status):
     if group in status:
         return tr_msg('see note')
@@ -1157,7 +1186,7 @@ def purchaseSection(report, rows):
     table_rows = [[kind, year, what, n, round(price) if what != tr_msg('residual value') else '', round(pv)]
                   for (kind, year, what), (n, price, pv) in sorted(per.items(), key=lambda x: (x[0][0], x[0][1]))]
     report.section(tr_msg('Purchases and residual values, iteration {} [€]').format(best['iteration']), table(
-        [tr_msg('Item'), tr_msg('Year'), tr_msg('Kind'), tr_msg('Items'), tr_msg('Price in that year'), tr_msg('Present value')], table_rows) +
+        [tr_msg('Item'), tr_msg('Year'), tr_msg('Kind'), tr_msg('Items'), tr_msg('Price in that year (not discounted)'), tr_msg('Present value (discounted to year 0)')], table_rows) +
         '<p class="note">{}</p>'.format(esc(tr_msg('Every purchase of an item: the first in year 0 or in the start year of its stage, a replacement at the end '
                                                    'of each lifetime; the residual value at the end of the period with the share of the lifetime left.'))), 3)
 

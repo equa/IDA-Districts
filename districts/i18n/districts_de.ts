@@ -12685,5 +12685,45 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Remove layers</source>
             <translation>Layer entfernen</translation>
         </message>
+        <message>
+            <source>Comfort penalties [€]</source>
+            <translation>Komfortstrafkosten [€]</translation>
+        </message>
+        <message>
+            <source>Network part: the net present value without the energy the plants and customers buy (investment, maintenance, residual value, pumps, comfort violations). The bought energy also covers the pipe losses, so their change is not in the network part.</source>
+            <translation>Netzanteil: der Barwert ohne die Energie, die Zentralen und Abnehmer beziehen (Investition, Instandhaltung, Restwert, Pumpen, Komfortverletzungen). Die bezogene Energie deckt auch die Rohrverluste; deren Änderung ist deshalb nicht im Netzanteil enthalten.</translation>
+        </message>
+        <message>
+            <source>Net present value: change [%]</source>
+            <translation>Barwert: Änderung [%]</translation>
+        </message>
+        <message>
+            <source>Network part</source>
+            <translation>Netzanteil</translation>
+        </message>
+        <message>
+            <source>Network part: change [%]</source>
+            <translation>Netzanteil: Änderung [%]</translation>
+        </message>
+        <message>
+            <source>Heat into the network [kWh/a]</source>
+            <translation>Wärme ins Netz [kWh/a]</translation>
+        </message>
+        <message>
+            <source>Heat / energy bought</source>
+            <translation>Wärme / bezogene Energie</translation>
+        </message>
+        <message>
+            <source>Energy: what the component buys, e.g. the fuel input of a boiler or the electricity of a heat pump. Heat into the network: what the plant exchanges with the network (heating and cooling). Their ratio is the efficiency of a boiler or the COP of a heat pump; the heat into the network covers the heat delivered to the customers and the pipe losses. A plant with several carriers shows the ratio per carrier.</source>
+            <translation>Energie: was die Komponente bezieht, z. B. der Brennstoffeinsatz eines Kessels oder der Strom einer Wärmepumpe. Wärme ins Netz: was die Zentrale mit dem Netz austauscht (Heizen und Kühlen). Ihr Verhältnis ist der Wirkungsgrad eines Kessels oder die Leistungszahl einer Wärmepumpe; die Wärme ins Netz deckt die an die Abnehmer gelieferte Wärme und die Rohrverluste. Eine Zentrale mit mehreren Energieträgern zeigt das Verhältnis je Energieträger.</translation>
+        </message>
+        <message>
+            <source>Price in that year (not discounted)</source>
+            <translation>Preis in diesem Jahr (nicht abgezinst)</translation>
+        </message>
+        <message>
+            <source>Present value (discounted to year 0)</source>
+            <translation>Barwert (auf Jahr 0 abgezinst)</translation>
+        </message>
     </context>
 </TS>

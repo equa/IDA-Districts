@@ -151,7 +151,8 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv, stage=None):
         energy_basis['fallback'] = basis.get('fallback') or []
         energy_basis.update({'kwh': basis['costs']['kwh'], 'info': basis['costs']['info'], 'no_price': basis['costs']['no_price'],
                              'delivered': basis['costs'].get('delivered', {}),
-                             'features': basis['costs']['features'], 'marginal_hours': {str(k): v for k, v in basis['marginal_hours'].items()}})
+                             'features': basis['costs']['features'], 'marginal_hours': {str(k): v for k, v in basis['marginal_hours'].items()},
+                             'plant_heat': {str(k): v for k, v in (basis.get('plant_heat') or {}).items()}})
     return {'terms': npvTerms(scenario, items, evaluation.get('npv_yearly', evaluation['costs']), evaluation.get('by_carrier'), operating),
             'energy': evaluation['energy'], 'yearly_penalty': yearly_penalty, 'energy_basis': energy_basis, 'operating': list(operating),
             'penalties': penalty_npv, 'factors': factors, 'interest_pct': float(sc.get('interest_pct') or 0), 'period_a': period,

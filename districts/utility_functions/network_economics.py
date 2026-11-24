@@ -179,7 +179,7 @@ def periodSources(cur, config):
 def energyBasis(cur, config, sources, times, weights, shape, scenario, masks, seq_values, hours):
     """None without energy results; else {'costs': energyCosts, 'boundary', 'losses': {'heat', 'cold'} € of year 0 of the
     pipe heat flows priced with the marginal plant (the price curves where a pair has none), 'marginal_hours': {fid: h/a},
-    'curve_hours': h/a priced with the curves} (plant-energy-costs D5, D6)"""
+    'curve_hours': h/a priced with the curves, 'plant_heat': {fid: kWh/a exchanged with the network}} (plant-energy-costs D5, D6)"""
     schema = config['versionName']
     n = len(times)
     index = {t: k for k, t in enumerate(times)}
@@ -212,8 +212,10 @@ def energyBasis(cur, config, sources, times, weights, shape, scenario, masks, se
             losses['heat'] += weights[k] * value / 1000 * price
         else:
             losses['cold'] -= weights[k] * value / 1000 * price
+    w = np.asarray(weights, dtype=float)
+    plant_heat = {fid: float(np.dot(total, w)) / 1000 for fid, (_, total) in specific.items()}
     return {'costs': costs, 'boundary': boundary, 'losses': losses, 'marginal_hours': marginal_hours,
-            'curve_hours': sum(weights[k] for k in curve_steps), 'threshold_pct': threshold}
+            'curve_hours': sum(weights[k] for k in curve_steps), 'threshold_pct': threshold, 'plant_heat': plant_heat}
 
 
 def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):

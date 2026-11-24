@@ -157,9 +157,13 @@ def newItems(items, previous):
     from earlier stages have the same pipes)"""
     result = []
     for key, item in items.items():
-        cost = float(item.get('cost') or 0) - float((previous or {}).get(key, {}).get('cost') or 0)
+        before = (previous or {}).get(key, {})
+        cost = float(item.get('cost') or 0) - float(before.get('cost') or 0)
         if cost > 1e-6:
-            result.append(dict(item, cost=cost, kind=key[0]))
+            new = dict(item, cost=cost, kind=key[0])
+            if 'length' in item:
+                new['length'] = float(item['length']) - float(before.get('length') or 0)
+            result.append(new)
     return result
 
 

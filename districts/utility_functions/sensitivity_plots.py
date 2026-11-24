@@ -20,7 +20,7 @@ def resultAxes(variant):
     result = variant.get('result') or {}
     split = result.get('split_after') or result.get('split') or {}
     return {'npv': resultNpv(variant), 'investment': split.get('investment', 0.0) + split.get('residual', 0.0),
-            'operating': sum(split.get(g, 0.0) for g in ENERGY_PARTS), 'changed': float(result.get('n_changed', len(result.get('changes', []))))}
+            'operating': sum(split.get(g, 0.0) for g in ENERGY_PARTS), 'penalties': split.get('penalties', 0.0), 'changed': float(result.get('n_changed', len(result.get('changes', []))))}
 
 
 RESULT_LABELS = (('npv', 'NPV [€]'), ('investment', 'Investment [€]'), ('operating', 'Operating costs [€]'), ('changed', 'Changed lines'))

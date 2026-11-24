@@ -93,6 +93,15 @@ def test_npv_of_two_stage_versions():
     assert result['npv'] == pytest.approx(sum(result['split'].values()))
 
 
+def test_items_of_a_later_stage_carry_only_their_new_length():
+    """review of the report v3: stage 2 showed the trench and pipe length of the whole network next to the cost of its new part"""
+    from districts.utility_functions.network_stages import newItems
+    stage1 = {('trench', 'grass'): {'cost': 804619.0, 'length': 1003.0}, ('pipe', 25): {'cost': 2088.0, 'length': 48.0}}
+    stage2 = {('trench', 'grass'): {'cost': 815890.0, 'length': 1032.0}, ('pipe', 25): {'cost': 4602.0, 'length': 106.0}}
+    new = {item['kind']: item['length'] for item in newItems(stage2, stage1)}
+    assert new == {'trench': pytest.approx(29.0), 'pipe': pytest.approx(58.0)}
+
+
 def test_report_terms_of_each_stage_add_up_to_its_npv():
     """the terms saved per stage for the report (npvRecord with stagesNpv's inputs): their sum and the penalty are the
     stage's NPV; the first purchase in the stage's start year, replacements and residual value of its pumps"""

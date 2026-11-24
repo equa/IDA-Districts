@@ -635,7 +635,7 @@ def fillVariantTable(table, analysis):
     from .utility_functions.sensitivity import differences
     different = differences(analysis)
     headers = [tr_msg('Variant')] + [labels.get(k, k) for k in keys] + [tr_msg('NPV [€]'), tr_msg('NPV change by the step [€]'), tr_msg('Investment [€]'),
-                                                                        tr_msg('Operating costs [€]'), tr_msg('Lines changed by the step'),
+                                                                        tr_msg('Operating costs [€]'), tr_msg('Comfort penalties [€]'), tr_msg('Lines changed by the step'),
                                                                         tr_msg('Lines different from the base')]
     table.setColumnCount(len(headers))
     table.setHorizontalHeaderLabels(headers)
@@ -646,6 +646,7 @@ def fillVariantTable(table, analysis):
         result = v['result']
         step = money(result['npv_after'] - result['npv']) if 'npv_after' in result else ''
         values = [v['name']] + ['{:.4g}'.format(v['values'][k]) for k in keys] + [money(axes['npv']), step, money(axes['investment']), money(axes['operating']),
+                                                                                 money(axes['penalties']),
                                                                                  str(int(axes['changed'])), str(different.get(v['name'], 0))]
         k = table.rowCount()
         table.insertRow(k)

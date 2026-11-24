@@ -133,7 +133,8 @@ class TestIterationReport:
         basis = {'costs': {'yearly': by_carrier, 'info': {}, 'kwh': {'plant_energy': {'fuel': 100000.0}, 'customer_energy': {'electricity': 10000.0}},
                            'features': [('energy_plant', 1, 'fuel', 100000.0, 8000.0), ('customer', 7, 'electricity', 10000.0, 2500.0)], 'no_price': [],
                            'delivered': {'heat': 60000.0, 'cold': 40000.0}},
-                 'boundary': 'system', 'losses': {'heat': 1200.0, 'cold': 0.0}, 'marginal_hours': {1: 8000.0}, 'curve_hours': 760.0, 'threshold_pct': 5.0}
+                 'boundary': 'system', 'losses': {'heat': 1200.0, 'cold': 0.0}, 'marginal_hours': {1: 8000.0}, 'curve_hours': 760.0, 'threshold_pct': 5.0,
+                 'plant_heat': {1: 92000.0}}
         econ1 = npvRecord(dict(evaluation, npv_yearly={'pump_energy': 1500.0}, by_carrier=by_carrier, energy_basis=basis), 0.0, 0.0)
         rows[1]['economics'] = econ1
         rows[1]['split'] = {g: sum(t['value'] for t in econ1['terms'] if t['group'] == g) for g in list(split0) + ['plant_energy', 'customer_energy']}
@@ -151,7 +152,8 @@ class TestIterationReport:
                      'Present value factors of the scenario', 'Amounts of year 0 per iteration', 'Net present value: calculation per iteration',
                      '2000 m; n = 40 a, t = 0', '25.0 kW', '60000 kWh/a, 0.1000 €/kWh', 'Basis of the net present value',
                      'Energy use and costs of year 0', 'Hours per marginal plant', 'Plant 1', '100000 kWh/a, 0.0800 €/kWh',
-                     'Energy delivered to the customers'):
+                     'Energy delivered to the customers', 'Heat into the network [kWh/a]', '92000', '0.92', 'Net present value: change [%]',
+                     'Present value (discounted to year 0)'):
             assert text in page.replace('&#x27;', '').replace("'", ''), text
         assert 'The sum of the terms differs' not in page
         assert page.count('<img src="data:image/png;base64,') >= 3  # NPV diagram, price curves, maps
@@ -206,6 +208,19 @@ def test_iteration_table_shows_the_step_into_an_iteration():
     assert [outcome for _, _, outcome in table] == ['', '', tr_msg('max. iterations')]
     # during a run the newest row has made its step: nothing to say yet
     assert iterationTableRows(rows[:2])[-1][2] == ''
+
+
+def test_network_part_of_the_improvement():
+    """review of the report v3: dyn_opt_test saved 1.14 % of the NPV, but much more of the network costs"""
+    from districts.utility_functions.iteration_report import networkPartRows
+    reference = {'npv': 18140671.0, 'split': {'investment': 1247575.0, 'plant_energy': 16734255.0}}
+    best = {'npv': 17934492.0, 'split': {'investment': 1047802.0, 'plant_energy': 16742174.0}}
+    rows = networkPartRows(reference, best)
+    assert rows[0][3] == '-1.14 %'
+    assert rows[1][1:] == [1406416, 1192318, -214098]
+    assert rows[2][3] == '-15.22 %'
+    # without bought energy the network part is the NPV: only its change in %
+    assert len(networkPartRows({'npv': 100.0, 'split': {}}, {'npv': 90.0, 'split': {}})) == 1
 
 
 def test_map_iterations():
