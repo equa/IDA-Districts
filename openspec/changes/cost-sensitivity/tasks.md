@@ -45,7 +45,7 @@
 - [x] 6.7 Flip table as a matrix (a column per changing variant, ↑ / ↓), its source named in the title and the report
 - [x] 6.8 Tornado chart: NPV ticks by the axis length, slanted
 - [x] 6.10 Flips and robustness against the base variant's step; the base step named apart with the run's simulated and expected NPV change
-- [ ] 6.9 CI
+- [x] 6.9 CI (run 45363731635 green)
 
 ## 7. Second review of the report (D10)
 
@@ -54,4 +54,4 @@
 - [x] 7.3 Cost analysis: the reason of a 0 € energy part; purchases per item and year with residual values; rounding note; model error in €; comfort units
 - [x] 7.4 Sensitivity section titled by its method; NPV change by the step and lines different from the base per variant
 - [x] 7.5 Tests: the fallback (e2e), unpriced carriers, example prices, part status and purchases
-- [ ] 7.6 CI
+- [x] 7.6 CI (run 45363731635 green)

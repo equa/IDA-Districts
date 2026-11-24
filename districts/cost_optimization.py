@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 from qgis.PyQt.QtCore import QObject, QSize, Qt, QThreadPool, QTimer, pyqtSlot
 from qgis.PyQt.QtGui import QColor, QGuiApplication
 from qgis.PyQt.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QAbstractItemView, QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QProgressBar, QPushButton, QRadioButton, QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget, QTextEdit, QVBoxLayout,
     QWidget,
 )
@@ -420,8 +420,11 @@ class CostOptimizationDialog(QDialog):
         self.table_iterations.setToolTip(tr_msg('Iterations of the last run in the loaded version. Select one or more iterations and show them on the map '
                                                 '(inner diameters, lines changed for the iteration, customers with a new deficit).'))
         self.table_iterations.itemDoubleClicked.connect(lambda item: self.showSelectedIterations())
-        self.btn_showIterations = QPushButton(tr_msg('Show selected iterations on the map'))
-        self.btn_removeLayers = QPushButton(tr_msg('Remove the iteration layers'))
+        # short labels, the full text as tooltip: the button row sets the width of every results tab
+        self.btn_showIterations = QPushButton(tr_msg('Show on the map'))
+        self.btn_showIterations.setToolTip(tr_msg('Show selected iterations on the map'))
+        self.btn_removeLayers = QPushButton(tr_msg('Remove layers'))
+        self.btn_removeLayers.setToolTip(tr_msg('Remove the iteration layers'))
         self.btn_reload = QPushButton(tr_msg('Reload'))
         self.btn_report = QPushButton(tr_msg('Report'))
         self.btn_report.setToolTip(tr_msg('HTML report of the iterations of the loaded version: inputs incl. the economic scenario, iteration '
@@ -437,9 +440,10 @@ class CostOptimizationDialog(QDialog):
         tab_iterations = QWidget()
         inner = QVBoxLayout(tab_iterations)
         inner.addWidget(self.table_iterations)
-        row_buttons = QHBoxLayout()
-        for button in (self.btn_showIterations, self.btn_removeLayers, self.btn_reload, self.btn_report, self.btn_setPipes):
-            row_buttons.addWidget(button)
+        # two rows: in one the five labels made this page, and with it every tab, wider than a small dialog
+        row_buttons = QGridLayout()
+        for k, button in enumerate((self.btn_showIterations, self.btn_removeLayers, self.btn_reload, self.btn_report, self.btn_setPipes)):
+            row_buttons.addWidget(button, k // 3, k % 3)
         inner.addLayout(row_buttons)
         self.figure = Figure(figsize=(9, 4))
         self.canvas = _Canvas(self.figure)
@@ -449,12 +453,15 @@ class CostOptimizationDialog(QDialog):
         results.addTab(tab_iterations, tr_msg('Iterations'))
         results.addTab(self.canvas, tr_msg('Net present value'))
         self.sensitivity_results = SensitivityResults(self)
-        results.addTab(self.sensitivity_results, tr_msg('Sensitivity'))
+        # a scroll area of its own: a tab widget takes the size of its largest page, so the plots and tables of this page
+        # (about 700 px) would make every tab, the NPV chart too, higher than the dialog
+        self.sensitivity_page = QScrollArea()
+        self.sensitivity_page.setWidgetResizable(True)
+        self.sensitivity_page.setFrameShape(QFrame.Shape.NoFrame)
+        self.sensitivity_page.setWidget(self.sensitivity_results)
+        results.addTab(self.sensitivity_page, tr_msg('Sensitivity'))
         results.addTab(self.log_edit, tr_msg('Log'))
         results.setMinimumHeight(330)
-        # the sensitivity tab holds two plots and two tables: the section grows (the dialog scrolls) instead of squeezing them
-        results.currentChanged.connect(lambda _: results.setMinimumHeight(
-            max(330, self.sensitivity_results.minimumSizeHint().height() + 40) if results.currentWidget() is self.sensitivity_results else 330))
         self.tabs_results = results
         # opened when a run starts; before, the settings and periods have the room
         self.box_results = self.section(tr_msg('Results'), results, collapsed=True)

@@ -334,6 +334,8 @@ class SensitivityResults(QWidget):
         layout.addWidget(splitter, 1)
         row = QHBoxLayout()
         self.label = QLabel()
+        # wrapped: an unwrapped status line made the page, and with it every tab, wider than the dialog
+        self.label.setWordWrap(True)
         self.label_filter = QLabel()
         self.btn_reset = QPushButton(tr_msg('Reset the filter'))
         self.btn_reset.clicked.connect(self.resetFilter)
@@ -454,7 +456,7 @@ class SensitivityRun(QObject):
         self.dlg.process_running = True
         self.dlg.updateEnabled()
         self.dlg.box_results.setCollapsed(False)
-        self.dlg.results_tabs.setCurrentWidget(self.dlg.sensitivity_results)
+        self.dlg.results_tabs.setCurrentWidget(self.dlg.sensitivity_page)
         self.dlg.log(tr_msg('Sensitivity analysis: {} variants').format(len(self.analysis['variants'])))
         self.active = True
         try:
@@ -587,7 +589,7 @@ class SensitivityRun(QObject):
         self.dlg.process_running = False
         self.dlg.updateEnabled()
         self.dlg.sensitivity_results.show(self.analysis)
-        self.dlg.results_tabs.setCurrentWidget(self.dlg.sensitivity_results)
+        self.dlg.results_tabs.setCurrentWidget(self.dlg.sensitivity_page)
 
     def onFailed(self, message):
         self.dlg.log(tr_msg('Sensitivity analysis: error in variant {}: {}').format(self.k + 1, message))

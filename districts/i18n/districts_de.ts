@@ -12677,5 +12677,13 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Model error [€]</source>
             <translation>Modellfehler [€]</translation>
         </message>
+        <message>
+            <source>Show on the map</source>
+            <translation>Auf der Karte zeigen</translation>
+        </message>
+        <message>
+            <source>Remove layers</source>
+            <translation>Layer entfernen</translation>
+        </message>
     </context>
 </TS>
