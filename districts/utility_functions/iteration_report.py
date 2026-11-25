@@ -806,6 +806,7 @@ def sensitivitySection(report, analysis, catalog, rows=()):
         tr_msg('Operating costs [€]'), tr_msg('Comfort penalties [€]'), tr_msg('Lines changed by the step'), tr_msg('Lines different from the base')]
     note = '<p class="note">{}</p>'.format(esc(tr_msg('The NPV after the step is a forecast of the cost model, not the NPV of a design optimized anew.')))         if analysis['mode'] == 'estimate' else ''
     report.section(tr_msg('Variants'), table(headers, variant_rows) + note, 3)
+    validationSection(report, analysis)
 
     columns = flipColumns(analysis)
     flip_rows = [[line, version, pipeText(entry['before'], catalog), pipeText(entry['base'], catalog, entry['before']) if entry['base'] is not None else '']
@@ -1109,6 +1110,28 @@ def partStatus(rows):
         for g in zero & {'customer_energy'}:
             status[g] = tr_msg('not counted: system boundary network operator')
     return status
+
+
+def validationSection(report, analysis):
+    """the steps of an estimate simulated in child versions, against their forecast (change sensitivity-validation D5)"""
+    from .sensitivity import validationRows
+    from .sensitivity_plots import validationPlot
+    if not any(v.get('validation') for v in analysis.get('variants', [])):
+        return
+    fig = Figure(figsize=(6, 4.5))
+    validationPlot(fig.add_subplot(111), analysis)
+    fig.tight_layout()
+    rows = [[name, '' if basis is None else round(basis), '' if forecast is None else round(forecast), '' if simulated is None else round(simulated),
+             '' if error is None else round(error), '' if pct is None else '{:+.2f}'.format(pct), confirmed, '' if penalty is None else round(penalty), limits, versions]
+            for name, basis, forecast, simulated, error, pct, confirmed, penalty, limits, versions in validationRows(analysis)]
+    headers = [tr_msg(h) for h in ('Variant', 'NPV of the basis design [€]', 'Forecast after the step [€]', 'Simulated NPV [€]', 'Error [€]', 'Error [%]',
+                                   'Step confirmed', 'Comfort penalties: change [€]', 'Lines over a limit', 'Versions')]
+    report.section(tr_msg('Validation by simulation'), '<p>{}</p>'.format(esc(tr_msg(
+        'The step the cost model forecast for a variant, simulated once in child versions of its own with the variant\'s values: the pipes of the '
+        'basis iteration plus the step. The error is the simulated NPV minus the forecast; the step is confirmed when the simulated NPV is below '
+        'the NPV of the basis design. Lines over a limit: a pipe above the specific pressure loss or the velocity of the run at the simulated peak '
+        'flow, or the plant pressure above the least p_max of the pipes in use.'))) +
+        figureTag(fig, tr_msg('Forecast and simulation')) + table(headers, rows), 3)
 
 
 def networkPartRows(reference, best):

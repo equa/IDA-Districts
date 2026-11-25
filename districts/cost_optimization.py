@@ -199,17 +199,39 @@ def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None, wri
     if not chosen or not write:
         return result
     schema = stages[-1]['version']
-    current = lineState(cur, schema)
-    bundles = getPipeBundles(cur)
-    pipes = {lid: {**bundles.get(current[lid], {}), **c['pipes']} for lid, c in chosen.items()}
-    new_bundles, _ = getOrCreatePipeBundles(cur, {lid: current[lid] for lid in chosen}, pipes)
-    for stage in stages:
-        # a line keeps the same pipes in every stage containing it
-        psycopg2.extras.execute_values(cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(  # nosec B608
-            stage['version']), sorted(new_bundles.items()))
+    result['n_changed'], _ = applySteps(cur, steps, [schema])
     result['state'] = tuple(sorted(lineState(cur, schema).items()))
-    result['n_changed'] = len(new_bundles)
     return result
+
+
+def applySteps(cur, steps, versions, roots=None):
+    """the new pipes of steps [{'line', 'stage' (1-based, default 1), 'after': {seq: pipe_id}}] written into the versions:
+    with roots (stageRoots of the versions) into the root's line and all its segments of every stage, so a line keeps the
+    same pipes in every stage containing it; used by the step and by the validation of a sensitivity estimate
+    (sensitivity-validation D3). Returns (lines changed, {version: line state})."""
+    # saved steps come from JSON with text keys
+    chosen = {(int(s.get('stage') or 1) - 1, int(s['line'])): {int(seq): int(pid) for seq, pid in s['after'].items()} for s in steps}
+    bundles = getPipeBundles(cur)
+    changed, states = 0, {}
+    for k, version in enumerate(versions):
+        current = lineState(cur, version)
+        if roots is None:
+            targets = {lid: (0, lid) for lid in current if (0, lid) in chosen}
+        else:
+            targets = {lid: root for lid, root in roots[k].items() if root in chosen}
+        pipes = {lid: {**bundles.get(current[lid], {}), **chosen[root]} for lid, root in targets.items()}
+        new_bundles, _ = getOrCreatePipeBundles(cur, {lid: current[lid] for lid in targets}, pipes)
+        if roots is None:
+            # one version: the version handling copies the change into its descendants, as before the stages
+            if new_bundles:
+                psycopg2.extras.execute_values(cur, 'UPDATE "{}".lines l SET pipe_bundle_type_id = v.bid FROM (VALUES %s) AS v(id, bid) WHERE l.id = v.id;'.format(  # nosec B608
+                    version), sorted(new_bundles.items()))
+        else:
+            writeBundles(cur, version, new_bundles)
+        bundles = getPipeBundles(cur)
+        changed += len(new_bundles)
+        states[version] = lineState(cur, version)
+    return changed, states
 
 
 def modelStepStages(cur, config, parms, settings, prices, no_smaller, stages, write=True):
@@ -244,17 +266,7 @@ def modelStepStages(cur, config, parms, settings, prices, no_smaller, stages, wr
               'state': None, 'n_changed': 0}
     if not chosen or not write:
         return result
-    bundles = getPipeBundles(cur)
-    stage_states = {}
-    for k, version in enumerate(versions):
-        current = lineState(cur, version)
-        lids = [lid for lid, root in roots[k].items() if root in chosen]
-        pipes = {lid: {**bundles.get(current[lid], {}), **chosen[roots[k][lid]]['pipes']} for lid in lids}
-        new_bundles, _ = getOrCreatePipeBundles(cur, {lid: current[lid] for lid in lids}, pipes)
-        writeBundles(cur, version, new_bundles)
-        bundles = getPipeBundles(cur)
-        result['n_changed'] += len(new_bundles)
-        stage_states[version] = lineState(cur, version)
+    result['n_changed'], stage_states = applySteps(cur, steps, versions, roots)
     result['stage_states'] = stage_states
     result['state'] = tuple((version, tuple(sorted(state.items()))) for version, state in stage_states.items())
     return result
@@ -719,7 +731,7 @@ class CostOptimizationDialog(QDialog):
         self.updateEnabled()
         self.updateHints()
         sensitivity = self.sensitivity.run
-        if sensitivity and sensitivity.active and sensitivity.analysis['mode'] == 'full':
+        if sensitivity and sensitivity.active and sensitivity.phase in ('full', 'validate'):
             sensitivity.onRunFinished()
 
     def loadIterationTable(self):
@@ -994,6 +1006,16 @@ class CostOptimizationRun(QObject):
                 n = inheritPipes(self.cur, self.stage_versions, stageRoots(self.cur, self.stage_versions))
                 if n:
                     self.dlg.log(tr_msg('{} lines of the later stages got the pipes of the same line in the earlier stage.').format(n))
+            except Exception:
+                self.onException()
+                return
+        if self.parms.get('start_steps'):
+            # validation of a sensitivity estimate: the variant's step before the first simulation (sensitivity-validation D2)
+            try:
+                versions = self.stage_versions if self.stages else [self.config['versionName']]
+                roots = stageRoots(self.cur, versions) if self.stages else None
+                n, _ = applySteps(self.cur, self.parms['start_steps'], versions, roots)
+                self.dlg.log(tr_msg('{} lines got the pipes of the step to validate.').format(n))
             except Exception:
                 self.onException()
                 return

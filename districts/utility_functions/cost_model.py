@@ -307,16 +307,32 @@ class CostModel:
             limits = [self.p_max[pid] for line in self.lines.values() for pid in line['pipes'].values() if self.p_max.get(pid)]
             if limits and p_new > min(limits) * 1e5:
                 return 'p_max'
-        if not larger:
-            for seq, pid in pipes.items():
-                mdot = self.mdot.get((lid, seq))
-                if mdot is None or not len(mdot):
-                    continue
-                peak = float(np.max(np.abs(mdot)))
-                d, k = self.catalog[pid]['d'], self.catalog[pid]['k']
-                if float(pressureLoss([peak], d, k)[0]) > self.dp_spez_max or float(velocity([peak], d)[0]) > self.v_max:
-                    return 'peak'
+        if not larger and self.overPeakLimits(lid, pipes):
+            return 'peak'
         return None
+
+    def overPeakLimits(self, lid, pipes):
+        """a pipe of the line above dp_spez_max or v_max at the simulated peak mass flow"""
+        for seq, pid in pipes.items():
+            mdot = self.mdot.get((lid, seq))
+            if mdot is None or not len(mdot):
+                continue
+            peak = float(np.max(np.abs(mdot)))
+            d, k = self.catalog[pid]['d'], self.catalog[pid]['k']
+            if float(pressureLoss([peak], d, k)[0]) > self.dp_spez_max or float(velocity([peak], d)[0]) > self.v_max:
+                return True
+        return False
+
+    def limitLines(self):
+        """the current pipes checked against the limits a smaller pipe must keep (sensitivity-validation D4):
+        {'peak': [lines over dp_spez_max or v_max at the simulated peak flow], 'p_max': plant pressure above the least
+        p_max of the pipes in use}"""
+        peak = sorted(lid for lid, line in self.lines.items() if self.overPeakLimits(lid, line['pipes']))
+        over = False
+        if self.p_plant is not None and self.p_max:
+            limits = [self.p_max[pid] for line in self.lines.values() for pid in line['pipes'].values() if self.p_max.get(pid)]
+            over = bool(limits) and float(np.max(self.p_plant)) > min(limits) * 1e5
+        return {'peak': peak, 'p_max': over}
 
     # -------------------------------------------------------- one iteration
     def step(self):

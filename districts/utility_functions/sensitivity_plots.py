@@ -130,3 +130,34 @@ def tornadoChart(ax, analysis):
     ax.set_xlim(-1, 1)
     ax.axvline(0, color='k', linewidth=1.0)
     ax.set_xlabel(tr_msg('rank correlation with the NPV'))
+
+
+def validationPlot(ax, analysis):
+    """the change of the NPV by each validated variant's step: forecast (x) against simulation (y), with the diagonal
+    (change sensitivity-validation D5); a point above it: the step did less than forecast. Returns the number of points."""
+    points = [(v['name'], v['validation']['npv_forecast'] - v['validation']['npv_basis'], v['validation']['npv_simulated'] - v['validation']['npv_basis'],
+               v['validation']['confirmed']) for v in analysis.get('variants', []) if v.get('validation')]
+    if not points:
+        ax.text(0.5, 0.5, tr_msg('No variant validated yet'), ha='center', va='center', transform=ax.transAxes)
+        ax.set_axis_off()
+        return 0
+    xs, ys = [p[1] for p in points], [p[2] for p in points]
+    low, high = min(xs + ys + [0.0]), max(xs + ys + [0.0])
+    pad = 0.08 * (high - low or 1.0)
+    ax.plot([low - pad, high + pad], [low - pad, high + pad], color='0.6', linewidth=1, zorder=1)
+    ax.axhline(0, color='0.85', linewidth=0.8, zorder=0)
+    ax.axvline(0, color='0.85', linewidth=0.8, zorder=0)
+    for name, x, y, confirmed in points:
+        ax.scatter([x], [y], color='tab:green' if confirmed else 'tab:red', zorder=2)
+        ax.annotate(name, (x, y), textcoords='offset points', xytext=(4, 4), fontsize=8)
+    ax.set_xlim(low - pad, high + pad)
+    ax.set_ylim(low - pad, high + pad)
+    ax.set_xlabel(tr_msg('NPV change by the step, forecast [€]'))
+    ax.set_ylabel(tr_msg('NPV change by the step, simulated [€]'))
+    formatter = FuncFormatter(lambda value, _pos: money(value))
+    ax.xaxis.set_major_formatter(formatter)
+    ax.yaxis.set_major_formatter(formatter)
+    ax.legend(handles=[Line2D([], [], marker='o', linestyle='', color='tab:green', label=tr_msg('step confirmed')),
+                       Line2D([], [], marker='o', linestyle='', color='tab:red', label=tr_msg('step not confirmed')),
+                       Line2D([], [], color='0.6', label=tr_msg('forecast = simulation'))], fontsize=8, loc='best')
+    return len(points)

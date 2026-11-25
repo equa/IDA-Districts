@@ -195,3 +195,80 @@ def test_plot_undocks_and_docks():
     assert box.window_ is not None and content.parent() is box.window_ and box.button.text() == 'Dock'
     box.window_.close()
     assert box.window_ is None and content.parent() is box and box.button.text() == 'Undock'
+
+
+# ---------------------------------------------------------------- validation by simulation (change sensitivity-validation)
+def estimate():
+    """an estimate whose variant 'interest_pct +' makes line 114 smaller"""
+    result = analysis()
+    result['mode'] = 'estimate'
+    for v in result['variants']:
+        v['result']['steps'] = []
+        v['result']['split'] = {'investment': 50.0, 'penalties': 2.0}
+    result['variants'][2]['result']['steps'] = [{'line': 114, 'stage': 1, 'after': {'1': 4, '2': 4}}]
+    return result
+
+
+def test_what_can_be_validated():
+    from districts.utility_functions.sensitivity import canValidate, validationTargets
+    est = estimate()
+    assert canValidate(est) is None
+    assert canValidate(dict(est, mode='full'))
+    # saved before the steps were saved: run the estimate again
+    old = analysis()
+    old['mode'] = 'estimate'
+    assert 'again' in canValidate(old)
+    assert validationTargets(est, 'all') == ['interest_pct +']
+    assert validationTargets(est, 'selected', selected='base') == []
+    assert validationTargets(est, 'selected', selected='interest_pct +') == ['interest_pct +']
+    assert validationTargets(est, 'filtered', passing=['base', 'interest_pct -']) == []
+
+
+def test_next_free_validation_version():
+    from districts.utility_functions.sensitivity import validationVersion
+    assert validationVersion('base1', {'base1', 'base1_s0'}) == 'base1_v1'
+    assert validationVersion('base1', {'base1_v1', 'base1_v2'}) == 'base1_v3'
+
+
+def test_forecast_too_optimistic():
+    """spec scenario: forecast -2'500 €, simulation +2'600 €: error 5'100 €, not confirmed, the point above the diagonal"""
+    from matplotlib.figure import Figure
+    from districts.utility_functions.sensitivity import limitText, validationResult, validationRows
+    from districts.utility_functions.sensitivity_plots import validationPlot
+    est = estimate()
+    variant = est['variants'][2]
+    variant['result'].update(npv=100000.0, npv_after=97500.0)
+    row = {'iteration': 0, 'npv': 102600.0, 'split': {'investment': 50.0, 'penalties': 7.0}}
+    limits = {'base1_v1': {'peak': [114], 'p_max': False}}
+    check = validationResult(variant, row, ['base1_v1'], limits)
+    assert check['error_eur'] == pytest.approx(5100.0) and not check['confirmed']
+    assert check['penalty_change'] == pytest.approx(5.0) and check['error_pct'] == pytest.approx(100 * 5100 / 102600)
+    assert limitText(limits) == '114'
+    variant['validation'] = check
+    rows = {r[0]: r for r in validationRows(est)}
+    assert rows['interest_pct +'][3] == 102600.0 and rows['interest_pct +'][9] == 'base1_v1'
+    assert 'no pipe' in rows['base'][6]
+    ax = Figure().add_subplot(111)
+    assert validationPlot(ax, est) == 1
+    import numpy as np
+    x, y = (float(value) for value in np.asarray(ax.collections[0].get_offsets())[0])
+    assert (x, y) == (-2500.0, 2600.0) and y > x
+
+
+def test_validation_plot_without_points():
+    from matplotlib.figure import Figure
+    from districts.utility_functions.sensitivity_plots import validationPlot
+    assert validationPlot(Figure().add_subplot(111), estimate()) == 0
+
+
+def test_lines_over_a_limit():
+    """the current pipes against the limits a smaller pipe must keep: every line over a tiny velocity limit, the plant
+    pressure above p_max"""
+    import numpy as np
+    from .test_cost_model import CATALOG, model
+    m = model()
+    assert m.limitLines() == {'peak': [], 'p_max': False}
+    m.v_max = 1e-6
+    assert m.limitLines()['peak'] == sorted(m.lines)
+    m = model(p_plant=np.full(2, 17e5), p_max={pid: 16 for pid in CATALOG})
+    assert m.limitLines()['p_max'] is True

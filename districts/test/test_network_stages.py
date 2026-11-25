@@ -599,6 +599,58 @@ class TestStagedRun:
             page = f.read()
         assert 'Sensitivity analysis' in page and 'Tornado chart' in page
 
+    def test_sensitivity_validation(self, staged_run, errors, monkeypatch):
+        """sensitivity-validation D2–D6: the step of variant 'interest_pct +' (one line one size smaller, set here so the
+        test does not depend on the step the estimate found) simulated in <version>_v1 and the stage 2 copy: both hold the
+        step, iteration 0 only, the base version loaded again, the comparison saved and shown in the dialog and the report"""
+        from qgis.PyQt.QtWidgets import QInputDialog
+        from districts.cost_optimization import lineState
+        from districts.utility_functions.db import getParentVersion
+        from districts.utility_functions.hydraulic_balancing import getPipeBundles, getPipeCatalog
+        from districts.utility_functions.iteration_report import writeReport
+        from districts.utility_functions.sensitivity import loadAnalysis, saveAnalysis
+        from .conftest import wait, wait_until
+        from .test_dynamic_optimization import TIMEOUT
+        plugin = staged_run.plugin
+        dlg = plugin.dlg_costOptimization
+        base = plugin.config['versionName']
+        analysis = loadAnalysis(plugin.config)
+        catalog, bundles = getPipeCatalog(plugin.cur), getPipeBundles(plugin.cur)
+        lid, bid = next((lid, bid) for lid, bid in sorted(lineState(plugin.cur, base).items())
+                        if any(c['series'] == catalog[pid]['series'] and c['d'] < catalog[pid]['d'] for pid in bundles[bid].values() for c in catalog.values()))
+        after = {}
+        for seq, pid in bundles[bid].items():
+            smaller = [k for k, c in catalog.items() if c['series'] == catalog[pid]['series'] and c['d'] < catalog[pid]['d']]
+            after[str(seq)] = max(smaller, key=lambda k: catalog[k]['d']) if smaller else pid
+        for v in analysis['variants']:
+            v['result']['steps'] = [{'line': lid, 'stage': 1, 'after': after}] if v['name'] == 'interest_pct +' else []
+        saveAnalysis(plugin.config, analysis)
+        results = dlg.sensitivity_results
+        results.show(loadAnalysis(plugin.config))
+        assert results.btn_validate.isEnabled()
+        monkeypatch.setattr(QInputDialog, 'getItem', lambda parent, title, label, items, *args: (items[0], True))
+        results.validate()
+        wait_until(lambda: not dlg.sensitivity.run.active and not dlg.process_running, TIMEOUT, lambda: 'still running:\n' + dlg.log_edit.toPlainText()[-3000:])
+        wait(500)
+        errors.check()
+        log = dlg.log_edit.toPlainText()
+        print('\n' + log)
+        assert plugin.config['versionName'] == base, log
+        stage2 = staged_run.stage2 + '_co'
+        new, new2 = base + '_v1', stage2 + '_v1'
+        assert getParentVersion(plugin.cur, new2) == new
+        for version in (new, new2):
+            assert {int(seq): pid for seq, pid in bundles_of(plugin, version, lid).items()} == {int(seq): pid for seq, pid in after.items()}
+        variant = next(v for v in loadAnalysis(plugin.config)['variants'] if v['name'] == 'interest_pct +')
+        check = variant['validation']
+        assert check['versions'] == [new, new2] and check['npv_forecast'] == variant['result']['npv_after']
+        assert check['error_eur'] == pytest.approx(check['npv_simulated'] - check['npv_forecast'])
+        assert set(check['limits']) == {new, new2}
+        assert results.table_validation.rowCount() == 3
+        assert 'not simulated' in results.table_validation.item(0, 6).text()
+        with open(writeReport(plugin.cur, plugin.config, 'cost'), encoding='utf-8') as f:
+            assert 'Validation by simulation' in f.read()
+
     @pytest.mark.skipif(not os.environ.get('DISTRICTS_TEST_SENSITIVITY_FULL'), reason='three cost optimizations (about 20 min): DISTRICTS_TEST_SENSITIVITY_FULL=1')
     def test_sensitivity_full_optimization(self, staged_run, errors, monkeypatch):
         """cost-sensitivity D5: the interest varied one at a time with a cost optimization per variant (one iteration
@@ -647,6 +699,12 @@ class TestStagedRun:
         assert by_name['interest_pct +']['npv'] < by_name['interest_pct -']['npv']
         assert loadScenario(plugin.cur, scenario_id)['scenario']['interest_pct'] == interest
         dlg.close()
+
+
+def bundles_of(plugin, version, lid):
+    from districts.cost_optimization import lineState
+    from districts.utility_functions.hydraulic_balancing import getPipeBundles
+    return getPipeBundles(plugin.cur)[lineState(plugin.cur, version)[lid]]
 
 
 def test_add_stage_button():

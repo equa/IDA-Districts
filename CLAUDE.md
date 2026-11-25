@@ -77,7 +77,10 @@ say what each git command does before you run it.
   variant designs, `applyOverrides`: a variant's values on a copy of the scenario, passed to `evaluateVersion` /
   `buildModel` as data or as run parameter `overrides`; the estimate per variant; statistics; result file
   `versions/<version>/sensitivity.json`), `sensitivity_plots.py`, the section, tab and run in
-  `sensitivity_widget.py`; a full variant runs as a cost optimization into `<version>_s<k>`.
+  `sensitivity_widget.py`; a full variant runs as a cost optimization into `<version>_s<k>`. Validation of an estimate
+  (change sensitivity-validation): the estimate saves each variant's `steps`; "Validate…" runs a cost optimization with
+  `max_iter = 0` and `start_steps` (written by `cost_optimization.applySteps`) into `<version>_v<k>`; `validationResult`,
+  `validationLimits` (`CostModel.limitLines`) and `validationPlot` compare it with the forecast.
 - AI connection (change ai-mcp-connection): `districts/mcp/` holds the bridge in QGIS (`bridge.py`, opt-in
   menu action, `districts_mcp.json` with port and token in the QGIS profile), the read-only tool registry
   (`tools.py`, each tool on a rolled-back transaction), the guidance (`guidance.py`, `wiki_map.json`: workflow

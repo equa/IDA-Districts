@@ -217,7 +217,10 @@ def estimateVariant(cur, config, parms, settings, prices, basis, penalty_values,
             changes.append({'version': version, 'line': lid, 'before': sorted(s['before'].values()), 'after': sorted(s['after'].values()),
                             'larger': bool(s.get('larger'))})
     return {'npv': npv, 'npv_after': npv + sum(float(s['dnpv']) for s in steps), 'split': split, 'split_after': after,
-            'changes': changes, 'n_changed': len(steps)}
+            'changes': changes, 'n_changed': len(steps),
+            # the validation writes them into its child versions (sensitivity-validation D3)
+            'steps': [{'line': int(s['line']), 'stage': int(s.get('stage') or 1), 'after': {str(seq): int(pid) for seq, pid in s['after'].items()}}
+                      for s in steps]}
 
 
 # ---------------------------------------------------------------- statistics (design D7)
@@ -366,6 +369,100 @@ def baseStepText(info):
     else:
         text += ' ' + tr_msg('It is the reference of the variants, not a sensitivity: the run stopped before the cost model found no change.')
     return text
+
+
+# ---------------------------------------------------------------- validation by simulation (change sensitivity-validation)
+VALIDATION_CHOICES = ('all', 'selected', 'filtered')
+VALIDATION_SUFFIX = '_v'
+
+
+def canValidate(analysis):
+    """None, or why the analysis cannot be validated: only an estimate that saved the steps of its variants (D3, D6)"""
+    if not analysis or analysis.get('mode') != 'estimate':
+        return tr_msg('Only an estimate can be validated.')
+    done = [v for v in analysis.get('variants', []) if v.get('result')]
+    if not done:
+        return tr_msg('The estimate has no results.')
+    if any('steps' not in v['result'] for v in done):
+        return tr_msg('The estimate was saved before the steps of the variants were saved: run the estimate again.')
+    if not any(v['result']['steps'] for v in done):
+        return tr_msg('No variant of the estimate changes a pipe: there is nothing to simulate.')
+    return None
+
+
+def validationTargets(analysis, choice, selected=None, passing=None):
+    """the names of the variants to simulate: those with a step among all, the selected one or those passing the filter
+    (D1, D6)"""
+    done = [v for v in analysis.get('variants', []) if v.get('result') and v['result'].get('steps')]
+    if choice == 'selected':
+        done = [v for v in done if v['name'] == selected]
+    elif choice == 'filtered' and passing is not None:
+        done = [v for v in done if v['name'] in set(passing)]
+    return [v['name'] for v in done]
+
+
+def validationVersion(base_version, existing):
+    """the next free child version name <version>_v<k> (D2, D6)"""
+    k = 1
+    while '{}{}{}'.format(base_version, VALIDATION_SUFFIX, k) in existing:
+        k += 1
+    return '{}{}{}'.format(base_version, VALIDATION_SUFFIX, k)
+
+
+def validationLimits(cur, config, parms, settings, prices, versions):
+    """the lines of each simulated version over a limit (D4): {version: {'peak': [lines], 'p_max': bool}} (worker thread)"""
+    from ..cost_optimization import runScenario
+    from .cost_model_data import buildModel
+    scenario = runScenario(cur, parms)
+    result = {}
+    for version in versions:
+        model = buildModel(cur, dict(config, versionName=version), scenario, parms['pairs'], settings, profile_dir=prices)
+        if model is None:
+            continue
+        model.dp_spez_max, model.v_max = parms['dp_spez_max'], parms['v_max']
+        result[version] = model.limitLines()
+    return result
+
+
+def validationResult(variant, row, versions, limits):
+    """the comparison of a variant's forecast with its simulation (D4): row is iteration 0 of the validation run"""
+    result = variant['result']
+    basis, forecast, simulated = float(result['npv']), float(result['npv_after']), float(row['npv'])
+    error = simulated - forecast
+    penalty_basis = float((result.get('split') or {}).get('penalties', 0.0))
+    penalty_run = float((row.get('split') or {}).get('penalties', 0.0))
+    return {'npv_basis': basis, 'npv_forecast': forecast, 'npv_simulated': simulated, 'error_eur': error,
+            'error_pct': 100 * error / abs(simulated) if simulated else None, 'confirmed': simulated < basis,
+            'penalty_change': penalty_run - penalty_basis, 'limits': limits, 'versions': list(versions)}
+
+
+def limitText(limits):
+    """the lines over a limit of a validation, per version when there are several"""
+    parts = []
+    for version, per in (limits or {}).items():
+        items = [str(lid) for lid in per.get('peak', [])] + ([tr_msg('plant pressure above p_max')] if per.get('p_max') else [])
+        if items:
+            parts.append(('{}: '.format(version) if len(limits) > 1 else '') + ', '.join(items))
+    return '; '.join(parts)
+
+
+def validationRows(analysis):
+    """per variant with a step: [name, basis, forecast, simulated, error €, error %, confirmed, penalty change, limits,
+    versions], or the reason it has none"""
+    rows = []
+    for v in analysis.get('variants', []):
+        result = v.get('result') or {}
+        if not result:
+            continue
+        check = v.get('validation')
+        if check:
+            rows.append([v['name'], check['npv_basis'], check['npv_forecast'], check['npv_simulated'], check['error_eur'], check['error_pct'],
+                         tr_msg('yes') if check['confirmed'] else tr_msg('no'), check['penalty_change'], limitText(check['limits']),
+                         ', '.join(check['versions'])])
+        else:
+            reason = tr_msg('not simulated: the step changes no pipe') if not result.get('steps') else tr_msg('not selected')
+            rows.append([v['name'], result.get('npv'), result.get('npv_after'), None, None, None, reason, None, '', ''])
+    return rows
 
 
 # ---------------------------------------------------------------- result file (design D6)

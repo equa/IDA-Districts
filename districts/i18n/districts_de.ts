@@ -12725,5 +12725,165 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Present value (discounted to year 0)</source>
             <translation>Barwert (auf Jahr 0 abgezinst)</translation>
         </message>
+        <message>
+            <source>{} lines got the pipes of the step to validate.</source>
+            <translation>{} Leitungen erhielten die Rohre des zu validierenden Schritts.</translation>
+        </message>
+        <message>
+            <source>Validate…</source>
+            <translation>Validieren…</translation>
+        </message>
+        <message>
+            <source>Simulate the step of variants of this estimate and compare the result with the forecast</source>
+            <translation>Den Schritt von Varianten dieser Schätzung simulieren und das Ergebnis mit der Prognose vergleichen</translation>
+        </message>
+        <message>
+            <source>Validate the estimate</source>
+            <translation>Schätzung validieren</translation>
+        </message>
+        <message>
+            <source>Simulate the step of</source>
+            <translation>Den Schritt simulieren von</translation>
+        </message>
+        <message>
+            <source>Forecast and simulation</source>
+            <translation>Prognose und Simulation</translation>
+        </message>
+        <message>
+            <source>All variants with a step</source>
+            <translation>Alle Varianten mit einem Schritt</translation>
+        </message>
+        <message>
+            <source>The selected variant</source>
+            <translation>Die ausgewählte Variante</translation>
+        </message>
+        <message>
+            <source>The variants in the filter</source>
+            <translation>Die Varianten im Filter</translation>
+        </message>
+        <message>
+            <source>Validation by simulation: the step of each variant simulated in its own child versions</source>
+            <translation>Validierung durch Simulation: der Schritt jeder Variante in eigenen Kindversionen simuliert</translation>
+        </message>
+        <message>
+            <source>The best iteration of the last run is no longer the basis of this estimate: run the estimate again.</source>
+            <translation>Die beste Iteration des letzten Laufs ist nicht mehr die Basis dieser Schätzung: Schätzung erneut ausführen.</translation>
+        </message>
+        <message>
+            <source>Validation of the estimate: {} variants</source>
+            <translation>Validierung der Schätzung: {} Varianten</translation>
+        </message>
+        <message>
+            <source>  {}: forecast {} €, simulated {} €, error {} €</source>
+            <translation>  {}: Prognose {} €, simuliert {} €, Abweichung {} €</translation>
+        </message>
+        <message>
+            <source>{}: {} simulations</source>
+            <translation>{}: {} Simulationen</translation>
+        </message>
+        <message>
+            <source>Validation: {} of {} variants simulated.</source>
+            <translation>Validierung: {} von {} Varianten simuliert.</translation>
+        </message>
+        <message>
+            <source>  {}: the run gave no result.</source>
+            <translation>  {}: der Lauf ergab kein Resultat.</translation>
+        </message>
+        <message>
+            <source>about {}</source>
+            <translation>etwa {}</translation>
+        </message>
+        <message>
+            <source>Validation by simulation</source>
+            <translation>Validierung durch Simulation</translation>
+        </message>
+        <message>
+            <source>The step the cost model forecast for a variant, simulated once in child versions of its own with the variant's values: the pipes of the basis iteration plus the step. The error is the simulated NPV minus the forecast; the step is confirmed when the simulated NPV is below the NPV of the basis design. Lines over a limit: a pipe above the specific pressure loss or the velocity of the run at the simulated peak flow, or the plant pressure above the least p_max of the pipes in use.</source>
+            <translation>Der vom Kostenmodell für eine Variante prognostizierte Schritt, einmal in eigenen Kindversionen mit den Werten der Variante simuliert: die Rohre der Basis-Iteration plus der Schritt. Die Abweichung ist der simulierte Barwert minus die Prognose; der Schritt ist bestätigt, wenn der simulierte Barwert unter dem Barwert der Basis-Auslegung liegt. Leitungen über einer Grenze: ein Rohr über dem spezifischen Druckverlust oder der Geschwindigkeit des Laufs beim simulierten Spitzendurchfluss, oder der Druck der Zentrale über dem kleinsten p_max der verwendeten Rohre.</translation>
+        </message>
+        <message>
+            <source>Only an estimate can be validated.</source>
+            <translation>Nur eine Schätzung kann validiert werden.</translation>
+        </message>
+        <message>
+            <source>The estimate has no results.</source>
+            <translation>Die Schätzung hat keine Resultate.</translation>
+        </message>
+        <message>
+            <source>The estimate was saved before the steps of the variants were saved: run the estimate again.</source>
+            <translation>Die Schätzung wurde gespeichert, bevor die Schritte der Varianten gespeichert wurden: Schätzung erneut ausführen.</translation>
+        </message>
+        <message>
+            <source>No variant of the estimate changes a pipe: there is nothing to simulate.</source>
+            <translation>Keine Variante der Schätzung ändert ein Rohr: es gibt nichts zu simulieren.</translation>
+        </message>
+        <message>
+            <source>not simulated: the step changes no pipe</source>
+            <translation>nicht simuliert: der Schritt ändert kein Rohr</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>nicht ausgewählt</translation>
+        </message>
+        <message>
+            <source>plant pressure above p_max</source>
+            <translation>Druck der Zentrale über p_max</translation>
+        </message>
+        <message>
+            <source>NPV change by the step, forecast [€]</source>
+            <translation>Barwertänderung durch den Schritt, Prognose [€]</translation>
+        </message>
+        <message>
+            <source>NPV change by the step, simulated [€]</source>
+            <translation>Barwertänderung durch den Schritt, simuliert [€]</translation>
+        </message>
+        <message>
+            <source>No variant validated yet</source>
+            <translation>Noch keine Variante validiert</translation>
+        </message>
+        <message>
+            <source>step confirmed</source>
+            <translation>Schritt bestätigt</translation>
+        </message>
+        <message>
+            <source>step not confirmed</source>
+            <translation>Schritt nicht bestätigt</translation>
+        </message>
+        <message>
+            <source>forecast = simulation</source>
+            <translation>Prognose = Simulation</translation>
+        </message>
+        <message>
+            <source>Forecast after the step [€]</source>
+            <translation>Prognose nach dem Schritt [€]</translation>
+        </message>
+        <message>
+            <source>Simulated NPV [€]</source>
+            <translation>Simulierter Barwert [€]</translation>
+        </message>
+        <message>
+            <source>Error [€]</source>
+            <translation>Abweichung [€]</translation>
+        </message>
+        <message>
+            <source>Error [%]</source>
+            <translation>Abweichung [%]</translation>
+        </message>
+        <message>
+            <source>Step confirmed</source>
+            <translation>Schritt bestätigt</translation>
+        </message>
+        <message>
+            <source>Comfort penalties: change [€]</source>
+            <translation>Komfortstrafkosten: Änderung [€]</translation>
+        </message>
+        <message>
+            <source>Lines over a limit</source>
+            <translation>Leitungen über einer Grenze</translation>
+        </message>
+        <message>
+            <source>Versions</source>
+            <translation>Versionen</translation>
+        </message>
     </context>
 </TS>

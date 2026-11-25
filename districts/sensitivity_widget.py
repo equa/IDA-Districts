@@ -14,7 +14,7 @@ from matplotlib.patches import Rectangle
 from qgis.PyQt.QtCore import QObject, QSize, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
-    QAbstractItemView, QComboBox, QDialog, QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton, QSpinBox, QSplitter, QTableWidget,
+    QAbstractItemView, QComboBox, QDialog, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QMessageBox, QPushButton, QSpinBox, QSplitter, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QWidget,
 )
 from qgis.core import QgsMessageLog
@@ -26,9 +26,10 @@ from .utility_functions.economic_data import loadScenario
 from .utility_functions.iteration_report import loadRunParameters
 from .utility_functions.sensitivity import (
     CONFIRM_SECONDS, DESIGN_LABELS, DESIGNS, MODE_LABELS, ESTIMATE_SECONDS_PER_STAGE, MODES, designVariants, estimateBasis, estimateVariant, flips, loadAnalysis,
-    parameterRows, saveAnalysis, variantCount, variantParameters, variedBounds,
+    parameterRows, saveAnalysis, variantCount, variantParameters, variedBounds, canValidate, validationLimits, validationResult, validationRows,
+    validationTargets, validationVersion,
 )
-from .utility_functions.sensitivity_plots import money, parallelCoordinates, parallelData, passesBrushes, resultAxes, tornadoChart
+from .utility_functions.sensitivity_plots import money, parallelCoordinates, parallelData, passesBrushes, resultAxes, tornadoChart, validationPlot
 from .utility_functions.translations import tr_msg
 
 DEFAULT_RELATIVE = 20.0
@@ -324,6 +325,16 @@ class SensitivityResults(QWidget):
         self.table_flips = _table()
         box, self.label_flips = _titled('', self.table_flips)
         splitter.addWidget(box)
+        validation = QWidget()
+        row = QHBoxLayout(validation)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.validation_figure = Figure(figsize=(4, 3.6))
+        self.validation_canvas = _Canvas(self.validation_figure)
+        self.table_validation = _table()
+        row.addWidget(Detachable(tr_msg('Forecast and simulation'), self.validation_canvas), 2)
+        row.addWidget(_titled(tr_msg('Validation by simulation: the step of each variant simulated in its own child versions'), self.table_validation)[0], 3)
+        validation.setMinimumHeight(240)
+        splitter.addWidget(validation)
         # minimum heights: the tab sits in the results section of a scroll area, which grows instead of squeezing them
         plots.setMinimumHeight(280)
         self.table_variants.setMinimumHeight(180)
@@ -331,6 +342,7 @@ class SensitivityResults(QWidget):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         splitter.setStretchFactor(2, 2)
+        splitter.setStretchFactor(3, 2)
         layout.addWidget(splitter, 1)
         row = QHBoxLayout()
         self.label = QLabel()
@@ -341,9 +353,12 @@ class SensitivityResults(QWidget):
         self.btn_reset.clicked.connect(self.resetFilter)
         self.btn_map = QPushButton(tr_msg('Show the robustness on the map'))
         self.btn_map.clicked.connect(self.showMap)
+        self.btn_validate = QPushButton(tr_msg('Validate…'))
+        self.btn_validate.setToolTip(tr_msg('Simulate the step of variants of this estimate and compare the result with the forecast'))
+        self.btn_validate.clicked.connect(self.validate)
         row.addWidget(self.label, 1)
         row.addWidget(self.label_filter)
-        for button in (self.btn_reset, self.btn_map):
+        for button in (self.btn_reset, self.btn_validate, self.btn_map):
             row.addWidget(button)
         layout.addLayout(row)
         self.show(loadSaved(dlg.main.config))
@@ -355,15 +370,19 @@ class SensitivityResults(QWidget):
         self.tornado_figure.clear()
         self.table_variants.setRowCount(0)
         self.table_flips.setRowCount(0)
+        self.table_validation.setRowCount(0)
+        self.validation_figure.clear()
         done = [v for v in (analysis or {}).get('variants', []) if v.get('result')]
         for button in (self.btn_map, self.btn_reset):
             button.setEnabled(bool(done))
+        self.btn_validate.setEnabled(canValidate(analysis) is None and not self.dlg.process_running)
         self.parallel.setAnalysis(analysis if done else None)
         if not done:
             self.label.setText(tr_msg('No sensitivity analysis in this version yet.'))
             self.label_flips.setText('')
             self.label_filter.setText('')
             self.tornado_canvas.draw()
+            self.validation_canvas.draw()
             return
         self.label.setText(tr_msg('{} of {} variants, {} ({}), started {}').format(
             len(done), len(analysis['variants']), tr_msg(DESIGN_LABELS.get(analysis['design'], analysis['design'])),
@@ -374,6 +393,10 @@ class SensitivityResults(QWidget):
         self.tornado_canvas.draw()
         fillVariantTable(self.table_variants, analysis)
         fillFlipTable(self.table_flips, analysis, self.dlg.main.cur)
+        fillValidationTable(self.table_validation, analysis)
+        validationPlot(self.validation_figure.add_subplot(111), analysis)
+        self.validation_figure.subplots_adjust(left=0.22, right=0.97, top=0.95, bottom=0.2)
+        self.validation_canvas.draw()
         from .utility_functions.iteration_report import flipNote
         from .utility_functions.sensitivity import baseStep, baseStepText
         try:
@@ -424,6 +447,33 @@ class SensitivityResults(QWidget):
         self.parallel.redraw()
         self.filtered()
 
+    def validate(self):
+        """the choice of the variants to simulate (sensitivity-validation D6), then the run"""
+        if self.dlg.process_running:
+            return
+        reason = canValidate(self.analysis)
+        if reason:
+            self.dlg.refuse([reason])
+            return
+        seconds = validationSeconds(self.dlg.main.config)
+        choices = []
+        for choice, label in (('all', tr_msg('All variants with a step')), ('selected', tr_msg('The selected variant')),
+                              ('filtered', tr_msg('The variants in the filter'))):
+            if choice == 'filtered' and not self.state['brushes']:
+                continue
+            names = validationTargets(self.analysis, choice, self.state['selected'], self.parallel.passing())
+            if names:
+                text = tr_msg('{}: {} simulations').format(label, len(names))
+                if seconds:
+                    text += ', ' + tr_msg('about {}').format(durationText(seconds * len(names)))
+                choices.append((text, names))
+        text, ok = QInputDialog.getItem(self, tr_msg('Validate the estimate'), tr_msg('Simulate the step of'), [c[0] for c in choices], 0, False)
+        if not ok:
+            return
+        run = SensitivityRun(self.dlg, self.analysis, self.dlg.parameters())
+        self.dlg.sensitivity.run = run
+        run.startValidation(dict(choices)[text])
+
     def showMap(self):
         from qgis.utils import iface
         from .utility_functions.cost_optimization_layers import showRobustness
@@ -447,6 +497,9 @@ class SensitivityRun(QObject):
         self.stop_requested = False
         self.active = False
         self.task = None
+        # 'estimate', 'full' or 'validate': the dialog hands a finished run of the last two back (onRunFinished)
+        self.phase = analysis.get('mode')
+        self.targets: list = []
 
     @property
     def config(self):
@@ -468,22 +521,27 @@ class SensitivityRun(QObject):
             self.onException()
 
     # ---------------------------------------------------------------- estimate
-    def startEstimate(self):
+    def prepareRunSettings(self):
+        """the basis of the last run (refused when its pipes changed) and its own settings"""
         rows = loadCostIterations(self.config)
         run_parms = loadRunParameters(self.config, 'cost')
         basis = estimateBasis(self.main.cur, rows, dict(run_parms, version=run_parms.get('version') or self.base_version))
-        self.analysis['basis'] = {k: basis[k] for k in ('iteration', 'npv', 'versions', 'stages', 'no_smaller')}
         self.basis = basis
         # the run's own settings: the variant changes only the varied values
         self.parms = dict(self.parms, **{k: run_parms[k] for k in ('scenario', 'pairs', 'submodel', 'price_kh', 'price_kwh', 'tolerance', 'unmet_tolerance',
                                                                   'dp_spez_max', 'v_max', 'mode_deadband_pct') if k in run_parms})
         # JSON gives the pairs as lists; the cost model keys by them
         self.parms['pairs'] = [tuple(pair) for pair in self.parms.get('pairs') or []]
-        self.dlg.log(tr_msg('Basis: iteration {} of the last run, NPV {} €').format(basis['iteration'], money(basis['npv'])))
         from .utility_functions.files import loadModellingSettings
         from .utility_functions.network_modes import DEFAULT_DEADBAND_PCT
         self.settings = dict(loadModellingSettings(self.main.plugin_dir, self.config), mode_deadband_pct=self.parms.get('mode_deadband_pct', DEFAULT_DEADBAND_PCT))
         self.prices = os.path.join(self.config['pathProjects'] + self.config['projectName'], 'prices')
+        return basis
+
+    def startEstimate(self):
+        basis = self.prepareRunSettings()
+        self.analysis['basis'] = {k: basis[k] for k in ('iteration', 'npv', 'versions', 'stages', 'no_smaller')}
+        self.dlg.log(tr_msg('Basis: iteration {} of the last run, NPV {} €').format(basis['iteration'], money(basis['npv'])))
         config, parms, required = dict(self.config), dict(self.parms), self.dlg.requiredEntries()
 
         def prepare(cur):
@@ -542,6 +600,9 @@ class SensitivityRun(QObject):
 
     def onRunFinished(self):
         """called by the dialog when a variant's cost optimization has ended: its result, then the base version again"""
+        if self.phase == 'validate':
+            self.onValidationRun()
+            return
         variant = self.analysis['variants'][self.k]
         try:
             variant['result'] = fullResult(self.main.cur, self.config, variant['version'], self.analysis['basis'])
@@ -573,6 +634,71 @@ class SensitivityRun(QObject):
         self.worker_version.signals.finished.connect(loaded)
         QThreadPool.globalInstance().start(self.worker_version)
 
+    # ---------------------------------------------------------------- validation by simulation (change sensitivity-validation)
+    def startValidation(self, names):
+        """the step of each named variant simulated in its own child versions, one after another (D2)"""
+        self.phase = 'validate'
+        self.targets = [v for v in self.analysis['variants'] if v['name'] in set(names)]
+        self.dlg.process_running = True
+        self.dlg.updateEnabled()
+        self.active = True
+        try:
+            basis = self.prepareRunSettings()
+            if basis['iteration'] != (self.analysis.get('basis') or {}).get('iteration'):
+                raise ValueError(tr_msg('The best iteration of the last run is no longer the basis of this estimate: run the estimate again.'))
+            # the stages of the basis (the run's versions), not the dialog's table, which names the stage versions it started from
+            self.parms['stages'] = basis['stages'] or []
+        except Exception:
+            self.onException()
+            return
+        self.dlg.box_results.setCollapsed(False)
+        self.dlg.results_tabs.setCurrentWidget(self.dlg.sensitivity_page)
+        self.dlg.log(tr_msg('Validation of the estimate: {} variants').format(len(self.targets)))
+        self.nextValidation()
+
+    def nextValidation(self):
+        if self.stop_requested or self.k >= len(self.targets):
+            self.finish()
+            return
+        variant = self.targets[self.k]
+        self.main.cur.execute('SELECT name FROM public.versionhandling;')
+        existing = {row['name'] for row in self.main.cur.fetchall()}
+        parms = variantParameters(self.parms, variant['values'])
+        parms.update(max_iter=0, new_version=validationVersion(self.base_version, existing), start_steps=variant['result']['steps'])
+        self.run_parms = parms
+        self.dlg.log(tr_msg('Variant {} ({} of {}) into version {}').format(variant['name'], self.k + 1, len(self.targets), parms['new_version']))
+        self.dlg.update_progress(100 * self.k / len(self.targets))
+        if not self.dlg.start(parms, sensitivity=True):
+            self.dlg.log(tr_msg('The variant could not be started; the analysis stops.'))
+            self.finish()
+
+    def onValidationRun(self):
+        """iteration 0 of the variant's run, then the lines over a limit in its versions (D4)"""
+        version = self.run_parms['new_version']
+        try:
+            rows = loadCostIterations(dict(self.config, versionName=version))
+            row = next(r for r in rows if r['iteration'] == 0)
+        except Exception:
+            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+            self.dlg.log(tr_msg('  {}: the run gave no result.').format(self.targets[self.k]['name']))
+            self.k += 1
+            self.loadBase(self.nextValidation)
+            return
+        versions = list(row.get('stage_states') or {}) or [version]
+        config, parms, settings, prices = dict(self.config), dict(self.run_parms), self.settings, self.prices
+        startTask(self, self.config, lambda cur: validationLimits(cur, config, parms, settings, prices, versions),
+                  lambda limits: self.onValidated(row, versions, limits), self.onFailed)
+
+    def onValidated(self, row, versions, limits):
+        variant = self.targets[self.k]
+        variant['validation'] = validationResult(variant, row, versions, limits)
+        check = variant['validation']
+        self.dlg.log(tr_msg('  {}: forecast {} €, simulated {} €, error {} €').format(
+            variant['name'], money(check['npv_forecast']), money(check['npv_simulated']), money(check['error_eur'])))
+        self.k += 1
+        self.save()
+        self.loadBase(self.nextValidation)
+
     # ---------------------------------------------------------------- end
     def save(self):
         try:
@@ -583,8 +709,12 @@ class SensitivityRun(QObject):
     def finish(self):
         self.active = False
         self.save()
-        done = sum(1 for v in self.analysis['variants'] if v.get('result'))
-        self.dlg.log(tr_msg('Sensitivity analysis: {} of {} variants done.').format(done, len(self.analysis['variants'])))
+        if self.phase == 'validate':
+            done = sum(1 for v in self.targets if v.get('validation'))
+            self.dlg.log(tr_msg('Validation: {} of {} variants simulated.').format(done, len(self.targets)))
+        else:
+            done = sum(1 for v in self.analysis['variants'] if v.get('result'))
+            self.dlg.log(tr_msg('Sensitivity analysis: {} of {} variants done.').format(done, len(self.analysis['variants'])))
         self.dlg.update_progress(100)
         self.dlg.process_running = False
         self.dlg.updateEnabled()
@@ -676,6 +806,37 @@ def fillFlipTable(table, analysis, cur):
             table.setItem(k, col, QTableWidgetItem(value))
         table.item(k, 0).setData(Qt.ItemDataRole.UserRole, list(entry['after']))
     table.resizeColumnsToContents()
+
+
+VALIDATION_HEADERS = ('Variant', 'NPV of the basis design [€]', 'Forecast after the step [€]', 'Simulated NPV [€]', 'Error [€]', 'Error [%]',
+                      'Step confirmed', 'Comfort penalties: change [€]', 'Lines over a limit', 'Versions')
+
+
+def fillValidationTable(table, analysis):
+    rows = validationRows(analysis)
+    table.setColumnCount(len(VALIDATION_HEADERS))
+    table.setHorizontalHeaderLabels([tr_msg(h) for h in VALIDATION_HEADERS])
+    table.setRowCount(0)
+    for values in rows:
+        k = table.rowCount()
+        table.insertRow(k)
+        for col, value in enumerate(values):
+            if value is None:
+                text = ''
+            elif col == 5:
+                text = '{:+.2f}'.format(value)
+            elif isinstance(value, float):
+                text = money(value)
+            else:
+                text = str(value)
+            table.setItem(k, col, QTableWidgetItem(text))
+    table.resizeColumnsToContents()
+
+
+def validationSeconds(config):
+    """the duration of one simulated iteration of the last run (the validation simulates one per variant)"""
+    files = glob.glob(iterationPath(config, '*'))
+    return lastRunSeconds(config) / len(files) if files else 0
 
 
 def loadSaved(config):
