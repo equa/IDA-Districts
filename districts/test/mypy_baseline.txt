@@ -1,6 +1,6 @@
 # Known findings of mypy (test/test_static_mypy.py): count, file, error code, message (tab separated).
 # Written with: python -m pytest test/test_static_mypy.py --update-mypy-baseline
-# Only remove findings here by fixing them. mypy 2.4.1, 957 findings.
+# Only remove findings here by fixing them. mypy 2.4.1, 966 findings.
 2	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "close"
 1	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "cursor"
 65	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "execute"
