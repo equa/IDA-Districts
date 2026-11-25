@@ -16,7 +16,7 @@ from .utility_functions.ida_components import (
 )
 from .utility_functions.energy_use import OUTPUT_FILE as ENERGY_FILE, ensureEnergyList, outputVariables as energyVariables
 from .utility_functions.network_pumps import ensurePumpList, templateEntries
-from .utility_functions.ground_collectors import collectorLines, collectorsWithoutBundle
+from .utility_functions.ground_collectors import collectorsWithoutBundle, networkCollectors
 from .utility_functions.topology import (
     getConnBundleByTemplate, getConnsByConntype, getConnsValues, getConntypesByTemplate, getUsedConnTypes,
     getUsedConnectionsFilteredByDirection,
@@ -344,14 +344,6 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
         no_bundle=collectorsWithoutBundle(cur,config['versionName'])
         line_ids=[lid for lid in getLineIds(cur,config,network=[network]) if lid not in no_bundle]
         line_conns=["""({} :SYSTEM "Pipebundle_{}" |QAmbtotal|)""".format(counter,lid) for counter,lid in enumerate(line_ids,1)]
-        collector_ids=[lid for lid in collectorLines(cur,config['versionName']) if lid in set(getLineIds(cur,config,network=[network]))]
-        if collector_ids:
-            filedata.append("""((:EO :N "qcollectors" :T ADDER)
- (:PAR :N N_IN :V {n})
- (:PAR :N COEFF :DIM ({n}) :V #({coeff}))
- (:VAR :N OUTSIGNAL :L "heatbalance_outputfile" :AS "Qcollectors")
- (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({b}))))\n""".format(
-                n=len(collector_ids),coeff=' '.join('1' for lid in collector_ids),b=''.join("""({} :SYSTEM "Collector_{}" |QExtracted|)""".format(k,lid) for k,lid in enumerate(collector_ids,1))))
         n_lines=len(line_conns)
         filedata.append("""((:EO :N "qamb" :T ADDER)
  (:PAR :N N_IN :V {})
@@ -366,6 +358,26 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
  (:VAR :N INPOWER :DIM (1) :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (INCONSUMLINK 1) 0)))))\n""")
             filedata.append("""(OUTPUT-FILE :N "Qamb_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
             connections.append(""" (("Qamb_emeter" (INCONSUMLINK 1)) ("qamb" OUTSIGNALLINK) 0 0 NIL)""")
+
+    #ground collectors: heat extracted from the ground (ambient heat), into the heat balance and its own meter
+    collector_ids=networkCollectors(cur,config,network)
+    if collector_ids and (requestedOutputs['heatbalance_system'] or requestedOutputs.get('qcoll_kpi')):
+        filedata.append("""((:EO :N "qcollectors" :T ADDER)
+ (:PAR :N N_IN :V {n})
+ (:PAR :N COEFF :DIM ({n}) :V #({coeff}))
+ (:VAR :N OUTSIGNAL{log})
+ (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({b}))))\n""".format(
+            n=len(collector_ids),coeff=' '.join('1' for lid in collector_ids),
+            log=' :L "heatbalance_outputfile" :AS "Qcollectors"' if requestedOutputs['heatbalance_system'] else '',
+            b=''.join("""({} :SYSTEM "Collector_{}" |QExtracted|)""".format(k,lid) for k,lid in enumerate(collector_ids,1))))
+        if requestedOutputs.get('qcoll_kpi'):
+            filedata.append("""((:CEO :N "Qcoll_emeter" :T EMETER)
+ (:PAR :N N_IN :V 1)
+ (:PAR :N MULT :DIM (1))
+ (:VAR :N TOTENERGY :L "Qcoll_kpi_outputfile" :AS "Qcoll total")
+ (:VAR :N INPOWER :DIM (1) :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ((1 -1 (INCONSUMLINK 1) 0)))))\n""")
+            filedata.append("""(OUTPUT-FILE :N "Qcoll_kpi_outputfile" :T OUTPUT-FILE :COL T :STM 1)\n""")
+            connections.append(""" (("Qcoll_emeter" (INCONSUMLINK 1)) ("qcollectors" OUTSIGNALLINK) 0 0 NIL)""")
 
     #----------system-----------
     #heat balance
@@ -575,6 +587,13 @@ def writeMacroResultsIdc(config,cur,dir,requestedOutputs,added_sensor_info,netwo
             x_coord=46+dx_coord
             filedata.append("""\n(EQUATION-FRAME :AT (({} 275)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qamb_emeter") :NAME "Qamb_emeter" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(x_coord-67))
             filedata.append("""\n(CONNECTION-LINE :AT (({} 275) ({} 275)) :FIRST-LINK ("Qsup_ep_sepsign" (1.0 0.219) POSSIGNALLINK) :LAST-LINK ("Qamb_emeter" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(x_coord-100,x_coord-86))
+
+    #ground collectors
+    if networkCollectors(cur,config,network) and (requestedOutputs['heatbalance_system'] or requestedOutputs.get('qcoll_kpi')):
+        filedata.append("""\n(EQUATION-FRAME :AT ((46 315)):R (16 16) :ICON "sys:Components/ControlNmf/symbols/adder.ids" :SLOT ("qcollectors") :NAME "qcollectors" :PADDING 3 :DATA :EO :D (:DICT (ICE DESCRIPTIONS ADDER))) """)
+        if requestedOutputs.get('qcoll_kpi'):
+            filedata.append("""\n(EQUATION-FRAME :AT (({} 315)) :R (14 16) :ICON "lib:emeter.ids" :SLOT ("Qcoll_emeter") :NAME "Qcoll_emeter" :PADDING 3 :DATA :CEO :D (:DICT (ICE DESCRIPTIONS EMETER))) """.format(46+dx_coord-67))
+            filedata.append("""\n(CONNECTION-LINE :AT ((62 315) ({} 315)) :FIRST-LINK ("qcollectors" (1.0 0.5) OUTSIGNALLINK) :LAST-LINK ("Qcoll_emeter" (0.0 0.531) (INCONSUMLINK 1)) :DIR :RIGHT :ARROW (19 8 8)) """.format(46+dx_coord-81))
 
     #----------system-----------
     used_templates=[i['template_name'] for i in getUsedFeatureTemplates(cur,config,network=network)]
@@ -835,6 +854,8 @@ class WorkerSetRequestedOutputs(QRunnable):
             self.requestedOutputs['qamb_lines']=True
         else:
             self.requestedOutputs['qamb_lines']=False
+        #ground collectors: per collector line
+        self.requestedOutputs['coll_lines']=self.dlg.checkBoxCollPipe.isChecked()
             
         #+++nodes+++
         #mdot
@@ -1052,6 +1073,8 @@ class WorkerSetRequestedOutputs(QRunnable):
             self.requestedOutputs['qamb_kpi']=True
         else:
             self.requestedOutputs['qamb_kpi']=False
+        #qcoll_kpi: heat extracted by the ground collectors
+        self.requestedOutputs['qcoll_kpi']=self.dlg.checkBoxCollLines.isChecked()
         #volume_kpi
         if self.dlg.checkBoxVolumeLines.isChecked():
             self.requestedOutputs['volume_kpi']=True

@@ -587,6 +587,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </widget>
             </item>
             <item>
+             <widget class="QCheckBox" name="checkBoxCollPipe">
+              <property name="text">
+               <string>coll_pipes</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <spacer name="verticalSpacer_3">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -615,6 +622,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <widget class="QCheckBox" name="checkBoxQambLines">
               <property name="text">
                <string>qamb_lines</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="checkBoxCollLines">
+              <property name="text">
+               <string>qcoll_lines</string>
               </property>
              </widget>
             </item>

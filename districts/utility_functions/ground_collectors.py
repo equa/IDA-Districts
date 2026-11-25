@@ -267,6 +267,13 @@ def collectorResultColumns(header, n_sections):
     return out
 
 
+def networkCollectors(cur, config, network):
+    """ids of the collector lines of a network of the version config['versionName']."""
+    cur.execute("""SELECT l.id FROM "{}".lines l JOIN public.line_types t ON t.id = l.type AND t.ground_collector_id IS NOT NULL
+        WHERE l.network = %s ORDER BY l.id;""".format(config['versionName']), (int(network),))  # nosec B608
+    return [r['id'] for r in cur.fetchall()]
+
+
 def collectorsWithoutBundle(cur, version):
     """Collector lines whose bundle has only the loop pipe: the model has no Pipebundle_<lid> for them."""
     cur.execute("""SELECT l.id FROM "{}".lines l JOIN public.line_types t ON t.id = l.type AND t.ground_collector_id IS NOT NULL

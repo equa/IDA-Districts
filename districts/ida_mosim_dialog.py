@@ -168,6 +168,8 @@ class RequestedOutputsDialog(QDialog):
             self.checkBoxTempPipe.setChecked(True)
         if requestedOutputs['qamb_lines']:
             self.checkBoxQambPipe.setChecked(True)
+        if requestedOutputs.get('coll_lines'):
+            self.checkBoxCollPipe.setChecked(True)
             
         #------------------System----------------------
         if requestedOutputs['heatbalance_system']:
@@ -243,6 +245,8 @@ class RequestedOutputsDialog(QDialog):
         #lines
         if requestedOutputs['qamb_kpi']:
             self.checkBoxQambLines.setChecked(True)
+        if requestedOutputs.get('qcoll_kpi'):
+            self.checkBoxCollLines.setChecked(True)
         if requestedOutputs['volume_kpi']:
             self.checkBoxVolumeLines.setChecked(True)
             

@@ -114,6 +114,7 @@ def _register_translation_keys():
     tr("qsup_c")
     
     tr("qamb")
+    tr("qcoll")
     tr("volume")
     
     tr("qsup_heat_spec_c")

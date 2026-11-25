@@ -222,6 +222,43 @@ def test_line_form_fields_at_the_end_of_the_physical_data():
     assert not addMissingFormFields(old)  # a second load changes nothing
 
 
+class EnergyCursor:
+    """result tables of a version: plant energy (optional) and the heat of a collector line"""
+
+    def __init__(self, with_plants):
+        self.with_plants, self.rows = with_plants, []
+
+    def execute(self, sql, params=None):
+        import datetime
+        t = datetime.datetime(2026, 1, 1)
+        if 'to_regclass' in sql:
+            self.rows = [{'ok': 'energy_plant_s_energy' not in params[0] or self.with_plants}]
+        elif 'energy_plant_s_energy' in sql:
+            self.rows = [{'fid': 1, 'carrier': 'electricity', 'time': t, 'e': 1000.0}]
+        elif 'customer_s_energy' in sql:
+            self.rows = []
+        elif 'line_s_coll_qextracted' in sql:
+            self.rows = [{'fid': 7, 'time': t, 'e': 3000.0}]
+
+    def fetchone(self):
+        return self.rows[0]
+
+    def fetchall(self):
+        return self.rows
+
+
+def test_collector_heat_is_ambient_energy_of_the_plants():
+    import datetime
+    from districts.utility_functions.network_energy import energyCosts, energySeries
+    index = {datetime.datetime(2026, 1, 1): 0}
+    series = energySeries(EnergyCursor(True), 'v', lambda table: [table], index, 1)
+    assert series[('collector', 7, 'ambient')][0] == 3000.0
+    costs = energyCosts(series, {'scenario': {}, 'groups': {}}, [1.0], None, 'operator')
+    assert costs['kwh']['plant_energy']['ambient'] == 3.0 and costs['yearly']['plant_energy']['ambient'] == 0.0  # free
+    # without the plants' energy no energy basis: the collectors alone would make the losses free
+    assert energySeries(EnergyCursor(False), 'v', lambda table: [table], index, 1) == {}
+
+
 def test_result_columns_from_the_header():
     header = '#      time         order        ice_1        ice_2        qextracted   qsurface     tin          tloc_1       tloc_2       tnear_1      tnear_2      tout\n'
     columns = gc.collectorResultColumns(header, 2)

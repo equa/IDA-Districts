@@ -145,8 +145,13 @@ as such (R10).
 ### R10 Results and report
 - Output requests (`invokedOutputs['lines']`): per collector line `Line_coll_<lid>.prn` with `TIn`, `TOut`,
   `QExtracted`, `QSurface`, `TLoc[j]`, `TNear[j]`, `iceFraction[j]`, logged by `:L` on the variables.
-- The heat balance in `outputs.py` sums `QAmbtotal` of the `Pipebundle_*` only; a new adder "qcollectors" sums
-  `QExtracted` of all `Collector_*` into its own meter.
+- Requested outputs (decided 2026-11-26): `coll_lines` (the files `Line_coll_<lid>` and their loading) and
+  `qcoll_kpi` (meter "Qcoll_emeter", KPI column `qcoll`); both on in the templates that request the heat balance.
+- The heat balance in `outputs.py` sums `QAmbtotal` of the `Pipebundle_*` only; a new adder "qcollectors" (drawn in the
+  results macro) sums `QExtracted` of all `Collector_*` into the heat balance and its own meter.
+- The energy basis of the economics and the cost optimization counts the extracted heat as `ambient` energy of the
+  plants' part (free unless the scenario prices it), only beside the plants' energy results; the cost optimization
+  asks for `coll_lines`.
 - `load_results` stores them in `line_s_coll_<var>` with the sections as segments (the line split into `nSections`
   equal parts); `show_on_map` shows them like the other line results.
 - Network report and `version_kpis`: trench and loop meters, extracted heat per year and per trench meter (kWh/(m a)),

@@ -972,8 +972,9 @@ def energySections(report, saved):
                 kwh0, eur0 = customers.get(carrier, (0.0, 0.0))
                 customers[carrier] = (kwh0 + kwh, eur0 + eur)
             else:
-                heat = plant_heat.get(str(fid))
-                rows.append([r['label'], '{} {}'.format(tr_msg('Plant'), fid), tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur),
+                heat = None if feature == 'collector' else plant_heat.get(str(fid))
+                owner = tr_msg('Ground collector line') if feature == 'collector' else tr_msg('Plant')
+                rows.append([r['label'], '{} {}'.format(owner, fid), tr_msg(CARRIER_LABELS.get(carrier, carrier)), round(kwh), round(eur),
                              '' if heat is None else round(heat), '{:.2f}'.format(heat / kwh) if heat and kwh else ''])
         counted = basis.get('boundary') == 'system'
         for carrier, (kwh, eur) in sorted(customers.items()):

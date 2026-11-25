@@ -543,6 +543,7 @@ ORDER BY m.id;
                 self.buildError=True
                 return idm,idc
             if lid in collectors['lines']:
+                collectors['log']=bool(requestedOutputs.get('coll_lines'))
                 models=self.collectorModels(collectors,lid,collectors['lines'][lid],pipe_info,pipe_bundle,coordinates)
                 if models is None:
                     self.buildError=True
@@ -725,7 +726,17 @@ ORDER BY m.id;
                        for k in ('TStartTop','TStartTop2','TStartLoc','TStartNear','TStartFar','TStartFar2'))
         starts+=''.join('\n (:VAR :N |T{}| :V {})'.format(k[6:],vec(start[k])) for k in ('TStartTop','TStartTop2','TStartFar','TStartFar2'))
         out="Line_coll_{}".format(lid)
-        idm="""\n(output-file :sf "self:\\{out}.prn" :n "{out}" :t output-file)
+        #requested output coll_lines: the collector's results in Line_coll_<lid>.prn (logged by :L on the variables)
+        log_parts={'file':'','l_tin':'','l_tout':'','l_qextracted':'','l_qsurface':'','l_tloc':'','l_tnear':'','l_ice':''}
+        if context.get('log'):
+            cols=self.sparse('OFF',['({} . "{}")'.format(j,out) for j in range(1,sections+1)])
+            names=lambda prefix: self.sparse('NIL',['({} . "{}_{}")'.format(j,prefix,j) for j in range(1,sections+1)])
+            log_parts={'file':'\n(output-file :sf "self:\\{0}.prn" :n "{0}" :t output-file)'.format(out),
+                     'l_tin':' :L "{}" :AS "TIn"'.format(out),'l_tout':' :L "{}" :AS "TOut"'.format(out),
+                     'l_qextracted':' :L "{}" :AS "QExtracted"'.format(out),'l_qsurface':' :L "{}" :AS "QSurface"'.format(out),
+                     'l_tloc':' :L {} :AS {}'.format(cols,names('TLoc')),'l_tnear':' :L {} :AS {}'.format(cols,names('TNear')),
+                     'l_ice':' :L {} :AS {}'.format(cols,names('ice'))}
+        idm="""{file}
 ((MODEL :N "Collector_{lid}" :T |GroundCollector|)
  (:PAR :N |nSections| :V {sections})
  (:PAR :N |nLoops| :V {loops})
@@ -738,13 +749,13 @@ ORDER BY m.id;
  (:PAR :N |roughness| :V {rough})
  (:PAR :N |liqType| :V |{liquid}|)
  (:PAR :N |TFreeze| :V {t_freeze}){ground}{starts}
- (:VAR :N |TIn| :L "{out}" :AS "TIn")
- (:VAR :N |TOut| :L "{out}" :AS "TOut")
- (:VAR :N |QExtracted| :L "{out}" :AS "QExtracted")
- (:VAR :N |QSurface| :L "{out}" :AS "QSurface")
- (:VAR :N |TLoc| :V {v_loc} :L {cols_l} :AS {names_l})
- (:VAR :N |TNear| :V {v_near} :L {cols_l} :AS {names_n})
- (:VAR :N |iceFraction| :L {cols_l} :AS {names_i}))
+ (:VAR :N |TIn|{l_tin})
+ (:VAR :N |TOut|{l_tout})
+ (:VAR :N |QExtracted|{l_qextracted})
+ (:VAR :N |QSurface|{l_qsurface})
+ (:VAR :N |TLoc| :V {v_loc}{l_tloc})
+ (:VAR :N |TNear| :V {v_near}{l_tnear})
+ (:VAR :N |iceFraction|{l_ice}))
 ((MODEL :N "CollectorSurface_{lid}" :T |GroundSurface|)
  (:PAR :N |epsilon| :V {eps})
  (:PAR :N |hConv| :V {h})
@@ -757,14 +768,12 @@ ORDER BY m.id;
  (:VAR :N |TSky| :B (1 "Climate-macro" "climate_processor" TSKY))
  (:VAR :N |IGlob| :B (1 "Climate-macro" "IGlob" OUTSIGNAL))
  (:VAR :N |albedo| :B {albedo}))""".format(
-            out=out,lid=lid,sections=sections,loops=line['n_loops'],length=pipe_bundle['length'],
+            lid=lid,sections=sections,loops=line['n_loops'],length=pipe_bundle['length'],
             per_m=geometry.loop_length_per_m,d_in=pipe['d_inner'],d_out=pipe['d_outer'],lam=pipe['lambda_wall'],
             rough=pipe['roughness'],liquid=liquid,t_freeze=resource['t_freeze_liquid_c'],ground=ground,
             starts=starts,v_loc=vec(start['TStartLoc']),v_near=vec(start['TStartNear']),
-            cols_l=self.sparse('OFF',['({} . "{}")'.format(j,out) for j in range(1,sections+1)]),
-            names_l=self.sparse('NIL',['({} . "TLoc_{}")'.format(j,j) for j in range(1,sections+1)]),
-            names_n=self.sparse('NIL',['({} . "TNear_{}")'.format(j,j) for j in range(1,sections+1)]),
-            names_i=self.sparse('NIL',['({} . "ice_{}")'.format(j,j) for j in range(1,sections+1)]),
+            file=log_parts['file'],l_tin=log_parts['l_tin'],l_tout=log_parts['l_tout'],l_qextracted=log_parts['l_qextracted'],
+            l_qsurface=log_parts['l_qsurface'],l_tloc=log_parts['l_tloc'],l_tnear=log_parts['l_tnear'],l_ice=log_parts['l_ice'],
             eps=params['epsilon'],h=params['hConv'],d_layer=params['dLayer'],rho_c_layer=params['rhoCLayer'],
             spacing=params['spacing'],t_surf=start['TStartSurface'],
             albedo='(1 "Climate-macro" "albedo" |y_var|)' if context['albedo_signal'] else resource['albedo'])

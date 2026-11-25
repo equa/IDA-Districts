@@ -489,7 +489,9 @@ CREATE TABLE "{}".energy_plant_s_power${}
                             
                     self.emitProgress(66)
                     #lines
-                    line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]]
+                    # coll_lines: the ground collectors have files and tables of their own (loadCollectorResults)
+                    line_outputs=[output.split('_')[0] for output in self.simulatedOutputs if output.split('_')[1]=='lines' and self.simulatedOutputs[output]
+                                  and output!='coll_lines']
                     if line_outputs:
                         sql='\n'.join(["""DROP TABLE IF EXISTS "{}".line_s_{}${} CASCADE;
 CREATE TABLE "{}".line_s_{}${}
@@ -601,7 +603,8 @@ CREATE TABLE "{}".line_s_qamb
 
 
                         self.emitProgress(96)
-                    self.loadCollectorResults(dir_path,submodel_id,start_datetime,srid)
+                    if self.simulatedOutputs.get('coll_lines'):
+                        self.loadCollectorResults(dir_path,submodel_id,start_datetime,srid)
                         
                     for network in getNetworkBySubmodel(self.cur,self.config,submodel):
                         dprint(network)
@@ -648,6 +651,9 @@ CREATE TABLE "{}".line_s_qamb
 
                         if self.simulatedOutputs['qamb_kpi']: 
                             kpis['qamb']=''
+                        # only a network with ground collectors has the meter
+                        if self.simulatedOutputs.get('qcoll_kpi') and os.path.exists(dir_path+'results-macro_{}\\Qcoll_kpi_outputfile.prn'.format(network)):
+                            kpis['qcoll']=''
                         for counter_of,kpi in enumerate(kpis,1):
                             dprint('+++++++++'+kpi+'++++++++++++')
 
@@ -690,6 +696,7 @@ CREATE TABLE IF NOT EXISTS "{}".kpi_{}
     qsup_cold_c numeric,
     qsup_c numeric,
     qamb numeric,
+    qcoll numeric,
     CONSTRAINT kpi_{}_pkey PRIMARY KEY (id)
 );\n""".format(self.config['versionName'],network,self.config['versionName'],network,network)  # nosec B608
                         sql+="""INSERT INTO "{}".kpi_{} ({}) SELECT {};""".format(self.config['versionName'],network,  # nosec B608

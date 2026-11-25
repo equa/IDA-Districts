@@ -60,12 +60,13 @@ from .utility_functions.workers import WorkerLoadVersion
 NO_IMPROVEMENT = 2
 # mdot_ep: the heat flows of the plants give the heating or cooling mode per step (network_modes)
 # energy_ep / energy_c: the energy the plants and customers buy (OpenSpec plant-energy-costs)
-OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines', 'mdot_ep', 'energy_ep', 'energy_c')
+# coll_lines: the heat of ground collector lines, ambient energy in the energy basis
+OPTIMIZATION_OUTPUTS = NEEDED_OUTPUTS + ('ppump_c', 'troom_c', 'power_c', 'mdot_lines', 'mdot_ep', 'energy_ep', 'energy_c', 'coll_lines')
 # the checkbox of each output in the requested outputs dialog
 OUTPUT_CHECKBOXES = {'ppump_ep': 'checkBoxPlantPumpPower', 'ppump_c': 'checkBoxSubstationPumpPower', 'temp_lines': 'checkBoxTempPipe',
                      'qamb_lines': 'checkBoxQambPipe', 'temp_ep': 'checkBoxPlantConnTemp', 'troom_c': 'checkBoxSubstationTair',
                      'power_c': 'checkBoxSubstationPower', 'mdot_lines': 'checkBoxMdotNode', 'mdot_ep': 'checkBoxPlantMassflow',
-                     'energy_ep': 'checkBoxPlantEnergy', 'energy_c': 'checkBoxSubstationEnergy'}
+                     'energy_ep': 'checkBoxPlantEnergy', 'energy_c': 'checkBoxSubstationEnergy', 'coll_lines': 'checkBoxCollPipe'}
 BALANCING_LINK = 'balancing'
 
 

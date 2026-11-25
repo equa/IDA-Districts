@@ -162,7 +162,13 @@ class TestGroundCollectorRoutes:
         assert '(:PAR :N |nSections| :V 2)' in collector and '(:PAR :N |nLoops| :V 2)' in collector
         # the liquid of the collector type (default water, freezing point 0 degC), not the network's
         assert '(:PAR :N |liqType| :V |Water|)' in collector and '(:PAR :N |TFreeze| :V 0)' in collector
-        assert 'Line_coll_{}'.format(lid) in idm
+        assert 'Line_coll_{}'.format(lid) in idm  # requested output coll_lines (on in the template)
+        # results macro: the extracted heat in the heat balance and its own meter (heatbalance_system, qcoll_kpi)
+        folder = os.path.join(plugin.config['pathProjects'] + plugin.config['projectName'], 'versions', versionOf(plugin), 'network_1')
+        macro = open(os.path.join(folder, 'results-macro_1.idm'), encoding='utf-8', errors='replace').read()
+        assert '(:EO :N "qcollectors" :T ADDER)' in macro and '(1 :SYSTEM "Collector_{}" |QExtracted|)'.format(lid) in macro
+        assert ':L "heatbalance_outputfile" :AS "Qcollectors"' in macro and '"Qcoll_kpi_outputfile"' in macro
+        assert ':SLOT ("qcollectors")' in open(os.path.join(folder, 'results-macro_1.idc'), encoding='utf-8', errors='replace').read()
         assert gc.cachedFit(plugin.cur, gc.readCollectors(plugin.cur)[routes.collector_id],
                             invoke_network.loadModellingSettings(plugin.plugin_dir, plugin.config))['accepted']
 
@@ -207,6 +213,7 @@ class TestGroundCollectorRoutes:
         assert sections['n'] == 2 and sections['t'] > 1
         extracted = one(plugin, 'SELECT avg("$coll_qextracted") AS q FROM "{}".line_s_coll_qextracted WHERE fid = %s;'.format(v), (lid,))['q']  # nosec B608
         assert extracted is not None
+        assert one(plugin, 'SELECT qcoll FROM "{}".kpi_1;'.format(v))['qcoll'] is not None  # nosec B608
         kpis = collectorKpis(plugin.cur, plugin.config)
         assert kpis['ring']['trench_length']['value'] > 0 and kpis['ring']['t_out_min']['value'] is not None
         assert kpis['total']['lines'] == 1

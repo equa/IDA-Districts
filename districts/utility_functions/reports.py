@@ -62,7 +62,7 @@ def styleScaleBar(scale):
 def getKPIUnit(name):
     if name.startswith("tsup") or name.startswith("tret"):
         return '°C'
-    elif name.startswith("qsup") or name.startswith("qamb"):
+    elif name.startswith("qsup") or name.startswith("qamb") or name.startswith("qcoll"):
         if "spec" in name:
             return 'kWh/m2 ERA'
         elif "linedensity" in name:
@@ -114,7 +114,8 @@ def energyRows(basis,npv=None):
             k0,e0=customers.get(carrier,(0.0,0.0))
             customers[carrier]=(k0+kwh,e0+eur)
         else:
-            rows.append(['{} {}: {}'.format(tr_msg('Plant'),fid,tr_msg(CARRIER_LABELS.get(carrier,carrier))),'{:,.0f} kWh, {}'.format(kwh,_money(eur)).replace(',',"'")])
+            owner=tr_msg('Ground collector line') if feature=='collector' else tr_msg('Plant')
+            rows.append(['{} {}: {}'.format(owner,fid,tr_msg(CARRIER_LABELS.get(carrier,carrier))),'{:,.0f} kWh, {}'.format(kwh,_money(eur)).replace(',',"'")])
     for carrier,(kwh,eur) in sorted(customers.items()):
         label='{}: {}'.format(tr_msg('Customers'),tr_msg(CARRIER_LABELS.get(carrier,carrier)))
         if basis['boundary']!='system':

@@ -293,6 +293,10 @@
             <translation type="unfinished">Transmissionswärmestrom</translation>
         </message>
         <message>
+            <source>qcoll</source>
+            <translation>Entzogene Erdwärme der Erdkollektoren</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="108" />
             <source>qsup_heat_spec_c</source>
             <translation type="unfinished">spez. Wärmebedarf</translation>
@@ -6652,9 +6656,17 @@ li.checked::marker { content: "\2612"; }
             <translation type="unfinished">Transmissionswärmestrom, W</translation>
         </message>
         <message>
+            <source>coll_pipes</source>
+            <translation>Erdkollektoren: Temperaturen, Wärmeströme, Eisanteil</translation>
+        </message>
+        <message>
             <location filename="../RequestedOutputs_dialog.ui" line="542" />
             <source>qamb_lines</source>
             <translation type="unfinished">Transmissionswärmestrom, kWh/a</translation>
+        </message>
+        <message>
+            <source>qcoll_lines</source>
+            <translation>Entzogene Erdwärme der Erdkollektoren, kWh/a</translation>
         </message>
         <message>
             <location filename="../RequestedOutputs_dialog.ui" line="549" />
@@ -12932,6 +12944,10 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>Ground collector {}: not fitted yet, the next network build fits it.</source>
             <translation>Erdkollektor {}: noch nicht angepasst, der nächste Netzaufbau passt ihn an.</translation>
+        </message>
+        <message>
+            <source>Ground collector line</source>
+            <translation>Erdkollektor-Trasse</translation>
         </message>
         <message>
             <source>Ground collector {}: its liquid {} is not in the list of liquids.</source>

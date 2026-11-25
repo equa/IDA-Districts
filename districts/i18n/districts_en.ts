@@ -293,6 +293,10 @@
             <translation type="unfinished">Heat transfer to ambient</translation>
         </message>
         <message>
+            <source>qcoll</source>
+            <translation>Heat extracted by the ground collectors</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="108" />
             <source>qsup_heat_spec_c</source>
             <translation type="unfinished">Specific heating demand</translation>
@@ -6981,9 +6985,17 @@ li.checked::marker { content: "\2612"; }
             <translation type="unfinished">Heat transfer to ambient, W</translation>
         </message>
         <message>
+            <source>coll_pipes</source>
+            <translation>Ground collectors: temperatures, heat flows, ice fraction</translation>
+        </message>
+        <message>
             <location filename="../RequestedOutputs_dialog.ui" line="542" />
             <source>qamb_lines</source>
             <translation type="unfinished">Annual heat transfer to ambient, kWh/a</translation>
+        </message>
+        <message>
+            <source>qcoll_lines</source>
+            <translation>Heat extracted by the ground collectors, kWh/a</translation>
         </message>
         <message>
             <location filename="../RequestedOutputs_dialog.ui" line="549" />

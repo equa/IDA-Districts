@@ -9,7 +9,9 @@ from .economics import electricityStartPrice
 from .energy_use import DELIVERED, FREE_CARRIERS
 
 ENERGY_TABLES = {'energy_plant': 'energy_plant_s_energy', 'customer': 'customer_s_energy'}
-PARTS = {'energy_plant': 'plant_energy', 'customer': 'customer_energy'}
+# the heat a ground collector line takes from the ground: ambient energy of the plants' part (free unless priced)
+COLLECTOR_TABLE = 'line_s_coll_qextracted'
+PARTS = {'energy_plant': 'plant_energy', 'customer': 'customer_energy', 'collector': 'plant_energy'}
 
 
 def _exists(cur, schema, table):
@@ -29,6 +31,17 @@ def energySeries(cur, schema, sources, index, n):
                 k = index.get(row['time'])
                 if k is not None and row['e'] is not None:
                     arr = series.setdefault((feature, row['fid'], row['carrier']), np.zeros(n))
+                    arr[k] += float(row['e'])
+    # only beside the plants' energy: alone it would replace the priced pipe losses with free ambient heat
+    if any(key[0] == 'energy_plant' for key in series):
+        for source in sources(COLLECTOR_TABLE):
+            if not _exists(cur, schema, source):
+                continue
+            cur.execute('SELECT fid, time, sum("$coll_qextracted") AS e FROM "{}"."{}" GROUP BY fid, time;'.format(schema, source))  # nosec B608
+            for row in cur.fetchall():
+                k = index.get(row['time'])
+                if k is not None and row['e'] is not None:
+                    arr = series.setdefault(('collector', row['fid'], 'ambient'), np.zeros(n))
                     arr[k] += float(row['e'])
     return series
 
