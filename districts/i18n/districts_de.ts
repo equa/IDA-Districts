@@ -12889,5 +12889,9 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>The climate file cannot be used: {}</source>
             <translation>Die Klimadatei kann nicht verwendet werden: {}</translation>
         </message>
+        <message>
+            <source>Please select the heating network, the cooling network or both.</source>
+            <translation>Bitte das Wärmenetz, das Kältenetz oder beide auswählen.</translation>
+        </message>
     </context>
 </TS>

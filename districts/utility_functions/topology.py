@@ -330,6 +330,19 @@ INSERT INTO {table} (geom) SELECT geom FROM node_lines_edges WHERE ST_Length(geo
 DROP TABLE node_lines_nodes, node_lines_edges;""".format(table=table,tol=tolerance) # nosec B608
     cur.execute(sql)
 
+def createTopology(cur,table,tolerance):
+    """Run pgr_createTopology on table (columns id, geom) and raise if it fails."""
+    notices=getattr(getattr(cur,'connection',None),'notices',None)
+    if notices is not None:
+        del notices[:]
+    cur.execute("SELECT pgr_createTopology(%s,%s,'geom','id',clean:=true) AS result;",(table,float(tolerance)))
+    row=cur.fetchone()
+    result=row['result'] if isinstance(row,dict) else row[0]
+    if result!='OK':
+        # pgr_createTopology catches its own errors and rolls back the vertices table: the reason is only in its notices
+        reason=''.join(notices or []).strip()
+        raise RuntimeError('pgr_createTopology({}, {}) returned {}:\n{}'.format(table,tolerance,result,reason or 'no notice'))
+
 def getBundleValues(bundle,cur):
     if bundle:
         sql="""SELECT b_t_conns.conn_bundle_type_id, b_t_conns.sequence, b_t_conns.conn_type_id, conn_t_conns.sequence, conns.temp,conns.p, conns.mdot,conns.type, conns.id AS conn_id

@@ -12,6 +12,7 @@ from .utility_functions.layer_visualization import showTempTables
 from .utility_functions.workers import runInMainThread
 from .utility_functions.topology import (
     checkLineDirectionTopology,
+    createTopology,
     getLayerAttributesName,
     nodeLines,
     setSubnetwork,
@@ -669,14 +670,7 @@ UPDATE temp.streets_help a SET id = sub.new_id
         sql="DROP TABLE IF EXISTS temp.streets_help_vertices_pgr CASCADE;"
         self.cur.execute(sql)    
         
-        sql="SELECT pgr_createTopology('temp.streets_help',{},'geom','id',clean:='true');".format(self.tolerance) # nosec B608
-        dprint(sql)                 
-        self.cur.execute(sql)    
-        
-        #graph analyze for gaps
-        #sql="""SELECT pgr_analyzeGraph('temp.streets_help', {}, the_geom := 'geom', id := 'id');""".format(self.tolerance)
-        dprint(sql)
-        self.cur.execute(sql)
+        createTopology(self.cur,'temp.streets_help',self.tolerance)
         
         sql="""SELECT sh.id FROM temp.streets_help_vertices_pgr v,temp.streets_help sh WHERE v.chk!=0 AND (v.id=sh.source OR v.id=sh.target);"""
         dprint(sql)
@@ -702,9 +696,7 @@ UPDATE temp.streets_help a SET id = sub.new_id
         self.cur.execute(sql)    
         dprint(sql)                     
         #create network topology
-        sql="SELECT pgr_createTopology('temp.streets_help',{},'geom','id',clean:='true');".format(str(0.000000000000001)) # nosec B608
-        self.cur.execute(sql)    
-        dprint(sql)  
+        createTopology(self.cur,'temp.streets_help',0.000000000000001)
         
        #graph analyze for short intersections
         sql="""SELECT pgr_analyzeGraph('temp.streets_help', {}, the_geom := 'geom', id := 'id');""".format(str(0.000000000000001)) # nosec B608

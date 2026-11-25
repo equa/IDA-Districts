@@ -1,9 +1,9 @@
 # Known findings of mypy (test/test_static_mypy.py): count, file, error code, message (tab separated).
 # Written with: python -m pytest test/test_static_mypy.py --update-mypy-baseline
-# Only remove findings here by fixing them. mypy 2.4.1, 962 findings.
+# Only remove findings here by fixing them. mypy 2.4.1, 957 findings.
 2	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "close"
 1	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "cursor"
-68	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "execute"
+65	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "execute"
 6	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "fetchall"
 3	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "fetchone"
 1	GenerateNetworkTopology.py	has-type	Cannot determine type of "progress_value"
@@ -12,7 +12,7 @@
 1	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "cancel"
 2	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "close"
 1	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "cursor"
-56	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "execute"
+54	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "execute"
 5	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "fetchall"
 9	PipeLayingAlgorithm.py	attr-defined	"str" has no attribute "fetchone"
 2	districts.py	union-attr	Item "None" of "Any | None" has no attribute "execute"

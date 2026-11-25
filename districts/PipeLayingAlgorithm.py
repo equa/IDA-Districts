@@ -16,6 +16,7 @@ from .utility_functions.layer_visualization import showTempTables
 from .utility_functions.workers import runInMainThread
 from .utility_functions.topology import (
     checkLineDirectionPipeLaying,
+    createTopology,
     nodeLines,
     redrawSubnetworkIncludingLines,
     updateJunctionHeights,
@@ -131,6 +132,8 @@ class WorkerPipeLaying(QRunnable):
     def missingSelections(self):
         """error messages for line types, pipe bundles and customer templates which are needed
         for the selected networks but not selected/available"""
+        if not self.check_heating_network and not self.check_cooling_network:
+            return [tr_msg('Please select the heating network, the cooling network or both.')]
         modes=[]
         if self.check_heating_network:
             modes.append(('heating',self.heating_lines_type,self.heating_pipe_bundle,self.heating_customer_template))
@@ -313,8 +316,7 @@ INSERT INTO temp.streets_help (geom,length_m) SELECT ST_Force2D(geom),st_length(
             self.cur.execute(sql)    
             dprint(sql)                     
             #create network topology
-            sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
-            self.cur.execute(sql)
+            createTopology(self.cur,'temp.streets_help',.001)
         self.setProgress(87)
 
         self.insertNodes(version)
@@ -624,9 +626,7 @@ CREATE TABLE temp.lines_cooling (LIKE "{}".lines INCLUDING ALL);""".format(versi
         self.cur.execute(sql)    
         dprint(sql)                     
         #create network topology
-        sql="select pgr_createTopology('temp.streets_help',.001,'geom','id',clean:='true');"
-        self.cur.execute(sql)    
-        dprint(sql)   
+        createTopology(self.cur,'temp.streets_help',.001)
             
         sql="UPDATE temp.streets_help SET length_m=st_length(geom);"
         self.cur.execute(sql)    
