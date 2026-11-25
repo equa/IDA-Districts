@@ -36,4 +36,4 @@
 ## 6. Validation
 
 - [x] 6.1 Local validation: from districts/, the QGIS Python runs `-m pytest` and it passes (with `-m "not ida"` without IDA Districts), including test_static_mypy.py and test_messages.py (QGIS 4.2: test_network_stages TestStagedRun with IDA, test_cost_optimization, test_sensitivity, test_iteration_report, test_messages, test_static_mypy; the whole suite in CI)
-- [ ] 6.2 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass
+- [x] 6.2 CI: commit, push to dev and watch the plugin-tests run until both QGIS jobs pass (manual run 45577933059: QGIS 4.2 and 3.44 green)
