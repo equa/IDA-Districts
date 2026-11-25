@@ -132,6 +132,24 @@ def energyRows(basis,npv=None):
     return rows
 
 
+def collectorRows(kpis):
+    """[label, value] rows of the Ground collectors section from version_kpis.collectorKpis"""
+    reasons={'a full-year run is needed': tr_msg('a full-year run is needed'),'no collector results': tr_msg('no collector results')}
+    def text(entry):
+        if entry['value'] is None:
+            return '– ({})'.format(reasons.get(entry['reason'],entry['reason']))
+        return '{:,} {}'.format(entry['value'],entry['unit']).replace(',',"'")
+    rows=[]
+    for key in sorted(kpis,key=lambda k: (k=='total',k)):
+        k=kpis[key]
+        rows.append([tr_msg('Total') if key=='total' else key,tr_msg('{} lines').format(k['lines'])])
+        for name,label in (('trench_length','Trench length'),('loop_length','Loop length'),('heat_extracted','Heat extracted'),
+                           ('heat_per_trench_m','Heat extracted per trench meter'),('t_out_min','Lowest outlet temperature'),
+                           ('ice_fraction_max','Largest ice fraction')):
+            rows.append(['    '+tr_msg(label),text(k[name])])
+    return rows
+
+
 def economicsRows(evaluation):
     """[label, value] rows of the Economics section from evaluateVersion"""
     scenario=(evaluation.get('scenario') or {}).get('scenario') or {}
@@ -146,8 +164,12 @@ def economicsRows(evaluation):
     energy,costs,npv=evaluation['energy'],evaluation['costs'],evaluation['npv']
     split=npv['split']
     rows+=[[tr_msg('Investment pipes'),_money(pipes)],
-           [tr_msg('Investment trench'),_money(trench)],
-           [tr_msg('Investment pumps ({:.1f} kW peak)').format(evaluation['pump_kw']),_money(evaluation['pump_item']['cost'])],
+           [tr_msg('Investment trench'),_money(trench)]]
+    for key,item in sorted(items.items()):
+        if key[0]=='collector':
+            rows.append([tr_msg('Investment ground collector {} ({:,.0f} m trench, {:,.0f} m loop)').format(item['name'],item['length'],item['loop_m']).replace(',',"'"),
+                         _money(item['cost'])])
+    rows+=[[tr_msg('Investment pumps ({:.1f} kW peak)').format(evaluation['pump_kw']),_money(evaluation['pump_item']['cost'])],
            [tr_msg('Pump energy per year'),'{:,.0f} kWh, {}'.format(energy['pump_kwh'],_money(costs['pump_energy'])).replace(',',"'")],
            [tr_msg('Heat losses per year'),'{:,.0f} kWh, {}'.format(energy['heat_kwh'],_money(costs['heat_losses'])).replace(',',"'")],
            [tr_msg('Cold losses per year'),'{:,.0f} kWh, {}'.format(energy['cold_kwh'],_money(costs['cold_losses'])).replace(',',"'")],
@@ -630,6 +652,11 @@ def networkReport(dlg,plugin_dir,cur,config,main_dlg):
         except Exception:
             QgsMessageLog.logMessage(traceback.format_exc(),"Districts",MessageCritical)
             iface.messageBar().pushMessage(tr_msg("Error"),tr_msg('The economic evaluation failed (see the message log Districts).'),level=MessageCritical)
+
+    from .version_kpis import collectorKpis
+    collectors=collectorKpis(cur,config)
+    if collectors:
+        current_page=addTablePage(layout,tr_msg('Ground collectors'),collectorRows(collectors),font_header_label,font_table,font_table_label)
 
     #plot images
     map_layers=[]

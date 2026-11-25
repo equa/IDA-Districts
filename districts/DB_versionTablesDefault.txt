@@ -127,6 +127,8 @@ CREATE TABLE "$versionName$".lines
     pipe_bundle_type_id integer DEFAULT 1,
     zeta numeric DEFAULT 0,
 	submodel integer[] DEFAULT ARRAY[1],
+	n_loops integer DEFAULT 1, --ground collector: parallel loops, each in its own trench
+	t_mean_init numeric, --ground collector: mean fluid temperature of the start state (empty = the resource's default)
 	CONSTRAINT lines_pkey PRIMARY KEY (id)
 );
 

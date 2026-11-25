@@ -8,6 +8,7 @@ from qgis.core import Qgis, QgsMessageLog, QgsVectorLayer, QgsDataSourceUri, Qgs
 from qgis.core import QgsApplication, QgsEditorWidgetSetup, QgsProject
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import dbColumnIsNumeric, dbConnect, dropDBTriggers, getMaxId, getPipeBundleTypesDB, getTableAttr, insertDBTriggers
+from .utility_functions.ground_collectors import notCollector
 from .utility_functions.layer_visualization import removeTempLayers, setLayersHidden
 from .utility_functions.topology import saveTempTables
 from .utility_functions.translations import tr, tr_msg
@@ -114,10 +115,10 @@ class WorkerPipeSizing(QRunnable):
             if self.dlg.rbtn_customers.isChecked():    
                 setEnergyColLines(self.cur,self.config['versionName'],self.network,energy_columns,self.dlg.combo_main_plants.currentText())
                 self.signals.progress.emit(2)
-                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} ORDER BY l.id;""".format(''.join(['l."{}", '.format(i) for i in energy_columns]),self.network) # nosec B608
+                sql="""SELECT l.id,{} l.no_customer FROM temp.lines l WHERE  l.network = {} AND {} ORDER BY l.id;""".format(''.join(['l."{}", '.format(i) for i in energy_columns]),self.network,notCollector('l')) # nosec B608
             else:
-                sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} ORDER BY l.id;""".format( # nosec B608
-                    ''.join(['l."{}", '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network) # nosec B608
+                sql="""SELECT l.id,{} {} AS no_customer FROM temp.lines l WHERE l.network = {} AND {} ORDER BY l.id;""".format( # nosec B608
+                    ''.join(['l."{}", '.format(i) for i in energy_columns]),'l.'+self.dlg.combo_simultaneity.currentText() if self.dlg.checkBoxSimultaneity.isChecked() and self.dlg.rbtn_lines.isChecked() else 1,self.network,notCollector('l')) # nosec B608
 
             self.signals.progress.emit(3)
             self.cur.execute(sql)

@@ -24,6 +24,7 @@ import math
 from collections import defaultdict
 
 from .flow_tracing import getCustomerLineMdot
+from .ground_collectors import notCollector
 
 
 def waterProperties(temp):
@@ -91,7 +92,8 @@ def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(7
     v = config['versionName']
     cur.execute("""SELECT l.id, ST_3DLength(l.geom) AS length, l.pipe_bundle_type_id, bp.sequence, bp.pipe_id
     FROM "{}".lines l, public.bundle_pipes bp
-    WHERE bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network = {} AND bp.sequence IN ({});""".format(v, int(network), ','.join(str(int(s)) for s in sequences)))  # nosec B608
+    WHERE bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network = {} AND bp.sequence IN ({}) AND {};""".format(
+        v, int(network), ','.join(str(int(s)) for s in sequences), notCollector('l')))  # nosec B608
     lines = {}
     for row in cur.fetchall():
         line = lines.setdefault(row['id'], {'length': float(row['length']), 'bundle': row['pipe_bundle_type_id'], 'pipes': {}})
@@ -126,8 +128,8 @@ def getLineData(cur, config, time, network=1, sequences=(1, 2), default_temps=(7
 def getPairLines(cur, config, network, pair):
     """Ids of the lines of the network whose pipe bundle has both sequences of the pair."""
     cur.execute("""SELECT l.id FROM "{}".lines l, public.bundle_pipes bp
-    WHERE bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network = %s AND bp.sequence IN (%s, %s)
-    GROUP BY l.id HAVING count(DISTINCT bp.sequence) = 2;""".format(config['versionName']), (int(network), int(pair[0]), int(pair[1])))  # nosec B608
+    WHERE bp.pipe_bundle_type_id = l.pipe_bundle_type_id AND l.network = %s AND bp.sequence IN (%s, %s) AND {}
+    GROUP BY l.id HAVING count(DISTINCT bp.sequence) = 2;""".format(config['versionName'], notCollector('l')), (int(network), int(pair[0]), int(pair[1])))  # nosec B608
     return {row['id'] for row in cur.fetchall()}
 
 

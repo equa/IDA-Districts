@@ -87,13 +87,26 @@ def trenchLengths(cur, schema, default_surface):
     return lengths
 
 
-def investments(scenario, lines, trench):
-    """Investment items (pipes per pipe type, trench per line, without pumps), pipes in use without costs, example flag."""
+def investments(scenario, lines, trench, collectors=None):
+    """Investment items (pipes per pipe type, trench per line, without pumps), pipes in use without costs, example flag.
+    collectors: {lid: cost data} of the collector lines; their loop pipe and trench are one item per resource."""
+    from .ground_collectors import collectorItem
     items, no_costs, example = {}, set(), False
     factor = float((scenario.get('cost_factors') or {}).get('pipe', 1.0))
+    collectors = collectors or {}
     for lid, line in lines.items():
         dn = max([nominalDiameter(p) for p in line['pipes'].values()] or [0])
-        for pipe in line['pipes'].values():
+        collector = collectors.get(lid)
+        if collector:
+            part = collectorItem(collector, line['length'])
+            item = items.setdefault(('collector', collector['name']), {'cost': 0.0, 'lifetime': part['lifetime'],
+                                                                       'maintenance_pct': part['maintenance_pct'], 'name': collector['name'],
+                                                                       'length': 0.0, 'loop_m': 0.0})
+            for key in ('cost', 'length', 'loop_m'):
+                item[key] += part[key]
+        for seq, pipe in line['pipes'].items():
+            if collector and seq == collector['loop_sequence']:
+                continue
             if pipe['costs'] is None:
                 no_costs.add(pipe['name'])
                 continue
@@ -102,7 +115,8 @@ def investments(scenario, lines, trench):
                                                                 'maintenance_pct': float(pipe['maintenance_pct'] or 0), 'name': pipe['name']})
             item['cost'] += float(pipe['costs']) * factor * line['length']
             item['length'] = item.get('length', 0.0) + line['length']
-        for surface, length in trench.get(lid, {}).items():
+        # the other pipes of a collector line lie in the collector trench
+        for surface, length in ({} if collector else trench.get(lid, {})).items():
             item = items.setdefault(('trench', surface), {'cost': 0.0, 'lifetime': lifetimeOfLine(line), 'maintenance_pct': 0.0, 'name': surface})
             item['cost'] += trenchCostPerMetre(scenario, surface, dn) * length
             item['length'] = item.get('length', 0.0) + length
@@ -250,10 +264,12 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
     def weight(time):
         return run[1].get(hourOf(time), 0.0) * dt if run else dt
 
+    from .ground_collectors import collectorCosts
     lines = linePipes(cur, schema)
+    collectors = collectorCosts(cur, schema)
     sc = scenario['scenario']
     trench = trenchLengths(cur, schema, sc.get('default_surface') or 'paved')
-    items, no_costs, example = investments(scenario, lines, trench)
+    items, no_costs, example = investments(scenario, lines, trench, collectors)
     no_trench = surfacesWithoutTrenchCosts(scenario, trench)
     _, conn_types = plantModes(cur, schema)
 
@@ -276,7 +292,10 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
 
     # U' * L per pipe; per mode and time sum(U'L * T_pipe), per mode and ambient sum(U'L)
     ul = {}
+    # the heat a collector takes up is a gain, not a pipe loss (R9): its line stays out of the losses and their check
     for lid, line in lines.items():
+        if lid in collectors:
+            continue
         for seq, pipe in line['pipes'].items():
             u = uPrime(float(pipe['innerpipediameter'] or 0.05), pipe['layers'], float(pipe['depth'] or 1),
                        int(pipe['ambient'] or 2), float(settings.get('ground_lambda', 1.2)))
@@ -381,12 +400,13 @@ def evaluateVersion(cur, config, scenario_id, settings, profile_dir=None):
         cur.execute('SELECT fid, time, "$qamb" AS q FROM "{}"."{}";'.format(schema, source))  # nosec B608
         for row in cur.fetchall():
             simulated[row['fid']] = simulated.get(row['fid'], 0.0) + float(row['q'] or 0) * weight(row['time'])
-    calculated = {lid: line_t_sum.get(lid, 0.0) - line_amb.get(lid, 0.0) for lid in lines}
+    calculated = {lid: line_t_sum.get(lid, 0.0) - line_amb.get(lid, 0.0) for lid in lines if lid not in collectors}
+    simulated = {lid: q for lid, q in simulated.items() if lid not in collectors}
     by_carrier = basis['costs']['yearly'] if use_energy else None
     result = netPresentValue(scenario, list(items.values()) + [pump_item], npv_yearly, by_carrier)
     evaluation = {'scenario': scenario, 'items': items, 'pump_item': pump_item, 'pump_kw': pump_kw, 'no_costs': no_costs, 'no_trench': no_trench,
                   'example': example or bool(sc.get('example')), 'costs': costs, 'energy': energy, 'npv': result,
-                  'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'dt': dt, 'modes': mode_summary,
+                  'loss_check': checkLines(calculated, simulated), 'n_lines': len(lines), 'collectors': collectors, 'dt': dt, 'modes': mode_summary,
                   'npv_yearly': npv_yearly, 'by_carrier': by_carrier, 'energy_basis': basis}
     if run:
         periods = run[2]

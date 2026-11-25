@@ -85,13 +85,17 @@ def buildModel(cur, config, scenario_id, pairs, settings, profile_dir=None):
         layers.setdefault(row['cid'], []).append((float(row['thickness'] or 0), float(row['lam'] or 0)))
 
     trench = trenchLengths(cur, schema, sc.get('default_surface') or 'paved')
+    from .ground_collectors import collectorCosts
     protected = set(loadProtectedLines(config))
+    collectors = collectorCosts(cur, schema)
     lines = {}
     for lid, line in linePipes(cur, schema).items():
+        # a collector keeps its pipes: its loop is a resource, not a size of the catalogue (R8)
         lines[lid] = {'length': line['length'], 'pipes': {seq: int(p['pipe_id']) for seq, p in line['pipes'].items()},
                       'ambient': {seq: int(p['ambient'] or 2) for seq, p in line['pipes'].items()},
                       'depth': {seq: float(p['depth'] or 1) for seq, p in line['pipes'].items()},
-                      'surface': trench.get(lid, {}), 'protected': lid in protected}
+                      'surface': {} if lid in collectors else trench.get(lid, {}),
+                      'protected': lid in protected or lid in collectors, 'collector': collectors.get(lid)}
 
     mdot, temp = {}, {}
     sequences = sorted({seq for pair in pairs for seq in pair})

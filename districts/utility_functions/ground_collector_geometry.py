@@ -2,6 +2,7 @@
 #(change ground-collector-model, design G2-G4); plain Python, no QGIS, no DB
 import math
 from dataclasses import dataclass
+from typing import Callable, Dict
 
 #smallest grid cell of the 2D reference; thinner source regions are widened to it
 MIN_CELL_M = 0.05
@@ -169,7 +170,7 @@ def barePipe(depth_m, spacing_m, pipe_d_inner_m, pipe_d_outer_m, pipe_lambda_w7m
                  pipe_d_inner_m, pipe_d_outer_m, pipe_lambda_w7mk, soil, pipe_resolved=True)
 
 
-PRESETS = {
+PRESETS: Dict[str, Callable[..., CollectorGeometry]] = {
     'horizontal_ring': horizontalRing,
     'vertical_ring': verticalRing,
     'flat_meander': flatMeander,

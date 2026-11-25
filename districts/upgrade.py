@@ -4,6 +4,7 @@ from .utility_functions.db import getDBColumnInfo, ensureMaterialMechanicalColum
 from .ai.access import ensureAiSettingsTable
 from .utility_functions.debug_log import dprint
 from .utility_functions.economic_data import dropBundleCostColumns, ensureEconomicTables, ensurePipeCostColumns
+from .utility_functions.ground_collectors import ensureGroundCollectorTables, ensureLineColumns
 from .utility_functions.statics_db import ensureStaticsParameters, ensureStaticsTables
 
 #upgrade versions DB table structure
@@ -27,6 +28,8 @@ def upgradeVersionDB(cur,config):
     #statics model and its overrides (pipe statics)
     ensureStaticsTables(cur,config['versionName'])
     upgradeProjectDB(cur)
+    #loops and mean fluid temperature of the start state per collector line (empty = the resource's default)
+    ensureLineColumns(cur,config['versionName'])
     dprint('--upgrade finished--')
 
 #upgrade project DB table structure (schema public)
@@ -46,5 +49,7 @@ def upgradeProjectDB(cur):
     dropBundleCostColumns(cur)
     #permission of the AI assistant (off until allowed)
     ensureAiSettingsTable(cur)
+    #ground collector resources and their line types
+    ensureGroundCollectorTables(cur)
     
     

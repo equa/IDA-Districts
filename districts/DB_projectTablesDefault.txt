@@ -587,5 +587,44 @@ CREATE TABLE temp.streets_help (
     costs_eur7m numeric DEFAULT 100,
     source integer,
     target integer,
+    n_loops integer,
+    t_mean_init numeric,
     CONSTRAINT streets_help_pkey PRIMARY KEY (id)
 );
+
+-------------------table public.ground_collectors (ground collector resources, change ground-collector-routes)------------------------------------
+CREATE TABLE IF NOT EXISTS public.ground_collectors
+(
+  id serial,
+  name text NOT NULL UNIQUE,
+  description text,
+  preset text NOT NULL DEFAULT 'horizontal_ring' CHECK (preset IN ('horizontal_ring','vertical_ring','flat_meander','bare_pipe')),
+  preset_inputs jsonb NOT NULL DEFAULT '{}',
+  pipe_id integer,
+  loop_sequence integer NOT NULL DEFAULT 1,
+  liquid_id integer NOT NULL DEFAULT 1,
+  t_freeze_liquid_c numeric NOT NULL DEFAULT 0,
+  lambda_w7mk numeric NOT NULL DEFAULT 1.5,
+  rho_c_j7m3k numeric NOT NULL DEFAULT 2200000,
+  water_content numeric NOT NULL DEFAULT 0.25,
+  t_freeze_c numeric NOT NULL DEFAULT 0,
+  freeze_range_k numeric NOT NULL DEFAULT 1,
+  lambda_frozen_ratio numeric NOT NULL DEFAULT 1,
+  albedo numeric NOT NULL DEFAULT 0.25,
+  epsilon numeric NOT NULL DEFAULT 0.95,
+  h_conv_w7m2k numeric NOT NULL DEFAULT 10,
+  d_layer_m numeric NOT NULL DEFAULT 0.05,
+  rho_c_layer_j7m3k numeric NOT NULL DEFAULT 2200000,
+  t_mean_init numeric NOT NULL DEFAULT 5,
+  start_mode text NOT NULL DEFAULT 'undisturbed' CHECK (start_mode IN ('undisturbed','precalculated')),
+  start_years integer NOT NULL DEFAULT 5,
+  n_sections integer NOT NULL DEFAULT 3,
+  cost_trench_eur7m numeric NOT NULL DEFAULT 0,
+  cost_loop_eur7m numeric NOT NULL DEFAULT 0,
+  maintenance_pct numeric NOT NULL DEFAULT 1,
+  lifetime_a numeric NOT NULL DEFAULT 50,
+  fits jsonb NOT NULL DEFAULT '{}', --RC fits and start states keyed by fingerprint (cache)
+  CONSTRAINT ground_collectors_pkey PRIMARY KEY (id)
+);
+ALTER TABLE public.line_types ADD COLUMN IF NOT EXISTS ground_collector_id integer
+  REFERENCES public.ground_collectors(id) ON DELETE RESTRICT;

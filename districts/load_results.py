@@ -10,6 +10,7 @@ from .utility_functions.db import (
     StringIteratorIO, clean_csv_value, dbConnect, getMaxIdSchema, getNetworkBySubmodel,
 )
 from .utility_functions.dialog import checkState
+from .utility_functions.ground_collectors import COLLECTOR_RESULTS, collectorLines, collectorResultColumns
 from .utility_functions.files import (
     loadModellingSettings, loadNetworkSimData, loadProjectConfig, readFileToString,
 )
@@ -29,6 +30,7 @@ from .utility_functions.utility import getDatetimeFromString, interpolateTimeDat
 from .utility_functions.workers import closesOwnConnection, APISignals
 
 import datetime
+from typing import Any
 import re
 import traceback
 from .utility_functions.debug_log import dprint, debug_enabled
@@ -524,7 +526,11 @@ CREATE TABLE "{}".line_s_qamb
     WHERE {}=ANY(l.submodel) AND bp.pipe_bundle_type_id=l.pipe_bundle_type_id
     GROUP BY l.id ORDER BY l.id;""".format(self.config['versionName'],submodel_id) # nosec B608
                         self.cur.execute(sql)
-                        lids=self.cur.fetchall()
+                        rows=self.cur.fetchall()
+                        #the loop pipe of a collector line is the GroundCollector: the bundle's file has the other pipes only
+                        loops={lid: line['loop_sequence'] for lid,line in collectorLines(self.cur,self.config['versionName']).items()}
+                        lids=[dict(row,sequences=[s for s in row['sequences'] if s!=loops.get(row['id'])]) for row in rows]
+                        lids=[row for row in lids if row['sequences']]
                         line_geoms=self.featureGeometries('lines')
 
                         for counter_of,output in enumerate(line_outputs,1):
@@ -595,6 +601,7 @@ CREATE TABLE "{}".line_s_qamb
 
 
                         self.emitProgress(96)
+                    self.loadCollectorResults(dir_path,submodel_id,start_datetime,srid)
                         
                     for network in getNetworkBySubmodel(self.cur,self.config,submodel):
                         dprint(network)
@@ -805,6 +812,53 @@ CREATE TABLE "{}".massbalance_{}_s
                         MessageCritical
                     )
                         
+    def loadCollectorResults(self,dir_path,submodel_id,start_datetime,srid):
+        """Line_coll_<lid>.prn of the collector lines of a submodel into line_s_coll_* (design R10): the sections
+        as segments, the line cut into n_sections equal parts; the tables are created once per load."""
+        cur: Any=self.cur
+        lines=collectorLines(cur,self.config['versionName'])
+        cur.execute("""SELECT id FROM "{}".lines WHERE {}=ANY(submodel);""".format(self.config['versionName'],int(submodel_id))) # nosec B608
+        in_submodel={row['id'] for row in cur.fetchall()}
+        lines={lid: line for lid,line in lines.items() if lid in in_submodel}
+        files={lid: dir_path+'Line_coll_{}.prn'.format(lid) for lid in lines}
+        files={lid: f for lid,f in files.items() if os.path.exists(f)}
+        if not files:
+            return
+        tables=['line_s_'+var for _,var,_ in COLLECTOR_RESULTS]
+        if not getattr(self,'collector_tables',False):
+            cur.execute(''.join("""\nDROP TABLE IF EXISTS "{schema}".{table} CASCADE;
+CREATE TABLE "{schema}".{table}
+(
+    id serial,
+    fid integer,
+    time timestamp,
+    geom geometry(LineStringZ,{srid}),
+    segment integer,
+    "${var}" numeric,
+    CONSTRAINT {table}_pkey PRIMARY KEY (id)
+);""".format(schema=self.config['versionName'],table='line_s_'+var,srid=srid,var=var) for _,var,_ in COLLECTOR_RESULTS)) # nosec B608
+            self.collector_tables=True
+        line_geoms=self.featureGeometries('lines')
+        copy_buffer=ResultCopyBuffer(self.conn,cur,self.config['versionName'])
+        for lid,fname in files.items():
+            n=lines[lid]['n_sections']
+            cur.execute("""SELECT s.j, ST_LineSubstring(l.geom, (s.j-1)::float/%s, s.j::float/%s)::text AS geom
+                FROM "{}".lines l, generate_series(1, %s) AS s(j) WHERE l.id = %s ORDER BY s.j;""".format(self.config['versionName']), # nosec B608
+                (n,n,n,lid))
+            section_geoms=[row['geom'] or '' for row in cur.fetchall()]
+            with open(fname,'r') as f:
+                columns=collectorResultColumns(f.readline(),n)
+            file_data=np.loadtxt(fname,skiprows=1,dtype=float,ndmin=2)
+            if self.dlg.checkbox_timestep.checkState() == checkState():
+                file_data=interpolateTimeData(float(self.dlg.interpolation_dt.text()),file_data)
+            for var,cols in columns.items():
+                geoms=section_geoms if len(cols)>1 else [line_geoms.get(lid,'')]
+                #copy_line_sData reads the segment columns from column 2 on
+                data=np.column_stack([file_data[:,0],file_data[:,0]]+[file_data[:,c] for c in cols])
+                self.copy_line_sData(copy_buffer,data,lid,['line_s_'+var],len(cols),start_datetime,geoms)
+        copy_buffer.flush()
+        self.createResultLayerIndex(tables,'line')
+
     def emitProgress(self,submodel_progress):
         """emit the overall progress (1-99) for the progress (0-100) within the current submodel, never decreasing"""
         value=1+int((self.progress_submodel_nr+min(max(submodel_progress,0),100)/100)*98/max(len(self.progress_submodels),1))

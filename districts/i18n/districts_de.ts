@@ -524,6 +524,14 @@
             <translation>Oberfläche</translation>
         </message>
         <message>
+            <source>n_loops</source>
+            <translation>Kollektor: Schleifen (je ein Graben)</translation>
+        </message>
+        <message>
+            <source>t_mean_init</source>
+            <translation>Kollektor: mittlere Fluidtemperatur für den vorberechneten Startzustand [°C] (leer = Wert des Kollektortyps)</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="162" />
             <source>length_m</source>
             <translation type="unfinished">Länge, m</translation>
@@ -5596,6 +5604,10 @@ li.checked::marker { content: "\2612"; }
         <message>
             <source>tooltip_pipe_series</source>
             <translation type="unfinished">Rohrserien: Rohrsystem, Grenzwerte, Druckstufen</translation>
+        </message>
+        <message>
+            <source>tooltip_ground_collectors</source>
+            <translation type="unfinished">Erdkollektoren: Kollektortypen als Trassentypen der Leitungen (Geometrie, Boden, Kosten, Anpassung)</translation>
         </message>
         <message>
             <source>tooltip_statics_parameters</source>
@@ -12892,6 +12904,346 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>Please select the heating network, the cooling network or both.</source>
             <translation>Bitte das Wärmenetz, das Kältenetz oder beide auswählen.</translation>
+        </message>
+        <message>
+            <source>Ground collectors need the IDA Districts library GroundMo with contract version {} (installed: {}).</source>
+            <translation>Erdkollektoren benötigen die IDA-Districts-Bibliothek GroundMo mit der Vertragsversion {} (installiert: {}).</translation>
+        </message>
+        <message>
+            <source>The climate macro has no global radiation IGlob needed by the ground collectors.</source>
+            <translation>Dem Klimamakro fehlt die Globalstrahlung IGlob, die die Erdkollektoren benötigen.</translation>
+        </message>
+        <message>
+            <source>Ground collector line {}: its pipe bundle has no pipe of sequence {}.</source>
+            <translation>Erdkollektor-Trasse {}: ihr Rohrbündel hat kein Rohr mit der Sequenz {}.</translation>
+        </message>
+        <message>
+            <source>Fitting the ground collector {}</source>
+            <translation>Anpassung des Erdkollektors {}</translation>
+        </message>
+        <message>
+            <source>Ground collector {}: {}</source>
+            <translation>Erdkollektor {}: {}</translation>
+        </message>
+        <message>
+            <source>The fit of the ground collector {} is not accepted (errors {}).</source>
+            <translation>Die Anpassung des Erdkollektors {} ist nicht akzeptiert (Fehler {}).</translation>
+        </message>
+        <message>
+            <source>Ground collector {}: not fitted yet, the next network build fits it.</source>
+            <translation>Erdkollektor {}: noch nicht angepasst, der nächste Netzaufbau passt ihn an.</translation>
+        </message>
+        <message>
+            <source>Ground collector {}: its liquid {} is not in the list of liquids.</source>
+            <translation>Erdkollektor {}: sein Fluid {} fehlt in der Liste der Fluide.</translation>
+        </message>
+        <message>
+            <source>Liquid freezing point [°C]</source>
+            <translation>Gefrierpunkt Fluid [°C]</translation>
+        </message>
+        <message>
+            <source>Liquid</source>
+            <translation>Fluid</translation>
+        </message>
+        <message>
+            <source>the value must be positive</source>
+            <translation>der Wert muss positiv sein</translation>
+        </message>
+        <message>
+            <source>a value is needed</source>
+            <translation>ein Wert ist nötig</translation>
+        </message>
+        <message>
+            <source>Trench spacing [m]</source>
+            <translation>Grabenabstand [m]</translation>
+        </message>
+        <message>
+            <source>Depth [m]</source>
+            <translation>Tiefe [m]</translation>
+        </message>
+        <message>
+            <source>Pipe spacing [m]</source>
+            <translation>Rohrabstand [m]</translation>
+        </message>
+        <message>
+            <source>Layer width [m]</source>
+            <translation>Schichtbreite [m]</translation>
+        </message>
+        <message>
+            <source>Ring pitch [m]</source>
+            <translation>Ringabstand [m]</translation>
+        </message>
+        <message>
+            <source>Ring diameter [m]</source>
+            <translation>Ringdurchmesser [m]</translation>
+        </message>
+        <message>
+            <source>precalculated</source>
+            <translation>vorberechnet</translation>
+        </message>
+        <message>
+            <source>undisturbed</source>
+            <translation>ungestört</translation>
+        </message>
+        <message>
+            <source>bare_pipe</source>
+            <translation>Einzelrohr</translation>
+        </message>
+        <message>
+            <source>flat_meander</source>
+            <translation>Flächenmäander</translation>
+        </message>
+        <message>
+            <source>vertical_ring</source>
+            <translation>Ringgraben stehend</translation>
+        </message>
+        <message>
+            <source>horizontal_ring</source>
+            <translation>Ringgraben liegend</translation>
+        </message>
+        <message>
+            <source>Largest ice fraction</source>
+            <translation>Grösster Eisanteil</translation>
+        </message>
+        <message>
+            <source>Lowest outlet temperature</source>
+            <translation>Tiefste Austrittstemperatur</translation>
+        </message>
+        <message>
+            <source>Heat extracted per trench meter</source>
+            <translation>Entzogene Wärme pro Grabenmeter</translation>
+        </message>
+        <message>
+            <source>Heat extracted</source>
+            <translation>Entzogene Wärme</translation>
+        </message>
+        <message>
+            <source>Loop length</source>
+            <translation>Schleifenlänge</translation>
+        </message>
+        <message>
+            <source>Trench length</source>
+            <translation>Grabenlänge</translation>
+        </message>
+        <message>
+            <source>{} lines</source>
+            <translation>{} Leitungen</translation>
+        </message>
+        <message>
+            <source>not fitted</source>
+            <translation>nicht angepasst</translation>
+        </message>
+        <message>
+            <source>not accepted ({})</source>
+            <translation>nicht akzeptiert ({})</translation>
+        </message>
+        <message>
+            <source>no collector results</source>
+            <translation>keine Kollektorergebnisse</translation>
+        </message>
+        <message>
+            <source>no Kusuda settings</source>
+            <translation>keine Kusuda-Einstellungen</translation>
+        </message>
+        <message>
+            <source>accepted ({})</source>
+            <translation>akzeptiert ({})</translation>
+        </message>
+        <message>
+            <source>a full-year run is needed</source>
+            <translation>eine Jahressimulation ist nötig</translation>
+        </message>
+        <message>
+            <source>Water content [-]</source>
+            <translation>Wassergehalt [-]</translation>
+        </message>
+        <message>
+            <source>The names of the collector types must differ.</source>
+            <translation>Die Namen der Kollektortypen müssen verschieden sein.</translation>
+        </message>
+        <message>
+            <source>The fit needs the Kusuda ground temperature settings (modelling settings).</source>
+            <translation>Die Anpassung braucht die Kusuda-Einstellungen der Bodentemperatur (Modellierungseinstellungen).</translation>
+        </message>
+        <message>
+            <source>The fit failed: {}</source>
+            <translation>Die Anpassung ist fehlgeschlagen: {}</translation>
+        </message>
+        <message>
+            <source>The collector type {} is used by lines.</source>
+            <translation>Der Kollektortyp {} wird von Leitungen verwendet.</translation>
+        </message>
+        <message>
+            <source>Surface layer capacity [J/(m³ K)]</source>
+            <translation>Wärmekapazität Oberflächenschicht [J/(m³ K)]</translation>
+        </message>
+        <message>
+            <source>Surface layer [m]</source>
+            <translation>Oberflächenschicht [m]</translation>
+        </message>
+        <message>
+            <source>Start state</source>
+            <translation>Startzustand</translation>
+        </message>
+        <message>
+            <source>Soil freezing point [°C]</source>
+            <translation>Gefrierpunkt Boden [°C]</translation>
+        </message>
+        <message>
+            <source>Soil conductivity [W/(m K)]</source>
+            <translation>Wärmeleitfähigkeit Boden [W/(m K)]</translation>
+        </message>
+        <message>
+            <source>Soil capacity [J/(m³ K)]</source>
+            <translation>Wärmekapazität Boden [J/(m³ K)]</translation>
+        </message>
+        <message>
+            <source>Sections</source>
+            <translation>Abschnitte</translation>
+        </message>
+        <message>
+            <source>Row {}: a name is needed.</source>
+            <translation>Zeile {}: ein Name ist nötig.</translation>
+        </message>
+        <message>
+            <source>Row {}, {}: {}</source>
+            <translation>Zeile {}, {}: {}</translation>
+        </message>
+        <message>
+            <source>Pre-calculated years</source>
+            <translation>Vorberechnete Jahre</translation>
+        </message>
+        <message>
+            <source>Please select collector lines in the layer lines.</source>
+            <translation>Bitte Kollektortrassen im Layer Leitungen auswählen.</translation>
+        </message>
+        <message>
+            <source>Please select a collector type.</source>
+            <translation>Bitte einen Kollektortyp auswählen.</translation>
+        </message>
+        <message>
+            <source>None of the selected lines is a collector line with results (outputs of a simulation loaded).</source>
+            <translation>Keine der ausgewählten Leitungen ist eine Kollektortrasse mit Ergebnissen (Ausgaben einer Simulation geladen).</translation>
+        </message>
+        <message>
+            <source>Mean temperature from results</source>
+            <translation>Mitteltemperatur aus Ergebnissen</translation>
+        </message>
+        <message>
+            <source>Mean liquid temperature set: {}</source>
+            <translation>Mittlere Fluidtemperatur gesetzt: {}</translation>
+        </message>
+        <message>
+            <source>Mean liquid temperature [°C]</source>
+            <translation>Mittlere Fluidtemperatur [°C]</translation>
+        </message>
+        <message>
+            <source>Loops (trenches)</source>
+            <translation>Schleifen (Gräben)</translation>
+        </message>
+        <message>
+            <source>Loop pipe</source>
+            <translation>Schleifenrohr</translation>
+        </message>
+        <message>
+            <source>Loop pipe sequence in the bundle</source>
+            <translation>Sequenz des Schleifenrohrs im Bündel</translation>
+        </message>
+        <message>
+            <source>Investment ground collector {} ({:,.0f} m trench, {:,.0f} m loop)</source>
+            <translation>Investition Erdkollektor {} ({:,.0f} m Graben, {:,.0f} m Schleife)</translation>
+        </message>
+        <message>
+            <source>Ground collectors</source>
+            <translation>Erdkollektoren</translation>
+        </message>
+        <message>
+            <source>Ground collector {}</source>
+            <translation>Erdkollektor {}</translation>
+        </message>
+        <message>
+            <source>Ground collector line {}: the start state assumes a mean liquid temperature of {:.1f} degC, the results give {:.1f} degC; set it from the results.</source>
+            <translation>Erdkollektor-Trasse {}: der Startzustand nimmt eine mittlere Fluidtemperatur von {:.1f} °C an, die Ergebnisse ergeben {:.1f} °C; aus den Ergebnissen übernehmen.</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>Geometrie</translation>
+        </message>
+        <message>
+            <source>Geometry inputs [m]</source>
+            <translation>Geometrie-Eingaben [m]</translation>
+        </message>
+        <message>
+            <source>Freezing range [K]</source>
+            <translation>Gefrierbereich [K]</translation>
+        </message>
+        <message>
+            <source>Fitting the ground collector {} (up to a minute) ...</source>
+            <translation>Anpassung des Erdkollektors {} (bis zu einer Minute) ...</translation>
+        </message>
+        <message>
+            <source>Fitted: {}</source>
+            <translation>Angepasst: {}</translation>
+        </message>
+        <message>
+            <source>Fit</source>
+            <translation>Anpassung</translation>
+        </message>
+        <message>
+            <source>Emissivity [-]</source>
+            <translation>Emissionsgrad [-]</translation>
+        </message>
+        <message>
+            <source>Each collector type is a route type of the lines; every loop lies in its own trench.</source>
+            <translation>Jeder Kollektortyp ist ein Trassentyp der Leitungen; jede Schleife liegt in einem eigenen Graben.</translation>
+        </message>
+        <message>
+            <source>Delete</source>
+            <translation>Löschen</translation>
+        </message>
+        <message>
+            <source>Costs per trench meter [EUR/m]</source>
+            <translation>Kosten pro Grabenmeter [EUR/m]</translation>
+        </message>
+        <message>
+            <source>Costs per loop meter [EUR/m]</source>
+            <translation>Kosten pro Schleifenmeter [EUR/m]</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopieren</translation>
+        </message>
+        <message>
+            <source>Convection [W/(m² K)]</source>
+            <translation>Konvektion [W/(m² K)]</translation>
+        </message>
+        <message>
+            <source>Conductivity frozen/unfrozen [-]</source>
+            <translation>Leitfähigkeit gefroren/ungefroren [-]</translation>
+        </message>
+        <message>
+            <source>Collector</source>
+            <translation>Kollektor</translation>
+        </message>
+        <message>
+            <source>Collector types without their loop pipe in this project: {}</source>
+            <translation>Kollektortypen ohne ihr Schleifenrohr in diesem Projekt: {}</translation>
+        </message>
+        <message>
+            <source>Collector types are imported by name (a type of the same name is replaced), the loop pipe by its name.</source>
+            <translation>Kollektortypen werden nach Namen importiert (ein Typ gleichen Namens wird ersetzt), das Schleifenrohr nach seinem Namen.</translation>
+        </message>
+        <message>
+            <source>Albedo [-]</source>
+            <translation>Albedo [-]</translation>
+        </message>
+        <message>
+            <source>Add</source>
+            <translation>Hinzufügen</translation>
+        </message>
+        <message>
+            <source>A deleted collector type is used by lines ({}); change their type first.</source>
+            <translation>Ein gelöschter Kollektortyp wird von Leitungen verwendet ({}); zuerst deren Typ ändern.</translation>
         </message>
     </context>
 </TS>

@@ -194,6 +194,8 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_statics_parameters.setIconSize(QSize(btn_size, btn_size))
         self.btn_statics_model.setIcon(QIcon(":/images/themes/default/mIconLineLayer.svg"))
         self.btn_statics_model.setIconSize(QSize(btn_size, btn_size))
+        self.btn_ground_collectors.setIcon(QIcon(":/images/themes/default/mIconPolygonLayer.svg"))
+        self.btn_ground_collectors.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipe_bundle_types.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipebundle.png")))
         self.btn_pipe_bundle_types.setIconSize(QSize(btn_size, btn_size))
 

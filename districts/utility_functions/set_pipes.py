@@ -47,7 +47,8 @@ def balancingIterationPipes(cur, summary):
 
 def applyPipes(cur, schema, target):
     """sets the pipes of target ({'bundles'} or {'pipes'}) on the lines of the schema; returns (lines changed, new bundle ids)"""
-    cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines;'.format(schema))  # nosec B608
+    from .ground_collectors import notCollector
+    cur.execute('SELECT id, pipe_bundle_type_id AS bid FROM "{}".lines l WHERE {};'.format(schema, notCollector('l')))  # nosec B608
     current = {row['id']: row['bid'] for row in cur.fetchall()}
     if 'bundles' in target:
         new = {lid: bid for lid, bid in target['bundles'].items() if lid in current and current[lid] != bid}

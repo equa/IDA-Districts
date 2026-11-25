@@ -13,7 +13,51 @@ from .utility_functions.translations import tr
 from .utility_functions.utility import standardizePath
 
 import traceback
+import traceback
 from .utility_functions.debug_log import dprint, debug_enabled
+
+
+def addCollectorTab(dlg):
+    """tab 'Ground collectors' of the export and import dialogs: one row per collector type (change ground-collector-routes R11)"""
+    from .utility_functions.translations import tr_msg
+    tab = QWidget()
+    tab.setObjectName('tab_ground_collectors')
+    dlg.tableWidget_ground_collectors = QTableWidget(0, 4)
+    dlg.tableWidget_ground_collectors.setHorizontalHeaderLabels(['', tr_msg('Name'), tr_msg('Geometry'), tr_msg('Loop pipe')])
+    layout = QVBoxLayout(tab)
+    layout.addWidget(QLabel(tr_msg('Collector types are imported by name (a type of the same name is replaced), the loop pipe by its name.')))
+    layout.addWidget(dlg.tableWidget_ground_collectors)
+    dlg.tabWidget.addTab(tab, tr_msg('Ground collectors'))
+
+
+def loadCollectorTable(dlg):
+    from .utility_functions.translations import tr_msg
+    table = dlg.tableWidget_ground_collectors
+    table.setRowCount(0)
+    if not dlg.cur:
+        return
+    dlg.cur.execute("SELECT to_regclass('public.ground_collectors') IS NOT NULL AS ok;")
+    if not dlg.cur.fetchone()['ok']:  # a project of an older plugin version
+        return
+    dlg.cur.execute('SELECT g.name, g.preset, p.name AS pipe FROM public.ground_collectors g LEFT JOIN public.pipes p ON p.id = g.pipe_id ORDER BY g.name;')
+    for i, row in enumerate(dlg.cur.fetchall()):
+        table.insertRow(i)
+        table.setCellWidget(i, 0, QCheckBox())
+        for j, key in enumerate(('name', 'preset', 'pipe'), 1):
+            item = QTableWidgetItem(tr_msg(row[key]) if key == 'preset' else str(row[key] or ''))
+            item.setData(Qt.ItemDataRole.UserRole, row[key])
+            item.setFlags(ItemIsSelectable | ItemIsEnabled)
+            table.setItem(i, j, item)
+
+
+def checkedCollectors(dlg, export_all=False):
+    """names of the checked collector types (all with export_all)"""
+    table = getattr(dlg, 'tableWidget_ground_collectors', None)
+    if table is None:
+        return []
+    return [table.item(row, 1).data(Qt.ItemDataRole.UserRole) for row in range(table.rowCount())
+            if export_all or table.cellWidget(row, 0).isChecked()]
+
 
 class ExportResourcesDialog(QDialog):
     def __init__(self,cur,config):
@@ -66,6 +110,8 @@ class ExportResourcesDialog(QDialog):
 
         self.loadTableData(self.tableWidget_customer_templates,'customer_templates')
         self.loadTableData(self.tableWidget_energy_plant_templates,'energy_plant_templates')
+        addCollectorTab(self)
+        loadCollectorTable(self)
         
         self.rbtn_connections.setChecked(True)
         self.rbtn_materials.setChecked(True)
@@ -80,6 +126,8 @@ class ExportResourcesDialog(QDialog):
                 self.checkTableEntries(self.tableWidget_connection_types,check)
             else:
                 self.checkTableEntries(self.tableWidget_connection_bundles,check)
+        elif tab_name=='tab_ground_collectors':
+            self.checkTableEntries(self.tableWidget_ground_collectors,check)
         elif tab_name=='tab_pipes':
             if self.rbtn_materials.isChecked():
                 self.checkTableEntries(self.tableWidget_materials,check)
@@ -241,6 +289,7 @@ class ImportResourcesDialog(QDialog):
         self.rbtn_file.toggled.connect(self.onClickedRadioFileImport)
         self.rbtn_db.toggled.connect(self.onClickedRadioDBImport)
         self.rbtn_file.setChecked(True)
+        addCollectorTab(self)
 
     def loadTablesData(self):
         #load data
@@ -255,6 +304,7 @@ class ImportResourcesDialog(QDialog):
 
         self.loadTableData(self.tableWidget_customer_templates,'customer_templates')
         self.loadTableData(self.tableWidget_energy_plant_templates,'energy_plant_templates')
+        loadCollectorTable(self)
         
     def select_all(self,check):
         tab_name = self.tabWidget.currentWidget().objectName()
@@ -265,6 +315,8 @@ class ImportResourcesDialog(QDialog):
                 self.checkTableEntries(self.tableWidget_connection_types,check)
             else:
                 self.checkTableEntries(self.tableWidget_connection_bundles,check)
+        elif tab_name=='tab_ground_collectors':
+            self.checkTableEntries(self.tableWidget_ground_collectors,check)
         elif tab_name=='tab_pipes':
             if self.rbtn_materials.isChecked():
                 self.checkTableEntries(self.tableWidget_materials,check)

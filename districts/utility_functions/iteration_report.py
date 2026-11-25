@@ -913,6 +913,8 @@ def termItem(term):
         return tr_msg('Trench') + ' ' + tr_msg(term.get('name') or '')
     if kind == 'pumps':
         return tr_msg('Pumps')
+    if kind == 'collector':
+        return tr_msg('Ground collector {}').format(term.get('name') or '')
     if term['group'] in ('pump_energy', 'heat_losses', 'cold_losses', 'plant_energy', 'customer_energy'):
         return tr_msg(CARRIER_LABELS.get(term.get('kind'), term.get('kind') or ''))
     return term.get('name') or ''

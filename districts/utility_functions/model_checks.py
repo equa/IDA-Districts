@@ -135,6 +135,50 @@ def rulePipeData(ctx):
     return out
 
 
+def ruleGroundCollectors(ctx):
+    """The checks the model build makes for collector lines (change ground-collector-routes, R5), before a build."""
+    from .ground_collector_contract import CONTRACT_VERSION
+    from .ground_collectors import cachedFit, collectorLines, groundMoContractVersion, loopPipe, readCollectors
+    lines = collectorLines(ctx.cur, ctx.schema)
+    if not lines:
+        return []
+    out = []
+    installed = groundMoContractVersion(ctx.config.get('pathDistricts') or '')
+    if installed != CONTRACT_VERSION:
+        out.append(finding('ground_collector_library', 'error', tr_msg("Ground collectors need the IDA Districts library GroundMo with contract version {} (installed: {}).").format(
+            CONTRACT_VERSION, installed if installed is not None else '-'), values={'required': CONTRACT_VERSION, 'installed': installed}))
+    resources = readCollectors(ctx.cur)
+    ctx.cur.execute('SELECT l.id, array_agg(bp.sequence) AS seqs FROM "{}".lines l LEFT JOIN public.bundle_pipes bp '
+                    'ON bp.pipe_bundle_type_id = l.pipe_bundle_type_id WHERE l.id = ANY(%s) GROUP BY l.id;'.format(ctx.schema), (list(lines),))  # nosec B608
+    sequences = {r['id']: [s for s in r['seqs'] if s is not None] for r in ctx.cur.fetchall()}
+    for lid, line in lines.items():
+        resource = resources[line['collector_id']]
+        if resource['loop_sequence'] not in sequences.get(lid, []):
+            out.append(finding('ground_collector_line', 'error', tr_msg("Ground collector line {}: its pipe bundle has no pipe of sequence {}.").format(lid, resource['loop_sequence']),
+                               'lines', lid, values={'collector': resource['name'], 'loop_sequence': resource['loop_sequence']}))
+    settings = None
+    for collector_id in sorted({line['collector_id'] for line in lines.values()}):
+        resource = resources[collector_id]
+        try:
+            loopPipe(ctx.cur, resource['pipe_id'])
+        except ValueError as e:
+            out.append(finding('ground_collector_fit', 'error', tr_msg("Ground collector {}: {}").format(resource['name'], e), values={'collector': resource['name']}))
+            continue
+        if settings is None:
+            from .files import loadModellingSettings
+            settings = loadModellingSettings(ctx.plugin_dir or '', ctx.config) or {}
+        if 'kusuda_tsurfmean' not in settings:
+            continue
+        entry = cachedFit(ctx.cur, resource, settings)
+        if entry is None:
+            out.append(finding('ground_collector_fit', 'info', tr_msg("Ground collector {}: not fitted yet, the next network build fits it.").format(resource['name']),
+                               values={'collector': resource['name']}))
+        elif not entry['accepted']:
+            out.append(finding('ground_collector_fit', 'error', tr_msg("The fit of the ground collector {} is not accepted (errors {}).").format(
+                resource['name'], ', '.join('{} {:.0%}'.format(k, v) for k, v in entry['errors'].items())), values={'collector': resource['name'], 'errors': entry['errors']}))
+    return out
+
+
 # ---------------- templates ----------------
 def ruleTemplateWarnings(ctx):
     from ..energy_use_dialog import warningText as energyText
@@ -152,6 +196,26 @@ def ruleTemplateWarnings(ctx):
 # ---------------- results ----------------
 def resultsPresent(ctx):
     return bool(resultTables(ctx.cur, ctx.schema, 'line_s_') or resultTables(ctx.cur, ctx.schema, 'customer_s_'))
+
+
+def ruleCollectorMean(ctx):
+    """A collector line whose mean liquid temperature for the start state differs from the simulated one (R7)."""
+    from .ground_collectors import T_MEAN_TOLERANCE_K, collectorLines, readCollectors, resultMeanTemperatures
+    lines = collectorLines(ctx.cur, ctx.schema)
+    if not lines:
+        return []
+    means = resultMeanTemperatures(ctx.cur, ctx.schema)
+    resources = readCollectors(ctx.cur)
+    out = []
+    for lid, line in lines.items():
+        if lid not in means or resources[line['collector_id']]['start_mode'] != 'precalculated':
+            continue
+        diff = means[lid] - line['t_mean_init']
+        if abs(diff) > T_MEAN_TOLERANCE_K:
+            out.append(finding('ground_collector_t_mean', 'warning', tr_msg('Ground collector line {}: the start state assumes a mean liquid temperature of {:.1f} degC, the results give {:.1f} degC; set it from the results.').format(
+                lid, line['t_mean_init'], means[lid]), 'lines', lid,
+                values={'t_mean_init': line['t_mean_init'], 't_mean_results': round(means[lid], 2), 'threshold': threshold(T_MEAN_TOLERANCE_K, 'K', 'default')}))
+    return out
 
 
 def ruleRunErrors(ctx):
@@ -493,8 +557,10 @@ RULES = [
     (('topology', 'unconnected_features'), 'qgis', 'topology', ruleTopology),
     (('heights',), 'qgis', 'elevation', ruleHeights),
     (('pipe_data_missing',), 'qgis', 'pipe_data', rulePipeData),
+    (('ground_collector_library', 'ground_collector_line', 'ground_collector_fit'), 'qgis', 'pipe_data', ruleGroundCollectors),
     (('energy_use_detection', 'pump_detection'), 'templates', 'templates', ruleTemplateWarnings),
     (('run_errors',), 'results', 'run', ruleRunErrors),
+    (('ground_collector_t_mean',), 'results', 'results', ruleCollectorMean),
     (('comfort_deficit',), 'results', 'results', ruleComfort),
     (('delta_t_low',), 'results', 'results', ruleDeltaT),
     (('substation_dp_low',), 'results', 'results', ruleSubstationDp),

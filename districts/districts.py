@@ -967,6 +967,14 @@ class Districts:
                 openFnArg=['pipe_series_pressure_ratings',['years','temperature_c','pressure_bar'],[tr_msg('Operating time [a]'),tr_msg('Temperature [°C]'),tr_msg('Pressure [bar]')],
                            'WHERE series_id =','ORDER BY years, temperature_c',[],False,'',False,False,[]])
 
+    def manageGroundCollectors(self):
+        if self.conn:
+            from .ground_collectors_dialog import GroundCollectorsDialog
+            self.dlg_ground_collectors=GroundCollectorsDialog(self)
+            self.dlg_ground_collectors.show()
+        else:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
+
     def manageStaticsParameters(self):
         if self.conn:
             ensureStaticsParameters(self.cur)
@@ -1705,6 +1713,7 @@ class Districts:
             self.dlg.btn_pipe_constructions.clicked.connect(lambda: self.managePipeConstructions())
             self.dlg.btn_pipes.clicked.connect(lambda: self.managePipes())
             self.dlg.btn_pipe_series.clicked.connect(lambda: self.managePipeSeries())
+            self.dlg.btn_ground_collectors.clicked.connect(lambda: self.manageGroundCollectors())
             self.dlg.btn_statics_parameters.clicked.connect(lambda: self.manageStaticsParameters())
             self.dlg.btn_statics_model.clicked.connect(lambda: self.buildStaticsModel())
             self.dlg.btn_economic_scenarios.clicked.connect(lambda: self.manageEconomicScenarios())

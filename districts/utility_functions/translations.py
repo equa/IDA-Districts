@@ -173,6 +173,8 @@ def _register_translation_keys():
     tr("length_m")
     tr("costs_eur7m")
     tr("surface")
+    tr("n_loops")
+    tr("t_mean_init")
     tr("b_id")
     tr("z_id")
     tr("substation_id")

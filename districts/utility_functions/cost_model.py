@@ -232,7 +232,13 @@ class CostModel:
         line = self.lines[lid]
         items = []
         factor = float((self.scenario.get('cost_factors') or {}).get('pipe', 1.0))
+        collector = line.get('collector')
+        if collector:
+            from .ground_collectors import collectorItem
+            items.append(collectorItem(collector, line['length']))
         for seq, pid in pipes.items():
+            if collector and seq == collector['loop_sequence']:
+                continue
             p = self.catalog[pid]
             items.append({'cost': float(p.get('costs') or 0) * factor * line['length'], 'lifetime': float(p.get('lifetime_a') or 0),
                           'maintenance_pct': float(p.get('maintenance_pct') or 0)})

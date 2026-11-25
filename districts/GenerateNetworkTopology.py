@@ -224,7 +224,7 @@ class WorkerGenerateNetworkTopology(QRunnable):
         
     def insertLinesFromTopology(self,version,network):
         """ INSERT Lines from topology"""
-        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network,zeta) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{},zeta FROM temp.streets_help;".format(network) # nosec B608
+        sql="INSERT INTO temp.lines (id,geom,type,pipe_bundle_type_id,network,zeta,n_loops,t_mean_init) SELECT id,ST_Force3D(geom),type,pipe_bundle_type_id,{},zeta,n_loops,t_mean_init FROM temp.streets_help;".format(network) # nosec B608
         dprint(sql)
         self.cur.execute(sql)
     
@@ -416,6 +416,9 @@ UPDATE temp.lines l SET geom=sub.geom
 )
 SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2 
     WHERE l1.id=sub.a[1] AND l2.id=sub.a[2] AND l1.pipe_bundle_type_id=l2.pipe_bundle_type_id AND l1.network={} AND l2.network={} {}
+      AND ((l1.type IS NOT DISTINCT FROM l2.type AND l1.n_loops IS NOT DISTINCT FROM l2.n_loops
+            AND l1.t_mean_init IS NOT DISTINCT FROM l2.t_mean_init)
+           OR NOT EXISTS (SELECT 1 FROM public.line_types t WHERE t.id IN (l1.type, l2.type) AND t.ground_collector_id IS NOT NULL))
     ORDER BY jid LIMIT 1;""".format(network, network, inserted_jids) # nosec B608
             dprint(sql)
             self.cur.execute(sql) 
@@ -427,12 +430,13 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
                 lid2=junction_conn[0]['lid2']
                 dprint(str(lid1)+";"+str(lid2))
                 #snap line strings, because inaccurancies can occur in the topology
-                sql="""INSERT INTO temp.lines (type,geom,pipe_bundle_type_id,network,zeta)
+                sql="""INSERT INTO temp.lines (type,geom,pipe_bundle_type_id,network,zeta,n_loops,t_mean_init)
     SELECT l1.type ,
         ST_LineMerge(St_Union(l1.geom,l2.geom)) AS geom,
         l1.pipe_bundle_type_id,
         {},
-        COALESCE(l1.zeta,0) + COALESCE(l2.zeta,0)
+        COALESCE(l1.zeta,0) + COALESCE(l2.zeta,0),
+        l1.n_loops, l1.t_mean_init
     FROM temp.lines l1, temp.lines l2
     WHERE l1.id={} and l2.id={}
     ORDER BY ST_Length((st_dump(st_split(l1.geom,l2.geom))).geom) DESC LIMIT 1;""".format(network,lid1,lid2) # nosec B608                                       
@@ -484,6 +488,8 @@ SELECT jid,a[1] AS lid1, a[2] AS lid2 FROM sub,temp.lines l1, temp.lines l2
     network integer,
     pipe_bundle_type_id integer,
     zeta numeric,
+    n_loops integer,
+    t_mean_init numeric,
     length_m double precision,
     costs_eur7m numeric DEFAULT 100,
     source integer,
@@ -511,13 +517,15 @@ CREATE TABLE temp.lines (LIKE "{}".lines INCLUDING constraints);
 CREATE SEQUENCE temp.lines_id_seq OWNED BY temp.lines.id;
 ALTER TABLE temp.lines ALTER COLUMN id SET DEFAULT nextval('temp.lines_id_seq');
 ALTER TABLE temp.lines ADD PRIMARY KEY (id);""".format(version,version,version,version)) # nosec B608
-        self.cur.execute("""TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
+        #ground collector lines: loops and mean fluid temperature per line (older projects lack them in streets_help)
+        self.cur.execute("""ALTER TABLE temp.streets_help ADD COLUMN IF NOT EXISTS n_loops integer, ADD COLUMN IF NOT EXISTS t_mean_init numeric;
+TRUNCATE temp.network_help, temp.streets_help, temp.junctions, temp.customers, temp.customer_connections, temp.junction_connections, temp.energy_plant_connections, temp.lines CASCADE;""")
 
         if self.keepTemplates:
             self.cur.execute("""INSERT INTO temp.customers SELECT * FROM "{}".customers WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks]))) # nosec B608
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks]))) # nosec B608
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network,pipe_bundle_type_id,zeta,n_loops,t_mean_init) SELECT id,ST_Force2D(geom),type , network, pipe_bundle_type_id, zeta, n_loops, t_mean_init FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(version,self.tolerance,','.join([i for i in self.networks]))) # nosec B608
         else:
-            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id,zeta) SELECT id,ST_Force2D(geom),type,network , {}, zeta FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks]))) # nosec B608
+            self.cur.execute("""INSERT INTO temp.network_help (id,geom,type,network, pipe_bundle_type_id,zeta,n_loops,t_mean_init) SELECT id,ST_Force2D(geom),type,network , {}, zeta, n_loops, t_mean_init FROM "{}".lines WHERE ST_length(geom) > {} AND network IN ({}); """.format(self.overrideTemplates_pipeBundle,version,self.tolerance,','.join([i for i in self.networks]))) # nosec B608
             field_names=''.join([','+i for i in getLayerAttributesName(layerName=tr('@default','customers')) if i not in ['id','geom','template','network']])
             self.cur.execute("""INSERT INTO temp.customers (id,geom,template,network{}) SELECT id,geom,{},network{} FROM "{}".customers WHERE network && ARRAY[{}]; """.format(field_names,self.overrideTemplates_customers,field_names,version,','.join([i for i in self.networks]))) # nosec B608
         self.cur.execute("""INSERT INTO temp.energy_plants SELECT * FROM "{}".energy_plants WHERE network && ARRAY[{}]; """.format(version,','.join([i for i in self.networks]))) # nosec B608
@@ -590,13 +598,13 @@ SELECT ST_MakeLine(ST_ClosestPoint(l.geom,ST_Force2D(c.geom)),ST_Force2D(c.geom)
                 self.inserted_jids.append(row['f_id'])
             sql="""WITH sub AS(
     WITH sub AS(
-        SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.type, nh.network, nh.pipe_bundle_type_id
+        SELECT (ST_DumpPoints((ST_DumpSegments(nh.geom)).geom)).geom AS line_seg,ST_dWithIn((ST_DumpSegments(nh.geom)).geom ,ST_ClosestPoint(nh.geom,d.geom),{}) AS intersects,ST_ClosestPoint(nh.geom,d.geom) AS point,nh.type, nh.network, nh.pipe_bundle_type_id, nh.n_loops, nh.t_mean_init
             FROM "{}".{} d,temp.network_help nh
             WHERE d.id={} AND nh.id={}
     )
-    SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,type, network ,pipe_bundle_type_id FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
+    SELECT ST_MakeLine(line_seg,point) AS line ,ST_Length(ST_MakeLine(line_seg,point)) AS length,type, network ,pipe_bundle_type_id, n_loops, t_mean_init FROM sub WHERE intersects AND ST_Length(ST_MakeLine(line_seg,point)) > 0 ORDER BY length LIMIT 1
 )
-INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id FROM sub;""".format(self.tolerance,version,mode,row['f_id'],row['nh_id']) # nosec B608
+INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id,n_loops,t_mean_init) SELECT sub.line,sub.type,sub.network,sub.pipe_bundle_type_id,sub.n_loops,sub.t_mean_init FROM sub;""".format(self.tolerance,version,mode,row['f_id'],row['nh_id']) # nosec B608
             dprint(sql)
             self.cur.execute(sql)
     
@@ -650,8 +658,8 @@ INSERT INTO temp.network_help(geom,type,network,pipe_bundle_type_id) SELECT sub.
             self.cur.execute(sql) 
             
         sql="""UPDATE temp.streets_help a 
-    SET type=b.type,pipe_bundle_type_id=b.pipe_bundle_type_id,zeta=b.zeta
-    FROM (SELECT id,geom,type,pipe_bundle_type_id,zeta FROM temp.network_help) b 
+    SET type=b.type,pipe_bundle_type_id=b.pipe_bundle_type_id,zeta=b.zeta,n_loops=b.n_loops,t_mean_init=b.t_mean_init
+    FROM (SELECT id,geom,type,pipe_bundle_type_id,zeta,n_loops,t_mean_init FROM temp.network_help) b 
     WHERE St_dWithIn(b.geom,ST_LineSubstring (a.geom,0.1,0.9),{});""".format(self.tolerance) # nosec B608
         dprint(sql)
         self.cur.execute(sql) 
@@ -713,11 +721,11 @@ UPDATE temp.streets_help a SET id = sub.new_id
         self.cur.execute(sql)     
         
         sql="""WITH sub AS(
-    SELECT sth.id AS id, nh.type, nh.pipe_bundle_type_id 
+    SELECT sth.id AS id, nh.type, nh.pipe_bundle_type_id, nh.n_loops, nh.t_mean_init
         FROM temp.network_help nh, temp.streets_help sth, "{}".lines l
         WHERE ST_dWithIN(ST_LineSubString(sth.geom,0.45,0.55),nh.geom,{}) AND l.network={} AND ST_EQUALS(l.geom,nh.geom)
 )    
-UPDATE temp.streets_help sh SET type =sub.type, pipe_bundle_type_id=sub.pipe_bundle_type_id FROM sub WHERE sub.id =sh.id;""".format(self.config['versionName'],self.tolerance,network) # nosec B608
+UPDATE temp.streets_help sh SET type =sub.type, pipe_bundle_type_id=sub.pipe_bundle_type_id, n_loops=sub.n_loops, t_mean_init=sub.t_mean_init FROM sub WHERE sub.id =sh.id;""".format(self.config['versionName'],self.tolerance,network) # nosec B608
         dprint(sql)
         self.cur.execute(sql) 
         

@@ -41,13 +41,16 @@ Runs on QGIS 3.44 and 4.2. New dialogs use `utility_functions/compat.py` for the
 One row per collector type, edited in the resources tab:
 - `id`, `name` (unique; also the name of its line type);
 - the preset (`horizontal_ring`, `vertical_ring`, `flat_meander`, `bare_pipe`) and its inputs as jsonb (the
-  arguments of the preset function, e.g. ring diameter, pitch, depth, spacing);
+  arguments of the preset function, e.g. ring diameter, pitch, depth, spacing), edited in one numeric column per input
+  (decided 2026-11-25: no plain text); a column the preset does not use is empty and locked;
 - the loop pipe: `pipe_id` (`public.pipes`, inner/outer diameter, wall conductivity, roughness) and `loop_sequence`,
   the pipe sequence of the line's bundle whose terminals the loop takes (T11);
-- soil at the collector: conductivity, volumetric capacity, water content, freezing temperature and range,
-  frozen/unfrozen conductivity ratio (T17);
+- the liquid of the loop (`liquid_id`, `public.liquids`) and its freezing point (default 0 °C), as `liqType` and
+  `TFreeze` of the model (decided 2026-11-25);
+- soil at the collector: conductivity, volumetric capacity, water content, frozen/unfrozen conductivity ratio (T17);
+  the freezing temperature (0 °C) and range (1 K) of the soil water are columns with defaults, not in the dialog;
 - surface: albedo, emissivity, convection, layer thickness and capacity;
-- defaults `n_loops`, `t_mean_init`, start mode (`undisturbed` or `precalculated`) with its years, `n_sections`
+- default `t_mean_init`, start mode (`undisturbed` or `precalculated`) with its years, `n_sections`
   (default 3);
 - costs: per trench meter, per loop meter, maintenance %, lifetime (T9);
 - `fits` jsonb: fit results keyed by fingerprint (R6).
@@ -66,8 +69,10 @@ refused, naming the lines; an unused one is deleted with its line type. The `lin
 *Alternatives:* collectors inside `line_types` (T4a b), id ranges (T4a c); both rejected in the session.
 
 ### R3 Per-line `n_loops` and `t_mean_init` (T2, T13, decision 7)
-Two columns on the version table `lines` (integer, real; NULL = the resource's default), shown in the lines form
-(general tab) for every line, used only for collector lines. `upgrade.upgradeVersionDB` adds them;
+Two columns on the version table `lines`: `n_loops` (integer, default 1, NULL counts as 1; the loops belong to the
+line, not to the resource, decided 2026-11-25) and `t_mean_init` (NULL = the resource's mean liquid temperature, used
+only by the pre-calculated start state), shown at the end of the physical data of the lines form for every line, used
+only for collector lines. `upgrade.upgradeVersionDB` adds them;
 `DB_versionTablesDefault.txt` has them for new versions. The topology generator carries them like `zeta`:
 `prepareDB_pipeLaying_modeTables` (`network_help`), `insertLinesFromTopology`, `splitLinesPerPlantsJunctionsCustomers`
 and the attribute copy back by proximity. `mergeLines` merges two lines only if `type`, `pipe_bundle_type_id`,
@@ -77,7 +82,7 @@ and the attribute copy back by proximity. `mergeLines` merges two lines only if 
 `insertLines` splits a collector line into:
 - `GroundCollector` "Collector_<lid>" with the loop pipe of the resource, `nLoops` from R3, `lTrench` = line length,
   `nSections` and `nCellsSection` (10), the fitted ground values (R6), soil and freezing from the resource, `liqType` and
-  `TFreeze` from the line's liquid as for the `FDpipebundle`, and the start values (R7);
+  `TFreeze` from the resource's liquid (R1), and the start values (R7);
 - `GroundSurface` "CollectorSurface_<lid>" with the resource's surface, connected to `surface`, its inputs bound
   `(1 "Climate-macro" "climate_processor" TAIR2)`, `TSKY` and `(1 "Climate-macro" "IGlob" OUTSIGNAL)`, `albedo` bound to
   the climate macro's gain "albedo" when the climate file has an albedo column (change `climate-macro-build`),

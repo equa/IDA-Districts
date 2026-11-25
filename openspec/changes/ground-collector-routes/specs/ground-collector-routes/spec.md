@@ -2,7 +2,7 @@
 
 ### Requirement: Collector resources
 The project DB SHALL hold collector resources in `public.ground_collectors` (name, preset and its inputs, loop pipe and
-loop sequence, soil, surface, default loops, default mean fluid temperature, start mode and years, sections, costs per
+loop sequence, the liquid of the loop and its freezing point (default 0 °C), soil, surface, default mean fluid temperature, start mode and years, sections, costs per
 trench and per loop meter, maintenance, lifetime, cached fits), edited in the resources tab. Each resource SHALL have
 exactly one line type in `public.line_types` with the same name and `ground_collector_id` pointing to it: saving a
 resource creates or renames its line type, deleting an unused resource deletes it, deleting a resource used by a line
@@ -26,13 +26,13 @@ SHALL be refused naming the lines. `upgrade.py` SHALL create the table and the c
 
 ### Requirement: Collector routes
 A line SHALL be a collector exactly when its `type` is a line type with a `ground_collector_id`. The version table
-`lines` SHALL have `n_loops` and `t_mean_init`; an empty value means the resource's default. The topology generator
+`lines` SHALL have `n_loops` (default 1, empty counts as 1) and `t_mean_init` (empty means the resource's default). The topology generator
 SHALL carry `type`, `n_loops` and `t_mean_init` to the generated lines and SHALL merge two lines only if both, their
 bundle and these values are equal.
 
-#### Scenario: Defaults from the resource
-- **WHEN** a collector line has no `n_loops` and its resource has 6 loops
-- **THEN** the model build and the costs use 6 loops
+#### Scenario: Loops and mean temperature of a line
+- **WHEN** a collector line has 6 loops and no `t_mean_init`, and its resource a mean liquid temperature of 4 degC
+- **THEN** the model build and the costs use 6 loops, and the pre-calculated start state 4 degC
 
 #### Scenario: Topology keeps the collector
 - **WHEN** the topology is regenerated with a collector route between two junctions and an ordinary pipe continuing it

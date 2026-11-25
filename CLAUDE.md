@@ -55,6 +55,15 @@ say what each git command does before you run it.
   fit needs new validation cases: `python -m
   districts.test.make_ground_collector_cases` (needs KALMAR.PRN of IDA 5.2,
   about 15 minutes); `test_ground_collector_cases.py` fails otherwise.
+- Ground collector routes (change ground-collector-routes):
+  `utility_functions/ground_collectors.py` (`public.ground_collectors`, each
+  type a `line_types` row through `ground_collector_id`; fit and start states
+  cached in its `fits`; costs, results, export/import), dialog
+  `ground_collectors_dialog.py` (saves row by row: the generic table dialog's
+  `TRUNCATE … CASCADE` would empty `line_types`). The build
+  (`invoke_network.collectorModels`, `pipeTerminal`) needs GroundMo with
+  `contractVersion` = `CONTRACT_VERSION` in the IDA installation; sizing and
+  the cost optimization skip collector lines (`notCollector`).
 - Statics model (change statics-model): `utility_functions/statics_model.py`
   (bend rules, pure functions), `statics_db.py` (version tables
   `statics_model_*`, overrides `statics_points`/`statics_sections`, build,

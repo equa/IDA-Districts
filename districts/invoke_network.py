@@ -25,7 +25,12 @@ from .utility_functions.twin_pipe import twinPipeEquivalent
 from .utility_functions.templateFiles import (
     CopyDecoupledTemplateMacro, CopyTemplateMacro, readDecoupledFeatureSensorSignals,
 )
-from .utility_functions.utility import getIDADistrictsVersion, getIDAVersion
+from .utility_functions.utility import getDatetimeFromString, getIDADistrictsVersion, getIDAVersion
+from .utility_functions.ground_collector_contract import CONTRACT_VERSION
+from .utility_functions.ground_collectors import (
+    collectorLines, fitFor, groundMoContractVersion, groundParameters, lineTerminals, liquidNames, loopPipe, readCollectors,
+    startValues,
+)
 from .utility_functions.workers import closesOwnConnection, APISignals
 from .utility_functions.workers import WorkerOpenAPI
 from .utility_functions.zeta import hasConnectionZetaColumn
@@ -197,6 +202,8 @@ class InvokeNetworkModel:
         (not connected to the network: they are no model components, here they are also removed from the sensor signals)"""
         dprint('**********invoke network*********')
         dprint(submodels)
+        self.networkSimData=networkSimData
+        self._collectors=None
         self.plugin_dir=plugin_dir
         self.config=config
         self.signals=signals
@@ -370,7 +377,10 @@ class InvokeNetworkModel:
                     self.buildingIdmFilePath = """{}\\{}.idm""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     self.buildingIdcFilePath = """{}\\{}.idc""".format(dir.replace('/','\\'),'network_'+str(submodel))
                     
+                    self.collectorConns=[]
                     idm,idc=self.insertLines(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
+                    if getattr(self,'buildError',False):
+                        return
                     self.setStepProgress('features')
                     idm,idc=self.insertCustomers(submodel,idm,idc,sensor_dec_data,networks,feature_dec_irefs)
                     idm,idc=self.insertPlants(submodel,idm,idc,sensor_dec_data,networks)
@@ -384,6 +394,7 @@ class InvokeNetworkModel:
                     idm,idc=self.insertJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks)
                     idm,idc=self.insertPlugJunctions(submodel,requestedOutputs,modellingSettings,idm,idc,networks,plug_dict)
                     self.setStepProgress('write')
+                    idm_conn+=''.join(self.collectorConns)
                     idm_conn+=")"
                     idm+=idm_conn
                     idc+=idc_conn
@@ -525,7 +536,31 @@ ORDER BY m.id;
             if twin_error:
                 self.signals.error.emit(tr_msg('Twin pipe of the pipe bundle {}: {}').format(bunde_type,twin_error))
                 return idm,idc
-                
+
+            #ground collector line: the loop pipe as GroundCollector with its GroundSurface, the other pipes stay a bundle
+            collectors=self.collectorContext(modellingSettings)
+            if collectors is None:
+                self.buildError=True
+                return idm,idc
+            if lid in collectors['lines']:
+                models=self.collectorModels(collectors,lid,collectors['lines'][lid],pipe_info,pipe_bundle,coordinates)
+                if models is None:
+                    self.buildError=True
+                    return idm,idc
+                collector_idm,collector_idc,keep=models
+                idm+=collector_idm
+                idc+=collector_idc
+                if not keep:
+                    continue
+                pipe_info=[pipe_info[k] for k in keep]
+                dPipes=[dPipes[k] for k in keep]
+                roughness=' '.join(str(i['piperoughnessfactor']) for i in pipe_info)
+                pipe=[pipe[k] for k in keep]
+                insulation=[insulation[k] for k in keep]
+                x_coord=[x_coord[k] for k in keep]
+                depth=[depth[k] for k in keep]
+                npipes=len(keep)
+
             
             if pipe_info[0]['ambient']==1: #air
                 tamb_conn=' (:VAR :N |TAmb| :B (1 "Climate-macro" "climate_processor" TAIR2))'
@@ -622,6 +657,140 @@ ORDER BY m.id;
         
         return idm,idc
     
+    def collectorContext(self,modellingSettings):
+        """Collector lines of the version, their resources and fits, site and start day; once per build. Checks before
+        the build (design R5): GroundMo of the contract version installed, IGlob in the climate macro. None after an
+        error (already reported)."""
+        if self._collectors is not None:
+            return self._collectors
+        context: dict={'lines':collectorLines(self.cur,self.config['versionName']),'fits':{},'terminals':{},'settings':modellingSettings}
+        if context['lines']:
+            version=groundMoContractVersion(self.config['pathDistricts'])
+            if version!=CONTRACT_VERSION:
+                self.signals.error.emit(tr_msg("Ground collectors need the IDA Districts library GroundMo with contract version {} (installed: {}).").format(
+                    CONTRACT_VERSION,version if version is not None else '-'))
+                return None
+            macro=os.path.join(self.config['pathProjects']+self.config['projectName'],'climate','climate','climate-macro.idm')
+            text=open(macro,encoding='utf-8',errors='replace').read() if os.path.exists(macro) else ''
+            if '"IGlob"' not in text:
+                self.signals.error.emit(tr_msg("The climate macro has no global radiation IGlob needed by the ground collectors."))
+                return None
+            climate=getClimateData(self.cur,self.config,True)
+            context['resources']=readCollectors(self.cur)
+            context['liquids']=liquidNames(self.cur)
+            context['climate_file']=climate['filename']
+            context['site']={'lat':float(climate['latitude']),'long':float(climate['longitude']),'long_timezone':float(climate['timezone'])*15}
+            context['albedo_signal']='"albedo"' in text
+            start=getDatetimeFromString(self.networkSimData['startup_time_from'])
+            context['start_day']=start.timetuple().tm_yday-1+start.hour/24
+        self._collectors=context
+        return context
+
+    def collectorModels(self,context,lid,line,pipe_info,pipe_bundle,coordinates):
+        """GroundCollector "Collector_<lid>" and GroundSurface "CollectorSurface_<lid>" of a collector line (design R4,
+        R7); returns (idm, idc, indexes of the bundle's other pipes) or None after an error."""
+        resource=context['resources'][line['collector_id']]
+        modellingSettings=context['settings']
+        liquid=context['liquids'].get(resource['liquid_id'])
+        if liquid is None:
+            self.signals.error.emit(tr_msg("Ground collector {}: its liquid {} is not in the list of liquids.").format(resource['name'],resource['liquid_id']))
+            return None
+        sequences=[i['se_pipe'] for i in pipe_info]
+        loop_sequence=resource['loop_sequence']
+        if loop_sequence not in sequences:
+            self.signals.error.emit(tr_msg("Ground collector line {}: its pipe bundle has no pipe of sequence {}.").format(lid,loop_sequence))
+            return None
+        if line['collector_id'] not in context['fits']:
+            try:
+                context['fits'][line['collector_id']]=fitFor(self.cur,resource,modellingSettings,
+                    progress=lambda name: self.signals.status.emit(tr_msg('Fitting the ground collector {}').format(name)))
+            except ValueError as e:
+                self.signals.error.emit(tr_msg("Ground collector {}: {}").format(resource['name'],e))
+                return None
+        entry,geometry,soil,surface=context['fits'][line['collector_id']]
+        if not entry['accepted']:
+            self.signals.error.emit(tr_msg("The fit of the ground collector {} is not accepted (errors {}).").format(
+                resource['name'],', '.join('{} {:.0%}'.format(k,v) for k,v in entry['errors'].items())))
+            return None
+        params=groundParameters(entry,geometry,soil,surface)
+        start=startValues(self.cur,resource,entry,geometry,soil,params,line['t_mean_init'],context['climate_file'],
+                          context['site'],context['start_day'])
+        pipe=loopPipe(self.cur,resource['pipe_id'])
+        sections=int(resource['n_sections'])
+        vec=lambda value: '#('+' '.join([str(value)]*sections)+')'
+        surface_names=('epsilon','hConv','dLayer','rhoCLayer','spacing')
+        ground=''.join('\n (:PAR :N |{}| :V {})'.format(k,v) for k,v in params.items() if k not in surface_names)
+        #states start from their :V, not from the start parameters; TLoc and TNear get theirs with their logging
+        starts=''.join('\n (:PAR :N |{}| :V {})'.format(k,vec(start[k]))
+                       for k in ('TStartTop','TStartTop2','TStartLoc','TStartNear','TStartFar','TStartFar2'))
+        starts+=''.join('\n (:VAR :N |T{}| :V {})'.format(k[6:],vec(start[k])) for k in ('TStartTop','TStartTop2','TStartFar','TStartFar2'))
+        out="Line_coll_{}".format(lid)
+        idm="""\n(output-file :sf "self:\\{out}.prn" :n "{out}" :t output-file)
+((MODEL :N "Collector_{lid}" :T |GroundCollector|)
+ (:PAR :N |nSections| :V {sections})
+ (:PAR :N |nLoops| :V {loops})
+ (:PAR :N |lTrench| :V {length})
+ (:PAR :N |nCellsSection| :V 10)
+ (:PAR :N |loopLengthPerM| :V {per_m})
+ (:PAR :N |dInner| :V {d_in})
+ (:PAR :N |dOuter| :V {d_out})
+ (:PAR :N |lambdaWall| :V {lam})
+ (:PAR :N |roughness| :V {rough})
+ (:PAR :N |liqType| :V |{liquid}|)
+ (:PAR :N |TFreeze| :V {t_freeze}){ground}{starts}
+ (:VAR :N |TIn| :L "{out}" :AS "TIn")
+ (:VAR :N |TOut| :L "{out}" :AS "TOut")
+ (:VAR :N |QExtracted| :L "{out}" :AS "QExtracted")
+ (:VAR :N |QSurface| :L "{out}" :AS "QSurface")
+ (:VAR :N |TLoc| :V {v_loc} :L {cols_l} :AS {names_l})
+ (:VAR :N |TNear| :V {v_near} :L {cols_l} :AS {names_n})
+ (:VAR :N |iceFraction| :L {cols_l} :AS {names_i}))
+((MODEL :N "CollectorSurface_{lid}" :T |GroundSurface|)
+ (:PAR :N |epsilon| :V {eps})
+ (:PAR :N |hConv| :V {h})
+ (:PAR :N |dLayer| :V {d_layer})
+ (:PAR :N |rhoCLayer| :V {rho_c_layer})
+ (:PAR :N |spacing| :V {spacing})
+ (:PAR :N |TStart| :V {t_surf})
+ (:VAR :N |TSurface| :V {t_surf})
+ (:VAR :N |TAir| :B (1 "Climate-macro" "climate_processor" TAIR2))
+ (:VAR :N |TSky| :B (1 "Climate-macro" "climate_processor" TSKY))
+ (:VAR :N |IGlob| :B (1 "Climate-macro" "IGlob" OUTSIGNAL))
+ (:VAR :N |albedo| :B {albedo}))""".format(
+            out=out,lid=lid,sections=sections,loops=line['n_loops'],length=pipe_bundle['length'],
+            per_m=geometry.loop_length_per_m,d_in=pipe['d_inner'],d_out=pipe['d_outer'],lam=pipe['lambda_wall'],
+            rough=pipe['roughness'],liquid=liquid,t_freeze=resource['t_freeze_liquid_c'],ground=ground,
+            starts=starts,v_loc=vec(start['TStartLoc']),v_near=vec(start['TStartNear']),
+            cols_l=self.sparse('OFF',['({} . "{}")'.format(j,out) for j in range(1,sections+1)]),
+            names_l=self.sparse('NIL',['({} . "TLoc_{}")'.format(j,j) for j in range(1,sections+1)]),
+            names_n=self.sparse('NIL',['({} . "TNear_{}")'.format(j,j) for j in range(1,sections+1)]),
+            names_i=self.sparse('NIL',['({} . "ice_{}")'.format(j,j) for j in range(1,sections+1)]),
+            eps=params['epsilon'],h=params['hConv'],d_layer=params['dLayer'],rho_c_layer=params['rhoCLayer'],
+            spacing=params['spacing'],t_surf=start['TStartSurface'],
+            albedo='(1 "Climate-macro" "albedo" |y_var|)' if context['albedo_signal'] else resource['albedo'])
+        idc="""(EQUATION-FRAME :AT (({} {})) :R (20 10) :ICON "sys:Components/GroundMo/symbols/GroundCollector.ids" :SYMMETRY {} :SLOT ("Collector_{}") :NAME "Collector_{}" :DATA MODEL)
+(EQUATION-FRAME :AT (({} {})) :R (8 6) :ICON "sys:Components/GroundMo/symbols/GroundSurface.ids" :SLOT ("CollectorSurface_{}") :NAME "CollectorSurface_{}" :DATA MODEL)
+""".format(coordinates['x_pipe'],coordinates['y_pipe'],coordinates['angle'],lid,lid,coordinates['x_pipe'],coordinates['y_pipe']-25,lid,lid)
+        self.collectorConns.append('\n (("Collector_{}" |surface|) ("CollectorSurface_{}" |ground|) 0 0 NIL)'.format(lid,lid))
+        terminals=lineTerminals(lid,sequences,loop_sequence)
+        #the connection writers address a pipe by its position in the bundle (1..n in sequence order)
+        context['terminals'][lid]={k+1:terminals[seq] for k,seq in enumerate(sorted(sequences))}
+        keep=[k for k,i in enumerate(pipe_info) if i['se_pipe']!=loop_sequence]
+        return idm,idc,keep
+
+    @staticmethod
+    def sparse(default,items):
+        return '#S(MS-SPARSE DEFAULT-VALUE {} DIMENSION 1 VALUE ({}))'.format(default,' '.join(items))
+
+    def pipeTerminal(self,lid,direction,k):
+        """Model name and connector of the k-th pipe (1..n) of a line at its end direction (liq1/liq2): the loop pipe of
+        a collector line is the collector's scalar connector, the others the remaining bundle's, renumbered."""
+        terminals=self._collectors['terminals'].get(lid) if self._collectors else None
+        if not terminals:
+            return 'Pipebundle_{}'.format(lid),'(|{}| {})'.format(direction,k)
+        model,index=terminals[k]
+        return model,('|{}|'.format(direction) if index is None else '(|{}| {})'.format(direction,index))
+
     def convertTwinPipes(self,pipe_info,pipe,insulation,x_coord,depth,lambda_soil,casing_cache):
         """Twin pipes of a pipe bundle (two pipes with the same casing_construction_id): insulation, x coordinates and depth
         of the two pipes are replaced by the values of two separately insulated pipes with the same heat loss
@@ -777,8 +946,9 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
                 
                 pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
                 
-                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
-                idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))\n""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                model,terminal=self.pipeTerminal(conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("{}" {}) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,model,terminal)
+                idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("{}" 0.5 {}))\n""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,model,terminal)
 
 
                 seq_old=conn['seq']
@@ -901,8 +1071,9 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
                 
                 pipe_counter[conn['lid']]=pipe_counter[conn['lid']]+1
                 
-                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
-                idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))\n""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                model,terminal=self.pipeTerminal(conn['lid'],conn['dir'],pipe_counter[conn['lid']])
+                idm_conn+="""\n (("NodeBundle_{}" (|term| {} {})) ("{}" {}) 0 0 NIL)""".format(conn['jid'],seq_counter,lids.index(conn['lid'])+1,model,terminal)
+                idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("NodeBundle_{}" 0.5 (|term| {} {})) :LAST-LINK ("{}" 0.5 {}))\n""".format(point_j['x'],point_j['y'],point_pipe['x'],point_pipe['y'],conn['jid'],seq_counter,lids.index(conn['lid'])+1,model,terminal)
 
 
                 seq_old=conn['seq']
@@ -952,8 +1123,9 @@ ORDER BY jid, seq, lid;""".format(self.config['versionName'],self.config['versio
             
             name_conn="{}_{}_{}_{}".format(conn_bundl_type,conn_bundl_type_seq,conn_type,conn_type_seq)
 
-            idm_conn+="""\n (("{}_{}" "{}") ("Pipebundle_{}" (|{}| {})) 0 0 NIL)""".format(type[:-1].capitalize(),fid,name_conn,lid,conn_dir,seq_counter)
-            idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("Pipebundle_{}" 0.5 (|{}| {})))\n""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),fid,name_conn,lid,conn_dir,seq_counter)
+            model,terminal=self.pipeTerminal(lid,conn_dir,seq_counter)
+            idm_conn+="""\n (("{}_{}" "{}") ("{}" {}) 0 0 NIL)""".format(type[:-1].capitalize(),fid,name_conn,model,terminal)
+            idc_conn+="""(CONNECTION-LINE :AT (({} {}) ({} {})) :LINE-COLOR (:CALL PMT-COLOR [@ 1] [@ 2]) :LINE-STYLE 3 :FIRST-LINK ("{}_{}" 0.5 "{}") :LAST-LINK ("{}" 0.5 {}))\n""".format(point_d['x'],point_d['y'],point_pipe['x'],point_pipe['y'],type[:-1].capitalize(),fid,name_conn,model,terminal)
 
             seq_counter+=1
             lid_old=lid

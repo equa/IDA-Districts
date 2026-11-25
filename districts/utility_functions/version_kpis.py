@@ -89,6 +89,61 @@ def versionKpis(cur, config, scenario_id=None, settings=None, profile_dir=None):
         row = cur.fetchone()
         scenario_id = row['id'] if row else None
     out['economics'] = economics(cur, config, scenario_id, settings or {}, profile_dir, heat_total)
+    collectors = collectorKpis(cur, config, basis)
+    if collectors:
+        out['ground_collectors'] = collectors
+    return out
+
+
+def collectorKpis(cur, config, basis=None):
+    """Key figures of the ground collectors per resource and in total (design R10): trench and loop meters, heat
+    extracted per year and per trench meter, lowest outlet temperature, largest ice fraction; {} without collectors.
+    The yearly heat needs a full-year run (a period run keeps only the last week in the main table)."""
+    from .ground_collectors import collectorCosts, collectorItem, collectorLines
+    schema = config['versionName']
+    costs = collectorCosts(cur, schema)
+    if not costs:
+        return {}
+    lines = collectorLines(cur, schema)
+    basis = basis or resultsBasis(cur, config)
+
+    def perLine(table, aggregate):
+        if not tableExists(cur, schema, table):
+            return {}
+        cur.execute('SELECT fid, {}("${}") AS v FROM "{}"."{}" GROUP BY fid;'.format(aggregate, table[len('line_s_'):], schema, table))  # nosec B608
+        return {r['fid']: float(r['v']) for r in cur.fetchall() if r['v'] is not None}
+
+    t_out, ice, energy = perLine('line_s_coll_tout', 'min'), perLine('line_s_coll_ice', 'max'), {}
+    if basis['basis'] == 'full_year' and tableExists(cur, schema, 'line_s_coll_qextracted'):
+        from .network_economics import timeSteps
+        times = timeSteps(cur, schema, 'line_s_coll_qextracted')
+        dt = (times[1] - times[0]).total_seconds() / 3600 if len(times) > 1 else 1.0
+        years = max(1, round(len(times) * dt / 8760))
+        energy = {lid: wh * dt / 1000 / years for lid, wh in perLine('line_s_coll_qextracted', 'sum').items()}
+    groups = {}
+    for lid, info in costs.items():
+        item = collectorItem(info, lines[lid]['length'])
+        for key in (info['name'], 'total'):
+            g = groups.setdefault(key, {'lines': 0, 'trench_m': 0.0, 'loop_m': 0.0, 'kwh': 0.0, 'with_energy': 0, 't_out_min': None, 'ice_max': None})
+            g['lines'] += 1
+            g['trench_m'] += item['length']
+            g['loop_m'] += item['loop_m']
+            if lid in energy:
+                g['kwh'] += energy[lid]
+                g['with_energy'] += 1
+            if lid in t_out:
+                g['t_out_min'] = t_out[lid] if g['t_out_min'] is None else min(g['t_out_min'], t_out[lid])
+            if lid in ice:
+                g['ice_max'] = ice[lid] if g['ice_max'] is None else max(g['ice_max'], ice[lid])
+    out = {}
+    for key, g in groups.items():
+        complete = g['with_energy'] == g['lines']
+        reason = None if complete else ('a full-year run is needed' if basis['basis'] != 'full_year' else 'no collector results')
+        out[key] = {'lines': g['lines'], 'trench_length': _value(round(g['trench_m'], 1), 'm'), 'loop_length': _value(round(g['loop_m'], 1), 'm'),
+                    'heat_extracted': _value(round(g['kwh'], 0), 'kWh/a') if complete else _value(None, 'kWh/a', reason),
+                    'heat_per_trench_m': _value(round(g['kwh'] / g['trench_m'], 1), 'kWh/(m a)') if complete and g['trench_m'] else _value(None, 'kWh/(m a)', reason),
+                    't_out_min': _value(round(g['t_out_min'], 2), 'degC') if g['t_out_min'] is not None else _value(None, 'degC', 'no collector results'),
+                    'ice_fraction_max': _value(round(g['ice_max'], 3), '-') if g['ice_max'] is not None else _value(None, '-', 'no collector results')}
     return out
 
 

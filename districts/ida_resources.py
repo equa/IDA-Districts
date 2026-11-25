@@ -23,6 +23,7 @@ from .utility_functions.files import (
     moveFileReplaceStr, readFileToString, writeModellingSettings, writeToFile,
 )
 from .utility_functions.climate_macro import climateColumns, writeClimateMacro
+from .utility_functions.ground_collectors import exportCollectors, importCollectors
 from .ida_ph import loadVersionLayers
 from .utility_functions.layer_visualization import setupFeatureLayerDialog
 from .utility_functions.sensor_signals import templatesensorSignals
@@ -256,7 +257,12 @@ def importResources(dlg,main,import_all=False):
     db_import+=pipeSeriesImportSql(main.cur,import_dict)  # creates the series tables and the bend radius too
     dprint(db_import)
     if db_import:
-        main.cur.execute(db_import)       
+        main.cur.execute(db_import)
+    # after the pipes: a collector takes its loop pipe by name
+    no_pipe=importCollectors(main.cur,import_dict.get('ground_collectors')) if import_dict.get('ground_collectors') else []
+    if no_pipe:
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Collector types without their loop pipe in this project: {}').format(', '.join(no_pipe)), level=MessageInfo)
+    if db_import or import_dict.get('ground_collectors'):
         main.dlg.statusMessage.setText(tr_msg('Resources are imported successfully!'))
         main.dlg.progress.setValue(100)
     else:
@@ -453,6 +459,10 @@ def exportResources(dlg,cur,config,projectName,export_all=False,close_dialog=Fal
         export_dict['pipe_constructions'] = export_dict['pipe_constructions'] | missing
         exportCasingConstructions(cur,export_dict,result)
     exportPipeSeries(cur,export_dict)
+    from .ida_resources_dialog import checkedCollectors
+    names=checkedCollectors(dlg,export_all)
+    cur.execute("SELECT to_regclass('public.ground_collectors') IS NOT NULL AS ok;")
+    export_dict['ground_collectors']=exportCollectors(cur,names) if names and cur.fetchone()['ok'] else {}
         
     if import_fromDB:
         temp_name='resource_export'

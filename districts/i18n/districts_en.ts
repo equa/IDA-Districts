@@ -534,6 +534,14 @@
             <translation>Surface</translation>
         </message>
         <message>
+            <source>n_loops</source>
+            <translation>Collector: loops (one trench each)</translation>
+        </message>
+        <message>
+            <source>t_mean_init</source>
+            <translation>Collector: mean fluid temperature of the pre-calculated start state [°C] (empty = value of the collector type)</translation>
+        </message>
+        <message>
             <location filename="../utility_functions/translations.py" line="162" />
             <source>length_m</source>
             <translation type="unfinished">Length, m</translation>
@@ -5902,6 +5910,10 @@ p, li { white-space: pre-wrap; }
         <message>
             <source>tooltip_pipe_series</source>
             <translation type="unfinished">Pipe series: system type, limits, pressure ratings</translation>
+        </message>
+        <message>
+            <source>tooltip_ground_collectors</source>
+            <translation type="unfinished">Ground collectors: collector types as route types of the lines (geometry, soil, costs, fit)</translation>
         </message>
         <message>
             <source>tooltip_statics_parameters</source>

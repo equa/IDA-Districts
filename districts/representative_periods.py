@@ -33,6 +33,7 @@ from .utility_functions.files import (
     loadInvokedOutputs, loadNetworkSimData, loadRequestedOutputs, readFileToString, writeNetworkSimData, writePropertyListIDMToFile,
     writeSimulatedOutputs,
 )
+from .utility_functions.ground_collectors import COLLECTOR_RESULTS
 from .utility_functions.ida_components import getCompClass, getIDAListComponents, getSimData, propertyListCompsIDM
 from .utility_functions.network_economics import plantModes
 from .utility_functions.periods import (
@@ -45,7 +46,8 @@ PERIOD_KEYS = ('calc_time_from', 'calc_time_to', 'startup_time_from', 'startup_t
 # result tables the economic evaluation reads (prefixes; '$' tables per connection or pipe)
 KEPT_PREFIXES = ('line_s_temp$', 'line_s_mdot$', 'line_s_p$', 'line_s_qamb', 'energy_plant_s_temp$', 'energy_plant_s_mdot$',
                  'energy_plant_s_p$', 'energy_plant_s_power$', 'energy_plant_s_ppump', 'customer_s_ppump', 'customer_s_troom',
-                 'customer_s_tset', 'customer_s_hcmode', 'customer_s_power$', 'energy_plant_s_energy', 'customer_s_energy')
+                 'customer_s_tset', 'customer_s_hcmode', 'customer_s_power$', 'energy_plant_s_energy', 'customer_s_energy') + tuple(
+                 'line_s_' + var for _, var, _ in COLLECTOR_RESULTS)
 NEEDED_OUTPUTS = ('ppump_ep', 'temp_lines', 'qamb_lines', 'temp_ep')
 PERIOD_SUFFIX = re.compile(r'_period\d+$')
 

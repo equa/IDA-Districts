@@ -16,6 +16,7 @@ from .utility_functions.ida_components import (
 )
 from .utility_functions.energy_use import OUTPUT_FILE as ENERGY_FILE, ensureEnergyList, outputVariables as energyVariables
 from .utility_functions.network_pumps import ensurePumpList, templateEntries
+from .utility_functions.ground_collectors import collectorLines, collectorsWithoutBundle
 from .utility_functions.topology import (
     getConnBundleByTemplate, getConnsByConntype, getConnsValues, getConntypesByTemplate, getUsedConnTypes,
     getUsedConnectionsFilteredByDirection,
@@ -339,7 +340,18 @@ def writeMacroResultsIdm(config,cur,dir,requestedOutputs,sensor_dec_data,added_s
 
     #qamb
     if requestedOutputs['heatbalance_system'] or requestedOutputs['qamb_kpi']:
-        line_conns=["""({} :SYSTEM "Pipebundle_{}" |QAmbtotal|)""".format(counter,lid) for counter,lid in enumerate(getLineIds(cur,config,network=[network]),1)]
+        #a collector line whose bundle is only the loop pipe has no Pipebundle model; its heat is a gain, summed apart
+        no_bundle=collectorsWithoutBundle(cur,config['versionName'])
+        line_ids=[lid for lid in getLineIds(cur,config,network=[network]) if lid not in no_bundle]
+        line_conns=["""({} :SYSTEM "Pipebundle_{}" |QAmbtotal|)""".format(counter,lid) for counter,lid in enumerate(line_ids,1)]
+        collector_ids=[lid for lid in collectorLines(cur,config['versionName']) if lid in set(getLineIds(cur,config,network=[network]))]
+        if collector_ids:
+            filedata.append("""((:EO :N "qcollectors" :T ADDER)
+ (:PAR :N N_IN :V {n})
+ (:PAR :N COEFF :DIM ({n}) :V #({coeff}))
+ (:VAR :N OUTSIGNAL :L "heatbalance_outputfile" :AS "Qcollectors")
+ (:VAR :N INSIGNAL :IV #S(MS-SPARSE DEFAULT-VALUE 0.0 DIMENSION 1 VALUE NIL) :B #S(MS-SPARSE DEFAULT-VALUE NIL DIMENSION 1 VALUE ({b}))))\n""".format(
+                n=len(collector_ids),coeff=' '.join('1' for lid in collector_ids),b=''.join("""({} :SYSTEM "Collector_{}" |QExtracted|)""".format(k,lid) for k,lid in enumerate(collector_ids,1))))
         n_lines=len(line_conns)
         filedata.append("""((:EO :N "qamb" :T ADDER)
  (:PAR :N N_IN :V {})

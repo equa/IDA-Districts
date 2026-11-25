@@ -515,7 +515,9 @@ def on_form_changed(config,plugin_dir,project_name,layer):
 
 
 # fields added to the form of projects whose layersConfig.txt was written before the field existed
-FORM_FIELDS_ADDED = {'streets': {'physical_data': ['surface']}}
+FORM_FIELDS_ADDED = {'streets': {'physical_data': ['surface']},
+                     # ground collector lines (change ground-collector-routes), at the end of the physical data
+                     'lines': {'physical_data': ['n_loops', 't_mean_init']}}
 
 
 def addMissingFormFields(layersConfig):
@@ -524,8 +526,14 @@ def addMissingFormFields(layersConfig):
     for layer_name, tabs in FORM_FIELDS_ADDED.items():
         if layer_name not in layersConfig:
             continue
-        present = {name for fields in layersConfig[layer_name].values() for name in fields if not isinstance(name, list)}
         for tab, fields in tabs.items():
+            # the ground collector fields were in the general tab of a development version, never released
+            for other, names in layersConfig[layer_name].items():
+                if other == 'general' and layer_name == 'lines' and tab != 'general':
+                    for field in [f for f in names if f in fields]:
+                        names.remove(field)
+                        added = True
+            present = {name for names in layersConfig[layer_name].values() for name in names if not isinstance(name, list)}
             for field in fields:
                 if field not in present:
                     layersConfig[layer_name].setdefault(tab, []).append(field)
