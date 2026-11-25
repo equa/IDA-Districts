@@ -20,11 +20,9 @@ from .utility_functions.dialog import (
 )
 from .utility_functions.files import (
     copyFile, copyFileReplaceStr, createDir, districtsModelerTempDir, loadModellingSettings,
-    moveFileReplaceStr, readFileToString, writeModellingSettings, writePropertyListIDMToFile, writeToFile,
+    moveFileReplaceStr, readFileToString, writeModellingSettings, writeToFile,
 )
-from .utility_functions.ida_components import (
-    getCompClass, getCompName, getCompTemplate, getIDAListComponents, propertyListCompsIDM, setCompValue,
-)
+from .utility_functions.climate_macro import climateColumns, writeClimateMacro
 from .ida_ph import loadVersionLayers
 from .utility_functions.layer_visualization import setupFeatureLayerDialog
 from .utility_functions.sensor_signals import templatesensorSignals
@@ -526,41 +524,15 @@ def calculateKusudaSettings(file,modellingSettings):
     # Read climate file
     # --------------------------------------------------
     
-    # Parse the header line ourselves, so that variants like "#Time",
-    # "# Time" or "Time" all give the same column names (with a whitespace
-    # separator, "# Time" would otherwise produce an extra column "#" and
-    # shift all column names by one).
-    with open(file, "r", encoding="utf-8", errors="replace") as f:
-        first_line = f.readline()
-    header_tokens = first_line.strip().lstrip("#").split()
-    try:
-        float(header_tokens[0])
-        has_header = False
-    except (ValueError, IndexError):
-        has_header = True
-
+    # the columns as the generated climate macro reads them (header by name, otherwise the IDA layout)
+    columns = climateColumns(file)
     df = pd.read_csv(
         file,
         sep=r"\s+",
         header=None,
-        skiprows=1 if has_header else 0
+        skiprows=1 if columns.header else 0
     )
-
-    if has_header:
-        # column 0 = time (whatever it is called)
-        tair_idx = None
-        for i, c in enumerate(header_tokens):
-            if c.lower() in ["tair", "airtemp", "temperature"]:
-                tair_idx = i
-                break
-
-        if tair_idx is None or tair_idx >= len(df.columns):
-            raise ValueError("Could not identify air temperature column.")
-    else:
-        # If no header exists, assume:
-        #   column 0 = time
-        #   column 1 = ambient air temperature
-        tair_idx = 1
+    tair_idx = columns.number('tair') - 1
 
     df = df.rename(
         columns={
@@ -686,6 +658,11 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.statusMessage.setText(tr_msg('Climate data is successfully updated!'))
         main.dlg.update_progress(100)
         closeDialog(dlg)
+    except ValueError as e:
+        # the dialog stays open: the user can choose another file
+        iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("The climate file cannot be used: {}").format(e),
+                                       level=MessageInfo)
+        main.dlg.update_progress(0)
     except Exception:
         QgsMessageLog.logMessage(
             traceback.format_exc(),
@@ -695,93 +672,30 @@ def writeClimateDataToDB(dlg,main):
         main.dlg.update_progress(0)
         
 def updateClimateTemplate(main,fileName):
+    """Kusuda values from the climate file into the modelling settings, then the generated climate macro into the
+    project's climate folder and every customer and plant template of the project (they all hold a Climate-macro;
+    networks and the supervisory model copy the project's macro at their build)."""
     if os.path.exists(fileName):
-        dir_project=main.config['pathProjects']+main.config['projectName']
-        dir_climate=dir_project+'\\climate\\'
-        dir_climateMacro=dir_climate+'climate\\'
-        data=getClimateData(main.cur,main.config,True)
         modellingSettings=loadModellingSettings(main.plugin_dir,main.config)
         modellingSettings=calculateKusudaSettings(fileName,modellingSettings)
         writeModellingSettings(main.config,modellingSettings)
-        updateClimateMacro(data,dir_climateMacro,main.config,modellingSettings)
-    
-def updateClimateMacro(data,dir,config,modellingSettings):
-    fname=dir+'climate-macro.idm'
-    components_idm=propertyListCompsIDM(getIDAListComponents(readFileToString(fname)))
-    idm=[]
-    dprint(data)
-    dprint(modellingSettings)
-    for comp in components_idm:
-        if debug_enabled(): dprint(getCompTemplate(comp))
-        if getCompTemplate(comp)=='ENVIRONMENT':
-            new_comp=[]
-            for i in comp:
-                if getCompName(i)=='LAT':
-                    i=setCompValue(i,data['latitude'])
-                elif getCompName(i)=='LONG':
-                    i=setCompValue(i,data['longitude'])
-                elif getCompName(i)=='LONGTIMEZONE':
-                    i=setCompValue(i,float(data['timezone'])*15)
-                elif getCompName(i)=='HEIGHT':
-                    i=setCompValue(i,data['height'])
-                new_comp.append(i)
-            idm.append(new_comp)
-        elif getCompTemplate(comp)=='SOURCE-FILE':
-            dprint(comp)
-            new_comp=[]
-            for i in comp:
-                if getCompClass(i)=='SOURCE-FILE':
-                    i[':DOCUMENT-PATH']='"'+data['filename'].replace('\\','\\\\')+'"'
-                    i[':SF']='"'+data['filename'].replace('\\','\\\\')+'"'
-                new_comp.append(i)
-            idm.append(new_comp)
-        elif getCompTemplate(comp)=='|kusuda|':
-            dprint(comp)
-            new_comp=[]
-            for i in comp:
-                if getCompName(i)=='|TSurfMean|':
-                    if debug_enabled(): dprint(modellingSettings['kusuda_tsurfmean'])
-                    i=setCompValue(i,modellingSettings['kusuda_tsurfmean'])
-                elif getCompName(i)=='|TSurfAmpl|':
-                    i=setCompValue(i,modellingSettings['kusuda_tsurfampl'])
-                elif getCompName(i)=='|Theta|':
-                    i=setCompValue(i,modellingSettings['kusuda_theta'])
-                elif getCompName(i)=='|cp|':
-                    i=setCompValue(i,modellingSettings['kusuda_cp'])
-                elif getCompName(i)=='|Rho|':
-                    i=setCompValue(i,modellingSettings['kusuda_rho'])
-                elif getCompName(i)=='|lambda|':
-                    i=setCompValue(i,modellingSettings['kusuda_lambda'])
-                elif getCompName(i)=='|Depth|':
-                    i=setCompValue(i,modellingSettings['kusuda_depth'])
-                new_comp.append(i)
-            idm.append(new_comp)
-        else:
-            idm.append(comp)
-    writePropertyListIDMToFile(idm,dir,fname,config)
+        writeProjectClimateMacros(main.cur,main.config,modellingSettings)
 
-def openClimateMacro(main):
-    dir_project=main.config['pathProjects']+main.config['projectName']
-    dir_climate=dir_project+'\\climate\\'
-    dir_climateMacro=dir_climate+'climate\\'
-    if main.config['versionName']:      
-        #update customer and energy plant templates
-        for feature in ['customer','energy_plant']:
-            sql="""Select * from {}_templates;""".format(feature) # nosec B608
-            main.cur.execute(sql)
-            for template in main.cur.fetchall():
-                template_name=str(template['template'])+'_'+template['template_name']
-                target_dir=dir_project+'\\{}_templates\\'.format(feature)+template_name+'\\'
-                copyFile(dir_climateMacro+'climate-macro.idm',target_dir,target_dir+'climate-macro.idm')
-                copyFile(dir_climateMacro+'climate-macro.idc',target_dir,target_dir+'climate-macro.idc')
+def writeProjectClimateMacros(cur,config,modellingSettings):
+    data=getClimateData(cur,config,True)
+    climate={'file_name':data['filename'],'latitude':data['latitude'],'longitude':data['longitude'],
+             'timezone':data['timezone'],'height':data['height']}
+    dir_project=os.path.join(config['pathProjects'],config['projectName'])
+    folders=[os.path.join(dir_project,'climate','climate')]
+    for feature in ['customer','energy_plant']:
+        cur.execute("""SELECT template,template_name FROM public.{}_templates;""".format(feature)) # nosec B608
+        for template in cur.fetchall():
+            folder=os.path.join(dir_project,'{}_templates'.format(feature),str(template['template'])+'_'+template['template_name'])
+            if os.path.isdir(folder):
+                folders.append(folder)
+    for folder in folders:
+        writeClimateMacro(folder,climate,modellingSettings)
 
-    
-    main.worker_openClimate = WorkerOpenModelCmd(dir_climate+'climate.idm',main.config)
-    QThreadPool.globalInstance().start(main.worker_openClimate) 
-    main.worker_openClimate.signals.error.connect(show_error_message)
-    main.worker_openClimate.signals.progress.connect(main.dlg.update_progress)  
-    dprint('--open climate macro finished--')
-    
 
     
 def writeRenameExchangeConntype(config,cur,dlg,traceValue,table_name,plugin_dir):
@@ -908,8 +822,13 @@ def openTemplate(main,type,dlg):
         else:
             template_name=template_name
                 
+        # the templates' climate macros follow the loaded version's climate file and settings
+        climate=getClimateData(main.cur,main.config,True)
+        if climate and os.path.exists(climate['filename']):
+            updateClimateTemplate(main,climate['filename'])
+
         wroteTemplate=False
-        if not os.path.exists(file): 
+        if not os.path.exists(file):
             WriteTemplateFiles(main.config,name,type,main.cur,conn_bundle_type,main.plugin_dir)
             dlg.traceTableValues[row_index][0]=dlg.traceTableValues[row_index][1]
             dlg.traceTableValues[row_index][1]=''

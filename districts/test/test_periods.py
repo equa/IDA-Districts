@@ -27,7 +27,7 @@ def sim_hours(weeks, days=7):
 def test_climate_file(bromma, tmp_path):
     assert len(bromma) == HOURS and bromma.min() < -10 and bromma.max() > 25
     short = tmp_path / 'short.prn'
-    short.write_text('\n'.join('{} 5.0'.format(h) for h in range(100)))
+    short.write_text('\n'.join('{} 5.0 80 140 3 0 0'.format(h) for h in range(100)))
     with pytest.raises(ValueError) as error:
         readClimate(str(short))
     assert error.value.args == (100,)

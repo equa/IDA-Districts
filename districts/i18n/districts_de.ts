@@ -12885,5 +12885,9 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
             <source>Versions</source>
             <translation>Versionen</translation>
         </message>
+        <message>
+            <source>The climate file cannot be used: {}</source>
+            <translation>Die Klimadatei kann nicht verwendet werden: {}</translation>
+        </message>
     </context>
 </TS>

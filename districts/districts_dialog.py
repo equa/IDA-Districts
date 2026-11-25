@@ -196,8 +196,6 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_statics_model.setIconSize(QSize(btn_size, btn_size))
         self.btn_pipe_bundle_types.setIcon(QIcon(os.path.join(plugin_dir, "icons/pipebundle.png")))
         self.btn_pipe_bundle_types.setIconSize(QSize(btn_size, btn_size))
-        self.btn_climateTemplate.setIcon(QIcon(os.path.join(plugin_dir, "icons/climate.png")))  
-        self.btn_climateTemplate.setIconSize(QSize(btn_size, btn_size))
 
 
         

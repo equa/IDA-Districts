@@ -44,14 +44,16 @@ def resolveClimatePath(config, path):
 
 
 def readClimate(path):
-    """Hourly air temperature (second column) of an IDA climate file: the first 8760 values (the files hold the hour
-    points 0 ... 8760, leap years up to 8784)."""
+    """Hourly air temperature of an IDA climate file (its column found as the climate macro finds it): the first
+    8760 values (the files hold the hour points 0 ... 8760, leap years up to 8784)."""
+    from .climate_macro import climateColumns
+    column = climateColumns(path).number('tair') - 1
     values = []
     with open(path, encoding='utf-8-sig', errors='replace') as f:
         for line in f:
             fields = line.split()
             try:
-                values.append(float(fields[1]))
+                values.append(float(fields[column]))
             except (IndexError, ValueError):
                 continue
     if not HOURS <= len(values) <= 8785:

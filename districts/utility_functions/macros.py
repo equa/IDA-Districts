@@ -2,9 +2,6 @@ from .files import writeToFile
 from .utility import getIDADistrictsVersion, getIDAVersion
 import os
 
-def updateClimateMacroIdm(dir,name,config):
-    pass
-    
 def writeSensorMacroIdm(dir,name,config):
     """Create a sensor macro"""
     if not os.path.exists(dir+"""\\{}\\Sensor-macro.idm""".format(name)):

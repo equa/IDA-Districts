@@ -65,7 +65,7 @@ from .ida_ph_dialog import (
 )
 from .ida_pp_dialog import MapFeaturesDialog, NetworkTopologyDialog, PipeLayingDialog, PipeSizingDlg
 from .ida_resources import (
-    addConnectionsTableRow, exportResources, importResources, openClimateMacro, saveConnectionsTable,
+    addConnectionsTableRow, exportResources, importResources, saveConnectionsTable,
     showConnectionsContent, showDefaults, show_TableCurrentRowDialog, show_TableDialog, show_templateDialog,
     writeClimateDataToDB, writeDefaultsToDB,
 )
@@ -674,11 +674,6 @@ class Districts:
         else:
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)     
         
-    def show_manageClimateTemplate(self):
-        if not checkIDADistrictsInstallation(self.config):
-            return
-        openClimateMacro(self)
-
     def show_setClimateVersionDialog(self):
         """ show set climate dialog"""
         if self.conn:
@@ -1699,7 +1694,6 @@ class Districts:
             #resources
             self.dlg.btn_exportResources.clicked.connect(self.show_exportResources)
             self.dlg.btn_importResources.clicked.connect(self.show_importResources)
-            self.dlg.btn_climateTemplate.clicked.connect(self.show_manageClimateTemplate)
             self.dlg.btn_defaults_lines.clicked.connect(self.show_DefaultsLinesDialog)
             self.dlg.btn_defaults_customers.clicked.connect(self.show_DefaultsCustomersDialog)
             self.dlg.btn_defaults_plants.clicked.connect(self.show_DefaultsPlantsDialog)

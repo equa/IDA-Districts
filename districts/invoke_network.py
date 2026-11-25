@@ -215,7 +215,12 @@ class InvokeNetworkModel:
                 self.setProgress(2,tr_msg('climate data'))
                 climate_file=getClimateData(self.cur,self.config,True)['filename']
                 if os.path.exists(climate_file):
-                    updateClimateTemplate(main,climate_file)
+                    try:
+                        updateClimateTemplate(main,climate_file)
+                    except ValueError as e:
+                        # a climate file without one of the quantities the climate macro needs
+                        self.signals.error.emit(tr_msg("The climate file cannot be used: {}").format(e))
+                        return
                 else:
                     self.signals.error.emit(tr_msg("Climate file could not be found: ") + climate_file)
                     return
