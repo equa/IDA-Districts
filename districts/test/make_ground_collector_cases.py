@@ -20,7 +20,7 @@ from districts.utility_functions import ground_climate as gc
 from districts.utility_functions import ground_collector_geometry as gg
 from districts.utility_functions import ground_rc as rc
 from districts.utility_functions import ground_reference as gr
-from districts.utility_functions.ground_collector_contract import CONTRACT_VERSION
+from districts.utility_functions.ground_collector_contract import CONTRACT_VERSION, groundInputNames
 
 CASES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'ground_collector_cases')
 CLIMATE_FILE = r'C:\Program Files (x86)\IDA52\climate\KALMAR.PRN'
@@ -28,7 +28,7 @@ SITE = {'name': 'Kalmar (KALMAR.PRN, IDA 5.2)', 'lat': 56.73, 'long': -16.3, 'lo
 HOURS = 8760
 RUN_IN_YEARS = 2
 PIPE = (0.026, 0.032, 0.4)
-COLUMNS = ('hour', 'T_wall', 'TAir', 'IGlob', 'TSky',
+COLUMNS = ('hour', 'T_wall', 'TAir', 'IGlob', 'TSky', 'albedo',
            'model_q_wall', 'model_T_loc', 'model_T_near', 'model_T_surface', 'model_ice',
            'ref_q_wall', 'ref_T_surface', 'ref_ice')
 
@@ -37,7 +37,8 @@ def weather(climate_file=CLIMATE_FILE):
     """One climate year: TAir, IGlob and TSky as IDA's ENVIRONMENT model computes them (columns of IDA's PRN files:
     hour, TAIR, RELHUM, wind direction, wind speed, IDIRNORM, IDIFFHOR)."""
     clim = np.loadtxt(climate_file)[:HOURS]
-    return gc.weatherFromClimate(clim[:, 0], clim[:, 1], clim[:, 2], clim[:, 5], clim[:, 6], SITE)
+    return gc.weatherFromClimate(clim[:, 0], clim[:, 1], clim[:, 2], clim[:, 5], clim[:, 6], SITE,
+                                 albedo=gg.SurfaceProperties().albedo)
 
 
 def caseSoil():
@@ -69,7 +70,7 @@ def caseDefinitions():
 
 def runModel(case, series):
     """The Python ground model's outputs for a case (case.json content) and its inputs."""
-    w = {k: series[k] for k in ('TAir', 'IGlob', 'TSky')}
+    w = {k: series[k] for k in groundInputNames()}
     result = rc.runGroundModel(case['parameters'], len(series['T_wall']), start=case['start'], weather=w,
                                t_wall=series['T_wall'], freezing=case['freezing'])
     return {'model_q_wall': result.q_wall, 'model_T_loc': result.t_loc, 'model_T_near': result.t_near,

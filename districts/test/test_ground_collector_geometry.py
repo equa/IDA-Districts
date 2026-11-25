@@ -6,6 +6,7 @@ import sys
 
 import pytest
 
+from districts.utility_functions import ground_climate as gc
 from districts.utility_functions import ground_collector_contract as contract
 from districts.utility_functions import ground_collector_geometry as gg
 from districts.utility_functions import ground_rc as rc
@@ -72,6 +73,25 @@ def test_ground_model_takes_the_contract_parameters():
     for name in contract.groundParameterNames():
         entry = next(e for c in contract.COMPONENTS for e in contract.entries(c) if e.name == name)
         assert entry.kind == contract.PARAMETER and entry.shape == contract.SCALAR and entry.unit
+
+
+def test_ground_model_takes_the_contract_inputs():
+    """The weather of the ground model is the inputs of GroundSurface, albedo among them (contract version 2)."""
+    assert contract.groundInputNames() == ['TAir', 'IGlob', 'TSky', 'albedo']
+    for name in contract.groundInputNames():
+        entry = next(e for e in contract.entries('GroundSurface') if e.name == name)
+        assert entry.kind == contract.INPUT and entry.shape == contract.SCALAR and entry.unit
+    site = {'lat': 47.4, 'long': -8.5, 'long_timezone': -15}
+    w = gc.weatherFromClimate([0.0, 12.0], [0.0, 5.0], [80.0, 60.0], [0.0, 500.0], [0.0, 100.0], site, albedo=0.3)
+    assert set(w) == set(contract.groundInputNames())
+    assert list(w['albedo']) == [0.3, 0.3]
+    assert 'albedo' not in contract.groundParameterNames()
+
+
+def test_one_surface_port():
+    surface = next(e for e in contract.entries('GroundCollector', contract.PORT) if e.name == 'surface')
+    assert surface.shape == contract.SCALAR
+    assert contract.CONTRACT_VERSION == 2
 
 
 def test_contract_check_refuses():

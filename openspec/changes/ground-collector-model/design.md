@@ -97,8 +97,10 @@ capacity, tried first, did not converge on a −4 °C wall at the first frost st
 `GroundSurface` per meter of trench (area = s × 1 m): a surface layer of thickness `d_layer_m` (default 0.05 m) with
 capacity ρc·d·s, balance
 `C_s dT_s/dt = s·[h_conv·(T_air − T_s) + (1 − albedo)·I_glob + ε·σ·((T_sky+273.15)⁴ − (T_s+273.15)⁴)] − Q_port`.
-Parameters `albedo`, `epsilon`, `h_conv_w7m2k` (default 10), `d_layer_m`, `rho_c_j7m3k`, `spacing_m`; inputs `TAir`,
-`IGlob` (W/m² on the horizontal), `TSky`. `Q_port` is the heat into the ground through the port. The fit sees the
+Parameters `epsilon`, `h_conv_w7m2k` (default 10), `d_layer_m`, `rho_c_j7m3k`, `spacing_m`; inputs `TAir`,
+`IGlob` (W/m² on the horizontal), `TSky` and `albedo` (contract version 2: an input, so a climate-file column can
+carry snow or the season; otherwise bound to a constant, `SurfaceProperties.albedo` in Python). `Q_port` is the heat
+into the ground through the port. The fit sees the
 surface linearized (G7), so its properties are part of the fit and a different surface type means a refit (5–12 s);
 this loosens T10, whose aim (the surface as a component of its own, with a clean interface) holds.
 
@@ -211,28 +213,38 @@ model of Wu et al. (Appl. Therm. Eng. 30, 2574, 2010; heat per trench meter afte
 cells −1.4 % against a fine grid, monotonic and conservative toward coarser grids.
 
 ### G8 Parameter contract
-`utility_functions/ground_collector_contract.py` holds `CONTRACT_VERSION = 1` and, per component, the parameters,
+`utility_functions/ground_collector_contract.py` holds `CONTRACT_VERSION = 2` and, per component, the parameters,
 inputs, outputs and ports with name, unit, shape and meaning. The Python ground model (G9) reads the ground and surface
-parameters through it, and a test checks that they agree. The pipe parameters (`dInner`, `dOuter`, `lambdaWall`,
-`roughness`, `liqType`, `TFreeze`) are in the contract for the Modelica model and change 2, without a Python
-counterpart. The Modelica names are the contract names (IDA `|name|` quoting, as for
+parameters and the GroundSurface inputs (its weather) through it, and a test checks that they agree. The pipe and
+discretization parameters (`dInner`, `dOuter`, `lambdaWall`, `roughness`, `liqType`, `TFreeze`, `NusseltMin`,
+`nCellsSection`) are in the contract for the Modelica model and change 2, without a Python counterpart. Version 2
+(from building the Modelica model): one surface port for all sections, `albedo` an input, `nCellsSection` and
+`NusseltMin` added. The Modelica names are the contract names (IDA `|name|` quoting, as for
 `FDpipebundle`). Change 2 writes exactly these names and checks the contract version of the installed model.
 
 `GroundCollector` (one instance per collector route):
-- Fluid connectors `liq1`, `liq2` as `FDpipebundle` (flow in both directions; plug flow with the transport delay).
-- Parameters: `nLoops`, `lTrench` [m], `nSections` (M, default 3), `loopLengthPerM`, `dInner`, `dOuter`,
-  `lambdaWall`, `roughness`, `liqType`, `TFreeze` (fluid); `cTop`, `cTop2`, `cLoc`, `cNear`, `cFar`, `cFar2`
+- Fluid connectors `liq1`, `liq2` as `FDpipebundle` (flow in both directions; upwind cells: the mean transport delay
+  is the loop volume / flow, a front is smeared over the cells, which was accepted instead of plug flow).
+- Parameters: `nLoops`, `lTrench` [m], `nSections` (M, default 3), `nCellsSection` (default 10), `loopLengthPerM`,
+  `dInner`, `dOuter`, `lambdaWall`, `roughness`, `liqType`, `TFreeze`, `NusseltMin` (fluid); `cTop`, `cTop2`, `cLoc`, `cNear`, `cFar`, `cFar2`
   [J/(K m)]; `rSt`, `rTt`, `rTn`, `rTf`, `rLn`, `rNf`, `rFf`, `rFd`, `rLoc` [K m/W]; `TDeep`; `rhoCSoil`,
   `waterContent`, `TFreezeSoil`, `freezeRange`, `lambdaFrozenRatio`; start values `TStartTop[M]`, `TStartTop2[M]`,
   `TStartLoc[M]`, `TStartNear[M]`, `TStartFar[M]`, `TStartFar2[M]` (the ice of the freezing nodes follows).
-- Heat ports `surface[M]` to `GroundSurface` instances.
+- One heat port `surface` to a `GroundSurface`, shared by all sections: every section sees its temperature, the port
+  carries the mean heat of the sections per trench meter.
 - Outputs: `TIn`, `TOut` [°C], `QExtracted` [W, all loops, positive = heat from the ground into the fluid],
   `QSurface` [W, all loops], `TLoc[M]`, `TNear[M]`, `iceFraction[M]` (the freezing nodes weighted by their latent
   volumes).
 - The loop's pipe cells are assigned to the sections by their position along the unrolled loop (section j holds the
   loop length of trench part j). Convection: Gnielinski (turbulent), Nu = 3.66 (laminar), as in `FDpipebundle`.
 
-`GroundSurface` (M instances per route): G4.
+`GroundSurface` (one instance per route): G4.
+
+Start values in IDA: the IDA Modeler writes a state's start from the value stored with the variable in the model file,
+not from the `TStart<node>` parameter, so change 2 writes the start values twice: as the parameters and as the values
+of `TTop`, `TTop2`, `TLoc`, `TNear`, `TFar`, `TFar2` (and `TSurface` of GroundSurface). The freezing nodes are
+temperature states with the latent heat as an apparent capacity (states with a computed start, as enthalpies, start
+at 0 in IDA).
 
 ### G9 Python ground model, start state, validation cases (T17)
 `ground_rc.py` also holds the Python ground model (`runGroundModel`): one section's six nodes with freezing (G3, G5)

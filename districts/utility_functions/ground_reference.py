@@ -115,7 +115,8 @@ def undisturbedState(grid, soil, day):
 def runReference(geometry, soil, steps, *, surface_temperature=None, weather=None, surface=None, q_wall=None,
                  t_wall=None, r_loc=None, freezing=True, start=None, start_day=0.0, dt_h=1.0, grid=None):
     """Run the reference over steps time steps of dt_h hours. Inputs are per step (value at the step's end).
-    The surface: surface_temperature (prescribed), or weather (dict TAir, IGlob, TSky) with surface (SurfaceProperties).
+    The surface: surface_temperature (prescribed), or weather (dict TAir, IGlob, TSky, optionally albedo per step or
+    one value; without it surface.albedo) with surface (SurfaceProperties).
     The source: q_wall [W/m trench, positive = into the ground], or t_wall [degC] behind r_loc [K m/W per trench m]."""
     if (surface_temperature is None) == (weather is None):
         raise ValueError('give either surface_temperature or weather')
@@ -123,6 +124,9 @@ def runReference(geometry, soil, steps, *, surface_temperature=None, weather=Non
         raise ValueError('weather needs the surface properties')
     if t_wall is not None and r_loc is None:
         raise ValueError('t_wall needs r_loc')
+    if weather is not None:
+        albedo = np.asarray(weather.get('albedo', surface.albedo), dtype=float)
+        albedo = np.broadcast_to(albedo, (steps,)) if albedo.ndim == 0 else albedo
     grid = grid or buildGrid(geometry, soil)
     n = len(grid.dx)
     use_surface_node = weather is not None
@@ -239,7 +243,7 @@ def runReference(geometry, soil, steps, *, surface_temperature=None, weather=Non
                 h_rad = 4 * surface.epsilon * SIGMA * tsk ** 3
                 diag_extra[n] = c_surface / dt_loc + area * (surface.h_conv_w7m2k + h_rad)
                 rhs[n] = (c_surface / dt_loc * ts_old + area * (surface.h_conv_w7m2k * weather['TAir'][k]
-                          + (1 - surface.albedo) * weather['IGlob'][k]
+                          + (1 - albedo[k]) * weather['IGlob'][k]
                           + surface.epsilon * SIGMA * ((weather['TSky'][k] - ABS_ZERO) ** 4 - tsk ** 4)
                           + h_rad * ts_it))
             sol = spla.spsolve((laplacian(gx, gz, g_top, g_bot, g_wall) + sp.diags(diag_extra, format='csc')).tocsc(), rhs)
@@ -288,7 +292,7 @@ def runReference(geometry, soil, steps, *, surface_temperature=None, weather=Non
             rhs = rhs_base.copy()
             if use_surface_node:
                 rhs[n] = c_surface / dt * ts_old + area * (surface.h_conv_w7m2k * weather['TAir'][k]
-                                                          + (1 - surface.albedo) * weather['IGlob'][k])
+                                                          + (1 - albedo[k]) * weather['IGlob'][k])
             else:
                 rhs[top_cells] += g_const[2] * surface_temperature[k]
             rhs[bottom_cells] += g_const[3] * t_deep

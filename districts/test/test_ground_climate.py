@@ -76,6 +76,6 @@ def test_global_radiation():
 def test_weather_from_climate():
     c, _, _ = _idaData()
     w = gc.weatherFromClimate(c['time_h'], c['TAIR'], c['RELHUM'], c['IDIRNORM'], c['IDIFFHOR'], KALMAR)
-    assert set(w) == {'TAir', 'IGlob', 'TSky'}
+    assert set(w) == {'TAir', 'IGlob', 'TSky', 'albedo'}
     assert np.all(w['IGlob'] >= 0)
     np.testing.assert_allclose(w['TSky'], c['TAIR'] - 5.0)

@@ -63,6 +63,10 @@ def test_simulation(sim_case, simulations, results_db, request):
             if key not in footprint or key not in reference:
                 differences.append("{}: {} (reference {})".format(key, footprint.get(key, "missing"),
                                                                     reference.get(key, "missing")))
+            elif not isinstance(reference[key], (int, float)) or not isinstance(footprint[key], (int, float)):
+                # IDA writes NIL for a key whose object the model does not have
+                if footprint[key] != reference[key]:
+                    differences.append("{}: {} (reference {})".format(key, footprint[key], reference[key]))
             elif footprint[key] != pytest.approx(reference[key], rel=rtol, abs=atol):
                 differences.append("{}: {} (reference {})".format(key, footprint[key], reference[key]))
         assert not differences, "{}: footprint differs from {} (rtol {}, atol {}):\n{}".format(

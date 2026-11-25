@@ -43,3 +43,11 @@
 - [x] 8.1 README.md and CLAUDE.md: the ground collector modules, the contract, the validation cases and the generator script
 - [x] 8.2 Local validation: from `districts/` the QGIS Python runs `-m pytest -m "not ida"` and it passes, including `test_static_mypy.py` (new modules clean) and `test_messages.py` (528 passed; 2 AI-tab tests failed only from a pydantic-core mismatch in this PC's QGIS 4.2.0 Python, green on the runner)
 - [x] 8.3 `npx openspec validate --all`; commit the change's artifacts with the code, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass (validate: 21 passed, 0 failed; fd44687 run #49 green on QGIS 4.2)
+
+## 9. Contract version 2 (from building the Modelica model)
+
+- [x] 9.1 `ground_collector_contract.py`: `CONTRACT_VERSION = 2`, one surface port `surface` for all sections, `albedo` an input of GroundSurface, `nCellsSection` and `NusseltMin`; the GroundSurface inputs marked as part of the Python model (`groundInputNames`)
+- [x] 9.2 `ground_rc.py` takes `albedo` with the weather (one value or per step) and refuses weather without a GroundSurface input; `ground_reference.py` takes it from the weather when given; `weatherFromClimate(..., albedo)`
+- [x] 9.3 Tests: the contract inputs and the single port (`test_ground_collector_geometry.py`), weather without albedo refused (`test_ground_rc.py`), `weatherFromClimate` keys (`test_ground_climate.py`)
+- [x] 9.4 Regenerate the validation cases (contract version 2, `albedo` column) and run the ground tests (results unchanged against the committed cases; 71 ground tests incl. mypy pass)
+- [x] 9.5 `npx openspec validate --all` (21 passed)

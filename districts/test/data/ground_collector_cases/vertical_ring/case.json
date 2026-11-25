@@ -1,5 +1,5 @@
 {
- "contract_version": 1,
+ "contract_version": 2,
  "fit": {
   "accepted": true,
   "errors": {
@@ -46,7 +46,6 @@
  "parameters": {
   "TDeep": 8.275,
   "TFreezeSoil": 0.0,
-  "albedo": 0.25,
   "cFar": 11619522.05462674,
   "cFar2": 19766440.506811384,
   "cLoc": 230872.20883101918,

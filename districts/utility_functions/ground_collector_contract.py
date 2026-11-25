@@ -4,7 +4,8 @@
 from dataclasses import dataclass
 
 #raised whenever a name, unit, shape or meaning changes; the model build refuses an IDA model of another version
-CONTRACT_VERSION = 1
+#2: one surface port for all sections, albedo an input of GroundSurface, nCellsSection and NusseltMin
+CONTRACT_VERSION = 2
 
 PARAMETER = 'parameter'
 INPUT = 'input'
@@ -29,10 +30,12 @@ class Entry:
 COLLECTOR = (
     Entry('liq1', PORT, '', SCALAR, 'fluid connector at the first end of the route (as FDpipebundle)'),
     Entry('liq2', PORT, '', SCALAR, 'fluid connector at the second end of the route (as FDpipebundle)'),
-    Entry('surface', PORT, '', SECTIONS, 'heat port of each section to its GroundSurface'),
+    Entry('surface', PORT, '', SCALAR, 'heat port to the GroundSurface above the collector, shared by all sections '
+          '(W per trench meter, the mean of the sections)'),
     Entry('nLoops', PARAMETER, '-', SCALAR, 'parallel loops (trenches) of the route; flows and heat flows times nLoops'),
     Entry('lTrench', PARAMETER, 'm', SCALAR, 'trench length = route length'),
     Entry('nSections', PARAMETER, '-', SCALAR, 'ground sections along the trench (M)'),
+    Entry('nCellsSection', PARAMETER, '-', SCALAR, 'liquid cells per section'),
     Entry('loopLengthPerM', PARAMETER, 'm/m', SCALAR, 'loop pipe length per trench meter'),
     Entry('dInner', PARAMETER, 'm', SCALAR, 'inner diameter of the loop pipe'),
     Entry('dOuter', PARAMETER, 'm', SCALAR, 'outer diameter of the loop pipe'),
@@ -40,6 +43,7 @@ COLLECTOR = (
     Entry('roughness', PARAMETER, 'm', SCALAR, 'roughness of the pipe wall'),
     Entry('liqType', PARAMETER, '', SCALAR, 'liquid of the loop (as FDpipebundle)'),
     Entry('TFreeze', PARAMETER, 'degC', SCALAR, 'freezing temperature of the liquid'),
+    Entry('NusseltMin', PARAMETER, '-', SCALAR, 'Nusselt number of laminar flow, the lower limit of the convection'),
     Entry('cTop', PARAMETER, 'J/(K m)', SCALAR, 'capacity of the shallow layer above the coil, per trench meter', True),
     Entry('cTop2', PARAMETER, 'J/(K m)', SCALAR, 'capacity of the layer just above the coil (unfrozen), per trench meter', True),
     Entry('cLoc', PARAMETER, 'J/(K m)', SCALAR, 'capacity of the coil region (unfrozen), per trench meter', True),
@@ -79,17 +83,18 @@ COLLECTOR = (
 )
 
 SURFACE = (
-    Entry('ground', PORT, '', SCALAR, 'heat port to the surface port of a GroundCollector section'),
-    Entry('albedo', PARAMETER, '-', SCALAR, 'reflected part of the global radiation', True),
+    Entry('ground', PORT, '', SCALAR, 'heat port to the surface port of a GroundCollector'),
     Entry('epsilon', PARAMETER, '-', SCALAR, 'long-wave emissivity of the surface', True),
     Entry('hConv', PARAMETER, 'W/(m2 K)', SCALAR, 'convective heat transfer coefficient to the air', True),
     Entry('dLayer', PARAMETER, 'm', SCALAR, 'thickness of the surface layer', True),
     Entry('rhoCLayer', PARAMETER, 'J/(m3 K)', SCALAR, 'volumetric capacity of the surface layer', True),
     Entry('spacing', PARAMETER, 'm', SCALAR, 'trench spacing = surface width per trench meter', True),
     Entry('TStart', PARAMETER, 'degC', SCALAR, 'start value of the surface layer'),
-    Entry('TAir', INPUT, 'degC', SCALAR, 'air temperature (climate_processor TAIR2)'),
-    Entry('IGlob', INPUT, 'W/m2', SCALAR, 'global radiation on the horizontal (IDIRNORM*sin(ELEVSUN)+IDIFFHOR)'),
-    Entry('TSky', INPUT, 'degC', SCALAR, 'sky temperature (climate_processor TSKY)'),
+    Entry('TAir', INPUT, 'degC', SCALAR, 'air temperature (climate_processor TAIR2)', True),
+    Entry('IGlob', INPUT, 'W/m2', SCALAR, 'global radiation on the horizontal (IDIRNORM*sin(ELEVSUN)+IDIFFHOR)', True),
+    Entry('TSky', INPUT, 'degC', SCALAR, 'sky temperature (climate_processor TSKY)', True),
+    Entry('albedo', INPUT, '-', SCALAR, 'reflected part of the global radiation (a climate-file column or a constant)',
+          True),
     Entry('TSurface', OUTPUT, 'degC', SCALAR, 'temperature of the surface layer'),
 )
 
@@ -105,6 +110,11 @@ def entries(component, kind=None, ground=None):
 def groundParameterNames():
     """Names of the parameters the Python ground model takes: the ground part of GroundCollector and GroundSurface."""
     return [e.name for c in COMPONENTS for e in entries(c, PARAMETER, True)]
+
+
+def groundInputNames():
+    """Names of the inputs the Python ground model takes with its weather: those of GroundSurface."""
+    return [e.name for c in COMPONENTS for e in entries(c, INPUT, True)]
 
 
 def checkGroundParameters(params):

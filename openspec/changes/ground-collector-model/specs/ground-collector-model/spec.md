@@ -1,11 +1,19 @@
 ## ADDED Requirements
 
 ### Requirement: Parameter contract
-`utility_functions/ground_collector_contract.py` SHALL define `CONTRACT_VERSION` and, for the components `GroundCollector` and `GroundSurface`, every parameter, input, output and port with name, unit, shape and meaning as in design G8 and G4, among them the four ground nodes' capacities `cTop`, `cLoc`, `cNear`, `cFar`, the resistances `rSt`, `rLn`, `rTn`, `rTf`, `rNf`, `rFd`, `rLoc` and the start values `TStartTop`, `TStartLoc`, `TStartNear`, `TStartFar`. The Python ground model SHALL take its ground and surface parameters by the contract's names and refuse missing, unknown or non-finite ones. The module SHALL NOT import QGIS, Qt or the database.
+`utility_functions/ground_collector_contract.py` SHALL define `CONTRACT_VERSION` (2) and, for the components `GroundCollector` and `GroundSurface`, every parameter, input, output and port with name, unit, shape and meaning as in design G8 and G4, among them the six ground nodes' capacities `cTop`, `cTop2`, `cLoc`, `cNear`, `cFar`, `cFar2`, the resistances `rSt`, `rTt`, `rTn`, `rTf`, `rLn`, `rNf`, `rFf`, `rFd`, `rLoc`, the start values `TStartTop`, `TStartTop2`, `TStartLoc`, `TStartNear`, `TStartFar`, `TStartFar2`, one surface port `surface` shared by all sections, and the GroundSurface inputs `TAir`, `IGlob`, `TSky` and `albedo`. The Python ground model SHALL take its ground and surface parameters by the contract's names and refuse missing, unknown or non-finite ones, and take the GroundSurface inputs as its weather and refuse weather without one of them. The module SHALL NOT import QGIS, Qt or the database.
 
 #### Scenario: Ground model follows the contract
 - **WHEN** the test compares the parameters the Python ground model is given with the ground and surface parameters of the contract
 - **THEN** both name the same parameters, each a scalar with a unit
+
+#### Scenario: Weather is the GroundSurface inputs
+- **WHEN** the test compares the keys of `weatherFromClimate` with the inputs of GroundSurface in the contract, and runs the ground model with weather without `albedo`
+- **THEN** the keys are `TAir`, `IGlob`, `TSky` and `albedo`, `albedo` is not a parameter, and the run raises `ValueError` naming `albedo`
+
+#### Scenario: One surface port
+- **WHEN** the test reads the port `surface` of GroundCollector
+- **THEN** it is a scalar, and the contract version is 2
 
 #### Scenario: Plain Python
 - **WHEN** the contract, geometry, climate, reference and RC modules are imported in a Python where QGIS, Qt and psycopg2 cannot be imported

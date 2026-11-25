@@ -87,11 +87,34 @@ def globalHorizontal(i_dir_norm, i_diff_hor, elevation_deg):
         + np.maximum(np.asarray(i_diff_hor, dtype=float), 0.0)
 
 
-def weatherFromClimate(time_h, t_air, rel_hum, i_dir_norm, i_diff_hor, site, sky_cover=None, d_t_air_sky=5.0):
-    """The inputs of GroundSurface (TAir, IGlob, TSky) from climate-file columns; site = dict(lat, long, long_timezone)."""
+def weatherFromFile(path, site, albedo=0.25, d_t_air_sky=5.0, hours=None):
+    """The GroundSurface inputs from a climate file, its columns read as the generated climate macro reads them
+    (climate_macro.climateColumns): the sky temperature with the file's sky cover and the albedo from its ALBEDO
+    column [%] when they exist, otherwise the given albedo. hours: only the first rows (e.g. 8760)."""
+    from .climate_macro import climateColumns
+    columns = climateColumns(path)
+    data = np.loadtxt(path, comments='#', ndmin=2)
+    if hours is not None:
+        data = data[:hours]
+    col = lambda key: data[:, columns.number(key) - 1] if columns.number(key) else None
+    cover = col('skycover')
+    weather = weatherFromClimate(col('time'), col('tair'), col('relhum'), col('idirnorm'), col('idiffhor'), site,
+                                 sky_cover=cover, d_t_air_sky=d_t_air_sky, albedo=albedo)
+    albedo_column = col('albedo')
+    if albedo_column is not None:
+        weather['albedo'] = albedo_column / 100.0
+    return weather
+
+
+def weatherFromClimate(time_h, t_air, rel_hum, i_dir_norm, i_diff_hor, site, sky_cover=None, d_t_air_sky=5.0,
+                       albedo=0.25):
+    """The inputs of GroundSurface (TAir, IGlob, TSky, albedo) from climate-file columns; site = dict(lat, long,
+    long_timezone); albedo one value or a column."""
     elevation = sunElevation(time_h, site['lat'], site['long'], site['long_timezone'])
+    t_air = np.asarray(t_air, dtype=float)
     return {
-        'TAir': np.asarray(t_air, dtype=float),
+        'TAir': t_air,
         'IGlob': globalHorizontal(i_dir_norm, i_diff_hor, elevation),
         'TSky': skyTemperature(t_air, rel_hum, sky_cover, d_t_air_sky),
+        'albedo': np.broadcast_to(np.asarray(albedo, dtype=float), t_air.shape).copy(),
     }

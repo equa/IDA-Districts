@@ -48,7 +48,7 @@ def _weather(days):
     hod = (days * 24) % 24
     t_air = 8.0 - 9.0 * np.cos(2 * math.pi * (days - 20) / 365) - 3.0 * np.cos(2 * math.pi * (hod - 3) / 24)
     sun = np.clip(np.sin(math.pi * (hod - 6) / 12), 0, None) * (300 - 200 * np.cos(2 * math.pi * (days - 10) / 365))
-    return {'TAir': t_air, 'IGlob': sun, 'TSky': t_air - 5.0}
+    return {'TAir': t_air, 'IGlob': sun, 'TSky': t_air - 5.0, 'albedo': SURFACE.albedo}
 
 
 def test_presets_accepted(fits):
@@ -168,3 +168,6 @@ def test_ground_model_inputs_checked(fits):
     with pytest.raises(ValueError, match='missing'):
         rc.runGroundModel({k: v for k, v in params.items() if k != 'cFar2'}, 2, start=start,
                           surface_temperature=[9.0, 9.0], q_wall=[0.0, 0.0])
+    with pytest.raises(ValueError, match=r"GroundSurface inputs \['albedo'\]"):
+        rc.runGroundModel(params, 2, start=start, weather={'TAir': [9.0, 9.0], 'IGlob': [0.0, 0.0], 'TSky': [4.0, 4.0]},
+                          q_wall=[0.0, 0.0])

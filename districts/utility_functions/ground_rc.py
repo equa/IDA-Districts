@@ -10,7 +10,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from .ground_climate import ABS_ZERO, SIGMA
-from .ground_collector_contract import checkGroundParameters
+from .ground_collector_contract import checkGroundParameters, groundInputNames
 from .ground_collector_geometry import (LATENT_HEAT_J7KG, RHO_WATER_KG7M3, deepTemperature, localResistance,
                                         nodeDepths, undisturbedTemperature, wallResistance)
 from .ground_reference import (DAMPING, MAX_ITERATIONS, TOLERANCE_K, UNDAMPED_ITERATIONS, buildGrid,
@@ -82,7 +82,7 @@ def groundParameters(fit, soil, surface, geometry):
     params = dict(fit.values)
     params.update(TDeep=fit.t_deep, rhoCSoil=soil.rho_c_j7m3k, waterContent=soil.water_content,
                   TFreezeSoil=soil.t_freeze_c, freezeRange=soil.freeze_range_k,
-                  lambdaFrozenRatio=soil.lambda_frozen_ratio, albedo=surface.albedo, epsilon=surface.epsilon,
+                  lambdaFrozenRatio=soil.lambda_frozen_ratio, epsilon=surface.epsilon,
                   hConv=surface.h_conv_w7m2k, dLayer=surface.d_layer_m, rhoCLayer=surface.rho_c_j7m3k,
                   spacing=geometry.spacing_m)
     return {k: float(v) for k, v in params.items()}
@@ -237,12 +237,19 @@ def runGroundModel(params, steps, *, start, surface_temperature=None, weather=No
                    r_series=0.0, freezing=True, dt_h=1.0):
     """One section of the ground model over steps time steps (inputs per step, value at its end).
     params: ground parameters of the contract; start: the six TStart values (and TStartSurface with weather).
-    The surface: weather (dict TAir, IGlob, TSky) through the GroundSurface balance, or surface_temperature at the
-    surface node. The source: q_wall [W/m trench into the ground] or t_wall [degC] behind rLoc + r_series [K m/W]."""
+    The surface: weather (dict of the GroundSurface inputs TAir, IGlob, TSky per step and albedo, per step or one
+    value) through the GroundSurface balance, or surface_temperature at the surface node. The source: q_wall [W/m
+    trench into the ground] or t_wall [degC] behind rLoc + r_series [K m/W]."""
     checkGroundParameters(params)
     p = params
     if (surface_temperature is None) == (weather is None):
         raise ValueError('give either surface_temperature or weather')
+    if weather is not None:
+        missing = sorted(set(groundInputNames()) - set(weather))
+        if missing:
+            raise ValueError('weather without the GroundSurface inputs {}'.format(missing))
+        weather = dict(weather, albedo=np.broadcast_to(np.asarray(weather['albedo'], dtype=float), (steps,))
+                       if np.ndim(weather['albedo']) == 0 else np.asarray(weather['albedo'], dtype=float))
     if (q_wall is None) == (t_wall is None):
         raise ValueError('give either q_wall or t_wall')
     dt = dt_h * 3600.0
@@ -286,7 +293,7 @@ def runGroundModel(params, steps, *, start, surface_temperature=None, weather=No
                     h_rad = 4 * p['epsilon'] * SIGMA * tsk ** 3
                     a[SURF, SURF] += p['spacing'] * (p['hConv'] + h_rad)
                     r[SURF] += p['spacing'] * (
-                        p['hConv'] * weather['TAir'][k] + (1 - p['albedo']) * weather['IGlob'][k]
+                        p['hConv'] * weather['TAir'][k] + (1 - weather['albedo'][k]) * weather['IGlob'][k]
                         + p['epsilon'] * SIGMA * ((weather['TSky'][k] - ABS_ZERO) ** 4 - tsk ** 4) + h_rad * x_it[SURF])
                 else:
                     #a prescribed surface: the surface node is held at the given temperature
@@ -338,7 +345,7 @@ def startState(params, geometry, soil, weather_year=None, t_mean_fluid=None, *, 
     n_year = len(weather_year['TAir'])
     steps = years * n_year + int(round(start_day * 24))
     idx = np.arange(steps) % n_year
-    weather = {k: np.asarray(weather_year[k], dtype=float)[idx] for k in ('TAir', 'IGlob', 'TSky')}
+    weather = {k: np.broadcast_to(np.asarray(weather_year[k], dtype=float), (n_year,))[idx] for k in groundInputNames()}
     r_series = wallResistance(geometry) + r_conv_nominal / geometry.loop_length_per_m
     start = startState(params, geometry, soil, undisturbed=True, start_day=0)
     return runGroundModel(params, steps, start=start, weather=weather, t_wall=np.full(steps, float(t_mean_fluid)),
