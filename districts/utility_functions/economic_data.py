@@ -8,7 +8,8 @@ Example values (research of 2026-11-16, all labelled `example`):
   DN175 and DN225 interpolated. https://www.kww-halle.de/angebote/infothek/detail/kww-technikkatalog-waermeplanung-begleitdokument
 - Service life of pipes 40 a (VDI 2067-1), pumps 15 a; maintenance about 1 %/a pipes, 2.5 %/a pumps (unconfirmed).
 - EN 13941: up to PN25, 120 °C; the common series is PN16.
-- Pump 100 €/kW: a modelling assumption (arXiv 2205.12019, Table 1).
+- Pump 500 €/kW of peak electric power, installed (pump, frequency converter, fittings, installation); 100 €/kW
+  (arXiv 2205.12019, Table 1) covered the pump alone (review of the cost report, 2026-11-24).
 - Large air-source heat pump: SPF 2.5 at 70 °C, 1.8 at 95 °C (KWW Tab 24/25) -> heat price = electricity / SPF.
 """
 from .db import addMissingColumns
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.trench_costs
 """
 
 BASE_SCENARIO = {'name': 'base', 'interest_pct': 3.0, 'period_a': 40, 'residual_value': True, 'default_surface': 'paved',
-                 'el_profile_file': '', 'pump_costs_eur7kw': 100, 'pump_maintenance_pct': 2.5, 'pump_lifetime_a': 15,
+                 'el_profile_file': '', 'pump_costs_eur7kw': 500, 'pump_maintenance_pct': 2.5, 'pump_lifetime_a': 15,
                  'example': True, 'description': EXAMPLE_SOURCE}
 # a carrier the energy-use list detects needs a price, or its energy counts as free (the evaluation falls back to
 # priced pipe losses then, cost-sensitivity D10): fuel and purchased heat with example prices too
