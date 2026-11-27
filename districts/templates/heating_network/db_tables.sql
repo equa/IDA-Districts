@@ -968,8 +968,8 @@ COPY public.pipes (id, name, innerpipediameter, piperoughnessfactor, pipe_constr
 --
 
 COPY public.pipe_series (id, name, system_type, standard, t_max_continuous_c, t_max_peak_c, t_min_c, sigma_ax_max_n7mm2, safety_factor, description) FROM stdin;
-1	Isoplus DRE Standard	rigid_single	EN 253	120	140	\N	\N	\N	isoplus rigid single pipes (planning manual chapter 2); temperatures of EN 253, axial stress by EN 13941 from Re
-2	Isoplus DRD Standard	rigid_twin	EN 15698-1	120	140	\N	\N	\N	isoplus rigid twin pipes (planning manual chapter 2); temperatures of EN 253, axial stress by EN 13941 from Re
+1	Isoplus DRE Standard	rigid_single	EN 253	120	140	\N	190	\N	isoplus rigid single pipes (planning manual chapter 2); temperatures of EN 253; allowed axial stress of the planning manual 2/12, 12/4
+2	Isoplus DRD Standard	rigid_twin	EN 15698-1	120	140	\N	190	\N	isoplus rigid twin pipes (planning manual chapter 2); temperatures of EN 253; allowed axial stress of the planning manual 2/45, 12/4
 3	isoplus isoflex	flexible_metal	EN 15632-4	120	140	\N	150	\N	isoplus planning manual chapter 3 (2015/2016), 3.2 isoflex: steel P195GH
 4	isoplus isoflex v	flexible_metal	EN 15632-4	120	140	\N	150	\N	isoplus planning manual chapter 3 (2015/2016), 3.2 isoflex, reinforced insulation
 5	isoplus isoflex twin	flexible_metal	EN 15632-4	120	140	\N	150	\N	isoplus planning manual chapter 3 (2015/2016), 3.2 isoflex twin pipe

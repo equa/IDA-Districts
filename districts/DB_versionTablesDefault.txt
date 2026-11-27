@@ -275,6 +275,9 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_nodes
   source text,
   override_id integer,
   override_kind text,
+  max_travel_mm numeric,
+  spring_rate_n_mm numeric,
+  bellows_area_cm2 numeric,
   CONSTRAINT statics_model_nodes_pkey PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_sections
@@ -295,6 +298,11 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_sections
   traffic_load_kn_m2 numeric,
   laying_temperature_c numeric,
   laying_method text,
+  friction_coefficient_min numeric,
+  design_temperature_c numeric,
+  design_pressure_bar numeric,
+  preheat_temperature_c numeric,
+  prestressed_legs boolean,
   CONSTRAINT statics_model_sections_pkey PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_pipes
@@ -333,6 +341,9 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_points
   kind text CHECK (kind IN ('fixed_point','compensator','one_time_compensator','valve','bend')),
   bend_class text CHECK (bend_class IN ('none','kink','bend','elastic')),
   radius_m numeric CHECK (radius_m > 0),
+  max_travel_mm numeric CHECK (max_travel_mm > 0),
+  spring_rate_n_mm numeric CHECK (spring_rate_n_mm > 0),
+  bellows_area_cm2 numeric CHECK (bellows_area_cm2 > 0),
   note text,
   CONSTRAINT statics_points_pkey PRIMARY KEY (id)
 );
@@ -348,6 +359,72 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_sections
   traffic_load_kn_m2 numeric CHECK (traffic_load_kn_m2 >= 0),
   laying_temperature_c numeric,
   laying_method text,
+  friction_coefficient_min numeric CHECK (friction_coefficient_min >= 0),
+  design_temperature_c numeric,
+  design_pressure_bar numeric CHECK (design_pressure_bar >= 0),
+  preheat_temperature_c numeric,
+  prestressed_legs boolean,
   note text,
   CONSTRAINT statics_sections_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_run
+(
+  id serial,
+  run_at timestamp without time zone DEFAULT now(),
+  model_fingerprint text,
+  solver_fingerprint text,
+  parameters jsonb,
+  summary jsonb,
+  status text,
+  CONSTRAINT statics_result_run_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_elements
+(
+  id serial,
+  geom geometry(LineStringZ,$srid$),
+  model_pipe_id integer,
+  carrier integer,
+  load_step text,
+  friction_case text,
+  kind text,
+  sif numeric,
+  sigma_ax_n7mm2 numeric,
+  sigma_bend_n7mm2 numeric,
+  sigma_hoop_n7mm2 numeric,
+  sigma_eq_n7mm2 numeric,
+  stress_range_n7mm2 numeric,
+  utilisation numeric,
+  governing_check text,
+  CONSTRAINT statics_result_elements_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_nodes
+(
+  id serial,
+  geom geometry(PointZ,$srid$),
+  model_node_id integer,
+  model_pipe_id integer,
+  load_step text,
+  friction_case text,
+  ux_mm numeric,
+  uy_mm numeric,
+  uz_mm numeric,
+  axial_mm numeric,
+  lateral_mm numeric,
+  axial_friction_n numeric,
+  pad_thickness_mm numeric,
+  pad_length_m numeric,
+  CONSTRAINT statics_result_nodes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_findings
+(
+  id serial,
+  geom geometry(PointZ,$srid$),
+  rule text,
+  severity text,
+  model_node_id integer,
+  model_pipe_id integer,
+  line_id integer,
+  "values" jsonb,
+  text text,
+  CONSTRAINT statics_result_findings_pkey PRIMARY KEY (id)
 );

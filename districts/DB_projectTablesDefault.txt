@@ -434,17 +434,44 @@ CREATE TABLE IF NOT EXISTS public.statics_parameters
 (
   id serial,
   key text NOT NULL UNIQUE,
-  value numeric NOT NULL,
+  value numeric,
   unit text,
   description text,
+  source text,
   CONSTRAINT statics_parameters_pkey PRIMARY KEY (id)
 );
-INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('bend_ignore_deg', 1.0, 'deg', 'angle below which a vertex is no bend');
-INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('kink_max_deg', 5.0, 'deg', 'rigid pipes: largest angle of a small-angle kink');
-INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('bend_radius_factor', 1.5, '-', 'rigid pipes: radius of a prefabricated bend / steel outer diameter');
-INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('elastic_radius_factor', 1000.0, '-', 'rigid pipes: smallest radius of an elastic bend / steel outer diameter');
-INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('merge_distance_m', 5.0, 'm', 'largest spacing of the vertices of a run merged into an elastic bend');
-INSERT INTO public.statics_parameters (key, value, unit, description) VALUES ('snap_tolerance_m', 0.5, 'm', 'distance within which an override matches a model node or section');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('bend_ignore_deg', 1.0, 'deg', 'angle below which a vertex is no bend', 'plugin default (statics-model)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('kink_max_deg', 5.0, 'deg', 'rigid pipes: largest angle of a small-angle kink', 'plugin default (statics-model)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('bend_radius_factor', 1.5, '-', 'rigid pipes: radius of a prefabricated bend / steel outer diameter', 'plugin default (statics-model)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('elastic_radius_factor', 1000.0, '-', 'rigid pipes: smallest radius of an elastic bend / steel outer diameter', 'plugin default (statics-model)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('merge_distance_m', 5.0, 'm', 'largest spacing of the vertices of a run merged into an elastic bend', 'plugin default (statics-model)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('snap_tolerance_m', 0.5, 'm', 'distance within which an override matches a model node or section', 'plugin default (statics-model)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('design_temperature_c', 120.0, 'degC', 'design temperature of the pipes', 'EN 253 continuous limit');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('design_pressure_bar', 16.0, 'bar', 'design pressure of the pipes', 'project choice');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('laying_temperature_c', 10.0, 'degC', 'laying temperature, lowest temperature of the cycle', 'isoplus PHB 10/31 example');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('soil_unit_weight_kn_m3', 19.0, 'kN/m3', 'unit weight of the soil', 'isoplus PHB 9/12, 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('friction_angle_deg', 32.5, 'deg', 'internal friction angle of the soil', 'isoplus PHB 9/12, 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('friction_max', 0.4, '-', 'upper friction coefficient casing/soil (stresses, forces)', 'fit to isoplus PHB 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('friction_min', 0.2, '-', 'lower friction coefficient casing/soil (displacements, legs, pads)', 'to be confirmed: FW 401');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('axial_slip_m', 0.0005, 'm', 'axial displacement at which the friction is fully mobilised', 'to be confirmed: EN 13941');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('lateral_slip_m', 0.02, 'm', 'lateral displacement at which the passive earth pressure is reached', 'to be confirmed: EN 13941');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('traffic_load_kn_m2', 33.3, 'kN/m2', 'traffic area load for the minimum cover', 'isoplus PHB 9/11 (SLW 60)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('sigma_ax_allow_n7mm2', 190.0, 'N/mm2', 'allowed axial stress of the straight steel pipe when the series has none', 'isoplus PHB 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('tau_pur_max_n7mm2', 0.04, 'N/mm2', 'allowed shear stress of the PUR foam', 'isoplus PHB 9/12');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('pressure_max_bar', 25.0, 'bar', 'nominal pressure of the rigid system', 'isoplus PHB 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('stress_range_allow_n7mm2', NULL, 'N/mm2', 'allowed stress range at bends, tees and kinks', 'to be confirmed: EN 13941-1');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('hoop_stress_allow_n7mm2', NULL, 'N/mm2', 'allowed hoop stress', 'to be confirmed: EN 13941-1');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('buckling_safety', NULL, '-', 'required safety against upheaval buckling', 'to be confirmed: FW 401');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('cold_laying_max_single_c', 85.0, 'degC', 'highest temperature of cold laying without length limit, single pipe', 'isoplus PHB 12/2');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('cold_laying_max_twin_c', 70.0, 'degC', 'highest temperature of cold laying without length limit, twin pipe', 'isoplus PHB 12/2');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('movement_prestress_mm', 80.0, 'mm', 'leg movement above which the legs must be prestressed', 'isoplus PHB 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('pad_layer_mm', 40.0, 'mm', 'thickness of one pad layer', 'isoplus PHB 7/8');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('pad_piece_m', 1.0, 'm', 'length of one pad piece', 'isoplus PHB 7/8');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('pad_max_thickness_mm', 120.0, 'mm', 'largest pad thickness (casing at most 60 degC)', 'isoplus PHB 12/4');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('pad_max_compression', 0.5, '-', 'largest pad compression', 'isoplus PHB 7/9 (curve ends at 50 %)');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('element_length_m', 1.0, 'm', 'largest FE element length', 'solver');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('load_increment_k', 10.0, 'K', 'largest temperature increment of a load step', 'solver');
+INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES ('max_iterations', 50.0, '-', 'largest number of iterations per increment', 'solver');
 
 -------------------table public.pipe_constructions------------------------------------
 DROP TABLE IF EXISTS public.pipe_constructions CASCADE;  

@@ -108,7 +108,7 @@ def test_template_pipe_values(template):
     assert cu[5] == '\\N' and cu[12] == 'f'
     assert all(r[13] == '\\N' for name, r in pipes.items() if name.startswith('Isoplus DR'))
     series = {r[1]: r for r in blocks['pipe_series']}
-    assert series['Isoplus DRE Standard'][2:6] == ('rigid_single', 'EN 253', '120', '140') and series['Isoplus DRE Standard'][7] == '\\N'
+    assert series['Isoplus DRE Standard'][2:6] == ('rigid_single', 'EN 253', '120', '140') and series['Isoplus DRE Standard'][7] == '190'
     sid = series['isoplus isopex H'][0]
     assert ('8.5',) == tuple(r[4] for r in blocks['pipe_series_pressure_ratings'] if r[1] == sid and r[2:4] == ('50', '70'))
     materials = {r[1]: r for r in blocks['materials']}

@@ -5693,6 +5693,10 @@ li.checked::marker { content: "\2612"; }
             <source>tooltip_cost_optimization</source>
             <translation type="unfinished">Kostenoptimierung: Rohrgrössen mit dem kleinsten Barwert, durch Simulationen geprüft</translation>
         </message>
+        <message>
+            <source>tooltip_statics_calculate</source>
+            <translation type="unfinished">Statik berechnen: Spannungen, Verschiebungen, Dehnungspolster und Nachweise der starren Stahlrohre (im Hintergrund)</translation>
+        </message>
     </context>
     <context>
         <name>ExportResourceDialog</name>
@@ -13448,6 +13452,154 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>Customers below their setpoint or required load in the results; priced with the prices of the parameters, they are the part &quot;comfort violations&quot; of the net present value.</source>
             <translation>Abnehmer unter ihrem Sollwert oder ihrer geforderten Leistung in den Ergebnissen; mit den Preisen der Parameter bewertet sind sie der Anteil «Komfortverletzungen» des Barwerts.</translation>
+        </message>
+        <message>
+            <source>line {}</source>
+            <translation>Leitung {}</translation>
+        </message>
+        <message>
+            <source>node {}</source>
+            <translation>Knoten {}</translation>
+        </message>
+        <message>
+            <source>{}: axial stress {:.0f} N/mm2 above {:.0f} N/mm2 ({}).</source>
+            <translation>{}: Axialspannung {:.0f} N/mm2 über {:.0f} N/mm2 ({}).</translation>
+        </message>
+        <message>
+            <source>{}: stress range {:.0f} N/mm2 above {:.0f} N/mm2 ({}).</source>
+            <translation>{}: Spannungsschwingbreite {:.0f} N/mm2 über {:.0f} N/mm2 ({}).</translation>
+        </message>
+        <message>
+            <source>{}: hoop stress {:.0f} N/mm2 above {:.0f} N/mm2 ({}).</source>
+            <translation>{}: Umfangsspannung {:.0f} N/mm2 über {:.0f} N/mm2 ({}).</translation>
+        </message>
+        <message>
+            <source>{}: PUR shear stress {:.3f} N/mm2 above {:.3f} N/mm2 ({}), the cover is too deep.</source>
+            <translation>{}: PUR-Schubspannung {:.3f} N/mm2 über {:.3f} N/mm2 ({}), die Überdeckung ist zu groß.</translation>
+        </message>
+        <message>
+            <source>{}: cover {:.2f} m below the minimum {:.2f} m ({}).</source>
+            <translation>{}: Überdeckung {:.2f} m unter dem Minimum {:.2f} m ({}).</translation>
+        </message>
+        <message>
+            <source>{}: pressure {:.1f} bar above {:.1f} bar ({}).</source>
+            <translation>{}: Druck {:.1f} bar über {:.1f} bar ({}).</translation>
+        </message>
+        <message>
+            <source>{}: pad of {:.0f} mm needed, more than {:.0f} mm; prestress the legs or lengthen the leg.</source>
+            <translation>{}: Dehnungspolster von {:.0f} mm nötig, mehr als {:.0f} mm; Dehnungsschenkel vorspannen oder den Schenkel verlängern.</translation>
+        </message>
+        <message>
+            <source>{}: cold laying at {:.0f} degC above {:.0f} degC.</source>
+            <translation>{}: Kaltverlegung bei {:.0f} °C über {:.0f} °C.</translation>
+        </message>
+        <message>
+            <source>{}: leg movement {:.0f} mm above {:.0f} mm; the legs must be prestressed.</source>
+            <translation>{}: Schenkelbewegung {:.0f} mm über {:.0f} mm; die Dehnungsschenkel müssen vorgespannt werden.</translation>
+        </message>
+        <message>
+            <source>{}: one-time compensator travel {:.0f} mm above {:.0f} mm.</source>
+            <translation>{}: Dehnungsaufnahme des Einmalkompensators {:.0f} mm über {:.0f} mm.</translation>
+        </message>
+        <message>
+            <source>{}: one-time compensator with {:.1f} m straight pipe on a side, at least {:.0f} m needed.</source>
+            <translation>{}: Einmalkompensator mit {:.1f} m geradem Rohr auf einer Seite, mindestens {:.0f} m nötig.</translation>
+        </message>
+        <message>
+            <source>{}: unknown laying method {}.</source>
+            <translation>{}: unbekanntes Verlegeverfahren {}.</translation>
+        </message>
+        <message>
+            <source>{}: laying method {} is not supported, the section is not calculated.</source>
+            <translation>{}: das Verlegeverfahren {} wird nicht unterstützt, der Abschnitt wird nicht berechnet.</translation>
+        </message>
+        <message>
+            <source>{}: connection to a pipe that is not rigid steel, not calculated (free end).</source>
+            <translation>{}: Anschluss an ein Rohr, das kein starres Stahlrohr ist, nicht berechnet (freies Ende).</translation>
+        </message>
+        <message>
+            <source>{}: compensator without spring rate, treated as rigid pipe.</source>
+            <translation>{}: Kompensator ohne Federrate, als starres Rohr gerechnet.</translation>
+        </message>
+        <message>
+            <source>{}: one-time compensator outside the restrained zone.</source>
+            <translation>{}: Einmalkompensator außerhalb des Haftbereichs.</translation>
+        </message>
+        <message>
+            <source>{}: one-time compensator in a bend.</source>
+            <translation>{}: Einmalkompensator in einem Bogen.</translation>
+        </message>
+        <message>
+            <source>{}: one-time compensator stretch without an expansion leg or fixed point at both ends.</source>
+            <translation>{}: Einmalkompensator-Abschnitt ohne Dehnungsschenkel oder Festpunkt an beiden Enden.</translation>
+        </message>
+        <message>
+            <source>{}: the part was not calculated ({}).</source>
+            <translation>{}: der Teil wurde nicht berechnet ({}).</translation>
+        </message>
+        <message>
+            <source>Statics calculated: {} parts, {} pipe rows, {} element results, {} findings.</source>
+            <translation>Statik berechnet: {} Teile, {} Rohrzeilen, {} Elementergebnisse, {} Befunde.</translation>
+        </message>
+        <message>
+            <source>Fatigue not checked.</source>
+            <translation>Ermüdung nicht nachgewiesen.</translation>
+        </message>
+        <message>
+            <source>Twin pipes without simulation results: both carriers at the design temperature, the bending from their temperature difference is not included.</source>
+            <translation>Doppelrohre ohne Simulationsergebnisse: beide Mediumrohre auf der Auslegungstemperatur, die Biegung aus ihrem Temperaturunterschied ist nicht enthalten.</translation>
+        </message>
+        <message>
+            <source>Parts not converged</source>
+            <translation>Nicht konvergierte Teile</translation>
+        </message>
+        <message>
+            <source>Expansion pads</source>
+            <translation>Dehnungspolster</translation>
+        </message>
+        <message>
+            <source>line {}, pipe row {}: {:.0f} mm over {:.0f} m from {:.1f} m</source>
+            <translation>Leitung {}, Rohrzeile {}: {:.0f} mm auf {:.0f} m ab {:.1f} m</translation>
+        </message>
+        <message>
+            <source>Findings</source>
+            <translation>Befunde</translation>
+        </message>
+        <message>
+            <source>The statics calculation is already running.</source>
+            <translation>Die Statikberechnung läuft bereits.</translation>
+        </message>
+        <message>
+            <source>The statics model is {}; build it first.</source>
+            <translation>Das Statikmodell ist {}; zuerst das Statikmodell erstellen.</translation>
+        </message>
+        <message>
+            <source>Statics calculation</source>
+            <translation>Statikberechnung</translation>
+        </message>
+        <message>
+            <source>Statics calculation cancelled; the previous results are kept.</source>
+            <translation>Statikberechnung abgebrochen; die bisherigen Ergebnisse bleiben erhalten.</translation>
+        </message>
+        <message>
+            <source>The statics calculation failed; the previous results are kept. See the message log.</source>
+            <translation>Die Statikberechnung ist fehlgeschlagen; die bisherigen Ergebnisse bleiben erhalten. Siehe Meldungsprotokoll.</translation>
+        </message>
+        <message>
+            <source>Statics calculation of {}</source>
+            <translation>Statikberechnung von {}</translation>
+        </message>
+        <message>
+            <source>missing</source>
+            <translation>nicht vorhanden</translation>
+        </message>
+        <message>
+            <source>out of date</source>
+            <translation>veraltet</translation>
+        </message>
+        <message>
+            <source>current</source>
+            <translation>aktuell</translation>
         </message>
     </context>
 </TS>

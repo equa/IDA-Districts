@@ -108,6 +108,8 @@ from .utility_functions.economic_data import ensurePipeCostColumns
 # aliased: ida_mosim.buildModel (network model) is imported above under the plain name
 from .utility_functions.statics_db import buildModel as buildStaticsModelTables, ensureStaticsParameters, formatReport
 from .utility_functions.statics_layers import loadStaticsLayers
+from .utility_functions import statics_solve_db
+from .utility_functions.statics_task import StaticsTask
 from .utility_functions.reports import fillScenarioCombo, networkReport
 from .utility_functions.show_on_map import dropResultVisTables
 from .utility_functions.topology import getLayerAttributesName
@@ -986,8 +988,8 @@ class Districts:
         if self.conn:
             ensureStaticsParameters(self.cur)
             show_TableDialog(main=self,title=tr_msg('Statics parameters'),table='public.statics_parameters',
-                headers=[tr('@default','id'),tr_msg('Parameter'),tr_msg('Value'),tr_msg('Unit'),tr('@default','description')],
-                columns='(id,key,value,unit,description)',dropdowns=[],deactivated=[0,1,3,4])
+                headers=[tr('@default','id'),tr_msg('Parameter'),tr_msg('Value'),tr_msg('Unit'),tr('@default','description'),tr_msg('Source')],
+                columns='(id,key,value,unit,description,source)',dropdowns=[],deactivated=[0,1,3,4,5])
         else:
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
@@ -1014,6 +1016,48 @@ class Districts:
         self.dlg_staticsReport.setDetailedText(details)
         self.dlg_staticsReport.setModal(False)
         self.dlg_staticsReport.show()
+
+    def calculateStatics(self):
+        """Calculates the rigid steel pipes of the loaded version in the background and shows the report."""
+        if not self.conn:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
+            return
+        if not self.config['versionName']:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
+            return
+        if getattr(self, 'statics_task', None) is not None:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('The statics calculation is already running.'), level=MessageInfo)
+            return
+        state=statics_solve_db.sdb.modelState(self.cur,self.config['versionName'])
+        if state!=statics_solve_db.sdb.STATE_CURRENT:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('The statics model is {}; build it first.').format(
+                tr_msg(state)), level=MessageInfo)
+            return
+        #the task gets a connection of its own, opened here: the authentication manager belongs to the main thread
+        conn=dbConnect(self.config,True)
+        if not conn:
+            return
+        version=self.config['versionName']
+
+        def done(ok,payload):
+            self.statics_task=None
+            if ok:
+                summary,details=statics_solve_db.formatReport(payload['summary'],payload['findings'])
+                self.dlg_staticsCalcReport=QMessageBox(self.dlg)
+                self.dlg_staticsCalcReport.setWindowTitle(tr_msg('Statics calculation'))
+                self.dlg_staticsCalcReport.setText(summary)
+                self.dlg_staticsCalcReport.setDetailedText(details)
+                self.dlg_staticsCalcReport.setModal(False)
+                self.dlg_staticsCalcReport.show()
+            elif payload is None:
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('Statics calculation cancelled; the previous results are kept.'), level=MessageInfo)
+            elif payload[0]=='refused':
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg('The statics model is {}; build it first.').format(tr_msg(payload[1])), level=MessageInfo)
+            else:
+                QgsMessageLog.logMessage(payload[1],"Districts",MessageCritical)
+                self.iface.messageBar().pushMessage(tr_msg("Error"), tr_msg('The statics calculation failed; the previous results are kept. See the message log.'), level=MessageCritical)
+        self.statics_task=StaticsTask(tr_msg('Statics calculation of {}').format(version),conn,version,done)
+        QgsApplication.taskManager().addTask(self.statics_task)
 
     def manageEconomicScenarios(self):
         if self.conn:
@@ -1737,6 +1781,7 @@ class Districts:
             self.dlg.btn_ground_collectors.clicked.connect(lambda: self.manageGroundCollectors())
             self.dlg.btn_statics_parameters.clicked.connect(lambda: self.manageStaticsParameters())
             self.dlg.btn_statics_model.clicked.connect(lambda: self.buildStaticsModel())
+            self.dlg.btn_statics_calculate.clicked.connect(lambda: self.calculateStatics())
             self.dlg.btn_economic_scenarios.clicked.connect(lambda: self.manageEconomicScenarios())
             self.dlg.btn_manageCustomerTemplates.clicked.connect(lambda: self.manageTemplates('customer'))
             self.dlg.btn_manageEnergyPlantTemplates.clicked.connect(lambda: self.manageTemplates('energy_plant'))

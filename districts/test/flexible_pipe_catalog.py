@@ -34,10 +34,10 @@ MATERIALS = {
 
 Series = namedtuple('Series', 'name system_type standard t_cont t_peak t_min sigma safety description')
 SERIES = [
-    Series('Isoplus DRE Standard', 'rigid_single', 'EN 253', 120, 140, None, None, None,
-           'isoplus rigid single pipes (planning manual chapter 2); temperatures of EN 253, axial stress by EN 13941 from Re'),
-    Series('Isoplus DRD Standard', 'rigid_twin', 'EN 15698-1', 120, 140, None, None, None,
-           'isoplus rigid twin pipes (planning manual chapter 2); temperatures of EN 253, axial stress by EN 13941 from Re'),
+    Series('Isoplus DRE Standard', 'rigid_single', 'EN 253', 120, 140, None, 190, None,
+           'isoplus rigid single pipes (planning manual chapter 2); temperatures of EN 253; allowed axial stress of the planning manual 2/12, 12/4'),
+    Series('Isoplus DRD Standard', 'rigid_twin', 'EN 15698-1', 120, 140, None, 190, None,
+           'isoplus rigid twin pipes (planning manual chapter 2); temperatures of EN 253; allowed axial stress of the planning manual 2/45, 12/4'),
     Series('isoplus isoflex', 'flexible_metal', 'EN 15632-4', 120, 140, None, 150, None, SOURCE + ', 3.2 isoflex: steel P195GH'),
     Series('isoplus isoflex v', 'flexible_metal', 'EN 15632-4', 120, 140, None, 150, None, SOURCE + ', 3.2 isoflex, reinforced insulation'),
     Series('isoplus isoflex twin', 'flexible_metal', 'EN 15632-4', 120, 140, None, 150, None, SOURCE + ', 3.2 isoflex twin pipe'),

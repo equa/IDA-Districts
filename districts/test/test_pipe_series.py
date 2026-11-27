@@ -68,7 +68,7 @@ class TestPipeSeries:
         assert float(one(plugin, "SELECT p_max_bar FROM public.pipes WHERE name = 'isoplus isopex S-40';")['p_max_bar']) == 10
         assert one(plugin, "SELECT count(*) AS n FROM public.pipes WHERE name LIKE '%isowell%';")['n'] == 0
         dre = one(plugin, "SELECT * FROM public.pipe_series WHERE name = 'Isoplus DRE Standard';")
-        assert (dre['system_type'], float(dre['t_max_continuous_c']), float(dre['t_max_peak_c']), dre['sigma_ax_max_n7mm2']) == ('rigid_single', 120, 140, None)
+        assert (dre['system_type'], float(dre['t_max_continuous_c']), float(dre['t_max_peak_c']), float(dre['sigma_ax_max_n7mm2'])) == ('rigid_single', 120, 140, 190)
         assert rating(plugin, 'isoplus isopex H', 50, 70) == 8.5
         pexa = one(plugin, "SELECT * FROM public.materials WHERE name = 'PE-Xa';")
         assert (float(pexa['youngs_modulus_n7mm2']), float(pexa['yield_strength_n7mm2']), float(pexa['thermal_expansion_17kelvin'])) == (600, 17, 0.00015)

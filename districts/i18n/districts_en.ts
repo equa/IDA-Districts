@@ -5999,6 +5999,10 @@ p, li { white-space: pre-wrap; }
             <source>tooltip_cost_optimization</source>
             <translation type="unfinished">Cost optimization: pipe sizes with the least net present value, checked by simulations</translation>
         </message>
+        <message>
+            <source>tooltip_statics_calculate</source>
+            <translation type="unfinished">Calculate the statics: stresses, displacements, expansion pads and checks of the rigid steel pipes (in the background)</translation>
+        </message>
     </context>
     <context>
         <name>ExportResourceDialog</name>

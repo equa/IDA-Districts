@@ -3,11 +3,30 @@ import json
 from collections import OrderedDict
 
 from . import statics_model as sm
+from . import statics_checks as sc
 
 POINT_KINDS = ('fixed_point', 'compensator', 'one_time_compensator', 'valve', 'bend')
+#friction_coefficient is the upper value (statics-steel-solver D5); kept instead of being dropped from old versions
 SECTION_OVERRIDE_COLUMNS = ['cover_m', 'soil_unit_weight_kn_m3', 'friction_angle_deg', 'friction_coefficient',
-                            'groundwater_depth_m', 'traffic_load_kn_m2', 'laying_temperature_c', 'laying_method']
+                            'groundwater_depth_m', 'traffic_load_kn_m2', 'laying_temperature_c', 'laying_method',
+                            'friction_coefficient_min', 'design_temperature_c', 'design_pressure_bar',
+                            'preheat_temperature_c', 'prestressed_legs']
+POINT_OVERRIDE_COLUMNS = ['max_travel_mm', 'spring_rate_n_mm', 'bellows_area_cm2']
+#columns added by statics-steel-solver, for versions created before it
+ADDED_COLUMNS = {
+    'statics_sections': {'friction_coefficient_min': 'numeric CHECK (friction_coefficient_min >= 0)',
+                         'design_temperature_c': 'numeric', 'design_pressure_bar': 'numeric CHECK (design_pressure_bar >= 0)',
+                         'preheat_temperature_c': 'numeric', 'prestressed_legs': 'boolean'},
+    'statics_model_sections': {'friction_coefficient_min': 'numeric', 'design_temperature_c': 'numeric',
+                               'design_pressure_bar': 'numeric', 'preheat_temperature_c': 'numeric',
+                               'prestressed_legs': 'boolean'},
+    'statics_points': {'max_travel_mm': 'numeric CHECK (max_travel_mm > 0)', 'spring_rate_n_mm': 'numeric CHECK (spring_rate_n_mm > 0)',
+                       'bellows_area_cm2': 'numeric CHECK (bellows_area_cm2 > 0)'},
+    'statics_model_nodes': {'max_travel_mm': 'numeric', 'spring_rate_n_mm': 'numeric', 'bellows_area_cm2': 'numeric'},
+}
 MODEL_TABLES = ('statics_model_nodes', 'statics_model_sections', 'statics_model_pipes')
+RESULT_TABLES = ('statics_result_run', 'statics_result_elements', 'statics_result_nodes', 'statics_result_findings')
+VERSION_TABLES = MODEL_TABLES + ('statics_model_build', 'statics_points', 'statics_sections') + RESULT_TABLES
 STATE_MISSING, STATE_CURRENT, STATE_OUT_OF_DATE = 'missing', 'current', 'out of date'
 
 #the same SQL as the statics block of DB_versionTablesDefault.txt ($versionName$, $srid$); test_statics_build checks it
@@ -27,6 +46,9 @@ STATICS_TABLES_SQL = """CREATE TABLE IF NOT EXISTS "$versionName$".statics_model
   source text,
   override_id integer,
   override_kind text,
+  max_travel_mm numeric,
+  spring_rate_n_mm numeric,
+  bellows_area_cm2 numeric,
   CONSTRAINT statics_model_nodes_pkey PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_sections
@@ -47,6 +69,11 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_sections
   traffic_load_kn_m2 numeric,
   laying_temperature_c numeric,
   laying_method text,
+  friction_coefficient_min numeric,
+  design_temperature_c numeric,
+  design_pressure_bar numeric,
+  preheat_temperature_c numeric,
+  prestressed_legs boolean,
   CONSTRAINT statics_model_sections_pkey PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS "$versionName$".statics_model_pipes
@@ -85,6 +112,9 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_points
   kind text CHECK (kind IN ('fixed_point','compensator','one_time_compensator','valve','bend')),
   bend_class text CHECK (bend_class IN ('none','kink','bend','elastic')),
   radius_m numeric CHECK (radius_m > 0),
+  max_travel_mm numeric CHECK (max_travel_mm > 0),
+  spring_rate_n_mm numeric CHECK (spring_rate_n_mm > 0),
+  bellows_area_cm2 numeric CHECK (bellows_area_cm2 > 0),
   note text,
   CONSTRAINT statics_points_pkey PRIMARY KEY (id)
 );
@@ -100,19 +130,87 @@ CREATE TABLE IF NOT EXISTS "$versionName$".statics_sections
   traffic_load_kn_m2 numeric CHECK (traffic_load_kn_m2 >= 0),
   laying_temperature_c numeric,
   laying_method text,
+  friction_coefficient_min numeric CHECK (friction_coefficient_min >= 0),
+  design_temperature_c numeric,
+  design_pressure_bar numeric CHECK (design_pressure_bar >= 0),
+  preheat_temperature_c numeric,
+  prestressed_legs boolean,
   note text,
   CONSTRAINT statics_sections_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_run
+(
+  id serial,
+  run_at timestamp without time zone DEFAULT now(),
+  model_fingerprint text,
+  solver_fingerprint text,
+  parameters jsonb,
+  summary jsonb,
+  status text,
+  CONSTRAINT statics_result_run_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_elements
+(
+  id serial,
+  geom geometry(LineStringZ,$srid$),
+  model_pipe_id integer,
+  carrier integer,
+  load_step text,
+  friction_case text,
+  kind text,
+  sif numeric,
+  sigma_ax_n7mm2 numeric,
+  sigma_bend_n7mm2 numeric,
+  sigma_hoop_n7mm2 numeric,
+  sigma_eq_n7mm2 numeric,
+  stress_range_n7mm2 numeric,
+  utilisation numeric,
+  governing_check text,
+  CONSTRAINT statics_result_elements_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_nodes
+(
+  id serial,
+  geom geometry(PointZ,$srid$),
+  model_node_id integer,
+  model_pipe_id integer,
+  load_step text,
+  friction_case text,
+  ux_mm numeric,
+  uy_mm numeric,
+  uz_mm numeric,
+  axial_mm numeric,
+  lateral_mm numeric,
+  axial_friction_n numeric,
+  pad_thickness_mm numeric,
+  pad_length_m numeric,
+  CONSTRAINT statics_result_nodes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE IF NOT EXISTS "$versionName$".statics_result_findings
+(
+  id serial,
+  geom geometry(PointZ,$srid$),
+  rule text,
+  severity text,
+  model_node_id integer,
+  model_pipe_id integer,
+  line_id integer,
+  "values" jsonb,
+  text text,
+  CONSTRAINT statics_result_findings_pkey PRIMARY KEY (id)
 );"""
 
 STATICS_PARAMETERS_SQL = """CREATE TABLE IF NOT EXISTS public.statics_parameters
 (
   id serial,
   key text NOT NULL UNIQUE,
-  value numeric NOT NULL,
+  value numeric,
   unit text,
   description text,
+  source text,
   CONSTRAINT statics_parameters_pkey PRIMARY KEY (id)
 );"""
+MODEL_PARAMETER_SOURCE = 'plugin default (statics-model)'
 
 
 def staticsTablesSql(schema, srid):
@@ -126,28 +224,64 @@ def versionSrid(cur, schema):
 
 
 def ensureStaticsTables(cur, schema):
-    """Creates the missing statics tables of a version (versions created before the change statics-model)."""
+    """Creates the missing statics tables of a version and adds the columns of later changes (versions created
+    before statics-model or statics-steel-solver)."""
     cur.execute("""SELECT count(*) AS n FROM information_schema.tables WHERE table_schema = %s AND table_name = ANY(%s);""",
-                (schema, list(MODEL_TABLES) + ['statics_model_build', 'statics_points', 'statics_sections']))
-    if cur.fetchone()['n'] < 6:
+                (schema, list(VERSION_TABLES)))
+    if cur.fetchone()['n'] < len(VERSION_TABLES):
         cur.execute(staticsTablesSql(schema, versionSrid(cur, schema)))
+    for table, columns in ADDED_COLUMNS.items():
+        cur.execute("""SELECT column_name FROM information_schema.columns WHERE table_schema = %s AND table_name = %s;""",
+                    (schema, table))
+        existing = {r['column_name'] for r in cur.fetchall()}
+        missing = ['ADD COLUMN IF NOT EXISTS {} {}'.format(c, t) for c, t in columns.items() if c not in existing]
+        if missing:
+            #one ALTER TABLE per statement: the event trigger restrict_column_alterations fails on several
+            cur.execute('ALTER TABLE "{}".{} {};'.format(schema, table, ', '.join(missing)))  # nosec B608
+
+
+def parameterDefaults():
+    """{key: (default or None, unit, description, source)} of the model and the solver."""
+    out: dict = {k: (v, u, d, MODEL_PARAMETER_SOURCE) for k, (v, u, d) in sm.PARAMETER_DEFAULTS.items()}
+    out.update(sc.SOLVER_PARAMETERS)
+    return out
 
 
 def ensureStaticsParameters(cur):
-    """Creates public.statics_parameters and adds missing keys with their default; existing values are kept."""
+    """Creates public.statics_parameters and adds missing keys with their default and source; existing values are
+    kept. Older tables get the column source and an optional value (empty = limit not set)."""
     cur.execute(STATICS_PARAMETERS_SQL)
-    for key, (value, unit, description) in sm.PARAMETER_DEFAULTS.items():
-        cur.execute("""INSERT INTO public.statics_parameters (key, value, unit, description) VALUES (%s, %s, %s, %s)
-            ON CONFLICT (key) DO NOTHING;""", (key, value, unit, description))
+    cur.execute("""SELECT column_name, is_nullable FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'statics_parameters';""")
+    columns = {r['column_name']: r['is_nullable'] for r in cur.fetchall()}
+    if 'source' not in columns:
+        cur.execute("""ALTER TABLE public.statics_parameters ADD COLUMN IF NOT EXISTS source text;""")
+    if columns.get('value') == 'NO':
+        cur.execute("""ALTER TABLE public.statics_parameters ALTER COLUMN value DROP NOT NULL;""")
+    for key, (value, unit, description, source) in parameterDefaults().items():
+        cur.execute("""INSERT INTO public.statics_parameters (key, value, unit, description, source) VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (key) DO NOTHING;""", (key, value, unit, description, source))
+        cur.execute("""UPDATE public.statics_parameters SET source = %s WHERE key = %s AND source IS NULL;""", (source, key))
 
 
-def readParameters(cur):
-    params = sm.defaultParameters()
-    cur.execute("""SELECT key, value FROM public.statics_parameters;""")
+def readParameters(cur, with_sources=False):
+    """{key: value} of the model and solver keys (None = not set); with_sources: also {key: source}."""
+    defaults = parameterDefaults()
+    params = {k: v[0] for k, v in defaults.items()}
+    sources = {k: v[3] for k, v in defaults.items()}
+    cur.execute("""SELECT * FROM public.statics_parameters;""")
     for row in cur.fetchall():
-        if row['key'] in params and row['value'] is not None:
-            params[row['key']] = float(row['value'])
-    return params
+        if row['key'] in params:
+            params[row['key']] = float(row['value']) if row['value'] is not None else None
+            if row.get('source'):
+                sources[row['key']] = row['source']
+    return (params, sources) if with_sources else params
+
+
+def modelParameters(cur):
+    """The keys of the statics model only, with their defaults where a value is missing."""
+    params = readParameters(cur)
+    return {k: (params[k] if params.get(k) is not None else v[0]) for k, v in sm.PARAMETER_DEFAULTS.items()}
 
 
 # ---------------------------------------------------------------- fingerprint
@@ -156,27 +290,46 @@ FINGERPRINT_INPUTS = [
     (None, 'lines', 'id, ST_AsEWKT(geom), type, pipe_bundle_type_id'),
     (None, 'junctions', 'id, ST_AsEWKT(geom), type'),
     (None, 'junction_connections', 'jid, lid'),
-    (None, 'statics_points', 'id, ST_AsEWKT(geom), kind, bend_class, radius_m'),
+    (None, 'statics_points', 'id, ST_AsEWKT(geom), kind, bend_class, radius_m, ' + ', '.join(POINT_OVERRIDE_COLUMNS)),
     (None, 'statics_sections', 'id, ST_AsEWKT(geom), ' + ', '.join(SECTION_OVERRIDE_COLUMNS)),
     ('public', 'bundle_pipes', 'pipe_bundle_type_id, sequence, pipe_id, x, y'),
     ('public', 'pipes', 'id, innerpipediameter, pipe_construction_id, series, casing_construction_id, min_bend_radius_m'),
     ('public', 'pipe_layers', 'pipe_construction_id, materialid, thickness, sequence'),
     ('public', 'pipe_series', 'id, name, system_type'),
     ('public', 'junction_types', 'id, type'),
-    ('public', 'statics_parameters', 'key, value'),
+    #only the model's keys: a solver parameter must not put the model out of date
+    ('public', 'statics_parameters', 'key, value', "key IN ('{}')".format("', '".join(sm.PARAMETER_DEFAULTS))),
 ]
+#inputs of a calculation beyond the model: solver parameters, material values, allowed axial stress of the series
+SOLVER_FINGERPRINT_INPUTS = [
+    #as float: numeric keeps the written scale ('0.40' and '0.4' would hash differently)
+    ('public', 'statics_parameters', 'key, value::float8', None),
+    ('public', 'materials', 'id, youngs_modulus_n7mm2, thermal_expansion_17kelvin, yield_strength_n7mm2, poissons_ratio, density_kg7m3', None),
+    ('public', 'pipe_series', 'id, sigma_ax_max_n7mm2', None),
+]
+
+
+def _hash(cur, schema, inputs):
+    parts = []
+    for item in inputs:
+        table_schema, table, columns = item[:3]
+        where = item[3] if len(item) > 3 and item[3] else 'true'
+        s = table_schema or schema
+        cur.execute("""SELECT md5(coalesce(string_agg(t::text, '|' ORDER BY t::text), '')) AS h
+            FROM (SELECT {} FROM "{}".{} WHERE {}) t;""".format(columns, s, table, where))  # nosec B608
+        parts.append(cur.fetchone()['h'])
+    cur.execute("""SELECT md5(%s) AS h;""", ('/'.join(parts),))
+    return cur.fetchone()['h']
 
 
 def fingerprint(cur, schema):
     """md5 over the inputs of the model, computed in the DB."""
-    parts = []
-    for table_schema, table, columns in FINGERPRINT_INPUTS:
-        s = table_schema or schema
-        cur.execute("""SELECT md5(coalesce(string_agg(t::text, '|' ORDER BY t::text), '')) AS h
-            FROM (SELECT {} FROM "{}".{}) t;""".format(columns, s, table))  # nosec B608
-        parts.append(cur.fetchone()['h'])
-    cur.execute("""SELECT md5(%s) AS h;""", ('/'.join(parts),))
-    return cur.fetchone()['h']
+    return _hash(cur, schema, FINGERPRINT_INPUTS)
+
+
+def solverFingerprint(cur, schema):
+    """md5 over the inputs of a calculation that the model does not cover."""
+    return _hash(cur, schema, SOLVER_FINGERPRINT_INPUTS)
 
 
 def lastBuild(cur, schema):
@@ -291,7 +444,8 @@ def bundleChains(pipes, layers):
 
 
 def _overrides(cur, schema):
-    cur.execute("""SELECT id, ST_X(geom) AS x, ST_Y(geom) AS y, kind, bend_class, radius_m FROM "{}".statics_points WHERE geom IS NOT NULL;""".format(schema))  # nosec B608
+    cur.execute("""SELECT id, ST_X(geom) AS x, ST_Y(geom) AS y, kind, bend_class, radius_m, {} FROM "{}".statics_points
+        WHERE geom IS NOT NULL;""".format(', '.join(POINT_OVERRIDE_COLUMNS), schema))  # nosec B608
     points = {row['id']: row for row in cur.fetchall()}
     cur.execute("""SELECT s.id, {}, array_agg(ARRAY[ST_X(dp.geom), ST_Y(dp.geom)] ORDER BY dp.path) AS coords
         FROM "{}".statics_sections s, ST_DumpPoints(s.geom) dp GROUP BY s.id;""".format(
@@ -306,7 +460,7 @@ def buildModel(cur, schema):
     with fingerprint and report. A failed build leaves the previous model. Returns the report."""
     ensureStaticsParameters(cur)
     ensureStaticsTables(cur, schema)
-    params = readParameters(cur)
+    params = modelParameters(cur)
     srid = versionSrid(cur, schema)
     lines = _lines(cur, schema)
     ends = _junctionEnds(cur, schema)
@@ -380,6 +534,8 @@ def buildModel(cur, schema):
     for pid, nid in applied.items():
         node, point = nodes[id_keys[nid]], points[pid]
         node['override_id'], node['override_kind'] = pid, point['kind']
+        for c in POINT_OVERRIDE_COLUMNS:
+            node[c] = point.get(c)
         if point['bend_class']:
             node['bend_class'], node['source'] = point['bend_class'], 'override'
             node['radius_m'] = float(point['radius_m']) if point['radius_m'] is not None else node.get('radius_m')
@@ -438,11 +594,13 @@ def _write(cur, schema, srid, nodes, key_ids, sections, pipe_rows, report):
             cur.execute("""TRUNCATE "{}".{} RESTART IDENTITY;""".format(schema, table))  # nosec B608
         for key, n in nodes.items():
             cur.execute("""INSERT INTO "{}".statics_model_nodes (id, geom, line_ids, vertex_index, kind, junction_id, junction_type,
-                angle_deg, bend_class, radius_m, bend_id, source, override_id, override_kind)
-                VALUES (%s, ST_GeomFromEWKT(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""".format(schema),  # nosec B608
+                angle_deg, bend_class, radius_m, bend_id, source, override_id, override_kind, {})
+                VALUES (%s, ST_GeomFromEWKT(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, {});""".format(
+                schema, ', '.join(POINT_OVERRIDE_COLUMNS), ', '.join(['%s'] * len(POINT_OVERRIDE_COLUMNS))),  # nosec B608
                         (key_ids[key], _pointZ(n['coord'], srid), n['line_ids'], n.get('vertex_index'), n['kind'],
                          n.get('junction_id'), n.get('junction_type'), n.get('angle_deg'), n.get('bend_class'),
-                         n.get('radius_m'), n.get('bend_id'), n.get('source'), n.get('override_id'), n.get('override_kind')))
+                         n.get('radius_m'), n.get('bend_id'), n.get('source'), n.get('override_id'), n.get('override_kind'))
+                        + tuple(n.get(c) for c in POINT_OVERRIDE_COLUMNS))
         for i, s in enumerate(sections, 1):
             o = s.get('override') or {}
             cur.execute("""INSERT INTO "{}".statics_model_sections (id, geom, line_id, node_from, node_to, length_m, line_type,
