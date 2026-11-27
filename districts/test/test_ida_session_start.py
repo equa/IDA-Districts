@@ -183,9 +183,10 @@ class FakeUtil:
     """Util_api of a worker: the opening fails, exit_ida is recorded."""
     instances = []
 
-    def __init__(self, plugin_dir, config, submodel='1'):
+    def __init__(self, plugin_dir, config, submodel='1', hidden=False):
         self.pid = PID
         self.exited = False
+        self.hidden = hidden
         FakeUtil.instances.append(self)
 
     def open_document(self, path):

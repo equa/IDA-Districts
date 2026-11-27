@@ -9,7 +9,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProject
 from .utility_functions.compat import MessageCritical, MessageInfo
 from .utility_functions.db import getNetworkInfo, getPlantIds, getResultVars, getTableAttr, getResultTimeRange
-from .utility_functions.dialog import CheckableComboBox, addTableRow, checkState
+from .utility_functions.dialog import CheckableComboBox, addTableRow, checkState, infoTextEdit
 from .utility_functions.files import loadModellingSettings
 from .utility_functions.show_on_map import renderMapPlot
 from .utility_functions.thermal_properties import MelinderFluidEstimator
@@ -106,6 +106,11 @@ class NetworkReportDialog(QDialog):
         # Load UI
         ui_path = os.path.join(os.path.dirname(__file__), "network_report.ui")
         uic.loadUi(ui_path, self)
+        self.text_info=infoTextEdit(['network_report_info'],200)
+        self.verticalLayout.insertWidget(0,self.text_info)
+        # the .ui places its layout widget at a fixed geometry; a dialog layout lets it grow with the description
+        QVBoxLayout(self).addWidget(self.verticalLayoutWidget)
+        self.resize(420,720)
         self.btn_addPlot.setIcon(QIcon(":/images/themes/default/symbologyAdd.svg"))
         self.btn_deletePlot.setIcon(QIcon(":/images/themes/default/symbologyRemove.svg"))
         self.data=[]
@@ -520,7 +525,9 @@ class ShowOnMapDialog(QDialog):
         self.progress=QProgressBar()
         
         #---------------set layouts together-------------------
+        self.text_info=infoTextEdit(['show_on_map_info'],160)
         layout = QVBoxLayout()
+        layout.addWidget(self.text_info)
         layout.addLayout(layout_rbtn_dataGroup)
         layout.addLayout(layout_rbtn_feature)      
         layout.addLayout(layout_lineSegVis)      
@@ -1358,7 +1365,9 @@ class LoadResultsDialog(QDialog):
         self.progress=QProgressBar()
         
         #---------------set layouts together-------------------
+        self.text_info=infoTextEdit(['load_results_info'],160)
         layout_win = QVBoxLayout()
+        layout_win.addWidget(self.text_info)
         #layout_win.addLayout(layout_submodels)
         layout_win.addLayout(layout_interpolation)
         layout_win.addLayout(layout_buttons)

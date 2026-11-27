@@ -97,6 +97,12 @@ def checkImportData(dlg,source,cur,config,feature_type):
         
     return True
 
+def interpolationHours(start_h,end_h,dt_s):
+    """time axis [h] of the interpolated measurement data: steps of dt_s seconds (the unit of the dialog, as in
+    load results) on full multiples of the step, covering start_h..end_h"""
+    dt=dt_s/3600
+    return np.arange(start_h-start_h%dt, end_h-end_h%dt+dt, dt)
+
 def importMeasurementData(dlg,config,cur,plugin_dir,conn):
     source=dlg.lineEditSourceName.text()
     feature_type='customers' if dlg.rbtn_customers.isChecked() else ('energy_plants' if dlg.rbtn_plants.isChecked() else 'lines')
@@ -168,9 +174,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
         if dlg.checkbox_timestep.checkState() == checkState():
             if debug_enabled(): dprint(dlg.interpolation_dt.text())
 
-            if is_number(dlg.interpolation_dt.text()):
-                dt = float(dlg.interpolation_dt.text())  # hours
-
+            if is_number(dlg.interpolation_dt.text()) and float(dlg.interpolation_dt.text()) > 0:
                 if vars_data_np:
 
                     first_key = list(vars_data_np.keys())[0]
@@ -184,13 +188,8 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
                             for t in vars_data_np[k]
                         ])
 
-                    start_time_m = src_time_dict[first_key][0]
-                    end_time_m = src_time_dict[first_key][-1]
-
-                    start_time_h = start_time_m - (start_time_m % dt)
-                    end_time_h = end_time_m - (end_time_m % dt) + dt
-
-                    time_hours = np.arange(start_time_h, end_time_h, dt)
+                    time_hours = interpolationHours(src_time_dict[first_key][0], src_time_dict[first_key][-1],
+                                                    float(dlg.interpolation_dt.text()))
 
                 else:
                     iface.messageBar().pushMessage(
@@ -199,7 +198,7 @@ def importMeasurementData(dlg,config,cur,plugin_dir,conn):
                     return
             else:
                 iface.messageBar().pushMessage(
-                    tr_msg("Info"), tr_msg("Please enter a numerical interpolation time!"), level=MessageInfo
+                    tr_msg("Info"), tr_msg("Please enter a positive interpolation time!"), level=MessageInfo
                 )
                 return
 

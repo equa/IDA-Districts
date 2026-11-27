@@ -92,7 +92,7 @@ from .utility_functions.db import (
     updateProjectNamesList,
 )
 from .utility_functions.dialog import (
-    TableDialog, addParmTableRow, checkIDADistrictsInstallation, closeDialog, closeOtherDistrictsDialogs, deleteSelectedTableRow,
+    TableDialog, addParmTableRow, checkIDADistrictsInstallation, checkPostgresqlInstallation, closeDialog, closeOtherDistrictsDialogs, deleteSelectedTableRow,
     deleteTableRow, deleteTableRowTrace, load_image, runWithButtonDisabled,
 )
 from .utility_functions.files import (
@@ -103,6 +103,7 @@ from .utility_functions.invoke import InvokeFeatures, setFeatureParm
 from .utility_functions.layer_visualization import getDefaults, loadFeatureLayer, removeLayers
 from .economic_scenarios_dialog import EconomicScenariosDialog
 from .cost_optimization import CostOptimizationDialog
+from .version_npv_dialog import VersionNpvDialog
 from .utility_functions.economic_data import ensurePipeCostColumns
 # aliased: ida_mosim.buildModel (network model) is imported above under the plain name
 from .utility_functions.statics_db import buildModel as buildStaticsModelTables, ensureStaticsParameters, formatReport
@@ -491,6 +492,8 @@ class Districts:
         """Project version add dialog --> connects to the TreeItem_Add function, which does the adding"""
         dprint('Add dialog started')
         if self.conn:
+            if not checkPostgresqlInstallation(self.config, self.dlg):
+                return
             title=tr('@default','add_child_version')
             label_text=tr('@default','child_version_name')
             self.dlg_addVersion = IDA_Districts_NameDialog(title,label_text,'','')
@@ -504,6 +507,8 @@ class Districts:
         """Project version Save As dialog --> connects to the TreeItem_SaveAs function, which does the Save As"""
         dprint('Save As dialog started')
         if self.conn:
+            if not checkPostgresqlInstallation(self.config, self.dlg):
+                return
             title=tr('@default','save_project_version_as')
             label_text=tr('@default','project_version_name')
             self.dlg_saveAsVersion = IDA_Districts_NameDialog(title,label_text,'','')
@@ -818,6 +823,8 @@ class Districts:
         if not self.cur_postgres or self.dlg.projectNames is None:
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
             return
+        if not checkPostgresqlInstallation(self.config, self.dlg):
+            return
         self.dlg_createNewProject=NewProjectDlg(self.dlg,self.config)
         self.dlg_createNewProject.btn_ok.clicked.connect(lambda: createNewProject(self.dlg_createNewProject,self))
         self.dlg_createNewProject.btn_cancel.clicked.connect(lambda: closeDialog(self.dlg_createNewProject))
@@ -1115,6 +1122,8 @@ class Districts:
             self.config['pathDistricts']=pathDistricts
             self.iface.messageBar().pushMessage(tr_msg("Info"), tr_msg("IDA Districts Path does not exist!"), level=MessageInfo)
             checkIDADistrictsInstallation(self.config)
+        # saved anyway: PostgreSQL may be installed later
+        checkPostgresqlInstallation({'pathPostgresql': pathPostgresql}, dlg)
         settings.setValue("pathDistricts", pathDistricts)
         settings.setValue("pathPostgresql", pathPostgresql)
         self.saveAiKey(dlg, settings)
@@ -1562,7 +1571,19 @@ class Districts:
             else:
                 self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
         else:
-            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)  
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
+
+    def showVersionNpv(self):
+        """Net present value of the loaded version's results with the inputs of the cost optimization; no IDA needed"""
+        if self.conn:
+            if self.config['versionName']:
+                self.cur=self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+                self.dlg_versionNpv=VersionNpvDialog(self)
+                self.dlg_versionNpv.show()
+            else:
+                self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_version_loaded'), level=MessageInfo)
+        else:
+            self.iface.messageBar().pushMessage(tr_msg("Info"), tr('@default','no_db_connection'), level=MessageInfo)
 
     def showCalibration(self):                      
         if self.conn:
@@ -1748,7 +1769,8 @@ class Districts:
             self.dlg.btn_path_reports.clicked.connect(self.showPathReports)
             self.dlg.btn_plotLoadProfiles.clicked.connect(self.loadProfiles)
             self.dlg.btn_showDataOnMap.clicked.connect(self.showDataOnMap)            
-            self.dlg.btn_networkReport.clicked.connect(self.showNetworkReport)         
+            self.dlg.btn_networkReport.clicked.connect(self.showNetworkReport)
+            self.dlg.btn_versionNpv.clicked.connect(self.showVersionNpv)
             self.dlg.btn_importMeasurements.clicked.connect(self.showImportMeasurements)
             
             

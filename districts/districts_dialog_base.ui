@@ -878,26 +878,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="btn_statics_parameters">
-                <property name="toolTip">
-                 <string>tooltip_statics_parameters</string>
-                </property>
-                <property name="text">
-                 <string/>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btn_statics_model">
-                <property name="toolTip">
-                 <string>tooltip_statics_model</string>
-                </property>
-                <property name="text">
-                 <string/>
-                </property>
-               </widget>
-              </item>
-              <item>
                <widget class="QPushButton" name="btn_ground_collectors">
                 <property name="toolTip">
                  <string>tooltip_ground_collectors</string>
@@ -1297,6 +1277,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QPushButton" name="btn_statics_parameters">
+              <property name="toolTip">
+               <string>tooltip_statics_parameters</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
           <item>
@@ -1381,6 +1371,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <widget class="QPushButton" name="btn_calibration">
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_calibration&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <widget class="QPushButton" name="btn_statics_model">
+              <property name="toolTip">
+               <string>tooltip_statics_model</string>
               </property>
               <property name="text">
                <string/>
@@ -1518,6 +1518,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <widget class="QPushButton" name="btn_networkReport">
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_network_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_versionNpv">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_version_npv&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="text">
                <string/>

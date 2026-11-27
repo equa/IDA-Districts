@@ -11,6 +11,7 @@ from qgis.core import QgsMessageLog, Qgis
 from .compat import MessageInfo
 from .debug_log import dprint, debug_enabled
 from .translations import tr_msg
+from .hidden_simulation import windowOptions
 
 # IDA registers with its message broker when it accepts API calls; the line is not documented by the IDA API
 BROKER_LOG = os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), 'equa', 'ida_message_broker_log.txt')
@@ -35,10 +36,12 @@ def fileSize(path):
 
 
 class Util_api:
-    def __init__(self,plugin_dir,config,submodel='1'):
+    def __init__(self,plugin_dir,config,submodel='1',hidden=False):
         # Define your path to the IDA Districts bin folder here
         path_to_districts = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
         command = "\""+path_to_districts + "ida-districts.exe\" \"" + path_to_districts + "ida.img\" -G1 -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
+        if hidden:
+            command += " " + " ".join(windowOptions(hidden))
         dprint(command)
         # before the start: the registration of this process is looked for only after this offset
         self.broker_log = BROKER_LOG

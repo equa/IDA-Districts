@@ -291,7 +291,7 @@ def startCalibration(dlg,conn,config,plugin_dir):
 (exit-ida)
 """.format(parmRun_name,parmRun_name)
                 dprint(script)
-                worker_Parmrun =  WorkerOpenModelCmd(config['pathProjects']+'{}\\versions\\{}\\invoked_customers\\Customer_{}.idm'.format(config['projectName'],config['versionName'],id),config,script=script,progress=False)
+                worker_Parmrun =  WorkerOpenModelCmd(config['pathProjects']+'{}\\versions\\{}\\invoked_customers\\Customer_{}.idm'.format(config['projectName'],config['versionName'],id),config,script=script,progress=False,hidden=dlg.check_hidden.isChecked())
                 QThreadPool.globalInstance().start(worker_Parmrun) 
                 worker_Parmrun.signals.error.connect(dlg.show_error_message)
                 worker_Parmrun.signals.progress.connect(dlg.update_progress)   

@@ -332,7 +332,7 @@ def runModel(dlg,plugin_dir,config):
                     writePropertyListIDMToFile(data_idm,dir,fname,config)
                     writeSimulatedOutputs(config,requestedOutputs)
                     
-                    worker_runNetwork[i] = WorkerSimulateAPI(fname,plugin_dir,config)
+                    worker_runNetwork[i] = WorkerSimulateAPI(fname,plugin_dir,config,hidden=dlg.check_hidden.isChecked())
                     worker_runNetwork[i].signals.error.connect(dlg.show_error_message)
                     worker_runNetwork[i].signals.status.connect(dlg.updateStatusBar)
                     worker_runNetwork[i].signals.finished.connect(dlg.update_finished)

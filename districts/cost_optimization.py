@@ -53,6 +53,7 @@ from .utility_functions.protected_lines import loadProtectedLines, networkLineId
 from .utility_functions.protected_lines_widget import ProtectedLinesWidget
 from .utility_functions.reports import fillScenarioCombo
 from .utility_functions.required_load import TOLERANCE, ensureRequired, saveRequired
+from .utility_functions.hidden_simulation import hideSimulationCheckBox
 from .utility_functions.translations import tr_msg
 from .utility_functions.utility import write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
@@ -164,6 +165,89 @@ def npvRecord(evaluation, yearly_penalty, penalty_npv, stage=None):
 def runScenario(cur, parms):
     """the scenario of a run with the overrides of a sensitivity variant (cost-sensitivity D2); the stored one stays"""
     return applyOverrides(loadScenario(cur, parms['scenario']), parms.get('overrides'))
+
+
+def carrierPriceNotes(cur, config, parms):
+    """a carrier of the energy-use list without a price in the run's scenario: its energy would count as free, so the
+    evaluation prices the pipe losses with the curves instead (cost-sensitivity D10)"""
+    from .utility_functions.economic_data import systemBoundary
+    from .utility_functions.energy_use import loadEnergyList
+    from .utility_functions.network_energy import unpricedListCarriers
+    try:
+        scenario = runScenario(cur, parms)
+        energy_list = loadEnergyList(config)
+        missing = unpricedListCarriers(scenario, energy_list, systemBoundary(scenario, energy_list))
+    except Exception:
+        QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
+        return []
+    if not missing:
+        return []
+    return [tr_msg('Warning: the scenario has no price for {}, which the plants (or customers) buy: the pipe losses are priced with the price '
+                   'curves instead of the bought energy. Enter the price in the economic scenario.').format(', '.join(missing))]
+
+
+def evaluateResults(cur, config, parms, settings, prices, required, stages=None):
+    """(evaluation, {cid: (Kh, unmet kWh)}) of the simulated results (worker thread), over stages lists of both, one
+    per stage version; values None when an evaluation has no 'npv' (results missing or too short), with that evaluation.
+    Shared by the iterations of a run and the NPV of a version, so both compute the same."""
+    def one(cfg):
+        evaluation = evaluateVersion(cur, cfg, runScenario(cur, parms), settings, profile_dir=prices)
+        if 'npv' not in evaluation:
+            return evaluation, None
+        return evaluation, penaltyValues(cur, cfg, required, parms['submodel'], parms['tolerance'], parms['unmet_tolerance'] / 100)
+
+    if not stages:
+        return one(config)
+    evaluations, values = [], []
+    for stage in stages:
+        evaluation, value = one(dict(config, versionName=stage['version']))
+        if value is None:
+            return evaluation, None
+        evaluations.append(evaluation)
+        values.append(value)
+    return evaluations, values
+
+
+def penaltySplit(evaluation, values, parms):
+    """(yearly penalty, NPV parts with the comfort violations, NPV) of one version"""
+    sc = evaluation['scenario']['scenario']
+    yearly = penaltyCost(values, parms['price_kh'], parms['price_kwh'])
+    split = dict(evaluation['npv']['split'])
+    split['penalties'] = penaltyNpv(yearly, float(sc.get('interest_pct') or 0), int(sc.get('period_a') or 0))
+    return yearly, split, sum(split.values())
+
+
+def deficitTable(values):
+    return {str(cid): [round(v[0], 1), round(v[1], 1)] for cid, v in values.items() if v[0] > 1e-6 or v[1] > 1e-6}
+
+
+def stagedNpv(evaluations, values, parms, stages, climates=None):
+    """(stagesNpv's result, the entries per stage for the iteration file and the report) of a network built in stages"""
+    yearly = [penaltyCost(v, parms['price_kh'], parms['price_kwh']) for v in values]
+    result = stagesNpv(evaluations[0]['scenario'], stages, evaluations, yearly)
+    entries = [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split'], 'climate': (climates or {}).get(s['version'], ''),
+                # the terms of the stage for the report, as npvRecord of a single version
+                'economics': npvRecord(evaluation, penalty, r['split']['penalties'], stage=inputs)}
+               for s, r, evaluation, penalty, inputs in zip(stages, result['stages'], evaluations, yearly, result['inputs'])]
+    return result, entries
+
+
+def versionNpvRow(cur, config, parms, settings, prices, required, stages=None, climates=None):
+    """the NPV of the loaded results as an iteration of the cost optimization computes it (worker thread): a row like
+    an iteration's {'npv', 'split', 'economics' | 'stages', 'state', 'deficit_customers', 'deficits'}, or the evaluation
+    without 'npv' when the results do not suffice"""
+    evaluation, values = evaluateResults(cur, config, parms, settings, prices, required, stages)
+    if values is None:
+        return evaluation
+    if stages:
+        result, entries = stagedNpv(evaluation, values, parms, stages, climates)
+        return {'iteration': 0, 'npv': result['npv'], 'split': result['split'], 'economics': None, 'stages': entries,
+                'state': {str(lid): bid for lid, bid in lineState(cur, stages[-1]['version']).items()},
+                'stage_deficits': {s['version']: deficitTable(v) for s, v in zip(stages, values)}}
+    yearly, split, npv = penaltySplit(evaluation, values, parms)
+    return {'iteration': 0, 'npv': npv, 'split': split, 'economics': npvRecord(evaluation, yearly, split['penalties']),
+            'state': {str(lid): bid for lid, bid in lineState(cur, config['versionName']).items()},
+            'deficit_customers': deficitCustomers(values), 'deficits': deficitTable(values)}
 
 
 def modelStep(cur, config, parms, settings, prices, no_smaller, stages=None, write=True):
@@ -366,6 +450,8 @@ class CostOptimizationDialog(QDialog):
         form.addRow(tr_msg('Deadband heating/cooling'), self.spin_deadband)
         form.addRow(tr_msg('Max. iterations'), self.spin_iter)
         form.addRow(tr_msg('Outputs'), self.check_outputs)
+        self.check_hidden = hideSimulationCheckBox()
+        form.addRow('', self.check_hidden)
         form.addRow(tr_msg('Version'), version)
         self.groupBox_info = QgsCollapsibleGroupBox(tr_msg('Description'))
         self.groupBox_info.setObjectName('groupBox_costOptimizationInfo')
@@ -634,6 +720,7 @@ class CostOptimizationDialog(QDialog):
                 'unmet_tolerance': self.spin_tolerance_kwh.value(), 'dp_spez_max': self.spin_dp_max.value(), 'v_max': self.spin_v_max.value(),
                 'max_iter': self.spin_iter.value(), 'new_version': self.edit_version.text().strip() if self.rbtn_new.isChecked() else None,
                 'set_outputs': self.check_outputs.isChecked(), 'mode_deadband_pct': self.spin_deadband.value(),
+                'hidden': self.check_hidden.isChecked(),
                 'stages': self.stage_table.stages()}
 
     # ---------------------------------------------------------------- run
@@ -701,22 +788,7 @@ class CostOptimizationDialog(QDialog):
         return errors, notes + self.carrierPriceNotes(p)
 
     def carrierPriceNotes(self, p):
-        """a carrier of the energy-use list without a price in the run's scenario: its energy would count as free, so the
-        evaluation prices the pipe losses with the curves instead (cost-sensitivity D10)"""
-        from .utility_functions.economic_data import systemBoundary
-        from .utility_functions.energy_use import loadEnergyList
-        from .utility_functions.network_energy import unpricedListCarriers
-        try:
-            scenario = runScenario(self.main.cur, p)
-            energy_list = loadEnergyList(self.main.config)
-            missing = unpricedListCarriers(scenario, energy_list, systemBoundary(scenario, energy_list))
-        except Exception:
-            QgsMessageLog.logMessage(traceback.format_exc(), 'Districts', MessageCritical)
-            return []
-        if not missing:
-            return []
-        return [tr_msg('Warning: the scenario has no price for {}, which the plants (or customers) buy: the pipe losses are priced with the price '
-                       'curves instead of the bought energy. Enter the price in the economic scenario.').format(', '.join(missing))]
+        return carrierPriceNotes(self.main.cur, self.main.config, p)
 
     def stop(self):
         sensitivity = self.sensitivity.run
@@ -1035,7 +1107,8 @@ class CostOptimizationRun(QObject):
         self.dlg.log(tr_msg('Iteration {}: simulating the periods ...').format(self.iteration))
         parms = {'network': self.parms['network'], 'submodel': self.parms['submodel'], 'build_first': build,
                  # the first run invokes the customers and plants again, so their outputs match the requested ones
-                 'reinvoke': self.iteration == 0 and not self.final_check, **self.periods}
+                 'reinvoke': self.iteration == 0 and not self.final_check,
+                 'hidden': self.parms.get('hidden', False), **self.periods}
         self.period_run = PeriodRun(_CheckDialog(self.dlg, self.year, self.t_year, self.climate), self.main, parms, on_finished=self.onChecked)
         self.period_run.start()
 
@@ -1057,7 +1130,8 @@ class CostOptimizationRun(QObject):
             self.onException()
             return
         parms = {'network': self.parms['network'], 'submodel': self.parms['submodel'], 'build_first': build,
-                 'reinvoke': self.iteration == 0 and not self.final_check, **self.periods}
+                 'reinvoke': self.iteration == 0 and not self.final_check,
+                 'hidden': self.parms.get('hidden', False), **self.periods}
         self.period_run = PeriodRun(_CheckDialog(self.dlg, self.year, t_year, climate), self.main, parms,
                                     on_finished=lambda ok: self.onStageChecked(k, build, ok))
         self.period_run.start()
@@ -1092,22 +1166,15 @@ class CostOptimizationRun(QObject):
         config, p, settings, prices, required = dict(self.config), dict(self.parms), self.settings, self.prices, self.dlg.requiredEntries()
 
         def work(cur):
-            evaluation = evaluateVersion(cur, config, runScenario(cur, p), settings, profile_dir=prices)
-            if 'npv' not in evaluation:
-                return evaluation, None, None
-            return evaluation, penaltyValues(cur, config, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100), lineState(cur, config['versionName'])
+            evaluation, values = evaluateResults(cur, config, p, settings, prices, required)
+            return evaluation, values, None if values is None else lineState(cur, config['versionName'])
 
         stages = self.stageList()
         if stages:
             def staged(cur):
-                evaluations, values = [], []
-                for stage in stages:
-                    cfg = dict(config, versionName=stage['version'])
-                    evaluation = evaluateVersion(cur, cfg, runScenario(cur, p), settings, profile_dir=prices)
-                    if 'npv' not in evaluation:
-                        return evaluation, None, None
-                    evaluations.append(evaluation)
-                    values.append(penaltyValues(cur, cfg, required, p['submodel'], p['tolerance'], p['unmet_tolerance'] / 100))
+                evaluations, values = evaluateResults(cur, config, p, settings, prices, required, stages)
+                if values is None:
+                    return evaluations, None, None
                 return evaluations, values, {s['version']: lineState(cur, s['version']) for s in stages}
             startTask(self, self.config, staged, self.onEvaluated, self.onTaskFailed)
             return
@@ -1131,8 +1198,7 @@ class CostOptimizationRun(QObject):
         p = self.parms
         if not self.stage_references:
             self.stage_references = values
-        yearly = [penaltyCost(v, p['price_kh'], p['price_kwh']) for v in values]
-        result = stagesNpv(evaluations[0]['scenario'], self.stageList(), evaluations, yearly)
+        result, entries = stagedNpv(evaluations, values, p, self.stageList(), {v: c[0] for v, c in self.stage_climates.items()})
         # per stage: the customer IDs of the stages are their own (the map shows each stage's)
         stage_penalty = {s['version']: sorted(cid for cid, (kh, kwh) in v.items() if kh > ref.get(cid, (0, 0))[0] + 1e-6 or kwh > ref.get(cid, (0, 0))[1] + 1e-6)
                          for s, v, ref in zip(self.stageList(), values, self.stage_references)}
@@ -1145,11 +1211,7 @@ class CostOptimizationRun(QObject):
                'penalty_customers': new_deficits, 'stage_penalty': stage_penalty, 'state': states[self.stage_versions[-1]], 'economics': None,
                # the line IDs differ between the stages (pipe laying of the extension): the pipes of each stage
                'stage_states': {version: {str(lid): bid for lid, bid in state.items()} for version, state in states.items()},
-               'stages': [{'version': s['version'], 'start': s['start'], 'npv': r['npv'], 'split': r['split'],
-                           'climate': (self.stage_climates.get(s['version']) or ('',))[0],
-                           # the terms of the stage for the report, as npvRecord of a single version
-                           'economics': npvRecord(evaluation, penalty, r['split']['penalties'], stage=inputs)}
-                          for s, r, evaluation, penalty, inputs in zip(self.stageList(), result['stages'], evaluations, yearly, result['inputs'])]}
+               'stages': entries}
         if previous:
             row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if new_deficits]
             self.no_smaller.update(row['penalty_reverted'])
@@ -1171,11 +1233,7 @@ class CostOptimizationRun(QObject):
                                     'Mostly hydraulic: balance the network first (hydraulic balancing). They count in the NPV of every iteration.').format(
                     self.iteration, len(deficits), sum(values[c][0] for c in deficits), sum(values[c][1] for c in deficits),
                     ', '.join(str(c) for c in deficits[:20]) + (' ...' if len(deficits) > 20 else '')))
-        sc = evaluation['scenario']['scenario']
-        yearly_penalty = penaltyCost(values, p['price_kh'], p['price_kwh'])
-        split = dict(evaluation['npv']['split'])
-        split['penalties'] = penaltyNpv(yearly_penalty, float(sc.get('interest_pct') or 0), int(sc.get('period_a') or 0))
-        npv = sum(split.values())
+        yearly_penalty, split, npv = penaltySplit(evaluation, values, p)
         previous = self.rows[-1] if self.rows else None
         npv_model = previous.get('npv_next') if previous else None
         row = {'iteration': self.iteration, 'npv': npv, 'split': split, 'npv_model': npv_model,
@@ -1183,7 +1241,7 @@ class CostOptimizationRun(QObject):
                'penalty_customers': sorted(cid for cid, v in values.items() if v[0] > self.reference.get(cid, (0, 0))[0] + 1e-6 or v[1] > self.reference.get(cid, (0, 0))[1] + 1e-6),
                'state': state, 'economics': npvRecord(evaluation, yearly_penalty, split['penalties']),
                'deficit_customers': deficitCustomers(values),
-               'deficits': {str(cid): [round(v[0], 1), round(v[1], 1)] for cid, v in values.items() if v[0] > 1e-6 or v[1] > 1e-6}}
+               'deficits': deficitTable(values)}
         if previous:
             # a new deficit: the lines made smaller in the last step stay as they are now
             row['penalty_reverted'] = [lid for lid in previous.get('smaller', []) if row['penalty_customers']]

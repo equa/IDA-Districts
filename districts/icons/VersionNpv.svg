@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- the euro coin: the net present value -->
+  <circle cx="200" cy="138" r="98" fill="#f2c12e" stroke="#7a5a00" stroke-width="8"/>
+  <circle cx="200" cy="138" r="80" fill="none" stroke="#c99a12" stroke-width="4"/>
+  <path d="M 248 92 A 58 58 0 1 0 248 184" fill="none" stroke="#7a5a00" stroke-width="16" stroke-linecap="round"/>
+  <g stroke="#7a5a00" stroke-width="12" stroke-linecap="round">
+    <line x1="132" y1="122" x2="208" y2="122"/>
+    <line x1="132" y1="154" x2="200" y2="154"/>
+  </g>
+
+  <!-- fuel: a flame -->
+  <path d="M 52 196 C 22 166, 40 130, 62 108 C 62 130, 76 136, 82 126 C 98 148, 102 176, 80 196 Z"
+        fill="#f2711c" stroke="#a83c00" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M 62 192 C 52 178, 58 164, 66 156 C 68 166, 76 170, 78 164 C 84 176, 82 186, 74 192 Z" fill="#ffd34d"/>
+
+  <!-- electricity: a bolt -->
+  <path d="M 348 102 L 316 160 L 340 160 L 322 206 L 370 142 L 344 142 L 362 102 Z"
+        fill="#ffd34d" stroke="#8a6d00" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- supply and return pipes -->
+  <rect x="24" y="270" width="352" height="34" rx="17" fill="#e5483b" stroke="#8f1d14" stroke-width="5"/>
+  <rect x="24" y="324" width="352" height="34" rx="17" fill="#2f80ed" stroke="#1b4f91" stroke-width="5"/>
+  <g fill="#ffffff" opacity="0.45">
+    <rect x="40" y="278" width="110" height="8" rx="4"/>
+    <rect x="40" y="332" width="110" height="8" rx="4"/>
+  </g>
+
+  <!-- the pump on the supply pipe -->
+  <circle cx="276" cy="287" r="40" fill="#ffffff" stroke="#33414e" stroke-width="7"/>
+  <path d="M 316 287 L 256 252.4 L 256 321.6 Z" fill="none" stroke="#33414e" stroke-width="7" stroke-linejoin="round"/>
+</svg>

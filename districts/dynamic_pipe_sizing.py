@@ -37,6 +37,7 @@ from .utility_functions.pipe_pairs import (
     pairLabel, suggestPairs, targetFlow,
 )
 from .utility_functions.protected_lines import loadProtectedLines, networkLineIds, parseProtectedEntries, saveProtectedLines
+from .utility_functions.hidden_simulation import hideSimulationCheckBox
 from .utility_functions.translations import tr, tr_msg
 from .utility_functions.utility import sanitize_pg_identifier, write_plugin_settings
 from .utility_functions.workers import WorkerLoadVersion
@@ -86,6 +87,8 @@ class DynamicPipeSizingDialog(QDialog):
         self.setupPairTable()
         self.setupProtectedLines()
         self.setupPeriods()
+        self.check_hidden = hideSimulationCheckBox()
+        self.formLayout_iteration.addRow(self.check_hidden)
         self.checkBox_presize.toggled.connect(self.updateEnabled)
         self.checkBox_dpSpezMax.toggled.connect(self.updateEnabled)
         self.checkBox_vMax.toggled.connect(self.updateEnabled)
@@ -441,6 +444,7 @@ class DynamicPipeSizingDialog(QDialog):
             'pairs': self.pairs()[0],
             'build_first': self.checkBox_buildFirst.isChecked(),
             'show_map': self.checkBox_showMap.isChecked(),
+            'hidden': self.check_hidden.isChecked(),
             'periods': self.periods(),
             'reference_run': self.checkBox_referenceRun.isChecked(),
             'protected': parseProtectedEntries(self.protectedTexts())[0],
@@ -701,6 +705,7 @@ class DynamicPipeSizingRun(QObject):
             self.dlg_run.combo_submodels.addItem(tr('@default', 'check_all_items'))
             self.dlg_run.combo_submodels.addItem(self.parms['submodel'])
             self.dlg_run.combo_submodels.setItemChecked(1, True)
+            self.dlg_run.check_hidden.setChecked(self.parms.get('hidden', False))
             # the periods of the sizing dialog; runModel saves them with the other settings of the version
             for key, attr in zip(PERIOD_KEYS, ('dateedit_calcFrom', 'dateedit_calcTo', 'dateedit_startupFrom', 'dateedit_startupTo')):
                 getattr(self.dlg_run, attr).setDateTime(QDateTime.fromString(self.parms['periods'][key], DATE_FORMAT))

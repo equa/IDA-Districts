@@ -16,7 +16,7 @@ import tempfile
 import traceback
 from .compat import MessageCritical, MessageInfo, MessageWarning
 from .translations import tr, tr_msg
-from .utility import getDistrictsModelerVersion, sanitize_pg_identifier
+from .utility import getDistrictsModelerVersion, missingPostgresqlTools, sanitize_pg_identifier
 from .debug_log import dprint
 
 #from .dialog import *
@@ -233,6 +233,11 @@ def dbColumnIsNumeric(cur,version,table,col):
     
 def copy_schema(baseName,new_versionName,config,cur,plugin_dir,username,password):
     """copy schema"""
+    # checked first: the base schema is renamed before psql restores it, a missing psql would leave it renamed
+    missing = missingPostgresqlTools(config['pathPostgresql'])
+    if missing:
+        raise RuntimeError(tr_msg('{} not found in {}. Please set the PostgreSQL path (the folder that contains bin) in the plugin settings.').format(
+            ', '.join(missing), os.path.join(config['pathPostgresql'] or '', 'bin')))
     env = os.environ.copy()
     env["PGPASSWORD"] = password
     

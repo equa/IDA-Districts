@@ -552,8 +552,8 @@ class PeriodRun(QObject):
 
     def makeWorker(self, k):
         """each week in its own process: one IDA connection per process (simulate_process.py)"""
-        fname, path_districts = self.files[k], self.config['pathDistricts']
-        worker = CalcTask(lambda: simulateInProcess(fname, os.path.dirname(fname), path_districts))
+        fname, path_districts, hidden = self.files[k], self.config['pathDistricts'], self.parms.get('hidden', False)
+        worker = CalcTask(lambda: simulateInProcess(fname, os.path.dirname(fname), path_districts, hidden=hidden))
         relay = _PeriodRelay(self, k)
         worker.signals.done.connect(relay.done)
         worker.signals.failed.connect(relay.failed)
@@ -688,6 +688,7 @@ class PeriodRun(QObject):
             self.dlg_run.combo_submodels.addItem(tr('@default', 'check_all_items'))
             self.dlg_run.combo_submodels.addItem(self.parms['submodel'])
             self.dlg_run.combo_submodels.setItemChecked(1, True)
+            self.dlg_run.check_hidden.setChecked(self.parms.get('hidden', False))
             for value, attr in zip((calc_from, calc_to, startup_from, startup_to), ('dateedit_calcFrom', 'dateedit_calcTo', 'dateedit_startupFrom', 'dateedit_startupTo')):
                 getattr(self.dlg_run, attr).setDateTime(QDateTime.fromString(value.strftime('%Y-%m-%d %H:%M:%S'), DATE_FORMAT))
             self.dlg_run.updateStatusBar = self.onSimStatus  # type: ignore[method-assign]

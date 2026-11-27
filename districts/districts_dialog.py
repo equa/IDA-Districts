@@ -274,7 +274,9 @@ class DistrictsDialog(QtWidgets.QDialog):
         self.btn_plotLoadProfiles.setIconSize(QSize(btn_size, btn_size))  
         
         self.btn_networkReport.setIcon(QIcon(":/images/themes/default/mIconReport.svg"))
-        self.btn_networkReport.setIconSize(QSize(btn_size, btn_size))   
+        self.btn_networkReport.setIconSize(QSize(btn_size, btn_size))
+        self.btn_versionNpv.setIcon(QIcon(os.path.join(plugin_dir, "icons/VersionNpv.svg")))
+        self.btn_versionNpv.setIconSize(QSize(btn_size, btn_size))
         
         self.btn_showDataOnMap.setIcon(QIcon(os.path.join(plugin_dir, "icons/map_plots.png")))
         self.btn_showDataOnMap.setIconSize(QSize(btn_size, btn_size))   

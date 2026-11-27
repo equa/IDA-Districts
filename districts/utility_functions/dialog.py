@@ -1,30 +1,43 @@
 from qgis.PyQt.QtCore import QObject, pyqtSignal,Qt
 from qgis.PyQt import uic, QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import QTextEdit, QTextBrowser, QDialog, QSpacerItem, QSizePolicy, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar
+from qgis.PyQt.QtWidgets import QMessageBox, QTextEdit, QTextBrowser, QDialog, QSpacerItem, QSizePolicy, QTableWidgetItem, QTableWidget, QTreeView, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QCheckBox, QComboBox, QProgressBar
 from qgis.utils import iface
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtSvg import QSvgRenderer
 
+import html
 import os
 from .compat import ItemIsEnabled, ItemIsSelectable, MessageCritical, MessageInfo
 from .db import getDropDownItems, getMaxId
 from .translations import tr, tr_msg
-from .utility import get_districts_plugin_dir
+from .utility import get_districts_plugin_dir, missingPostgresqlTools
 
 import copy
 import traceback
 from .debug_log import dprint, debug_enabled
 
 def checkIDADistrictsInstallation(config):
-    if not os.path.exists(f"{config['pathDistricts']}bin\\ida-districts.exe"):
+    exe=f"{config['pathDistricts']}bin\\ida-districts.exe"
+    if not os.path.exists(exe):
         dprint('--IDA Districts does not exists--')
-        dialog=IDADistrictsPleaseContactDialog()
+        dialog=IDADistrictsPleaseContactDialog(path=exe)
         # Wait for user response
         result = dialog.exec()
         return False
     else:
         return True
+
+def checkPostgresqlInstallation(config, parent=None):
+    """True if psql and pg_dump are in the PostgreSQL path of the plugin settings, otherwise a warning names the folder"""
+    missing=missingPostgresqlTools(config['pathPostgresql'])
+    if not missing:
+        return True
+    dprint('--PostgreSQL tools missing: {}--'.format(missing))
+    QMessageBox.warning(parent or iface.mainWindow(), tr_msg('PostgreSQL path'),
+        tr_msg('{} not found in {}. Please set the PostgreSQL path (the folder that contains bin) in the plugin settings.').format(
+            ', '.join(missing), os.path.join(config['pathPostgresql'] or '', 'bin')))
+    return False
         
 def get_item_flag(name):
     try:
@@ -87,8 +100,9 @@ class IDADistrictsPleaseContactDialog(QDialog):
     Compatible with PyQt6 and Qt5/QGIS environments.
     """
 
-    def __init__(self,parent=None):
+    def __init__(self,parent=None,path=None):
         super().__init__(parent)
+        self.path=path
 
         self.setWindowTitle(
             self.tr("ida_districts_not_available")
@@ -123,6 +137,7 @@ class IDADistrictsPleaseContactDialog(QDialog):
         message_label = QLabel(
             self.tr("this_functionality_cannot_currently_be_used_because_ida_districts_is_not_installed")
             + "<br><br>"
+            + (tr_msg("Not found: {}. If IDA Districts is installed, please set its path in the plugin settings.").format(html.escape(self.path)) + "<br><br>" if self.path else "")
             + self.tr("please_contact_equa_or_install_ida_districts_to_use_this_functionality")
             + "<br><br>"
             + self.tr("more_information")

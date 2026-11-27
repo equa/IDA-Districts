@@ -19,6 +19,7 @@ from .files import (
 )
 from .ida_components import getIDAListComponents, pListToCompString, propertyListCompsIDM
 from .sensor_signals import delSensorConnection, delSensorConnectionPList
+from .hidden_simulation import hideSimulationCheckBox
 from .translations import tr, tr_msg
 from .utility import getIDADistrictsVersion, getIDAVersion, getTypeIdByName, safe_eval
 from .workers import (
@@ -80,6 +81,8 @@ class InvokeFeaturesDlg(QDialog):
         layout_buttons.addWidget(self.btn_openInvoked)      
         self.btn_simulateInvoked=QPushButton(self.tr("simulate_invoked_features"))
         layout_buttons.addWidget(self.btn_simulateInvoked)      
+        self.check_hidden = hideSimulationCheckBox()
+        layout_buttons.addWidget(self.check_hidden)
         self.btn_showFeatureLoad=QPushButton(self.tr("plot_selected_features_load_energy"))
         layout_buttons.addWidget(self.btn_showFeatureLoad)    
 
@@ -479,7 +482,7 @@ class InvokeFeatures():
             file_pathes=[config['pathProjects']+"{}\\versions\\{}\\invoked_{}s\\{}_{}.idm".format(self.config['projectName'],self.config['versionName'],self.type,self.type.capitalize(),i)  for i in ids]
             dprint(file_pathes)
 
-            self.worker_simInvoked = WorkerSimulateFilesAPI(file_pathes,self.plugin_dir,config)
+            self.worker_simInvoked = WorkerSimulateFilesAPI(file_pathes,self.plugin_dir,config,hidden=dlg.check_hidden.isChecked())
             QThreadPool.globalInstance().start(self.worker_simInvoked) 
             self.worker_simInvoked.signals.error.connect(self.dlg_invokeFeatures.show_error_message)
             self.worker_simInvoked.signals.progress.connect(self.dlg_invokeFeatures.update_progress)         

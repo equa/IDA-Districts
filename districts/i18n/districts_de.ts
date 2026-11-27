@@ -4403,6 +4403,19 @@ Beide zählen nur über Iteration 0, der Referenz: ein Abnehmer, der schon mit d
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
+            <source>version_npv_info</source>
+            <translation>&lt;b&gt;Barwert (NPV) der Version&lt;/b&gt;&lt;br&gt;
+Berechnet den Barwert der geladenen Version aus ihren Simulationsergebnissen, genau so wie die Kostenoptimierung den Barwert einer Iteration berechnet, ohne zu simulieren: Investition und Wartung von Rohren, Graben und Pumpen, die Energie (Pumpenstrom und die Energie, die Anlagen und Abnehmer kaufen, oder die mit den Preiskurven bewerteten Wärme- und Kälteverluste), der Restwert am Ende des Zeitraums und die Komfortverletzungen.
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Eingaben&lt;/b&gt;: das Wirtschaftlichkeitsszenario (Zins, Zeitraum, Preise pro Jahr, stündliches Strompreisprofil, Preiskurven, Grabenkosten), das Teilmodell, die Preise einer Gradstunde und nicht gedeckter Leistung mit ihren Toleranzen, das Totband zwischen Heizen und Kühlen, die geforderte Leistung der Abnehmer mit Quelldatei und die Etappen eines in Etappen gebauten Netzes. Sie werden aus der letzten Berechnung der Version übernommen, sonst aus ihrer letzten Kostenoptimierung.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Benötigte Ergebnisse&lt;/b&gt;: ein simuliertes Jahr oder die in der Version gespeicherten Wochen eines Periodenlaufs (repräsentative Perioden) mit der Pumpenleistung, den Trassen- und Anlagentemperaturen und den Wärmeverlusten der Trassen; für die Komfortverletzungen die Raumtemperaturen und die Leistung der Abnehmer. Simulieren Sie die Version nach einer Änderung der Rohre erneut.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Berechnen&lt;/b&gt; zeigt die Anteile des Barwerts (eine Spalte pro Etappe) und speichert sie mit den Eingaben im Versionsordner (version_npv.json).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Bericht&lt;/b&gt;: ein HTML-Bericht der letzten Berechnung mit den Eingaben, dem Wirtschaftlichkeitsszenario, den Rohren und Gräben, dem Barwert pro Anteil, den Gleichungen und jedem Term, den Ersatzinvestitionen und Restwerten sowie den Abnehmern mit Komfortverletzungen.&lt;/li&gt;
+&lt;/ul&gt;
+Vergleichen Sie Versionen, indem Sie jede mit denselben Eingaben berechnen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
             <source>economic_scenarios_info</source>
             <translation type="unfinished">&lt;b&gt;Wirtschaftlichkeitsszenarien&lt;/b&gt;&lt;br&gt;
 Ein Szenario enthält die wirtschaftlichen Annahmen der Bewertung einer Version (Netzbericht, Abschnitt &lt;i&gt;Wirtschaftlichkeit&lt;/i&gt;) und der Kostenoptimierung. Jedes Projekt hat das Szenario &lt;i&gt;base&lt;/i&gt; mit Beispielwerten aus öffentlichen Quellen (markiert mit &lt;i&gt;Beispielwerte&lt;/i&gt;); passe sie an das Projekt an oder kopiere ein Szenario, um Annahmen zu vergleichen (z.B. einen höheren Strompreis).
@@ -4416,6 +4429,44 @@ Ein Szenario enthält die wirtschaftlichen Annahmen der Bewertung einer Version 
 &lt;b&gt;Strompreisprofil&lt;/b&gt;: eine stündliche Datei (8760 oder 8784 Werte, .csv/.prn/.txt, die letzte Zahl jeder Zeile) mit dem Verlauf des Strompreises über das Jahr. Sie wird auf einen Mittelwert von 1 skaliert, der Preis einer Stunde = Startpreis × Niveau des Jahres × Profilwert; ohne Profil ist der Preis in jeder Stunde gleich. Die Datei wird in den Ordner prices des Projekts kopiert.&lt;br&gt;
 &lt;b&gt;Szenario kopieren&lt;/b&gt;: kopiert das gewählte Szenario mit allen Zeilen unter einem neuen Namen.&lt;br&gt;
 &lt;b&gt;Rohre&lt;/b&gt;: die Kosten je Meter eines Rohrs (Material und Verlegung), Wartung [%/a], Lebensdauer und max. Druck stehen im Rohrkatalog (&lt;i&gt;Rohre&lt;/i&gt;). Jedes Teil wird am Ende seiner Lebensdauer innerhalb der Dauer ersetzt; seine Wartung pro Jahr ist ein Anteil seiner Investition.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>show_on_map_info</source>
+            <translation>&lt;b&gt;Daten auf Karte anzeigen&lt;/b&gt;&lt;br&gt;
+Zeigt Ergebnisse der geladenen Version als neuen Layer: Die Symbole der Abnehmer, Energiezentralen oder Trassen werden nach dem Wert einer Variablen oder eines Parameters eingefärbt, skaliert und gedreht.
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Simulationsdaten / Messdaten&lt;/b&gt;: die mit &lt;i&gt;Ergebnisse laden&lt;/i&gt; geladenen Ergebnisse oder die in die Datenbank importierten Messdaten.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Abnehmer, Energiezentralen, Trassen&lt;/b&gt;: die angezeigten Objekte. Trassen werden in Segmente der angegebenen Länge geteilt (Vorgabe: Meter pro Knoten der Modellierungseinstellungen), so wird die Temperatur entlang eines Rohrs sichtbar.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Farbe, Grösse, Drehung&lt;/b&gt;: je aus einer &lt;i&gt;Variablen&lt;/i&gt; (ein Ergebnis, mit einer Funktion) oder einem &lt;i&gt;Parameter&lt;/i&gt; (ein Attribut des Objekts). Farbe: Farbverlauf, Anzahl Klassen, Modus (gleiche Anzahl, gleiches Intervall) und Beschriftung; Grösse: Symbolgrösse beim kleinsten und grössten Wert; Drehung: Winkel beim kleinsten und grössten Wert.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Funktion&lt;/b&gt;: &lt;i&gt;Values&lt;/i&gt; und die Stunden-, Tages- und Monatsmittel ergeben einen Wert pro Objekt und Zeitschritt; der Layer wird mit der QGIS-Zeitsteuerung animiert. Max, Min, Average, Sum, First und Last value ergeben einen Wert pro Objekt.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Start- und Enddatum&lt;/b&gt;: nur die Zeitschritte dazwischen werden verwendet.&lt;/li&gt;
+&lt;/ul&gt;
+Mit + im Netzbericht geöffnet, fügt der Dialog dem Bericht eine Kartendarstellung hinzu statt eines Layers; dort stehen nur die Funktionen mit einem Wert pro Objekt zur Wahl.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>load_results_info</source>
+            <translation>&lt;b&gt;Ergebnisse laden&lt;/b&gt;&lt;br&gt;
+Liest die Simulationsergebnisse der geladenen Version (die .prn-Dateien ihres Netzmodells im Versionsordner) in die Ergebnistabellen der Version in der Datenbank, eine Tabelle pro angeforderter Ausgabe (z. B. Raumtemperatur und Leistung der Abnehmer, Energie der Zentralen, Temperatur und Druck der Trassen, Pumpenleistung). Früher geladene Ergebnistabellen werden ersetzt.
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Dateninterpolation, s&lt;/b&gt;: wenn angekreuzt, wird jedes Ergebnis auf diesen Zeitschritt interpoliert (z. B. 3600 für Stundenwerte); die Tabellen werden kleiner und die Kartenanimationen schneller. Nicht angekreuzt bleiben die Zeitschritte der Simulation.&lt;/li&gt;
+&lt;li&gt;Trassentemperaturen werden pro Rohrsegment gespeichert (Meter pro Knoten der Modellierungseinstellungen), Drücke pro halbe Trasse.&lt;/li&gt;
+&lt;/ul&gt;
+Laden Sie die Ergebnisse nach jeder Simulation: &lt;i&gt;Daten auf Karte anzeigen&lt;/i&gt;, die Lastprofile, der Netzbericht und der Barwert der Version lesen diese Tabellen.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>network_report_info</source>
+            <translation>&lt;b&gt;Netzbericht&lt;/b&gt;&lt;br&gt;
+Erstellt einen PDF-Bericht der geladenen Version und öffnet ihn (Drucklayout &lt;i&gt;Network Report&lt;/i&gt;, Datei network_report.pdf im temporären Ordner des Districts Modeler). Die erste Seite zeigt Projekt, Version und eine Karte des Netzes; danach pro Netz:
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Kennzahlen&lt;/b&gt;: Kennzahlen aus den geladenen Ergebnissen, z. B. gelieferte Wärme und Kälte, auch pro Energiebezugsfläche, pro Fläche und pro Meter Netz (Wärmebelegungsdichte).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Rohrtabelle&lt;/b&gt;: Innendurchmesser, Länge und Kosten pro Rohr, mit den Summen.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Wirtschaftlichkeit&lt;/b&gt;: eine Seite mit der Wirtschaftlichkeitsbewertung (Barwert) der Version mit dem gewählten Wirtschaftlichkeitsszenario.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Kartendarstellungen&lt;/b&gt;: + öffnet &lt;i&gt;Daten auf Karte anzeigen&lt;/i&gt;, um eine Darstellung festzulegen (z. B. max. Vorlauftemperatur der Trassen); jede erhält eine Karte mit Legende, zwei pro Seite. − entfernt die gewählte Darstellung.&lt;/li&gt;
+&lt;/ul&gt;
+Laden Sie zuerst die Ergebnisse der Version (&lt;i&gt;Ergebnisse laden&lt;/i&gt;).</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -5471,6 +5522,11 @@ li.checked::marker { content: "\2612"; }
             <location filename="../districts_dialog_base.ui" line="1518" />
             <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_network_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
             <translation type="unfinished">Netzbericht</translation>
+        </message>
+        <message>
+            <location filename="../districts_dialog_base.ui" line="1528" />
+            <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_version_npv&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+            <translation>Barwert (NPV) berechnen</translation>
         </message>
         <message>
             <location filename="../districts_dialog_base.ui" line="1571" />
@@ -7550,6 +7606,26 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
     <context>
         <name>Messages</name>
         <message>
+            <source>Hide the simulation run</source>
+            <translation>Simulationslauf ausblenden</translation>
+        </message>
+        <message>
+            <source>IDA Districts runs the simulation without its window (-W hidden).</source>
+            <translation>IDA Districts rechnet die Simulation ohne sein Fenster (-W hidden).</translation>
+        </message>
+        <message>
+            <source>PostgreSQL path</source>
+            <translation>PostgreSQL-Pfad</translation>
+        </message>
+        <message>
+            <source>{} not found in {}. Please set the PostgreSQL path (the folder that contains bin) in the plugin settings.</source>
+            <translation>{} nicht gefunden in {}. Bitte den PostgreSQL-Pfad (den Ordner, der bin enthält) in den Plugin-Einstellungen setzen.</translation>
+        </message>
+        <message>
+            <source>Not found: {}. If IDA Districts is installed, please set its path in the plugin settings.</source>
+            <translation>Nicht gefunden: {}. Falls IDA Districts installiert ist, bitte seinen Pfad in den Plugin-Einstellungen setzen.</translation>
+        </message>
+        <message>
             <source>Line IDs whose pipes the sizing never changes (no pre-sizing, no enlargement, no reduction) in every pair; their pressure loss still counts for the customers. Saved with the version at the start.</source>
             <translation>Trassen-IDs, deren Rohre die Dimensionierung in keinem Paar ändert (keine Vordimensionierung, keine Vergrösserung, keine Reduktion); ihr Druckverlust zählt weiterhin für die Abnehmer. Wird beim Start mit der Version gespeichert.</translation>
         </message>
@@ -8436,6 +8512,10 @@ Mit Mutterversion vergleichen: zeigt statt des Durchmessers die Differenz des Ro
         <message>
             <source>Please enter a numerical interpolation time!</source>
             <translation>Bitte gib eine Zahl als Interpolationszeit ein!</translation>
+        </message>
+        <message>
+            <source>Please enter a positive interpolation time!</source>
+            <translation>Bitte gib eine positive Interpolationszeit ein!</translation>
         </message>
         <message>
             <source>Please enter a pipe diameter!</source>
@@ -13260,6 +13340,114 @@ Sie sind nicht Teil des Netzmodells, die Simulation wird vermutlich fehlschlagen
         <message>
             <source>A deleted collector type is used by lines ({}); change their type first.</source>
             <translation>Ein gelöschter Kollektortyp wird von Leitungen verwendet ({}); zuerst deren Typ ändern.</translation>
+        </message>
+        <message>
+            <source>the last calculation</source>
+            <translation>der letzten Berechnung</translation>
+        </message>
+        <message>
+            <source>the last cost optimization of the version</source>
+            <translation>der letzten Kostenoptimierung der Version</translation>
+        </message>
+        <message>
+            <source>The results cover {:.0f} days: neither a year nor a period run with its weeks kept.</source>
+            <translation>Die Ergebnisse umfassen {:.0f} Tage: weder ein Jahr noch ein Periodenlauf mit gespeicherten Wochen.</translation>
+        </message>
+        <message>
+            <source>Heating or cooling per hour and supply/return pair from the heat the plants put into the network: losses are priced with the heat price when heating, with the cold price when cooling.</source>
+            <translation>Heizen oder Kühlen pro Stunde und Vor-/Rücklaufpaar aus der Wärme, die die Anlagen ins Netz geben: Verluste werden beim Heizen mit dem Wärmepreis, beim Kühlen mit dem Kältepreis bewertet.</translation>
+        </message>
+        <message>
+            <source>A network built in stages: the loaded version is stage 1 (year 0), each further stage a child version with its own results, from its start year. One row: this version only.</source>
+            <translation>Ein in Etappen gebautes Netz: Die geladene Version ist Etappe 1 (Jahr 0), jede weitere Etappe eine Kindversion mit eigenen Ergebnissen, ab ihrem Startjahr. Eine Zeile: nur diese Version.</translation>
+        </message>
+        <message>
+            <source>Calculate</source>
+            <translation>Berechnen</translation>
+        </message>
+        <message>
+            <source>The net present value of the simulation results of the version with these inputs; nothing is simulated.</source>
+            <translation>Der Barwert der Simulationsergebnisse der Version mit diesen Eingaben; es wird nichts simuliert.</translation>
+        </message>
+        <message>
+            <source>HTML report of the last calculation: inputs incl. the economic scenario, the parts and the terms of the net present value, opened in the browser.</source>
+            <translation>HTML-Bericht der letzten Berechnung: Eingaben inkl. Wirtschaftlichkeitsszenario, Anteile und Terme des Barwerts, im Browser geöffnet.</translation>
+        </message>
+        <message>
+            <source>Evaluating the results ...</source>
+            <translation>Ergebnisse werden ausgewertet ...</translation>
+        </message>
+        <message>
+            <source>The results of the version are missing: {}. Simulate the network with these outputs (or run a cost optimization).</source>
+            <translation>Ergebnisse der Version fehlen: {}. Simulieren Sie das Netz mit diesen Ausgaben (oder führen Sie eine Kostenoptimierung aus).</translation>
+        </message>
+        <message>
+            <source>Inputs as the cost optimization takes them (its defaults).</source>
+            <translation>Eingaben wie bei der Kostenoptimierung (deren Standardwerte).</translation>
+        </message>
+        <message>
+            <source>Choose a scenario and a submodel.</source>
+            <translation>Wählen Sie ein Szenario und ein Teilmodell.</translation>
+        </message>
+        <message>
+            <source>Net present value of the version</source>
+            <translation>Barwert der Version</translation>
+        </message>
+        <message>
+            <source>Net present value: {}</source>
+            <translation>Barwert: {}</translation>
+        </message>
+        <message>
+            <source>Inputs as the cost optimization takes them; filled from {}.</source>
+            <translation>Eingaben wie bei der Kostenoptimierung; übernommen aus {}.</translation>
+        </message>
+        <message>
+            <source>Calculated {}.</source>
+            <translation>Berechnet {}.</translation>
+        </message>
+        <message>
+            <source>The result could not be saved: </source>
+            <translation>Das Ergebnis konnte nicht gespeichert werden: </translation>
+        </message>
+        <message>
+            <source>{} customers with comfort violations: {}</source>
+            <translation>{} Abnehmer mit Komfortverletzungen: {}</translation>
+        </message>
+        <message>
+            <source>Investment per pipe and surface [€]</source>
+            <translation>Investition pro Rohr und Oberfläche [€]</translation>
+        </message>
+        <message>
+            <source>Purchases and residual values [€]</source>
+            <translation>Käufe und Restwerte [€]</translation>
+        </message>
+        <message>
+            <source>The version has no net present value yet; calculate it first.</source>
+            <translation>Die Version hat noch keinen Barwert; berechnen Sie ihn zuerst.</translation>
+        </message>
+        <message>
+            <source>The economic scenario of the calculation does not exist anymore.</source>
+            <translation>Das Wirtschaftlichkeitsszenario der Berechnung existiert nicht mehr.</translation>
+        </message>
+        <message>
+            <source>Calculated</source>
+            <translation>Berechnet</translation>
+        </message>
+        <message>
+            <source>from year</source>
+            <translation>ab Jahr</translation>
+        </message>
+        <message>
+            <source>Net present value of the version – report</source>
+            <translation>Barwert der Version – Bericht</translation>
+        </message>
+        <message>
+            <source>From the simulation results of the version (a year, or the representative weeks of a period run), computed as the cost optimization computes the net present value of an iteration: investment, maintenance, energy, residual value and the comfort violations. Saved at the calculation, with the scenario of then.</source>
+            <translation>Aus den Simulationsergebnissen der Version (ein Jahr oder die repräsentativen Wochen eines Periodenlaufs), berechnet wie die Kostenoptimierung den Barwert einer Iteration berechnet: Investition, Wartung, Energie, Restwert und Komfortverletzungen. Bei der Berechnung gespeichert, mit dem damaligen Szenario.</translation>
+        </message>
+        <message>
+            <source>Customers below their setpoint or required load in the results; priced with the prices of the parameters, they are the part &quot;comfort violations&quot; of the net present value.</source>
+            <translation>Abnehmer unter ihrem Sollwert oder ihrer geforderten Leistung in den Ergebnissen; mit den Preisen der Parameter bewertet sind sie der Anteil «Komfortverletzungen» des Barwerts.</translation>
         </message>
     </context>
 </TS>

@@ -10,6 +10,7 @@ from .files import (
 )
 from .translations import tr, tr_msg
 from .util import IdaOpenError, Util_api
+from .hidden_simulation import windowOptions
 from .utility import (
     copy_tree_filter_extensions_and_folders, getTemplateNameById, getTypeIdByName, getTypeNameById,
     rmtree_long_path, sanitize_pg_identifier, strToDict, write_plugin_settings,
@@ -763,18 +764,19 @@ class WorkerPlotInvokedFeatureLoad(QRunnable):
         
 class WorkerSimulateFilesAPI(QRunnable):
     """ Class to open,simulate, IDA Doc with API """            
-    def __init__(self,file_pathes,plugin_dir,config):
+    def __init__(self,file_pathes,plugin_dir,config,hidden=False):
         super().__init__()
         self.file_pathes=file_pathes
         self.plugin_dir=plugin_dir
         self.config=config
+        self.hidden=hidden
         self.signals=APISignals()
             
     @pyqtSlot()
     def run(self):
         #open file in IDA
         self.signals.progress.emit(1)
-        self.util=Util_api(self.plugin_dir,self.config)
+        self.util=Util_api(self.plugin_dir,self.config,hidden=self.hidden)
 
         dprint(self.util.pid)
         file_path=""
@@ -823,18 +825,19 @@ class WorkerSimulateFilesAPI(QRunnable):
 
 class WorkerSimulateAPI(QRunnable):
     """ Class to open,simulate, IDA Doc with API """            
-    def __init__(self,file_path,plugin_dir,config):
+    def __init__(self,file_path,plugin_dir,config,hidden=False):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
         self.plugin_dir=plugin_dir
         self.config=config
+        self.hidden=hidden
         self.signals=APISignals()
-            
+
     @pyqtSlot()
     def run(self):
         #open file in IDA
         self.signals.progress.emit(1)
-        self.util=Util_api(self.plugin_dir,self.config)
+        self.util=Util_api(self.plugin_dir,self.config,hidden=self.hidden)
 
         dprint(self.util.pid)
         self.building={}
@@ -923,7 +926,7 @@ class WorkerOpenAPI(QRunnable):
 class WorkerOpenModelCmd(QRunnable):
     """Worker thread
     Inherits from QRunnable to handle worker thread setup, signals and wrap-up."""
-    def __init__(self,file_path,config,submodel='1',script=None,progress=True):
+    def __init__(self,file_path,config,submodel='1',script=None,progress=True,hidden=False):
         super().__init__()
         self.file_path=file_path.replace('/','\\')
         self.signals=APISignals()
@@ -931,6 +934,7 @@ class WorkerOpenModelCmd(QRunnable):
         self.config=config
         self.script=script
         self.progress=progress
+        self.hidden=hidden
             
     @pyqtSlot()
     def run(self):
@@ -945,7 +949,7 @@ class WorkerOpenModelCmd(QRunnable):
                 "-C",
                 f"ida_{self.submodel}_{time.strftime('%m%d%H%M%S', time.localtime())}",
                 "-G1"
-            ]
+            ] + windowOptions(self.hidden)
             if self.script:
                 cmd.append('-e')
                 writeToFile(self.script,districtsModelerTempDir(),os.path.join(districtsModelerTempDir(),"script.txt"))

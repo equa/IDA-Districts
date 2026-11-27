@@ -166,6 +166,12 @@ def standardizePath(path: str, create_if_not_exists: bool = False,trailingBackSl
         
     return standardized
     
+POSTGRESQL_TOOLS = ('psql.exe', 'pg_dump.exe')
+
+def missingPostgresqlTools(pathPostgresql: str) -> list:
+    """the PostgreSQL client programs the plugin starts (projects, version copies) that are not in <pathPostgresql>\\bin"""
+    return [tool for tool in POSTGRESQL_TOOLS if not os.path.isfile(os.path.join(pathPostgresql or '', 'bin', tool))]
+
 def getIDAVersion(config):
     return config['ida_version']
     

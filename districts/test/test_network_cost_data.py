@@ -5,6 +5,7 @@ scenario, the electricity profile, the evaluation of synthetic full-year results
 
     python -m pytest test/test_network_cost_data.py -v -s   (--keep-projects)
 """
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -19,7 +20,7 @@ from districts.utility_functions.network_economics import evaluateVersion, trenc
 from districts.utility_functions.reports import economicsRows
 from districts.utility_functions.translations import tr, tr_msg
 
-from .conftest import wait
+from .conftest import wait, wait_until
 from .test_workflow import DB_DEFAULTS, create_project, delete_project, project_name_for
 
 pytestmark = [pytest.mark.e2e]
@@ -137,6 +138,52 @@ class TestNetworkCostData:
         assert tr_msg('Net present value') in labels and tr_msg('Annuity') in labels
         # the simulated 1 kW per line does not match the calculated loss
         assert 1 in evaluation['loss_check']
+
+    def test_version_npv(self, cost):
+        """the NPV of the version in the results tab: the same as an iteration of the cost optimization (evaluation plus the
+        comfort violations), saved, shown in the dialog and in its report"""
+        from districts.cost_optimization import penaltySplit, versionNpvRow
+        from districts.utility_functions.iteration_report import loadVersionNpv, saveVersionNpv, versionNpvReport, writeReport
+        from districts.version_npv_dialog import VersionNpvDialog
+        plugin = cost.plugin
+        parms = {'scenario': base_id(plugin), 'submodel': 'default', 'price_kh': 0.5, 'tolerance': 0.5, 'price_kwh': 1.0, 'unmet_tolerance': 2.0,
+                 'mode_deadband_pct': 5.0, 'stages': [{'version': plugin.config['versionName'], 'start': 0}]}
+        row = versionNpvRow(plugin.cur, plugin.config, parms, SETTINGS, None, [])
+        evaluation = evaluateVersion(plugin.cur, plugin.config, base_id(plugin), SETTINGS)
+        assert row['npv'] == pytest.approx(penaltySplit(evaluation, {}, parms)[2])
+        assert row['npv'] == pytest.approx(evaluation['npv']['npv'])  # no customer results: no comfort violations
+        assert row['split']['penalties'] == 0 and row['economics']['terms'] and 1 in {int(k) for k in row['state']}
+        # a comfort violation of 100 Kh a year costs 50 € a year over the period
+        violated = penaltySplit(evaluation, {7: (100.0, 0.0)}, parms)
+        assert violated[0] == pytest.approx(50.0) and violated[2] > row['npv']
+
+        saveVersionNpv(plugin.config, dict(parms, scenario_name='base'), row)
+        assert loadVersionNpv(plugin.config)['row']['npv'] == pytest.approx(row['npv'])
+        page = versionNpvReport(plugin.cur, plugin.config).html()
+        for text in ('Net present value of the version – report', 'Economic scenario', 'Price curves heat and cold', 'Pipes in use',
+                     'Net present value per part [€]', 'Net present value: equations', 'Net present value: calculation per iteration',
+                     'Investment per pipe and surface [€]', 'Comfort violations', 'Price of a degree hour [€/Kh]'):
+            assert text in page, text
+        assert 'Iteration 0' not in page and 'The sum of the terms differs' not in page
+        assert os.path.basename(writeReport(plugin.cur, plugin.config, 'npv')).startswith('net_present_value_')
+
+        dlg = VersionNpvDialog(plugin)
+        try:
+            # the inputs of the last calculation, its parts in the table
+            assert dlg.spin_price_kh.value() == pytest.approx(0.5) and dlg.combo_scenario.currentData() == base_id(plugin)
+            assert dlg.btn_report.isEnabled() and dlg.table_result.rowCount() >= 2
+            assert dlg.text_info.toPlainText() and 'version_npv_info' not in dlg.text_info.toPlainText()
+            assert dlg.calculate()
+            wait_until(lambda: dlg.btn_calculate.isEnabled(), 120, lambda: dlg.log_edit.toPlainText())
+            assert 'Error' not in dlg.log_edit.toPlainText(), dlg.log_edit.toPlainText()
+            # the dialog takes the project's modelling settings and price profiles, as a run of the cost optimization
+            from districts.utility_functions.files import loadModellingSettings
+            settings = dict(loadModellingSettings(plugin.plugin_dir, plugin.config), mode_deadband_pct=parms['mode_deadband_pct'])
+            prices = os.path.join(plugin.config['pathProjects'] + plugin.config['projectName'], 'prices')
+            expected = versionNpvRow(plugin.cur, plugin.config, dlg.parameters(), settings, prices, dlg.requiredEntries())
+            assert loadVersionNpv(plugin.config)['row']['npv'] == pytest.approx(expected['npv'])
+        finally:
+            dlg.close()
 
     def test_heating_and_cooling_from_the_plants(self, cost, monkeypatch):
         """a low-temperature year: the plant puts heat into the network in the first half, takes it out in the second;

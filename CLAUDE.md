@@ -87,6 +87,9 @@ say what each git command does before you run it.
   in `<project>\requiredLoads.json`. `test_cost_optimization_annual.py` runs
   only with `DISTRICTS_TEST_ANNUAL=1` (hours); the full-mode sensitivity test only with
   `DISTRICTS_TEST_SENSITIVITY_FULL=1` (about 20 min).
+- NPV of a version (change version-npv): `version_npv_dialog.py` (results tab, button `btn_versionNpv`) calls
+  `cost_optimization.versionNpvRow`; the run and the dialog share `evaluateResults`, `penaltySplit` and `stagedNpv`.
+  Result in `versions/<version>/version_npv.json`; report `iteration_report.versionNpvReport` (`writeReport` kind `npv`).
 - Sensitivity analysis (change cost-sensitivity): `utility_functions/sensitivity.py` (parameter rows,
   variant designs, `applyOverrides`: a variant's values on a copy of the scenario, passed to `evaluateVersion` /
   `buildModel` as data or as run parameter `overrides`; the estimate per variant; statistics; result file

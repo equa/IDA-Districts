@@ -4406,6 +4406,19 @@ Both count only above iteration 0, the reference: a customer that is already too
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
+            <source>version_npv_info</source>
+            <translation>&lt;b&gt;Net present value (NPV) of the version&lt;/b&gt;&lt;br&gt;
+Computes the NPV of the loaded version from its simulation results, exactly as the cost optimization computes the NPV of an iteration, without simulating: investment and maintenance of pipes, trench and pumps, the energy (pump energy and the energy the plants and customers buy, or the heat and cold losses priced with the price curves), the residual value at the end of the period and the comfort violations.
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Inputs&lt;/b&gt;: the economic scenario (interest, period, prices per year, hourly electricity profile, price curves, trench costs), the submodel, the prices of a degree hour and of unmet load with their tolerances, the deadband between heating and cooling, the required load of source-file customers and the stages of a network built in stages. They are filled from the last calculation of the version, else from its last cost optimization.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Results needed&lt;/b&gt;: a simulated year, or the weeks of a period run (representative periods) kept in the version, with the pump power, the line and plant temperatures and the line heat losses; for the comfort violations the room temperatures and the power of the customers. Simulate the version again after a change of its pipes.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Calculate&lt;/b&gt; shows the parts of the NPV (one column per stage) and saves them with the inputs in the version folder (version_npv.json).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Report&lt;/b&gt;: an HTML report of the last calculation with the inputs, the economic scenario, the pipes and trenches, the NPV per part, the equations and every term, the replacements and residual values and the customers with comfort violations.&lt;/li&gt;
+&lt;/ul&gt;
+Compare versions by calculating each with the same inputs.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
             <source>economic_scenarios_info</source>
             <translation type="unfinished">&lt;b&gt;Economic scenarios&lt;/b&gt;&lt;br&gt;
 A scenario holds the economic assumptions of the evaluation of a version (network report, section &lt;i&gt;Economics&lt;/i&gt;) and of the cost optimization. Every project has the scenario &lt;i&gt;base&lt;/i&gt; with example values from public sources (marked &lt;i&gt;Example values&lt;/i&gt;); adapt them to the project, or copy a scenario to compare assumptions (e.g. a higher electricity price).
@@ -4419,6 +4432,44 @@ A scenario holds the economic assumptions of the evaluation of a version (networ
 &lt;b&gt;Electricity profile&lt;/b&gt;: an hourly file (8760 or 8784 values, .csv/.prn/.txt, the last number of every line) with the shape of the electricity price over the year. It is scaled to a mean of 1, so the price of an hour = start price × level of the year × profile value; without a profile the price is the same in every hour. The file is copied into the folder prices of the project.&lt;br&gt;
 &lt;b&gt;Copy scenario&lt;/b&gt;: copies the selected scenario with all its rows under a new name.&lt;br&gt;
 &lt;b&gt;Pipes&lt;/b&gt;: the costs per metre of a pipe (material and laying), maintenance [%/a], lifetime and max. pressure are in the pipe catalog (&lt;i&gt;Pipes&lt;/i&gt;). Every part is replaced at the end of its lifetime within the period; its maintenance per year is a share of its investment.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>show_on_map_info</source>
+            <translation>&lt;b&gt;Show data on map&lt;/b&gt;&lt;br&gt;
+Shows results of the loaded version as a new layer: the symbols of the customers, energy plants or lines are colored, sized and rotated by the value of a variable or a parameter.
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Simulation data / measurement data&lt;/b&gt;: the results loaded with &lt;i&gt;Load results&lt;/i&gt;, or the measurement data imported into the database.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Customers, energy plants, lines&lt;/b&gt;: the features shown. Lines are split into segments of the given length (default: metres per node of the modelling settings), so the temperature along a pipe becomes visible.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Color, size, rotation&lt;/b&gt;: each from a &lt;i&gt;variable&lt;/i&gt; (a result, with a function) or a &lt;i&gt;parameter&lt;/i&gt; (an attribute of the feature). Color: color ramp, number of classes, mode (equal count, equal interval) and labels; size: symbol size at the min and max value; rotation: angle at the min and max value.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Function&lt;/b&gt;: &lt;i&gt;Values&lt;/i&gt; and the hourly, daily and monthly averages give one value per feature and time step; the layer is animated with the QGIS temporal controller. Max, Min, Average, Sum, First and Last value give one value per feature.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Start and end date&lt;/b&gt;: only the time steps in between are used.&lt;/li&gt;
+&lt;/ul&gt;
+Opened with + in the network report, the dialog adds a map plot to the report instead of a layer; only the functions with one value per feature are offered there.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>load_results_info</source>
+            <translation>&lt;b&gt;Load results&lt;/b&gt;&lt;br&gt;
+Reads the simulation results of the loaded version (the .prn files of its network model in the version folder) into the result tables of the version in the database, one table per requested output (e.g. room temperature and power of the customers, energy of the plants, temperature and pressure of the lines, pump power). Result tables loaded before are replaced.
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Data interpolation, s&lt;/b&gt;: when checked, every result is interpolated to this time step (e.g. 3600 for hourly values); the tables get smaller and the map animations faster. Unchecked, the time steps of the simulation are kept.&lt;/li&gt;
+&lt;li&gt;Line temperatures are stored per pipe segment (metres per node of the modelling settings), pressures per half line.&lt;/li&gt;
+&lt;/ul&gt;
+Load the results after every simulation: &lt;i&gt;Show data on map&lt;/i&gt;, the load profiles, the network report and the NPV of the version read these tables.</translation>
+        </message>
+        <message>
+            <location filename="../utility_functions/translations.py" line="0" />
+            <source>network_report_info</source>
+            <translation>&lt;b&gt;Network report&lt;/b&gt;&lt;br&gt;
+Creates a PDF report of the loaded version and opens it (print layout &lt;i&gt;Network Report&lt;/i&gt;, file network_report.pdf in the temporary folder of the Districts Modeler). The first page shows project, version and a map of the network; then, per network:
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;KPIs&lt;/b&gt;: key figures from the loaded results, e.g. heat and cold delivered, also per energy reference area, per area and per metre of network (linear heat density).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Pipe table&lt;/b&gt;: inner diameter, length and costs per pipe, with the sums.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Economics&lt;/b&gt;: a page with the economic evaluation (NPV) of the version with the selected economic scenario.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Map plots&lt;/b&gt;: + opens &lt;i&gt;Show data on map&lt;/i&gt; to define a plot (e.g. max. supply temperature of the lines); each plot gets a map with legend, two per page. − removes the selected plot.&lt;/li&gt;
+&lt;/ul&gt;
+Load the results of the version first (&lt;i&gt;Load results&lt;/i&gt;).</translation>
         </message>
         <message>
             <location filename="../utility_functions/translations.py" line="0" />
@@ -5530,6 +5581,11 @@ li.checked::marker { content: "\2612"; }
             <location filename="../districts_dialog_base.ui" line="1518" />
             <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_network_report&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
             <translation type="unfinished">Network report</translation>
+        </message>
+        <message>
+            <location filename="../districts_dialog_base.ui" line="1528" />
+            <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tooltip_version_npv&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+            <translation>Calculate Net Present Value (NPV)</translation>
         </message>
         <message>
             <location filename="../districts_dialog_base.ui" line="1571" />

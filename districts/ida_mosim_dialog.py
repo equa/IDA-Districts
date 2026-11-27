@@ -17,6 +17,7 @@ from .utility_functions.dialog import CheckableComboBox, closeDialog, qt_item_fl
 from .energy_use_dialog import EnergyUseDialog
 from .network_pumps_dialog import NetworkPumpsDialog
 from .utility_functions.files import loadNetworkSimData
+from .utility_functions.hidden_simulation import hideSimulationCheckBox
 from .utility_functions.translations import tr, tr_msg
 
 import os
@@ -659,7 +660,9 @@ class RunNetworkModelDialog(QDialog):
         layout_simtime.addLayout(layout_startup)
         layout_simtime.addLayout(layout_numb_periods)
         layout_simtime.addLayout(layout_calctime)
-        
+        self.check_hidden = hideSimulationCheckBox()
+        layout_simtime.addWidget(self.check_hidden)
+
         #status bar
         self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet("""
@@ -803,6 +806,8 @@ class CalibrateCustomers(QDialog):
         self.btn_startCallibration.setIcon(QIcon(os.path.join(plugin_dir, "icons/Calibration.png")))
         self.btn_startCallibration.setToolTip(tr('@default','tooltip_startCallibration'))
         layout_customer_btn.addWidget(self.btn_startCallibration)
+        self.check_hidden = hideSimulationCheckBox()
+        layout_customer_btn.addWidget(self.check_hidden)
         layout_customer_btn.addItem(QSpacerItem(0,0,QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Minimum))
         layout_selectCustomers.addLayout(layout_customer_btn)
         self.tableWidget_customer = QTableWidget(0,3)   

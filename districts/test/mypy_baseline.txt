@@ -1,6 +1,6 @@
 # Known findings of mypy (test/test_static_mypy.py): count, file, error code, message (tab separated).
 # Written with: python -m pytest test/test_static_mypy.py --update-mypy-baseline
-# Only remove findings here by fixing them. mypy 2.4.1, 966 findings.
+# Only remove findings here by fixing them. mypy 2.4.1, 973 findings.
 2	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "close"
 1	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "cursor"
 65	GenerateNetworkTopology.py	attr-defined	"str" has no attribute "execute"
@@ -124,7 +124,7 @@
 8	utility_functions/templateFiles.py	index	Value of type "object" is not indexable
 4	utility_functions/templateFiles.py	operator	Unsupported operand types for + ("object" and "int")
 4	utility_functions/templateFiles.py	operator	Unsupported operand types for - ("object" and "int")
-504	utility_functions/translations.py	call-arg	Missing positional argument "key" in call to "tr"
+508	utility_functions/translations.py	call-arg	Missing positional argument "key" in call to "tr"
 1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "None", variable has type "str")
 2	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "bool", variable has type "str")
 1	utility_functions/utility.py	assignment	Incompatible types in assignment (expression has type "float", variable has type "str | None")

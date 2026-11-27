@@ -1,7 +1,7 @@
 # coding=utf-8
 """Simulate one IDA Districts model in its own process (the parallel weeks of a period run).
 
-    python-qgis.bat simulate_process.py <model.idm> <work_dir> <result.json> <path IDA Districts>
+    python-qgis.bat simulate_process.py <model.idm> <work_dir> <result.json> <path IDA Districts> [<hidden 0|1>]
 
 Own process: idaapi2.dll holds one IDA connection per process, so parallel simulations in the QGIS process would
 switch each other's connection. Own TEMP folder (<work_dir>/tmp): parallel IDA sessions would overwrite each other's
@@ -92,7 +92,7 @@ def pythonCommand():
     raise RuntimeError('QGIS Python (python-qgis.bat) not found next to {}'.format(sys.executable))
 
 
-def simulateInProcess(model, work_dir, path_districts, start_timeout=SOLVER_START_TIMEOUT_S):
+def simulateInProcess(model, work_dir, path_districts, start_timeout=SOLVER_START_TIMEOUT_S, hidden=False):
     """blocks until the child process ends; returns {'ok': bool, 'errors': [...]}; a week whose solver has not started
     after start_timeout seconds is stopped and fails"""
     os.makedirs(work_dir, exist_ok=True)
@@ -100,7 +100,7 @@ def simulateInProcess(model, work_dir, path_districts, start_timeout=SOLVER_STAR
     log_file = os.path.join(work_dir, 'runner.log')
     if os.path.exists(result_file):
         os.remove(result_file)
-    cmd = pythonCommand() + [os.path.abspath(__file__), model, work_dir, result_file, path_districts]
+    cmd = pythonCommand() + [os.path.abspath(__file__), model, work_dir, result_file, path_districts, '1' if hidden else '0']
     flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
     with open(log_file, 'w') as log:
         process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, creationflags=flags)  # nosec B603
@@ -119,7 +119,7 @@ def simulateInProcess(model, work_dir, path_districts, start_timeout=SOLVER_STAR
         return json.load(f)
 
 
-def main(model, work_dir, result_file, path_districts):
+def main(model, work_dir, result_file, path_districts, hidden='0'):
     errors: list = []
     ok = False
     tmp = os.path.join(work_dir, 'tmp')
@@ -142,7 +142,7 @@ def main(model, work_dir, result_file, path_districts):
         from districts.utility_functions.workers import WorkerSimulateAPI
 
         status = []
-        worker = WorkerSimulateAPI(model, plugin_dir, {'pathDistricts': os.path.join(path_districts, '')})
+        worker = WorkerSimulateAPI(model, plugin_dir, {'pathDistricts': os.path.join(path_districts, '')}, hidden=hidden == '1')
         worker.signals.status.connect(status.append)
         worker.signals.error.connect(errors.append)
         threading.Thread(target=watchIda, args=(worker, result_file, tmp), daemon=True).start()
