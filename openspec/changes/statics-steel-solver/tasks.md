@@ -54,7 +54,7 @@
 ## 8. Validation
 
 - [x] 8.1 Local: from `districts/` the QGIS Python runs `-m pytest -m "not ida"` and it passes, including `test_static_mypy.py` and `test_messages.py`
-- [ ] 8.2 CI: commit, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass
+- [x] 8.2 CI: commit, push to dev and watch the plugin-tests run (`gh run watch`) until both QGIS jobs pass
 - [ ] 8.3 Open: limits and soil stiffnesses from EN 13941-1 / FW 401 Part 10 once the texts are at hand (`friction_min`, `axial_slip_m`, `lateral_slip_m`, `stress_range_allow_n7mm2`, `hoop_stress_allow_n7mm2`, `buckling_safety`)
 - [ ] 8.4 Open: comparison with a network calculated in sisKMR or ROHR2 once one is available
 - [ ] 8.5 Open: friction of twin pipes from FW 401 Part 10 (the level of PHB 12/5 is not reproduced, see D13)
