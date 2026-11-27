@@ -135,7 +135,9 @@ say what each git command does before you run it.
 - CI: `.github/workflows/plugin-tests.yml` runs on every push to `dev`, on a
   self-hosted Windows runner (`.github/RUNNER_SETUP.md`). A push tests only
   QGIS 4.2; QGIS 3.44 runs only on a manual run (`gh workflow run
-  plugin-tests --ref dev`), which `main` needs before a merge. Never write a DB
+  plugin-tests --ref dev`), which `main` needs before a merge. The workflow
+  sets `DISTRICTS_HIDE_IDA=1`: every IDA Districts the tests start runs with
+  `-W hidden` (`utility_functions/hidden_simulation.py`). Never write a DB
   credential into a file, a commit or a command line you print.
 
 ## Changes (OpenSpec)

@@ -47,6 +47,8 @@ jobs:
       DISTRICTS_TEST_DB_PASSWORD: ${{ secrets.DISTRICTS_TEST_DB_PASSWORD }}
       DISTRICTS_TEST_SAMPLES: ${{ vars.DISTRICTS_TEST_SAMPLES || 'C:\EQUA\Projekte\districts\samples' }}
       PYTHON_QGIS: ${{ matrix.python }}
+      # every IDA Districts of the tests started with -W hidden (utility_functions/hidden_simulation.py)
+      DISTRICTS_HIDE_IDA: '1'
     permissions:
       contents: read
     defaults:
@@ -102,6 +104,7 @@ jobs:
       contents: read
     env:
       DISTRICTS_SIM_CASES: ${{ vars.DISTRICTS_SIM_CASES || 'C:\EQUA\Projekte\districts\testing' }}
+      DISTRICTS_HIDE_IDA: '1'
     defaults:
       run:
         shell: powershell

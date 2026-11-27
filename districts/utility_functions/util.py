@@ -40,7 +40,7 @@ class Util_api:
         # Define your path to the IDA Districts bin folder here
         path_to_districts = config['pathDistricts'].replace("\\","\\\\")+"bin\\\\"
         command = "\""+path_to_districts + "ida-districts.exe\" \"" + path_to_districts + "ida.img\" -G1 -C " + str(submodel)+'_'+time.strftime("%m%d%H%M%S", time.localtime())
-        if hidden:
+        if windowOptions(hidden):
             command += " " + " ".join(windowOptions(hidden))
         dprint(command)
         # before the start: the registration of this process is looked for only after this offset

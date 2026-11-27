@@ -8,7 +8,8 @@ from districts.utility_functions import hidden_simulation, workers
 from districts.utility_functions.hidden_simulation import SETTING, hideSimulationCheckBox, windowOptions
 
 
-def test_window_options():
+def test_window_options(monkeypatch):
+    monkeypatch.delenv(hidden_simulation.ENV_HIDE, raising=False)
     assert windowOptions(True) == ['-W', 'hidden']
     assert windowOptions(False) == []
 
@@ -33,6 +34,7 @@ def test_checkbox_keeps_the_choice_of_the_user(qgis_app):
 
 
 def test_batch_call_of_the_calibration(monkeypatch, tmp_path):
+    monkeypatch.delenv(hidden_simulation.ENV_HIDE, raising=False)
     calls = []
 
     class Result:
@@ -102,3 +104,11 @@ def test_hidden_by_default(qgis_app, monkeypatch):
 
     monkeypatch.setattr(hidden_simulation, 'QSettings', Broken)
     assert hidden_simulation.hideSimulationDefault() is True
+
+
+def test_environment_hides_every_start(monkeypatch):
+    """CI sets DISTRICTS_HIDE_IDA=1: also the IDA starts without a dialog run hidden"""
+    monkeypatch.setenv(hidden_simulation.ENV_HIDE, '1')
+    assert windowOptions(False) == ['-W', 'hidden']
+    monkeypatch.setenv(hidden_simulation.ENV_HIDE, '0')
+    assert windowOptions(False) == []
