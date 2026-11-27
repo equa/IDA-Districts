@@ -8,6 +8,7 @@ import os
 import pytest
 
 from districts.utility_functions.dynamic_sizing_results import iterationRows, normalizedSummary
+from districts.utility_functions.ground_collectors import ensureGroundCollectorTables
 from districts.utility_functions.hydraulic_balancing import getLineData, getPairLines, planPipeBundles
 from districts.utility_functions.pipe_pairs import (
     checkPairs, getNetworkSequences, getPlantConnections, iterationOutcome, mergePairPipes, missingResultTables, suggestPairs,
@@ -256,6 +257,9 @@ def hc_cursor():
             user=user, password=password, dbname=PAIRS_PROJECT, connect_timeout=5)
     except psycopg2.OperationalError as e:
         pytest.skip('project {} not available: {}'.format(PAIRS_PROJECT, str(e).splitlines()[0]))
+    # the project is read without loading it; loading a version would add the tables of later builds (upgrade.py)
+    conn.set_session(autocommit=True)
+    ensureGroundCollectorTables(conn.cursor())
     conn.set_session(readonly=True, autocommit=True)
     yield conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor), {'versionName': PAIRS_VERSION}
     conn.close()

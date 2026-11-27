@@ -69,8 +69,10 @@ class TestGroundCollectorRoutes:
     def test_upgrade_of_an_old_project(self, routes):
         plugin = routes.plugin
         v = versionOf(plugin)
-        plugin.cur.execute('ALTER TABLE public.line_types DROP COLUMN ground_collector_id; DROP TABLE public.ground_collectors;'
-                           'ALTER TABLE "{v}".lines DROP COLUMN n_loops, DROP COLUMN t_mean_init;'.format(v=v))  # nosec B608
+        # one statement each: the event trigger restrict_column_alterations fails on a query with several ALTER TABLE
+        plugin.cur.execute('ALTER TABLE public.line_types DROP COLUMN ground_collector_id;')
+        plugin.cur.execute('DROP TABLE public.ground_collectors;')
+        plugin.cur.execute('ALTER TABLE "{v}".lines DROP COLUMN n_loops, DROP COLUMN t_mean_init;'.format(v=v))  # nosec B608
         upgradeVersionDB(plugin.cur, plugin.config)
         upgradeVersionDB(plugin.cur, plugin.config)  # a second load changes nothing
         assert one(plugin, "SELECT to_regclass('public.ground_collectors') IS NOT NULL AS ok;")['ok']
@@ -99,7 +101,7 @@ class TestGroundCollectorRoutes:
         with pytest.raises(gc.CollectorInUse) as used:
             gc.deleteCollector(plugin.cur, collector_id, [v])
         assert used.value.line_ids == {v: [line['id']]}
-        with pytest.raises(psycopg2.errors.ForeignKeyViolation):  # also the database refuses
+        with pytest.raises(psycopg2.errors.RestrictViolation):  # also the database refuses (ON DELETE RESTRICT)
             plugin.cur.execute('DELETE FROM public.ground_collectors WHERE id = %s;', (collector_id,))
         spare = gc.saveCollector(plugin.cur, dict(row, name='spare'))
         gc.deleteCollector(plugin.cur, spare, [v])
@@ -169,6 +171,7 @@ class TestGroundCollectorRoutes:
         assert '(:EO :N "qcollectors" :T ADDER)' in macro and '(1 :SYSTEM "Collector_{}" |QExtracted|)'.format(lid) in macro
         assert ':L "heatbalance_outputfile" :AS "Qcollectors"' in macro and '"Qcoll_kpi_outputfile"' in macro
         assert ':SLOT ("qcollectors")' in open(os.path.join(folder, 'results-macro_1.idc'), encoding='utf-8', errors='replace').read()
+        # fitted with the Kusuda wave the build recalculates from the climate file (the climate macro's)
         assert gc.cachedFit(plugin.cur, gc.readCollectors(plugin.cur)[routes.collector_id],
                             invoke_network.loadModellingSettings(plugin.plugin_dir, plugin.config))['accepted']
 

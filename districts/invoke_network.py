@@ -5,7 +5,7 @@ from qgis.core import Qgis, QgsMessageLog
 import os
 from qgis.PyQt.QtCore import QRunnable, pyqtSlot
 from .cosim import writeCosimMacroIdc, writeCosimMacroIdm
-from .ida_resources import updateClimateTemplate
+from .ida_resources import KUSUDA_KEYS, updateClimateTemplate
 from .invoke_sensors import (
     sensorMacroIdcData, sensorMacroIdmData, sensorProjectIdmConns, sensorProjectIdmMacro,
 )
@@ -228,6 +228,10 @@ class InvokeNetworkModel:
                         # a climate file without one of the quantities the climate macro needs
                         self.signals.error.emit(tr_msg("The climate file cannot be used: {}").format(e))
                         return
+                    # the Kusuda wave was just recalculated from the climate file: the collector fits must use the
+                    # wave of the climate macro, not the one loaded before the build
+                    saved=loadModellingSettings(plugin_dir,config)
+                    modellingSettings=dict(modellingSettings,**{k:saved[k] for k in KUSUDA_KEYS if k in saved})
                 else:
                     self.signals.error.emit(tr_msg("Climate file could not be found: ") + climate_file)
                     return

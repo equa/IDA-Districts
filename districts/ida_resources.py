@@ -529,6 +529,9 @@ WHERE type = {}
     return temp_dir
 
     
+#the modelling settings calculateKusudaSettings derives from the climate file
+KUSUDA_KEYS=('kusuda_tsurfmean','kusuda_tsurfampl','kusuda_theta')
+
 def calculateKusudaSettings(file,modellingSettings):
     # --------------------------------------------------
     # Read climate file
@@ -1197,7 +1200,8 @@ def show_TableDialog(main=False,title='',table='',headers=[],columns='',dropdown
     
 #columns saved as NULL if the cell is empty
 NULLABLE_COLUMNS=['p','mdot','costs','maintenance_pct','lifetime_a','p_max_bar','example',
-    'start_price','escalation_pct','interest_pct','period_a','pump_costs_eur7kw','pump_maintenance_pct','pump_lifetime_a','el_profile_file','default_surface','min_bend_radius_m']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)+PIPE_SERIES_COLUMNS[1:-1]
+    'start_price','escalation_pct','interest_pct','period_a','pump_costs_eur7kw','pump_maintenance_pct','pump_lifetime_a','el_profile_file','default_surface','min_bend_radius_m',
+    'value','source']+MATERIAL_MECHANICAL_COLUMNS+list(PIPE_TWIN_COLUMNS)+PIPE_SERIES_COLUMNS[1:-1]  # value, source: statics_parameters (an empty limit is not set)
 
 def getValuesFromTableRow(dlg,dropdowns,row,columns,checkBoxes):
     values=[]
