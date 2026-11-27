@@ -43,7 +43,7 @@
 - [x] 6.2 `test_statics_fe.py`: Lmax of PHB 12/4 for DN 20–500 at three covers within ±2 %, and the 85 °C / 95 °C cold laying cases of PHB 12/2
 - [x] 6.3 `test_statics_fe.py`: trend of the twin Lmax of PHB 12/5 with the spread 20–60 K, and the bending of a twin with a temperature difference
 - [x] 6.4 `test_statics_checks.py` (no DB): loads and their sources, maximum cover by PUR shear against PHB 9/12 within ±5 %, pads, one-time compensator travel, VTf, limits without source
-- [ ] 6.5 `test_statics_solve.py` (e2e): upgrade of an old version and project, run on the template network, results and result state, refusal of an out-of-date model, cancel keeps the old results, skipped flexible line, child version
+- [x] 6.5 `test_statics_solve.py` (e2e): upgrade of an old version and project, run on the template network, results and result state, refusal of an out-of-date model, cancel keeps the old results, skipped flexible line, child version
 - [x] 6.6 `test_statics_model.py`: the SQL in `statics_db` still equals `DB_versionTablesDefault.txt` and the new override columns reach the model rows
 
 ## 7. Translations and documentation
